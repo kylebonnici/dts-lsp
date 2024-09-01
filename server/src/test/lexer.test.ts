@@ -174,4 +174,14 @@ describe('Lexer', () => {
 		});
 		expect(lexer.tokens[5].value).toEqual(' ');
 	});
+
+	test('White eod line tokens', async () => {
+		const lexer = new Lexer('\n');
+		expect(lexer.tokens.length).toBe(1);
+
+		expect(lexer.tokens[0].tokens).toEqual(expect.arrayContaining([LexerToken.EOL]));
+		expect(lexer.tokens[0].tokens).toEqual(
+			expect.arrayContaining([LexerToken.WHITE_SPACE])
+		);
+	});
 });
