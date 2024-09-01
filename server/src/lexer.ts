@@ -335,7 +335,7 @@ export class Lexer {
 		const match = word.match(/^[A-Za-z_][A-Za-z0-9_]*$/);
 		if (match?.[0]) {
 			this._tokens.push({
-				tokens: [LexerToken.LABEL_NAME, LexerToken.NODE_NAME],
+				tokens: [LexerToken.LABEL_NAME, LexerToken.NODE_NAME, LexerToken.PROPERTY_NAME],
 				value: match?.[0],
 				pos: this.generatePos(word, match?.[0]),
 			});
@@ -947,7 +947,12 @@ export class Lexer {
 		const match = word.match(/^[A-Za-z_]+$/);
 		if (match?.[0]) {
 			this._tokens.push({
-				tokens: [LexerToken.C_IDENTIFIER, LexerToken.LABEL_NAME, LexerToken.NODE_NAME],
+				tokens: [
+					LexerToken.C_IDENTIFIER,
+					LexerToken.LABEL_NAME,
+					LexerToken.NODE_NAME,
+					LexerToken.PROPERTY_NAME,
+				],
 				value: match[0],
 				pos: this.generatePos(word, match[0]),
 			});
