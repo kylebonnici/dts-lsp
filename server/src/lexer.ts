@@ -95,6 +95,9 @@ export class Lexer {
 			.split(/\n/)
 			.map((line) => `${line}\n`);
 		this.lines[this.lines.length - 1] = this.lines[this.lines.length - 1].slice(0, -1);
+		if (text.endsWith('\n')) {
+			this.lines.splice(-1, 1);
+		}
 		this.lexIt();
 	}
 
@@ -269,7 +272,7 @@ export class Lexer {
 				}
 
 				this._tokens.push({
-					tokens: [LexerToken.EOL],
+					tokens: [LexerToken.EOL, LexerToken.WHITE_SPACE],
 					pos: this.generatePos('\n', '\n'),
 				});
 			}
