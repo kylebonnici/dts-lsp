@@ -1,6 +1,6 @@
 import { LexerToken, Position, Token } from './lexer';
 
-enum Issues {
+export enum Issues {
 	VALUE,
 	END_STATMENT,
 	CURLY_OPEN,
@@ -28,30 +28,45 @@ enum Issues {
 
 type AllowNodeDef = 'Both' | 'Ref' | 'Name';
 
-interface Issue {
-	issues: Issues | Issues[];
+export interface Issue {
+	issues: Issues[];
 	pos: Position;
 	priority: number;
-	fix?: string;
 }
 
-interface TokenIndexes {
+export interface TokenIndexes {
 	start: number;
 	end: number;
 }
 
-class DocumentNode {
+export enum SLXType {
+	SLX,
+	ROOT_DTC,
+	DTC_NODE,
+	PROPERTY,
+	DELETE_PROPERTY,
+	DELETE_NODE,
+	VALUE,
+}
+
+export class DocumentNode {
 	public children: DocumentNode[] = [];
+	protected _type: SLXType = SLXType.SLX;
+
+	get type() {
+		return this._type;
+	}
 
 	constructor(public tokenIndexes?: TokenIndexes) {}
 }
 
-class DtcBaseNode extends DocumentNode {
+export class DtcBaseNode extends DocumentNode {
 	constructor(tokenIndexes: TokenIndexes) {
 		super(tokenIndexes);
+		this._type = SLXType.ROOT_DTC;
 	}
 }
-class DtcNode extends DtcBaseNode {
+export class DtcNode extends DtcBaseNode {
 	constructor(
 		tokenIndexes: TokenIndexes,
 		public readonly nameOrRef: string | null,
@@ -60,10 +75,11 @@ class DtcNode extends DtcBaseNode {
 		public readonly address?: number
 	) {
 		super(tokenIndexes);
+		this._type = SLXType.DTC_NODE;
 	}
 }
 
-class DtcProperty extends DocumentNode {
+export class DtcProperty extends DocumentNode {
 	constructor(
 		tokenIndexes: TokenIndexes,
 		public readonly name: string | null,
@@ -74,42 +90,42 @@ class DtcProperty extends DocumentNode {
 	}
 }
 
-class DeleteNode extends DocumentNode {
+export class DeleteNode extends DocumentNode {
 	constructor(tokenIndexes: TokenIndexes, nodeNameOrRef: NodeName | string) {
 		super(tokenIndexes);
 	}
 }
 
-class DeleteProperty extends DocumentNode {
+export class DeleteProperty extends DocumentNode {
 	constructor(tokenIndexes: TokenIndexes, propertyName: string) {
 		super(tokenIndexes);
 	}
 }
 
-type NodeName = { name: string; address?: number };
-type NodePath = (string | null)[];
+export type NodeName = { name: string; address?: number };
+export type NodePath = (string | null)[];
 
-interface PropertyStringValue {
+export interface PropertyStringValue {
 	type: 'STRING' | 'BYTESTRING';
 	value: string | string[];
 }
 
-interface PropertyLabelRefValue {
+export interface PropertyLabelRefValue {
 	value: string | null;
 	labels: string[];
 }
 
-interface PropertyNodePathValue {
+export interface PropertyNodePathValue {
 	value: NodePath | undefined;
 	labels: string[];
 }
 
-interface PropertyNumberValue {
+export interface PropertyNumberValue {
 	type: 'U32' | 'U64' | 'PROP_ENCODED_ARRAY';
 	value: { value: number; type: 'DEC' | 'HEX'; labels: string[] }[];
 }
 
-type PropertyValue = {
+export type PropertyValue = {
 	labels: string[];
 	values: (
 		| PropertyStringValue
@@ -120,10 +136,10 @@ type PropertyValue = {
 	)[];
 };
 
-class Parser {
+export class Parser {
 	document: DocumentNode;
 	positionStack: number[] = [];
-	expected: Issue[] = [];
+	issues: Issue[] = [];
 
 	constructor(private tokens: Token[]) {
 		this.document = new DocumentNode();
@@ -132,10 +148,18 @@ class Parser {
 
 	private parse() {
 		this.positionStack.push(0);
-		while (this.peekIndex() !== this.tokens.length - 1) {
+		if (this.tokens.length === 0) {
+			return;
+		}
+
+		while (this.peekIndex() < this.tokens.length - 1) {
 			this.isRootNodeDefinition(this.document) ||
 				this.isDeleteNode(this.document) ||
 				this.isChildNode(this.document, 'Ref');
+		}
+
+		if (this.positionStack.length !== 1) {
+			throw new Error('Incorrect final stack size');
 		}
 	}
 
@@ -144,14 +168,14 @@ class Parser {
 
 		let nextToken: Token | undefined = this.nextNonWhiteSpaceToken;
 		let expectedToken = LexerToken.FORWARD_SLASH;
-		if (validToken(nextToken, expectedToken)) {
+		if (!validToken(nextToken, expectedToken)) {
 			this.popStack();
 			return false;
 		}
 
 		nextToken = this.nextNonWhiteSpaceToken;
 		expectedToken = LexerToken.CURLY_OPEN;
-		if (validToken(nextToken, expectedToken)) {
+		if (!validToken(nextToken, expectedToken)) {
 			this.popStack();
 			return false;
 		}
@@ -171,7 +195,7 @@ class Parser {
 		const nextToken = this.peekNextToken();
 		const expectedToken = LexerToken.CURLY_CLOSE;
 		if (!validToken(nextToken, expectedToken)) {
-			this.expected.push(this.genIssue(Issues.CURLY_CLOSE, nextToken));
+			this.issues.push(this.genIssue(Issues.CURLY_CLOSE, nextToken));
 		} else {
 			this.nextNonWhiteSpaceToken;
 		}
@@ -179,11 +203,16 @@ class Parser {
 		this.endStatment();
 	}
 
+	// TODO
+	// no ref
+	// c presosessor
+	// terninary
+
 	private endStatment() {
 		const nextToken = this.peekNextToken();
 		const expectedToken = LexerToken.SEMICOLON;
 		if (!validToken(nextToken, expectedToken)) {
-			this.expected.push(this.genIssue(Issues.END_STATMENT, nextToken));
+			this.issues.push(this.genIssue(Issues.END_STATMENT, nextToken));
 		} else {
 			this.nextNonWhiteSpaceToken;
 		}
@@ -237,7 +266,7 @@ class Parser {
 
 		// <nodeName>@
 		if (hasAddress && Number.isNaN(address)) {
-			this.expected.push(this.genIssue(Issues.NODE_ADDRESS, token));
+			this.issues.push(this.genIssue(Issues.NODE_ADDRESS, token));
 		}
 
 		return {
@@ -269,7 +298,7 @@ class Parser {
 					return false;
 				}
 
-				this.expected.push(
+				this.issues.push(
 					this.genIssue([Issues.NODE_NAME, Issues.NODE_REF], this.currentToken)
 				);
 			}
@@ -288,7 +317,7 @@ class Parser {
 		const token = this.nextNonWhiteSpaceToken;
 		if (!validToken(token, LexerToken.CURLY_OPEN)) {
 			if (expectedNode) {
-				this.expected.push(this.genIssue(Issues.CURLY_OPEN, token));
+				this.issues.push(this.genIssue(Issues.CURLY_OPEN, token));
 			} else {
 				// this could be a property
 				this.popStack();
@@ -319,7 +348,7 @@ class Parser {
 		if (!validToken(token, LexerToken.PROPERTY_NAME)) {
 			if (labels.length) {
 				// we have seme lables so we are expecing a property or a node then
-				this.expected.push(
+				this.issues.push(
 					this.genIssue([Issues.PROPERTY_DEFINITION, Issues.NODE_DEFINITION], token)
 				);
 				name = null;
@@ -343,7 +372,7 @@ class Parser {
 			value = this.processValue();
 
 			if (!value.values) {
-				this.expected.push(this.genIssue(Issues.VALUE, token));
+				this.issues.push(this.genIssue(Issues.VALUE, token));
 			}
 
 			this.endStatment();
@@ -403,7 +432,7 @@ class Parser {
 
 		token = this.nextNonWhiteSpaceToken;
 		if (!validToken(token, LexerToken.PROPERTY_NAME)) {
-			this.expected.push(this.genIssue(Issues.PROPERTY_NAME, token));
+			this.issues.push(this.genIssue(Issues.PROPERTY_NAME, token));
 		}
 
 		if (!token?.value) {
@@ -440,7 +469,7 @@ class Parser {
 			];
 
 			if (!value) {
-				this.expected.push(this.genIssue(Issues.VALUE, this.currentToken));
+				this.issues.push(this.genIssue(Issues.VALUE, this.currentToken));
 			}
 
 			if (validToken(this.peekNextToken(), LexerToken.COMMA)) {
@@ -472,7 +501,7 @@ class Parser {
 		}
 
 		if (!token.value.match(/["']$/)) {
-			this.expected.push(
+			this.issues.push(
 				this.genIssue(
 					token.value.endsWith('"') ? Issues.DUOUBE_QUOTE : Issues.SINGLE_QUOTE,
 					token
@@ -504,7 +533,7 @@ class Parser {
 
 		const value = this.processNumericValue() || this.processNodePathOrLabelRefValue();
 		if (!value) {
-			this.expected.push(
+			this.issues.push(
 				this.genIssue([Issues.NUMERIC_VALUE, Issues.NODE_REF, Issues.NODE_PATH], token)
 			);
 			this.mergeStack();
@@ -513,7 +542,7 @@ class Parser {
 
 		token = this.peekNextToken();
 		if (!validToken(token, LexerToken.GT_SYM)) {
-			this.expected.push(this.genIssue(Issues.GT_SYM, token));
+			this.issues.push(this.genIssue(Issues.GT_SYM, token));
 		} else {
 			this.nextNonWhiteSpaceToken;
 		}
@@ -533,7 +562,7 @@ class Parser {
 
 		token = this.peekNextToken();
 		if (!validToken(token, LexerToken.NUMBER)) {
-			this.expected.push(this.genIssue(Issues.BYTESTRING, token));
+			this.issues.push(this.genIssue(Issues.BYTESTRING, token));
 			this.mergeStack();
 			return;
 		}
@@ -545,14 +574,14 @@ class Parser {
 		}
 
 		if (token.value.length % 2 !== 0) {
-			this.expected.push(this.genIssue(Issues.BYTESTRING_EVEN, token));
+			this.issues.push(this.genIssue(Issues.BYTESTRING_EVEN, token));
 		}
 
 		const value = token.value;
 
 		token = this.peekNextToken();
 		if (!validToken(this.peekNextToken(), LexerToken.SQUARE_CLOSE)) {
-			this.expected.push(this.genIssue(Issues.SQUARE_CLOSE, token));
+			this.issues.push(this.genIssue(Issues.SQUARE_CLOSE, token));
 		} else {
 			token = this.nextNonWhiteSpaceToken;
 		}
@@ -637,7 +666,7 @@ class Parser {
 
 		token = this.nextNonWhiteSpaceToken;
 		if (!validToken(token, LexerToken.LABEL_NAME)) {
-			this.expected.push(this.genIssue(Issues.LABEL_NAME, token));
+			this.issues.push(this.genIssue(Issues.LABEL_NAME, token));
 			this.mergeStack();
 			return null;
 		}
@@ -675,7 +704,7 @@ class Parser {
 
 		const labelRef = this.isLabelRef();
 		if (labelRef === undefined) {
-			this.expected.push(this.genIssue([Issues.LABEL_NAME, Issues.NODE_PATH]));
+			this.issues.push(this.genIssue([Issues.LABEL_NAME, Issues.NODE_PATH]));
 			this.popStack();
 
 			// we found &{ then this must be followed by a path but it is not
@@ -708,12 +737,12 @@ class Parser {
 				this.popStack();
 				return;
 			}
-			this.expected.push(this.genIssue(Issues.FORWARD_SLASH_START_PATH));
+			this.issues.push(this.genIssue(Issues.FORWARD_SLASH_START_PATH));
 		}
 
 		const nodeName = this.processNodeName();
 		if (!nodeName) {
-			this.expected.push(this.genIssue(Issues.NODE_NAME));
+			this.issues.push(this.genIssue(Issues.NODE_NAME));
 		}
 
 		const name = nodeName
@@ -758,7 +787,9 @@ class Parser {
 			this.moveStackIndex();
 		}
 
-		return this.tokens.at(this.peekIndex());
+		const token = this.tokens.at(this.peekIndex());
+		this.moveStackIndex();
+		return token;
 	}
 
 	private moveToEndStatement() {
@@ -824,7 +855,7 @@ class Parser {
 	}
 
 	private genIssue = (expectedToken: Issues | Issues[], token?: Token): Issue => ({
-		issues: expectedToken,
+		issues: Array.isArray(expectedToken) ? expectedToken : [expectedToken],
 		pos: token ? token.pos : this.tokens.at(-1)!.pos,
 		priority: this.positionStack.length,
 	});
