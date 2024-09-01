@@ -7,8 +7,24 @@
 		"sourceMap": true,
 		"strict": true,
 		"outDir": "out",
-		"rootDir": "src"
+		"rootDir": "src",
+		"types": ["node", "jest"],
+		"allowJs": true,
+		"skipLibCheck": true,
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"isolatedModules": true,
+		"baseUrl": ".",
+		"noFallthroughCasesInSwitch": true
 	},
 	"include": ["src"],
-	"exclude": ["node_modules", ".vscode-test"]
+	"exclude": [
+		"node_modules",
+		".vscode-test",
+		"**/*.test.*",
+		"**/__mocks__/*",
+		"**/__tests__/*"
+	]
 }
