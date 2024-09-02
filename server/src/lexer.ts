@@ -1,5 +1,5 @@
 export enum LexerToken {
-	WHITE_SPACE,
+	// WHITE_SPACE,
 	PROPERTY_NAME,
 	LABEL_ASSIGN,
 	NODE_NAME,
@@ -41,7 +41,7 @@ export enum LexerToken {
 	SINGLE_QUOTE,
 	COMMA,
 	VALUE,
-	EOL,
+	// EOL,
 
 	C_DEFINE,
 	C_INCLUDE,
@@ -105,13 +105,18 @@ export class Lexer {
 		return !!this.currentChar?.match(/\s/);
 	}
 
+	private get nextChar() {
+		return this.endOfFile ? null : this.lines[this.lineNumber].at(this.columnNumber + 1);
+	}
+
 	private move(): boolean {
 		const onLastLine = this.lineNumber === this.lines.length - 1;
-		const onLastCharOfLine = this.lines[this.lineNumber].length - 1 === this.columnNumber;
+		const onLastCharOfLine = this.lines[this.lineNumber].length <= this.columnNumber;
 
 		// end of file
 		if (onLastLine && onLastCharOfLine) {
 			this.endOfFile = true;
+			this.columnNumber++;
 			return false;
 		}
 
@@ -131,8 +136,11 @@ export class Lexer {
 
 	private getWord(): string {
 		let word = '';
-		while (!this.isWhiteSpace()) {
-			word += this.currentChar;
+		while (
+			!this.isWhiteSpace() &&
+			((word.length && this.currentChar !== ';') || !word.length)
+		) {
+			word += this.currentChar ?? '';
 			const currLine = this.lineNumber;
 
 			if (!this.move() || this.lineNumber !== currLine) {
@@ -179,7 +187,9 @@ export class Lexer {
 			}
 
 			const word = this.getWord();
-			this.process(word);
+			if (word) {
+				this.process(word);
+			}
 		}
 	}
 
@@ -263,30 +273,30 @@ export class Lexer {
 				this._whiteSpace += this.currentChar;
 			} else {
 				if (this._whiteSpace.length) {
-					this._tokens.push({
-						tokens: [LexerToken.WHITE_SPACE],
-						value: this._whiteSpace,
-						pos: this.generatePos(this._whiteSpace, this._whiteSpace),
-					});
+					// this._tokens.push({
+					// 	tokens: [LexerToken.WHITE_SPACE],
+					// 	value: this._whiteSpace,
+					// 	pos: this.generatePos(this._whiteSpace, this._whiteSpace),
+					// });
 					this._whiteSpace = '';
 				}
 
-				this._tokens.push({
-					tokens: [LexerToken.EOL, LexerToken.WHITE_SPACE],
-					pos: this.generatePos('\n', '\n'),
-				});
+				// this._tokens.push({
+				// 	tokens: [LexerToken.EOL, LexerToken.WHITE_SPACE],
+				// 	pos: this.generatePos('\n', '\n'),
+				// });
 			}
 
 			this.move();
 		}
 
 		if (this._whiteSpace.length) {
-			const pos = this.generatePos(this._whiteSpace, this._whiteSpace);
-			this._tokens.push({
-				tokens: [LexerToken.WHITE_SPACE],
-				value: this._whiteSpace,
-				pos: this.endOfFile ? pos : { ...pos, col: pos.col - 1 }, // we need to do this as we have move one step over and are no longer on a white space
-			});
+			// const pos = this.generatePos(this._whiteSpace, this._whiteSpace);
+			// this._tokens.push({
+			// 	tokens: [LexerToken.WHITE_SPACE],
+			// 	value: this._whiteSpace,
+			// 	pos: this.endOfFile ? pos : { ...pos, col: pos.col - 1 }, // we need to do this as we have move one step over and are no longer on a white space
+			// });
 
 			this._whiteSpace = '';
 			return true;
@@ -322,7 +332,7 @@ export class Lexer {
 	}
 
 	private isPropertyName(word: string) {
-		const match = word.match(/^[A-Za-z0-9,\\._\\+-?#]+$/);
+		const match = word.match(/^[A-Za-z0-9,\\._\\+\-?#]+$/);
 		if (match?.[0]) {
 			this._tokens.push({
 				tokens: [LexerToken.PROPERTY_NAME],
@@ -993,7 +1003,7 @@ export class Lexer {
 	private generatePos(word: string, expected: string): Position {
 		return {
 			line: this.lineNumber,
-			col: this.columnNumber - (word.length - 1),
+			col: this.columnNumber - word.length - (this.endOfFile ? 1 : 0),
 			len: expected.length,
 		};
 	}

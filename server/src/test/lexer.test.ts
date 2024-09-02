@@ -118,70 +118,30 @@ describe('Lexer', () => {
 
 	test('White space and position', async () => {
 		const lexer = new Lexer('\n     \tsimpleLabel: \n ');
-		expect(lexer.tokens.length).toBe(6);
-
-		expect(lexer.tokens[0].tokens).toEqual(expect.arrayContaining([LexerToken.EOL]));
-		expect(lexer.tokens[0].pos).toEqual({
-			line: 0,
-			col: 0,
-			len: 1,
-		});
-
-		expect(lexer.tokens[1].tokens).toEqual(
-			expect.arrayContaining([LexerToken.WHITE_SPACE])
-		);
-		expect(lexer.tokens[1].pos).toEqual({
-			line: 1,
-			col: 0,
-			len: 6,
-		});
-		expect(lexer.tokens[1].value).toEqual('     \t');
-
-		expect(lexer.tokens[2].tokens).toEqual(
-			expect.arrayContaining([LexerToken.LABEL_ASSIGN])
-		);
-		expect(lexer.tokens[2].pos).toEqual({
-			line: 1,
-			col: 7,
-			len: 'simpleLabel:'.length,
-		});
-		expect(lexer.tokens[2].value).toEqual('simpleLabel');
-
-		expect(lexer.tokens[3].tokens).toEqual(
-			expect.arrayContaining([LexerToken.WHITE_SPACE])
-		);
-		expect(lexer.tokens[3].pos).toEqual({
-			line: 1,
-			col: 19,
-			len: 1,
-		});
-		expect(lexer.tokens[3].value).toEqual(' ');
-
-		expect(lexer.tokens[4].tokens).toEqual(expect.arrayContaining([LexerToken.EOL]));
-		expect(lexer.tokens[4].pos).toEqual({
-			line: 1,
-			col: 19,
-			len: 1,
-		});
-
-		expect(lexer.tokens[5].tokens).toEqual(
-			expect.arrayContaining([LexerToken.WHITE_SPACE])
-		);
-		expect(lexer.tokens[5].pos).toEqual({
-			line: 2,
-			col: 0,
-			len: 1,
-		});
-		expect(lexer.tokens[5].value).toEqual(' ');
-	});
-
-	test('White eod line tokens', async () => {
-		const lexer = new Lexer('\n');
 		expect(lexer.tokens.length).toBe(1);
 
-		expect(lexer.tokens[0].tokens).toEqual(expect.arrayContaining([LexerToken.EOL]));
 		expect(lexer.tokens[0].tokens).toEqual(
-			expect.arrayContaining([LexerToken.WHITE_SPACE])
+			expect.arrayContaining([LexerToken.LABEL_ASSIGN])
 		);
+		expect(lexer.tokens[0].pos).toEqual({
+			line: 1,
+			col: 6,
+			len: 'simpleLabel:'.length,
+		});
+		expect(lexer.tokens[0].value).toEqual('simpleLabel');
+	});
+
+	test('empty root node', async () => {
+		const lexer = new Lexer('/{};');
+		expect(lexer.tokens.length).toBe(4);
+
+		expect(lexer.tokens[0].tokens).toEqual(
+			expect.arrayContaining([LexerToken.FORWARD_SLASH])
+		);
+		expect(lexer.tokens[1].tokens).toEqual(expect.arrayContaining([LexerToken.CURLY_OPEN]));
+		expect(lexer.tokens[2].tokens).toEqual(
+			expect.arrayContaining([LexerToken.CURLY_CLOSE])
+		);
+		expect(lexer.tokens[3].tokens).toEqual(expect.arrayContaining([LexerToken.SEMICOLON]));
 	});
 });
