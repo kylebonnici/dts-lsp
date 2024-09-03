@@ -731,8 +731,7 @@ export class Parser {
 	private processNumericValues(): NumbersValue | undefined {
 		this.enqueToStack();
 
-		const token = this.moveToNextToken;
-		if (!validToken(token, LexerToken.NUMBER)) {
+		if (!validToken(this.peekNextToken(), LexerToken.NUMBER)) {
 			this.popStack();
 			return;
 		}

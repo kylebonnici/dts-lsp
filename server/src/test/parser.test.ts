@@ -249,13 +249,13 @@ describe('Parser', () => {
 			// ------------ value -----------
 			const values = property.value;
 			expect(values?.tokenIndexes?.start?.pos).toEqual({
-				col: 6,
+				col: 7,
 				len: 1,
 				line: 1,
 			});
 			expect(values?.tokenIndexes?.end?.pos).toEqual({
-				col: 13,
-				len: 2,
+				col: 12,
+				len: 1,
 				line: 1,
 			});
 
@@ -266,14 +266,14 @@ describe('Parser', () => {
 			expect(value?.value instanceof NumbersValue).toBeDefined();
 			const numberValue = value?.value as NumbersValue;
 
-			expect(numberValue.value).toBe(10);
+			expect(numberValue.value[0].value).toBe(10);
 			expect(numberValue.tokenIndexes?.start?.pos).toEqual({
-				col: 10,
+				col: 9,
 				len: 2,
 				line: 1,
 			});
 			expect(numberValue.tokenIndexes?.end?.pos).toEqual({
-				col: 10,
+				col: 9,
 				len: 2,
 				line: 1,
 			});
@@ -284,7 +284,7 @@ describe('Parser', () => {
 				expect.arrayContaining([LexerToken.SEMICOLON])
 			);
 			expect(property.tokenIndexes?.end?.pos).toEqual({
-				col: 5,
+				col: 13,
 				len: 1,
 				line: 1,
 			});

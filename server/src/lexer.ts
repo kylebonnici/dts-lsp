@@ -1,5 +1,4 @@
 export enum LexerToken {
-	// WHITE_SPACE,
 	PROPERTY_NAME,
 	LABEL_ASSIGN,
 	NODE_NAME,
@@ -216,13 +215,13 @@ export class Lexer {
 			this.isCIdenttifier(word) ||
 			this.isLabel(word) ||
 			this.isNodeOrPropertyName(word) ||
+			this.isHex(word) ||
+			this.isDigits(word) ||
 			this.isPropertyName(word) ||
 			this.isNodeNameWithAddress(word) ||
 			this.isDeleteNode(word) ||
 			this.isDeleteProperty(word) ||
 			this.isOmitIfNoRef(word) ||
-			this.isHex(word) ||
-			this.isDigits(word) ||
 			this.isCFalse(word) ||
 			this.isCTrue(word) ||
 			// 2 char words
