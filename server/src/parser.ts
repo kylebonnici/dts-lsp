@@ -313,7 +313,7 @@ export class Parser {
 	}
 
 	private nodeEnd() {
-		const nextToken = this.peekNextToken();
+		const nextToken = this.currentToken;
 		const expectedToken = LexerToken.CURLY_CLOSE;
 		if (!validToken(nextToken, expectedToken)) {
 			this.issues.push(this.genIssue(Issues.CURLY_CLOSE, this.prevToken));
@@ -330,7 +330,7 @@ export class Parser {
 	// terninary
 
 	private endStatment() {
-		const nextToken = this.peekNextToken();
+		const nextToken = this.currentToken;
 		const expectedToken = LexerToken.SEMICOLON;
 		if (!validToken(nextToken, expectedToken)) {
 			this.issues.push(this.genIssue(Issues.END_STATMENT, this.prevToken));
@@ -358,7 +358,7 @@ export class Parser {
 		const labels: LabelNode[] = [];
 
 		// Find all labels before node/property/value.....
-		let token = this.peekNextToken();
+		let token = this.currentToken;
 		while (validToken(token, LexerToken.LABEL_ASSIGN)) {
 			if (token?.value) {
 				const node = new LabelNode(token.value);
@@ -366,14 +366,14 @@ export class Parser {
 				labels.push(node);
 			}
 			this.moveToNextToken;
-			token = this.peekNextToken();
+			token = this.currentToken;
 		}
 
 		return labels;
 	}
 
 	private processNodeName(): NodeName | undefined {
-		const token = this.peekNextToken();
+		const token = this.currentToken;
 		if (!validToken(token, LexerToken.NODE_NAME)) {
 			return;
 		} else {
@@ -491,7 +491,7 @@ export class Parser {
 
 		name = token.value;
 		let result: PropertyValues | undefined;
-		if (validToken(this.peekNextToken(), LexerToken.ASSIGN_OPERATOR)) {
+		if (validToken(this.currentToken, LexerToken.ASSIGN_OPERATOR)) {
 			this.moveToNextToken;
 			result = this.processValue();
 
@@ -592,7 +592,7 @@ export class Parser {
 				this.issues.push(this.genIssue(Issues.VALUE, this.currentToken));
 			}
 
-			if (validToken(this.peekNextToken(), LexerToken.COMMA)) {
+			if (validToken(this.currentToken, LexerToken.COMMA)) {
 				this.moveToNextToken;
 				const next = getValues();
 				value = [...value, ...next];
@@ -647,24 +647,21 @@ export class Parser {
 		this.enqueToStack();
 
 		const firstToken = this.moveToNextToken;
-		let token = firstToken;
-		if (!validToken(token, LexerToken.LT_SYM)) {
+		if (!validToken(firstToken, LexerToken.LT_SYM)) {
 			this.popStack();
 			return;
 		}
 
-		const value = this.processNumericValues() || this.processNodePathOrLabelRefValue();
+		const value =
+			(this.processNumericValues() || this.processNodePathOrLabelRefValue()) ?? null;
 		if (!value) {
 			this.issues.push(
-				this.genIssue([Issues.NUMERIC_VALUE, Issues.NODE_REF, Issues.NODE_PATH], token)
+				this.genIssue([Issues.NUMERIC_VALUE, Issues.NODE_REF, Issues.NODE_PATH], firstToken)
 			);
-			this.mergeStack();
-			return;
 		}
 
-		token = this.peekNextToken();
-		if (!validToken(token, LexerToken.GT_SYM)) {
-			this.issues.push(this.genIssue(Issues.GT_SYM, token));
+		if (!validToken(this.currentToken, LexerToken.GT_SYM)) {
+			this.issues.push(this.genIssue(Issues.GT_SYM, this.prevToken));
 		} else {
 			this.moveToNextToken;
 		}
@@ -710,7 +707,7 @@ export class Parser {
 			return;
 		}
 
-		if (!validToken(this.peekNextToken(), LexerToken.SQUARE_CLOSE)) {
+		if (!validToken(this.currentToken, LexerToken.SQUARE_CLOSE)) {
 			this.issues.push(this.genIssue(Issues.SQUARE_CLOSE, token));
 		} else {
 			this.moveToNextToken;
@@ -731,7 +728,7 @@ export class Parser {
 	private processNumericValues(): NumbersValue | undefined {
 		this.enqueToStack();
 
-		if (!validToken(this.peekNextToken(), LexerToken.NUMBER)) {
+		if (!validToken(this.currentToken, LexerToken.NUMBER)) {
 			this.popStack();
 			return;
 		}
@@ -848,8 +845,8 @@ export class Parser {
 
 	private processNodePathOrLabelRefValue(): LabelRefValue | NodePathValue | undefined {
 		const labels = this.processOptionalLablelAssign();
-		const firstToken = this.peekNextToken();
-		if (!validToken(this.peekNextToken(), LexerToken.AMPERSAND)) {
+		const firstToken = this.currentToken;
+		if (!validToken(this.currentToken, LexerToken.AMPERSAND)) {
 			return;
 		}
 
@@ -941,7 +938,7 @@ export class Parser {
 		// /soc/node/node2@223/....
 		const nodePath = this.processNodePath();
 
-		const lastToken = this.peekNextToken();
+		const lastToken = this.currentToken;
 		if (validToken(lastToken, LexerToken.CURLY_CLOSE)) {
 			this.issues.push(this.genIssue(Issues.CURLY_CLOSE, this.prevToken));
 		} else {
@@ -958,7 +955,7 @@ export class Parser {
 	}
 
 	private get moveToNextToken() {
-		const token = this.tokens.at(this.peekIndex());
+		const token = this.currentToken;
 		this.moveStackIndex();
 		return token;
 	}
@@ -996,17 +993,6 @@ export class Parser {
 
 	get prevToken() {
 		return this.tokens[this.peekIndex() - 1];
-	}
-
-	private peekNextToken(forward = 1) {
-		this.enqueToStack();
-		for (let i = 1; i < forward; i++) {
-			this.moveToNextToken;
-		}
-		const token = this.moveToNextToken;
-		this.popStack();
-
-		return token;
 	}
 
 	private moveStackIndex() {
