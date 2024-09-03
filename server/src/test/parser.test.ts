@@ -19,9 +19,22 @@ describe('Parser', () => {
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.document.children.length).toEqual(1);
 			expect(parser.document.children[0].type).toEqual(SLXType.ROOT_DTC);
-			expect(parser.document.children[0].tokenIndexes).toEqual({
-				start: { col: 0, len: 1, line: 0 },
-				end: { col: 1, len: 1, line: 1 },
+			expect(parser.document.children[0].tokenIndexes?.start?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.FORWARD_SLASH])
+			);
+			expect(parser.document.children[0].tokenIndexes?.start?.pos).toEqual({
+				col: 0,
+				len: 1,
+				line: 0,
+			});
+
+			expect(parser.document.children[0].tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.SEMICOLON])
+			);
+			expect(parser.document.children[0].tokenIndexes?.end?.pos).toEqual({
+				col: 1,
+				len: 1,
+				line: 1,
 			});
 		});
 
@@ -34,6 +47,15 @@ describe('Parser', () => {
 				pos: { len: 1, line: 1, col: 0 },
 				priority: 2,
 			});
+
+			expect(parser.document.children[0].tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.CURLY_CLOSE])
+			);
+			expect(parser.document.children[0].tokenIndexes?.end?.pos).toEqual({
+				col: 0,
+				len: 1,
+				line: 1,
+			});
 		});
 
 		test('Missing close curly only', async () => {
@@ -44,6 +66,15 @@ describe('Parser', () => {
 				issues: [Issues.CURLY_CLOSE],
 				pos: { line: 0, col: 1, len: 1 },
 				priority: 2,
+			});
+
+			expect(parser.document.children[0].tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.SEMICOLON])
+			);
+			expect(parser.document.children[0].tokenIndexes?.end?.pos).toEqual({
+				col: 0,
+				len: 1,
+				line: 1,
 			});
 		});
 
@@ -61,6 +92,15 @@ describe('Parser', () => {
 				pos: { len: 1, col: 1, line: 0 }, // before white space
 				priority: 2,
 			});
+
+			expect(parser.document.children[0].tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.CURLY_OPEN])
+			);
+			expect(parser.document.children[0].tokenIndexes?.end?.pos).toEqual({
+				col: 1,
+				len: 1,
+				line: 0,
+			});
 		});
 	});
 
@@ -71,16 +111,36 @@ describe('Parser', () => {
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.document.children.length).toEqual(1);
 			expect(parser.document.children[0].type).toEqual(SLXType.ROOT_DTC);
-			expect(parser.document.children[0].tokenIndexes).toEqual({
-				start: { len: 1, col: 0, line: 0 },
-				end: { len: 1, col: 1, line: 2 },
+
+			expect(parser.document.children[0].tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.SEMICOLON])
+			);
+			expect(parser.document.children[0].tokenIndexes?.end?.pos).toEqual({
+				col: 1,
+				len: 1,
+				line: 2,
 			});
 
+			// property
 			expect(parser.document.children[0].children.length).toEqual(1);
 			expect(parser.document.children[0].children[0].type).toEqual(SLXType.PROPERTY);
-			expect(parser.document.children[0].children[0].tokenIndexes).toEqual({
-				start: { len: 5, col: 0, line: 1 },
-				end: { len: 1, col: 5, line: 1 },
+
+			expect(parser.document.children[0].children[0].tokenIndexes?.start?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.PROPERTY_NAME])
+			);
+			expect(parser.document.children[0].children[0].tokenIndexes?.start?.pos).toEqual({
+				col: 0,
+				len: 5,
+				line: 1,
+			});
+
+			expect(parser.document.children[0].children[0].tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.SEMICOLON])
+			);
+			expect(parser.document.children[0].children[0].tokenIndexes?.end?.pos).toEqual({
+				col: 5,
+				len: 1,
+				line: 1,
 			});
 		});
 
@@ -98,9 +158,23 @@ describe('Parser', () => {
 
 			expect(parser.document.children[0].children.length).toEqual(1);
 			expect(parser.document.children[0].children[0].type).toEqual(SLXType.PROPERTY);
-			expect(parser.document.children[0].children[0].tokenIndexes).toEqual({
-				start: { len: 5, col: 0, line: 1 },
-				end: { len: 5, col: 0, line: 1 },
+
+			expect(parser.document.children[0].children[0].tokenIndexes?.start?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.PROPERTY_NAME])
+			);
+			expect(parser.document.children[0].children[0].tokenIndexes?.start?.pos).toEqual({
+				col: 0,
+				len: 5,
+				line: 1,
+			});
+
+			expect(parser.document.children[0].children[0].tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.PROPERTY_NAME])
+			);
+			expect(parser.document.children[0].children[0].tokenIndexes?.end?.pos).toEqual({
+				col: 0,
+				len: 5,
+				line: 1,
 			});
 		});
 	});

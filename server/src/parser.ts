@@ -1,3 +1,4 @@
+import { token } from 'aws-sdk/clients/sns';
 import { LexerToken, Position, Token } from './lexer';
 
 export enum Issues {
@@ -35,8 +36,8 @@ export interface Issue {
 }
 
 export interface TokenIndexes {
-	start?: Position;
-	end?: Position;
+	start?: Token;
+	end?: Token;
 }
 
 export enum SLXType {
@@ -46,7 +47,21 @@ export enum SLXType {
 	PROPERTY,
 	DELETE_PROPERTY,
 	DELETE_NODE,
+	VALUE_STRING,
+	VALUE_BYTESTRING,
+	VALUE_REF,
+	LABEL,
+	VALUE_NODE_PATH,
+	NODE_PATH,
+	NODE_NAME,
+	LABEL_REF,
 	VALUE,
+	VALUE_U32,
+	VALUE_U64,
+	VALUE_PROP_ENCODED_ARRAY,
+	VALUE_DEC,
+	VALUE_HEX,
+	VALUES,
 }
 
 export class DocumentNode {
@@ -69,10 +84,9 @@ export class DtcBaseNode extends DocumentNode {
 }
 export class DtcNode extends DtcBaseNode {
 	constructor(
-		public readonly nameOrRef: string | null,
+		public readonly nameOrRef: NodeName | LabelRef | null,
 		public readonly ref: boolean,
-		public readonly labels: string[] = [],
-		public readonly address?: number
+		public readonly labels: LabelNode[] = []
 	) {
 		super();
 		this._type = SLXType.DTC_NODE;
@@ -82,8 +96,8 @@ export class DtcNode extends DtcBaseNode {
 export class DtcProperty extends DocumentNode {
 	constructor(
 		public readonly name: string | null,
-		public readonly value?: PropertyValue,
-		public readonly labels: string[] = []
+		public readonly value?: PropertyValues,
+		public readonly labels: LabelNode[] = []
 	) {
 		super();
 		this._type = SLXType.PROPERTY;
@@ -91,7 +105,7 @@ export class DtcProperty extends DocumentNode {
 }
 
 export class DeleteNode extends DocumentNode {
-	constructor(public readonly nodeNameOrRef: NodeName | string) {
+	constructor(public readonly nodeNameOrRef: NodeName | LabelRef) {
 		super();
 	}
 }
@@ -102,39 +116,116 @@ export class DeleteProperty extends DocumentNode {
 	}
 }
 
-export type NodeName = { name: string; address?: number };
-export type NodePath = (string | null)[];
-
-export interface PropertyStringValue {
-	type: 'STRING' | 'BYTESTRING';
-	value: string | string[];
+export class LabelNode extends DocumentNode {
+	constructor(public readonly label: string) {
+		super();
+		this._type = SLXType.LABEL;
+	}
 }
 
-export interface PropertyLabelRefValue {
-	value: string | null;
-	labels: string[];
+export class NodeName extends DocumentNode {
+	constructor(public readonly name: string, public readonly address?: number) {
+		super();
+		this._type = SLXType.NODE_NAME;
+	}
 }
 
-export interface PropertyNodePathValue {
-	value: NodePath | undefined;
-	labels: string[];
+export class NodePath extends DocumentNode {
+	constructor() {
+		super();
+		this._type = SLXType.NODE_PATH;
+	}
 }
 
-export interface PropertyNumberValue {
-	type: 'U32' | 'U64' | 'PROP_ENCODED_ARRAY';
-	value: { value: number; type: 'DEC' | 'HEX'; labels: string[] }[];
+export class LabelRef extends DocumentNode {
+	constructor(public readonly ref: string | null) {
+		super();
+		this._type = SLXType.LABEL_REF;
+	}
 }
 
-export type PropertyValue = {
-	labels: string[];
-	values: (
-		| PropertyStringValue
-		| PropertyNumberValue
-		| PropertyLabelRefValue
-		| PropertyNodePathValue
-		| null
-	)[];
-};
+export class StringValue extends DocumentNode {
+	constructor(public readonly value: string) {
+		super();
+		this._type = SLXType.VALUE_STRING;
+	}
+}
+
+export class ByteStringValue extends DocumentNode {
+	constructor(public readonly value: StringValue[]) {
+		super();
+		this._type = SLXType.VALUE_BYTESTRING;
+	}
+}
+
+export class LabelRefValue extends DocumentNode {
+	constructor(public readonly value: string | null, public readonly labels: LabelNode[]) {
+		super();
+		this._type = SLXType.VALUE_REF;
+	}
+}
+
+export class NodePathValue extends DocumentNode {
+	constructor(
+		public readonly value: NodePathRef | null,
+		public readonly labels: LabelNode[]
+	) {
+		super();
+		this._type = SLXType.VALUE_NODE_PATH;
+	}
+}
+
+export class NodePathRef extends DocumentNode {
+	constructor(public readonly value: NodePath | null) {
+		super();
+		this._type = SLXType.VALUE_NODE_PATH;
+	}
+}
+
+type AllValueType =
+	| NodePathValue
+	| LabelRefValue
+	| StringValue
+	| ByteStringValue
+	| NumbersValue
+	| null;
+export class PropertyValues extends DocumentNode {
+	constructor(
+		public readonly value: (PropertyValue | null)[],
+		public readonly labels: LabelNode[]
+	) {
+		super();
+		this._type = SLXType.VALUES;
+	}
+}
+
+export class PropertyValue extends DocumentNode {
+	constructor(public readonly value: AllValueType) {
+		super();
+		this._type = SLXType.VALUE;
+	}
+}
+
+export class NumbersValue extends DocumentNode {
+	constructor(
+		public readonly value: NumberValue[],
+		type: SLXType.VALUE_U32 | SLXType.VALUE_U64 | SLXType.VALUE_PROP_ENCODED_ARRAY
+	) {
+		super();
+		this._type = type;
+	}
+}
+
+export class NumberValue extends DocumentNode {
+	constructor(
+		public readonly value: number,
+		type: SLXType.VALUE_HEX | SLXType.VALUE_DEC,
+		public readonly labels: LabelNode[]
+	) {
+		super();
+		this._type = type;
+	}
+}
 
 type Result<T> = {
 	firstToken?: Token;
@@ -193,7 +284,7 @@ export class Parser {
 		this.processNode(child, 'Name');
 
 		const lastToken = this.nodeEnd() ?? nextToken;
-		child.tokenIndexes = { start: firstToken.pos, end: lastToken.pos };
+		child.tokenIndexes = { start: firstToken, end: lastToken };
 		this.mergeStack();
 		return true;
 	}
@@ -240,25 +331,25 @@ export class Parser {
 		return found;
 	}
 
-	private processOptionalLablelAssign(): Result<string[]> {
-		const labels: string[] = [];
+	private processOptionalLablelAssign(): LabelNode[] {
+		const labels: LabelNode[] = [];
 
 		// Find all labels before node/property/value.....
-		const firstToken = this.peekNextToken();
-		let token = firstToken;
+		let token = this.peekNextToken();
 		while (validToken(token, LexerToken.LABEL_ASSIGN)) {
 			if (token?.value) {
-				labels.push(token.value);
+				const node = new LabelNode(token.value);
+				node.tokenIndexes = { start: token, end: token };
+				labels.push(node);
 			}
 			this.moveToNextToken;
 			token = this.peekNextToken();
 		}
-		const lastToken = this.peekNextToken();
 
-		return { firstToken, value: labels, lastToken };
+		return labels;
 	}
 
-	private processNodeName(): Result<NodeName> | undefined {
+	private processNodeName(): NodeName | undefined {
 		const token = this.peekNextToken();
 		if (!validToken(token, LexerToken.NODE_NAME)) {
 			return;
@@ -275,19 +366,15 @@ export class Parser {
 		const name = tmp[0];
 		const address = hasAddress ? Number.parseInt(tmp[1]) : undefined;
 
+		const node = new NodeName(name, address);
+		node.tokenIndexes = { start: token, end: token };
+
 		// <nodeName>@
 		if (hasAddress && Number.isNaN(address)) {
 			this.issues.push(this.genIssue(Issues.NODE_ADDRESS, token));
 		}
 
-		return {
-			firstToken: token,
-			value: {
-				name,
-				address,
-			},
-			lastToken: token,
-		};
+		return node;
 	}
 
 	private isChildNode(parent: DtcBaseNode, allow: AllowNodeDef): boolean {
@@ -296,7 +383,7 @@ export class Parser {
 		const labels = this.processOptionalLablelAssign();
 
 		let isRef = false;
-		let nameOrRef: Result<NodeName | string | null> | undefined;
+		let nameOrRef: NodeName | LabelRef | undefined;
 
 		if (allow === 'Both' || allow === 'Ref') {
 			nameOrRef = this.isLabelRef();
@@ -319,13 +406,7 @@ export class Parser {
 			}
 		}
 
-		const child = new DtcNode(
-			(typeof nameOrRef?.value === 'string' ? nameOrRef.value : nameOrRef?.value?.name) ??
-				null,
-			isRef,
-			labels.value,
-			typeof nameOrRef?.value === 'string' ? undefined : nameOrRef?.value?.address
-		);
+		const child = new DtcNode(nameOrRef ?? null, isRef, labels);
 
 		const expectedNode = nameOrRef && !(typeof nameOrRef === 'string');
 
@@ -351,8 +432,8 @@ export class Parser {
 		const lastToken = this.nodeEnd();
 
 		child.tokenIndexes = {
-			start: labels.firstToken?.pos,
-			end: (lastToken ?? this.currentToken)?.pos,
+			start: labels.at(0)?.tokenIndexes?.start ?? nameOrRef?.tokenIndexes?.start,
+			end: lastToken ?? this.prevToken,
 		};
 
 		this.mergeStack();
@@ -366,10 +447,9 @@ export class Parser {
 
 		let name: string | null;
 		const token = this.moveToNextToken;
-		const firstToken = labels.firstToken ?? token;
 
 		if (!validToken(token, LexerToken.PROPERTY_NAME)) {
-			if (labels.value.length) {
+			if (labels.length) {
 				// we have seme lables so we are expecing a property or a node then
 				this.issues.push(
 					this.genIssue([Issues.PROPERTY_DEFINITION, Issues.NODE_DEFINITION], token)
@@ -388,8 +468,7 @@ export class Parser {
 		}
 
 		name = token.value;
-		let result: Result<PropertyValue> | undefined;
-
+		let result: PropertyValues | undefined;
 		if (validToken(this.peekNextToken(), LexerToken.ASSIGN_OPERATOR)) {
 			this.moveToNextToken;
 			result = this.processValue();
@@ -402,10 +481,10 @@ export class Parser {
 		const lastToken = this.endStatment();
 
 		// create property object
-		const child = new DtcProperty(name, result?.value, labels.value);
+		const child = new DtcProperty(name, result, labels);
 		child.tokenIndexes = {
-			start: firstToken?.pos,
-			end: (lastToken ?? this.currentToken).pos,
+			start: labels.at(0)?.tokenIndexes?.start ?? token,
+			end: lastToken ?? this.prevToken,
 		};
 
 		parent.children.push(child);
@@ -426,13 +505,13 @@ export class Parser {
 		const nodeName = this.processNodeName();
 
 		if (nodeName) {
-			const node = new DeleteNode(nodeName.value);
+			const node = new DeleteNode(nodeName);
 			// TODO node.tokenIndexes = {}
 			parent.children.push(node);
 		} else {
 			const label = this.isLabelRef();
-			if (label?.value) {
-				const node = new DeleteNode(label.value);
+			if (label) {
+				const node = new DeleteNode(label);
 				// TODO node.tokenIndexes = { start: this.peekIndex(2), end: this.peekIndex() }
 				parent.children.push(node);
 			}
@@ -474,12 +553,12 @@ export class Parser {
 		return true;
 	}
 
-	private processValue(): Result<PropertyValue> {
+	private processValue(): PropertyValues {
 		this.enqueToStack();
 
 		const labels = this.processOptionalLablelAssign();
 
-		const getValues = () => {
+		const getValues = (): (PropertyValue | null)[] => {
 			let value = [
 				(this.processStringValue() ||
 					this.processNumericNodePathOrRefValue() ||
@@ -500,17 +579,18 @@ export class Parser {
 			return value;
 		};
 
-		const results = getValues();
+		const values = getValues();
 
 		this.mergeStack();
-		return {
-			firstToken: labels.firstToken ?? results.at(0)?.firstToken,
-			value: { labels: labels.value, values: results.map((r) => r?.value ?? null) },
-			lastToken: results.at(-1)?.lastToken,
+		const node = new PropertyValues(values, labels);
+		node.tokenIndexes = {
+			start: labels.at(0)?.tokenIndexes?.start ?? values.at(0)?.tokenIndexes?.start,
+			end: values.at(-1)?.tokenIndexes?.end,
 		};
+		return node;
 	}
 
-	private processStringValue(): Result<PropertyStringValue> | undefined {
+	private processStringValue(): PropertyValue | undefined {
 		this.enqueToStack();
 
 		const token = this.moveToNextToken;
@@ -532,27 +612,26 @@ export class Parser {
 			);
 		}
 
-		const propValue: PropertyStringValue = {
-			type: 'STRING',
-			value: [token.value],
-		};
+		const propValue = new StringValue(token.value);
+		propValue.tokenIndexes = { start: token, end: token };
 
+		const node = new PropertyValue(propValue);
+		node.tokenIndexes = { start: token, end: token };
 		this.mergeStack();
-		return { firstToken: token, value: propValue, lastToken: token };
+		return node;
 	}
 
-	private processNumericNodePathOrRefValue():
-		| Result<PropertyNumberValue | PropertyLabelRefValue | PropertyNodePathValue>
-		| undefined {
+	private processNumericNodePathOrRefValue(): PropertyValue | undefined {
 		this.enqueToStack();
 
-		let token = this.moveToNextToken;
+		const firstToken = this.moveToNextToken;
+		let token = firstToken;
 		if (!validToken(token, LexerToken.LT_SYM)) {
 			this.popStack();
 			return;
 		}
 
-		const value = this.processNumericValue() || this.processNodePathOrLabelRefValue();
+		const value = this.processNumericValues() || this.processNodePathOrLabelRefValue();
 		if (!value) {
 			this.issues.push(
 				this.genIssue([Issues.NUMERIC_VALUE, Issues.NODE_REF, Issues.NODE_PATH], token)
@@ -569,50 +648,65 @@ export class Parser {
 		}
 
 		this.mergeStack();
-		return value;
+		const node = new PropertyValue(value);
+		node.tokenIndexes = { start: firstToken, end: this.prevToken };
+		return node;
 	}
 
-	private processByteStringValue(): Result<PropertyStringValue> | undefined {
+	private processByteStringValue(): PropertyValue | undefined {
 		this.enqueToStack();
 
 		const firstToken = this.moveToNextToken;
-		let token = firstToken;
+		const token = firstToken;
 		if (!validToken(token, LexerToken.SQUARE_OPEN)) {
 			this.popStack();
 			return;
 		}
 
-		token = this.peekNextToken();
-		if (!validToken(token, LexerToken.NUMBER)) {
+		const values: StringValue[] = [];
+
+		while (validToken(token, LexerToken.NUMBER)) {
+			const token = this.moveToNextToken;
+
+			if (token?.value === undefined) {
+				throw new Error('Token must have value');
+			}
+
+			if (token.value.length % 2 !== 0) {
+				this.issues.push(this.genIssue(Issues.BYTESTRING_EVEN, token));
+			}
+
+			const node = new StringValue(token.value);
+			node.tokenIndexes = { start: token, end: token };
+
+			values.push(node);
+		}
+
+		if (!values.length) {
 			this.issues.push(this.genIssue(Issues.BYTESTRING, token));
 			this.mergeStack();
 			return;
 		}
 
-		token = this.moveToNextToken;
-
-		if (token?.value === undefined) {
-			throw new Error('Token must have value');
-		}
-
-		if (token.value.length % 2 !== 0) {
-			this.issues.push(this.genIssue(Issues.BYTESTRING_EVEN, token));
-		}
-
-		const value = token.value;
-
-		token = this.peekNextToken();
 		if (!validToken(this.peekNextToken(), LexerToken.SQUARE_CLOSE)) {
 			this.issues.push(this.genIssue(Issues.SQUARE_CLOSE, token));
 		} else {
-			token = this.moveToNextToken;
+			this.moveToNextToken;
 		}
 
 		this.mergeStack();
-		return { firstToken, value: { value, type: 'BYTESTRING' }, lastToken: this.prevToken };
+		const byteString = new ByteStringValue(values);
+		byteString.tokenIndexes = {
+			start: values.at(0)?.tokenIndexes?.start,
+			end: values.at(-1)?.tokenIndexes?.end,
+		};
+
+		const node = new PropertyValue(byteString);
+		node.tokenIndexes = { start: firstToken, end: this.prevToken };
+		return node;
 	}
 
-	private processNumericValue(): Result<PropertyNumberValue> | undefined {
+	private processNumericValues(): NumbersValue | undefined {
 		this.enqueToStack();
 
 		const token = this.moveToNextToken;
@@ -621,26 +715,38 @@ export class Parser {
 			return;
 		}
 
-		const result = this.processHex() || this.processDec();
+		let value = this.processHex() || this.processDec();
+		let result: NumberValue[] = [];
+
+		while (value) {
+			result = [...result, value];
+
+			value = this.processHex() || this.processDec();
+		}
 
 		if (result) {
 			const nextValue = this.processHex() || this.processDec();
-			if (nextValue?.value) {
-				result.value.type =
-					result.value.value.length + nextValue.value.value.length === 2
-						? 'U64'
-						: 'PROP_ENCODED_ARRAY';
-				result.value.value = [...result.value.value, ...nextValue.value.value];
+			if (nextValue) {
+				result = [...result, nextValue];
 			}
 		}
 
 		this.mergeStack();
-		return result
-			? { firstToken: undefined, value: result.value, lastToken: undefined }
-			: undefined;
+		let type = SLXType.VALUE_U32;
+		if (result.length === 2) {
+			type = SLXType.VALUE_U64;
+		} else if (result.length > 2) {
+			type = SLXType.VALUE_PROP_ENCODED_ARRAY;
+		}
+		const node = new NumbersValue(result, type);
+		node.tokenIndexes = {
+			start: result.at(0)?.tokenIndexes?.start,
+			end: result.at(-1)?.tokenIndexes?.end,
+		};
+		return node;
 	}
 
-	private processHex(): Result<PropertyNumberValue> | undefined {
+	private processHex(): NumberValue | undefined {
 		this.enqueToStack();
 
 		const labels = this.processOptionalLablelAssign();
@@ -655,19 +761,16 @@ export class Parser {
 		}
 
 		this.mergeStack();
-		return {
-			firstToken: token,
-			value: {
-				value: [
-					{ value: Number.parseInt(token.value, 16), type: 'HEX', labels: labels.value },
-				],
-				type: 'U32',
-			},
-			lastToken: token,
-		};
+		const node = new NumberValue(
+			Number.parseInt(token.value, 16),
+			SLXType.VALUE_HEX,
+			labels
+		);
+		node.tokenIndexes = { start: labels.at(0)?.tokenIndexes?.end ?? token, end: token };
+		return node;
 	}
 
-	private processDec(): Result<PropertyNumberValue> | undefined {
+	private processDec(): NumberValue | undefined {
 		this.enqueToStack();
 
 		const labels = this.processOptionalLablelAssign();
@@ -682,19 +785,19 @@ export class Parser {
 		}
 
 		this.mergeStack();
-		return {
-			firstToken: token,
-			value: {
-				value: [
-					{ value: Number.parseInt(token.value, 10), type: 'DEC', labels: labels.value },
-				],
-				type: 'U32',
-			},
-			lastToken: token,
+		const node = new NumberValue(
+			Number.parseInt(token.value, 10),
+			SLXType.VALUE_DEC,
+			labels
+		);
+		node.tokenIndexes = {
+			start: labels.at(0)?.tokenIndexes?.end ?? token,
+			end: token,
 		};
+		return node;
 	}
 
-	private isLabelRef(): Result<string | null> | undefined {
+	private isLabelRef(): LabelRef | undefined {
 		this.enqueToStack();
 		const firstToken = this.moveToNextToken;
 		let token = firstToken;
@@ -707,82 +810,61 @@ export class Parser {
 		if (!validToken(token, LexerToken.LABEL_NAME)) {
 			this.issues.push(this.genIssue(Issues.LABEL_NAME, token));
 			this.mergeStack();
-			return { firstToken: undefined, value: null, lastToken: undefined };
+			const node = new LabelRef(null);
+			node.tokenIndexes = { start: firstToken, end: firstToken };
+			return node;
 		}
 
 		if (token?.value === undefined) {
 			throw new Error('Token must have value');
 		}
 
+		const node = new LabelRef(token.value);
+		node.tokenIndexes = { start: firstToken, end: token };
 		this.mergeStack();
-		return { firstToken, value: token.value, lastToken: token };
+		return node;
 	}
 
-	private processNodePathOrLabelRefValue():
-		| Result<PropertyLabelRefValue | PropertyNodePathValue>
-		| undefined {
-		this.enqueToStack();
-
+	private processNodePathOrLabelRefValue(): LabelRefValue | NodePathValue | undefined {
 		const labels = this.processOptionalLablelAssign();
-
+		const firstToken = this.peekNextToken();
 		if (!validToken(this.peekNextToken(), LexerToken.AMPERSAND)) {
-			this.popStack();
 			return;
 		}
 
-		const nodePath = this.processNodePath();
+		const nodePath = this.processNodePathRef();
 
 		if (nodePath !== undefined) {
 			this.mergeStack();
-			return {
-				firstToken: labels.firstToken ?? nodePath.firstToken,
-				value: {
-					labels: labels.value,
-					value: nodePath.value,
-				},
-				lastToken: nodePath.lastToken,
+			const node = new NodePathValue(nodePath, labels);
+			node.tokenIndexes = {
+				start: labels.at(0)?.tokenIndexes?.start ?? nodePath.tokenIndexes?.start,
+				end: nodePath.tokenIndexes?.end,
 			};
+			return node;
 		}
 
 		const labelRef = this.isLabelRef();
 		if (labelRef === undefined) {
 			this.issues.push(this.genIssue([Issues.LABEL_NAME, Issues.NODE_PATH]));
-			this.popStack();
 
-			// we found &{ then this must be followed by a path but it is not
-			if (validToken(this.peekNextToken(2), LexerToken.CURLY_OPEN)) {
-				return {
-					firstToken: labels.firstToken ?? this.currentToken,
-					value: {
-						value: [] as NodePath,
-						labels: labels.value,
-					},
-					lastToken: labels.lastToken ?? this.currentToken,
-				};
-			}
-			return {
-				firstToken: labels.firstToken ?? this.currentToken,
-				value: {
-					// we found & then this must be followed by a label name
-					value: null,
-					labels: labels.value,
-				},
-				lastToken: labels.lastToken ?? this.currentToken,
+			const node = new LabelRefValue(null, labels);
+			node.tokenIndexes = {
+				start: labels.at(0)?.tokenIndexes?.end ?? firstToken,
+				end: firstToken,
 			};
+			return node;
 		}
 
-		this.mergeStack();
-		return {
-			firstToken: labels.firstToken ?? labelRef.firstToken,
-			value: {
-				labels: labels.value,
-				value: labelRef.value,
-			},
-			lastToken: labelRef.lastToken,
+		const node = new LabelRefValue(null, labels);
+		node.tokenIndexes = {
+			start: labels.at(0)?.tokenIndexes?.end ?? firstToken,
+			end: labelRef.tokenIndexes?.end,
 		};
+		return node;
 	}
 
-	private processNodeRefPath(first = true): Result<NodePath> | undefined {
+	private processNodePath(first = true): NodePath | undefined {
 		this.enqueToStack();
 
 		const firstToken = this.moveToNextToken;
@@ -799,20 +881,26 @@ export class Parser {
 			this.issues.push(this.genIssue(Issues.NODE_NAME));
 		}
 
-		const name = nodeName?.value
-			? nodeName.value?.address
-				? `${nodeName.value.name}@${nodeName.value.address}`
-				: nodeName.value.name
-			: null;
+		const nodePath = new NodePath();
+		nodePath.tokenIndexes = {
+			start: firstToken,
+			end: nodeName?.tokenIndexes?.end ?? firstToken,
+		};
+		if (nodeName) {
+			nodePath.children.push(nodeName);
+		}
 
-		const next = this.processNodeRefPath(false);
-		const path = [name, ...(next?.value ?? [])];
+		const remaningPath = this.processNodePath(false);
+		if (remaningPath) {
+			nodePath.children.push(...remaningPath.children);
+			nodePath.tokenIndexes.end = remaningPath.tokenIndexes?.end;
+		}
 
 		this.mergeStack();
-		return { firstToken, value: path, lastToken: nodeName?.lastToken };
+		return nodePath;
 	}
 
-	private processNodePath(): Result<NodePath> | undefined {
+	private processNodePathRef(): NodePathRef | undefined {
 		this.enqueToStack();
 
 		const firstToken = this.moveToNextToken;
@@ -831,27 +919,25 @@ export class Parser {
 
 		// now we must have a valid path
 		// /soc/node/node2@223/....
-		const result = this.processNodeRefPath();
+		const nodePath = this.processNodePath();
 
-		if (validToken(this.peekNextToken(), LexerToken.CURLY_CLOSE)) {
+		const lastToken = this.peekNextToken();
+		if (validToken(lastToken, LexerToken.CURLY_CLOSE)) {
 			this.issues.push(this.genIssue(Issues.CURLY_CLOSE, this.prevToken));
 		} else {
-			token = this.moveToNextToken;
+			this.moveToNextToken;
 		}
 
-		if (result) {
-			result.firstToken = firstToken;
-			result.lastToken = token;
-		}
+		const node = new NodePathRef(nodePath ?? null);
+		node.tokenIndexes = {
+			start: firstToken,
+			end: lastToken ?? nodePath?.tokenIndexes?.end ?? this.prevToken,
+		};
 		this.mergeStack();
-		return result;
+		return node;
 	}
 
 	private get moveToNextToken() {
-		// while (validToken(this.tokens[this.peekIndex()], LexerToken.WHITE_SPACE)) {
-		// 	this.moveStackIndex();
-		// }
-
 		const token = this.tokens.at(this.peekIndex());
 		this.moveStackIndex();
 		return token;
