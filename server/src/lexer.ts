@@ -133,12 +133,14 @@ export class Lexer {
 	private get currentChar() {
 		return this.endOfFile ? null : this.lines[this.lineNumber].at(this.columnNumber);
 	}
-
+	static isSytaxChar(char?: string | null) {
+		return !char?.match(/[;=]/);
+	}
 	private getWord(): string {
 		let word = '';
 		while (
 			!this.isWhiteSpace() &&
-			((word.length && this.currentChar !== ';') || !word.length)
+			((word.length && Lexer.isSytaxChar(this.currentChar)) || !word.length)
 		) {
 			word += this.currentChar ?? '';
 			const currLine = this.lineNumber;
