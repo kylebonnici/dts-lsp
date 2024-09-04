@@ -25,6 +25,7 @@ export enum Issues {
 	VALID_NODE_PATH,
 	LABEL_NAME,
 	FORWARD_SLASH_START_PATH,
+	BYTESTRING_HEX,
 }
 
 type AllowNodeDef = 'Both' | 'Ref' | 'Name';
@@ -112,7 +113,7 @@ export class DtcNode extends DtcRootNode {
 export class DtcProperty extends DocumentNode {
 	constructor(
 		public readonly name: string | null,
-		public readonly value: PropertyValues | null,
+		public readonly values: PropertyValues | null,
 		public readonly labels: LabelNode[] = []
 	) {
 		super();
@@ -170,7 +171,7 @@ export class StringValue extends DocumentBase {
 }
 
 export class ByteStringValue extends DocumentBase {
-	constructor(public readonly value: StringValue[]) {
+	constructor(public readonly values: (NumberValue | null)[]) {
 		super();
 		this._type = SLXType.VALUE_BYTESTRING;
 	}
@@ -205,11 +206,11 @@ type AllValueType =
 	| LabelRefValue
 	| StringValue
 	| ByteStringValue
-	| NumbersValue
+	| NumberValues
 	| null;
 export class PropertyValues extends DocumentBase {
 	constructor(
-		public readonly value: (PropertyValue | null)[],
+		public readonly values: (PropertyValue | null)[],
 		public readonly labels: LabelNode[]
 	) {
 		super();
@@ -224,9 +225,9 @@ export class PropertyValue extends DocumentBase {
 	}
 }
 
-export class NumbersValue extends DocumentBase {
+export class NumberValues extends DocumentBase {
 	constructor(
-		public readonly value: NumberValue[],
+		public readonly values: NumberValue[],
 		type: SLXType.VALUE_U32 | SLXType.VALUE_U64 | SLXType.VALUE_PROP_ENCODED_ARRAY
 	) {
 		super();
@@ -244,12 +245,6 @@ export class NumberValue extends DocumentBase {
 		this._type = type;
 	}
 }
-
-type Result<T> = {
-	firstToken?: Token;
-	value: T;
-	lastToken?: Token;
-};
 
 export class Parser {
 	document: DocumentNode;
@@ -271,10 +266,12 @@ export class Parser {
 		while (this.peekIndex() < this.tokens.length - 1) {
 			this.isRootNodeDefinition(this.document) ||
 				this.isDeleteNode(this.document) ||
-				this.isChildNode(this.document, 'Both') ||
 				// not valid syntax but we leave this for the next layer to proecess
 				this.isProperty(this.unhandledNode) ||
-				this.isDeleteProperty(this.unhandledNode);
+				this.isDeleteProperty(this.unhandledNode) ||
+				// Valid use case
+				this.isChildNode(this.document, 'Both');
+
 			// TODO add unknown node to keep moving forward
 		}
 
@@ -485,6 +482,15 @@ export class Parser {
 			}
 		}
 
+		if (
+			validToken(this.currentToken, LexerToken.CURLY_OPEN) &&
+			validToken(this.prevToken, LexerToken.NODE_NAME)
+		) {
+			// this is a node not a property
+			this.popStack();
+			return false;
+		}
+
 		if (!token?.value) {
 			throw new Error('Token must have value');
 		}
@@ -495,7 +501,7 @@ export class Parser {
 			this.moveToNextToken;
 			result = this.processValue();
 
-			if (!result.value.values) {
+			if (!result.values.values) {
 				this.issues.push(this.genIssue(Issues.VALUE, token));
 			}
 		}
@@ -682,29 +688,10 @@ export class Parser {
 			return;
 		}
 
-		const values: StringValue[] = [];
+		const numberValues = this.processNumericValues();
 
-		while (validToken(token, LexerToken.NUMBER)) {
-			const token = this.moveToNextToken;
-
-			if (token?.value === undefined) {
-				throw new Error('Token must have value');
-			}
-
-			if (token.value.length % 2 !== 0) {
-				this.issues.push(this.genIssue(Issues.BYTESTRING_EVEN, token));
-			}
-
-			const node = new StringValue(token.value);
-			node.tokenIndexes = { start: token, end: token };
-
-			values.push(node);
-		}
-
-		if (!values.length) {
+		if (!numberValues?.values.length) {
 			this.issues.push(this.genIssue(Issues.BYTESTRING, token));
-			this.mergeStack();
-			return;
 		}
 
 		if (!validToken(this.currentToken, LexerToken.SQUARE_CLOSE)) {
@@ -713,11 +700,21 @@ export class Parser {
 			this.moveToNextToken;
 		}
 
+		numberValues?.values.forEach((value) => {
+			if ((value.tokenIndexes?.start?.pos.len ?? 0) % 2 !== 0) {
+				this.issues.push(this.genIssue(Issues.BYTESTRING_EVEN, token));
+			}
+
+			if (value.tokenIndexes?.start?.tokens.some((tok) => tok === LexerToken.HEX)) {
+				this.issues.push(this.genIssue(Issues.BYTESTRING_HEX, token));
+			}
+		});
+
 		this.mergeStack();
-		const byteString = new ByteStringValue(values);
+		const byteString = new ByteStringValue(numberValues?.values ?? []);
 		byteString.tokenIndexes = {
-			start: values.at(0)?.tokenIndexes?.start,
-			end: values.at(-1)?.tokenIndexes?.end,
+			start: numberValues?.tokenIndexes?.start,
+			end: numberValues?.tokenIndexes?.end,
 		};
 
 		const node = new PropertyValue(byteString);
@@ -725,7 +722,7 @@ export class Parser {
 		return node;
 	}
 
-	private processNumericValues(): NumbersValue | undefined {
+	private processNumericValues(): NumberValues | undefined {
 		this.enqueToStack();
 
 		if (!validToken(this.currentToken, LexerToken.NUMBER)) {
@@ -756,7 +753,7 @@ export class Parser {
 		} else if (result.length > 2) {
 			type = SLXType.VALUE_PROP_ENCODED_ARRAY;
 		}
-		const node = new NumbersValue(result, type);
+		const node = new NumberValues(result, type);
 		node.tokenIndexes = {
 			start: result.at(0)?.tokenIndexes?.start,
 			end: result.at(-1)?.tokenIndexes?.end,
@@ -874,7 +871,7 @@ export class Parser {
 			return node;
 		}
 
-		const node = new LabelRefValue(null, labels);
+		const node = new LabelRefValue(labelRef.ref, labels);
 		node.tokenIndexes = {
 			start: labels.at(0)?.tokenIndexes?.end ?? firstToken,
 			end: labelRef.tokenIndexes?.end,

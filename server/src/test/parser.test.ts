@@ -4,7 +4,18 @@
  * ------------------------------------------------------------------------------------------ */
 
 import { Lexer, LexerToken, Token } from '../lexer';
-import { DtcNode, Issues, NodeName, NumbersValue, Parser, SLXType } from '../parser';
+import {
+	ByteStringValue,
+	DtcNode,
+	DtcRootNode,
+	Issues,
+	LabelRef,
+	LabelRefValue,
+	NodeName,
+	NumberValues as NumberValues,
+	Parser,
+	SLXType,
+} from '../parser';
 import { describe, test, expect } from '@jest/globals';
 
 describe('Parser', () => {
@@ -239,7 +250,7 @@ describe('Parser', () => {
 			});
 
 			// ------------ value -----------
-			const values = property.value;
+			const values = property.values;
 			expect(values?.tokenIndexes?.start?.pos).toEqual({
 				col: 7,
 				len: 1,
@@ -251,14 +262,14 @@ describe('Parser', () => {
 				line: 1,
 			});
 
-			expect(values?.value.length).toBe(1);
-			const value = values?.value[0] ?? null;
+			expect(values?.values.length).toBe(1);
+			const value = values?.values[0] ?? null;
 
 			expect(value).toBeDefined();
-			expect(value?.value instanceof NumbersValue).toBeTruthy();
-			const numberValue = value?.value as NumbersValue;
+			expect(value?.value instanceof NumberValues).toBeTruthy();
+			const numberValue = value?.value as NumberValues;
 
-			expect(numberValue.value[0].value).toBe(10);
+			expect(numberValue.values[0].value).toBe(10);
 			expect(numberValue.tokenIndexes?.start?.pos).toEqual({
 				col: 9,
 				len: 2,
@@ -319,7 +330,7 @@ describe('Parser', () => {
 			});
 
 			// ------------ value -----------
-			const values = property.value;
+			const values = property.values;
 			expect(values?.tokenIndexes?.start?.pos).toEqual({
 				col: 7,
 				len: 1,
@@ -331,8 +342,8 @@ describe('Parser', () => {
 				line: 1,
 			});
 
-			expect(values?.value.length).toBe(1);
-			const value = values?.value[0] ?? null;
+			expect(values?.values.length).toBe(1);
+			const value = values?.values[0] ?? null;
 
 			expect(value).toBeDefined();
 			expect(value?.value).toBeNull();
@@ -394,7 +405,7 @@ describe('Parser', () => {
 			});
 
 			// ------------ value -----------
-			const values = property.value;
+			const values = property.values;
 			expect(values?.tokenIndexes?.start?.pos).toEqual({
 				col: 7,
 				len: 1,
@@ -406,8 +417,8 @@ describe('Parser', () => {
 				line: 1,
 			});
 
-			expect(values?.value.length).toBe(1);
-			const value = values?.value[0] ?? null;
+			expect(values?.values.length).toBe(1);
+			const value = values?.values[0] ?? null;
 
 			expect(value).toBeDefined();
 			expect(value?.value).toBeNull();
@@ -477,7 +488,7 @@ describe('Parser', () => {
 			});
 
 			// ------------ value -----------
-			const values = property.value;
+			const values = property.values;
 			expect(values?.tokenIndexes?.start?.pos).toEqual({
 				col: 7,
 				len: 1,
@@ -489,8 +500,8 @@ describe('Parser', () => {
 				line: 1,
 			});
 
-			expect(values?.value.length).toBe(1);
-			const value = values?.value[0] ?? null;
+			expect(values?.values.length).toBe(1);
+			const value = values?.values[0] ?? null;
 
 			expect(value).toBeDefined();
 			expect(value?.value).toBeNull();
@@ -573,7 +584,7 @@ describe('Parser', () => {
 			});
 
 			// ------------ value -----------
-			const values1 = property1.value;
+			const values1 = property1.values;
 			expect(values1?.tokenIndexes?.start?.pos).toEqual({
 				col: 7,
 				len: 1,
@@ -585,8 +596,8 @@ describe('Parser', () => {
 				line: 1,
 			});
 
-			expect(values1?.value.length).toBe(1);
-			const valu1 = values1?.value[0] ?? null;
+			expect(values1?.values.length).toBe(1);
+			const valu1 = values1?.values[0] ?? null;
 
 			expect(valu1).toBeDefined();
 			expect(valu1?.value).toBeNull();
@@ -605,7 +616,7 @@ describe('Parser', () => {
 			});
 
 			// ------------ value -----------
-			const values2 = property2.value;
+			const values2 = property2.values;
 			expect(values2?.tokenIndexes?.start?.pos).toEqual({
 				col: 7,
 				len: 1,
@@ -617,8 +628,8 @@ describe('Parser', () => {
 				line: 1,
 			});
 
-			expect(values2?.value.length).toBe(1);
-			const value2 = values1?.value[0] ?? null;
+			expect(values2?.values.length).toBe(1);
+			const value2 = values1?.values[0] ?? null;
 
 			expect(value2).toBeDefined();
 			expect(value2?.value).toBeNull();
@@ -783,6 +794,520 @@ describe('Parser', () => {
 				col: 1,
 				len: 1,
 				line: 1,
+			});
+		});
+
+		test('referance node', async () => {
+			const rootNode = '&nodeRef { \n};';
+			const parser = new Parser(new Lexer(rootNode).tokens);
+			expect(parser.issues.length).toEqual(0);
+			expect(parser.document.nodes.length).toEqual(1);
+			expect(parser.document.nodes[0] instanceof DtcNode).toBeTruthy();
+			const node = parser.document.nodes[0] as DtcNode;
+			expect(node.labels.length).toEqual(0);
+			expect(node.nameOrRef instanceof LabelRef).toBeTruthy();
+			const nodeName = node.nameOrRef as LabelRef;
+
+			expect(nodeName.ref).toBe('nodeRef');
+			expect(nodeName.tokenIndexes?.start?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.AMPERSAND])
+			);
+			expect(node.tokenIndexes?.start?.pos).toEqual({
+				col: 0,
+				len: 1,
+				line: 0,
+			});
+
+			expect(nodeName.tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.LABEL_NAME])
+			);
+			expect(nodeName.tokenIndexes?.end?.pos).toEqual({
+				col: 1,
+				len: 7,
+				line: 0,
+			});
+
+			expect(node.tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.SEMICOLON])
+			);
+			expect(node.tokenIndexes?.end?.pos).toEqual({
+				col: 1,
+				len: 1,
+				line: 1,
+			});
+		});
+	});
+
+	describe('Dtc nested node', () => {
+		test('nested named nodes', async () => {
+			const rootNode = 'nodeName1 { \nnodeName2 { \n};\n};';
+			const parser = new Parser(new Lexer(rootNode).tokens);
+			expect(parser.issues.length).toEqual(0);
+			expect(parser.document.nodes.length).toEqual(1);
+			expect(parser.document.nodes[0] instanceof DtcNode).toBeTruthy();
+			const topNode = parser.document.nodes[0] as DtcNode;
+			expect(topNode.labels.length).toEqual(0);
+			expect(topNode.nameOrRef instanceof NodeName).toBeTruthy();
+			const nodeName1 = topNode.nameOrRef as NodeName;
+
+			expect(nodeName1.name).toBe('nodeName1');
+			expect(topNode.tokenIndexes?.start?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.NODE_NAME])
+			);
+			expect(topNode.tokenIndexes?.start?.pos).toEqual({
+				col: 0,
+				len: 9,
+				line: 0,
+			});
+
+			expect(topNode.tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.SEMICOLON])
+			);
+			expect(topNode.tokenIndexes?.end?.pos).toEqual({
+				col: 1,
+				len: 1,
+				line: 3,
+			});
+
+			const childNode = topNode.nodes[0] as DtcNode;
+			expect(topNode.nodes.length).toEqual(1);
+			expect(childNode.labels.length).toEqual(0);
+			expect(childNode.nameOrRef instanceof NodeName).toBeTruthy();
+			const nodeName2 = childNode.nameOrRef as NodeName;
+
+			expect(nodeName2.name).toBe('nodeName2');
+			expect(childNode.tokenIndexes?.start?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.NODE_NAME])
+			);
+			expect(childNode.tokenIndexes?.start?.pos).toEqual({
+				col: 0,
+				len: 9,
+				line: 1,
+			});
+
+			expect(childNode.tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.SEMICOLON])
+			);
+			expect(childNode.tokenIndexes?.end?.pos).toEqual({
+				col: 1,
+				len: 1,
+				line: 2,
+			});
+		});
+
+		test('nested named nodes', async () => {
+			const rootNode = '/ { \nnodeName2 { \n};\n};';
+			const parser = new Parser(new Lexer(rootNode).tokens);
+			expect(parser.issues.length).toEqual(0);
+			expect(parser.document.nodes.length).toEqual(1);
+			expect(parser.document.nodes[0] instanceof DtcRootNode).toBeTruthy();
+			const topNode = parser.document.nodes[0] as DtcRootNode;
+
+			expect(topNode.tokenIndexes?.start?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.FORWARD_SLASH])
+			);
+			expect(topNode.tokenIndexes?.start?.pos).toEqual({
+				col: 0,
+				len: 1,
+				line: 0,
+			});
+
+			expect(topNode.tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.SEMICOLON])
+			);
+			expect(topNode.tokenIndexes?.end?.pos).toEqual({
+				col: 1,
+				len: 1,
+				line: 3,
+			});
+
+			const childNode = topNode.nodes[0] as DtcNode;
+			expect(topNode.nodes.length).toEqual(1);
+			expect(childNode.labels.length).toEqual(0);
+			expect(childNode.nameOrRef instanceof NodeName).toBeTruthy();
+			const nodeName2 = childNode.nameOrRef as NodeName;
+
+			expect(nodeName2.name).toBe('nodeName2');
+			expect(childNode.tokenIndexes?.start?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.NODE_NAME])
+			);
+			expect(childNode.tokenIndexes?.start?.pos).toEqual({
+				col: 0,
+				len: 9,
+				line: 1,
+			});
+
+			expect(childNode.tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.SEMICOLON])
+			);
+			expect(childNode.tokenIndexes?.end?.pos).toEqual({
+				col: 1,
+				len: 1,
+				line: 2,
+			});
+		});
+	});
+
+	describe('Properties assign with all types', () => {
+		test('property with u32', async () => {
+			const rootNode = 'prop=< 10 >;';
+			const parser = new Parser(new Lexer(rootNode).tokens);
+			expect(parser.issues.length).toEqual(0);
+			expect(parser.unhandledNode.properties.length).toEqual(1);
+			const property = parser.unhandledNode.properties[0];
+
+			expect(property.name).toBe('prop');
+			expect(property.tokenIndexes?.start?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.PROPERTY_NAME])
+			);
+			expect(property.tokenIndexes?.start?.pos).toEqual({
+				col: 0,
+				len: 4,
+				line: 0,
+			});
+
+			expect(property.tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.SEMICOLON])
+			);
+			expect(property.tokenIndexes?.end?.pos).toEqual({
+				col: 11,
+				len: 1,
+				line: 0,
+			});
+
+			expect(property.values).toBeDefined();
+			const values = property.values;
+			expect(values?.tokenIndexes?.start?.pos).toStrictEqual({ len: 1, col: 5, line: 0 });
+			expect(values?.tokenIndexes?.end?.pos).toStrictEqual({ len: 1, col: 10, line: 0 });
+
+			expect(values?.values.length).toBe(1);
+			expect(values?.values[0]?.value instanceof NumberValues).toBeTruthy();
+			const value = values?.values[0]?.value as NumberValues;
+
+			expect(value.values.length).toBe(1);
+
+			expect(value.values[0].value).toBe(10);
+			expect(value.values[0].tokenIndexes?.start?.pos).toStrictEqual({
+				len: 2,
+				col: 7,
+				line: 0,
+			});
+			expect(value.values[0].tokenIndexes?.start?.pos).toStrictEqual(
+				value.values[0].tokenIndexes?.end?.pos
+			);
+		});
+
+		test('property with u64', async () => {
+			const rootNode = 'prop=< 10 20 >;';
+			const parser = new Parser(new Lexer(rootNode).tokens);
+			expect(parser.issues.length).toEqual(0);
+			expect(parser.unhandledNode.properties.length).toEqual(1);
+			const property = parser.unhandledNode.properties[0];
+
+			expect(property.name).toBe('prop');
+			expect(property.tokenIndexes?.start?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.PROPERTY_NAME])
+			);
+			expect(property.tokenIndexes?.start?.pos).toEqual({
+				col: 0,
+				len: 4,
+				line: 0,
+			});
+
+			expect(property.tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.SEMICOLON])
+			);
+			expect(property.tokenIndexes?.end?.pos).toEqual({
+				col: 14,
+				len: 1,
+				line: 0,
+			});
+
+			expect(property.values).toBeDefined();
+			const propertyValues = property.values;
+			expect(propertyValues?.tokenIndexes?.start?.pos).toStrictEqual({
+				len: 1,
+				col: 5,
+				line: 0,
+			});
+			expect(propertyValues?.tokenIndexes?.end?.pos).toStrictEqual({
+				len: 1,
+				col: 13,
+				line: 0,
+			});
+
+			expect(propertyValues?.values.length).toBe(1);
+
+			expect(propertyValues?.values[0]?.value instanceof NumberValues).toBeTruthy();
+			const numberValues = propertyValues?.values[0]?.value as NumberValues;
+
+			expect(numberValues.values.length).toBe(2);
+
+			expect(numberValues.values[0].value).toBe(10);
+			expect(numberValues.values[0].tokenIndexes?.start?.pos).toStrictEqual({
+				len: 2,
+				col: 7,
+				line: 0,
+			});
+			expect(numberValues.values[0].tokenIndexes?.start?.pos).toStrictEqual(
+				numberValues.values[0].tokenIndexes?.end?.pos
+			);
+
+			expect(numberValues.values[1].value).toBe(20);
+			expect(numberValues.values[1].tokenIndexes?.start?.pos).toStrictEqual({
+				len: 2,
+				col: 10,
+				line: 0,
+			});
+			expect(numberValues.values[1].tokenIndexes?.start?.pos).toStrictEqual(
+				numberValues.values[1].tokenIndexes?.end?.pos
+			);
+		});
+
+		test('property with prop encoded array', async () => {
+			const rootNode = 'prop=< 10 20 30 >;';
+			const parser = new Parser(new Lexer(rootNode).tokens);
+			expect(parser.issues.length).toEqual(0);
+			expect(parser.unhandledNode.properties.length).toEqual(1);
+			const property = parser.unhandledNode.properties[0];
+
+			expect(property.name).toBe('prop');
+			expect(property.tokenIndexes?.start?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.PROPERTY_NAME])
+			);
+			expect(property.tokenIndexes?.start?.pos).toEqual({
+				col: 0,
+				len: 4,
+				line: 0,
+			});
+
+			expect(property.tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.SEMICOLON])
+			);
+			expect(property.tokenIndexes?.end?.pos).toEqual({
+				col: 17,
+				len: 1,
+				line: 0,
+			});
+
+			expect(property.values).toBeDefined();
+			const propertyValues = property.values;
+			expect(propertyValues?.tokenIndexes?.start?.pos).toStrictEqual({
+				len: 1,
+				col: 5,
+				line: 0,
+			});
+			expect(propertyValues?.tokenIndexes?.end?.pos).toStrictEqual({
+				len: 1,
+				col: 16,
+				line: 0,
+			});
+
+			expect(propertyValues?.values.length).toBe(1);
+
+			expect(propertyValues?.values[0]?.value instanceof NumberValues).toBeTruthy();
+			const numberValues = propertyValues?.values[0]?.value as NumberValues;
+
+			expect(numberValues.values.length).toBe(3);
+
+			expect(numberValues.values[0].value).toBe(10);
+			expect(numberValues.values[0].tokenIndexes?.start?.pos).toStrictEqual({
+				len: 2,
+				col: 7,
+				line: 0,
+			});
+			expect(numberValues.values[0].tokenIndexes?.start?.pos).toStrictEqual(
+				numberValues.values[0].tokenIndexes?.end?.pos
+			);
+
+			expect(numberValues.values[1].value).toBe(20);
+			expect(numberValues.values[1].tokenIndexes?.start?.pos).toStrictEqual({
+				len: 2,
+				col: 10,
+				line: 0,
+			});
+			expect(numberValues.values[1].tokenIndexes?.start?.pos).toStrictEqual(
+				numberValues.values[1].tokenIndexes?.end?.pos
+			);
+
+			expect(numberValues.values[2].value).toBe(30);
+			expect(numberValues.values[2].tokenIndexes?.start?.pos).toStrictEqual({
+				len: 2,
+				col: 13,
+				line: 0,
+			});
+			expect(numberValues.values[2].tokenIndexes?.start?.pos).toStrictEqual(
+				numberValues.values[2].tokenIndexes?.end?.pos
+			);
+		});
+
+		test('property with multiple u32', async () => {
+			const rootNode = 'prop=< 10 >,< 20 >;';
+			const parser = new Parser(new Lexer(rootNode).tokens);
+			expect(parser.issues.length).toEqual(0);
+			expect(parser.unhandledNode.properties.length).toEqual(1);
+			const property = parser.unhandledNode.properties[0];
+
+			expect(property.name).toBe('prop');
+			expect(property.tokenIndexes?.start?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.PROPERTY_NAME])
+			);
+			expect(property.tokenIndexes?.start?.pos).toEqual({
+				col: 0,
+				len: 4,
+				line: 0,
+			});
+
+			expect(property.tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.SEMICOLON])
+			);
+			expect(property.tokenIndexes?.end?.pos).toEqual({
+				col: 18,
+				len: 1,
+				line: 0,
+			});
+
+			expect(property.values).toBeDefined();
+			const propertyValues = property.values;
+			expect(propertyValues?.tokenIndexes?.start?.pos).toStrictEqual({
+				len: 1,
+				col: 5,
+				line: 0,
+			});
+			expect(propertyValues?.tokenIndexes?.end?.pos).toStrictEqual({
+				len: 1,
+				col: 17,
+				line: 0,
+			});
+
+			expect(propertyValues?.values.length).toBe(2);
+			expect(propertyValues?.values[0]?.value instanceof NumberValues).toBeTruthy();
+			const numberValues1 = propertyValues?.values[0]?.value as NumberValues;
+
+			expect(numberValues1.values.length).toBe(1);
+
+			expect(numberValues1.values[0].value).toBe(10);
+			expect(numberValues1.values[0].tokenIndexes?.start?.pos).toStrictEqual({
+				len: 2,
+				col: 7,
+				line: 0,
+			});
+			expect(numberValues1.values[0].tokenIndexes?.start?.pos).toStrictEqual(
+				numberValues1.values[0].tokenIndexes?.end?.pos
+			);
+
+			const numberValues2 = propertyValues?.values[1]?.value as NumberValues;
+
+			expect(numberValues2.values.length).toBe(1);
+
+			expect(numberValues2.values[0].value).toBe(20);
+			expect(numberValues2.values[0].tokenIndexes?.start?.pos).toStrictEqual({
+				len: 2,
+				col: 14,
+				line: 0,
+			});
+			expect(numberValues2.values[0].tokenIndexes?.start?.pos).toStrictEqual(
+				numberValues2.values[0].tokenIndexes?.end?.pos
+			);
+		});
+
+		test('property with label ref', async () => {
+			const rootNode = 'prop=< &nodeLabel >;';
+			const parser = new Parser(new Lexer(rootNode).tokens);
+			expect(parser.issues.length).toEqual(0);
+			expect(parser.unhandledNode.properties.length).toEqual(1);
+			const property = parser.unhandledNode.properties[0];
+
+			expect(property.name).toBe('prop');
+			expect(property.tokenIndexes?.start?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.PROPERTY_NAME])
+			);
+			expect(property.tokenIndexes?.start?.pos).toEqual({
+				col: 0,
+				len: 4,
+				line: 0,
+			});
+
+			expect(property.tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.SEMICOLON])
+			);
+			expect(property.tokenIndexes?.end?.pos).toEqual({
+				col: 19,
+				len: 1,
+				line: 0,
+			});
+
+			expect(property.values).toBeDefined();
+			const values = property.values;
+			expect(values?.tokenIndexes?.start?.pos).toStrictEqual({ len: 1, col: 5, line: 0 });
+			expect(values?.tokenIndexes?.end?.pos).toStrictEqual({ len: 1, col: 18, line: 0 });
+
+			expect(values?.values.length).toBe(1);
+			expect(values?.values[0]?.value instanceof LabelRefValue).toBeTruthy();
+			const labelRef = values?.values[0]?.value as LabelRefValue;
+
+			expect(labelRef.value).toBe('nodeLabel');
+			expect(labelRef.labels.length).toBe(0);
+
+			expect(labelRef.tokenIndexes?.start?.pos).toStrictEqual({
+				len: 1,
+				col: 7,
+				line: 0,
+			});
+			expect(labelRef.tokenIndexes?.end?.pos).toStrictEqual({
+				len: 9,
+				col: 8,
+				line: 0,
+			});
+		});
+
+		test('property with byte string', async () => {
+			const rootNode = 'prop=[ 10 20 30 ];';
+			const parser = new Parser(new Lexer(rootNode).tokens);
+			expect(parser.issues.length).toEqual(0);
+			expect(parser.unhandledNode.properties.length).toEqual(1);
+			const property = parser.unhandledNode.properties[0];
+
+			expect(property.name).toBe('prop');
+			expect(property.tokenIndexes?.start?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.PROPERTY_NAME])
+			);
+			expect(property.tokenIndexes?.start?.pos).toEqual({
+				col: 0,
+				len: 4,
+				line: 0,
+			});
+
+			expect(property.tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.SEMICOLON])
+			);
+			expect(property.tokenIndexes?.end?.pos).toEqual({
+				col: 17,
+				len: 1,
+				line: 0,
+			});
+
+			expect(property.values).toBeDefined();
+			const values = property.values;
+			expect(values?.tokenIndexes?.start?.pos).toStrictEqual({ len: 1, col: 5, line: 0 });
+			expect(values?.tokenIndexes?.end?.pos).toStrictEqual({ len: 1, col: 16, line: 0 });
+
+			expect(values?.values.length).toBe(1);
+			expect(values?.values[0]?.value instanceof ByteStringValue).toBeTruthy();
+			const numberValues = values?.values[0]?.value as ByteStringValue;
+
+			expect(numberValues.values.length).toBe(3);
+			expect(numberValues.values.map((v) => v?.value)).toStrictEqual([10, 20, 30]);
+
+			expect(numberValues.tokenIndexes?.start?.pos).toStrictEqual({
+				len: 2,
+				col: 7,
+				line: 0,
+			});
+			expect(numberValues.tokenIndexes?.end?.pos).toStrictEqual({
+				len: 2,
+				col: 13,
+				line: 0,
 			});
 		});
 	});
