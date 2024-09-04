@@ -14,15 +14,10 @@ import {
 	NodeName,
 	NumberValues as NumberValues,
 	Parser,
-	SLXType,
 } from '../parser';
 import { describe, test, expect } from '@jest/globals';
 
 describe('Parser', () => {
-	test('Empty docment', async () => {
-		const parser = new Parser([]);
-		expect(parser.document.type).toEqual(SLXType.SLX);
-	});
 	describe('Empty root node', () => {
 		test('Complete', async () => {
 			const rootNode = '/{ \n};';
@@ -152,7 +147,6 @@ describe('Parser', () => {
 
 			expect(parser.document.nodes.length).toEqual(1);
 			const node = parser.document.nodes[0];
-			expect(node.type).toEqual(SLXType.ROOT_DTC);
 
 			expect(node.properties.length).toEqual(1);
 			const property = node.properties[0];

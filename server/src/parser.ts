@@ -41,33 +41,7 @@ export interface TokenIndexes {
 	end?: Token;
 }
 
-export enum SLXType {
-	SLX,
-	ROOT_DTC,
-	DTC_NODE,
-	PROPERTY,
-	DELETE_PROPERTY,
-	DELETE_NODE,
-	VALUE_STRING,
-	VALUE_BYTESTRING,
-	VALUE_REF,
-	LABEL,
-	VALUE_NODE_PATH,
-	NODE_PATH,
-	NODE_NAME,
-	LABEL_REF,
-	VALUE,
-	VALUE_U32,
-	VALUE_U64,
-	VALUE_PROP_ENCODED_ARRAY,
-	VALUE_DEC,
-	VALUE_HEX,
-	VALUES,
-	UNHANDLED_NODE_ITMS,
-}
-
 export abstract class DocumentBase {
-	protected _type: SLXType = SLXType.SLX;
 	public tokenIndexes?: TokenIndexes;
 }
 
@@ -75,12 +49,7 @@ export class DocumentNode extends DocumentBase {
 	public nodes: DtcBaseNode[] = [];
 	public deleteNodes: DeleteNode[] = [];
 
-	protected _type: SLXType = SLXType.SLX;
 	public tokenIndexes?: TokenIndexes;
-
-	get type() {
-		return this._type;
-	}
 }
 
 export class DtcBaseNode extends DocumentNode {
@@ -89,14 +58,12 @@ export class DtcBaseNode extends DocumentNode {
 
 	constructor() {
 		super();
-		this._type = SLXType.UNHANDLED_NODE_ITMS;
 	}
 }
 
 export class DtcRootNode extends DtcBaseNode {
 	constructor() {
 		super();
-		this._type = SLXType.ROOT_DTC;
 	}
 }
 export class DtcNode extends DtcRootNode {
@@ -106,7 +73,6 @@ export class DtcNode extends DtcRootNode {
 		public readonly labels: LabelNode[] = []
 	) {
 		super();
-		this._type = SLXType.DTC_NODE;
 	}
 }
 
@@ -117,7 +83,6 @@ export class DtcProperty extends DocumentNode {
 		public readonly labels: LabelNode[] = []
 	) {
 		super();
-		this._type = SLXType.PROPERTY;
 	}
 }
 
@@ -136,14 +101,12 @@ export class DeleteProperty extends DocumentBase {
 export class LabelNode extends DocumentBase {
 	constructor(public readonly label: string) {
 		super();
-		this._type = SLXType.LABEL;
 	}
 }
 
 export class NodeName extends DocumentBase {
 	constructor(public readonly name: string, public readonly address?: number) {
 		super();
-		this._type = SLXType.NODE_NAME;
 	}
 }
 
@@ -152,35 +115,30 @@ export class NodePath extends DocumentBase {
 
 	constructor() {
 		super();
-		this._type = SLXType.NODE_PATH;
 	}
 }
 
 export class LabelRef extends DocumentBase {
 	constructor(public readonly ref: string | null) {
 		super();
-		this._type = SLXType.LABEL_REF;
 	}
 }
 
 export class StringValue extends DocumentBase {
 	constructor(public readonly value: string) {
 		super();
-		this._type = SLXType.VALUE_STRING;
 	}
 }
 
 export class ByteStringValue extends DocumentBase {
 	constructor(public readonly values: (NumberValue | null)[]) {
 		super();
-		this._type = SLXType.VALUE_BYTESTRING;
 	}
 }
 
 export class LabelRefValue extends DocumentBase {
 	constructor(public readonly value: string | null, public readonly labels: LabelNode[]) {
 		super();
-		this._type = SLXType.VALUE_REF;
 	}
 }
 
@@ -190,14 +148,12 @@ export class NodePathValue extends DocumentBase {
 		public readonly labels: LabelNode[]
 	) {
 		super();
-		this._type = SLXType.VALUE_NODE_PATH;
 	}
 }
 
 export class NodePathRef extends DocumentBase {
 	constructor(public readonly value: NodePath | null) {
 		super();
-		this._type = SLXType.VALUE_NODE_PATH;
 	}
 }
 
@@ -214,35 +170,24 @@ export class PropertyValues extends DocumentBase {
 		public readonly labels: LabelNode[]
 	) {
 		super();
-		this._type = SLXType.VALUES;
 	}
 }
 
 export class PropertyValue extends DocumentBase {
 	constructor(public readonly value: AllValueType) {
 		super();
-		this._type = SLXType.VALUE;
 	}
 }
 
 export class NumberValues extends DocumentBase {
-	constructor(
-		public readonly values: NumberValue[],
-		type: SLXType.VALUE_U32 | SLXType.VALUE_U64 | SLXType.VALUE_PROP_ENCODED_ARRAY
-	) {
+	constructor(public readonly values: NumberValue[]) {
 		super();
-		this._type = type;
 	}
 }
 
 export class NumberValue extends DocumentBase {
-	constructor(
-		public readonly value: number,
-		type: SLXType.VALUE_HEX | SLXType.VALUE_DEC,
-		public readonly labels: LabelNode[]
-	) {
+	constructor(public readonly value: number, public readonly labels: LabelNode[]) {
 		super();
-		this._type = type;
 	}
 }
 
@@ -747,13 +692,7 @@ export class Parser {
 		}
 
 		this.mergeStack();
-		let type = SLXType.VALUE_U32;
-		if (result.length === 2) {
-			type = SLXType.VALUE_U64;
-		} else if (result.length > 2) {
-			type = SLXType.VALUE_PROP_ENCODED_ARRAY;
-		}
-		const node = new NumberValues(result, type);
+		const node = new NumberValues(result);
 		node.tokenIndexes = {
 			start: result.at(0)?.tokenIndexes?.start,
 			end: result.at(-1)?.tokenIndexes?.end,
@@ -776,11 +715,7 @@ export class Parser {
 		}
 
 		this.mergeStack();
-		const node = new NumberValue(
-			Number.parseInt(token.value, 16),
-			SLXType.VALUE_HEX,
-			labels
-		);
+		const node = new NumberValue(Number.parseInt(token.value, 16), labels);
 		node.tokenIndexes = { start: labels.at(0)?.tokenIndexes?.end ?? token, end: token };
 		return node;
 	}
@@ -800,11 +735,7 @@ export class Parser {
 		}
 
 		this.mergeStack();
-		const node = new NumberValue(
-			Number.parseInt(token.value, 10),
-			SLXType.VALUE_DEC,
-			labels
-		);
+		const node = new NumberValue(Number.parseInt(token.value, 10), labels);
 		node.tokenIndexes = {
 			start: labels.at(0)?.tokenIndexes?.end ?? token,
 			end: token,
