@@ -104,10 +104,6 @@ export class Lexer {
 		return !!this.currentChar?.match(/\s/);
 	}
 
-	private get nextChar() {
-		return this.endOfFile ? null : this.lines[this.lineNumber].at(this.columnNumber + 1);
-	}
-
 	private move(): boolean {
 		const onLastLine = this.lineNumber === this.lines.length - 1;
 		const onLastCharOfLine = this.lines[this.lineNumber].length <= this.columnNumber;
@@ -133,7 +129,7 @@ export class Lexer {
 		return this.endOfFile ? null : this.lines[this.lineNumber].at(this.columnNumber);
 	}
 	static isSytaxChar(char?: string | null) {
-		return !char?.match(/[;=]/);
+		return !char?.match(/[;=/{}\\[\\]/);
 	}
 	private getWord(): string {
 		let word = '';

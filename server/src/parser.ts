@@ -144,7 +144,7 @@ export class LabelRefValue extends DocumentBase {
 
 export class NodePathValue extends DocumentBase {
 	constructor(
-		public readonly value: NodePathRef | null,
+		public readonly path: NodePathRef | null,
 		public readonly labels: LabelNode[]
 	) {
 		super();
@@ -152,7 +152,7 @@ export class NodePathValue extends DocumentBase {
 }
 
 export class NodePathRef extends DocumentBase {
-	constructor(public readonly value: NodePath | null) {
+	constructor(public readonly path: NodePath | null) {
 		super();
 	}
 }
@@ -794,7 +794,6 @@ export class Parser {
 		const nodePath = this.processNodePathRef();
 
 		if (nodePath !== undefined) {
-			this.mergeStack();
 			const node = new NodePathValue(nodePath, labels);
 			node.tokenIndexes = {
 				start: labels.at(0)?.tokenIndexes?.start ?? nodePath.tokenIndexes?.start,
@@ -880,7 +879,7 @@ export class Parser {
 		const nodePath = this.processNodePath();
 
 		const lastToken = this.currentToken;
-		if (validToken(lastToken, LexerToken.CURLY_CLOSE)) {
+		if (!validToken(lastToken, LexerToken.CURLY_CLOSE)) {
 			this.issues.push(this.genIssue(Issues.CURLY_CLOSE, this.prevToken));
 		} else {
 			this.moveToNextToken;

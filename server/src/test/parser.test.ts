@@ -12,6 +12,7 @@ import {
 	LabelRef,
 	LabelRefValue,
 	NodeName,
+	NodePathValue,
 	NumberValues as NumberValues,
 	Parser,
 } from '../parser';
@@ -1251,6 +1252,65 @@ describe('Parser', () => {
 			expect(labelRef.tokenIndexes?.end?.pos).toStrictEqual({
 				len: 9,
 				col: 8,
+				line: 0,
+			});
+		});
+
+		test('property with node path', async () => {
+			const rootNode = 'prop=< &{/node1@/node2@20/node3} >;';
+			const parser = new Parser(new Lexer(rootNode).tokens);
+			expect(parser.issues.length).toEqual(1); // -> node1@ node address
+			expect(parser.unhandledNode.properties.length).toEqual(1);
+			const property = parser.unhandledNode.properties[0];
+
+			expect(property.name).toBe('prop');
+			expect(property.tokenIndexes?.start?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.PROPERTY_NAME])
+			);
+			expect(property.tokenIndexes?.start?.pos).toEqual({
+				col: 0,
+				len: 4,
+				line: 0,
+			});
+
+			expect(property.tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.SEMICOLON])
+			);
+			expect(property.tokenIndexes?.end?.pos).toEqual({
+				col: 34,
+				len: 1,
+				line: 0,
+			});
+
+			expect(property.values).toBeDefined();
+			const values = property.values;
+			expect(values?.tokenIndexes?.start?.pos).toStrictEqual({ len: 1, col: 5, line: 0 });
+			expect(values?.tokenIndexes?.end?.pos).toStrictEqual({ len: 1, col: 33, line: 0 });
+
+			expect(values?.values.length).toBe(1);
+			expect(values?.values[0]?.value instanceof NodePathValue).toBeTruthy();
+			const nodePathValue = values?.values[0]?.value as NodePathValue;
+
+			expect(nodePathValue.path?.path?.pathParts.map((p) => p?.name)).toStrictEqual([
+				'node1',
+				'node2',
+				'node3',
+			]);
+			expect(nodePathValue.path?.path?.pathParts.map((p) => p?.address)).toStrictEqual([
+				NaN,
+				20,
+				undefined,
+			]);
+			expect(nodePathValue.labels.length).toBe(0);
+
+			expect(nodePathValue.tokenIndexes?.start?.pos).toStrictEqual({
+				len: 1,
+				col: 7,
+				line: 0,
+			});
+			expect(nodePathValue.tokenIndexes?.end?.pos).toStrictEqual({
+				len: 1,
+				col: 31,
 				line: 0,
 			});
 		});
