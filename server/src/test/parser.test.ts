@@ -15,6 +15,7 @@ import {
 	NodePathValue,
 	NumberValues as NumberValues,
 	Parser,
+	StringValue,
 } from '../parser';
 import { describe, test, expect } from '@jest/globals';
 
@@ -1361,6 +1362,55 @@ describe('Parser', () => {
 			expect(numberValues.tokenIndexes?.end?.pos).toStrictEqual({
 				len: 2,
 				col: 13,
+				line: 0,
+			});
+		});
+
+		test('property with string same line', async () => {
+			const rootNode = 'prop="--\\"hello word;\\"--";';
+			const parser = new Parser(new Lexer(rootNode).tokens);
+			expect(parser.issues.length).toEqual(0);
+			expect(parser.unhandledNode.properties.length).toEqual(1);
+			const property = parser.unhandledNode.properties[0];
+
+			expect(property.name).toBe('prop');
+			expect(property.tokenIndexes?.start?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.PROPERTY_NAME])
+			);
+			expect(property.tokenIndexes?.start?.pos).toEqual({
+				col: 0,
+				len: 4,
+				line: 0,
+			});
+
+			expect(property.tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.SEMICOLON])
+			);
+			expect(property.tokenIndexes?.end?.pos).toEqual({
+				col: 28,
+				len: 1,
+				line: 0,
+			});
+
+			expect(property.values).toBeDefined();
+			const values = property.values;
+			expect(values?.tokenIndexes?.start?.pos).toStrictEqual({ len: 23, col: 5, line: 0 });
+			expect(values?.tokenIndexes?.end?.pos).toStrictEqual({ len: 23, col: 5, line: 0 });
+
+			expect(values?.values.length).toBe(1);
+			expect(values?.values[0]?.value instanceof StringValue).toBeTruthy();
+			const stringValue = values?.values[0]?.value as StringValue;
+
+			expect(stringValue.value).toBe('"--\\"hello word;\\"--"');
+
+			expect(stringValue.tokenIndexes?.start?.pos).toStrictEqual({
+				len: 23,
+				col: 5,
+				line: 0,
+			});
+			expect(stringValue.tokenIndexes?.end?.pos).toStrictEqual({
+				len: 23,
+				col: 5,
 				line: 0,
 			});
 		});

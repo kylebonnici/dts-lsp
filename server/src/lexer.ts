@@ -80,6 +80,7 @@ export class Lexer {
 	lineNumber = 0;
 	columnNumber = 0;
 	lines: string[];
+	lineNumberOfEscapedChars = 0;
 	endOfFile = false;
 	private _whiteSpace = '';
 	private _tokens: Token[] = [];
@@ -117,6 +118,7 @@ export class Lexer {
 
 		if (onLastCharOfLine) {
 			this.columnNumber = 0;
+			this.lineNumberOfEscapedChars = 0;
 			this.lineNumber++;
 			return true;
 		}
@@ -155,6 +157,7 @@ export class Lexer {
 			if (this.currentChar === '\\') {
 				const prevLine = this.lineNumber;
 				if (this.move()) {
+					this.lineNumberOfEscapedChars++;
 					if (prevLine === this.lineNumber) {
 						// escaped char
 						string += this.currentChar;
@@ -257,7 +260,7 @@ export class Lexer {
 		}
 
 		const token = this._tokens.at(-1);
-		if (tokenFound && token && token.pos.len !== word.length) {
+		if (tokenFound && token && token.pos.len < word.length) {
 			return this.process(word.slice(token.pos.len));
 		}
 
@@ -714,9 +717,9 @@ export class Lexer {
 				tokens: [LexerToken.STRING, LexerToken.VALUE],
 				value: string,
 				pos: {
-					col,
+					col: col - 1, // we have already moved ....
 					line,
-					len: string.length,
+					len: string.length + this.lineNumberOfEscapedChars,
 				},
 			});
 
@@ -1000,7 +1003,11 @@ export class Lexer {
 	private generatePos(word: string, expected: string): Position {
 		return {
 			line: this.lineNumber,
-			col: this.columnNumber - word.length - (this.endOfFile ? 1 : 0),
+			col:
+				this.columnNumber -
+				word.length -
+				(this.endOfFile ? 1 : 0) +
+				this.lineNumberOfEscapedChars,
 			len: expected.length,
 		};
 	}
