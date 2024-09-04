@@ -163,6 +163,7 @@ type AllValueType =
 	| StringValue
 	| ByteStringValue
 	| NumberValues
+	| LabelRef
 	| null;
 export class PropertyValues extends DocumentBase {
 	constructor(
@@ -534,6 +535,7 @@ export class Parser {
 		const getValues = (): (PropertyValue | null)[] => {
 			let value = [
 				(this.processStringValue() ||
+					this.isLabelRefValue() ||
 					this.processNumericNodePathOrRefValue() ||
 					this.processByteStringValue()) ??
 					null,
@@ -780,6 +782,28 @@ export class Parser {
 
 		const node = new LabelRef(token.value);
 		node.tokenIndexes = { start: firstToken, end: token };
+		this.mergeStack();
+		return node;
+	}
+
+	private isLabelRefValue(): PropertyValue | undefined {
+		this.enqueToStack();
+
+		const labelRef = this.isLabelRef();
+
+		if (!labelRef) {
+			this.popStack();
+			return;
+		}
+
+		const endLabels = this.processOptionalLablelAssign();
+
+		const node = new PropertyValue(labelRef, endLabels);
+		node.tokenIndexes = {
+			start: labelRef.tokenIndexes?.start,
+			end: endLabels.at(-1)?.tokenIndexes?.end ?? labelRef.tokenIndexes?.end,
+		};
+
 		this.mergeStack();
 		return node;
 	}

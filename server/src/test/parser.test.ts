@@ -9,8 +9,8 @@ import {
 	DtcNode,
 	DtcRootNode,
 	Issues,
-	LabelRef,
-	LabelRefValue,
+	LabelRef as LabelRefValue,
+	LabelRefValue as CellLabelRefValue,
 	NodeName,
 	NodePathValue,
 	NumberValues as NumberValues,
@@ -801,8 +801,8 @@ describe('Parser', () => {
 			expect(parser.document.nodes[0] instanceof DtcNode).toBeTruthy();
 			const node = parser.document.nodes[0] as DtcNode;
 			expect(node.labels.length).toEqual(0);
-			expect(node.nameOrRef instanceof LabelRef).toBeTruthy();
-			const nodeName = node.nameOrRef as LabelRef;
+			expect(node.nameOrRef instanceof LabelRefValue).toBeTruthy();
+			const nodeName = node.nameOrRef as LabelRefValue;
 
 			expect(nodeName.ref).toBe('nodeRef');
 			expect(nodeName.tokenIndexes?.start?.tokens).toEqual(
@@ -1207,7 +1207,7 @@ describe('Parser', () => {
 			);
 		});
 
-		test('property with label ref', async () => {
+		test('property with cell array label ref', async () => {
 			const rootNode = 'prop=< &nodeLabel >;';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
@@ -1239,8 +1239,8 @@ describe('Parser', () => {
 			expect(values?.tokenIndexes?.end?.pos).toStrictEqual({ len: 1, col: 18, line: 0 });
 
 			expect(values?.values.length).toBe(1);
-			expect(values?.values[0]?.value instanceof LabelRefValue).toBeTruthy();
-			const labelRef = values?.values[0]?.value as LabelRefValue;
+			expect(values?.values[0]?.value instanceof CellLabelRefValue).toBeTruthy();
+			const labelRef = values?.values[0]?.value as CellLabelRefValue;
 
 			expect(labelRef.value).toBe('nodeLabel');
 			expect(labelRef.labels.length).toBe(0);
@@ -1253,6 +1253,55 @@ describe('Parser', () => {
 			expect(labelRef.tokenIndexes?.end?.pos).toStrictEqual({
 				len: 9,
 				col: 8,
+				line: 0,
+			});
+		});
+
+		test('property with label ref', async () => {
+			const rootNode = 'prop=&nodeLabel;';
+			const parser = new Parser(new Lexer(rootNode).tokens);
+			expect(parser.issues.length).toEqual(0);
+			expect(parser.unhandledNode.properties.length).toEqual(1);
+			const property = parser.unhandledNode.properties[0];
+
+			expect(property.name).toBe('prop');
+			expect(property.tokenIndexes?.start?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.PROPERTY_NAME])
+			);
+			expect(property.tokenIndexes?.start?.pos).toEqual({
+				col: 0,
+				len: 4,
+				line: 0,
+			});
+
+			expect(property.tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.SEMICOLON])
+			);
+			expect(property.tokenIndexes?.end?.pos).toEqual({
+				col: 15,
+				len: 1,
+				line: 0,
+			});
+
+			expect(property.values).toBeDefined();
+			const values = property.values;
+			expect(values?.tokenIndexes?.start?.pos).toStrictEqual({ len: 1, col: 5, line: 0 });
+			expect(values?.tokenIndexes?.end?.pos).toStrictEqual({ len: 9, col: 6, line: 0 });
+
+			expect(values?.values.length).toBe(1);
+			expect(values?.values[0]?.value instanceof LabelRefValue).toBeTruthy();
+			const labelRef = values?.values[0]?.value as LabelRefValue;
+
+			expect(labelRef.ref).toBe('nodeLabel');
+
+			expect(labelRef.tokenIndexes?.start?.pos).toStrictEqual({
+				len: 1,
+				col: 5,
+				line: 0,
+			});
+			expect(labelRef.tokenIndexes?.end?.pos).toStrictEqual({
+				len: 9,
+				col: 6,
 				line: 0,
 			});
 		});
