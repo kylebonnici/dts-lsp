@@ -174,7 +174,7 @@ export class PropertyValues extends DocumentBase {
 }
 
 export class PropertyValue extends DocumentBase {
-	constructor(public readonly value: AllValueType) {
+	constructor(public readonly value: AllValueType, public readonly endLabels: LabelNode[]) {
 		super();
 	}
 }
@@ -588,7 +588,9 @@ export class Parser {
 		const propValue = new StringValue(token.value);
 		propValue.tokenIndexes = { start: token, end: token };
 
-		const node = new PropertyValue(propValue);
+		const endLabels = this.processOptionalLablelAssign() ?? [];
+
+		const node = new PropertyValue(propValue, endLabels);
 		node.tokenIndexes = { start: token, end: token };
 		this.mergeStack();
 		return node;
@@ -611,15 +613,22 @@ export class Parser {
 			);
 		}
 
+		const endLabels1 = this.processOptionalLablelAssign() ?? [];
+
 		if (!validToken(this.currentToken, LexerToken.GT_SYM)) {
 			this.issues.push(this.genIssue(Issues.GT_SYM, this.prevToken));
 		} else {
 			this.moveToNextToken;
 		}
 
+		const endLabels2 = this.processOptionalLablelAssign() ?? [];
+
 		this.mergeStack();
-		const node = new PropertyValue(value);
-		node.tokenIndexes = { start: firstToken, end: this.prevToken };
+		const node = new PropertyValue(value, [...endLabels1, ...endLabels2]);
+		node.tokenIndexes = {
+			start: firstToken,
+			end: endLabels2.at(-1)?.tokenIndexes?.end ?? this.prevToken,
+		};
 		return node;
 	}
 
@@ -639,6 +648,8 @@ export class Parser {
 			this.issues.push(this.genIssue(Issues.BYTESTRING, token));
 		}
 
+		const endLabels1 = this.processOptionalLablelAssign() ?? [];
+
 		if (!validToken(this.currentToken, LexerToken.SQUARE_CLOSE)) {
 			this.issues.push(this.genIssue(Issues.SQUARE_CLOSE, token));
 		} else {
@@ -655,14 +666,16 @@ export class Parser {
 			}
 		});
 
+		const endLabels2 = this.processOptionalLablelAssign() ?? [];
+
 		this.mergeStack();
 		const byteString = new ByteStringValue(numberValues?.values ?? []);
 		byteString.tokenIndexes = {
 			start: numberValues?.tokenIndexes?.start,
-			end: numberValues?.tokenIndexes?.end,
+			end: endLabels2.at(-1)?.tokenIndexes?.end ?? numberValues?.tokenIndexes?.end,
 		};
 
-		const node = new PropertyValue(byteString);
+		const node = new PropertyValue(byteString, [...endLabels1, ...endLabels2]);
 		node.tokenIndexes = { start: firstToken, end: this.prevToken };
 		return node;
 	}
