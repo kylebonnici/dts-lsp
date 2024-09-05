@@ -515,7 +515,7 @@ describe('Parser', () => {
 			// ---- property end ----
 		});
 
-		test('mising value and end > and semicoloun + node end', async () => {
+		test('root node with two prop with mising value and end > and semicoloun + node end', async () => {
 			const rootNode = '/{ \nprop1= < prop2= <';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 
@@ -1694,6 +1694,29 @@ describe('Parser', () => {
 				len: 1,
 				line: 0,
 			});
+		});
+	});
+
+	describe('Unknown syntax', () => {
+		test('garbage', async () => {
+			const rootNode = 'fsfsd $ % ^ @ __ ++ =  "dsfsdf" " fdfsdfdfsd"';
+			const parser = new Parser(new Lexer(rootNode).tokens);
+			expect(parser.issues.length).toEqual(8);
+
+			expect(parser.issues[0].issues).toEqual(
+				expect.arrayContaining([Issues.END_STATMENT])
+			);
+			expect(parser.issues[1].issues).toEqual(expect.arrayContaining([Issues.UNKNOWN]));
+			expect(parser.issues[2].issues).toEqual(expect.arrayContaining([Issues.UNKNOWN]));
+			expect(parser.issues[3].issues).toEqual(expect.arrayContaining([Issues.UNKNOWN]));
+			expect(parser.issues[4].issues).toEqual(expect.arrayContaining([Issues.UNKNOWN]));
+			expect(parser.issues[5].issues).toEqual(
+				expect.arrayContaining([Issues.END_STATMENT])
+			);
+			expect(parser.issues[6].issues).toEqual(
+				expect.arrayContaining([Issues.END_STATMENT])
+			);
+			expect(parser.issues[7].issues).toEqual(expect.arrayContaining([Issues.UNKNOWN]));
 		});
 	});
 });

@@ -27,6 +27,7 @@ export enum Issues {
 	FORWARD_SLASH_START_PATH,
 	BYTESTRING_HEX,
 	FORWARD_SLASH_END_DELETE,
+	UNKNOWN,
 }
 
 type AllowNodeDef = 'Both' | 'Ref' | 'Name';
@@ -195,22 +196,34 @@ export class Parser {
 		this.parse();
 	}
 
+	get done() {
+		return this.peekIndex() >= this.tokens.length;
+	}
+
 	private parse() {
 		this.positionStack.push(0);
 		if (this.tokens.length === 0) {
 			return;
 		}
 
-		while (this.peekIndex() < this.tokens.length - 1) {
-			this.isRootNodeDefinition(this.rootDTCNode) ||
-				this.isDeleteNode(this.rootDTCNode) ||
-				// not valid syntax but we leave this for the next layer to proecess
-				this.isProperty(this.unhandledNode) ||
-				this.isDeleteProperty(this.unhandledNode) ||
-				// Valid use case
-				this.isChildNode(this.rootDTCNode, 'Both');
+		const process = () => {
+			if (
+				!(
+					this.isRootNodeDefinition(this.rootDTCNode) ||
+					this.isDeleteNode(this.rootDTCNode) ||
+					// not valid syntax but we leave this for the next layer to proecess
+					this.isProperty(this.unhandledNode) ||
+					this.isDeleteProperty(this.unhandledNode) ||
+					// Valid use case
+					this.isChildNode(this.rootDTCNode, 'Both')
+				)
+			) {
+				this.issues.push(this.genIssue(Issues.UNKNOWN, this.moveToNextToken));
+			}
+		};
 
-			// TODO add unknown node to keep moving forward
+		while (!this.done) {
+			process();
 		}
 
 		if (this.positionStack.length !== 1) {
@@ -259,6 +272,13 @@ export class Parser {
 		return this.endStatment();
 	}
 
+	private isNodeEnd() {
+		return (
+			validToken(this.currentToken, LexerToken.CURLY_CLOSE) ||
+			validToken(this.currentToken, LexerToken.SEMICOLON)
+		);
+	}
+
 	// TODO
 	// no ref
 	// c presosessor
@@ -276,6 +296,8 @@ export class Parser {
 	}
 
 	private processNode(parent: DtcNode, allow: AllowNodeDef): boolean {
+		if (this.done) return false;
+
 		let found = false;
 		let child = false;
 		do {
@@ -284,8 +306,16 @@ export class Parser {
 				this.isDeleteNode(parent) ||
 				this.isDeleteProperty(parent) ||
 				this.isChildNode(parent, allow);
+
+			if (!child && !this.isNodeEnd() && !this.done) {
+				this.issues.push(this.genIssue(Issues.UNKNOWN, this.moveToNextToken));
+			} else {
+				if (this.done) {
+					break;
+				}
+			}
 			found = found || child;
-		} while (child);
+		} while (!this.isNodeEnd());
 		return found;
 	}
 

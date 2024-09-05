@@ -61,6 +61,8 @@ export enum LexerToken {
 	C_FALSE,
 	AMPERSAND,
 	LABEL_NAME,
+
+	UNKNOWN,
 }
 
 export interface Position {
@@ -274,7 +276,8 @@ export class Lexer {
 			this.isModulusOperator(word) ||
 			this.isMultiplicationOperator(word) ||
 			this.isComma(word) ||
-			this.isSemicolon(word);
+			this.isSemicolon(word) ||
+			this.unkownToken(word);
 
 		if (!tokenFound) {
 			throw new Error(`Lexer is not complete!!! Could not find token for "${word}"`);
@@ -443,6 +446,14 @@ export class Lexer {
 			return true;
 		}
 		return false;
+	}
+
+	private unkownToken(word: string) {
+		this._tokens.push({
+			tokens: [LexerToken.UNKNOWN],
+			pos: this.generatePos(word, ' '),
+		});
+		return true;
 	}
 
 	private isAssignOperator(word: string) {
