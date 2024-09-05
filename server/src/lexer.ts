@@ -2,8 +2,6 @@ export enum LexerToken {
 	PROPERTY_NAME,
 	LABEL_ASSIGN,
 	NODE_NAME,
-	DELETE_NODE,
-	DELETE_PROPERTY,
 	OMIT_IF_NO_REF,
 	ASSIGN_OPERATOR,
 	EQUAL_OPERATOR,
@@ -81,8 +79,7 @@ export class Lexer {
 	columnNumber = 0;
 	lines: string[];
 	lineNumberOfEscapedChars = 0;
-	endOfFile = false;
-	private _whiteSpace = '';
+	numberOfEscapedCharsLastString = 0;
 	private _tokens: Token[] = [];
 
 	get tokens() {
@@ -105,26 +102,49 @@ export class Lexer {
 		return !!this.currentChar?.match(/\s/);
 	}
 
-	private move(): boolean {
-		const onLastLine = this.lineNumber === this.lines.length - 1;
-		const onLastCharOfLine = this.lines[this.lineNumber].length <= this.columnNumber;
+	get endOfFile() {
+		return this.isOnLastLine && this.isOnLastCharOfLine;
+	}
 
-		// end of file
-		if (onLastLine && onLastCharOfLine) {
-			this.endOfFile = true;
-			this.columnNumber++;
-			return false;
+	get isOnLastLine() {
+		return this.lineNumber === this.lines.length - 1;
+	}
+
+	get isOnLastCharOfLine() {
+		return this.lines[this.lineNumber].length <= this.columnNumber;
+	}
+
+	private moveToNextLine() {
+		if (this.isOnLastLine) return false;
+
+		this.columnNumber = 0;
+		this.lineNumberOfEscapedChars = 0;
+		this.lineNumber++;
+
+		if (this.lines[this.lineNumber].length === 0) {
+			this.moveToNextLine();
 		}
 
-		if (onLastCharOfLine) {
-			this.columnNumber = 0;
-			this.lineNumberOfEscapedChars = 0;
-			this.lineNumber++;
-			return true;
+		return true;
+	}
+
+	private moveOnLine() {
+		if (this.isOnLastCharOfLine) {
+			return this.moveToNextLine();
 		}
 
 		this.columnNumber++;
+
+		if (this.isOnLastCharOfLine) {
+			this.moveToNextLine();
+		}
 		return true;
+	}
+
+	private move(): boolean {
+		if (this.endOfFile) return false;
+
+		return this.moveOnLine();
 	}
 
 	private get currentChar() {
@@ -152,12 +172,15 @@ export class Lexer {
 
 	private getString(quote: string): string {
 		let string = quote;
+		this.numberOfEscapedCharsLastString = 0;
+
 		while (this.currentChar !== quote) {
 			string += this.currentChar;
 			if (this.currentChar === '\\') {
 				const prevLine = this.lineNumber;
 				if (this.move()) {
 					this.lineNumberOfEscapedChars++;
+					this.numberOfEscapedCharsLastString++;
 					if (prevLine === this.lineNumber) {
 						// escaped char
 						string += this.currentChar;
@@ -210,6 +233,7 @@ export class Lexer {
 			this.isCElIf(word) ||
 			this.isCElse(word) ||
 			this.isCEndIf(word) ||
+			this.isOmitIfNoRef(word) ||
 			this.isLabelAssign(word) ||
 			this.isCIdenttifier(word) ||
 			this.isLabel(word) ||
@@ -218,9 +242,6 @@ export class Lexer {
 			this.isDigits(word) ||
 			this.isPropertyName(word) ||
 			this.isNodeNameWithAddress(word) ||
-			this.isDeleteNode(word) ||
-			this.isDeleteProperty(word) ||
-			this.isOmitIfNoRef(word) ||
 			this.isCFalse(word) ||
 			this.isCTrue(word) ||
 			// 2 char words
@@ -269,40 +290,8 @@ export class Lexer {
 
 	private whiteSpace() {
 		while (this.isWhiteSpace()) {
-			if (this.currentChar !== '\n') {
-				this._whiteSpace += this.currentChar;
-			} else {
-				if (this._whiteSpace.length) {
-					// this._tokens.push({
-					// 	tokens: [LexerToken.WHITE_SPACE],
-					// 	value: this._whiteSpace,
-					// 	pos: this.generatePos(this._whiteSpace, this._whiteSpace),
-					// });
-					this._whiteSpace = '';
-				}
-
-				// this._tokens.push({
-				// 	tokens: [LexerToken.EOL, LexerToken.WHITE_SPACE],
-				// 	pos: this.generatePos('\n', '\n'),
-				// });
-			}
-
 			this.move();
 		}
-
-		if (this._whiteSpace.length) {
-			// const pos = this.generatePos(this._whiteSpace, this._whiteSpace);
-			// this._tokens.push({
-			// 	tokens: [LexerToken.WHITE_SPACE],
-			// 	value: this._whiteSpace,
-			// 	pos: this.endOfFile ? pos : { ...pos, col: pos.col - 1 }, // we need to do this as we have move one step over and are no longer on a white space
-			// });
-
-			this._whiteSpace = '';
-			return true;
-		}
-
-		return false;
 	}
 
 	private isNodeOrPropertyName(word: string) {
@@ -390,30 +379,6 @@ export class Lexer {
 				tokens: [LexerToken.DIGITS, LexerToken.NUMBER, LexerToken.VALUE],
 				value: match[0],
 				pos: this.generatePos(word, match[0]),
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isDeleteNode(word: string) {
-		const expected = '/delete-node/';
-		if (word.startsWith(expected)) {
-			this._tokens.push({
-				tokens: [LexerToken.DELETE_NODE],
-				pos: this.generatePos(word, expected),
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isDeleteProperty(word: string) {
-		const expected = '/delete-property/';
-		if (word.startsWith(expected)) {
-			this._tokens.push({
-				tokens: [LexerToken.DELETE_PROPERTY],
-				pos: this.generatePos(word, expected),
 			});
 			return true;
 		}
@@ -719,7 +684,7 @@ export class Lexer {
 				pos: {
 					col: col - 1, // we have already moved ....
 					line,
-					len: string.length + this.lineNumberOfEscapedChars,
+					len: string.length + this.numberOfEscapedCharsLastString,
 				},
 			});
 
@@ -1003,11 +968,7 @@ export class Lexer {
 	private generatePos(word: string, expected: string): Position {
 		return {
 			line: this.lineNumber,
-			col:
-				this.columnNumber -
-				word.length -
-				(this.endOfFile ? 1 : 0) +
-				this.lineNumberOfEscapedChars,
+			col: this.columnNumber - word.length + this.lineNumberOfEscapedChars,
 			len: expected.length,
 		};
 	}

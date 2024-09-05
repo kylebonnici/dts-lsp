@@ -26,6 +26,7 @@ export enum Issues {
 	LABEL_NAME,
 	FORWARD_SLASH_START_PATH,
 	BYTESTRING_HEX,
+	FORWARD_SLASH_END_DELETE,
 }
 
 type AllowNodeDef = 'Both' | 'Ref' | 'Name';
@@ -41,18 +42,16 @@ export interface TokenIndexes {
 	end?: Token;
 }
 
-export abstract class DocumentBase {
+export abstract class Base {
 	public tokenIndexes?: TokenIndexes;
 }
 
-export class DocumentNode extends DocumentBase {
-	public nodes: DtcBaseNode[] = [];
+export class BaseNode extends Base {
+	public nodes: DtcNode[] = [];
 	public deleteNodes: DeleteNode[] = [];
-
-	public tokenIndexes?: TokenIndexes;
 }
 
-export class DtcBaseNode extends DocumentNode {
+export class DtcNode extends BaseNode {
 	public properties: DtcProperty[] = [];
 	public deleteProperties: DeleteProperty[] = [];
 
@@ -60,13 +59,7 @@ export class DtcBaseNode extends DocumentNode {
 		super();
 	}
 }
-
-export class DtcRootNode extends DtcBaseNode {
-	constructor() {
-		super();
-	}
-}
-export class DtcNode extends DtcRootNode {
+export class DtcChilNode extends DtcNode {
 	constructor(
 		public readonly nameOrRef: NodeName | LabelRef | null,
 		public readonly ref: boolean,
@@ -76,7 +69,7 @@ export class DtcNode extends DtcRootNode {
 	}
 }
 
-export class DtcProperty extends DocumentNode {
+export class DtcProperty extends Base {
 	constructor(
 		public readonly name: string | null,
 		public readonly values: PropertyValues | null,
@@ -86,31 +79,31 @@ export class DtcProperty extends DocumentNode {
 	}
 }
 
-export class DeleteNode extends DocumentBase {
-	constructor(public readonly nodeNameOrRef: NodeName | LabelRef) {
+export class DeleteNode extends Base {
+	constructor(public readonly nodeNameOrRef: NodeName | LabelRef | null) {
 		super();
 	}
 }
 
-export class DeleteProperty extends DocumentBase {
+export class DeleteProperty extends Base {
 	constructor(public readonly propertyName: string) {
 		super();
 	}
 }
 
-export class LabelNode extends DocumentBase {
+export class LabelNode extends Base {
 	constructor(public readonly label: string) {
 		super();
 	}
 }
 
-export class NodeName extends DocumentBase {
+export class NodeName extends Base {
 	constructor(public readonly name: string, public readonly address?: number) {
 		super();
 	}
 }
 
-export class NodePath extends DocumentBase {
+export class NodePath extends Base {
 	pathParts: (NodeName | null)[] = [];
 
 	constructor() {
@@ -118,31 +111,31 @@ export class NodePath extends DocumentBase {
 	}
 }
 
-export class LabelRef extends DocumentBase {
+export class LabelRef extends Base {
 	constructor(public readonly ref: string | null) {
 		super();
 	}
 }
 
-export class StringValue extends DocumentBase {
+export class StringValue extends Base {
 	constructor(public readonly value: string) {
 		super();
 	}
 }
 
-export class ByteStringValue extends DocumentBase {
+export class ByteStringValue extends Base {
 	constructor(public readonly values: (NumberValue | null)[]) {
 		super();
 	}
 }
 
-export class LabelRefValue extends DocumentBase {
+export class LabelRefValue extends Base {
 	constructor(public readonly value: string | null, public readonly labels: LabelNode[]) {
 		super();
 	}
 }
 
-export class NodePathValue extends DocumentBase {
+export class NodePathValue extends Base {
 	constructor(
 		public readonly path: NodePathRef | null,
 		public readonly labels: LabelNode[]
@@ -151,7 +144,7 @@ export class NodePathValue extends DocumentBase {
 	}
 }
 
-export class NodePathRef extends DocumentBase {
+export class NodePathRef extends Base {
 	constructor(public readonly path: NodePath | null) {
 		super();
 	}
@@ -165,7 +158,7 @@ type AllValueType =
 	| NumberValues
 	| LabelRef
 	| null;
-export class PropertyValues extends DocumentBase {
+export class PropertyValues extends BaseNode {
 	constructor(
 		public readonly values: (PropertyValue | null)[],
 		public readonly labels: LabelNode[]
@@ -174,32 +167,31 @@ export class PropertyValues extends DocumentBase {
 	}
 }
 
-export class PropertyValue extends DocumentBase {
+export class PropertyValue extends BaseNode {
 	constructor(public readonly value: AllValueType, public readonly endLabels: LabelNode[]) {
 		super();
 	}
 }
 
-export class NumberValues extends DocumentBase {
+export class NumberValues extends BaseNode {
 	constructor(public readonly values: NumberValue[]) {
 		super();
 	}
 }
 
-export class NumberValue extends DocumentBase {
+export class NumberValue extends BaseNode {
 	constructor(public readonly value: number, public readonly labels: LabelNode[]) {
 		super();
 	}
 }
 
 export class Parser {
-	document: DocumentNode;
+	rootDTCNode = new DtcNode();
 	positionStack: number[] = [];
 	issues: Issue[] = [];
-	unhandledNode = new DtcBaseNode();
+	unhandledNode = new DtcNode();
 
 	constructor(private tokens: Token[]) {
-		this.document = new DocumentNode();
 		this.parse();
 	}
 
@@ -210,13 +202,13 @@ export class Parser {
 		}
 
 		while (this.peekIndex() < this.tokens.length - 1) {
-			this.isRootNodeDefinition(this.document) ||
-				this.isDeleteNode(this.document) ||
+			this.isRootNodeDefinition(this.rootDTCNode) ||
+				this.isDeleteNode(this.rootDTCNode) ||
 				// not valid syntax but we leave this for the next layer to proecess
 				this.isProperty(this.unhandledNode) ||
 				this.isDeleteProperty(this.unhandledNode) ||
 				// Valid use case
-				this.isChildNode(this.document, 'Both');
+				this.isChildNode(this.rootDTCNode, 'Both');
 
 			// TODO add unknown node to keep moving forward
 		}
@@ -226,7 +218,7 @@ export class Parser {
 		}
 	}
 
-	private isRootNodeDefinition(parent: DocumentNode): boolean {
+	private isRootNodeDefinition(parent: BaseNode): boolean {
 		this.enqueToStack();
 
 		const firstToken = this.moveToNextToken;
@@ -245,7 +237,7 @@ export class Parser {
 		}
 
 		// from this point we can continue an report the expected tokens
-		const child = new DtcRootNode();
+		const child = new DtcNode();
 		parent.nodes.push(child);
 		this.processNode(child, 'Both');
 
@@ -283,7 +275,7 @@ export class Parser {
 		return nextToken;
 	}
 
-	private processNode(parent: DtcBaseNode, allow: AllowNodeDef): boolean {
+	private processNode(parent: DtcNode, allow: AllowNodeDef): boolean {
 		let found = false;
 		let child = false;
 		do {
@@ -343,7 +335,7 @@ export class Parser {
 		return node;
 	}
 
-	private isChildNode(parentNode: DocumentNode, allow: AllowNodeDef): boolean {
+	private isChildNode(parentNode: BaseNode, allow: AllowNodeDef): boolean {
 		this.enqueToStack();
 
 		const labels = this.processOptionalLablelAssign();
@@ -386,7 +378,7 @@ export class Parser {
 		}
 
 		// syntax must be a node ....
-		const child = new DtcNode(nameOrRef ?? null, isRef, labels);
+		const child = new DtcChilNode(nameOrRef ?? null, isRef, labels);
 		parentNode.nodes.push(child);
 
 		let hasChild: boolean = false;
@@ -405,7 +397,7 @@ export class Parser {
 		return true;
 	}
 
-	private isProperty(parent: DtcBaseNode): boolean {
+	private isProperty(parent: DtcNode): boolean {
 		this.enqueToStack();
 
 		const labels = this.processOptionalLablelAssign();
@@ -467,62 +459,79 @@ export class Parser {
 		return true;
 	}
 
-	private isDeleteNode(parent: DocumentNode): boolean {
+	private isDeleteNode(parent: DtcNode): boolean {
 		this.enqueToStack();
 
-		const token = this.moveToNextToken;
-		if (!validToken(token, LexerToken.DELETE_NODE)) {
-			this.popStack();
-			return false;
-		}
-
-		const nodeName = this.processNodeName();
-
-		if (nodeName) {
-			const node = new DeleteNode(nodeName);
-			node.tokenIndexes = { start: token, end: nodeName.tokenIndexes?.end ?? token };
-			parent.deleteNodes.push(node);
-		} else {
-			const label = this.isLabelRef();
-			if (label) {
-				const node = new DeleteNode(label);
-				node.tokenIndexes = { start: token, end: label.tokenIndexes?.end ?? token };
-				parent.deleteNodes.push(node);
-			}
-		}
-
-		this.endStatment();
-		this.mergeStack();
-		return true;
-	}
-
-	private isDeleteProperty(parent: DtcBaseNode): boolean {
-		this.enqueToStack();
-
-		let token = this.moveToNextToken;
-		if (!validToken(token, LexerToken.DELETE_PROPERTY)) {
+		const firstToken = this.moveToNextToken;
+		let token = firstToken;
+		if (!validToken(token, LexerToken.FORWARD_SLASH)) {
 			this.popStack();
 			return false;
 		}
 
 		token = this.moveToNextToken;
-		if (!validToken(token, LexerToken.PROPERTY_NAME)) {
+		if (token.value !== 'delete-node') {
+			this.popStack();
+			return false;
+		}
+
+		token = this.moveToNextToken;
+		if (!validToken(token, LexerToken.FORWARD_SLASH)) {
+			this.issues.push(this.genIssue(Issues.FORWARD_SLASH_END_DELETE, token));
+		}
+
+		const labelRef = this.isLabelRef();
+		const nodeName = labelRef ? undefined : this.processNodeName();
+
+		if (!nodeName && !labelRef) {
+			this.issues.push(this.genIssue([Issues.NODE_NAME, Issues.NODE_REF], token));
+		}
+
+		const lastToken = this.endStatment();
+		const node = new DeleteNode(labelRef ?? nodeName ?? null);
+		node.tokenIndexes = { start: firstToken, end: lastToken };
+		parent.deleteNodes.push(node);
+		this.mergeStack();
+		return true;
+	}
+
+	private isDeleteProperty(parent: DtcNode): boolean {
+		this.enqueToStack();
+
+		const firstToken = this.moveToNextToken;
+		let token = firstToken;
+		if (!validToken(token, LexerToken.FORWARD_SLASH)) {
+			this.popStack();
+			return false;
+		}
+
+		token = this.moveToNextToken;
+		if (token.value !== 'delete-property') {
+			this.popStack();
+			return false;
+		}
+
+		token = this.moveToNextToken;
+		if (!validToken(token, LexerToken.FORWARD_SLASH)) {
+			this.issues.push(this.genIssue(Issues.FORWARD_SLASH_END_DELETE, token));
+		}
+
+		if (!validToken(this.currentToken, LexerToken.PROPERTY_NAME)) {
 			this.issues.push(this.genIssue(Issues.PROPERTY_NAME, token));
+		} else {
+			token = this.moveToNextToken;
 		}
 
 		if (!token?.value) {
 			throw new Error('Token must have value');
 		}
 
-		const propertyName = token.value;
+		const node = new DeleteProperty(token.value);
 
-		if (propertyName) {
-			const node = new DeleteProperty(propertyName);
-			// node.tokenIndexes = 	{ start: this.peekIndex(2), end: this.peekIndex() },
-			parent.deleteProperties.push(node);
-		}
+		const lastToken = this.endStatment();
+		node.tokenIndexes = { start: firstToken, end: lastToken };
+		parent.deleteProperties.push(node);
 
-		this.endStatment();
 		this.mergeStack();
 		return true;
 	}
