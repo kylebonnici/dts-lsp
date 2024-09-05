@@ -500,7 +500,7 @@ export class Parser {
 		}
 
 		token = this.moveToNextToken;
-		if (token.value !== 'delete-node') {
+		if (token?.value !== 'delete-node') {
 			this.popStack();
 			return false;
 		}
@@ -536,7 +536,7 @@ export class Parser {
 		}
 
 		token = this.moveToNextToken;
-		if (token.value !== 'delete-property') {
+		if (token?.value !== 'delete-property') {
 			this.popStack();
 			return false;
 		}
@@ -991,7 +991,7 @@ export class Parser {
 	}
 
 	get currentToken() {
-		return this.tokens[this.peekIndex()];
+		return this.tokens.at(this.peekIndex());
 	}
 
 	get prevToken() {
