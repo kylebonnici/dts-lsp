@@ -20,6 +20,8 @@ import {
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { Lexer } from './lexer';
+import { Issues, Parser } from './parser';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -150,6 +152,63 @@ connection.languages.diagnostics.on(async (params) => {
 	}
 });
 
+const issueToMessage = (issue: Issues) => {
+	switch (issue) {
+		case Issues.VALUE:
+			return 'Expected Value';
+		case Issues.END_STATMENT:
+			return "Expected ';'";
+		case Issues.CURLY_OPEN:
+			return "Expected '{'";
+		case Issues.CURLY_CLOSE:
+			return "Expected '}'";
+		case Issues.OPEN_SQUARE:
+			return "Expected '['";
+		case Issues.SQUARE_CLOSE:
+			return "Expected ']'";
+		case Issues.PROPERTY_NAME:
+			return 'Expected property name';
+		case Issues.NODE_NAME:
+			return 'Expected node name';
+		case Issues.NODE_ADDRESS:
+			return 'Expected node address';
+		case Issues.NODE_DEFINITION:
+			return 'Expected node definition';
+		case Issues.PROPERTY_DEFINITION:
+			return 'Expected property definition';
+		case Issues.NUMERIC_VALUE:
+			return 'Expected numerical value';
+		case Issues.NODE_PATH:
+			return 'Expected node path';
+		case Issues.NODE_REF:
+			return 'Expected node ref';
+		case Issues.GT_SYM:
+			return "Expected '>'";
+		case Issues.LT_SYM:
+			return "Expected '<'";
+		case Issues.BYTESTRING:
+			return 'Expected bytes string ';
+		case Issues.BYTESTRING_EVEN:
+			return 'Expected two digits in bytestring';
+		case Issues.DUOUBE_QUOTE:
+			return "Expected '\"'";
+		case Issues.SINGLE_QUOTE:
+			return "Expected '\\''";
+		case Issues.VALID_NODE_PATH:
+			return 'Expected valid node path';
+		case Issues.LABEL_NAME:
+			return 'Expected Label name';
+		case Issues.FORWARD_SLASH_START_PATH:
+			return "Expected '/' in the state of a node path";
+		case Issues.BYTESTRING_HEX:
+			return 'Expected hex values are not allowed';
+		case Issues.FORWARD_SLASH_END_DELETE:
+			return "Trailing '/' at the end of the path";
+		case Issues.UNKNOWN:
+			return 'Unknown syntax';
+	}
+};
+
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent((change) => {
@@ -157,47 +216,67 @@ documents.onDidChangeContent((change) => {
 });
 
 async function validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
-	// In this simple example we get the settings for every validate run.
-	const settings = await getDocumentSettings(textDocument.uri);
+	// // In this simple example we get the settings for every validate run.
+	// const settings = await getDocumentSettings(textDocument.uri);
 
-	// The validator creates diagnostics for all uppercase words length 2 and more
-	const text = textDocument.getText();
-	const pattern = /\b[A-Z]{2,}\b/g;
-	let m: RegExpExecArray | null;
+	// // The validator creates diagnostics for all uppercase words length 2 and more
+	// const text = textDocument.getText();
+	// const pattern = /\b[A-Z]{2,}\b/g;
+	// let m: RegExpExecArray | null;
 
-	let problems = 0;
+	// let problems = 0;
+	// const diagnostics: Diagnostic[] = [];
+	// while ((m = pattern.exec(text)) && problems < settings.maxNumberOfProblems) {
+	// 	problems++;
+	// 	const diagnostic: Diagnostic = {
+	// 		severity: DiagnosticSeverity.Warning,
+	// 		range: {
+	// 			start: textDocument.positionAt(m.index),
+	// 			end: textDocument.positionAt(m.index + m[0].length),
+	// 		},
+	// 		message: `${m[0]} is all uppercase.`,
+	// 		source: 'ex',
+	// 	};
+	// 	if (hasDiagnosticRelatedInformationCapability) {
+	// 		diagnostic.relatedInformation = [
+	// 			{
+	// 				location: {
+	// 					uri: textDocument.uri,
+	// 					range: Object.assign({}, diagnostic.range),
+	// 				},
+	// 				message: 'Spelling matters',
+	// 			},
+	// 			{
+	// 				location: {
+	// 					uri: textDocument.uri,
+	// 					range: Object.assign({}, diagnostic.range),
+	// 				},
+	// 				message: 'Particularly for names',
+	// 			},
+	// 		];
+	// 	}
+	// 	diagnostics.push(diagnostic);
+	// }
+	// return diagnostics;
+
+	const lexer = new Lexer(textDocument.getText());
+	const parser = new Parser(lexer.tokens);
+
 	const diagnostics: Diagnostic[] = [];
-	while ((m = pattern.exec(text)) && problems < settings.maxNumberOfProblems) {
-		problems++;
+	parser.issues.forEach((issue) => {
 		const diagnostic: Diagnostic = {
 			severity: DiagnosticSeverity.Warning,
 			range: {
-				start: textDocument.positionAt(m.index),
-				end: textDocument.positionAt(m.index + m[0].length),
+				start: { line: issue.token?.pos.line ?? 0, character: issue.token?.pos.col ?? 0 },
+				end: { line: issue.token?.pos.line ?? 0, character: issue.token?.pos.col ?? 0 },
 			},
-			message: `${m[0]} is all uppercase.`,
-			source: 'ex',
+			message: issue.issues ? issue.issues.map(issueToMessage).join(' or ') : '',
+			source: 'devie tree',
 		};
-		if (hasDiagnosticRelatedInformationCapability) {
-			diagnostic.relatedInformation = [
-				{
-					location: {
-						uri: textDocument.uri,
-						range: Object.assign({}, diagnostic.range),
-					},
-					message: 'Spelling matters',
-				},
-				{
-					location: {
-						uri: textDocument.uri,
-						range: Object.assign({}, diagnostic.range),
-					},
-					message: 'Particularly for names',
-				},
-			];
-		}
+		console.log(issue);
 		diagnostics.push(diagnostic);
-	}
+	});
+
 	return diagnostics;
 }
 
