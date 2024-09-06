@@ -159,7 +159,7 @@ type AllValueType =
 	| NumberValues
 	| LabelRef
 	| null;
-export class PropertyValues extends BaseNode {
+export class PropertyValues extends Base {
 	constructor(
 		public readonly values: (PropertyValue | null)[],
 		public readonly labels: LabelNode[]
@@ -168,19 +168,19 @@ export class PropertyValues extends BaseNode {
 	}
 }
 
-export class PropertyValue extends BaseNode {
+export class PropertyValue extends Base {
 	constructor(public readonly value: AllValueType, public readonly endLabels: LabelNode[]) {
 		super();
 	}
 }
 
-export class NumberValues extends BaseNode {
+export class NumberValues extends Base {
 	constructor(public readonly values: NumberValue[]) {
 		super();
 	}
 }
 
-export class NumberValue extends BaseNode {
+export class NumberValue extends Base {
 	constructor(public readonly value: number, public readonly labels: LabelNode[]) {
 		super();
 	}
