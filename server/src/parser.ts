@@ -33,7 +33,7 @@ type AllowNodeDef = 'Both' | 'Ref' | 'Name';
 
 export interface Issue {
 	issues: Issues[];
-	token?: Token;
+	slxElement: SlxBase;
 	priority: number;
 }
 
@@ -42,12 +42,12 @@ export interface TokenIndexes {
 	end?: Token;
 }
 
-export abstract class Base {
+export class SlxBase {
 	public tokenIndexes?: TokenIndexes;
 	public parent?: BaseNode;
 }
 
-export class BaseNode extends Base {
+export class BaseNode extends SlxBase {
 	public nodes: DtcNode[] = [];
 	public deleteNodes: DeleteNode[] = [];
 }
@@ -61,56 +61,51 @@ export class DtcNode extends BaseNode {
 	}
 }
 export class DtcChilNode extends DtcNode {
+	public nameOrRef: NodeName | LabelRef | null = null;
+
+	constructor(public readonly labels: LabelNode[] = []) {
+		super();
+	}
+}
+
+export class DtcProperty extends SlxBase {
+	public values: PropertyValues | null = null;
+
 	constructor(
-		public readonly nameOrRef: NodeName | LabelRef | null,
-		public readonly ref: boolean,
+		public readonly propertyName: PropertyName | null,
 		public readonly labels: LabelNode[] = []
 	) {
 		super();
 	}
 }
 
-export class DtcProperty extends Base {
-	constructor(
-		public readonly propertyName: PropertyName,
-		public readonly values: PropertyValues | null,
-		public readonly labels: LabelNode[] = []
-	) {
+export class DeleteNode extends SlxBase {
+	public nodeNameOrRef: NodeName | LabelRef | null = null;
+}
+
+export class PropertyName extends SlxBase {
+	constructor(public readonly name: string) {
 		super();
 	}
 }
 
-export class DeleteNode extends Base {
-	constructor(public readonly nodeNameOrRef: NodeName | LabelRef | null) {
-		super();
-	}
+export class DeleteProperty extends SlxBase {
+	public propertyName: PropertyName | null = null;
 }
 
-export class PropertyName extends Base {
-	constructor(public readonly name: string | null) {
-		super();
-	}
-}
-
-export class DeleteProperty extends Base {
-	constructor(public readonly propertyName: PropertyName) {
-		super();
-	}
-}
-
-export class LabelNode extends Base {
+export class LabelNode extends SlxBase {
 	constructor(public readonly label: string) {
 		super();
 	}
 }
 
-export class NodeName extends Base {
+export class NodeName extends SlxBase {
 	constructor(public readonly name: string, public readonly address?: number) {
 		super();
 	}
 }
 
-export class NodePath extends Base {
+export class NodePath extends SlxBase {
 	pathParts: (NodeName | null)[] = [];
 
 	constructor() {
@@ -118,31 +113,31 @@ export class NodePath extends Base {
 	}
 }
 
-export class LabelRef extends Base {
+export class LabelRef extends SlxBase {
 	constructor(public readonly ref: string | null) {
 		super();
 	}
 }
 
-export class StringValue extends Base {
+export class StringValue extends SlxBase {
 	constructor(public readonly value: string) {
 		super();
 	}
 }
 
-export class ByteStringValue extends Base {
+export class ByteStringValue extends SlxBase {
 	constructor(public readonly values: (NumberValue | null)[]) {
 		super();
 	}
 }
 
-export class LabelRefValue extends Base {
+export class LabelRefValue extends SlxBase {
 	constructor(public readonly value: string | null, public readonly labels: LabelNode[]) {
 		super();
 	}
 }
 
-export class NodePathValue extends Base {
+export class NodePathValue extends SlxBase {
 	constructor(
 		public readonly path: NodePathRef | null,
 		public readonly labels: LabelNode[]
@@ -151,7 +146,7 @@ export class NodePathValue extends Base {
 	}
 }
 
-export class NodePathRef extends Base {
+export class NodePathRef extends SlxBase {
 	constructor(public readonly path: NodePath | null) {
 		super();
 	}
@@ -165,7 +160,7 @@ type AllValueType =
 	| NumberValues
 	| LabelRef
 	| null;
-export class PropertyValues extends Base {
+export class PropertyValues extends SlxBase {
 	constructor(
 		public readonly values: (PropertyValue | null)[],
 		public readonly labels: LabelNode[]
@@ -174,19 +169,19 @@ export class PropertyValues extends Base {
 	}
 }
 
-export class PropertyValue extends Base {
+export class PropertyValue extends SlxBase {
 	constructor(public readonly value: AllValueType, public readonly endLabels: LabelNode[]) {
 		super();
 	}
 }
 
-export class NumberValues extends Base {
+export class NumberValues extends SlxBase {
 	constructor(public readonly values: NumberValue[]) {
 		super();
 	}
 }
 
-export class NumberValue extends Base {
+export class NumberValue extends SlxBase {
 	constructor(public readonly value: number, public readonly labels: LabelNode[]) {
 		super();
 	}
@@ -224,7 +219,10 @@ export class Parser {
 					this.isChildNode(this.rootDTCNode, 'Both')
 				)
 			) {
-				this.issues.push(this.genIssue(Issues.UNKNOWN, this.moveToNextToken));
+				const node = new SlxBase();
+				const token = this.moveToNextToken;
+				node.tokenIndexes = { start: token, end: token };
+				this.issues.push(this.genIssue(Issues.UNKNOWN, node));
 			}
 		};
 
@@ -260,22 +258,22 @@ export class Parser {
 		parent.nodes.push(child);
 		this.processNode(child, 'Both');
 
-		const lastToken = this.nodeEnd() ?? nextToken;
+		const lastToken = this.nodeEnd(child) ?? nextToken;
 		child.tokenIndexes = { start: firstToken, end: lastToken };
 		this.mergeStack();
 		return true;
 	}
 
-	private nodeEnd() {
+	private nodeEnd(slxBase: SlxBase) {
 		const nextToken = this.currentToken;
 		const expectedToken = LexerToken.CURLY_CLOSE;
 		if (!validToken(nextToken, expectedToken)) {
-			this.issues.push(this.genIssue(Issues.CURLY_CLOSE, this.prevToken));
+			this.issues.push(this.genIssue(Issues.CURLY_CLOSE, slxBase));
 		} else {
 			this.moveToNextToken;
 		}
 
-		return this.endStatment();
+		return this.endStatment(slxBase);
 	}
 
 	private isNodeEnd() {
@@ -290,11 +288,11 @@ export class Parser {
 	// c presosessor
 	// terninary
 
-	private endStatment() {
+	private endStatment(slxBase: SlxBase) {
 		const nextToken = this.currentToken;
 		const expectedToken = LexerToken.SEMICOLON;
 		if (!validToken(nextToken, expectedToken)) {
-			this.issues.push(this.genIssue(Issues.END_STATMENT, this.prevToken));
+			this.issues.push(this.genIssue(Issues.END_STATMENT, slxBase));
 			return this.prevToken;
 		}
 		this.moveToNextToken;
@@ -314,7 +312,10 @@ export class Parser {
 				this.isChildNode(parent, allow);
 
 			if (!child && !this.isNodeEnd() && !this.done) {
-				this.issues.push(this.genIssue(Issues.UNKNOWN, this.moveToNextToken));
+				const node = new SlxBase();
+				const token = this.moveToNextToken;
+				node.tokenIndexes = { start: token, end: token };
+				this.issues.push(this.genIssue(Issues.UNKNOWN, node));
 			} else {
 				if (this.done) {
 					break;
@@ -343,7 +344,7 @@ export class Parser {
 		return labels;
 	}
 
-	private processNodeName(): NodeName | undefined {
+	private processNodeName(slxBase: SlxBase): NodeName | undefined {
 		const token = this.currentToken;
 		if (!validToken(token, LexerToken.NODE_NAME)) {
 			return;
@@ -365,7 +366,7 @@ export class Parser {
 
 		// <nodeName>@
 		if (hasAddress && Number.isNaN(address)) {
-			this.issues.push(this.genIssue(Issues.NODE_ADDRESS, token));
+			this.issues.push(this.genIssue(Issues.NODE_ADDRESS, slxBase));
 		}
 
 		return node;
@@ -376,17 +377,16 @@ export class Parser {
 
 		const labels = this.processOptionalLablelAssign();
 
-		let isRef = false;
 		let nameOrRef: NodeName | LabelRef | undefined;
 
+		const child: DtcChilNode = new DtcChilNode(labels);
 		if (allow === 'Both' || allow === 'Ref') {
 			nameOrRef = this.isLabelRef();
 		}
 
-		if (nameOrRef) {
-			isRef = true;
-		} else if (allow === 'Both' || allow === 'Name') {
-			nameOrRef = this.processNodeName();
+		if ((!nameOrRef && allow === 'Both') || allow === 'Name') {
+			nameOrRef = this.processNodeName(child);
+
 			if (!nameOrRef) {
 				if (!validToken(this.currentToken, LexerToken.CURLY_OPEN)) {
 					// must be property then ....
@@ -394,18 +394,17 @@ export class Parser {
 					return false;
 				}
 
-				this.issues.push(
-					this.genIssue([Issues.NODE_NAME, Issues.NODE_REF], this.currentToken)
-				);
+				this.issues.push(this.genIssue([Issues.NODE_NAME, Issues.NODE_REF], child));
 			}
 		}
 
+		child.nameOrRef = nameOrRef ?? null;
 		const expectedNode = nameOrRef && !(typeof nameOrRef === 'string');
 
 		const token = this.moveToNextToken;
 		if (!validToken(token, LexerToken.CURLY_OPEN)) {
 			if (expectedNode) {
-				this.issues.push(this.genIssue(Issues.CURLY_OPEN, token));
+				this.issues.push(this.genIssue(Issues.CURLY_OPEN, child));
 			} else {
 				// this could be a property
 				this.popStack();
@@ -414,7 +413,7 @@ export class Parser {
 		}
 
 		// syntax must be a node ....
-		const child = new DtcChilNode(nameOrRef ?? null, isRef, labels);
+
 		parentNode.nodes.push(child);
 
 		let hasChild: boolean = false;
@@ -422,7 +421,7 @@ export class Parser {
 			hasChild = this.processNode(child, 'Name');
 		} while (hasChild);
 
-		const lastToken = this.nodeEnd();
+		const lastToken = this.nodeEnd(child);
 
 		child.tokenIndexes = {
 			start: labels.at(0)?.tokenIndexes?.start ?? nameOrRef?.tokenIndexes?.start,
@@ -445,7 +444,7 @@ export class Parser {
 			if (labels.length) {
 				// we have seme lables so we are expecing a property or a node then
 				this.issues.push(
-					this.genIssue([Issues.PROPERTY_DEFINITION, Issues.NODE_DEFINITION], token)
+					this.genIssue([Issues.PROPERTY_DEFINITION, Issues.NODE_DEFINITION], parent)
 				);
 				name = null;
 				this.mergeStack();
@@ -470,23 +469,28 @@ export class Parser {
 		}
 
 		name = token.value;
+
+		const propertyName = new PropertyName(name);
+		const child = new DtcProperty(propertyName, labels);
+
 		let result: PropertyValues | undefined;
 		if (validToken(this.currentToken, LexerToken.ASSIGN_OPERATOR)) {
 			this.moveToNextToken;
-			result = this.processValue();
+			result = this.processValue(child);
 
 			if (!result.values.filter((v) => !!v).length) {
-				this.issues.push(this.genIssue(Issues.VALUE, token));
+				this.issues.push(this.genIssue(Issues.VALUE, child));
 			}
 		}
 
-		const lastToken = this.endStatment();
+		child.values = result ?? null;
 
-		const propertyName = new PropertyName(name);
+		const lastToken = this.endStatment(child);
+
 		propertyName.tokenIndexes = { start: token, end: token };
 
 		// create property object
-		const child = new DtcProperty(propertyName, result ?? null, labels);
+
 		child.tokenIndexes = {
 			start: labels.at(0)?.tokenIndexes?.start ?? token,
 			end: lastToken ?? this.prevToken,
@@ -514,21 +518,24 @@ export class Parser {
 			return false;
 		}
 
+		const node = new DeleteNode();
+
 		if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
-			this.issues.push(this.genIssue(Issues.FORWARD_SLASH_END_DELETE, token));
+			this.issues.push(this.genIssue(Issues.FORWARD_SLASH_END_DELETE, node));
 		} else {
 			token = this.moveToNextToken;
 		}
 
 		const labelRef = this.isLabelRef();
-		const nodeName = labelRef ? undefined : this.processNodeName();
+		const nodeName = labelRef ? undefined : this.processNodeName(node);
 
 		if (!nodeName && !labelRef) {
-			this.issues.push(this.genIssue([Issues.NODE_NAME, Issues.NODE_REF], token));
+			this.issues.push(this.genIssue([Issues.NODE_NAME, Issues.NODE_REF], node));
 		}
 
-		const lastToken = this.endStatment();
-		const node = new DeleteNode(labelRef ?? nodeName ?? null);
+		node.nodeNameOrRef = labelRef ?? nodeName ?? null;
+
+		const lastToken = this.endStatment(node);
 		node.tokenIndexes = { start: firstToken, end: lastToken };
 		parent.deleteNodes.push(node);
 		this.mergeStack();
@@ -551,14 +558,16 @@ export class Parser {
 			return false;
 		}
 
+		const node = new DeleteProperty();
+
 		if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
-			this.issues.push(this.genIssue(Issues.FORWARD_SLASH_END_DELETE, token));
+			this.issues.push(this.genIssue(Issues.FORWARD_SLASH_END_DELETE, node));
 		} else {
 			token = this.moveToNextToken;
 		}
 
 		if (!validToken(this.currentToken, LexerToken.PROPERTY_NAME)) {
-			this.issues.push(this.genIssue(Issues.PROPERTY_NAME, token));
+			this.issues.push(this.genIssue(Issues.PROPERTY_NAME, node));
 		} else {
 			token = this.moveToNextToken;
 
@@ -567,12 +576,14 @@ export class Parser {
 			}
 		}
 
-		const propertyName = new PropertyName(token?.value ?? null);
-		propertyName.tokenIndexes = { start: token, end: token };
+		const propertyName = token?.value ? new PropertyName(token.value) : null;
+		if (propertyName) {
+			propertyName.tokenIndexes = { start: token, end: token };
+		}
 
-		const node = new DeleteProperty(propertyName);
+		node.propertyName = propertyName;
 
-		const lastToken = this.endStatment();
+		const lastToken = this.endStatment(node);
 		node.tokenIndexes = { start: firstToken, end: lastToken };
 		parent.deleteProperties.push(node);
 
@@ -580,7 +591,7 @@ export class Parser {
 		return true;
 	}
 
-	private processValue(): PropertyValues {
+	private processValue(dtcProperty: DtcProperty): PropertyValues {
 		this.enqueToStack();
 
 		const labels = this.processOptionalLablelAssign();
@@ -588,21 +599,21 @@ export class Parser {
 		const getValues = (): (PropertyValue | null)[] => {
 			let value = [
 				(this.processStringValue() ||
-					this.isLabelRefValue() ||
-					this.processNumericNodePathOrRefValue() ||
-					this.processByteStringValue()) ??
+					this.isLabelRefValue(dtcProperty) ||
+					this.processNumericNodePathOrRefValue(dtcProperty) ||
+					this.processByteStringValue(dtcProperty)) ??
 					null,
 			];
 
 			if (!value) {
-				this.issues.push(this.genIssue(Issues.VALUE, this.currentToken));
+				this.issues.push(this.genIssue(Issues.VALUE, dtcProperty));
 			}
 
 			if (validToken(this.currentToken, LexerToken.COMMA)) {
 				this.moveToNextToken;
 				const next = getValues();
 				if (next === null) {
-					this.issues.push(this.genIssue(Issues.VALUE, this.currentToken));
+					this.issues.push(this.genIssue(Issues.VALUE, dtcProperty));
 				}
 				value = [...value, ...next];
 			}
@@ -634,16 +645,17 @@ export class Parser {
 			throw new Error('Token must have value');
 		}
 
+		const propValue = new StringValue(token.value);
+
 		if (!token.value.match(/["']$/)) {
 			this.issues.push(
 				this.genIssue(
 					token.value.endsWith('"') ? Issues.DUOUBE_QUOTE : Issues.SINGLE_QUOTE,
-					token
+					propValue
 				)
 			);
 		}
 
-		const propValue = new StringValue(token.value);
 		propValue.tokenIndexes = { start: token, end: token };
 
 		const endLabels = this.processOptionalLablelAssign() ?? [];
@@ -654,7 +666,9 @@ export class Parser {
 		return node;
 	}
 
-	private processNumericNodePathOrRefValue(): PropertyValue | undefined {
+	private processNumericNodePathOrRefValue(
+		dtcProperty: DtcProperty
+	): PropertyValue | undefined {
 		this.enqueToStack();
 
 		const firstToken = this.moveToNextToken;
@@ -664,17 +678,21 @@ export class Parser {
 		}
 
 		const value =
-			(this.processNumericValues() || this.processNodePathOrLabelRefValue()) ?? null;
+			(this.processNumericValues() || this.processNodePathOrLabelRefValue(dtcProperty)) ??
+			null;
 		if (!value) {
 			this.issues.push(
-				this.genIssue([Issues.NUMERIC_VALUE, Issues.NODE_REF, Issues.NODE_PATH], firstToken)
+				this.genIssue(
+					[Issues.NUMERIC_VALUE, Issues.NODE_REF, Issues.NODE_PATH],
+					dtcProperty
+				)
 			);
 		}
 
 		const endLabels1 = this.processOptionalLablelAssign() ?? [];
 
 		if (!validToken(this.currentToken, LexerToken.GT_SYM)) {
-			this.issues.push(this.genIssue(Issues.GT_SYM, this.prevToken));
+			this.issues.push(this.genIssue(Issues.GT_SYM, dtcProperty));
 		} else {
 			this.moveToNextToken;
 		}
@@ -690,7 +708,7 @@ export class Parser {
 		return node;
 	}
 
-	private processByteStringValue(): PropertyValue | undefined {
+	private processByteStringValue(dtcProperty: DtcProperty): PropertyValue | undefined {
 		this.enqueToStack();
 
 		const firstToken = this.moveToNextToken;
@@ -703,24 +721,24 @@ export class Parser {
 		const numberValues = this.processNumericValues();
 
 		if (!numberValues?.values.length) {
-			this.issues.push(this.genIssue(Issues.BYTESTRING, token));
+			this.issues.push(this.genIssue(Issues.BYTESTRING, dtcProperty));
 		}
 
 		const endLabels1 = this.processOptionalLablelAssign() ?? [];
 
 		if (!validToken(this.currentToken, LexerToken.SQUARE_CLOSE)) {
-			this.issues.push(this.genIssue(Issues.SQUARE_CLOSE, token));
+			this.issues.push(this.genIssue(Issues.SQUARE_CLOSE, dtcProperty));
 		} else {
 			this.moveToNextToken;
 		}
 
 		numberValues?.values.forEach((value) => {
 			if ((value.tokenIndexes?.start?.pos.len ?? 0) % 2 !== 0) {
-				this.issues.push(this.genIssue(Issues.BYTESTRING_EVEN, token));
+				this.issues.push(this.genIssue(Issues.BYTESTRING_EVEN, value));
 			}
 
 			if (value.tokenIndexes?.start?.tokens.some((tok) => tok === LexerToken.HEX)) {
-				this.issues.push(this.genIssue(Issues.BYTESTRING_HEX, token));
+				this.issues.push(this.genIssue(Issues.BYTESTRING_HEX, value));
 			}
 		});
 
@@ -814,7 +832,7 @@ export class Parser {
 		return node;
 	}
 
-	private isLabelRef(): LabelRef | undefined {
+	private isLabelRef(slxBase?: SlxBase): LabelRef | undefined {
 		this.enqueToStack();
 		const firstToken = this.moveToNextToken;
 		let token = firstToken;
@@ -825,10 +843,11 @@ export class Parser {
 
 		token = this.moveToNextToken;
 		if (!validToken(token, LexerToken.LABEL_NAME)) {
-			this.issues.push(this.genIssue(Issues.LABEL_NAME, token));
-			this.mergeStack();
 			const node = new LabelRef(null);
+			this.issues.push(this.genIssue(Issues.LABEL_NAME, slxBase ?? node));
 			node.tokenIndexes = { start: firstToken, end: firstToken };
+
+			this.mergeStack();
 			return node;
 		}
 
@@ -842,10 +861,10 @@ export class Parser {
 		return node;
 	}
 
-	private isLabelRefValue(): PropertyValue | undefined {
+	private isLabelRefValue(dtcProperty: DtcProperty): PropertyValue | undefined {
 		this.enqueToStack();
 
-		const labelRef = this.isLabelRef();
+		const labelRef = this.isLabelRef(dtcProperty);
 
 		if (!labelRef) {
 			this.popStack();
@@ -864,7 +883,9 @@ export class Parser {
 		return node;
 	}
 
-	private processNodePathOrLabelRefValue(): LabelRefValue | NodePathValue | undefined {
+	private processNodePathOrLabelRefValue(
+		dtcProperty: DtcProperty
+	): LabelRefValue | NodePathValue | undefined {
 		const labels = this.processOptionalLablelAssign();
 		const firstToken = this.currentToken;
 		if (!validToken(this.currentToken, LexerToken.AMPERSAND)) {
@@ -882,9 +903,9 @@ export class Parser {
 			return node;
 		}
 
-		const labelRef = this.isLabelRef();
+		const labelRef = this.isLabelRef(dtcProperty);
 		if (labelRef === undefined) {
-			this.issues.push(this.genIssue([Issues.LABEL_NAME, Issues.NODE_PATH]));
+			this.issues.push(this.genIssue([Issues.LABEL_NAME, Issues.NODE_PATH], dtcProperty));
 
 			const node = new LabelRefValue(null, labels);
 			node.tokenIndexes = {
@@ -902,36 +923,33 @@ export class Parser {
 		return node;
 	}
 
-	private processNodePath(first = true): NodePath | undefined {
+	private processNodePath(first = true, nodePath = new NodePath()): NodePath | undefined {
 		this.enqueToStack();
 
 		const firstToken = this.moveToNextToken;
+
 		if (!validToken(firstToken, LexerToken.FORWARD_SLASH)) {
 			if (!first) {
 				this.popStack();
 				return;
 			}
-			this.issues.push(this.genIssue(Issues.FORWARD_SLASH_START_PATH));
+			this.issues.push(this.genIssue(Issues.FORWARD_SLASH_START_PATH, nodePath));
 		}
 
-		const nodeName = this.processNodeName();
+		const nodeName = this.processNodeName(nodePath);
 		if (!nodeName) {
-			this.issues.push(this.genIssue(Issues.NODE_NAME));
+			this.issues.push(this.genIssue(Issues.NODE_NAME, nodePath));
 		}
 
-		const nodePath = new NodePath();
 		nodePath.tokenIndexes = {
 			start: firstToken,
 			end: nodeName?.tokenIndexes?.end ?? firstToken,
 		};
 
 		nodePath.pathParts.push(nodeName ?? null);
+		nodePath.tokenIndexes.end = nodeName?.tokenIndexes?.end ?? firstToken;
 
-		const remaningPath = this.processNodePath(false);
-		if (remaningPath) {
-			nodePath.pathParts.push(...remaningPath.pathParts);
-			nodePath.tokenIndexes.end = remaningPath.tokenIndexes?.end;
-		}
+		this.processNodePath(false, nodePath);
 
 		this.mergeStack();
 		return nodePath;
@@ -958,14 +976,15 @@ export class Parser {
 		// /soc/node/node2@223/....
 		const nodePath = this.processNodePath();
 
+		const node = new NodePathRef(nodePath ?? null);
+
 		const lastToken = this.currentToken;
 		if (!validToken(lastToken, LexerToken.CURLY_CLOSE)) {
-			this.issues.push(this.genIssue(Issues.CURLY_CLOSE, this.prevToken));
+			this.issues.push(this.genIssue(Issues.CURLY_CLOSE, node));
 		} else {
 			this.moveToNextToken;
 		}
 
-		const node = new NodePathRef(nodePath ?? null);
 		node.tokenIndexes = {
 			start: firstToken,
 			end: lastToken ?? nodePath?.tokenIndexes?.end ?? this.prevToken,
@@ -1023,9 +1042,9 @@ export class Parser {
 		this.positionStack[this.positionStack.length - 1]++;
 	}
 
-	private genIssue = (expectedToken: Issues | Issues[], token?: Token): Issue => ({
+	private genIssue = (expectedToken: Issues | Issues[], slxBase: SlxBase): Issue => ({
 		issues: Array.isArray(expectedToken) ? expectedToken : [expectedToken],
-		token: token ?? this.tokens.at(-1),
+		slxElement: slxBase,
 		priority: this.positionStack.length,
 	});
 }

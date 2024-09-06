@@ -22,6 +22,7 @@ import {
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Lexer } from './lexer';
 import { Issues, Parser } from './parser';
+import { start } from 'repl';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -265,15 +266,18 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 	const diagnostics: Diagnostic[] = [];
 	parser.issues.forEach((issue) => {
 		const diagnostic: Diagnostic = {
-			severity: DiagnosticSeverity.Warning,
+			severity: DiagnosticSeverity.Error,
 			range: {
 				start: {
-					line: issue.token?.pos.line ?? 0,
-					character: (issue.token?.pos.col ?? 0) + 1,
+					line: issue.slxElement.tokenIndexes?.start?.pos.line ?? 0,
+					character: issue.slxElement.tokenIndexes?.start?.pos.col ?? 0,
 				},
 				end: {
-					line: issue.token?.pos.line ?? 0,
-					character: (issue.token?.pos.col ?? 0) + 1 + (issue.token?.pos.len ?? 0),
+					line: issue.slxElement.tokenIndexes?.end?.pos.line ?? 0,
+					character:
+						(issue.slxElement.tokenIndexes?.end?.pos.col ?? 0) +
+						1 +
+						(issue.slxElement.tokenIndexes?.end?.pos.len ?? 0),
 				},
 			},
 			message: issue.issues ? issue.issues.map(issueToMessage).join(' or ') : '',
