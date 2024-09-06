@@ -277,6 +277,7 @@ export class Lexer {
 			this.isNodeOrPropertyName(word) ||
 			this.isHex(word) ||
 			this.isDigits(word) ||
+			this.isComma(word) ||
 			this.isPropertyName(word) ||
 			this.isNodeNameWithAddress(word) ||
 			this.isCFalse(word) ||
@@ -284,7 +285,6 @@ export class Lexer {
 			// 1 char words
 			this.isNegeteOperator(word) ||
 			this.isAddOperator(word) ||
-			this.isComma(word) ||
 			this.unkownToken(word);
 
 		if (!tokenFound) {
@@ -576,7 +576,7 @@ export class Lexer {
 		const expected = ',';
 		if (word === expected) {
 			this._tokens.push({
-				tokens: [LexerToken.COMMA],
+				tokens: [LexerToken.COMMA, LexerToken.PROPERTY_NAME],
 				pos: this.generatePos(word, expected),
 			});
 			return true;

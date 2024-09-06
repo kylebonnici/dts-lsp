@@ -952,7 +952,7 @@ describe('Parser', () => {
 			expect(parser.unhandledNode.properties.length).toEqual(1);
 			const property = parser.unhandledNode.properties[0];
 
-			expect(property.name).toBe('prop');
+			expect(property.propertyName.name).toBe('prop');
 			expect(property.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.PROPERTY_NAME])
 			);
@@ -1000,7 +1000,7 @@ describe('Parser', () => {
 			expect(parser.unhandledNode.properties.length).toEqual(1);
 			const property = parser.unhandledNode.properties[0];
 
-			expect(property.name).toBe('prop');
+			expect(property.propertyName.name).toBe('prop');
 			expect(property.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.PROPERTY_NAME])
 			);
@@ -1067,7 +1067,7 @@ describe('Parser', () => {
 			expect(parser.unhandledNode.properties.length).toEqual(1);
 			const property = parser.unhandledNode.properties[0];
 
-			expect(property.name).toBe('prop');
+			expect(property.propertyName.name).toBe('prop');
 			expect(property.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.PROPERTY_NAME])
 			);
@@ -1144,7 +1144,7 @@ describe('Parser', () => {
 			expect(parser.unhandledNode.properties.length).toEqual(1);
 			const property = parser.unhandledNode.properties[0];
 
-			expect(property.name).toBe('prop');
+			expect(property.propertyName.name).toBe('prop');
 			expect(property.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.PROPERTY_NAME])
 			);
@@ -1214,7 +1214,7 @@ describe('Parser', () => {
 			expect(parser.unhandledNode.properties.length).toEqual(1);
 			const property = parser.unhandledNode.properties[0];
 
-			expect(property.name).toBe('prop');
+			expect(property.propertyName.name).toBe('prop');
 			expect(property.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.PROPERTY_NAME])
 			);
@@ -1264,7 +1264,7 @@ describe('Parser', () => {
 			expect(parser.unhandledNode.properties.length).toEqual(1);
 			const property = parser.unhandledNode.properties[0];
 
-			expect(property.name).toBe('prop');
+			expect(property.propertyName.name).toBe('prop');
 			expect(property.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.PROPERTY_NAME])
 			);
@@ -1313,7 +1313,7 @@ describe('Parser', () => {
 			expect(parser.unhandledNode.properties.length).toEqual(1);
 			const property = parser.unhandledNode.properties[0];
 
-			expect(property.name).toBe('prop');
+			expect(property.propertyName.name).toBe('prop');
 			expect(property.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.PROPERTY_NAME])
 			);
@@ -1372,7 +1372,7 @@ describe('Parser', () => {
 			expect(parser.unhandledNode.properties.length).toEqual(1);
 			const property = parser.unhandledNode.properties[0];
 
-			expect(property.name).toBe('prop');
+			expect(property.propertyName.name).toBe('prop');
 			expect(property.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.PROPERTY_NAME])
 			);
@@ -1422,7 +1422,7 @@ describe('Parser', () => {
 			expect(parser.unhandledNode.properties.length).toEqual(1);
 			const property = parser.unhandledNode.properties[0];
 
-			expect(property.name).toBe('prop');
+			expect(property.propertyName.name).toBe('prop');
 			expect(property.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.PROPERTY_NAME])
 			);
@@ -1471,7 +1471,7 @@ describe('Parser', () => {
 			expect(parser.unhandledNode.properties.length).toEqual(2);
 			const property1 = parser.unhandledNode.properties[0];
 
-			expect(property1.name).toBe('prop');
+			expect(property1.propertyName.name).toBe('prop');
 			expect(property1.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.PROPERTY_NAME])
 			);
@@ -1514,7 +1514,7 @@ describe('Parser', () => {
 
 			const property2 = parser.unhandledNode.properties[1];
 
-			expect(property2.name).toBe('prop');
+			expect(property2.propertyName.name).toBe('prop');
 			expect(property2.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.PROPERTY_NAME])
 			);
@@ -1563,7 +1563,7 @@ describe('Parser', () => {
 			expect(parser.unhandledNode.properties.length).toEqual(1);
 			const property = parser.unhandledNode.properties[0];
 
-			expect(property.name).toBe('prop');
+			expect(property.propertyName.name).toBe('prop');
 			expect(property.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.PROPERTY_NAME])
 			);
@@ -1675,7 +1675,7 @@ describe('Parser', () => {
 			expect(parser.unhandledNode.deleteProperties.length).toEqual(1);
 			const deleteProperty = parser.unhandledNode.deleteProperties[0];
 
-			expect(deleteProperty.propertyName).toBe('prop1');
+			expect(deleteProperty.propertyName.name).toBe('prop1');
 
 			expect(deleteProperty.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.FORWARD_SLASH])

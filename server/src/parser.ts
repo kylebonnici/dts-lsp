@@ -1,5 +1,4 @@
-import { token } from 'aws-sdk/clients/sns';
-import { LexerToken, Position, Token } from './lexer';
+import { LexerToken, Token } from './lexer';
 
 export enum Issues {
 	VALUE,
@@ -45,6 +44,7 @@ export interface TokenIndexes {
 
 export abstract class Base {
 	public tokenIndexes?: TokenIndexes;
+	public parent?: BaseNode;
 }
 
 export class BaseNode extends Base {
@@ -72,7 +72,7 @@ export class DtcChilNode extends DtcNode {
 
 export class DtcProperty extends Base {
 	constructor(
-		public readonly name: string | null,
+		public readonly propertyName: PropertyName,
 		public readonly values: PropertyValues | null,
 		public readonly labels: LabelNode[] = []
 	) {
@@ -86,8 +86,14 @@ export class DeleteNode extends Base {
 	}
 }
 
+export class PropertyName extends Base {
+	constructor(public readonly name: string | null) {
+		super();
+	}
+}
+
 export class DeleteProperty extends Base {
-	constructor(public readonly propertyName: string | null) {
+	constructor(public readonly propertyName: PropertyName) {
 		super();
 	}
 }
@@ -476,8 +482,11 @@ export class Parser {
 
 		const lastToken = this.endStatment();
 
+		const propertyName = new PropertyName(name);
+		propertyName.tokenIndexes = { start: token, end: token };
+
 		// create property object
-		const child = new DtcProperty(name, result ?? null, labels);
+		const child = new DtcProperty(propertyName, result ?? null, labels);
 		child.tokenIndexes = {
 			start: labels.at(0)?.tokenIndexes?.start ?? token,
 			end: lastToken ?? this.prevToken,
@@ -558,7 +567,10 @@ export class Parser {
 			}
 		}
 
-		const node = new DeleteProperty(token?.value ?? null);
+		const propertyName = new PropertyName(token?.value ?? null);
+		propertyName.tokenIndexes = { start: token, end: token };
+
+		const node = new DeleteProperty(propertyName);
 
 		const lastToken = this.endStatment();
 		node.tokenIndexes = { start: firstToken, end: lastToken };
