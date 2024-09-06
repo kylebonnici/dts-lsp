@@ -4,19 +4,11 @@ export enum LexerToken {
 	NODE_NAME,
 	OMIT_IF_NO_REF,
 	ASSIGN_OPERATOR,
-	EQUAL_OPERATOR,
-	GT_EQ_OPERATOR,
-	LT_EQ_OPERATOR,
-	NOT_EQ_OPERATOR,
 	SEMICOLON,
 	CURLY_OPEN,
 	CURLY_CLOSE,
 	GT_SYM,
 	LT_SYM,
-	LEFT_SHIFT,
-	RIGHT_SHIFT,
-	LOCAL_AND,
-	LOGICAL_OR,
 	LOGICAL_NOT,
 	BIT_AND,
 	BIT_OR,
@@ -153,15 +145,39 @@ export class Lexer {
 		return this.endOfFile ? null : this.lines[this.lineNumber].at(this.columnNumber);
 	}
 	static isSytaxChar(char?: string | null) {
-		return !char?.match(/[;=/{}\\[\\]/);
+		return (
+			char === '^' ||
+			char === '~' ||
+			char === '|' ||
+			char === '!' ||
+			char === '\\' ||
+			char === '<' ||
+			char === '>' ||
+			char === ';' ||
+			char === '=' ||
+			char === '/' ||
+			char === '{' ||
+			char === '}' ||
+			char === '[' ||
+			char === ']' ||
+			char === '*' ||
+			char === '%' ||
+			char === '&'
+		);
 	}
 	private getWord(): string {
 		let word = '';
 		while (
 			!this.isWhiteSpace() &&
-			((word.length && Lexer.isSytaxChar(this.currentChar)) || !word.length)
+			((word.length && !Lexer.isSytaxChar(this.currentChar)) || !word.length)
 		) {
 			word += this.currentChar ?? '';
+
+			if (word.length === 1 && Lexer.isSytaxChar(this.currentChar)) {
+				this.move();
+				break;
+			}
+
 			const currLine = this.lineNumber;
 
 			if (!this.move() || this.lineNumber !== currLine) {
@@ -222,6 +238,25 @@ export class Lexer {
 		// order is important!!
 		const tokenFound =
 			this.isString(word) ||
+			// single char words
+			this.isBitwiseNot(word) ||
+			this.isBitwiseXOr(word) ||
+			this.isBitwiseOr(word) ||
+			this.isLogicalNot(word) ||
+			this.isGtSym(word) ||
+			this.isLtSym(word) ||
+			this.isSemicolon(word) ||
+			this.isAssignOperator(word) ||
+			this.isForwardSlash(word) ||
+			this.isCurlyOpen(word) ||
+			this.isCurlyClose(word) ||
+			this.isSquareOpen(word) ||
+			this.isSquareClose(word) ||
+			this.isBackSlash(word) ||
+			this.isMultiplicationOperator(word) ||
+			this.isModulusOperator(word) ||
+			this.isAmpersand(word) ||
+			// -----
 			this.isCDefine(word) ||
 			this.isCInclude(word) ||
 			this.isCLine(word) ||
@@ -246,37 +281,10 @@ export class Lexer {
 			this.isNodeNameWithAddress(word) ||
 			this.isCFalse(word) ||
 			this.isCTrue(word) ||
-			// 2 char words
-			this.isGtEqOperator(word) ||
-			this.isLtEqOperator(word) ||
-			this.isNotEqOperator(word) ||
-			this.isLeftShift(word) ||
-			this.isRightShift(word) ||
-			this.isLogicalAnd(word) ||
-			this.isLogicalOr(word) ||
-			this.isRightShift(word) ||
 			// 1 char words
-			this.isEqualOperator(word) ||
-			this.isAssignOperator(word) ||
-			this.isCurlyOpen(word) ||
-			this.isCurlyClose(word) ||
-			this.isGtSym(word) ||
-			this.isLtSym(word) ||
-			this.isLogicalNot(word) ||
-			this.isBitwiseAnd(word) ||
-			this.isBitwiseOr(word) ||
-			this.isBitwiseXOr(word) ||
-			this.isBitwiseNot(word) ||
-			this.isSquareOpen(word) ||
-			this.isSquareClose(word) ||
-			this.isForwardSlash(word) ||
-			this.isBackSlash(word) ||
-			this.isAddOperator(word) ||
 			this.isNegeteOperator(word) ||
-			this.isModulusOperator(word) ||
-			this.isMultiplicationOperator(word) ||
+			this.isAddOperator(word) ||
 			this.isComma(word) ||
-			this.isSemicolon(word) ||
 			this.unkownToken(word);
 
 		if (!tokenFound) {
@@ -400,21 +408,9 @@ export class Lexer {
 		return false;
 	}
 
-	private isEqualOperator(word: string) {
-		const expected = '==';
-		if (word.startsWith(expected)) {
-			this._tokens.push({
-				tokens: [LexerToken.EQUAL_OPERATOR],
-				pos: this.generatePos(word, expected),
-			});
-			return true;
-		}
-		return false;
-	}
-
 	private isCurlyOpen(word: string) {
 		const expected = '{';
-		if (word.startsWith(expected)) {
+		if (word === expected) {
 			this._tokens.push({
 				tokens: [LexerToken.CURLY_OPEN],
 				pos: this.generatePos(word, expected),
@@ -426,7 +422,7 @@ export class Lexer {
 
 	private isCurlyClose(word: string) {
 		const expected = '}';
-		if (word.startsWith(expected)) {
+		if (word === expected) {
 			this._tokens.push({
 				tokens: [LexerToken.CURLY_CLOSE],
 				pos: this.generatePos(word, expected),
@@ -438,7 +434,7 @@ export class Lexer {
 
 	private isSemicolon(word: string) {
 		const expected = ';';
-		if (word.startsWith(expected)) {
+		if (word === expected) {
 			this._tokens.push({
 				tokens: [LexerToken.SEMICOLON],
 				pos: this.generatePos(word, expected),
@@ -458,45 +454,9 @@ export class Lexer {
 
 	private isAssignOperator(word: string) {
 		const expected = '=';
-		if (word.startsWith(expected)) {
+		if (word === expected) {
 			this._tokens.push({
-				tokens: [LexerToken.ASSIGN_OPERATOR],
-				pos: this.generatePos(word, expected),
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isGtEqOperator(word: string) {
-		const expected = '>=';
-		if (word.startsWith(expected)) {
-			this._tokens.push({
-				tokens: [LexerToken.GT_EQ_OPERATOR],
-				pos: this.generatePos(word, expected),
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isLtEqOperator(word: string) {
-		const expected = '<=';
-		if (word.startsWith(expected)) {
-			this._tokens.push({
-				tokens: [LexerToken.LT_EQ_OPERATOR],
-				pos: this.generatePos(word, expected),
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isNotEqOperator(word: string) {
-		const expected = '!=';
-		if (word.startsWith(expected)) {
-			this._tokens.push({
-				tokens: [LexerToken.NOT_EQ_OPERATOR],
+				tokens: [LexerToken.ADD_OPERATOR, LexerToken.ASSIGN_OPERATOR],
 				pos: this.generatePos(word, expected),
 			});
 			return true;
@@ -506,7 +466,7 @@ export class Lexer {
 
 	private isGtSym(word: string) {
 		const expected = '>';
-		if (word.startsWith(expected)) {
+		if (word === expected) {
 			this._tokens.push({
 				tokens: [LexerToken.GT_SYM],
 				pos: this.generatePos(word, expected),
@@ -518,7 +478,7 @@ export class Lexer {
 
 	private isLtSym(word: string) {
 		const expected = '<';
-		if (word.startsWith(expected)) {
+		if (word === expected) {
 			this._tokens.push({
 				tokens: [LexerToken.LT_SYM],
 				pos: this.generatePos(word, expected),
@@ -528,57 +488,9 @@ export class Lexer {
 		return false;
 	}
 
-	private isLeftShift(word: string) {
-		const expected = '<<';
-		if (word.startsWith(expected)) {
-			this._tokens.push({
-				tokens: [LexerToken.LEFT_SHIFT],
-				pos: this.generatePos(word, expected),
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isRightShift(word: string) {
-		const expected = '>>';
-		if (word.startsWith(expected)) {
-			this._tokens.push({
-				tokens: [LexerToken.RIGHT_SHIFT],
-				pos: this.generatePos(word, expected),
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isLogicalAnd(word: string) {
-		const expected = '&&';
-		if (word.startsWith(expected)) {
-			this._tokens.push({
-				tokens: [LexerToken.LOCAL_AND],
-				pos: this.generatePos(word, expected),
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isLogicalOr(word: string) {
-		const expected = '||';
-		if (word.startsWith(expected)) {
-			this._tokens.push({
-				tokens: [LexerToken.LOGICAL_OR],
-				pos: this.generatePos(word, expected),
-			});
-			return true;
-		}
-		return false;
-	}
-
 	private isLogicalNot(word: string) {
 		const expected = '!';
-		if (word.startsWith(expected)) {
+		if (word === expected) {
 			this._tokens.push({
 				tokens: [LexerToken.LOGICAL_NOT],
 				pos: this.generatePos(word, expected),
@@ -588,21 +500,9 @@ export class Lexer {
 		return false;
 	}
 
-	private isBitwiseAnd(word: string) {
-		const expected = '&';
-		if (word.startsWith(expected)) {
-			this._tokens.push({
-				tokens: [LexerToken.BIT_AND, LexerToken.AMPERSAND],
-				pos: this.generatePos(word, expected),
-			});
-			return true;
-		}
-		return false;
-	}
-
 	private isBitwiseOr(word: string) {
 		const expected = '|';
-		if (word.startsWith(expected)) {
+		if (word === expected) {
 			this._tokens.push({
 				tokens: [LexerToken.BIT_OR],
 				pos: this.generatePos(word, expected),
@@ -614,7 +514,7 @@ export class Lexer {
 
 	private isBitwiseXOr(word: string) {
 		const expected = '^';
-		if (word.startsWith(expected)) {
+		if (word === expected) {
 			this._tokens.push({
 				tokens: [LexerToken.BIT_XOR],
 				pos: this.generatePos(word, expected),
@@ -624,9 +524,21 @@ export class Lexer {
 		return false;
 	}
 
+	private isAmpersand(word: string) {
+		const expected = '&';
+		if (word === expected) {
+			this._tokens.push({
+				tokens: [LexerToken.AMPERSAND, LexerToken.BIT_AND],
+				pos: this.generatePos(word, expected),
+			});
+			return true;
+		}
+		return false;
+	}
+
 	private isBitwiseNot(word: string) {
 		const expected = '~';
-		if (word.startsWith(expected)) {
+		if (word === expected) {
 			this._tokens.push({
 				tokens: [LexerToken.BIT_NOT],
 				pos: this.generatePos(word, expected),
@@ -638,7 +550,7 @@ export class Lexer {
 
 	private isSquareOpen(word: string) {
 		const expected = '[';
-		if (word.startsWith(expected)) {
+		if (word === expected) {
 			this._tokens.push({
 				tokens: [LexerToken.SQUARE_OPEN],
 				pos: this.generatePos(word, expected),
@@ -650,7 +562,7 @@ export class Lexer {
 
 	private isSquareClose(word: string) {
 		const expected = ']';
-		if (word.startsWith(expected)) {
+		if (word === expected) {
 			this._tokens.push({
 				tokens: [LexerToken.SQUARE_CLOSE],
 				pos: this.generatePos(word, expected),
@@ -662,7 +574,7 @@ export class Lexer {
 
 	private isComma(word: string) {
 		const expected = ',';
-		if (word.startsWith(expected)) {
+		if (word === expected) {
 			this._tokens.push({
 				tokens: [LexerToken.COMMA],
 				pos: this.generatePos(word, expected),
@@ -706,7 +618,7 @@ export class Lexer {
 
 	private isForwardSlash(word: string) {
 		const expected = '/';
-		if (word.startsWith(expected)) {
+		if (word === expected) {
 			this._tokens.push({
 				tokens: [LexerToken.FORWARD_SLASH],
 				pos: this.generatePos(word, expected),
@@ -718,7 +630,7 @@ export class Lexer {
 
 	private isBackSlash(word: string) {
 		const expected = '\\';
-		if (word.startsWith(expected)) {
+		if (word === expected) {
 			this._tokens.push({
 				tokens: [LexerToken.BACK_SLASH],
 				pos: this.generatePos(word, expected),
@@ -730,7 +642,7 @@ export class Lexer {
 
 	private isAddOperator(word: string) {
 		const expected = '+';
-		if (word.startsWith(expected)) {
+		if (word === expected) {
 			this._tokens.push({
 				tokens: [LexerToken.ADD_OPERATOR],
 				pos: this.generatePos(word, expected),
@@ -742,7 +654,7 @@ export class Lexer {
 
 	private isNegeteOperator(word: string) {
 		const expected = '-';
-		if (word.startsWith(expected)) {
+		if (word === expected) {
 			this._tokens.push({
 				tokens: [LexerToken.NEG_OPERATOR],
 				pos: this.generatePos(word, expected),
@@ -754,7 +666,7 @@ export class Lexer {
 
 	private isMultiplicationOperator(word: string) {
 		const expected = '*';
-		if (word.startsWith(expected)) {
+		if (word === expected) {
 			this._tokens.push({
 				tokens: [LexerToken.MULTI_OPERATOR],
 				pos: this.generatePos(word, expected),
@@ -766,7 +678,7 @@ export class Lexer {
 
 	private isModulusOperator(word: string) {
 		const expected = '%';
-		if (word.startsWith(expected)) {
+		if (word === expected) {
 			this._tokens.push({
 				tokens: [LexerToken.MODULUS_OPERATOR],
 				pos: this.generatePos(word, expected),

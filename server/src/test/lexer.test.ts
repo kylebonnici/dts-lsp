@@ -144,4 +144,69 @@ describe('Lexer', () => {
 		);
 		expect(lexer.tokens[3].tokens).toEqual(expect.arrayContaining([LexerToken.SEMICOLON]));
 	});
+	test('prop with value no space', async () => {
+		const lexer = new Lexer('prop<10>;');
+		expect(lexer.tokens.length).toBe(5);
+
+		expect(lexer.tokens[0].tokens).toEqual(
+			expect.arrayContaining([LexerToken.PROPERTY_NAME])
+		);
+		expect(lexer.tokens[1].tokens).toEqual(expect.arrayContaining([LexerToken.LT_SYM]));
+		expect(lexer.tokens[2].tokens).toEqual(expect.arrayContaining([LexerToken.DIGITS]));
+		expect(lexer.tokens[3].tokens).toEqual(expect.arrayContaining([LexerToken.GT_SYM]));
+		expect(lexer.tokens[4].tokens).toEqual(expect.arrayContaining([LexerToken.SEMICOLON]));
+	});
+
+	test('prop with value with space', async () => {
+		const lexer = new Lexer('prop < 10 >;');
+		expect(lexer.tokens.length).toBe(5);
+
+		expect(lexer.tokens[0].tokens).toEqual(
+			expect.arrayContaining([LexerToken.PROPERTY_NAME])
+		);
+		expect(lexer.tokens[1].tokens).toEqual(expect.arrayContaining([LexerToken.LT_SYM]));
+		expect(lexer.tokens[2].tokens).toEqual(expect.arrayContaining([LexerToken.DIGITS]));
+		expect(lexer.tokens[3].tokens).toEqual(expect.arrayContaining([LexerToken.GT_SYM]));
+		expect(lexer.tokens[4].tokens).toEqual(expect.arrayContaining([LexerToken.SEMICOLON]));
+	});
+
+	test('prop with multiple values with no space', async () => {
+		const lexer = new Lexer('prop<10>,<20>;');
+		expect(lexer.tokens.length).toBe(9);
+
+		expect(lexer.tokens[0].tokens).toEqual(
+			expect.arrayContaining([LexerToken.PROPERTY_NAME])
+		);
+		expect(lexer.tokens[1].tokens).toEqual(expect.arrayContaining([LexerToken.LT_SYM]));
+		expect(lexer.tokens[2].tokens).toEqual(expect.arrayContaining([LexerToken.DIGITS]));
+		expect(lexer.tokens[3].tokens).toEqual(expect.arrayContaining([LexerToken.GT_SYM]));
+		expect(lexer.tokens[4].tokens).toEqual(expect.arrayContaining([LexerToken.COMMA]));
+		expect(lexer.tokens[5].tokens).toEqual(expect.arrayContaining([LexerToken.LT_SYM]));
+		expect(lexer.tokens[6].tokens).toEqual(expect.arrayContaining([LexerToken.DIGITS]));
+		expect(lexer.tokens[7].tokens).toEqual(expect.arrayContaining([LexerToken.GT_SYM]));
+		expect(lexer.tokens[8].tokens).toEqual(expect.arrayContaining([LexerToken.SEMICOLON]));
+	});
+
+	test('prop coma name', async () => {
+		const lexer = new Lexer('prop<10>;');
+		expect(lexer.tokens.length).toBe(5);
+
+		expect(lexer.tokens[0].tokens).toEqual(
+			expect.arrayContaining([LexerToken.PROPERTY_NAME])
+		);
+		expect(lexer.tokens[1].tokens).toEqual(expect.arrayContaining([LexerToken.LT_SYM]));
+		expect(lexer.tokens[2].tokens).toEqual(expect.arrayContaining([LexerToken.DIGITS]));
+		expect(lexer.tokens[3].tokens).toEqual(expect.arrayContaining([LexerToken.GT_SYM]));
+		expect(lexer.tokens[4].tokens).toEqual(expect.arrayContaining([LexerToken.SEMICOLON]));
+	});
+
+	test('prop with hyfen', async () => {
+		const lexer = new Lexer('prop-name;');
+		expect(lexer.tokens.length).toBe(2);
+
+		expect(lexer.tokens[0].tokens).toEqual(
+			expect.arrayContaining([LexerToken.PROPERTY_NAME])
+		);
+		expect(lexer.tokens[1].tokens).toEqual(expect.arrayContaining([LexerToken.SEMICOLON]));
+	});
 });

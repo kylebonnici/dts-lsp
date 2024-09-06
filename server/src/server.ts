@@ -267,13 +267,18 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 		const diagnostic: Diagnostic = {
 			severity: DiagnosticSeverity.Warning,
 			range: {
-				start: { line: issue.token?.pos.line ?? 0, character: issue.token?.pos.col ?? 0 },
-				end: { line: issue.token?.pos.line ?? 0, character: issue.token?.pos.col ?? 0 },
+				start: {
+					line: issue.token?.pos.line ?? 0,
+					character: (issue.token?.pos.col ?? 0) + 1,
+				},
+				end: {
+					line: issue.token?.pos.line ?? 0,
+					character: (issue.token?.pos.col ?? 0) + 1 + (issue.token?.pos.len ?? 0),
+				},
 			},
 			message: issue.issues ? issue.issues.map(issueToMessage).join(' or ') : '',
 			source: 'devie tree',
 		};
-		console.log(issue);
 		diagnostics.push(diagnostic);
 	});
 

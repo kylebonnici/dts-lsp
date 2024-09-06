@@ -87,7 +87,7 @@ export class DeleteNode extends Base {
 }
 
 export class DeleteProperty extends Base {
-	constructor(public readonly propertyName: string) {
+	constructor(public readonly propertyName: string | null) {
 		super();
 	}
 }
@@ -469,7 +469,7 @@ export class Parser {
 			this.moveToNextToken;
 			result = this.processValue();
 
-			if (!result.values.values) {
+			if (!result.values.filter((v) => !!v).length) {
 				this.issues.push(this.genIssue(Issues.VALUE, token));
 			}
 		}
@@ -505,9 +505,10 @@ export class Parser {
 			return false;
 		}
 
-		token = this.moveToNextToken;
-		if (!validToken(token, LexerToken.FORWARD_SLASH)) {
+		if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
 			this.issues.push(this.genIssue(Issues.FORWARD_SLASH_END_DELETE, token));
+		} else {
+			token = this.moveToNextToken;
 		}
 
 		const labelRef = this.isLabelRef();
@@ -541,22 +542,23 @@ export class Parser {
 			return false;
 		}
 
-		token = this.moveToNextToken;
-		if (!validToken(token, LexerToken.FORWARD_SLASH)) {
+		if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
 			this.issues.push(this.genIssue(Issues.FORWARD_SLASH_END_DELETE, token));
+		} else {
+			token = this.moveToNextToken;
 		}
 
 		if (!validToken(this.currentToken, LexerToken.PROPERTY_NAME)) {
 			this.issues.push(this.genIssue(Issues.PROPERTY_NAME, token));
 		} else {
 			token = this.moveToNextToken;
+
+			if (!token?.value) {
+				throw new Error('Token must have value');
+			}
 		}
 
-		if (!token?.value) {
-			throw new Error('Token must have value');
-		}
-
-		const node = new DeleteProperty(token.value);
+		const node = new DeleteProperty(token?.value ?? null);
 
 		const lastToken = this.endStatment();
 		node.tokenIndexes = { start: firstToken, end: lastToken };
@@ -587,6 +589,9 @@ export class Parser {
 			if (validToken(this.currentToken, LexerToken.COMMA)) {
 				this.moveToNextToken;
 				const next = getValues();
+				if (next === null) {
+					this.issues.push(this.genIssue(Issues.VALUE, this.currentToken));
+				}
 				value = [...value, ...next];
 			}
 
