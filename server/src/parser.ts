@@ -866,7 +866,9 @@ export class Parser {
 		let token = this.currentToken;
 		while (
 			validToken(token, LexerToken.LABEL_ASSIGN) ||
-			(acceptLabelName && validToken(token, LexerToken.LABEL_NAME))
+			(acceptLabelName &&
+				validToken(token, LexerToken.LABEL_NAME) &&
+				token?.pos.line === this.prevToken.pos.line)
 		) {
 			if (token?.value) {
 				const node = new LabelNode(token.value);
