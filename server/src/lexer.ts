@@ -215,6 +215,7 @@ export class Lexer {
 		}
 
 		this.move();
+
 		string += quote;
 		return string;
 	}
@@ -292,7 +293,12 @@ export class Lexer {
 		}
 
 		const token = this._tokens.at(-1);
-		if (tokenFound && token && token.pos.len < word.length) {
+		if (
+			tokenFound &&
+			!token?.tokens.some((t) => t === LexerToken.STRING) &&
+			token &&
+			token.pos.len < word.length
+		) {
 			return this.process(word.slice(token.pos.len));
 		}
 
@@ -573,15 +579,16 @@ export class Lexer {
 	}
 
 	private isComma(word: string) {
-		const expected = ',';
-		if (word === expected) {
+		const match = word.match(/^[,]+/);
+		if (match?.[0]) {
 			this._tokens.push({
 				tokens: [LexerToken.COMMA, LexerToken.PROPERTY_NAME],
-				pos: this.generatePos(word, expected),
+				pos: this.generatePos(',', ','),
 				value: ',',
 			});
 			return true;
 		}
+
 		return false;
 	}
 

@@ -22,7 +22,7 @@ import {
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Lexer } from './lexer';
-import { Issues, Parser, tokenModifiers, tokenTypes } from './parser';
+import { Issues, Parser, tokenModifiers, tokenTypes, toRange } from './parser';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -212,9 +212,13 @@ const issueToMessage = (issue: Issues) => {
 		case Issues.BYTESTRING_HEX:
 			return 'Expected hex values are not allowed';
 		case Issues.FORWARD_SLASH_END_DELETE:
-			return "Trailing '/' at the end of the path";
+			return "Trailing '/' at the end of delete keyword";
 		case Issues.NO_STAMENTE:
 			return "Found ';' without a statment";
+		case Issues.LABEL_ASSIGN_MISSING_COLON:
+			return "Missing ':' for label assign";
+		case Issues.DELETE_INCOMPLETE:
+			return 'Did you mean /delete-node/ or /delete-property/';
 		case Issues.UNKNOWN:
 			return 'Unknown syntax';
 	}
@@ -281,19 +285,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 	parser.issues.forEach((issue) => {
 		const diagnostic: Diagnostic = {
 			severity: DiagnosticSeverity.Error,
-			range: {
-				start: {
-					line: issue.slxElement.tokenIndexes?.start?.pos.line ?? 0,
-					character: issue.slxElement.tokenIndexes?.start?.pos.col ?? 0,
-				},
-				end: {
-					line: issue.slxElement.tokenIndexes?.end?.pos.line ?? 0,
-					character:
-						(issue.slxElement.tokenIndexes?.end?.pos.col ?? 0) +
-						1 +
-						(issue.slxElement.tokenIndexes?.end?.pos.len ?? 0),
-				},
-			},
+			range: toRange(issue.slxElement),
 			message: issue.issues ? issue.issues.map(issueToMessage).join(' or ') : '',
 			source: 'devie tree',
 		};

@@ -16,9 +16,6 @@
 	"engines": {
 		"vscode": "^1.75.0"
 	},
-	"activationEvents": [
-		"onLanguage:devicetree"
-	],
 	"main": "./client/out/extension",
 	"contributes": {
 		"languages": [
@@ -29,7 +26,8 @@
 				],
 				"extensions": [
 					".dts"
-				]
+				],
+				"configuration": "syntax/devicetree-language.json"
 			}
 		],
 		"configuration": {

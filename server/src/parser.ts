@@ -80,9 +80,11 @@ export enum Issues {
 	FORWARD_SLASH_END_DELETE,
 	UNKNOWN,
 	NO_STAMENTE,
+	LABEL_ASSIGN_MISSING_COLON,
+	DELETE_INCOMPLETE,
 }
 
-type AllowNodeDef = 'Both' | 'Ref' | 'Name';
+type AllowNodeRef = 'Both' | 'Ref' | 'Name';
 
 export interface Issue {
 	issues: Issues[];
@@ -150,10 +152,19 @@ export class DtcNode extends BaseNode {
 	}
 
 	private get keyword() {
-		this._keyword ??= new SlxBase();
+		if (!this.tokenIndexes?.start) return;
+		this._keyword ??= new KeyWord();
+		const newTokenIndex: Token = {
+			...this.tokenIndexes?.start,
+			pos: {
+				col: this.tokenIndexes.start.pos.col ?? 0,
+				len: 1,
+				line: this.tokenIndexes?.start.pos.line ?? 0,
+			},
+		};
 		this._keyword.tokenIndexes = {
-			start: this.tokenIndexes?.start,
-			end: this.tokenIndexes?.start,
+			start: newTokenIndex,
+			end: newTokenIndex,
 		};
 		return this._keyword;
 	}
@@ -161,8 +172,8 @@ export class DtcNode extends BaseNode {
 	getDocumentSymbols(): DocumentSymbol[] {
 		return [
 			{
-				name: 'Root',
-				kind: SymbolKind.Namespace,
+				name: '/',
+				kind: SymbolKind.Class,
 				range: toRange(this),
 				selectionRange: toRange(this),
 				children: [
@@ -176,7 +187,7 @@ export class DtcNode extends BaseNode {
 	}
 
 	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.keyword.buildSemanticTokens(builder);
+		this.keyword?.buildSemanticTokens(builder);
 		this.nodes.forEach((node) => node.buildSemanticTokens(builder));
 		this.deleteNodes.forEach((node) => node.buildSemanticTokens(builder));
 		this.properties.forEach((property) => property.buildSemanticTokens(builder));
@@ -214,6 +225,7 @@ export class DtcChilNode extends DtcNode {
 		this.deleteNodes.forEach((node) => node.buildSemanticTokens(builder));
 		this.properties.forEach((property) => property.buildSemanticTokens(builder));
 		this.deleteProperties.forEach((property) => property.buildSemanticTokens(builder));
+		this.labels.forEach((label) => label.buildSemanticTokens(builder));
 	}
 }
 
@@ -242,6 +254,7 @@ export class DtcProperty extends SlxBase {
 	buildSemanticTokens(builder: BuildSemanticTokensPush) {
 		this.propertyName?.buildSemanticTokens(builder);
 		this.values?.buildSemanticTokens(builder);
+		this.labels.forEach((label) => label.buildSemanticTokens(builder));
 	}
 }
 
@@ -351,7 +364,6 @@ export const toRange = (slxBase: SlxBase) => {
 			line: slxBase.tokenIndexes?.end?.pos.line ?? 0,
 			character:
 				(slxBase.tokenIndexes?.end?.pos.col ?? 0) +
-				1 +
 				(slxBase.tokenIndexes?.end?.pos.len ?? 0),
 		},
 	};
@@ -491,7 +503,7 @@ export class StringValue extends SlxBase {
 }
 
 export class ByteStringValue extends SlxBase {
-	constructor(public readonly values: (NumberValue | null)[]) {
+	constructor(public readonly values: (NumberWithLabelValue | null)[]) {
 		super();
 	}
 
@@ -565,6 +577,8 @@ export class NodePathValue extends SlxBase {
 export class NodePathRef extends SlxBase {
 	constructor(public readonly path: NodePath | null) {
 		super();
+		this.semanticTokenType = 'variable';
+		this.semanticTokenModifiers = 'declaration';
 	}
 
 	getDocumentSymbols(): DocumentSymbol[] {
@@ -577,10 +591,6 @@ export class NodePathRef extends SlxBase {
 				children: this.path?.getDocumentSymbols(),
 			},
 		];
-	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.path?.buildSemanticTokens(builder);
 	}
 }
 
@@ -648,7 +658,7 @@ export class PropertyValue extends SlxBase {
 }
 
 export class NumberValues extends SlxBase {
-	constructor(public readonly values: NumberValue[]) {
+	constructor(public readonly values: NumberWithLabelValue[]) {
 		super();
 	}
 
@@ -670,21 +680,28 @@ export class NumberValues extends SlxBase {
 }
 
 export class NumberValue extends SlxBase {
-	constructor(public readonly value: number, public readonly labels: LabelNode[]) {
+	constructor(public readonly value: number) {
 		super();
 		this.semanticTokenType = 'number';
 		this.semanticTokenModifiers = 'declaration';
 	}
+}
+
+export class NumberWithLabelValue extends SlxBase {
+	constructor(public readonly number: NumberValue, public readonly labels: LabelNode[]) {
+		super();
+	}
 
 	getDocumentSymbols(): DocumentSymbol[] {
 		return [
-			{
-				name: this.value.toString(),
-				kind: SymbolKind.Number,
-				range: toRange(this),
-				selectionRange: toRange(this),
-			},
+			...this.number.getDocumentSymbols(),
+			...this.labels.flatMap((label) => label.getDocumentSymbols()),
 		];
+	}
+
+	buildSemanticTokens(push: BuildSemanticTokensPush): void {
+		this.number.buildSemanticTokens(push);
+		this.labels.forEach((label) => label.buildSemanticTokens(push));
 	}
 }
 
@@ -724,7 +741,7 @@ export class Parser {
 				const token = this.moveToNextToken;
 				node.tokenIndexes = { start: token, end: token };
 				this.issues.push(this.genIssue(Issues.UNKNOWN, node));
-				this.reportExterEndStaments();
+				this.reportExtraEndStaments();
 			}
 		};
 
@@ -799,12 +816,12 @@ export class Parser {
 
 		this.moveToNextToken;
 
-		this.reportExterEndStaments();
+		this.reportExtraEndStaments();
 
 		return currentToken;
 	}
 
-	private reportExterEndStaments() {
+	private reportExtraEndStaments() {
 		while (validToken(this.currentToken, LexerToken.SEMICOLON)) {
 			const token = this.moveToNextToken;
 			const node = new SlxBase();
@@ -813,7 +830,7 @@ export class Parser {
 		}
 	}
 
-	private processNode(parent: DtcNode, allow: AllowNodeDef): boolean {
+	private processNode(parent: DtcNode, allow: AllowNodeRef): boolean {
 		if (this.done) return false;
 
 		let found = false;
@@ -830,7 +847,7 @@ export class Parser {
 				const token = this.moveToNextToken;
 				node.tokenIndexes = { start: token, end: token };
 				this.issues.push(this.genIssue(Issues.UNKNOWN, node));
-				this.reportExterEndStaments();
+				this.reportExtraEndStaments();
 			} else {
 				if (this.done) {
 					break;
@@ -841,16 +858,23 @@ export class Parser {
 		return found;
 	}
 
-	private processOptionalLablelAssign(): LabelNode[] {
+	private processOptionalLablelAssign(acceptLabelName = false): LabelNode[] {
 		const labels: LabelNode[] = [];
 
 		// Find all labels before node/property/value.....
 		let token = this.currentToken;
-		while (validToken(token, LexerToken.LABEL_ASSIGN)) {
+		while (
+			validToken(token, LexerToken.LABEL_ASSIGN) ||
+			(acceptLabelName && validToken(token, LexerToken.LABEL_NAME))
+		) {
 			if (token?.value) {
 				const node = new LabelNode(token.value);
 				node.tokenIndexes = { start: token, end: token };
 				labels.push(node);
+
+				if (validToken(token, LexerToken.LABEL_NAME)) {
+					this.issues.push(this.genIssue(Issues.LABEL_ASSIGN_MISSING_COLON, node));
+				}
 			}
 			this.moveToNextToken;
 			token = this.currentToken;
@@ -887,7 +911,7 @@ export class Parser {
 		return node;
 	}
 
-	private isChildNode(parentNode: BaseNode, allow: AllowNodeDef): boolean {
+	private isChildNode(parentNode: BaseNode, allow: AllowNodeRef): boolean {
 		this.enqueToStack();
 
 		const labels = this.processOptionalLablelAssign();
@@ -956,7 +980,7 @@ export class Parser {
 		const token = this.moveToNextToken;
 
 		if (!validToken(token, LexerToken.PROPERTY_NAME)) {
-			if (labels.length) {
+			if (labels.length && !validToken(token, LexerToken.NODE_NAME)) {
 				// we have seme lables so we are expecing a property or a node then
 				this.issues.push(
 					this.genIssue([Issues.PROPERTY_DEFINITION, Issues.NODE_DEFINITION], parent)
@@ -1028,12 +1052,16 @@ export class Parser {
 		}
 
 		token = this.moveToNextToken;
-		if (token?.value !== 'delete-node') {
+		if (token?.value && !'delete-node'.startsWith(token.value)) {
 			this.popStack();
 			return false;
 		}
 
 		const keyword = new KeyWord();
+
+		if (token?.value !== 'delete-node') {
+			this.issues.push(this.genIssue(Issues.DELETE_INCOMPLETE, keyword));
+		}
 
 		if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
 			this.issues.push(this.genIssue(Issues.FORWARD_SLASH_END_DELETE, keyword));
@@ -1071,12 +1099,16 @@ export class Parser {
 		}
 
 		token = this.moveToNextToken;
-		if (token?.value !== 'delete-property') {
+		if (token?.value && !'delete-property'.startsWith(token.value)) {
 			this.popStack();
 			return false;
 		}
 
 		const keyword = new KeyWord();
+
+		if (token?.value !== 'delete-property') {
+			this.issues.push(this.genIssue(Issues.DELETE_INCOMPLETE, keyword));
+		}
 
 		if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
 			this.issues.push(this.genIssue(Issues.FORWARD_SLASH_END_DELETE, keyword));
@@ -1116,28 +1148,35 @@ export class Parser {
 	private processValue(dtcProperty: DtcProperty): PropertyValues {
 		this.enqueToStack();
 
-		const labels = this.processOptionalLablelAssign();
+		const labels = this.processOptionalLablelAssign(true);
 
 		const getValues = (): (PropertyValue | null)[] => {
-			let value = [
-				(this.processStringValue() ||
-					this.isLabelRefValue(dtcProperty) ||
-					this.processNumericNodePathOrRefValue(dtcProperty) ||
-					this.processByteStringValue(dtcProperty)) ??
-					null,
-			];
+			const getValue = () => {
+				return (
+					(this.processStringValue() ||
+						this.isLabelRefValue(dtcProperty) ||
+						this.processNumericNodePathOrRefValue(dtcProperty) ||
+						this.processByteStringValue(dtcProperty)) ??
+					null
+				);
+			};
+			const value = [getValue()];
 
 			if (!value) {
 				this.issues.push(this.genIssue(Issues.VALUE, dtcProperty));
 			}
 
-			if (validToken(this.currentToken, LexerToken.COMMA)) {
+			while (validToken(this.currentToken, LexerToken.COMMA)) {
+				const start = this.prevToken;
+				const end = this.currentToken;
 				this.moveToNextToken;
-				const next = getValues();
+				const next = getValue();
 				if (next === null) {
-					this.issues.push(this.genIssue(Issues.VALUE, dtcProperty));
+					const node = new SlxBase();
+					node.tokenIndexes = { start, end };
+					this.issues.push(this.genIssue(Issues.VALUE, node));
 				}
-				value = [...value, ...next];
+				value.push(next);
 			}
 
 			return value;
@@ -1149,7 +1188,7 @@ export class Parser {
 		const node = new PropertyValues(values, labels);
 		node.tokenIndexes = {
 			start: labels.at(0)?.tokenIndexes?.start ?? values.at(0)?.tokenIndexes?.start,
-			end: values.at(-1)?.tokenIndexes?.end,
+			end: this.prevToken,
 		};
 		return node;
 	}
@@ -1180,7 +1219,7 @@ export class Parser {
 
 		propValue.tokenIndexes = { start: token, end: token };
 
-		const endLabels = this.processOptionalLablelAssign() ?? [];
+		const endLabels = this.processOptionalLablelAssign(true) ?? [];
 
 		const node = new PropertyValue(propValue, endLabels);
 		node.tokenIndexes = { start: token, end: token };
@@ -1211,7 +1250,7 @@ export class Parser {
 			);
 		}
 
-		const endLabels1 = this.processOptionalLablelAssign() ?? [];
+		const endLabels1 = this.processOptionalLablelAssign(true) ?? [];
 
 		if (!validToken(this.currentToken, LexerToken.GT_SYM)) {
 			this.issues.push(this.genIssue(Issues.GT_SYM, dtcProperty));
@@ -1219,7 +1258,7 @@ export class Parser {
 			this.moveToNextToken;
 		}
 
-		const endLabels2 = this.processOptionalLablelAssign() ?? [];
+		const endLabels2 = this.processOptionalLablelAssign(true) ?? [];
 
 		this.mergeStack();
 		const node = new PropertyValue(value, [...endLabels1, ...endLabels2]);
@@ -1246,7 +1285,7 @@ export class Parser {
 			this.issues.push(this.genIssue(Issues.BYTESTRING, dtcProperty));
 		}
 
-		const endLabels1 = this.processOptionalLablelAssign() ?? [];
+		const endLabels1 = this.processOptionalLablelAssign(true) ?? [];
 
 		if (!validToken(this.currentToken, LexerToken.SQUARE_CLOSE)) {
 			this.issues.push(this.genIssue(Issues.SQUARE_CLOSE, dtcProperty));
@@ -1264,7 +1303,7 @@ export class Parser {
 			}
 		});
 
-		const endLabels2 = this.processOptionalLablelAssign() ?? [];
+		const endLabels2 = this.processOptionalLablelAssign(true) ?? [];
 
 		this.mergeStack();
 		const byteString = new ByteStringValue(numberValues?.values ?? []);
@@ -1281,22 +1320,22 @@ export class Parser {
 	private processNumericValues(): NumberValues | undefined {
 		this.enqueToStack();
 
-		if (!validToken(this.currentToken, LexerToken.NUMBER)) {
+		let value = this.processHex(false) || this.processDec(true);
+		let result: NumberWithLabelValue[] = [];
+
+		if (!value) {
 			this.popStack();
 			return;
 		}
 
-		let value = this.processHex() || this.processDec();
-		let result: NumberValue[] = [];
-
 		while (value) {
 			result = [...result, value];
 
-			value = this.processHex() || this.processDec();
+			value = this.processHex(false) || this.processDec(true);
 		}
 
 		if (result) {
-			const nextValue = this.processHex() || this.processDec();
+			const nextValue = this.processHex(false) || this.processDec(true);
 			if (nextValue) {
 				result = [...result, nextValue];
 			}
@@ -1311,10 +1350,10 @@ export class Parser {
 		return node;
 	}
 
-	private processHex(): NumberValue | undefined {
+	private processHex(acceptLabelName: boolean): NumberWithLabelValue | undefined {
 		this.enqueToStack();
 
-		const labels = this.processOptionalLablelAssign();
+		const labels = this.processOptionalLablelAssign(acceptLabelName);
 		const token = this.moveToNextToken;
 		if (!validToken(token, LexerToken.HEX)) {
 			this.popStack();
@@ -1326,15 +1365,17 @@ export class Parser {
 		}
 
 		this.mergeStack();
-		const node = new NumberValue(Number.parseInt(token.value, 16), labels);
+		const numbeValue = new NumberValue(Number.parseInt(token.value, 16));
+		numbeValue.tokenIndexes = { start: token, end: token };
+		const node = new NumberWithLabelValue(numbeValue, labels);
 		node.tokenIndexes = { start: labels.at(0)?.tokenIndexes?.end ?? token, end: token };
 		return node;
 	}
 
-	private processDec(): NumberValue | undefined {
+	private processDec(acceptLabelName: boolean): NumberWithLabelValue | undefined {
 		this.enqueToStack();
 
-		const labels = this.processOptionalLablelAssign();
+		const labels = this.processOptionalLablelAssign(acceptLabelName);
 		const token = this.moveToNextToken;
 		if (!validToken(token, LexerToken.DIGITS)) {
 			this.popStack();
@@ -1346,7 +1387,9 @@ export class Parser {
 		}
 
 		this.mergeStack();
-		const node = new NumberValue(Number.parseInt(token.value, 10), labels);
+		const numbeValue = new NumberValue(Number.parseInt(token.value, 10));
+		numbeValue.tokenIndexes = { start: token, end: token };
+		const node = new NumberWithLabelValue(numbeValue, labels);
 		node.tokenIndexes = {
 			start: labels.at(0)?.tokenIndexes?.end ?? token,
 			end: token,
@@ -1357,14 +1400,12 @@ export class Parser {
 	private isLabelRef(slxBase?: SlxBase): LabelRef | undefined {
 		this.enqueToStack();
 		const firstToken = this.moveToNextToken;
-		let token = firstToken;
-		if (!validToken(token, LexerToken.AMPERSAND)) {
+		if (!validToken(firstToken, LexerToken.AMPERSAND)) {
 			this.popStack();
 			return;
 		}
 
-		token = this.moveToNextToken;
-		if (!validToken(token, LexerToken.LABEL_NAME)) {
+		if (!validToken(this.currentToken, LexerToken.LABEL_NAME)) {
 			const node = new LabelRef(null);
 			this.issues.push(this.genIssue(Issues.LABEL_NAME, slxBase ?? node));
 			node.tokenIndexes = { start: firstToken, end: firstToken };
@@ -1372,6 +1413,8 @@ export class Parser {
 			this.mergeStack();
 			return node;
 		}
+
+		const token = this.moveToNextToken;
 
 		if (token?.value === undefined) {
 			throw new Error('Token must have value');
@@ -1395,7 +1438,7 @@ export class Parser {
 			return;
 		}
 
-		const endLabels = this.processOptionalLablelAssign();
+		const endLabels = this.processOptionalLablelAssign(true);
 
 		const node = new PropertyValue(labelRef, endLabels);
 		node.tokenIndexes = {
@@ -1410,7 +1453,7 @@ export class Parser {
 	private processNodePathOrLabelRefValue(
 		dtcProperty: DtcProperty
 	): LabelRefValue | NodePathValue | undefined {
-		const labels = this.processOptionalLablelAssign();
+		const labels = this.processOptionalLablelAssign(true);
 		const firstToken = this.currentToken;
 		if (!validToken(this.currentToken, LexerToken.AMPERSAND)) {
 			return;
@@ -1591,19 +1634,34 @@ export class Parser {
 		) => {
 			if (!tokenIndexes?.start || !tokenIndexes?.end) return;
 
+			const lengthEnd =
+				tokenIndexes.end.pos.col - tokenIndexes.start.pos.col + tokenIndexes.end.pos.len;
 			result.push({
 				line: tokenIndexes.start.pos.line,
 				char: tokenIndexes.start.pos.col,
 				length:
-					tokenIndexes.end === tokenIndexes.start
-						? tokenIndexes.end.pos.len
-						: tokenIndexes.end.pos.col - tokenIndexes.start.pos.col + 1,
+					tokenIndexes.end === tokenIndexes.start ? tokenIndexes.end.pos.len : lengthEnd,
 				tokenType,
 				tokenModifiers,
 			});
 		};
 
 		this.rootDocument.buildSemanticTokens(push);
+		this.tokens
+			.filter(
+				(token) =>
+					validToken(token, LexerToken.CURLY_OPEN) ||
+					validToken(token, LexerToken.CURLY_CLOSE)
+			)
+			.forEach((token) => {
+				result.push({
+					line: token.pos.len,
+					char: token.pos.col,
+					length: 1,
+					tokenType: getTokenTypes('struct'),
+					tokenModifiers: getTokenModifiers('declaration'),
+				});
+			});
 		result
 			.sort((a, b) => (a.line === b.line ? a.char - b.char : a.line - b.line))
 			.forEach((r) =>

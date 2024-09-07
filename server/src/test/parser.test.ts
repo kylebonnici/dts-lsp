@@ -326,7 +326,7 @@ describe('Parser', () => {
 			expect(value?.value instanceof NumberValues).toBeTruthy();
 			const numberValue = value?.value as NumberValues;
 
-			expect(numberValue.values[0].value).toBe(10);
+			expect(numberValue.values[0].number.value).toBe(10);
 			expect(numberValue.tokenIndexes?.start?.pos).toEqual({
 				col: 9,
 				len: 2,
@@ -605,166 +605,6 @@ describe('Parser', () => {
 				expect.arrayContaining([LexerToken.LT_SYM])
 			);
 			expect(property.tokenIndexes?.end?.pos).toEqual({
-				col: 7,
-				len: 1,
-				line: 1,
-			});
-			// ---- property end ----
-		});
-
-		test('root node with two prop with mising value and end > and semicoloun + node end', async () => {
-			const rootNode = '/{ \nprop1= < prop2= <';
-			const parser = new Parser(new Lexer(rootNode).tokens);
-
-			expect(parser.issues.length).toEqual(8);
-			expect(parser.issues[0].issues).toEqual(
-				expect.arrayContaining([Issues.NUMERIC_VALUE, Issues.NODE_REF, Issues.NODE_PATH])
-			);
-			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
-				len: 5,
-				line: 1,
-				col: 0,
-			});
-
-			expect(parser.issues[1].issues).toEqual(expect.arrayContaining([Issues.GT_SYM]));
-			expect(parser.issues[1].slxElement.tokenIndexes?.start?.pos).toEqual({
-				len: 5,
-				line: 1,
-				col: 0,
-			});
-
-			expect(parser.issues[2].issues).toEqual(
-				expect.arrayContaining([Issues.END_STATMENT])
-			);
-			expect(parser.issues[2].slxElement.tokenIndexes?.start?.pos).toEqual({
-				len: 5,
-				line: 1,
-				col: 0,
-			});
-
-			expect(parser.issues[3].issues).toEqual(
-				expect.arrayContaining([Issues.NUMERIC_VALUE, Issues.NODE_REF, Issues.NODE_PATH])
-			);
-			expect(parser.issues[3].slxElement.tokenIndexes?.start?.pos).toEqual({
-				len: 5,
-				line: 1,
-				col: 9,
-			});
-
-			expect(parser.issues[4].issues).toEqual(expect.arrayContaining([Issues.GT_SYM]));
-			expect(parser.issues[4].slxElement.tokenIndexes?.start?.pos).toEqual({
-				len: 5,
-				line: 1,
-				col: 9,
-			});
-
-			expect(parser.issues[5].issues).toEqual(
-				expect.arrayContaining([Issues.END_STATMENT])
-			);
-			expect(parser.issues[5].slxElement.tokenIndexes?.start?.pos).toEqual({
-				len: 5,
-				line: 1,
-				col: 9,
-			});
-
-			expect(parser.issues[6].issues).toEqual(expect.arrayContaining([Issues.CURLY_CLOSE]));
-			expect(parser.issues[6].slxElement.tokenIndexes?.start?.pos).toEqual({
-				len: 1,
-				line: 0,
-				col: 0,
-			});
-
-			expect(parser.issues[7].issues).toEqual(
-				expect.arrayContaining([Issues.END_STATMENT])
-			);
-			expect(parser.issues[7].slxElement.tokenIndexes?.start?.pos).toEqual({
-				len: 1,
-				line: 0,
-				col: 0,
-			});
-
-			expect(parser.rootDocument.nodes.length).toEqual(1);
-			const node = parser.rootDocument.nodes[0];
-
-			expect(node.tokenIndexes?.end?.tokens).toEqual(
-				expect.arrayContaining([LexerToken.LT_SYM])
-			);
-			expect(node.tokenIndexes?.end?.pos).toEqual({
-				col: 16,
-				len: 1,
-				line: 1,
-			});
-
-			// ---- property ----
-			expect(node.properties.length).toEqual(2);
-			const property1 = node.properties[0];
-
-			expect(property1.tokenIndexes?.start?.tokens).toEqual(
-				expect.arrayContaining([LexerToken.PROPERTY_NAME])
-			);
-			expect(property1.tokenIndexes?.start?.pos).toEqual({
-				col: 0,
-				len: 5,
-				line: 1,
-			});
-
-			// ------------ value -----------
-			const values1 = property1.values;
-			expect(values1?.tokenIndexes?.start?.pos).toEqual({
-				col: 7,
-				len: 1,
-				line: 1,
-			});
-			expect(values1?.tokenIndexes?.end?.pos).toEqual({
-				col: 7,
-				len: 1,
-				line: 1,
-			});
-
-			expect(values1?.values.length).toBe(1);
-			const valu1 = values1?.values[0] ?? null;
-
-			expect(valu1).toBeDefined();
-			expect(valu1?.value).toBeNull();
-
-			// ------------ value end -----------
-
-			const property2 = node.properties[0];
-
-			expect(property2.tokenIndexes?.start?.tokens).toEqual(
-				expect.arrayContaining([LexerToken.PROPERTY_NAME])
-			);
-			expect(property2.tokenIndexes?.start?.pos).toEqual({
-				col: 0,
-				len: 5,
-				line: 1,
-			});
-
-			// ------------ value -----------
-			const values2 = property2.values;
-			expect(values2?.tokenIndexes?.start?.pos).toEqual({
-				col: 7,
-				len: 1,
-				line: 1,
-			});
-			expect(values2?.tokenIndexes?.end?.pos).toEqual({
-				col: 7,
-				len: 1,
-				line: 1,
-			});
-
-			expect(values2?.values.length).toBe(1);
-			const value2 = values1?.values[0] ?? null;
-
-			expect(value2).toBeDefined();
-			expect(value2?.value).toBeNull();
-
-			// ------------ value end -----------
-
-			expect(property1.tokenIndexes?.end?.tokens).toEqual(
-				expect.arrayContaining([LexerToken.LT_SYM])
-			);
-			expect(property1.tokenIndexes?.end?.pos).toEqual({
 				col: 7,
 				len: 1,
 				line: 1,
@@ -1115,7 +955,7 @@ describe('Parser', () => {
 
 			expect(value.values.length).toBe(1);
 
-			expect(value.values[0].value).toBe(10);
+			expect(value.values[0].number.value).toBe(10);
 			expect(value.values[0].tokenIndexes?.start?.pos).toStrictEqual({
 				len: 2,
 				col: 7,
@@ -1123,6 +963,119 @@ describe('Parser', () => {
 			});
 			expect(value.values[0].tokenIndexes?.start?.pos).toStrictEqual(
 				value.values[0].tokenIndexes?.end?.pos
+			);
+		});
+
+		test('property missing next value', async () => {
+			const rootNode = 'prop=< 10 >,;';
+			const parser = new Parser(new Lexer(rootNode).tokens);
+			expect(parser.issues.length).toEqual(1);
+			expect(parser.unhandledStaments.properties.length).toEqual(1);
+			const property = parser.unhandledStaments.properties[0];
+
+			expect(property.propertyName?.name).toBe('prop');
+			expect(property.tokenIndexes?.start?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.PROPERTY_NAME])
+			);
+			expect(property.tokenIndexes?.start?.pos).toEqual({
+				col: 0,
+				len: 4,
+				line: 0,
+			});
+
+			expect(property.tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.SEMICOLON])
+			);
+			expect(property.tokenIndexes?.end?.pos).toEqual({
+				col: 12,
+				len: 1,
+				line: 0,
+			});
+
+			expect(property.values).toBeDefined();
+			const values = property.values;
+			expect(values?.tokenIndexes?.start?.pos).toStrictEqual({ len: 1, col: 5, line: 0 });
+			expect(values?.tokenIndexes?.end?.pos).toStrictEqual({ len: 1, col: 11, line: 0 });
+
+			expect(values?.values.length).toBe(2);
+			expect(values?.values[0]?.value instanceof NumberValues).toBeTruthy();
+			const value = values?.values[0]?.value as NumberValues;
+
+			expect(value.values.length).toBe(1);
+
+			expect(value.values[0].number.value).toBe(10);
+			expect(value.values[0].tokenIndexes?.start?.pos).toStrictEqual({
+				len: 2,
+				col: 7,
+				line: 0,
+			});
+			expect(value.values[0].tokenIndexes?.start?.pos).toStrictEqual(
+				value.values[0].tokenIndexes?.end?.pos
+			);
+
+			expect(values?.values[1]).toBeNull();
+		});
+
+		test('property missing value between', async () => {
+			const rootNode = 'prop=< 10 >,,< 10 >;';
+			const parser = new Parser(new Lexer(rootNode).tokens);
+			expect(parser.issues.length).toEqual(1);
+			expect(parser.unhandledStaments.properties.length).toEqual(1);
+			const property = parser.unhandledStaments.properties[0];
+
+			expect(property.propertyName?.name).toBe('prop');
+			expect(property.tokenIndexes?.start?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.PROPERTY_NAME])
+			);
+			expect(property.tokenIndexes?.start?.pos).toEqual({
+				col: 0,
+				len: 4,
+				line: 0,
+			});
+
+			expect(property.tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.SEMICOLON])
+			);
+			expect(property.tokenIndexes?.end?.pos).toEqual({
+				col: 19,
+				len: 1,
+				line: 0,
+			});
+
+			expect(property.values).toBeDefined();
+			const values = property.values;
+			expect(values?.tokenIndexes?.start?.pos).toStrictEqual({ len: 1, col: 5, line: 0 });
+			expect(values?.tokenIndexes?.end?.pos).toStrictEqual({ len: 1, col: 18, line: 0 });
+
+			expect(values?.values.length).toBe(3);
+			expect(values?.values[0]?.value instanceof NumberValues).toBeTruthy();
+			const value1 = values?.values[0]?.value as NumberValues;
+
+			expect(value1.values.length).toBe(1);
+
+			expect(value1.values[0].number.value).toBe(10);
+			expect(value1.values[0].tokenIndexes?.start?.pos).toStrictEqual({
+				len: 2,
+				col: 7,
+				line: 0,
+			});
+			expect(value1.values[0].tokenIndexes?.start?.pos).toStrictEqual(
+				value1.values[0].tokenIndexes?.end?.pos
+			);
+
+			expect(values?.values[1]).toBeNull();
+
+			expect(values?.values[2]?.value instanceof NumberValues).toBeTruthy();
+			const value3 = values?.values[2]?.value as NumberValues;
+
+			expect(value3.values[0].number.value).toBe(10);
+			expect(value3.values[0].tokenIndexes?.start?.pos).toStrictEqual({
+				len: 2,
+				col: 15,
+				line: 0,
+			});
+			expect(value3.values[0].tokenIndexes?.start?.pos).toStrictEqual(
+				value3.values[0].tokenIndexes?.end?.pos
 			);
 		});
 
@@ -1172,7 +1125,7 @@ describe('Parser', () => {
 
 			expect(numberValues.values.length).toBe(2);
 
-			expect(numberValues.values[0].value).toBe(10);
+			expect(numberValues.values[0].number.value).toBe(10);
 			expect(numberValues.values[0].tokenIndexes?.start?.pos).toStrictEqual({
 				len: 2,
 				col: 7,
@@ -1182,7 +1135,7 @@ describe('Parser', () => {
 				numberValues.values[0].tokenIndexes?.end?.pos
 			);
 
-			expect(numberValues.values[1].value).toBe(20);
+			expect(numberValues.values[1].number.value).toBe(20);
 			expect(numberValues.values[1].tokenIndexes?.start?.pos).toStrictEqual({
 				len: 2,
 				col: 10,
@@ -1239,7 +1192,7 @@ describe('Parser', () => {
 
 			expect(numberValues.values.length).toBe(3);
 
-			expect(numberValues.values[0].value).toBe(10);
+			expect(numberValues.values[0].number.value).toBe(10);
 			expect(numberValues.values[0].tokenIndexes?.start?.pos).toStrictEqual({
 				len: 2,
 				col: 7,
@@ -1249,7 +1202,7 @@ describe('Parser', () => {
 				numberValues.values[0].tokenIndexes?.end?.pos
 			);
 
-			expect(numberValues.values[1].value).toBe(20);
+			expect(numberValues.values[1].number.value).toBe(20);
 			expect(numberValues.values[1].tokenIndexes?.start?.pos).toStrictEqual({
 				len: 2,
 				col: 10,
@@ -1259,7 +1212,7 @@ describe('Parser', () => {
 				numberValues.values[1].tokenIndexes?.end?.pos
 			);
 
-			expect(numberValues.values[2].value).toBe(30);
+			expect(numberValues.values[2].number.value).toBe(30);
 			expect(numberValues.values[2].tokenIndexes?.start?.pos).toStrictEqual({
 				len: 2,
 				col: 13,
@@ -1270,10 +1223,10 @@ describe('Parser', () => {
 			);
 		});
 
-		test('property with multiple u32', async () => {
-			const rootNode = 'prop=< 10 >,< 20 >;';
+		test('property with multiple values', async () => {
+			const rootNode = 'prop="test",,< 20 >;';
 			const parser = new Parser(new Lexer(rootNode).tokens);
-			expect(parser.issues.length).toEqual(0);
+			expect(parser.issues.length).toEqual(1);
 			expect(parser.unhandledStaments.properties.length).toEqual(1);
 			const property = parser.unhandledStaments.properties[0];
 
@@ -1291,7 +1244,7 @@ describe('Parser', () => {
 				expect.arrayContaining([LexerToken.SEMICOLON])
 			);
 			expect(property.tokenIndexes?.end?.pos).toEqual({
-				col: 18,
+				col: 19,
 				len: 1,
 				line: 0,
 			});
@@ -1299,44 +1252,44 @@ describe('Parser', () => {
 			expect(property.values).toBeDefined();
 			const propertyValues = property.values;
 			expect(propertyValues?.tokenIndexes?.start?.pos).toStrictEqual({
-				len: 1,
+				len: 6,
 				col: 5,
 				line: 0,
 			});
 			expect(propertyValues?.tokenIndexes?.end?.pos).toStrictEqual({
 				len: 1,
-				col: 17,
+				col: 18,
 				line: 0,
 			});
 
-			expect(propertyValues?.values.length).toBe(2);
-			expect(propertyValues?.values[0]?.value instanceof NumberValues).toBeTruthy();
-			const numberValues1 = propertyValues?.values[0]?.value as NumberValues;
+			expect(propertyValues?.values.length).toBe(3);
+			expect(propertyValues?.values[0]?.value instanceof StringValue).toBeTruthy();
+			const numberValues1 = propertyValues?.values[0]?.value as StringValue;
 
-			expect(numberValues1.values.length).toBe(1);
-
-			expect(numberValues1.values[0].value).toBe(10);
-			expect(numberValues1.values[0].tokenIndexes?.start?.pos).toStrictEqual({
-				len: 2,
-				col: 7,
+			expect(numberValues1.value).toBe('"test"');
+			expect(numberValues1.tokenIndexes?.start?.pos).toStrictEqual({
+				len: 6,
+				col: 5,
 				line: 0,
 			});
-			expect(numberValues1.values[0].tokenIndexes?.start?.pos).toStrictEqual(
-				numberValues1.values[0].tokenIndexes?.end?.pos
+			expect(numberValues1.tokenIndexes?.start?.pos).toStrictEqual(
+				numberValues1.tokenIndexes?.end?.pos
 			);
 
-			const numberValues2 = propertyValues?.values[1]?.value as NumberValues;
+			expect(propertyValues?.values[1]).toBeNull();
 
-			expect(numberValues2.values.length).toBe(1);
+			const numberValues3 = propertyValues?.values[2]?.value as NumberValues;
 
-			expect(numberValues2.values[0].value).toBe(20);
-			expect(numberValues2.values[0].tokenIndexes?.start?.pos).toStrictEqual({
+			expect(numberValues3.values.length).toBe(1);
+
+			expect(numberValues3.values[0].number.value).toBe(20);
+			expect(numberValues3.values[0].tokenIndexes?.start?.pos).toStrictEqual({
 				len: 2,
-				col: 14,
+				col: 15,
 				line: 0,
 			});
-			expect(numberValues2.values[0].tokenIndexes?.start?.pos).toStrictEqual(
-				numberValues2.values[0].tokenIndexes?.end?.pos
+			expect(numberValues3.values[0].tokenIndexes?.start?.pos).toStrictEqual(
+				numberValues3.values[0].tokenIndexes?.end?.pos
 			);
 		});
 
@@ -1534,7 +1487,7 @@ describe('Parser', () => {
 			const numberValues = values?.values[0]?.value as ByteStringValue;
 
 			expect(numberValues.values.length).toBe(3);
-			expect(numberValues.values.map((v) => v?.value)).toStrictEqual([10, 20, 30]);
+			expect(numberValues.values.map((v) => v?.number.value)).toStrictEqual([10, 20, 30]);
 
 			expect(numberValues.tokenIndexes?.start?.pos).toStrictEqual({
 				len: 2,
