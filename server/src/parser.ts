@@ -686,6 +686,17 @@ export class NumberValue extends SlxBase {
 		this.semanticTokenType = 'number';
 		this.semanticTokenModifiers = 'declaration';
 	}
+
+	getDocumentSymbols(): DocumentSymbol[] {
+		return [
+			{
+				name: this.value.toString(),
+				kind: SymbolKind.Number,
+				range: toRange(this),
+				selectionRange: toRange(this),
+			},
+		];
+	}
 }
 
 export class NumberWithLabelValue extends SlxBase {
