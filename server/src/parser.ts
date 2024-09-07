@@ -82,6 +82,7 @@ export enum Issues {
 	NO_STAMENTE,
 	LABEL_ASSIGN_MISSING_COLON,
 	DELETE_INCOMPLETE,
+	NODE_PATH_WHITE_SPACE_NOT_ALLOWED,
 }
 
 type AllowNodeRef = 'Both' | 'Ref' | 'Name';
@@ -1508,7 +1509,7 @@ export class Parser {
 			this.issues.push(this.genIssue(Issues.NODE_NAME, nodePath));
 		}
 
-		nodePath.tokenIndexes = {
+		nodePath.tokenIndexes ??= {
 			start: firstToken,
 			end: nodeName?.tokenIndexes?.end ?? firstToken,
 		};
@@ -1532,7 +1533,8 @@ export class Parser {
 			return;
 		}
 
-		token = this.moveToNextToken;
+		const beforPath = this.moveToNextToken;
+		token = beforPath;
 		if (!validToken(token, LexerToken.CURLY_OPEN)) {
 			// migh be a node ref such as &nodeLabel
 			this.popStack();
@@ -1546,6 +1548,7 @@ export class Parser {
 		const node = new NodePathRef(nodePath ?? null);
 
 		const lastToken = this.currentToken;
+		const afterPath = lastToken;
 		if (!validToken(lastToken, LexerToken.CURLY_CLOSE)) {
 			this.issues.push(this.genIssue(Issues.CURLY_CLOSE, node));
 		} else {
@@ -1556,6 +1559,18 @@ export class Parser {
 			start: firstToken,
 			end: lastToken ?? nodePath?.tokenIndexes?.end ?? this.prevToken,
 		};
+
+		const nodePathRange = nodePath ? toRange(nodePath) : undefined;
+		if (
+			nodePathRange &&
+			beforPath &&
+			afterPath &&
+			(beforPath.pos.col !== nodePathRange?.start.character - 1 ||
+				afterPath.pos.col !== nodePathRange?.end.character)
+		) {
+			this.issues.push(this.genIssue(Issues.NODE_PATH_WHITE_SPACE_NOT_ALLOWED, node));
+		}
+
 		this.mergeStack();
 		return node;
 	}

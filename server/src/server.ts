@@ -219,6 +219,8 @@ const issueToMessage = (issue: Issues) => {
 			return "Missing ':' for label assign";
 		case Issues.DELETE_INCOMPLETE:
 			return 'Did you mean /delete-node/ or /delete-property/';
+		case Issues.NODE_PATH_WHITE_SPACE_NOT_ALLOWED:
+			return 'White space is not allowrd after "{" or after "}"';
 		case Issues.UNKNOWN:
 			return 'Unknown syntax';
 	}
