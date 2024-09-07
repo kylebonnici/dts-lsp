@@ -2,27 +2,29 @@ import { DocumentSymbol, SemanticTokensBuilder, SymbolKind } from 'vscode-langua
 import { LexerToken, Token } from './lexer';
 
 export const tokenTypes = [
+	'namespace',
+	'class',
+	'enum',
+	'interface',
+	'struct',
+	'typeParameter',
+	'type',
+	'parameter',
+	'variable',
+	'property',
+	'enumMember',
+	'decorator',
+	'event',
+	'function',
+	'method',
+	'macro',
+	'label',
 	'comment',
 	'string',
 	'keyword',
 	'number',
 	'regexp',
 	'operator',
-	'namespace',
-	'type',
-	'struct',
-	'class',
-	'interface',
-	'enum',
-	'typeParameter',
-	'function',
-	'method',
-	'decorator',
-	'macro',
-	'variable',
-	'parameter',
-	'property',
-	'label',
 ] as const;
 
 type SemanticTokenType = (typeof tokenTypes)[number];
@@ -33,13 +35,15 @@ const getTokenTypes = (type: SemanticTokenType) => {
 
 export const tokenModifiers = [
 	'declaration',
-	'documentation',
+	'definition',
 	'readonly',
 	'static',
-	'abstract',
 	'deprecated',
-	'modification',
+	'abstract',
 	'async',
+	'modification',
+	'documentation',
+	'defaultLibrary',
 ] as const;
 
 type SemanticTokenModifiers = (typeof tokenModifiers)[number];
@@ -321,7 +325,7 @@ export class DeleteProperty extends SlxBase {
 export class LabelNode extends SlxBase {
 	constructor(public readonly label: string) {
 		super();
-		this.semanticTokenType = 'label';
+		this.semanticTokenType = 'variable';
 		this.semanticTokenModifiers = 'declaration';
 	}
 
@@ -356,7 +360,7 @@ export const toRange = (slxBase: SlxBase) => {
 export class NodeName extends SlxBase {
 	constructor(public readonly name: string, public readonly address?: number) {
 		super();
-		this.semanticTokenType = 'type';
+		this.semanticTokenType = 'variable';
 		this.semanticTokenModifiers = 'declaration';
 	}
 
@@ -373,6 +377,51 @@ export class NodeName extends SlxBase {
 				selectionRange: toRange(this),
 			},
 		];
+	}
+
+	buildSemanticTokens(push: BuildSemanticTokensPush): void {
+		if (!this.tokenIndexes?.start || !this.tokenIndexes.start.value) return;
+
+		const nameNewStart = {
+			...this.tokenIndexes.start,
+			pos: {
+				...this.tokenIndexes.start.pos,
+				len: this.name.length,
+			},
+		};
+		push(getTokenTypes('type'), getTokenModifiers('declaration'), {
+			start: nameNewStart,
+			end: nameNewStart,
+		});
+		if (this.address) {
+			const addressNewStart = {
+				...this.tokenIndexes.start,
+				pos: {
+					line: this.tokenIndexes.start.pos.line,
+					col: this.tokenIndexes.start.pos.col + this.name.length + 1,
+					len: this.tokenIndexes.start.pos.len - this.name.length - 1,
+				},
+			};
+
+			const atSymbolNewStart = {
+				...this.tokenIndexes.start,
+				pos: {
+					line: this.tokenIndexes.start.pos.line,
+					col: this.name.length + 2,
+					len: 1,
+				},
+			};
+
+			push(getTokenTypes('decorator'), getTokenModifiers('declaration'), {
+				start: atSymbolNewStart,
+				end: atSymbolNewStart,
+			});
+
+			push(getTokenTypes('number'), getTokenModifiers('declaration'), {
+				start: addressNewStart,
+				end: addressNewStart,
+			});
+		}
 	}
 }
 
@@ -1552,16 +1601,6 @@ export class Parser {
 				tokenType,
 				tokenModifiers,
 			});
-
-			console.log(
-				tokenIndexes.start.pos.line,
-				tokenIndexes.start.pos.col,
-				tokenIndexes.end === tokenIndexes.start
-					? tokenIndexes.end.pos.len
-					: tokenIndexes.end.pos.col - tokenIndexes.start.pos.col + 1,
-				tokenType,
-				tokenModifiers
-			);
 		};
 
 		this.rootDocument.buildSemanticTokens(push);
