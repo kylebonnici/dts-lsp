@@ -17,12 +17,12 @@ import {
 	InitializeResult,
 	DocumentDiagnosticReportKind,
 	type DocumentDiagnosticReport,
+	SemanticTokensBuilder,
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Lexer } from './lexer';
-import { Issues, Parser } from './parser';
-import { start } from 'repl';
+import { Issues, Parser, tokenModifiers, tokenTypes } from './parser';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -62,6 +62,14 @@ connection.onInitialize((params: InitializeParams) => {
 			diagnosticProvider: {
 				interFileDependencies: false,
 				workspaceDiagnostics: false,
+			},
+			documentSymbolProvider: true,
+			semanticTokensProvider: {
+				legend: {
+					tokenTypes: tokenTypes as unknown as string[],
+					tokenModifiers: tokenModifiers as unknown as string[],
+				},
+				full: true,
 			},
 		},
 	};
@@ -205,6 +213,8 @@ const issueToMessage = (issue: Issues) => {
 			return 'Expected hex values are not allowed';
 		case Issues.FORWARD_SLASH_END_DELETE:
 			return "Trailing '/' at the end of the path";
+		case Issues.NO_STAMENTE:
+			return "Found ';' without a statment";
 		case Issues.UNKNOWN:
 			return 'Unknown syntax';
 	}
@@ -215,6 +225,8 @@ const issueToMessage = (issue: Issues) => {
 documents.onDidChangeContent((change) => {
 	validateTextDocument(change.document);
 });
+
+const slxMap = new Map<string, { parser: Parser; lexer: Lexer }>();
 
 async function validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
 	// // In this simple example we get the settings for every validate run.
@@ -262,6 +274,8 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 
 	const lexer = new Lexer(textDocument.getText());
 	const parser = new Parser(lexer.tokens);
+
+	slxMap.set(textDocument.uri, { lexer, parser });
 
 	const diagnostics: Diagnostic[] = [];
 	parser.issues.forEach((issue) => {
@@ -334,3 +348,19 @@ documents.listen(connection);
 
 // Listen on the connection
 connection.listen();
+
+connection.onDocumentSymbol((h) => {
+	const data = slxMap.get(h.textDocument.uri);
+	if (!data) return [];
+
+	return data.parser.getDocumentSymbols();
+});
+
+connection.languages.semanticTokens.on((h) => {
+	const tokensBuilder = new SemanticTokensBuilder();
+
+	const data = slxMap.get(h.textDocument.uri);
+	data?.parser.buildSemanticTokens(tokensBuilder);
+
+	return tokensBuilder.build();
+});

@@ -193,7 +193,7 @@ export class Lexer {
 		this.numberOfEscapedCharsLastString = 0;
 
 		while (this.currentChar !== quote) {
-			string += this.currentChar;
+			string += this.currentChar ?? '';
 			if (this.currentChar === '\\') {
 				const prevLine = this.lineNumber;
 				if (this.move()) {
@@ -201,7 +201,7 @@ export class Lexer {
 					this.numberOfEscapedCharsLastString++;
 					if (prevLine === this.lineNumber) {
 						// escaped char
-						string += this.currentChar;
+						string += this.currentChar ?? '';
 					}
 				} else {
 					return string;
@@ -578,6 +578,7 @@ export class Lexer {
 			this._tokens.push({
 				tokens: [LexerToken.COMMA, LexerToken.PROPERTY_NAME],
 				pos: this.generatePos(word, expected),
+				value: ',',
 			});
 			return true;
 		}

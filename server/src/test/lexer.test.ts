@@ -209,4 +209,17 @@ describe('Lexer', () => {
 		);
 		expect(lexer.tokens[1].tokens).toEqual(expect.arrayContaining([LexerToken.SEMICOLON]));
 	});
+
+	test('String missing "', async () => {
+		const lexer = new Lexer('"My string');
+		expect(lexer.tokens.length).toBe(1);
+
+		expect(lexer.tokens[0].tokens).toEqual(expect.arrayContaining([LexerToken.STRING]));
+		expect(lexer.tokens[0].value).toEqual('"My string');
+		expect(lexer.tokens[0].pos).toEqual({
+			line: 0,
+			col: 0,
+			len: 10,
+		});
+	});
 });

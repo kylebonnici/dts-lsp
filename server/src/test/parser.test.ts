@@ -25,8 +25,8 @@ describe('Parser', () => {
 			const rootNode = '/{ \n};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.rootDTCNode.nodes.length).toEqual(1);
-			const node = parser.rootDTCNode.nodes[0];
+			expect(parser.rootDocument.nodes.length).toEqual(1);
+			const node = parser.rootDocument.nodes[0];
 			expect(node.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.FORWARD_SLASH])
 			);
@@ -62,10 +62,10 @@ describe('Parser', () => {
 				line: 1,
 			});
 
-			expect(parser.rootDTCNode.nodes[0].tokenIndexes?.end?.tokens).toEqual(
+			expect(parser.rootDocument.nodes[0].tokenIndexes?.end?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.CURLY_CLOSE])
 			);
-			expect(parser.rootDTCNode.nodes[0].tokenIndexes?.end?.pos).toEqual({
+			expect(parser.rootDocument.nodes[0].tokenIndexes?.end?.pos).toEqual({
 				col: 0,
 				len: 1,
 				line: 1,
@@ -88,10 +88,10 @@ describe('Parser', () => {
 				line: 1,
 			});
 
-			expect(parser.rootDTCNode.nodes[0].tokenIndexes?.end?.tokens).toEqual(
+			expect(parser.rootDocument.nodes[0].tokenIndexes?.end?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.SEMICOLON])
 			);
-			expect(parser.rootDTCNode.nodes[0].tokenIndexes?.end?.pos).toEqual({
+			expect(parser.rootDocument.nodes[0].tokenIndexes?.end?.pos).toEqual({
 				col: 0,
 				len: 1,
 				line: 1,
@@ -124,10 +124,10 @@ describe('Parser', () => {
 				line: 0,
 			});
 
-			expect(parser.rootDTCNode.nodes[0].tokenIndexes?.end?.tokens).toEqual(
+			expect(parser.rootDocument.nodes[0].tokenIndexes?.end?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.CURLY_OPEN])
 			);
-			expect(parser.rootDTCNode.nodes[0].tokenIndexes?.end?.pos).toEqual({
+			expect(parser.rootDocument.nodes[0].tokenIndexes?.end?.pos).toEqual({
 				col: 1,
 				len: 1,
 				line: 0,
@@ -140,8 +140,8 @@ describe('Parser', () => {
 			const rootNode = '/{ \nprop1;\n};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.rootDTCNode.nodes.length).toEqual(1);
-			const node = parser.rootDTCNode.nodes[0];
+			expect(parser.rootDocument.nodes.length).toEqual(1);
+			const node = parser.rootDocument.nodes[0];
 
 			expect(node.tokenIndexes?.end?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.SEMICOLON])
@@ -186,8 +186,8 @@ describe('Parser', () => {
 				col: 0,
 			});
 
-			expect(parser.rootDTCNode.nodes.length).toEqual(1);
-			const node = parser.rootDTCNode.nodes[0];
+			expect(parser.rootDocument.nodes.length).toEqual(1);
+			const node = parser.rootDocument.nodes[0];
 
 			expect(node.properties.length).toEqual(1);
 			const property = node.properties[0];
@@ -244,8 +244,8 @@ describe('Parser', () => {
 				col: 0,
 			});
 
-			expect(parser.rootDTCNode.nodes.length).toEqual(1);
-			const node = parser.rootDTCNode.nodes[0];
+			expect(parser.rootDocument.nodes.length).toEqual(1);
+			const node = parser.rootDocument.nodes[0];
 
 			expect(node.tokenIndexes?.end?.pos).toEqual({
 				col: 0,
@@ -281,8 +281,8 @@ describe('Parser', () => {
 			const rootNode = '/{ \nprop1= < 10 >;\n};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.rootDTCNode.nodes.length).toEqual(1);
-			const node = parser.rootDTCNode.nodes[0];
+			expect(parser.rootDocument.nodes.length).toEqual(1);
+			const node = parser.rootDocument.nodes[0];
 
 			expect(node.tokenIndexes?.end?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.SEMICOLON])
@@ -365,8 +365,8 @@ describe('Parser', () => {
 				col: 0,
 			});
 
-			expect(parser.rootDTCNode.nodes.length).toEqual(1);
-			const node = parser.rootDTCNode.nodes[0];
+			expect(parser.rootDocument.nodes.length).toEqual(1);
+			const node = parser.rootDocument.nodes[0];
 
 			expect(node.tokenIndexes?.end?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.SEMICOLON])
@@ -452,8 +452,8 @@ describe('Parser', () => {
 				col: 0,
 			});
 
-			expect(parser.rootDTCNode.nodes.length).toEqual(1);
-			const node = parser.rootDTCNode.nodes[0];
+			expect(parser.rootDocument.nodes.length).toEqual(1);
+			const node = parser.rootDocument.nodes[0];
 
 			expect(node.tokenIndexes?.end?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.SEMICOLON])
@@ -555,8 +555,8 @@ describe('Parser', () => {
 				col: 0,
 			});
 
-			expect(parser.rootDTCNode.nodes.length).toEqual(1);
-			const node = parser.rootDTCNode.nodes[0];
+			expect(parser.rootDocument.nodes.length).toEqual(1);
+			const node = parser.rootDocument.nodes[0];
 
 			expect(node.tokenIndexes?.end?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.LT_SYM])
@@ -683,8 +683,8 @@ describe('Parser', () => {
 				col: 0,
 			});
 
-			expect(parser.rootDTCNode.nodes.length).toEqual(1);
-			const node = parser.rootDTCNode.nodes[0];
+			expect(parser.rootDocument.nodes.length).toEqual(1);
+			const node = parser.rootDocument.nodes[0];
 
 			expect(node.tokenIndexes?.end?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.LT_SYM])
@@ -778,9 +778,9 @@ describe('Parser', () => {
 			const rootNode = 'nodeName { \n};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.rootDTCNode.nodes.length).toEqual(1);
-			expect(parser.rootDTCNode.nodes[0] instanceof DtcChilNode).toBeTruthy();
-			const node = parser.rootDTCNode.nodes[0] as DtcChilNode;
+			expect(parser.rootDocument.nodes.length).toEqual(1);
+			expect(parser.rootDocument.nodes[0] instanceof DtcChilNode).toBeTruthy();
+			const node = parser.rootDocument.nodes[0] as DtcChilNode;
 			expect(node.labels.length).toEqual(0);
 			expect(node.nameOrRef instanceof NodeName).toBeTruthy();
 			const nodeName = node.nameOrRef as NodeName;
@@ -809,9 +809,9 @@ describe('Parser', () => {
 			const rootNode = 'nodeName@200 { \n};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.rootDTCNode.nodes.length).toEqual(1);
-			expect(parser.rootDTCNode.nodes[0] instanceof DtcChilNode).toBeTruthy();
-			const node = parser.rootDTCNode.nodes[0] as DtcChilNode;
+			expect(parser.rootDocument.nodes.length).toEqual(1);
+			expect(parser.rootDocument.nodes[0] instanceof DtcChilNode).toBeTruthy();
+			const node = parser.rootDocument.nodes[0] as DtcChilNode;
 			expect(node.labels.length).toEqual(0);
 			expect(node.nameOrRef instanceof NodeName).toBeTruthy();
 			const nodeName = node.nameOrRef as NodeName;
@@ -848,9 +848,9 @@ describe('Parser', () => {
 				col: 0,
 			});
 
-			expect(parser.rootDTCNode.nodes.length).toEqual(1);
-			expect(parser.rootDTCNode.nodes[0] instanceof DtcChilNode).toBeTruthy();
-			const node = parser.rootDTCNode.nodes[0] as DtcChilNode;
+			expect(parser.rootDocument.nodes.length).toEqual(1);
+			expect(parser.rootDocument.nodes[0] instanceof DtcChilNode).toBeTruthy();
+			const node = parser.rootDocument.nodes[0] as DtcChilNode;
 			expect(node.labels.length).toEqual(0);
 			expect(node.nameOrRef instanceof NodeName).toBeTruthy();
 			const nodeName = node.nameOrRef as NodeName;
@@ -880,9 +880,9 @@ describe('Parser', () => {
 			const rootNode = 'label1: label2: nodeName { \n};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.rootDTCNode.nodes.length).toEqual(1);
-			expect(parser.rootDTCNode.nodes[0] instanceof DtcChilNode).toBeTruthy();
-			const node = parser.rootDTCNode.nodes[0] as DtcChilNode;
+			expect(parser.rootDocument.nodes.length).toEqual(1);
+			expect(parser.rootDocument.nodes[0] instanceof DtcChilNode).toBeTruthy();
+			const node = parser.rootDocument.nodes[0] as DtcChilNode;
 			expect(node.labels.length).toEqual(2);
 			expect(node.nameOrRef instanceof NodeName).toBeTruthy();
 			const nodeName = node.nameOrRef as NodeName;
@@ -930,14 +930,14 @@ describe('Parser', () => {
 			const rootNode = '&nodeRef { \n};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.rootDTCNode.nodes.length).toEqual(1);
-			expect(parser.rootDTCNode.nodes[0] instanceof DtcChilNode).toBeTruthy();
-			const node = parser.rootDTCNode.nodes[0] as DtcChilNode;
+			expect(parser.rootDocument.nodes.length).toEqual(1);
+			expect(parser.rootDocument.nodes[0] instanceof DtcChilNode).toBeTruthy();
+			const node = parser.rootDocument.nodes[0] as DtcChilNode;
 			expect(node.labels.length).toEqual(0);
 			expect(node.nameOrRef instanceof LabelRefValue).toBeTruthy();
 			const nodeName = node.nameOrRef as LabelRefValue;
 
-			expect(nodeName.ref).toBe('nodeRef');
+			expect(nodeName.ref?.label).toBe('nodeRef');
 			expect(nodeName.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.AMPERSAND])
 			);
@@ -972,9 +972,9 @@ describe('Parser', () => {
 			const rootNode = 'nodeName1 { \nnodeName2 { \n};\n};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.rootDTCNode.nodes.length).toEqual(1);
-			expect(parser.rootDTCNode.nodes[0] instanceof DtcChilNode).toBeTruthy();
-			const topNode = parser.rootDTCNode.nodes[0] as DtcChilNode;
+			expect(parser.rootDocument.nodes.length).toEqual(1);
+			expect(parser.rootDocument.nodes[0] instanceof DtcChilNode).toBeTruthy();
+			const topNode = parser.rootDocument.nodes[0] as DtcChilNode;
 			expect(topNode.labels.length).toEqual(0);
 			expect(topNode.nameOrRef instanceof NodeName).toBeTruthy();
 			const nodeName1 = topNode.nameOrRef as NodeName;
@@ -1028,9 +1028,9 @@ describe('Parser', () => {
 			const rootNode = '/ { \nnodeName2 { \n};\n};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.rootDTCNode.nodes.length).toEqual(1);
-			expect(parser.rootDTCNode.nodes[0] instanceof DtcNode).toBeTruthy();
-			const topNode = parser.rootDTCNode.nodes[0] as DtcNode;
+			expect(parser.rootDocument.nodes.length).toEqual(1);
+			expect(parser.rootDocument.nodes[0] instanceof DtcNode).toBeTruthy();
+			const topNode = parser.rootDocument.nodes[0] as DtcNode;
 
 			expect(topNode.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.FORWARD_SLASH])
@@ -1082,8 +1082,8 @@ describe('Parser', () => {
 			const rootNode = 'prop=< 10 >;';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.unhandledNode.properties.length).toEqual(1);
-			const property = parser.unhandledNode.properties[0];
+			expect(parser.unhandledStaments.properties.length).toEqual(1);
+			const property = parser.unhandledStaments.properties[0];
 
 			expect(property.propertyName?.name).toBe('prop');
 			expect(property.tokenIndexes?.start?.tokens).toEqual(
@@ -1130,8 +1130,8 @@ describe('Parser', () => {
 			const rootNode = 'prop=< 10 20 >;';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.unhandledNode.properties.length).toEqual(1);
-			const property = parser.unhandledNode.properties[0];
+			expect(parser.unhandledStaments.properties.length).toEqual(1);
+			const property = parser.unhandledStaments.properties[0];
 
 			expect(property.propertyName?.name).toBe('prop');
 			expect(property.tokenIndexes?.start?.tokens).toEqual(
@@ -1197,8 +1197,8 @@ describe('Parser', () => {
 			const rootNode = 'prop=< 10 20 30 >;';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.unhandledNode.properties.length).toEqual(1);
-			const property = parser.unhandledNode.properties[0];
+			expect(parser.unhandledStaments.properties.length).toEqual(1);
+			const property = parser.unhandledStaments.properties[0];
 
 			expect(property.propertyName?.name).toBe('prop');
 			expect(property.tokenIndexes?.start?.tokens).toEqual(
@@ -1274,8 +1274,8 @@ describe('Parser', () => {
 			const rootNode = 'prop=< 10 >,< 20 >;';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.unhandledNode.properties.length).toEqual(1);
-			const property = parser.unhandledNode.properties[0];
+			expect(parser.unhandledStaments.properties.length).toEqual(1);
+			const property = parser.unhandledStaments.properties[0];
 
 			expect(property.propertyName?.name).toBe('prop');
 			expect(property.tokenIndexes?.start?.tokens).toEqual(
@@ -1344,8 +1344,8 @@ describe('Parser', () => {
 			const rootNode = 'prop=< &nodeLabel >;';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.unhandledNode.properties.length).toEqual(1);
-			const property = parser.unhandledNode.properties[0];
+			expect(parser.unhandledStaments.properties.length).toEqual(1);
+			const property = parser.unhandledStaments.properties[0];
 
 			expect(property.propertyName?.name).toBe('prop');
 			expect(property.tokenIndexes?.start?.tokens).toEqual(
@@ -1375,7 +1375,7 @@ describe('Parser', () => {
 			expect(values?.values[0]?.value instanceof CellLabelRefValue).toBeTruthy();
 			const labelRef = values?.values[0]?.value as CellLabelRefValue;
 
-			expect(labelRef.value).toBe('nodeLabel');
+			expect(labelRef.value?.label).toBe('nodeLabel');
 			expect(labelRef.labels.length).toBe(0);
 
 			expect(labelRef.tokenIndexes?.start?.pos).toStrictEqual({
@@ -1394,8 +1394,8 @@ describe('Parser', () => {
 			const rootNode = 'prop=&nodeLabel;';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.unhandledNode.properties.length).toEqual(1);
-			const property = parser.unhandledNode.properties[0];
+			expect(parser.unhandledStaments.properties.length).toEqual(1);
+			const property = parser.unhandledStaments.properties[0];
 
 			expect(property.propertyName?.name).toBe('prop');
 			expect(property.tokenIndexes?.start?.tokens).toEqual(
@@ -1425,7 +1425,7 @@ describe('Parser', () => {
 			expect(values?.values[0]?.value instanceof LabelRefValue).toBeTruthy();
 			const labelRef = values?.values[0]?.value as LabelRefValue;
 
-			expect(labelRef.ref).toBe('nodeLabel');
+			expect(labelRef.ref?.label).toBe('nodeLabel');
 
 			expect(labelRef.tokenIndexes?.start?.pos).toStrictEqual({
 				len: 1,
@@ -1443,8 +1443,8 @@ describe('Parser', () => {
 			const rootNode = 'prop=< &{/node1@/node2@20/node3} >;';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(1); // -> node1@ node address
-			expect(parser.unhandledNode.properties.length).toEqual(1);
-			const property = parser.unhandledNode.properties[0];
+			expect(parser.unhandledStaments.properties.length).toEqual(1);
+			const property = parser.unhandledStaments.properties[0];
 
 			expect(property.propertyName?.name).toBe('prop');
 			expect(property.tokenIndexes?.start?.tokens).toEqual(
@@ -1502,8 +1502,8 @@ describe('Parser', () => {
 			const rootNode = 'prop=[ 10 20 30 ];';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.unhandledNode.properties.length).toEqual(1);
-			const property = parser.unhandledNode.properties[0];
+			expect(parser.unhandledStaments.properties.length).toEqual(1);
+			const property = parser.unhandledStaments.properties[0];
 
 			expect(property.propertyName?.name).toBe('prop');
 			expect(property.tokenIndexes?.start?.tokens).toEqual(
@@ -1552,8 +1552,8 @@ describe('Parser', () => {
 			const rootNode = 'prop="--\\"hello word;\\"--";';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.unhandledNode.properties.length).toEqual(1);
-			const property = parser.unhandledNode.properties[0];
+			expect(parser.unhandledStaments.properties.length).toEqual(1);
+			const property = parser.unhandledStaments.properties[0];
 
 			expect(property.propertyName?.name).toBe('prop');
 			expect(property.tokenIndexes?.start?.tokens).toEqual(
@@ -1601,8 +1601,8 @@ describe('Parser', () => {
 			const rootNode = 'prop="--\\"hello word;\\"--";\nprop="--\\"hello word;\\"--";';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.unhandledNode.properties.length).toEqual(2);
-			const property1 = parser.unhandledNode.properties[0];
+			expect(parser.unhandledStaments.properties.length).toEqual(2);
+			const property1 = parser.unhandledStaments.properties[0];
 
 			expect(property1.propertyName?.name).toBe('prop');
 			expect(property1.tokenIndexes?.start?.tokens).toEqual(
@@ -1645,7 +1645,7 @@ describe('Parser', () => {
 				line: 0,
 			});
 
-			const property2 = parser.unhandledNode.properties[1];
+			const property2 = parser.unhandledStaments.properties[1];
 
 			expect(property2.propertyName?.name).toBe('prop');
 			expect(property2.tokenIndexes?.start?.tokens).toEqual(
@@ -1693,8 +1693,8 @@ describe('Parser', () => {
 			const rootNode = 'prop="--\\"hello\n word;\\"--";';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.unhandledNode.properties.length).toEqual(1);
-			const property = parser.unhandledNode.properties[0];
+			expect(parser.unhandledStaments.properties.length).toEqual(1);
+			const property = parser.unhandledStaments.properties[0];
 
 			expect(property.propertyName?.name).toBe('prop');
 			expect(property.tokenIndexes?.start?.tokens).toEqual(
@@ -1739,13 +1739,64 @@ describe('Parser', () => {
 		});
 	});
 
+	test('property with string missing closing "', async () => {
+		const rootNode = 'prop="--\\"hello word;\\"--;';
+		const parser = new Parser(new Lexer(rootNode).tokens);
+		expect(parser.issues.length).toEqual(2);
+		expect(parser.issues[0].issues).toEqual(expect.arrayContaining([Issues.DUOUBE_QUOTE]));
+		expect(parser.issues[1].issues).toEqual(expect.arrayContaining([Issues.END_STATMENT]));
+		expect(parser.unhandledStaments.properties.length).toEqual(1);
+		const property = parser.unhandledStaments.properties[0];
+
+		expect(property.propertyName?.name).toBe('prop');
+		expect(property.tokenIndexes?.start?.tokens).toEqual(
+			expect.arrayContaining([LexerToken.PROPERTY_NAME])
+		);
+		expect(property.tokenIndexes?.start?.pos).toEqual({
+			col: 0,
+			len: 4,
+			line: 0,
+		});
+
+		expect(property.tokenIndexes?.end?.tokens).toEqual(
+			expect.arrayContaining([LexerToken.STRING])
+		);
+		expect(property.tokenIndexes?.end?.pos).toEqual({
+			col: 5,
+			len: 23,
+			line: 0,
+		});
+
+		expect(property.values).toBeDefined();
+		const values = property.values;
+		expect(values?.tokenIndexes?.start?.pos).toStrictEqual({ len: 23, col: 5, line: 0 });
+		expect(values?.tokenIndexes?.end?.pos).toStrictEqual({ len: 23, col: 5, line: 0 });
+
+		expect(values?.values.length).toBe(1);
+		expect(values?.values[0]?.value instanceof StringValue).toBeTruthy();
+		const stringValue = values?.values[0]?.value as StringValue;
+
+		expect(stringValue.value).toBe('"--\\"hello word;\\"--;');
+
+		expect(stringValue.tokenIndexes?.start?.pos).toStrictEqual({
+			len: 23,
+			col: 5,
+			line: 0,
+		});
+		expect(stringValue.tokenIndexes?.end?.pos).toStrictEqual({
+			len: 23,
+			col: 5,
+			line: 0,
+		});
+	});
+
 	describe('Delete', () => {
 		test('delete node name', async () => {
 			const rootNode = '/delete-node/ nodeName@400;';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.rootDTCNode.deleteNodes.length).toEqual(1);
-			const deleteNode = parser.rootDTCNode.deleteNodes[0];
+			expect(parser.rootDocument.deleteNodes.length).toEqual(1);
+			const deleteNode = parser.rootDocument.deleteNodes[0];
 
 			expect(deleteNode.nodeNameOrRef instanceof NodeName).toBeTruthy();
 			const nodeName = deleteNode.nodeNameOrRef as NodeName;
@@ -1775,12 +1826,12 @@ describe('Parser', () => {
 			const rootNode = '/delete-node/ &ref;';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.rootDTCNode.deleteNodes.length).toEqual(1);
-			const deleteNode = parser.rootDTCNode.deleteNodes[0];
+			expect(parser.rootDocument.deleteNodes.length).toEqual(1);
+			const deleteNode = parser.rootDocument.deleteNodes[0];
 
 			expect(deleteNode.nodeNameOrRef instanceof LabelRefValue).toBeTruthy();
 			const labelRefValue = deleteNode.nodeNameOrRef as LabelRefValue;
-			expect(labelRefValue.ref).toBe('ref');
+			expect(labelRefValue.ref?.label).toBe('ref');
 
 			expect(deleteNode.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.FORWARD_SLASH])
@@ -1805,8 +1856,8 @@ describe('Parser', () => {
 			const rootNode = '/delete-property/ prop1;';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.unhandledNode.deleteProperties.length).toEqual(1);
-			const deleteProperty = parser.unhandledNode.deleteProperties[0];
+			expect(parser.unhandledStaments.deleteProperties.length).toEqual(1);
+			const deleteProperty = parser.unhandledStaments.deleteProperties[0];
 
 			expect(deleteProperty.propertyName?.name).toBe('prop1');
 
@@ -1824,6 +1875,34 @@ describe('Parser', () => {
 			);
 			expect(deleteProperty.tokenIndexes?.end?.pos).toEqual({
 				col: 23,
+				len: 1,
+				line: 0,
+			});
+		});
+
+		test('delete , as property', async () => {
+			const rootNode = '/delete-property/ ,;';
+			const parser = new Parser(new Lexer(rootNode).tokens);
+			expect(parser.issues.length).toEqual(0);
+			expect(parser.unhandledStaments.deleteProperties.length).toEqual(1);
+			const deleteProperty = parser.unhandledStaments.deleteProperties[0];
+
+			expect(deleteProperty.propertyName?.name).toBe(',');
+
+			expect(deleteProperty.tokenIndexes?.start?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.FORWARD_SLASH])
+			);
+			expect(deleteProperty.tokenIndexes?.start?.pos).toEqual({
+				col: 0,
+				len: 1,
+				line: 0,
+			});
+
+			expect(deleteProperty.tokenIndexes?.end?.tokens).toEqual(
+				expect.arrayContaining([LexerToken.SEMICOLON])
+			);
+			expect(deleteProperty.tokenIndexes?.end?.pos).toEqual({
+				col: 19,
 				len: 1,
 				line: 0,
 			});
