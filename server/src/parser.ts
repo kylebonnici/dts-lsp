@@ -247,7 +247,10 @@ export class DtcProperty extends SlxBase {
 				kind: SymbolKind.Property,
 				range: toRange(this),
 				selectionRange: toRange(this),
-				children: [...(this.values?.getDocumentSymbols() ?? [])],
+				children: [
+					...(this.values?.getDocumentSymbols() ?? []),
+					...this.labels.flatMap((label) => label.getDocumentSymbols()),
+				],
 			},
 		];
 	}
@@ -639,16 +642,8 @@ export class PropertyValue extends SlxBase {
 	}
 	getDocumentSymbols(): DocumentSymbol[] {
 		return [
-			{
-				name: 'Property Value',
-				kind: SymbolKind.String,
-				range: toRange(this),
-				selectionRange: toRange(this),
-				children: [
-					...(this.value?.getDocumentSymbols() ?? []),
-					...this.endLabels.flatMap((label) => label.getDocumentSymbols() ?? []),
-				],
-			},
+			...(this.value?.getDocumentSymbols() ?? []),
+			...this.endLabels.flatMap((label) => label.getDocumentSymbols() ?? []),
 		];
 	}
 
