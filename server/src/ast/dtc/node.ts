@@ -9,10 +9,10 @@ import { Label } from './label';
 import { DeleteProperty } from './deleteProperty';
 import { LabelRef } from './labelRef';
 
-export class BaseNode extends ASTBase {
+export class DtcBaseNode extends ASTBase {
 	protected _children: ASTBase[] = [];
 
-	constructor(protected readonly parentNode: BaseNode | null) {
+	constructor(protected readonly parentNode: DtcBaseNode | null) {
 		super();
 	}
 
@@ -33,22 +33,22 @@ export class BaseNode extends ASTBase {
 	}
 
 	get nodes() {
-		return this.children.filter((child) => child instanceof DtcRootNode);
+		return this.children.filter((child) => child instanceof DtcBaseNode);
 	}
 
 	get deleteNodes() {
 		return this.children.filter((child) => child instanceof DeleteNode);
 	}
 
-	public addChild(child: DtcRootNode | DeleteNode) {
+	public addChild(child: ASTBase) {
 		this.children.push(child);
 	}
 }
 
-export class DtcRootNode extends BaseNode {
+export class DtcRootNode extends DtcBaseNode {
 	private _keyword: ASTBase | undefined;
 
-	constructor(parentNode: BaseNode | null) {
+	constructor(parentNode: DtcBaseNode | null) {
 		super(parentNode);
 	}
 
@@ -58,10 +58,6 @@ export class DtcRootNode extends BaseNode {
 
 	get deleteProperties() {
 		return this.children.filter((child) => child instanceof DeleteProperty);
-	}
-
-	public addChild(child: DtcRootNode | DeleteNode | DtcProperty | DeleteProperty) {
-		this.children.push(child);
 	}
 
 	private get keyword() {
@@ -108,11 +104,23 @@ export class DtcRootNode extends BaseNode {
 	}
 }
 
-export class DtcRefNode extends DtcRootNode {
+export class DtcRefNode extends DtcBaseNode {
 	public ref: LabelRef | null = null;
 
-	constructor(parentNode: BaseNode | null, public readonly labels: Label[] = []) {
+	constructor(parentNode: DtcBaseNode | null, public readonly labels: Label[] = []) {
 		super(parentNode);
+	}
+
+	get properties() {
+		return this.children.filter((child) => child instanceof DtcProperty);
+	}
+
+	get deleteProperties() {
+		return this.children.filter((child) => child instanceof DeleteProperty);
+	}
+
+	public addChild(child: DtcChildNode | DeleteNode) {
+		this.children.push(child);
 	}
 
 	getDocumentSymbols(): DocumentSymbol[] {
@@ -143,11 +151,19 @@ export class DtcRefNode extends DtcRootNode {
 	}
 }
 
-export class DtcChildNode extends DtcRootNode {
+export class DtcChildNode extends DtcBaseNode {
 	public name: NodeName | null = null;
 
-	constructor(parentNode: BaseNode | null, public readonly labels: Label[] = []) {
+	constructor(parentNode: DtcBaseNode | null, public readonly labels: Label[] = []) {
 		super(parentNode);
+	}
+
+	get properties() {
+		return this.children.filter((child) => child instanceof DtcProperty);
+	}
+
+	get deleteProperties() {
+		return this.children.filter((child) => child instanceof DeleteProperty);
 	}
 
 	getDocumentSymbols(): DocumentSymbol[] {

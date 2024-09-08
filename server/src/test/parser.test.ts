@@ -6,7 +6,7 @@
 import { Lexer } from '../lexer';
 import { Parser } from '../parser';
 import { SyntaxIssue, LexerToken } from '../types';
-import { DtcChildNode, DtcNode, DtcRefNode, NodeName } from '../ast/dtc/node';
+import { DtcChildNode, DtcRootNode, DtcRefNode, NodeName } from '../ast/dtc/node';
 import { StringValue } from '../ast/dtc/values/string';
 import { ByteStringValue } from '../ast/dtc/values/byteString';
 import { LabelRef } from '../ast/dtc/labelRef';
@@ -138,7 +138,7 @@ describe('Parser', () => {
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.nodes.length).toEqual(1);
-			const node = parser.rootDocument.nodes[0];
+			const node = parser.rootDocument.nodes[0] as DtcRootNode;
 
 			expect(node.tokenIndexes?.end?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.SEMICOLON])
@@ -184,7 +184,7 @@ describe('Parser', () => {
 			});
 
 			expect(parser.rootDocument.nodes.length).toEqual(1);
-			const node = parser.rootDocument.nodes[0];
+			const node = parser.rootDocument.nodes[0] as DtcRootNode;
 
 			expect(node.properties.length).toEqual(1);
 			const property = node.properties[0];
@@ -242,7 +242,7 @@ describe('Parser', () => {
 			});
 
 			expect(parser.rootDocument.nodes.length).toEqual(1);
-			const node = parser.rootDocument.nodes[0];
+			const node = parser.rootDocument.nodes[0] as DtcRootNode;
 
 			expect(node.tokenIndexes?.end?.pos).toEqual({
 				col: 0,
@@ -279,7 +279,7 @@ describe('Parser', () => {
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.nodes.length).toEqual(1);
-			const node = parser.rootDocument.nodes[0];
+			const node = parser.rootDocument.nodes[0] as DtcRootNode;
 
 			expect(node.tokenIndexes?.end?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.SEMICOLON])
@@ -367,7 +367,7 @@ describe('Parser', () => {
 			});
 
 			expect(parser.rootDocument.nodes.length).toEqual(1);
-			const node = parser.rootDocument.nodes[0];
+			const node = parser.rootDocument.nodes[0] as DtcRootNode;
 
 			expect(node.tokenIndexes?.end?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.SEMICOLON])
@@ -458,7 +458,7 @@ describe('Parser', () => {
 			});
 
 			expect(parser.rootDocument.nodes.length).toEqual(1);
-			const node = parser.rootDocument.nodes[0];
+			const node = parser.rootDocument.nodes[0] as DtcRootNode;
 
 			expect(node.tokenIndexes?.end?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.SEMICOLON])
@@ -567,7 +567,7 @@ describe('Parser', () => {
 			});
 
 			expect(parser.rootDocument.nodes.length).toEqual(1);
-			const node = parser.rootDocument.nodes[0];
+			const node = parser.rootDocument.nodes[0] as DtcRootNode;
 
 			expect(node.tokenIndexes?.end?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.LT_SYM])
@@ -879,8 +879,8 @@ describe('Parser', () => {
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.nodes.length).toEqual(1);
-			expect(parser.rootDocument.nodes[0] instanceof DtcNode).toBeTruthy();
-			const topNode = parser.rootDocument.nodes[0] as DtcNode;
+			expect(parser.rootDocument.nodes[0] instanceof DtcRootNode).toBeTruthy();
+			const topNode = parser.rootDocument.nodes[0] as DtcRootNode;
 
 			expect(topNode.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.FORWARD_SLASH])

@@ -5,7 +5,13 @@ import {
 } from 'vscode-languageserver';
 import { Issue, LexerToken, SyntaxIssue, Token, TokenIndexes } from './types';
 import { getTokenModifiers, getTokenTypes, toRange } from './helpers';
-import { BaseNode, DtcChildNode, DtcRootNode, DtcRefNode, NodeName } from './ast/dtc/node';
+import {
+	DtcBaseNode,
+	DtcChildNode,
+	DtcRootNode,
+	DtcRefNode,
+	NodeName,
+} from './ast/dtc/node';
 import { ASTBase } from './ast/base';
 import { Label } from './ast/dtc/label';
 import { LabelRef } from './ast/dtc/labelRef';
@@ -24,7 +30,7 @@ import { PropertyValues } from './ast/dtc/values/values';
 type AllowNodeRef = 'Ref' | 'Name';
 
 export class Parser {
-	rootDocument = new BaseNode(null);
+	rootDocument = new DtcBaseNode(null);
 	positionStack: number[] = [];
 	issues: Issue<SyntaxIssue>[] = [];
 	unhandledStaments = new DtcRootNode(null);
@@ -72,7 +78,7 @@ export class Parser {
 		}
 	}
 
-	private isRootNodeDefinition(parent: BaseNode): boolean {
+	private isRootNodeDefinition(parent: DtcBaseNode): boolean {
 		this.enqueToStack();
 
 		const firstToken = this.moveToNextToken;
@@ -148,7 +154,7 @@ export class Parser {
 		}
 	}
 
-	private processNode(parent: DtcRootNode, allow: AllowNodeRef): boolean {
+	private processNode(parent: DtcBaseNode, allow: AllowNodeRef): boolean {
 		if (this.done) return false;
 
 		let found = false;
@@ -231,7 +237,7 @@ export class Parser {
 		return node;
 	}
 
-	private isChildNode(parentNode: BaseNode, allow: AllowNodeRef): boolean {
+	private isChildNode(parentNode: DtcBaseNode, allow: AllowNodeRef): boolean {
 		this.enqueToStack();
 
 		const labels = this.processOptionalLablelAssign();
@@ -305,7 +311,7 @@ export class Parser {
 		return true;
 	}
 
-	private isProperty(parent: DtcRootNode): boolean {
+	private isProperty(parent: DtcBaseNode): boolean {
 		this.enqueToStack();
 
 		const labels = this.processOptionalLablelAssign();
@@ -378,7 +384,7 @@ export class Parser {
 		return true;
 	}
 
-	private isDeleteNode(parent: BaseNode): boolean {
+	private isDeleteNode(parent: DtcBaseNode): boolean {
 		this.enqueToStack();
 
 		const firstToken = this.moveToNextToken;
@@ -425,7 +431,7 @@ export class Parser {
 		return true;
 	}
 
-	private isDeleteProperty(parent: DtcRootNode): boolean {
+	private isDeleteProperty(parent: DtcBaseNode): boolean {
 		this.enqueToStack();
 
 		const firstToken = this.moveToNextToken;
