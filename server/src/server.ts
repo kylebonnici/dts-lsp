@@ -23,9 +23,10 @@ import {
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Lexer } from './lexer';
 import { astMap } from './resultCache';
-import { SyntaxIssue, tokenModifiers, tokenTypes } from './types';
+import { ContextIssues, SyntaxIssue, tokenModifiers, tokenTypes } from './types';
 import { Parser } from './parser';
 import { toRange } from './helpers';
+import { ContextAware } from './runtimeEvaluator';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -164,7 +165,7 @@ connection.languages.diagnostics.on(async (params) => {
 	}
 });
 
-const issueToMessage = (issue: SyntaxIssue) => {
+const syntaxIssueToMessage = (issue: SyntaxIssue) => {
 	switch (issue) {
 		case SyntaxIssue.VALUE:
 			return 'Expected Value';
@@ -229,6 +230,21 @@ const issueToMessage = (issue: SyntaxIssue) => {
 	}
 };
 
+const contextIssuesToMessage = (issue: ContextIssues) => {
+	switch (issue) {
+		case ContextIssues.DUPLICATE_PROPERTY_NAME:
+			return 'Label names already defined.';
+		case ContextIssues.PROPERTY_DOES_NOT_EXIST:
+			return 'Cannot delete a property before it has been defined';
+		case ContextIssues.DUPLICATE_NODE_NAME:
+			return 'Node name already defined';
+		case ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE:
+			return 'No node with that referance has been defined';
+		case ContextIssues.LABEL_ALREADY_IN_USE:
+			return 'Label aready defined';
+	}
+};
+
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent((change) => {
@@ -289,7 +305,18 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 		const diagnostic: Diagnostic = {
 			severity: issue.severity,
 			range: toRange(issue.slxElement),
-			message: issue.issues ? issue.issues.map(issueToMessage).join(' or ') : '',
+			message: issue.issues ? issue.issues.map(syntaxIssueToMessage).join(' or ') : '',
+			source: 'devie tree',
+		};
+		diagnostics.push(diagnostic);
+	});
+
+	const contextAware = new ContextAware([textDocument.uri]);
+	contextAware.issues.forEach((issue) => {
+		const diagnostic: Diagnostic = {
+			severity: issue.severity,
+			range: toRange(issue.slxElement),
+			message: issue.issues ? issue.issues.map(contextIssuesToMessage).join(' or ') : '',
 			source: 'devie tree',
 		};
 		diagnostics.push(diagnostic);

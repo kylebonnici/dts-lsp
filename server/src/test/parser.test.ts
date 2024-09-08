@@ -785,10 +785,10 @@ describe('Parser', () => {
 			expect(parser.rootDocument.nodes[0] instanceof DtcRefNode).toBeTruthy();
 			const node = parser.rootDocument.nodes[0] as DtcRefNode;
 			expect(node.labels.length).toEqual(0);
-			expect(node.ref instanceof LabelRef).toBeTruthy();
-			const nodeName = node.ref as LabelRef;
+			expect(node.labelReferance instanceof LabelRef).toBeTruthy();
+			const nodeName = node.labelReferance as LabelRef;
 
-			expect(nodeName.ref?.label).toBe('nodeRef');
+			expect(nodeName.value).toBe('nodeRef');
 			expect(nodeName.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.AMPERSAND])
 			);
@@ -827,9 +827,9 @@ describe('Parser', () => {
 			expect(parser.rootDocument.nodes[0] instanceof DtcRefNode).toBeTruthy();
 			const topNode = parser.rootDocument.nodes[0] as DtcRefNode;
 			expect(topNode.labels.length).toEqual(0);
-			const nodeName1 = topNode.ref as LabelRef;
+			const nodeName1 = topNode.labelReferance as LabelRef;
 
-			expect(nodeName1.ref?.label).toBe('nodeName');
+			expect(nodeName1.label?.value).toBe('nodeName');
 			expect(topNode.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.AMPERSAND])
 			);
@@ -1338,7 +1338,7 @@ describe('Parser', () => {
 			expect(values?.values[0]?.value instanceof LabelRefValue).toBeTruthy();
 			const labelRef = values?.values[0]?.value as LabelRefValue;
 
-			expect(labelRef.value?.label).toBe('nodeLabel');
+			expect(labelRef.value?.value).toBe('nodeLabel');
 			expect(labelRef.labels.length).toBe(0);
 
 			expect(labelRef.tokenIndexes?.start?.pos).toStrictEqual({
@@ -1388,7 +1388,7 @@ describe('Parser', () => {
 			expect(values?.values[0]?.value instanceof LabelRef).toBeTruthy();
 			const labelRef = values?.values[0]?.value as LabelRef;
 
-			expect(labelRef.ref?.label).toBe('nodeLabel');
+			expect(labelRef.label?.value).toBe('nodeLabel');
 
 			expect(labelRef.tokenIndexes?.start?.pos).toStrictEqual({
 				len: 1,
@@ -1759,11 +1759,11 @@ describe('Parser', () => {
 
 	describe('Delete', () => {
 		test('delete node name', async () => {
-			const rootNode = '/delete-node/ nodeName@400;';
+			const rootNode = '/{/delete-node/ nodeName@400;};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
-			expect(parser.rootDocument.deleteNodes.length).toEqual(1);
-			const deleteNode = parser.rootDocument.deleteNodes[0];
+			expect(parser.rootDocument.nodes[0].deleteNodes.length).toEqual(1);
+			const deleteNode = parser.rootDocument.nodes[0].deleteNodes[0];
 
 			expect(deleteNode.nodeNameOrRef instanceof NodeName).toBeTruthy();
 			const nodeName = deleteNode.nodeNameOrRef as NodeName;
@@ -1774,7 +1774,7 @@ describe('Parser', () => {
 				expect.arrayContaining([LexerToken.FORWARD_SLASH])
 			);
 			expect(deleteNode.tokenIndexes?.start?.pos).toEqual({
-				col: 0,
+				col: 2,
 				len: 1,
 				line: 0,
 			});
@@ -1783,7 +1783,7 @@ describe('Parser', () => {
 				expect.arrayContaining([LexerToken.SEMICOLON])
 			);
 			expect(deleteNode.tokenIndexes?.end?.pos).toEqual({
-				col: 26,
+				col: 28,
 				len: 1,
 				line: 0,
 			});
@@ -1798,7 +1798,7 @@ describe('Parser', () => {
 
 			expect(deleteNode.nodeNameOrRef instanceof LabelRef).toBeTruthy();
 			const labelRefValue = deleteNode.nodeNameOrRef as LabelRef;
-			expect(labelRefValue.ref?.label).toBe('ref');
+			expect(labelRefValue.label?.value).toBe('ref');
 
 			expect(deleteNode.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.FORWARD_SLASH])

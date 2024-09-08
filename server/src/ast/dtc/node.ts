@@ -5,7 +5,7 @@ import { getTokenModifiers, getTokenTypes, toRange } from '../../helpers';
 import { DtcProperty } from './property';
 import { DeleteNode } from './deleteNode';
 import { Keyword } from '../keyword';
-import { Label } from './label';
+import { LabelAssign } from './label';
 import { DeleteProperty } from './deleteProperty';
 import { LabelRef } from './labelRef';
 
@@ -26,6 +26,19 @@ export class DtcBaseNode extends ASTBase {
 	buildSemanticTokens(push: BuildSemanticTokensPush) {
 		this.nodes.forEach((node) => node.buildSemanticTokens(push));
 		this.deleteNodes.forEach((node) => node.buildSemanticTokens(push));
+	}
+
+	get path(): string[] | undefined {
+		if (!this.pathName) return undefined;
+		if (!this.parentNode) return [this.pathName];
+		const parentPath = this.parentNode.path;
+		if (!parentPath) return undefined;
+
+		return [...parentPath, this.pathName];
+	}
+
+	get pathName(): string | undefined {
+		return undefined;
 	}
 
 	get children() {
@@ -58,6 +71,14 @@ export class DtcRootNode extends DtcBaseNode {
 
 	get deleteProperties() {
 		return this.children.filter((child) => child instanceof DeleteProperty);
+	}
+
+	get nodes() {
+		return this.children.filter((child) => child instanceof DtcChildNode) as DtcChildNode[];
+	}
+
+	get pathName() {
+		return '/';
 	}
 
 	private get keyword() {
@@ -105,10 +126,21 @@ export class DtcRootNode extends DtcBaseNode {
 }
 
 export class DtcRefNode extends DtcBaseNode {
-	public ref: LabelRef | null = null;
+	public labelReferance: LabelRef | null = null;
 
-	constructor(parentNode: DtcBaseNode | null, public readonly labels: Label[] = []) {
+	constructor(parentNode: DtcBaseNode | null, public readonly labels: LabelAssign[] = []) {
 		super(parentNode);
+		labels.forEach((label) => {
+			label.parent = this;
+		});
+	}
+
+	get nodes() {
+		return this.children.filter((child) => child instanceof DtcChildNode);
+	}
+
+	get pathName() {
+		return this.labelReferance?.toString();
 	}
 
 	get properties() {
@@ -126,12 +158,12 @@ export class DtcRefNode extends DtcBaseNode {
 	getDocumentSymbols(): DocumentSymbol[] {
 		return [
 			{
-				name: this.ref?.value ?? 'DTC Name',
+				name: this.labelReferance?.value ?? 'DTC Name',
 				kind: SymbolKind.Namespace,
 				range: toRange(this),
 				selectionRange: toRange(this),
 				children: [
-					...(this.ref?.getDocumentSymbols() ?? []),
+					...(this.labelReferance?.getDocumentSymbols() ?? []),
 					...this.nodes.flatMap((node) => node.getDocumentSymbols()),
 					...this.deleteNodes.flatMap((node) => node.getDocumentSymbols()),
 					...this.properties.flatMap((property) => property.getDocumentSymbols()),
@@ -142,7 +174,7 @@ export class DtcRefNode extends DtcBaseNode {
 	}
 
 	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.ref?.buildSemanticTokens(builder);
+		this.labelReferance?.buildSemanticTokens(builder);
 		this.nodes.forEach((node) => node.buildSemanticTokens(builder));
 		this.deleteNodes.forEach((node) => node.buildSemanticTokens(builder));
 		this.properties.forEach((property) => property.buildSemanticTokens(builder));
@@ -154,10 +186,20 @@ export class DtcRefNode extends DtcBaseNode {
 export class DtcChildNode extends DtcBaseNode {
 	public name: NodeName | null = null;
 
-	constructor(parentNode: DtcBaseNode | null, public readonly labels: Label[] = []) {
+	constructor(parentNode: DtcBaseNode, public readonly labels: LabelAssign[] = []) {
 		super(parentNode);
+		labels.forEach((label) => {
+			label.parent = this;
+		});
 	}
 
+	get nodes() {
+		return this.children.filter((child) => child instanceof DtcChildNode) as DtcChildNode[];
+	}
+
+	get pathName() {
+		return this.name?.toString();
+	}
 	get properties() {
 		return this.children.filter((child) => child instanceof DtcProperty);
 	}
@@ -203,6 +245,10 @@ export class NodeName extends ASTBase {
 
 	get value() {
 		return this.name;
+	}
+
+	toString() {
+		return this.address ? `${this.name}@${this.address}` : this.name;
 	}
 
 	getDocumentSymbols(): DocumentSymbol[] {

@@ -34,7 +34,13 @@ export enum SyntaxIssue {
 	NODE_PATH_WHITE_SPACE_NOT_ALLOWED,
 }
 
-export enum ContextIssues {}
+export enum ContextIssues {
+	DUPLICATE_PROPERTY_NAME,
+	PROPERTY_DOES_NOT_EXIST,
+	DUPLICATE_NODE_NAME,
+	UNABLE_TO_RESOLVE_CHILD_NODE,
+	LABEL_ALREADY_IN_USE,
+}
 
 export enum LexerToken {
 	PROPERTY_NAME,

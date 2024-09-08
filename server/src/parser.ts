@@ -13,7 +13,7 @@ import {
 	NodeName,
 } from './ast/dtc/node';
 import { ASTBase } from './ast/base';
-import { Label } from './ast/dtc/label';
+import { Label, LabelAssign } from './ast/dtc/label';
 import { LabelRef } from './ast/dtc/labelRef';
 import { DtcProperty, PropertyName } from './ast/dtc/property';
 import { DeleteNode } from './ast/dtc/deleteNode';
@@ -53,7 +53,7 @@ export class Parser {
 			if (
 				!(
 					this.isRootNodeDefinition(this.rootDocument) ||
-					this.isDeleteNode(this.rootDocument) ||
+					this.isDeleteNode(this.rootDocument, 'Ref') ||
 					// not valid syntax but we leave this for the next layer to proecess
 					this.isProperty(this.unhandledStaments) ||
 					this.isDeleteProperty(this.unhandledStaments) ||
@@ -162,7 +162,7 @@ export class Parser {
 		do {
 			child =
 				this.isProperty(parent) ||
-				this.isDeleteNode(parent) ||
+				this.isDeleteNode(parent, allow) ||
 				this.isDeleteProperty(parent) ||
 				this.isChildNode(parent, allow);
 
@@ -182,8 +182,8 @@ export class Parser {
 		return found;
 	}
 
-	private processOptionalLablelAssign(acceptLabelName = false): Label[] {
-		const labels: Label[] = [];
+	private processOptionalLablelAssign(acceptLabelName = false): LabelAssign[] {
+		const labels: LabelAssign[] = [];
 
 		// Find all labels before node/property/value.....
 		let token = this.currentToken;
@@ -194,7 +194,7 @@ export class Parser {
 				token?.pos.line === this.prevToken.pos.line)
 		) {
 			if (token?.value) {
-				const node = new Label(token.value);
+				const node = new LabelAssign(token.value);
 				node.tokenIndexes = { start: token, end: token };
 				labels.push(node);
 
@@ -274,7 +274,7 @@ export class Parser {
 
 		let expectedNode = false;
 		if (ref && child instanceof DtcRefNode) {
-			child.ref = ref;
+			child.labelReferance = ref;
 		} else if (name && child instanceof DtcChildNode) {
 			expectedNode = !!name.address;
 			child.name = name;
@@ -384,7 +384,7 @@ export class Parser {
 		return true;
 	}
 
-	private isDeleteNode(parent: DtcBaseNode): boolean {
+	private isDeleteNode(parent: DtcBaseNode, allow: AllowNodeRef): boolean {
 		this.enqueToStack();
 
 		const firstToken = this.moveToNextToken;
@@ -416,7 +416,13 @@ export class Parser {
 		const node = new DeleteNode(keyword);
 
 		const labelRef = this.isLabelRef();
+		if (labelRef && allow === 'Name') {
+			this.issues.push(this.genIssue(SyntaxIssue.NODE_NAME, labelRef));
+		}
 		const nodeName = labelRef ? undefined : this.processNodeName(node);
+		if (nodeName && allow === 'Ref') {
+			this.issues.push(this.genIssue(SyntaxIssue.NODE_REF, nodeName));
+		}
 
 		if (!nodeName && !labelRef) {
 			this.issues.push(this.genIssue([SyntaxIssue.NODE_NAME, SyntaxIssue.NODE_REF], node));
@@ -827,7 +833,7 @@ export class Parser {
 			return node;
 		}
 
-		const node = new LabelRefValue(labelRef.ref, labels);
+		const node = new LabelRefValue(labelRef.label, labels);
 		node.tokenIndexes = {
 			start: labels.at(0)?.tokenIndexes?.end ?? firstToken,
 			end: labelRef.tokenIndexes?.end,

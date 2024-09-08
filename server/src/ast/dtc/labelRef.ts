@@ -5,18 +5,18 @@ import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
 import { Label } from './label';
 
 export class LabelRef extends ASTBase {
-	constructor(public readonly ref: Label | null) {
+	constructor(public readonly label: Label | null) {
 		super();
 	}
 
 	get value() {
-		return this.ref?.label;
+		return this.label?.value;
 	}
 
 	getDocumentSymbols(): DocumentSymbol[] {
 		return [
 			{
-				name: `&${this.ref?.label ?? 'NULL'}`,
+				name: `&${this.label?.value ?? 'NULL'}`,
 				kind: SymbolKind.Key,
 				range: toRange(this),
 				selectionRange: toRange(this),
@@ -25,6 +25,6 @@ export class LabelRef extends ASTBase {
 	}
 
 	buildSemanticTokens(push: BuildSemanticTokensPush): void {
-		this.ref?.buildSemanticTokens(push);
+		this.label?.buildSemanticTokens(push);
 	}
 }

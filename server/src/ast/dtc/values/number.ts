@@ -2,7 +2,7 @@ import { ASTBase } from '../../base';
 import { toRange } from '../../../helpers';
 import { BuildSemanticTokensPush } from '../../../types';
 import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
-import { Label } from '../label';
+import { LabelAssign } from '../label';
 
 export class NumberValues extends ASTBase {
 	constructor(public readonly values: NumberWithLabelValue[]) {
@@ -27,8 +27,11 @@ export class NumberValues extends ASTBase {
 }
 
 export class NumberWithLabelValue extends ASTBase {
-	constructor(public readonly number: NumberValue, public readonly labels: Label[]) {
+	constructor(public readonly number: NumberValue, public readonly labels: LabelAssign[]) {
 		super();
+		this.labels.forEach((label) => {
+			label.parent = this;
+		});
 	}
 
 	getDocumentSymbols(): DocumentSymbol[] {

@@ -2,7 +2,7 @@ import { BuildSemanticTokensPush } from '../../types';
 import { ASTBase } from '../base';
 import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
 import { toRange } from '../../helpers';
-import { Label } from './label';
+import { LabelAssign } from './label';
 import { PropertyValues } from './values/values';
 
 export class PropertyName extends ASTBase {
@@ -29,9 +29,16 @@ export class DtcProperty extends ASTBase {
 
 	constructor(
 		public readonly propertyName: PropertyName | null,
-		public readonly labels: Label[] = []
+		public readonly labels: LabelAssign[] = []
 	) {
 		super();
+		this.labels.forEach((label) => {
+			label.parent = this;
+		});
+	}
+
+	get allLabels() {
+		return [...this.labels, ...(this.values?.allLabels ?? [])];
 	}
 
 	getDocumentSymbols(): DocumentSymbol[] {

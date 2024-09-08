@@ -1,7 +1,7 @@
 import { ASTBase } from '../../base';
 import { toRange } from '../../../helpers';
 import { BuildSemanticTokensPush } from '../../../types';
-import { Label } from '../label';
+import { LabelAssign } from '../label';
 import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
 import { NodeName } from '../node';
 
@@ -47,8 +47,14 @@ export class NodePathRef extends ASTBase {
 }
 
 export class NodePathValue extends ASTBase {
-	constructor(public readonly path: NodePathRef | null, public readonly labels: Label[]) {
+	constructor(
+		public readonly path: NodePathRef | null,
+		public readonly labels: LabelAssign[]
+	) {
 		super();
+		this.labels.forEach((label) => {
+			label.parent = this;
+		});
 	}
 
 	getDocumentSymbols(): DocumentSymbol[] {
