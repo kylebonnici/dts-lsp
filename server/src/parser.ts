@@ -48,7 +48,7 @@ export class Parser {
 					this.isProperty(this.unhandledStaments) ||
 					this.isDeleteProperty(this.unhandledStaments) ||
 					// Valid use case
-					this.isChildNode(this.rootDocument, 'Both')
+					this.isChildNode(this.rootDocument, 'Ref')
 				)
 			) {
 				const node = new ASTBase();
@@ -89,7 +89,7 @@ export class Parser {
 		// from this point we can continue an report the expected tokens
 		const child = new DtcNode();
 		parent.nodes.push(child);
-		this.processNode(child, 'Both');
+		this.processNode(child, 'Name');
 
 		const lastToken = this.nodeEnd(child) ?? nextToken;
 		child.tokenIndexes = { start: firstToken, end: lastToken };
@@ -235,11 +235,14 @@ export class Parser {
 		let nameOrRef: NodeName | LabelRef | undefined;
 
 		const child: DtcChilNode = new DtcChilNode(labels);
-		if (allow === 'Both' || allow === 'Ref') {
-			nameOrRef = this.isLabelRef();
+
+		nameOrRef = this.isLabelRef();
+
+		if (nameOrRef && allow === 'Name') {
+			this.issues.push(this.genIssue([SyntaxIssue.NODE_NAME], nameOrRef));
 		}
 
-		if ((!nameOrRef && allow === 'Both') || allow === 'Name') {
+		if (!nameOrRef) {
 			nameOrRef = this.processNodeName(child);
 
 			if (!nameOrRef) {
@@ -252,6 +255,8 @@ export class Parser {
 				this.issues.push(
 					this.genIssue([SyntaxIssue.NODE_NAME, SyntaxIssue.NODE_REF], child)
 				);
+			} else if (allow === 'Ref') {
+				this.issues.push(this.genIssue([SyntaxIssue.NODE_REF], nameOrRef));
 			}
 		}
 

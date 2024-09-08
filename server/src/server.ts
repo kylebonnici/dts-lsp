@@ -22,7 +22,7 @@ import {
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Lexer } from './lexer';
-import { slxMap } from './resultCache';
+import { astMap } from './resultCache';
 import { SyntaxIssue, tokenModifiers, tokenTypes } from './types';
 import { Parser } from './parser';
 import { toRange } from './helpers';
@@ -282,7 +282,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 	const lexer = new Lexer(textDocument.getText());
 	const parser = new Parser(lexer.tokens);
 
-	slxMap.set(textDocument.uri, { lexer, parser });
+	astMap.set(textDocument.uri, { lexer, parser });
 
 	const diagnostics: Diagnostic[] = [];
 	parser.issues.forEach((issue) => {
@@ -309,7 +309,7 @@ connection.onCompletion(
 		// The pass parameter contains the position of the text document in
 		// which code complete got requested. For the example we ignore this
 		// info and always provide the same completion items.
-		const meta = slxMap.get(_textDocumentPosition.textDocument.uri);
+		const meta = astMap.get(_textDocumentPosition.textDocument.uri);
 		if (meta) {
 			// TODO`
 		}
@@ -349,7 +349,7 @@ documents.listen(connection);
 connection.listen();
 
 connection.onDocumentSymbol((h) => {
-	const data = slxMap.get(h.textDocument.uri);
+	const data = astMap.get(h.textDocument.uri);
 	if (!data) return [];
 
 	return data.parser.getDocumentSymbols();
@@ -358,7 +358,7 @@ connection.onDocumentSymbol((h) => {
 connection.languages.semanticTokens.on((h) => {
 	const tokensBuilder = new SemanticTokensBuilder();
 
-	const data = slxMap.get(h.textDocument.uri);
+	const data = astMap.get(h.textDocument.uri);
 	data?.parser.buildSemanticTokens(tokensBuilder);
 
 	return tokensBuilder.build();

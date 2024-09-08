@@ -628,7 +628,7 @@ describe('Parser', () => {
 		test('named with no address', async () => {
 			const rootNode = 'nodeName { \n};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
-			expect(parser.issues.length).toEqual(0);
+			expect(parser.issues.length).toEqual(1); // nodeName not allowed in root
 			expect(parser.rootDocument.nodes.length).toEqual(1);
 			expect(parser.rootDocument.nodes[0] instanceof DtcChilNode).toBeTruthy();
 			const node = parser.rootDocument.nodes[0] as DtcChilNode;
@@ -659,7 +659,7 @@ describe('Parser', () => {
 		test('named with address complete', async () => {
 			const rootNode = 'nodeName@200 { \n};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
-			expect(parser.issues.length).toEqual(0);
+			expect(parser.issues.length).toEqual(1); // nodeName not allowed in root
 			expect(parser.rootDocument.nodes.length).toEqual(1);
 			expect(parser.rootDocument.nodes[0] instanceof DtcChilNode).toBeTruthy();
 			const node = parser.rootDocument.nodes[0] as DtcChilNode;
@@ -691,7 +691,7 @@ describe('Parser', () => {
 		test('named with address missing address number', async () => {
 			const rootNode = 'nodeName@ { \n};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
-			expect(parser.issues.length).toEqual(1);
+			expect(parser.issues.length).toEqual(2); // nodeName not allowed in root
 			expect(parser.issues[0].issues).toEqual([SyntaxIssue.NODE_ADDRESS]);
 			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
 				len: 9,
@@ -730,7 +730,7 @@ describe('Parser', () => {
 		test('named with multiple lables', async () => {
 			const rootNode = 'label1: label2: nodeName { \n};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
-			expect(parser.issues.length).toEqual(0);
+			expect(parser.issues.length).toEqual(1); // nodeName not allowed in root
 			expect(parser.rootDocument.nodes.length).toEqual(1);
 			expect(parser.rootDocument.nodes[0] instanceof DtcChilNode).toBeTruthy();
 			const node = parser.rootDocument.nodes[0] as DtcChilNode;
@@ -822,7 +822,7 @@ describe('Parser', () => {
 		test('nested named nodes', async () => {
 			const rootNode = 'nodeName1 { \nnodeName2 { \n};\n};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
-			expect(parser.issues.length).toEqual(0);
+			expect(parser.issues.length).toEqual(1); // nodeName not allowed in root
 			expect(parser.rootDocument.nodes.length).toEqual(1);
 			expect(parser.rootDocument.nodes[0] instanceof DtcChilNode).toBeTruthy();
 			const topNode = parser.rootDocument.nodes[0] as DtcChilNode;
