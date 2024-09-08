@@ -1,721 +1,28 @@
-import { DocumentSymbol, SemanticTokensBuilder, SymbolKind } from 'vscode-languageserver';
-import { LexerToken, Token } from './lexer';
-
-export const tokenTypes = [
-	'namespace',
-	'class',
-	'enum',
-	'interface',
-	'struct',
-	'typeParameter',
-	'type',
-	'parameter',
-	'variable',
-	'property',
-	'enumMember',
-	'decorator',
-	'event',
-	'function',
-	'method',
-	'macro',
-	'label',
-	'comment',
-	'string',
-	'keyword',
-	'number',
-	'regexp',
-	'operator',
-] as const;
-
-type SemanticTokenType = (typeof tokenTypes)[number];
-
-const getTokenTypes = (type: SemanticTokenType) => {
-	return tokenTypes.findIndex((t) => t === type);
-};
-
-export const tokenModifiers = [
-	'declaration',
-	'definition',
-	'readonly',
-	'static',
-	'deprecated',
-	'abstract',
-	'async',
-	'modification',
-	'documentation',
-	'defaultLibrary',
-] as const;
-
-type SemanticTokenModifiers = (typeof tokenModifiers)[number];
-
-const getTokenModifiers = (type: SemanticTokenModifiers) => {
-	return tokenModifiers.findIndex((t) => t === type);
-};
-
-export enum Issues {
-	VALUE,
-	END_STATMENT,
-	CURLY_OPEN,
-	CURLY_CLOSE,
-	OPEN_SQUARE,
-	SQUARE_CLOSE,
-	PROPERTY_NAME,
-	NODE_NAME,
-	NODE_ADDRESS,
-	NODE_DEFINITION,
-	PROPERTY_DEFINITION,
-	NUMERIC_VALUE,
-	NODE_PATH,
-	NODE_REF,
-	GT_SYM,
-	LT_SYM,
-	BYTESTRING,
-	BYTESTRING_EVEN,
-	DUOUBE_QUOTE,
-	SINGLE_QUOTE,
-	VALID_NODE_PATH,
-	LABEL_NAME,
-	FORWARD_SLASH_START_PATH,
-	BYTESTRING_HEX,
-	FORWARD_SLASH_END_DELETE,
-	UNKNOWN,
-	NO_STAMENTE,
-	LABEL_ASSIGN_MISSING_COLON,
-	DELETE_INCOMPLETE,
-	NODE_PATH_WHITE_SPACE_NOT_ALLOWED,
-}
+import { DocumentSymbol, SemanticTokensBuilder } from 'vscode-languageserver';
+import { Issue, LexerToken, SyntaxIssue, Token, TokenIndexes } from './types';
+import { getTokenModifiers, getTokenTypes, toRange } from './helpers';
+import { BaseNode, DtcChilNode, DtcNode, NodeName } from './ast/dtc/node';
+import { ASTBase } from './ast/base';
+import { Label } from './ast/dtc/label';
+import { LabelRef } from './ast/dtc/labelRef';
+import { DtcProperty, PropertyName } from './ast/dtc/property';
+import { DeleteNode } from './ast/dtc/deleteNode';
+import { Keyword } from './ast/keyword';
+import { DeleteProperty } from './ast/dtc/deleteProperty';
+import { StringValue } from './ast/dtc/values/string';
+import { PropertyValue } from './ast/dtc/values/value';
+import { NodePath, NodePathRef, NodePathValue } from './ast/dtc/values/nodePath';
+import { LabelRefValue } from './ast/dtc/values/labelRef';
+import { NumberValue, NumberValues, NumberWithLabelValue } from './ast/dtc/values/number';
+import { ByteStringValue } from './ast/dtc/values/byteString';
+import { PropertyValues } from './ast/dtc/values/values';
 
 type AllowNodeRef = 'Both' | 'Ref' | 'Name';
-
-export interface Issue {
-	issues: Issues[];
-	slxElement: SlxBase;
-	priority: number;
-}
-
-export interface TokenIndexes {
-	start?: Token;
-	end?: Token;
-}
-
-type BuildSemanticTokensPush = (
-	tokenType: number,
-	tokenModifiers: number,
-	tokenIndexes?: TokenIndexes
-) => void;
-
-export class SlxBase {
-	public tokenIndexes?: TokenIndexes;
-	protected semanticTokenType?: SemanticTokenType;
-	protected semanticTokenModifiers?: SemanticTokenModifiers;
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [];
-	}
-
-	buildSemanticTokens(push: BuildSemanticTokensPush) {
-		if (!this.semanticTokenType || !this.semanticTokenModifiers) {
-			return;
-		}
-
-		push(
-			getTokenTypes(this.semanticTokenType),
-			getTokenModifiers(this.semanticTokenModifiers),
-			this.tokenIndexes
-		);
-	}
-}
-
-export class BaseNode extends SlxBase {
-	public nodes: DtcNode[] = [];
-	public deleteNodes: DeleteNode[] = [];
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			...this.nodes.flatMap((node) => node.getDocumentSymbols()),
-			...this.deleteNodes.flatMap((node) => node.getDocumentSymbols()),
-		];
-	}
-
-	buildSemanticTokens(push: BuildSemanticTokensPush) {
-		this.nodes.forEach((node) => node.buildSemanticTokens(push));
-		this.deleteNodes.forEach((node) => node.buildSemanticTokens(push));
-	}
-}
-
-export class DtcNode extends BaseNode {
-	public properties: DtcProperty[] = [];
-	public deleteProperties: DeleteProperty[] = [];
-	private _keyword: SlxBase | undefined;
-
-	constructor() {
-		super();
-	}
-
-	private get keyword() {
-		if (!this.tokenIndexes?.start) return;
-		this._keyword ??= new KeyWord();
-		const newTokenIndex: Token = {
-			...this.tokenIndexes?.start,
-			pos: {
-				col: this.tokenIndexes.start.pos.col ?? 0,
-				len: 1,
-				line: this.tokenIndexes?.start.pos.line ?? 0,
-			},
-		};
-		this._keyword.tokenIndexes = {
-			start: newTokenIndex,
-			end: newTokenIndex,
-		};
-		return this._keyword;
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: '/',
-				kind: SymbolKind.Class,
-				range: toRange(this),
-				selectionRange: toRange(this),
-				children: [
-					...this.nodes.flatMap((node) => node.getDocumentSymbols()),
-					...this.deleteNodes.flatMap((node) => node.getDocumentSymbols()),
-					...this.properties.flatMap((property) => property.getDocumentSymbols()),
-					...this.deleteProperties.flatMap((property) => property.getDocumentSymbols()),
-				],
-			},
-		];
-	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.keyword?.buildSemanticTokens(builder);
-		this.nodes.forEach((node) => node.buildSemanticTokens(builder));
-		this.deleteNodes.forEach((node) => node.buildSemanticTokens(builder));
-		this.properties.forEach((property) => property.buildSemanticTokens(builder));
-		this.deleteProperties.forEach((property) => property.buildSemanticTokens(builder));
-	}
-}
-export class DtcChilNode extends DtcNode {
-	public nameOrRef: NodeName | LabelRef | null = null;
-
-	constructor(public readonly labels: LabelNode[] = []) {
-		super();
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: this.nameOrRef?.value ?? 'DTC Name',
-				kind: SymbolKind.Namespace,
-				range: toRange(this),
-				selectionRange: toRange(this),
-				children: [
-					...(this.nameOrRef?.getDocumentSymbols() ?? []),
-					...this.nodes.flatMap((node) => node.getDocumentSymbols()),
-					...this.deleteNodes.flatMap((node) => node.getDocumentSymbols()),
-					...this.properties.flatMap((property) => property.getDocumentSymbols()),
-					...this.deleteProperties.flatMap((property) => property.getDocumentSymbols()),
-				],
-			},
-		];
-	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.nameOrRef?.buildSemanticTokens(builder);
-		this.nodes.forEach((node) => node.buildSemanticTokens(builder));
-		this.deleteNodes.forEach((node) => node.buildSemanticTokens(builder));
-		this.properties.forEach((property) => property.buildSemanticTokens(builder));
-		this.deleteProperties.forEach((property) => property.buildSemanticTokens(builder));
-		this.labels.forEach((label) => label.buildSemanticTokens(builder));
-	}
-}
-
-export class DtcProperty extends SlxBase {
-	public values: PropertyValues | null = null;
-
-	constructor(
-		public readonly propertyName: PropertyName | null,
-		public readonly labels: LabelNode[] = []
-	) {
-		super();
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: this.propertyName?.name ?? 'Unknown',
-				kind: SymbolKind.Property,
-				range: toRange(this),
-				selectionRange: toRange(this),
-				children: [
-					...(this.values?.getDocumentSymbols() ?? []),
-					...this.labels.flatMap((label) => label.getDocumentSymbols()),
-				],
-			},
-		];
-	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.propertyName?.buildSemanticTokens(builder);
-		this.values?.buildSemanticTokens(builder);
-		this.labels.forEach((label) => label.buildSemanticTokens(builder));
-	}
-}
-
-export class KeyWord extends SlxBase {
-	constructor() {
-		super();
-		this.semanticTokenType = 'keyword';
-		this.semanticTokenModifiers = 'declaration';
-	}
-}
-
-export class DeleteNode extends SlxBase {
-	public nodeNameOrRef: NodeName | LabelRef | null = null;
-
-	constructor(private keyWord: KeyWord) {
-		super();
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: 'Delete Node',
-				kind: SymbolKind.Function,
-				range: toRange(this),
-				selectionRange: toRange(this),
-				children: [...(this.nodeNameOrRef?.getDocumentSymbols() ?? [])],
-			},
-		];
-	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.nodeNameOrRef?.buildSemanticTokens(builder);
-		this.keyWord.buildSemanticTokens(builder);
-	}
-}
-
-export class PropertyName extends SlxBase {
-	constructor(public readonly name: string) {
-		super();
-		this.semanticTokenType = 'property';
-		this.semanticTokenModifiers = 'declaration';
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: this.name,
-				kind: SymbolKind.Property,
-				range: toRange(this),
-				selectionRange: toRange(this),
-			},
-		];
-	}
-}
-
-export class DeleteProperty extends SlxBase {
-	public propertyName: PropertyName | null = null;
-
-	constructor(private keyWord: KeyWord) {
-		super();
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: 'Delete Property',
-				kind: SymbolKind.Function,
-				range: toRange(this),
-				selectionRange: toRange(this),
-				children: this.propertyName?.getDocumentSymbols(),
-			},
-		];
-	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.propertyName?.buildSemanticTokens(builder);
-		this.keyWord.buildSemanticTokens(builder);
-	}
-}
-
-export class LabelNode extends SlxBase {
-	constructor(public readonly label: string) {
-		super();
-		this.semanticTokenType = 'variable';
-		this.semanticTokenModifiers = 'declaration';
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: this.label,
-				kind: SymbolKind.Module,
-				range: toRange(this),
-				selectionRange: toRange(this),
-			},
-		];
-	}
-}
-
-export const toRange = (slxBase: SlxBase) => {
-	return {
-		start: {
-			line: slxBase.tokenIndexes?.start?.pos.line ?? 0,
-			character: slxBase.tokenIndexes?.start?.pos.col ?? 0,
-		},
-		end: {
-			line: slxBase.tokenIndexes?.end?.pos.line ?? 0,
-			character:
-				(slxBase.tokenIndexes?.end?.pos.col ?? 0) +
-				(slxBase.tokenIndexes?.end?.pos.len ?? 0),
-		},
-	};
-};
-
-export class NodeName extends SlxBase {
-	constructor(public readonly name: string, public readonly address?: number) {
-		super();
-		this.semanticTokenType = 'variable';
-		this.semanticTokenModifiers = 'declaration';
-	}
-
-	get value() {
-		return this.name;
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: this.address ? `${this.name}@${this.address}` : this.name,
-				kind: SymbolKind.Class,
-				range: toRange(this),
-				selectionRange: toRange(this),
-			},
-		];
-	}
-
-	buildSemanticTokens(push: BuildSemanticTokensPush): void {
-		if (!this.tokenIndexes?.start || !this.tokenIndexes.start.value) return;
-
-		const nameNewStart = {
-			...this.tokenIndexes.start,
-			pos: {
-				...this.tokenIndexes.start.pos,
-				len: this.name.length,
-			},
-		};
-		push(getTokenTypes('type'), getTokenModifiers('declaration'), {
-			start: nameNewStart,
-			end: nameNewStart,
-		});
-		if (this.address) {
-			const addressNewStart = {
-				...this.tokenIndexes.start,
-				pos: {
-					line: this.tokenIndexes.start.pos.line,
-					col: this.tokenIndexes.start.pos.col + this.name.length + 1,
-					len: this.tokenIndexes.start.pos.len - this.name.length - 1,
-				},
-			};
-
-			const atSymbolNewStart = {
-				...this.tokenIndexes.start,
-				pos: {
-					line: this.tokenIndexes.start.pos.line,
-					col: this.name.length + 2,
-					len: 1,
-				},
-			};
-
-			push(getTokenTypes('decorator'), getTokenModifiers('declaration'), {
-				start: atSymbolNewStart,
-				end: atSymbolNewStart,
-			});
-
-			push(getTokenTypes('number'), getTokenModifiers('declaration'), {
-				start: addressNewStart,
-				end: addressNewStart,
-			});
-		}
-	}
-}
-
-export class NodePath extends SlxBase {
-	pathParts: (NodeName | null)[] = [];
-
-	constructor() {
-		super();
-		this.semanticTokenType = 'variable';
-		this.semanticTokenModifiers = 'declaration';
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: this.pathParts.join('/'),
-				kind: SymbolKind.Key,
-				range: toRange(this),
-				selectionRange: toRange(this),
-			},
-		];
-	}
-}
-
-export class LabelRef extends SlxBase {
-	constructor(public readonly ref: LabelNode | null) {
-		super();
-	}
-
-	get value() {
-		return this.ref?.label;
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: `&${this.ref?.label ?? 'NULL'}`,
-				kind: SymbolKind.Key,
-				range: toRange(this),
-				selectionRange: toRange(this),
-			},
-		];
-	}
-
-	buildSemanticTokens(push: BuildSemanticTokensPush): void {
-		this.ref?.buildSemanticTokens(push);
-	}
-}
-
-export class StringValue extends SlxBase {
-	constructor(public readonly value: string) {
-		super();
-		this.semanticTokenType = 'string';
-		this.semanticTokenModifiers = 'declaration';
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: this.value,
-				kind: SymbolKind.String,
-				range: toRange(this),
-				selectionRange: toRange(this),
-			},
-		];
-	}
-}
-
-export class ByteStringValue extends SlxBase {
-	constructor(public readonly values: (NumberWithLabelValue | null)[]) {
-		super();
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: 'Byte String Value',
-				kind: SymbolKind.Array,
-				range: toRange(this),
-				selectionRange: toRange(this),
-				children: this.values.filter((v) => v).flatMap((v) => v!.getDocumentSymbols()),
-			},
-		];
-	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.values.forEach((v) => v?.buildSemanticTokens(builder));
-	}
-}
-
-export class LabelRefValue extends SlxBase {
-	constructor(
-		public readonly value: LabelNode | null,
-		public readonly labels: LabelNode[]
-	) {
-		super();
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: this.value?.label ?? 'NULL',
-				kind: SymbolKind.String,
-				range: toRange(this),
-				selectionRange: toRange(this),
-			},
-		];
-	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.value?.buildSemanticTokens(builder);
-	}
-}
-
-export class NodePathValue extends SlxBase {
-	constructor(
-		public readonly path: NodePathRef | null,
-		public readonly labels: LabelNode[]
-	) {
-		super();
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: 'Node Path',
-				kind: SymbolKind.Variable,
-				range: toRange(this),
-				selectionRange: toRange(this),
-				children: this.path?.getDocumentSymbols(),
-			},
-		];
-	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.path?.buildSemanticTokens(builder);
-		this.labels.forEach((label) => label.buildSemanticTokens(builder));
-	}
-}
-
-export class NodePathRef extends SlxBase {
-	constructor(public readonly path: NodePath | null) {
-		super();
-		this.semanticTokenType = 'variable';
-		this.semanticTokenModifiers = 'declaration';
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: 'Node Path Referance',
-				kind: SymbolKind.Variable,
-				range: toRange(this),
-				selectionRange: toRange(this),
-				children: this.path?.getDocumentSymbols(),
-			},
-		];
-	}
-}
-
-type AllValueType =
-	| NodePathValue
-	| LabelRefValue
-	| StringValue
-	| ByteStringValue
-	| NumberValues
-	| LabelRef
-	| null;
-
-export class PropertyValues extends SlxBase {
-	constructor(
-		public readonly values: (PropertyValue | null)[],
-		public readonly labels: LabelNode[]
-	) {
-		super();
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: 'Property Values',
-				kind: SymbolKind.String,
-				range: toRange(this),
-				selectionRange: toRange(this),
-				children: [
-					...this.labels.filter((v) => v).flatMap((v) => v!.getDocumentSymbols()),
-					...this.values.filter((v) => v).flatMap((v) => v!.getDocumentSymbols()),
-				],
-			},
-		];
-	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.values.forEach((v) => v?.buildSemanticTokens(builder));
-		this.labels.forEach((v) => v?.buildSemanticTokens(builder));
-	}
-}
-
-export class PropertyValue extends SlxBase {
-	constructor(public readonly value: AllValueType, public readonly endLabels: LabelNode[]) {
-		super();
-	}
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			...(this.value?.getDocumentSymbols() ?? []),
-			...this.endLabels.flatMap((label) => label.getDocumentSymbols() ?? []),
-		];
-	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.value?.buildSemanticTokens(builder);
-		this.endLabels.forEach((label) => label?.buildSemanticTokens(builder));
-	}
-}
-
-export class NumberValues extends SlxBase {
-	constructor(public readonly values: NumberWithLabelValue[]) {
-		super();
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: 'Cell Array',
-				kind: SymbolKind.Array,
-				range: toRange(this),
-				selectionRange: toRange(this),
-				children: this.values.flatMap((v) => v.getDocumentSymbols()),
-			},
-		];
-	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		return this.values.forEach((v) => v.buildSemanticTokens(builder));
-	}
-}
-
-export class NumberValue extends SlxBase {
-	constructor(public readonly value: number) {
-		super();
-		this.semanticTokenType = 'number';
-		this.semanticTokenModifiers = 'declaration';
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: this.value.toString(),
-				kind: SymbolKind.Number,
-				range: toRange(this),
-				selectionRange: toRange(this),
-			},
-		];
-	}
-}
-
-export class NumberWithLabelValue extends SlxBase {
-	constructor(public readonly number: NumberValue, public readonly labels: LabelNode[]) {
-		super();
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			...this.number.getDocumentSymbols(),
-			...this.labels.flatMap((label) => label.getDocumentSymbols()),
-		];
-	}
-
-	buildSemanticTokens(push: BuildSemanticTokensPush): void {
-		this.number.buildSemanticTokens(push);
-		this.labels.forEach((label) => label.buildSemanticTokens(push));
-	}
-}
 
 export class Parser {
 	rootDocument = new BaseNode();
 	positionStack: number[] = [];
-	issues: Issue[] = [];
+	issues: Issue<SyntaxIssue>[] = [];
 	unhandledStaments = new DtcNode();
 
 	constructor(private tokens: Token[]) {
@@ -744,10 +51,10 @@ export class Parser {
 					this.isChildNode(this.rootDocument, 'Both')
 				)
 			) {
-				const node = new SlxBase();
+				const node = new ASTBase();
 				const token = this.moveToNextToken;
 				node.tokenIndexes = { start: token, end: token };
-				this.issues.push(this.genIssue(Issues.UNKNOWN, node));
+				this.issues.push(this.genIssue(SyntaxIssue.UNKNOWN, node));
 				this.reportExtraEndStaments();
 			}
 		};
@@ -790,11 +97,11 @@ export class Parser {
 		return true;
 	}
 
-	private nodeEnd(slxBase: SlxBase) {
+	private nodeEnd(slxBase: ASTBase) {
 		const nextToken = this.currentToken;
 		const expectedToken = LexerToken.CURLY_CLOSE;
 		if (!validToken(nextToken, expectedToken)) {
-			this.issues.push(this.genIssue(Issues.CURLY_CLOSE, slxBase));
+			this.issues.push(this.genIssue(SyntaxIssue.CURLY_CLOSE, slxBase));
 		} else {
 			this.moveToNextToken;
 		}
@@ -814,10 +121,10 @@ export class Parser {
 	// c presosessor
 	// terninary
 
-	private endStatment(slxBase: SlxBase) {
+	private endStatment(slxBase: ASTBase) {
 		const currentToken = this.currentToken;
 		if (!validToken(currentToken, LexerToken.SEMICOLON)) {
-			this.issues.push(this.genIssue(Issues.END_STATMENT, slxBase));
+			this.issues.push(this.genIssue(SyntaxIssue.END_STATMENT, slxBase));
 			return this.prevToken;
 		}
 
@@ -831,9 +138,9 @@ export class Parser {
 	private reportExtraEndStaments() {
 		while (validToken(this.currentToken, LexerToken.SEMICOLON)) {
 			const token = this.moveToNextToken;
-			const node = new SlxBase();
+			const node = new ASTBase();
 			node.tokenIndexes = { start: token, end: token };
-			this.issues.push(this.genIssue(Issues.NO_STAMENTE, node));
+			this.issues.push(this.genIssue(SyntaxIssue.NO_STAMENTE, node));
 		}
 	}
 
@@ -850,10 +157,10 @@ export class Parser {
 				this.isChildNode(parent, allow);
 
 			if (!child && !this.isNodeEnd() && !this.done) {
-				const node = new SlxBase();
+				const node = new ASTBase();
 				const token = this.moveToNextToken;
 				node.tokenIndexes = { start: token, end: token };
-				this.issues.push(this.genIssue(Issues.UNKNOWN, node));
+				this.issues.push(this.genIssue(SyntaxIssue.UNKNOWN, node));
 				this.reportExtraEndStaments();
 			} else {
 				if (this.done) {
@@ -865,8 +172,8 @@ export class Parser {
 		return found;
 	}
 
-	private processOptionalLablelAssign(acceptLabelName = false): LabelNode[] {
-		const labels: LabelNode[] = [];
+	private processOptionalLablelAssign(acceptLabelName = false): Label[] {
+		const labels: Label[] = [];
 
 		// Find all labels before node/property/value.....
 		let token = this.currentToken;
@@ -877,12 +184,12 @@ export class Parser {
 				token?.pos.line === this.prevToken.pos.line)
 		) {
 			if (token?.value) {
-				const node = new LabelNode(token.value);
+				const node = new Label(token.value);
 				node.tokenIndexes = { start: token, end: token };
 				labels.push(node);
 
 				if (validToken(token, LexerToken.LABEL_NAME)) {
-					this.issues.push(this.genIssue(Issues.LABEL_ASSIGN_MISSING_COLON, node));
+					this.issues.push(this.genIssue(SyntaxIssue.LABEL_ASSIGN_MISSING_COLON, node));
 				}
 			}
 			this.moveToNextToken;
@@ -892,7 +199,7 @@ export class Parser {
 		return labels;
 	}
 
-	private processNodeName(slxBase: SlxBase): NodeName | undefined {
+	private processNodeName(slxBase: ASTBase): NodeName | undefined {
 		const token = this.currentToken;
 		if (!validToken(token, LexerToken.NODE_NAME)) {
 			return;
@@ -914,7 +221,7 @@ export class Parser {
 
 		// <nodeName>@
 		if (hasAddress && Number.isNaN(address)) {
-			this.issues.push(this.genIssue(Issues.NODE_ADDRESS, slxBase));
+			this.issues.push(this.genIssue(SyntaxIssue.NODE_ADDRESS, slxBase));
 		}
 
 		return node;
@@ -942,7 +249,9 @@ export class Parser {
 					return false;
 				}
 
-				this.issues.push(this.genIssue([Issues.NODE_NAME, Issues.NODE_REF], child));
+				this.issues.push(
+					this.genIssue([SyntaxIssue.NODE_NAME, SyntaxIssue.NODE_REF], child)
+				);
 			}
 		}
 
@@ -952,7 +261,7 @@ export class Parser {
 		const token = this.moveToNextToken;
 		if (!validToken(token, LexerToken.CURLY_OPEN)) {
 			if (expectedNode) {
-				this.issues.push(this.genIssue(Issues.CURLY_OPEN, child));
+				this.issues.push(this.genIssue(SyntaxIssue.CURLY_OPEN, child));
 			} else {
 				// this could be a property
 				this.popStack();
@@ -992,7 +301,10 @@ export class Parser {
 			if (labels.length && !validToken(token, LexerToken.NODE_NAME)) {
 				// we have seme lables so we are expecing a property or a node then
 				this.issues.push(
-					this.genIssue([Issues.PROPERTY_DEFINITION, Issues.NODE_DEFINITION], parent)
+					this.genIssue(
+						[SyntaxIssue.PROPERTY_DEFINITION, SyntaxIssue.NODE_DEFINITION],
+						parent
+					)
 				);
 				name = null;
 				this.mergeStack();
@@ -1027,7 +339,7 @@ export class Parser {
 			result = this.processValue(child);
 
 			if (!result.values.filter((v) => !!v).length) {
-				this.issues.push(this.genIssue(Issues.VALUE, child));
+				this.issues.push(this.genIssue(SyntaxIssue.VALUE, child));
 			}
 		}
 
@@ -1066,14 +378,14 @@ export class Parser {
 			return false;
 		}
 
-		const keyword = new KeyWord();
+		const keyword = new Keyword();
 
 		if (token?.value !== 'delete-node') {
-			this.issues.push(this.genIssue(Issues.DELETE_INCOMPLETE, keyword));
+			this.issues.push(this.genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
 		}
 
 		if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
-			this.issues.push(this.genIssue(Issues.FORWARD_SLASH_END_DELETE, keyword));
+			this.issues.push(this.genIssue(SyntaxIssue.FORWARD_SLASH_END_DELETE, keyword));
 		} else {
 			token = this.moveToNextToken;
 		}
@@ -1085,7 +397,7 @@ export class Parser {
 		const nodeName = labelRef ? undefined : this.processNodeName(node);
 
 		if (!nodeName && !labelRef) {
-			this.issues.push(this.genIssue([Issues.NODE_NAME, Issues.NODE_REF], node));
+			this.issues.push(this.genIssue([SyntaxIssue.NODE_NAME, SyntaxIssue.NODE_REF], node));
 		}
 
 		node.nodeNameOrRef = labelRef ?? nodeName ?? null;
@@ -1113,14 +425,14 @@ export class Parser {
 			return false;
 		}
 
-		const keyword = new KeyWord();
+		const keyword = new Keyword();
 
 		if (token?.value !== 'delete-property') {
-			this.issues.push(this.genIssue(Issues.DELETE_INCOMPLETE, keyword));
+			this.issues.push(this.genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
 		}
 
 		if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
-			this.issues.push(this.genIssue(Issues.FORWARD_SLASH_END_DELETE, keyword));
+			this.issues.push(this.genIssue(SyntaxIssue.FORWARD_SLASH_END_DELETE, keyword));
 		} else {
 			token = this.moveToNextToken;
 		}
@@ -1130,7 +442,7 @@ export class Parser {
 		const node = new DeleteProperty(keyword);
 
 		if (!validToken(this.currentToken, LexerToken.PROPERTY_NAME)) {
-			this.issues.push(this.genIssue(Issues.PROPERTY_NAME, node));
+			this.issues.push(this.genIssue(SyntaxIssue.PROPERTY_NAME, node));
 		} else {
 			token = this.moveToNextToken;
 
@@ -1172,7 +484,7 @@ export class Parser {
 			const value = [getValue()];
 
 			if (!value) {
-				this.issues.push(this.genIssue(Issues.VALUE, dtcProperty));
+				this.issues.push(this.genIssue(SyntaxIssue.VALUE, dtcProperty));
 			}
 
 			while (validToken(this.currentToken, LexerToken.COMMA)) {
@@ -1181,9 +493,9 @@ export class Parser {
 				this.moveToNextToken;
 				const next = getValue();
 				if (next === null) {
-					const node = new SlxBase();
+					const node = new ASTBase();
 					node.tokenIndexes = { start, end };
-					this.issues.push(this.genIssue(Issues.VALUE, node));
+					this.issues.push(this.genIssue(SyntaxIssue.VALUE, node));
 				}
 				value.push(next);
 			}
@@ -1220,7 +532,7 @@ export class Parser {
 		if (!token.value.match(/["']$/)) {
 			this.issues.push(
 				this.genIssue(
-					token.value.startsWith('"') ? Issues.DUOUBE_QUOTE : Issues.SINGLE_QUOTE,
+					token.value.startsWith('"') ? SyntaxIssue.DUOUBE_QUOTE : SyntaxIssue.SINGLE_QUOTE,
 					propValue
 				)
 			);
@@ -1253,7 +565,7 @@ export class Parser {
 		if (!value) {
 			this.issues.push(
 				this.genIssue(
-					[Issues.NUMERIC_VALUE, Issues.NODE_REF, Issues.NODE_PATH],
+					[SyntaxIssue.NUMERIC_VALUE, SyntaxIssue.NODE_REF, SyntaxIssue.NODE_PATH],
 					dtcProperty
 				)
 			);
@@ -1262,7 +574,7 @@ export class Parser {
 		const endLabels1 = this.processOptionalLablelAssign(true) ?? [];
 
 		if (!validToken(this.currentToken, LexerToken.GT_SYM)) {
-			this.issues.push(this.genIssue(Issues.GT_SYM, dtcProperty));
+			this.issues.push(this.genIssue(SyntaxIssue.GT_SYM, dtcProperty));
 		} else {
 			this.moveToNextToken;
 		}
@@ -1291,24 +603,24 @@ export class Parser {
 		const numberValues = this.processNumericValues();
 
 		if (!numberValues?.values.length) {
-			this.issues.push(this.genIssue(Issues.BYTESTRING, dtcProperty));
+			this.issues.push(this.genIssue(SyntaxIssue.BYTESTRING, dtcProperty));
 		}
 
 		const endLabels1 = this.processOptionalLablelAssign(true) ?? [];
 
 		if (!validToken(this.currentToken, LexerToken.SQUARE_CLOSE)) {
-			this.issues.push(this.genIssue(Issues.SQUARE_CLOSE, dtcProperty));
+			this.issues.push(this.genIssue(SyntaxIssue.SQUARE_CLOSE, dtcProperty));
 		} else {
 			this.moveToNextToken;
 		}
 
 		numberValues?.values.forEach((value) => {
 			if ((value.tokenIndexes?.start?.pos.len ?? 0) % 2 !== 0) {
-				this.issues.push(this.genIssue(Issues.BYTESTRING_EVEN, value));
+				this.issues.push(this.genIssue(SyntaxIssue.BYTESTRING_EVEN, value));
 			}
 
 			if (value.tokenIndexes?.start?.tokens.some((tok) => tok === LexerToken.HEX)) {
-				this.issues.push(this.genIssue(Issues.BYTESTRING_HEX, value));
+				this.issues.push(this.genIssue(SyntaxIssue.BYTESTRING_HEX, value));
 			}
 		});
 
@@ -1406,7 +718,7 @@ export class Parser {
 		return node;
 	}
 
-	private isLabelRef(slxBase?: SlxBase): LabelRef | undefined {
+	private isLabelRef(slxBase?: ASTBase): LabelRef | undefined {
 		this.enqueToStack();
 		const firstToken = this.moveToNextToken;
 		if (!validToken(firstToken, LexerToken.AMPERSAND)) {
@@ -1416,7 +728,7 @@ export class Parser {
 
 		if (!validToken(this.currentToken, LexerToken.LABEL_NAME)) {
 			const node = new LabelRef(null);
-			this.issues.push(this.genIssue(Issues.LABEL_NAME, slxBase ?? node));
+			this.issues.push(this.genIssue(SyntaxIssue.LABEL_NAME, slxBase ?? node));
 			node.tokenIndexes = { start: firstToken, end: firstToken };
 
 			this.mergeStack();
@@ -1429,7 +741,7 @@ export class Parser {
 			throw new Error('Token must have value');
 		}
 
-		const labelName = new LabelNode(token.value);
+		const labelName = new Label(token.value);
 		labelName.tokenIndexes = { start: token, end: token };
 		const node = new LabelRef(labelName);
 		node.tokenIndexes = { start: firstToken, end: token };
@@ -1481,7 +793,9 @@ export class Parser {
 
 		const labelRef = this.isLabelRef(dtcProperty);
 		if (labelRef === undefined) {
-			this.issues.push(this.genIssue([Issues.LABEL_NAME, Issues.NODE_PATH], dtcProperty));
+			this.issues.push(
+				this.genIssue([SyntaxIssue.LABEL_NAME, SyntaxIssue.NODE_PATH], dtcProperty)
+			);
 
 			const node = new LabelRefValue(null, labels);
 			node.tokenIndexes = {
@@ -1509,12 +823,12 @@ export class Parser {
 				this.popStack();
 				return;
 			}
-			this.issues.push(this.genIssue(Issues.FORWARD_SLASH_START_PATH, nodePath));
+			this.issues.push(this.genIssue(SyntaxIssue.FORWARD_SLASH_START_PATH, nodePath));
 		}
 
 		const nodeName = this.processNodeName(nodePath);
 		if (!nodeName) {
-			this.issues.push(this.genIssue(Issues.NODE_NAME, nodePath));
+			this.issues.push(this.genIssue(SyntaxIssue.NODE_NAME, nodePath));
 		}
 
 		nodePath.tokenIndexes ??= {
@@ -1558,7 +872,7 @@ export class Parser {
 		const lastToken = this.currentToken;
 		const afterPath = lastToken;
 		if (!validToken(lastToken, LexerToken.CURLY_CLOSE)) {
-			this.issues.push(this.genIssue(Issues.CURLY_CLOSE, node));
+			this.issues.push(this.genIssue(SyntaxIssue.CURLY_CLOSE, node));
 		} else {
 			this.moveToNextToken;
 		}
@@ -1576,7 +890,7 @@ export class Parser {
 			(beforPath.pos.col !== nodePathRange?.start.character - 1 ||
 				afterPath.pos.col !== nodePathRange?.end.character)
 		) {
-			this.issues.push(this.genIssue(Issues.NODE_PATH_WHITE_SPACE_NOT_ALLOWED, node));
+			this.issues.push(this.genIssue(SyntaxIssue.NODE_PATH_WHITE_SPACE_NOT_ALLOWED, node));
 		}
 
 		this.mergeStack();
@@ -1632,10 +946,12 @@ export class Parser {
 		this.positionStack[this.positionStack.length - 1]++;
 	}
 
-	private genIssue = (expectedToken: Issues | Issues[], slxBase: SlxBase): Issue => ({
+	private genIssue = (
+		expectedToken: SyntaxIssue | SyntaxIssue[],
+		slxBase: ASTBase
+	): Issue<SyntaxIssue> => ({
 		issues: Array.isArray(expectedToken) ? expectedToken : [expectedToken],
 		slxElement: slxBase,
-		priority: this.positionStack.length,
 	});
 
 	getDocumentSymbols(): DocumentSymbol[] {

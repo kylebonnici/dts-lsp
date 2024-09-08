@@ -3,8 +3,9 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
 
-import { Lexer, LexerToken, Token } from '../lexer';
+import { Lexer } from '../lexer';
 import { describe, test, expect } from '@jest/globals';
+import { LexerToken, Token } from '../types';
 
 describe('Lexer', () => {
 	test('Label assign', async () => {

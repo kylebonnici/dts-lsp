@@ -1,0 +1,174 @@
+$schema: "http://json-schema.org/draft-07/schema"
+$id: https://github.com/trond-snekvik/vscode-devicetree/tree/master/syntax/bindings-schema.yaml
+# title: Zephyr Project DeviceTree bindings schema
+# additionalProperties: false
+type: object
+properties:
+  description:
+    $ref: "#/definitions/description"
+  compatible:
+    type: string
+    description: |
+      Unique identifier used for connecting nodes to bindings. Should generally follow a "vendor,type", where vendor is a unique vendor identifier, such as a ticker. The compatible identifier usually matches the filename of the binding. Examples: "nordic,nrf-gpio", "microchip,mcp2515"
+  include:
+    $ref: "#/definitions/include"
+  on-bus:
+    type: string
+    description: |
+      If the node appears on a bus, then the bus type should be given.
+
+      When looking for a binding for a node, the code checks if the binding for the parent node contains 'bus: <bus type>'. If it does, then only bindings with a matching 'on-bus: <bus type>' are considered. This allows the same type of device to have different bindings depending on what bus it appears on.
+  bus:
+    type: string
+    description: |
+      If the node describes a bus, then the bus type should be given.
+  properties:
+    $ref: "#/definitions/properties"
+  child-binding:
+    $ref: "#/definitions/child-binding"
+
+patternProperties:
+  -cells$:
+    type: array
+    items:
+      type: string
+    description: |
+      If the binding describes an interrupt controller, GPIO controller, pinmux device, or any other node referenced by other nodes via 'phandle-array' properties, then *-cells should be given.
+
+      To understand the purpose of *-cells, assume that some node has
+
+      pwms = <&pwm-ctrl 1 2>;
+
+      where &pwm-ctrl refers to a node whose binding is this file.
+
+      The <1 2> part of the property value is called a *specifier* (this terminology is from the devicetree specification), and contains additional data associated with the GPIO. Here, the specifier has two cells, and the node pointed at by &gpio-ctrl is expected to have '#pwm-cells = <2>'.
+
+      *-cells gives a name to each cell in the specifier. These names are used when generating identifiers.
+additionalProperties: false
+
+definitions:
+  include:
+    type:
+      - array
+      - string
+      - object
+    description: |
+      Defines one or more bindings this binding inherits properties and other attributes from.
+    items:
+        $ref: "#/definitions/include-item"
+    $ref: "#/definitions/include-item"
+
+  include-item:
+    type:
+      - string
+      - object
+    pattern: .*\.yaml$
+    properties:
+      name:
+        type: string
+        pattern: .*\.yaml$
+        description: |
+          Filename of the included binding. Should include the .yaml file extension.
+      property-allowlist:
+        description: |
+          Array of properties that will be imported from the included binding.
+        type: array
+        items:
+          type: string
+      property-blocklist:
+        description: |
+          Array of properties that will be blocked from the included binding.
+        type: array
+        items:
+          type: string
+      child-binding:
+        type: object
+        description: |
+          Filtering rules applied to the child-binding's properties
+        properties:
+          property-allowlist:
+            description: |
+              Array of properties that will be allowed from the include's child binding
+            type: array
+            items:
+              type: string
+          property-blocklist:
+            description: |
+              Array of properties that will be blocked from the include's child binding
+            type: array
+            items:
+              type: string
+    additionalProperties: false
+
+  child-binding:
+    type: object
+    description: |
+      'child-binding' can be used when a node has children that all share the same properties. Each child gets the contents of 'child-binding' as its binding (though an explicit 'compatible = ...' on the child node takes precedence, ifa binding is found for it).
+
+      Child bindings can also be used recursively.
+    properties:
+      description:
+        $ref: "#/definitions/description"
+      properties:
+        $ref: "#/definitions/properties"
+      child-binding:
+        $ref: "#/definitions/child-binding"
+      include:
+        $ref: "#/definitions/include"
+    additionalProperties: false
+  description:
+    type: string
+    description: Human readable description. The description shows up in documentation and type hover.
+  properties:
+    type: object
+    description: Map of properties that can be included in the DeviceTree node.
+    additionalProperties: false
+    patternProperties:
+      '[\w-]*':
+        type: object
+        description: Node property.
+        properties:
+          type:
+            description: |
+              The property type determines how the property values are interpreted.
+            type: string
+            enum:
+              - string
+              - int
+              - boolean
+              - array
+              - uint8-array
+              - string-array
+              - phandle
+              - phandles
+              - phandle-array
+              - path
+              - compound
+          required:
+            type: boolean
+            description: |
+              Whether this property is required.
+
+              Required properties must be included in the DeviceTree node.
+          description:
+            type: string
+            description: A human readable help text for the property.
+          enum:
+            type: array
+            items:
+              type:
+                - string
+                - integer
+            description: A property enum value restricts the possible values for the property.
+          const:
+            type:
+              - integer
+              - string
+            description: Specifies that the value for the property is expected to be a specific value.
+          default:
+            type:
+              - string
+              - integer
+              - array
+            description: |
+              If this property is omitted from the DeviceTree node, its value is determined by the default value.

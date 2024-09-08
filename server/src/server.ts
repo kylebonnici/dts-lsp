@@ -22,7 +22,10 @@ import {
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Lexer } from './lexer';
-import { Issues, Parser, tokenModifiers, tokenTypes, toRange } from './parser';
+import { slxMap } from './resultCache';
+import { SyntaxIssue, tokenModifiers, tokenTypes } from './types';
+import { Parser } from './parser';
+import { toRange } from './helpers';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -161,67 +164,67 @@ connection.languages.diagnostics.on(async (params) => {
 	}
 });
 
-const issueToMessage = (issue: Issues) => {
+const issueToMessage = (issue: SyntaxIssue) => {
 	switch (issue) {
-		case Issues.VALUE:
+		case SyntaxIssue.VALUE:
 			return 'Expected Value';
-		case Issues.END_STATMENT:
+		case SyntaxIssue.END_STATMENT:
 			return "Expected ';'";
-		case Issues.CURLY_OPEN:
+		case SyntaxIssue.CURLY_OPEN:
 			return "Expected '{'";
-		case Issues.CURLY_CLOSE:
+		case SyntaxIssue.CURLY_CLOSE:
 			return "Expected '}'";
-		case Issues.OPEN_SQUARE:
+		case SyntaxIssue.OPEN_SQUARE:
 			return "Expected '['";
-		case Issues.SQUARE_CLOSE:
+		case SyntaxIssue.SQUARE_CLOSE:
 			return "Expected ']'";
-		case Issues.PROPERTY_NAME:
+		case SyntaxIssue.PROPERTY_NAME:
 			return 'Expected property name';
-		case Issues.NODE_NAME:
+		case SyntaxIssue.NODE_NAME:
 			return 'Expected node name';
-		case Issues.NODE_ADDRESS:
+		case SyntaxIssue.NODE_ADDRESS:
 			return 'Expected node address';
-		case Issues.NODE_DEFINITION:
+		case SyntaxIssue.NODE_DEFINITION:
 			return 'Expected node definition';
-		case Issues.PROPERTY_DEFINITION:
+		case SyntaxIssue.PROPERTY_DEFINITION:
 			return 'Expected property definition';
-		case Issues.NUMERIC_VALUE:
+		case SyntaxIssue.NUMERIC_VALUE:
 			return 'Expected numerical value';
-		case Issues.NODE_PATH:
+		case SyntaxIssue.NODE_PATH:
 			return 'Expected node path';
-		case Issues.NODE_REF:
+		case SyntaxIssue.NODE_REF:
 			return 'Expected node ref';
-		case Issues.GT_SYM:
+		case SyntaxIssue.GT_SYM:
 			return "Expected '>'";
-		case Issues.LT_SYM:
+		case SyntaxIssue.LT_SYM:
 			return "Expected '<'";
-		case Issues.BYTESTRING:
+		case SyntaxIssue.BYTESTRING:
 			return 'Expected bytes string ';
-		case Issues.BYTESTRING_EVEN:
+		case SyntaxIssue.BYTESTRING_EVEN:
 			return 'Expected two digits in bytestring';
-		case Issues.DUOUBE_QUOTE:
+		case SyntaxIssue.DUOUBE_QUOTE:
 			return "Expected '\"'";
-		case Issues.SINGLE_QUOTE:
+		case SyntaxIssue.SINGLE_QUOTE:
 			return "Expected '\\''";
-		case Issues.VALID_NODE_PATH:
+		case SyntaxIssue.VALID_NODE_PATH:
 			return 'Expected valid node path';
-		case Issues.LABEL_NAME:
+		case SyntaxIssue.LABEL_NAME:
 			return 'Expected Label name';
-		case Issues.FORWARD_SLASH_START_PATH:
+		case SyntaxIssue.FORWARD_SLASH_START_PATH:
 			return "Expected '/' in the state of a node path";
-		case Issues.BYTESTRING_HEX:
+		case SyntaxIssue.BYTESTRING_HEX:
 			return 'Expected hex values are not allowed';
-		case Issues.FORWARD_SLASH_END_DELETE:
+		case SyntaxIssue.FORWARD_SLASH_END_DELETE:
 			return "Trailing '/' at the end of delete keyword";
-		case Issues.NO_STAMENTE:
+		case SyntaxIssue.NO_STAMENTE:
 			return "Found ';' without a statment";
-		case Issues.LABEL_ASSIGN_MISSING_COLON:
+		case SyntaxIssue.LABEL_ASSIGN_MISSING_COLON:
 			return "Missing ':' for label assign";
-		case Issues.DELETE_INCOMPLETE:
+		case SyntaxIssue.DELETE_INCOMPLETE:
 			return 'Did you mean /delete-node/ or /delete-property/';
-		case Issues.NODE_PATH_WHITE_SPACE_NOT_ALLOWED:
+		case SyntaxIssue.NODE_PATH_WHITE_SPACE_NOT_ALLOWED:
 			return 'White space is not allowrd after "{" or after "}"';
-		case Issues.UNKNOWN:
+		case SyntaxIssue.UNKNOWN:
 			return 'Unknown syntax';
 	}
 };
@@ -231,8 +234,6 @@ const issueToMessage = (issue: Issues) => {
 documents.onDidChangeContent((change) => {
 	validateTextDocument(change.document);
 });
-
-const slxMap = new Map<string, { parser: Parser; lexer: Lexer }>();
 
 async function validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
 	// // In this simple example we get the settings for every validate run.

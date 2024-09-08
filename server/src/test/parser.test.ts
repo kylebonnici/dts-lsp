@@ -3,21 +3,18 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
 
-import { Lexer, LexerToken, Token } from '../lexer';
-import {
-	ByteStringValue,
-	DtcChilNode,
-	DtcNode,
-	Issues,
-	LabelRef as LabelRefValue,
-	LabelRefValue as CellLabelRefValue,
-	NodeName,
-	NodePathValue,
-	NumberValues as NumberValues,
-	Parser,
-	StringValue,
-} from '../parser';
+import { Lexer } from '../lexer';
+import { Parser } from '../parser';
+import { SyntaxIssue, LexerToken } from '../types';
+import { DtcChilNode, DtcNode, NodeName } from '../ast/dtc/node';
+import { StringValue } from '../ast/dtc/values/string';
+import { ByteStringValue } from '../ast/dtc/values/byteString';
+import { LabelRef } from '../ast/dtc/labelRef';
+import { NumberValues } from '../ast/dtc/values/number';
+
 import { describe, test, expect } from '@jest/globals';
+import { LabelRefValue } from '../ast/dtc/values/labelRef';
+import { NodePathValue } from '../ast/dtc/values/nodePath';
 
 describe('Parser', () => {
 	describe('Empty root node', () => {
@@ -50,7 +47,7 @@ describe('Parser', () => {
 			const rootNode = '/{ \n}';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(1);
-			expect(parser.issues[0].issues).toEqual([Issues.END_STATMENT]);
+			expect(parser.issues[0].issues).toEqual([SyntaxIssue.END_STATMENT]);
 			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
 				len: 1,
 				col: 0,
@@ -76,7 +73,7 @@ describe('Parser', () => {
 			const rootNode = '/{ \n;';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(1);
-			expect(parser.issues[0].issues).toEqual([Issues.CURLY_CLOSE]);
+			expect(parser.issues[0].issues).toEqual([SyntaxIssue.CURLY_CLOSE]);
 			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
 				len: 1,
 				col: 0,
@@ -102,7 +99,7 @@ describe('Parser', () => {
 			const rootNode = '/{ \n';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(2);
-			expect(parser.issues[0].issues).toEqual([Issues.CURLY_CLOSE]);
+			expect(parser.issues[0].issues).toEqual([SyntaxIssue.CURLY_CLOSE]);
 			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
 				len: 1,
 				col: 0,
@@ -179,7 +176,7 @@ describe('Parser', () => {
 			const rootNode = '/{ \nprop1\n};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(1);
-			expect(parser.issues[0].issues).toEqual([Issues.END_STATMENT]);
+			expect(parser.issues[0].issues).toEqual([SyntaxIssue.END_STATMENT]);
 			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
 				len: 5,
 				line: 1,
@@ -215,13 +212,13 @@ describe('Parser', () => {
 			const rootNode = '/{ \nprop1';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(3);
-			expect(parser.issues[0].issues).toEqual([Issues.END_STATMENT]);
+			expect(parser.issues[0].issues).toEqual([SyntaxIssue.END_STATMENT]);
 			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
 				len: 5,
 				line: 1,
 				col: 0,
 			});
-			expect(parser.issues[1].issues).toEqual([Issues.CURLY_CLOSE]);
+			expect(parser.issues[1].issues).toEqual([SyntaxIssue.CURLY_CLOSE]);
 			expect(parser.issues[1].slxElement.tokenIndexes?.start?.pos).toEqual({
 				len: 1,
 				col: 0,
@@ -357,7 +354,11 @@ describe('Parser', () => {
 
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].issues).toEqual(
-				expect.arrayContaining([Issues.NUMERIC_VALUE, Issues.NODE_REF, Issues.NODE_PATH])
+				expect.arrayContaining([
+					SyntaxIssue.NUMERIC_VALUE,
+					SyntaxIssue.NODE_REF,
+					SyntaxIssue.NODE_PATH,
+				])
 			);
 			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
 				len: 5,
@@ -428,7 +429,11 @@ describe('Parser', () => {
 
 			expect(parser.issues.length).toEqual(3);
 			expect(parser.issues[0].issues).toEqual(
-				expect.arrayContaining([Issues.NUMERIC_VALUE, Issues.NODE_REF, Issues.NODE_PATH])
+				expect.arrayContaining([
+					SyntaxIssue.NUMERIC_VALUE,
+					SyntaxIssue.NODE_REF,
+					SyntaxIssue.NODE_PATH,
+				])
 			);
 			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
 				len: 5,
@@ -436,7 +441,7 @@ describe('Parser', () => {
 				col: 0,
 			});
 
-			expect(parser.issues[1].issues).toEqual(expect.arrayContaining([Issues.GT_SYM]));
+			expect(parser.issues[1].issues).toEqual(expect.arrayContaining([SyntaxIssue.GT_SYM]));
 			expect(parser.issues[1].slxElement.tokenIndexes?.start?.pos).toEqual({
 				len: 5,
 				line: 1,
@@ -444,7 +449,7 @@ describe('Parser', () => {
 			});
 
 			expect(parser.issues[2].issues).toEqual(
-				expect.arrayContaining([Issues.END_STATMENT])
+				expect.arrayContaining([SyntaxIssue.END_STATMENT])
 			);
 			expect(parser.issues[2].slxElement.tokenIndexes?.start?.pos).toEqual({
 				len: 5,
@@ -515,7 +520,11 @@ describe('Parser', () => {
 
 			expect(parser.issues.length).toEqual(5);
 			expect(parser.issues[0].issues).toEqual(
-				expect.arrayContaining([Issues.NUMERIC_VALUE, Issues.NODE_REF, Issues.NODE_PATH])
+				expect.arrayContaining([
+					SyntaxIssue.NUMERIC_VALUE,
+					SyntaxIssue.NODE_REF,
+					SyntaxIssue.NODE_PATH,
+				])
 			);
 			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
 				len: 5,
@@ -523,7 +532,7 @@ describe('Parser', () => {
 				col: 0,
 			});
 
-			expect(parser.issues[1].issues).toEqual(expect.arrayContaining([Issues.GT_SYM]));
+			expect(parser.issues[1].issues).toEqual(expect.arrayContaining([SyntaxIssue.GT_SYM]));
 			expect(parser.issues[1].slxElement.tokenIndexes?.start?.pos).toEqual({
 				len: 5,
 				line: 1,
@@ -531,7 +540,7 @@ describe('Parser', () => {
 			});
 
 			expect(parser.issues[2].issues).toEqual(
-				expect.arrayContaining([Issues.END_STATMENT])
+				expect.arrayContaining([SyntaxIssue.END_STATMENT])
 			);
 			expect(parser.issues[2].slxElement.tokenIndexes?.start?.pos).toEqual({
 				len: 5,
@@ -539,7 +548,9 @@ describe('Parser', () => {
 				col: 0,
 			});
 
-			expect(parser.issues[3].issues).toEqual(expect.arrayContaining([Issues.CURLY_CLOSE]));
+			expect(parser.issues[3].issues).toEqual(
+				expect.arrayContaining([SyntaxIssue.CURLY_CLOSE])
+			);
 			expect(parser.issues[3].slxElement.tokenIndexes?.start?.pos).toEqual({
 				len: 1,
 				line: 0,
@@ -547,7 +558,7 @@ describe('Parser', () => {
 			});
 
 			expect(parser.issues[4].issues).toEqual(
-				expect.arrayContaining([Issues.END_STATMENT])
+				expect.arrayContaining([SyntaxIssue.END_STATMENT])
 			);
 			expect(parser.issues[4].slxElement.tokenIndexes?.start?.pos).toEqual({
 				len: 1,
@@ -681,7 +692,7 @@ describe('Parser', () => {
 			const rootNode = 'nodeName@ { \n};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(1);
-			expect(parser.issues[0].issues).toEqual([Issues.NODE_ADDRESS]);
+			expect(parser.issues[0].issues).toEqual([SyntaxIssue.NODE_ADDRESS]);
 			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
 				len: 9,
 				line: 0,
@@ -774,8 +785,8 @@ describe('Parser', () => {
 			expect(parser.rootDocument.nodes[0] instanceof DtcChilNode).toBeTruthy();
 			const node = parser.rootDocument.nodes[0] as DtcChilNode;
 			expect(node.labels.length).toEqual(0);
-			expect(node.nameOrRef instanceof LabelRefValue).toBeTruthy();
-			const nodeName = node.nameOrRef as LabelRefValue;
+			expect(node.nameOrRef instanceof LabelRef).toBeTruthy();
+			const nodeName = node.nameOrRef as LabelRef;
 
 			expect(nodeName.ref?.label).toBe('nodeRef');
 			expect(nodeName.tokenIndexes?.start?.tokens).toEqual(
@@ -1325,8 +1336,8 @@ describe('Parser', () => {
 			expect(values?.tokenIndexes?.end?.pos).toStrictEqual({ len: 1, col: 18, line: 0 });
 
 			expect(values?.values.length).toBe(1);
-			expect(values?.values[0]?.value instanceof CellLabelRefValue).toBeTruthy();
-			const labelRef = values?.values[0]?.value as CellLabelRefValue;
+			expect(values?.values[0]?.value instanceof LabelRefValue).toBeTruthy();
+			const labelRef = values?.values[0]?.value as LabelRefValue;
 
 			expect(labelRef.value?.label).toBe('nodeLabel');
 			expect(labelRef.labels.length).toBe(0);
@@ -1375,8 +1386,8 @@ describe('Parser', () => {
 			expect(values?.tokenIndexes?.end?.pos).toStrictEqual({ len: 9, col: 6, line: 0 });
 
 			expect(values?.values.length).toBe(1);
-			expect(values?.values[0]?.value instanceof LabelRefValue).toBeTruthy();
-			const labelRef = values?.values[0]?.value as LabelRefValue;
+			expect(values?.values[0]?.value instanceof LabelRef).toBeTruthy();
+			const labelRef = values?.values[0]?.value as LabelRef;
 
 			expect(labelRef.ref?.label).toBe('nodeLabel');
 
@@ -1696,8 +1707,12 @@ describe('Parser', () => {
 		const rootNode = 'prop="--\\"hello word;\\"--;';
 		const parser = new Parser(new Lexer(rootNode).tokens);
 		expect(parser.issues.length).toEqual(2);
-		expect(parser.issues[0].issues).toEqual(expect.arrayContaining([Issues.DUOUBE_QUOTE]));
-		expect(parser.issues[1].issues).toEqual(expect.arrayContaining([Issues.END_STATMENT]));
+		expect(parser.issues[0].issues).toEqual(
+			expect.arrayContaining([SyntaxIssue.DUOUBE_QUOTE])
+		);
+		expect(parser.issues[1].issues).toEqual(
+			expect.arrayContaining([SyntaxIssue.END_STATMENT])
+		);
 		expect(parser.unhandledStaments.properties.length).toEqual(1);
 		const property = parser.unhandledStaments.properties[0];
 
@@ -1782,8 +1797,8 @@ describe('Parser', () => {
 			expect(parser.rootDocument.deleteNodes.length).toEqual(1);
 			const deleteNode = parser.rootDocument.deleteNodes[0];
 
-			expect(deleteNode.nodeNameOrRef instanceof LabelRefValue).toBeTruthy();
-			const labelRefValue = deleteNode.nodeNameOrRef as LabelRefValue;
+			expect(deleteNode.nodeNameOrRef instanceof LabelRef).toBeTruthy();
+			const labelRefValue = deleteNode.nodeNameOrRef as LabelRef;
 			expect(labelRefValue.ref?.label).toBe('ref');
 
 			expect(deleteNode.tokenIndexes?.start?.tokens).toEqual(
@@ -1869,19 +1884,29 @@ describe('Parser', () => {
 			expect(parser.issues.length).toEqual(8);
 
 			expect(parser.issues[0].issues).toEqual(
-				expect.arrayContaining([Issues.END_STATMENT])
+				expect.arrayContaining([SyntaxIssue.END_STATMENT])
 			);
-			expect(parser.issues[1].issues).toEqual(expect.arrayContaining([Issues.UNKNOWN]));
-			expect(parser.issues[2].issues).toEqual(expect.arrayContaining([Issues.UNKNOWN]));
-			expect(parser.issues[3].issues).toEqual(expect.arrayContaining([Issues.UNKNOWN]));
-			expect(parser.issues[4].issues).toEqual(expect.arrayContaining([Issues.UNKNOWN]));
+			expect(parser.issues[1].issues).toEqual(
+				expect.arrayContaining([SyntaxIssue.UNKNOWN])
+			);
+			expect(parser.issues[2].issues).toEqual(
+				expect.arrayContaining([SyntaxIssue.UNKNOWN])
+			);
+			expect(parser.issues[3].issues).toEqual(
+				expect.arrayContaining([SyntaxIssue.UNKNOWN])
+			);
+			expect(parser.issues[4].issues).toEqual(
+				expect.arrayContaining([SyntaxIssue.UNKNOWN])
+			);
 			expect(parser.issues[5].issues).toEqual(
-				expect.arrayContaining([Issues.END_STATMENT])
+				expect.arrayContaining([SyntaxIssue.END_STATMENT])
 			);
 			expect(parser.issues[6].issues).toEqual(
-				expect.arrayContaining([Issues.END_STATMENT])
+				expect.arrayContaining([SyntaxIssue.END_STATMENT])
 			);
-			expect(parser.issues[7].issues).toEqual(expect.arrayContaining([Issues.UNKNOWN]));
+			expect(parser.issues[7].issues).toEqual(
+				expect.arrayContaining([SyntaxIssue.UNKNOWN])
+			);
 		});
 	});
 });
