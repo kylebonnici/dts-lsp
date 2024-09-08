@@ -10,8 +10,7 @@ import { DeleteProperty } from './deleteProperty';
 import { LabelRef } from './labelRef';
 
 export class BaseNode extends ASTBase {
-	public nodes: DtcNode[] = [];
-	public deleteNodes: DeleteNode[] = [];
+	protected children: ASTBase[] = [];
 
 	getDocumentSymbols(): DocumentSymbol[] {
 		return [
@@ -24,15 +23,37 @@ export class BaseNode extends ASTBase {
 		this.nodes.forEach((node) => node.buildSemanticTokens(push));
 		this.deleteNodes.forEach((node) => node.buildSemanticTokens(push));
 	}
+
+	get nodes() {
+		return this.children.filter((child) => child instanceof DtcNode);
+	}
+
+	get deleteNodes() {
+		return this.children.filter((child) => child instanceof DeleteNode);
+	}
+
+	public addChild(child: DtcNode | DeleteNode) {
+		this.children.push(child);
+	}
 }
 
 export class DtcNode extends BaseNode {
-	public properties: DtcProperty[] = [];
-	public deleteProperties: DeleteProperty[] = [];
 	private _keyword: ASTBase | undefined;
 
 	constructor() {
 		super();
+	}
+
+	get properties() {
+		return this.children.filter((child) => child instanceof DtcProperty);
+	}
+
+	get deleteProperties() {
+		return this.children.filter((child) => child instanceof DeleteProperty);
+	}
+
+	public addChild(child: DtcNode | DeleteNode | DtcProperty | DeleteProperty) {
+		this.children.push(child);
 	}
 
 	private get keyword() {
