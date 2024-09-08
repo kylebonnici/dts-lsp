@@ -5,7 +5,7 @@ import {
 } from 'vscode-languageserver';
 import { Issue, LexerToken, SyntaxIssue, Token, TokenIndexes } from './types';
 import { getTokenModifiers, getTokenTypes, toRange } from './helpers';
-import { BaseNode, DtcChildNode, DtcNode, DtcRefNode, NodeName } from './ast/dtc/node';
+import { BaseNode, DtcChildNode, DtcRootNode, DtcRefNode, NodeName } from './ast/dtc/node';
 import { ASTBase } from './ast/base';
 import { Label } from './ast/dtc/label';
 import { LabelRef } from './ast/dtc/labelRef';
@@ -27,7 +27,7 @@ export class Parser {
 	rootDocument = new BaseNode(null);
 	positionStack: number[] = [];
 	issues: Issue<SyntaxIssue>[] = [];
-	unhandledStaments = new DtcNode(null);
+	unhandledStaments = new DtcRootNode(null);
 
 	constructor(private tokens: Token[]) {
 		this.parse();
@@ -91,7 +91,7 @@ export class Parser {
 		}
 
 		// from this point we can continue an report the expected tokens
-		const rootNode = new DtcNode(null);
+		const rootNode = new DtcRootNode(null);
 		parent.addChild(rootNode);
 		this.processNode(rootNode, 'Name');
 
@@ -148,7 +148,7 @@ export class Parser {
 		}
 	}
 
-	private processNode(parent: DtcNode, allow: AllowNodeRef): boolean {
+	private processNode(parent: DtcRootNode, allow: AllowNodeRef): boolean {
 		if (this.done) return false;
 
 		let found = false;
@@ -238,7 +238,7 @@ export class Parser {
 
 		let name: NodeName | undefined;
 
-		const child: DtcNode =
+		const child =
 			allow === 'Ref'
 				? new DtcRefNode(parentNode, labels)
 				: new DtcChildNode(parentNode, labels);
@@ -305,7 +305,7 @@ export class Parser {
 		return true;
 	}
 
-	private isProperty(parent: DtcNode): boolean {
+	private isProperty(parent: DtcRootNode): boolean {
 		this.enqueToStack();
 
 		const labels = this.processOptionalLablelAssign();
@@ -425,7 +425,7 @@ export class Parser {
 		return true;
 	}
 
-	private isDeleteProperty(parent: DtcNode): boolean {
+	private isDeleteProperty(parent: DtcRootNode): boolean {
 		this.enqueToStack();
 
 		const firstToken = this.moveToNextToken;

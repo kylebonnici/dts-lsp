@@ -33,19 +33,19 @@ export class BaseNode extends ASTBase {
 	}
 
 	get nodes() {
-		return this.children.filter((child) => child instanceof DtcNode);
+		return this.children.filter((child) => child instanceof DtcRootNode);
 	}
 
 	get deleteNodes() {
 		return this.children.filter((child) => child instanceof DeleteNode);
 	}
 
-	public addChild(child: DtcNode | DeleteNode) {
+	public addChild(child: DtcRootNode | DeleteNode) {
 		this.children.push(child);
 	}
 }
 
-export class DtcNode extends BaseNode {
+export class DtcRootNode extends BaseNode {
 	private _keyword: ASTBase | undefined;
 
 	constructor(parentNode: BaseNode | null) {
@@ -60,7 +60,7 @@ export class DtcNode extends BaseNode {
 		return this.children.filter((child) => child instanceof DeleteProperty);
 	}
 
-	public addChild(child: DtcNode | DeleteNode | DtcProperty | DeleteProperty) {
+	public addChild(child: DtcRootNode | DeleteNode | DtcProperty | DeleteProperty) {
 		this.children.push(child);
 	}
 
@@ -108,7 +108,7 @@ export class DtcNode extends BaseNode {
 	}
 }
 
-export class DtcRefNode extends DtcNode {
+export class DtcRefNode extends DtcRootNode {
 	public ref: LabelRef | null = null;
 
 	constructor(parentNode: BaseNode | null, public readonly labels: Label[] = []) {
@@ -143,7 +143,7 @@ export class DtcRefNode extends DtcNode {
 	}
 }
 
-export class DtcChildNode extends DtcNode {
+export class DtcChildNode extends DtcRootNode {
 	public name: NodeName | null = null;
 
 	constructor(parentNode: BaseNode | null, public readonly labels: Label[] = []) {
