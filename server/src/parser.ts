@@ -1,4 +1,8 @@
-import { DocumentSymbol, SemanticTokensBuilder } from 'vscode-languageserver';
+import {
+	DiagnosticSeverity,
+	DocumentSymbol,
+	SemanticTokensBuilder,
+} from 'vscode-languageserver';
 import { Issue, LexerToken, SyntaxIssue, Token, TokenIndexes } from './types';
 import { getTokenModifiers, getTokenTypes, toRange } from './helpers';
 import { BaseNode, DtcChilNode, DtcNode, NodeName } from './ast/dtc/node';
@@ -957,6 +961,7 @@ export class Parser {
 	): Issue<SyntaxIssue> => ({
 		issues: Array.isArray(expectedToken) ? expectedToken : [expectedToken],
 		slxElement: slxBase,
+		severity: DiagnosticSeverity.Error,
 	});
 
 	getDocumentSymbols(): DocumentSymbol[] {

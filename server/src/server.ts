@@ -287,7 +287,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 	const diagnostics: Diagnostic[] = [];
 	parser.issues.forEach((issue) => {
 		const diagnostic: Diagnostic = {
-			severity: DiagnosticSeverity.Error,
+			severity: issue.severity,
 			range: toRange(issue.slxElement),
 			message: issue.issues ? issue.issues.map(issueToMessage).join(' or ') : '',
 			source: 'devie tree',

@@ -1,7 +1,5 @@
-import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
-import { toRange } from './helpers';
+import { DiagnosticSeverity } from 'vscode-languageserver';
 import { ASTBase } from './ast/base';
-import { NumberWithLabelValue } from './ast/dtc/values/number';
 
 export enum SyntaxIssue {
 	VALUE,
@@ -165,4 +163,5 @@ export type BuildSemanticTokensPush = (
 export interface Issue<T extends SyntaxIssue | ContextIssues> {
 	issues: T[];
 	slxElement: ASTBase;
+	severity: DiagnosticSeverity;
 }
