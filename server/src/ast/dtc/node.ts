@@ -10,7 +10,11 @@ import { DeleteProperty } from './deleteProperty';
 import { LabelRef } from './labelRef';
 
 export class BaseNode extends ASTBase {
-	protected children: ASTBase[] = [];
+	protected _children: ASTBase[] = [];
+
+	constructor(protected readonly parentNode: BaseNode | null) {
+		super();
+	}
 
 	getDocumentSymbols(): DocumentSymbol[] {
 		return [
@@ -22,6 +26,10 @@ export class BaseNode extends ASTBase {
 	buildSemanticTokens(push: BuildSemanticTokensPush) {
 		this.nodes.forEach((node) => node.buildSemanticTokens(push));
 		this.deleteNodes.forEach((node) => node.buildSemanticTokens(push));
+	}
+
+	get children() {
+		return this._children;
 	}
 
 	get nodes() {
@@ -40,8 +48,8 @@ export class BaseNode extends ASTBase {
 export class DtcNode extends BaseNode {
 	private _keyword: ASTBase | undefined;
 
-	constructor() {
-		super();
+	constructor(parentNode: BaseNode | null) {
+		super(parentNode);
 	}
 
 	get properties() {
@@ -100,22 +108,22 @@ export class DtcNode extends BaseNode {
 	}
 }
 
-export class DtcChilNode extends DtcNode {
-	public nameOrRef: NodeName | LabelRef | null = null;
+export class DtcRefNode extends DtcNode {
+	public ref: LabelRef | null = null;
 
-	constructor(public readonly labels: Label[] = []) {
-		super();
+	constructor(parentNode: BaseNode | null, public readonly labels: Label[] = []) {
+		super(parentNode);
 	}
 
 	getDocumentSymbols(): DocumentSymbol[] {
 		return [
 			{
-				name: this.nameOrRef?.value ?? 'DTC Name',
+				name: this.ref?.value ?? 'DTC Name',
 				kind: SymbolKind.Namespace,
 				range: toRange(this),
 				selectionRange: toRange(this),
 				children: [
-					...(this.nameOrRef?.getDocumentSymbols() ?? []),
+					...(this.ref?.getDocumentSymbols() ?? []),
 					...this.nodes.flatMap((node) => node.getDocumentSymbols()),
 					...this.deleteNodes.flatMap((node) => node.getDocumentSymbols()),
 					...this.properties.flatMap((property) => property.getDocumentSymbols()),
@@ -126,7 +134,42 @@ export class DtcChilNode extends DtcNode {
 	}
 
 	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.nameOrRef?.buildSemanticTokens(builder);
+		this.ref?.buildSemanticTokens(builder);
+		this.nodes.forEach((node) => node.buildSemanticTokens(builder));
+		this.deleteNodes.forEach((node) => node.buildSemanticTokens(builder));
+		this.properties.forEach((property) => property.buildSemanticTokens(builder));
+		this.deleteProperties.forEach((property) => property.buildSemanticTokens(builder));
+		this.labels.forEach((label) => label.buildSemanticTokens(builder));
+	}
+}
+
+export class DtcChildNode extends DtcNode {
+	public name: NodeName | null = null;
+
+	constructor(parentNode: BaseNode | null, public readonly labels: Label[] = []) {
+		super(parentNode);
+	}
+
+	getDocumentSymbols(): DocumentSymbol[] {
+		return [
+			{
+				name: this.name?.value ?? 'DTC Name',
+				kind: SymbolKind.Namespace,
+				range: toRange(this),
+				selectionRange: toRange(this),
+				children: [
+					...(this.name?.getDocumentSymbols() ?? []),
+					...this.nodes.flatMap((node) => node.getDocumentSymbols()),
+					...this.deleteNodes.flatMap((node) => node.getDocumentSymbols()),
+					...this.properties.flatMap((property) => property.getDocumentSymbols()),
+					...this.deleteProperties.flatMap((property) => property.getDocumentSymbols()),
+				],
+			},
+		];
+	}
+
+	buildSemanticTokens(builder: BuildSemanticTokensPush) {
+		this.name?.buildSemanticTokens(builder);
 		this.nodes.forEach((node) => node.buildSemanticTokens(builder));
 		this.deleteNodes.forEach((node) => node.buildSemanticTokens(builder));
 		this.properties.forEach((property) => property.buildSemanticTokens(builder));

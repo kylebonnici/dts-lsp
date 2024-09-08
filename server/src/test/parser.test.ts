@@ -6,7 +6,7 @@
 import { Lexer } from '../lexer';
 import { Parser } from '../parser';
 import { SyntaxIssue, LexerToken } from '../types';
-import { DtcChilNode, DtcNode, NodeName } from '../ast/dtc/node';
+import { DtcChildNode, DtcNode, DtcRefNode, NodeName } from '../ast/dtc/node';
 import { StringValue } from '../ast/dtc/values/string';
 import { ByteStringValue } from '../ast/dtc/values/byteString';
 import { LabelRef } from '../ast/dtc/labelRef';
@@ -626,22 +626,22 @@ describe('Parser', () => {
 
 	describe('Dtc node', () => {
 		test('named with no address', async () => {
-			const rootNode = 'nodeName { \n};';
+			const rootNode = '/{nodeName { \n};};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
-			expect(parser.issues.length).toEqual(1); // nodeName not allowed in root
+			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.nodes.length).toEqual(1);
-			expect(parser.rootDocument.nodes[0] instanceof DtcChilNode).toBeTruthy();
-			const node = parser.rootDocument.nodes[0] as DtcChilNode;
+			expect(parser.rootDocument.nodes[0].nodes[0] instanceof DtcChildNode).toBeTruthy();
+			const node = parser.rootDocument.nodes[0].nodes[0] as DtcChildNode;
 			expect(node.labels.length).toEqual(0);
-			expect(node.nameOrRef instanceof NodeName).toBeTruthy();
-			const nodeName = node.nameOrRef as NodeName;
+			expect(node.name instanceof NodeName).toBeTruthy();
+			const nodeName = node.name as NodeName;
 
 			expect(nodeName.name).toBe('nodeName');
 			expect(node.tokenIndexes?.start?.tokens).toEqual(
 				expect.arrayContaining([LexerToken.NODE_NAME])
 			);
 			expect(node.tokenIndexes?.start?.pos).toEqual({
-				col: 0,
+				col: 2,
 				len: 8,
 				line: 0,
 			});
@@ -657,15 +657,15 @@ describe('Parser', () => {
 		});
 
 		test('named with address complete', async () => {
-			const rootNode = 'nodeName@200 { \n};';
+			const rootNode = '/{nodeName@200 { \n};};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
-			expect(parser.issues.length).toEqual(1); // nodeName not allowed in root
+			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.nodes.length).toEqual(1);
-			expect(parser.rootDocument.nodes[0] instanceof DtcChilNode).toBeTruthy();
-			const node = parser.rootDocument.nodes[0] as DtcChilNode;
+			expect(parser.rootDocument.nodes[0].nodes[0] instanceof DtcChildNode).toBeTruthy();
+			const node = parser.rootDocument.nodes[0].nodes[0] as DtcChildNode;
 			expect(node.labels.length).toEqual(0);
-			expect(node.nameOrRef instanceof NodeName).toBeTruthy();
-			const nodeName = node.nameOrRef as NodeName;
+			expect(node.name instanceof NodeName).toBeTruthy();
+			const nodeName = node.name as NodeName;
 
 			expect(nodeName.name).toBe('nodeName');
 			expect(nodeName.address).toBe(200);
@@ -673,7 +673,7 @@ describe('Parser', () => {
 				expect.arrayContaining([LexerToken.NODE_NAME])
 			);
 			expect(node.tokenIndexes?.start?.pos).toEqual({
-				col: 0,
+				col: 2,
 				len: 12,
 				line: 0,
 			});
@@ -689,22 +689,22 @@ describe('Parser', () => {
 		});
 
 		test('named with address missing address number', async () => {
-			const rootNode = 'nodeName@ { \n};';
+			const rootNode = '/{nodeName@ { \n};};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
-			expect(parser.issues.length).toEqual(2); // nodeName not allowed in root
+			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].issues).toEqual([SyntaxIssue.NODE_ADDRESS]);
 			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
 				len: 9,
 				line: 0,
-				col: 0,
+				col: 2,
 			});
 
 			expect(parser.rootDocument.nodes.length).toEqual(1);
-			expect(parser.rootDocument.nodes[0] instanceof DtcChilNode).toBeTruthy();
-			const node = parser.rootDocument.nodes[0] as DtcChilNode;
+			expect(parser.rootDocument.nodes[0].nodes[0] instanceof DtcChildNode).toBeTruthy();
+			const node = parser.rootDocument.nodes[0].nodes[0] as DtcChildNode;
 			expect(node.labels.length).toEqual(0);
-			expect(node.nameOrRef instanceof NodeName).toBeTruthy();
-			const nodeName = node.nameOrRef as NodeName;
+			expect(node.name instanceof NodeName).toBeTruthy();
+			const nodeName = node.name as NodeName;
 
 			expect(nodeName.name).toBe('nodeName');
 			expect(nodeName.address).toBeNaN();
@@ -712,7 +712,7 @@ describe('Parser', () => {
 				expect.arrayContaining([LexerToken.NODE_NAME])
 			);
 			expect(node.tokenIndexes?.start?.pos).toEqual({
-				col: 0,
+				col: 2,
 				len: 9,
 				line: 0,
 			});
@@ -728,15 +728,15 @@ describe('Parser', () => {
 		});
 
 		test('named with multiple lables', async () => {
-			const rootNode = 'label1: label2: nodeName { \n};';
+			const rootNode = '/{label1: label2: nodeName { \n};};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
-			expect(parser.issues.length).toEqual(1); // nodeName not allowed in root
+			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.nodes.length).toEqual(1);
-			expect(parser.rootDocument.nodes[0] instanceof DtcChilNode).toBeTruthy();
-			const node = parser.rootDocument.nodes[0] as DtcChilNode;
+			expect(parser.rootDocument.nodes[0].nodes[0] instanceof DtcChildNode).toBeTruthy();
+			const node = parser.rootDocument.nodes[0].nodes[0] as DtcChildNode;
 			expect(node.labels.length).toEqual(2);
-			expect(node.nameOrRef instanceof NodeName).toBeTruthy();
-			const nodeName = node.nameOrRef as NodeName;
+			expect(node.name instanceof NodeName).toBeTruthy();
+			const nodeName = node.name as NodeName;
 
 			expect(nodeName.name).toBe('nodeName');
 			expect(node.tokenIndexes?.start?.tokens).toEqual(
@@ -745,7 +745,7 @@ describe('Parser', () => {
 
 			expect(node.labels[0].label).toEqual('label1');
 			expect(node.labels[0].tokenIndexes?.start?.pos).toEqual({
-				col: 0,
+				col: 2,
 				len: 7,
 				line: 0,
 			});
@@ -755,14 +755,14 @@ describe('Parser', () => {
 
 			expect(node.labels[1].label).toEqual('label2');
 			expect(node.labels[1].tokenIndexes?.start?.pos).toEqual({
-				col: 8,
+				col: 10,
 				len: 7,
 				line: 0,
 			});
 			expect(node.labels[1].tokenIndexes?.start).toEqual(node.labels[1].tokenIndexes?.end);
 
 			expect(node.tokenIndexes?.start?.pos).toEqual({
-				col: 0,
+				col: 2,
 				len: 7,
 				line: 0,
 			});
@@ -782,11 +782,11 @@ describe('Parser', () => {
 			const parser = new Parser(new Lexer(rootNode).tokens);
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.nodes.length).toEqual(1);
-			expect(parser.rootDocument.nodes[0] instanceof DtcChilNode).toBeTruthy();
-			const node = parser.rootDocument.nodes[0] as DtcChilNode;
+			expect(parser.rootDocument.nodes[0] instanceof DtcRefNode).toBeTruthy();
+			const node = parser.rootDocument.nodes[0] as DtcRefNode;
 			expect(node.labels.length).toEqual(0);
-			expect(node.nameOrRef instanceof LabelRef).toBeTruthy();
-			const nodeName = node.nameOrRef as LabelRef;
+			expect(node.ref instanceof LabelRef).toBeTruthy();
+			const nodeName = node.ref as LabelRef;
 
 			expect(nodeName.ref?.label).toBe('nodeRef');
 			expect(nodeName.tokenIndexes?.start?.tokens).toEqual(
@@ -820,23 +820,22 @@ describe('Parser', () => {
 
 	describe('Dtc nested node', () => {
 		test('nested named nodes', async () => {
-			const rootNode = 'nodeName1 { \nnodeName2 { \n};\n};';
+			const rootNode = '&nodeName { \nnodeName2 { \n};\n};';
 			const parser = new Parser(new Lexer(rootNode).tokens);
-			expect(parser.issues.length).toEqual(1); // nodeName not allowed in root
+			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.nodes.length).toEqual(1);
-			expect(parser.rootDocument.nodes[0] instanceof DtcChilNode).toBeTruthy();
-			const topNode = parser.rootDocument.nodes[0] as DtcChilNode;
+			expect(parser.rootDocument.nodes[0] instanceof DtcRefNode).toBeTruthy();
+			const topNode = parser.rootDocument.nodes[0] as DtcRefNode;
 			expect(topNode.labels.length).toEqual(0);
-			expect(topNode.nameOrRef instanceof NodeName).toBeTruthy();
-			const nodeName1 = topNode.nameOrRef as NodeName;
+			const nodeName1 = topNode.ref as LabelRef;
 
-			expect(nodeName1.name).toBe('nodeName1');
+			expect(nodeName1.ref?.label).toBe('nodeName');
 			expect(topNode.tokenIndexes?.start?.tokens).toEqual(
-				expect.arrayContaining([LexerToken.NODE_NAME])
+				expect.arrayContaining([LexerToken.AMPERSAND])
 			);
 			expect(topNode.tokenIndexes?.start?.pos).toEqual({
 				col: 0,
-				len: 9,
+				len: 1,
 				line: 0,
 			});
 
@@ -849,11 +848,11 @@ describe('Parser', () => {
 				line: 3,
 			});
 
-			const childNode = topNode.nodes[0] as DtcChilNode;
+			const childNode = topNode.nodes[0] as DtcChildNode;
 			expect(topNode.nodes.length).toEqual(1);
 			expect(childNode.labels.length).toEqual(0);
-			expect(childNode.nameOrRef instanceof NodeName).toBeTruthy();
-			const nodeName2 = childNode.nameOrRef as NodeName;
+			expect(childNode.name instanceof NodeName).toBeTruthy();
+			const nodeName2 = childNode.name as NodeName;
 
 			expect(nodeName2.name).toBe('nodeName2');
 			expect(childNode.tokenIndexes?.start?.tokens).toEqual(
@@ -901,11 +900,11 @@ describe('Parser', () => {
 				line: 3,
 			});
 
-			const childNode = topNode.nodes[0] as DtcChilNode;
+			const childNode = topNode.nodes[0] as DtcChildNode;
 			expect(topNode.nodes.length).toEqual(1);
 			expect(childNode.labels.length).toEqual(0);
-			expect(childNode.nameOrRef instanceof NodeName).toBeTruthy();
-			const nodeName2 = childNode.nameOrRef as NodeName;
+			expect(childNode.name instanceof NodeName).toBeTruthy();
+			const nodeName2 = childNode.name as NodeName;
 
 			expect(nodeName2.name).toBe('nodeName2');
 			expect(childNode.tokenIndexes?.start?.tokens).toEqual(

@@ -5,7 +5,7 @@ import {
 } from 'vscode-languageserver';
 import { Issue, LexerToken, SyntaxIssue, Token, TokenIndexes } from './types';
 import { getTokenModifiers, getTokenTypes, toRange } from './helpers';
-import { BaseNode, DtcChilNode, DtcNode, NodeName } from './ast/dtc/node';
+import { BaseNode, DtcChildNode, DtcNode, DtcRefNode, NodeName } from './ast/dtc/node';
 import { ASTBase } from './ast/base';
 import { Label } from './ast/dtc/label';
 import { LabelRef } from './ast/dtc/labelRef';
@@ -21,13 +21,13 @@ import { NumberValue, NumberValues, NumberWithLabelValue } from './ast/dtc/value
 import { ByteStringValue } from './ast/dtc/values/byteString';
 import { PropertyValues } from './ast/dtc/values/values';
 
-type AllowNodeRef = 'Both' | 'Ref' | 'Name';
+type AllowNodeRef = 'Ref' | 'Name';
 
 export class Parser {
-	rootDocument = new BaseNode();
+	rootDocument = new BaseNode(null);
 	positionStack: number[] = [];
 	issues: Issue<SyntaxIssue>[] = [];
-	unhandledStaments = new DtcNode();
+	unhandledStaments = new DtcNode(null);
 
 	constructor(private tokens: Token[]) {
 		this.parse();
@@ -91,12 +91,12 @@ export class Parser {
 		}
 
 		// from this point we can continue an report the expected tokens
-		const child = new DtcNode();
-		parent.addChild(child);
-		this.processNode(child, 'Name');
+		const rootNode = new DtcNode(null);
+		parent.addChild(rootNode);
+		this.processNode(rootNode, 'Name');
 
-		const lastToken = this.nodeEnd(child) ?? nextToken;
-		child.tokenIndexes = { start: firstToken, end: lastToken };
+		const lastToken = this.nodeEnd(rootNode) ?? nextToken;
+		rootNode.tokenIndexes = { start: firstToken, end: lastToken };
 		this.mergeStack();
 		return true;
 	}
@@ -236,20 +236,22 @@ export class Parser {
 
 		const labels = this.processOptionalLablelAssign();
 
-		let nameOrRef: NodeName | LabelRef | undefined;
+		let name: NodeName | undefined;
 
-		const child: DtcChilNode = new DtcChilNode(labels);
+		const child: DtcNode =
+			allow === 'Ref'
+				? new DtcRefNode(parentNode, labels)
+				: new DtcChildNode(parentNode, labels);
 
-		nameOrRef = this.isLabelRef();
-
-		if (nameOrRef && allow === 'Name') {
-			this.issues.push(this.genIssue([SyntaxIssue.NODE_NAME], nameOrRef));
+		const ref = this.isLabelRef();
+		if (ref && allow === 'Name') {
+			this.issues.push(this.genIssue([SyntaxIssue.NODE_NAME], ref));
 		}
 
-		if (!nameOrRef) {
-			nameOrRef = this.processNodeName(child);
+		if (!ref) {
+			name = this.processNodeName(child);
 
-			if (!nameOrRef) {
+			if (!name) {
 				if (!validToken(this.currentToken, LexerToken.CURLY_OPEN)) {
 					// must be property then ....
 					this.popStack();
@@ -260,12 +262,17 @@ export class Parser {
 					this.genIssue([SyntaxIssue.NODE_NAME, SyntaxIssue.NODE_REF], child)
 				);
 			} else if (allow === 'Ref') {
-				this.issues.push(this.genIssue([SyntaxIssue.NODE_REF], nameOrRef));
+				this.issues.push(this.genIssue([SyntaxIssue.NODE_REF], name));
 			}
 		}
 
-		child.nameOrRef = nameOrRef ?? null;
-		const expectedNode = nameOrRef && !(typeof nameOrRef === 'string');
+		let expectedNode = false;
+		if (ref && child instanceof DtcRefNode) {
+			child.ref = ref;
+		} else if (name && child instanceof DtcChildNode) {
+			expectedNode = !!name.address;
+			child.name = name;
+		}
 
 		const token = this.moveToNextToken;
 		if (!validToken(token, LexerToken.CURLY_OPEN)) {
@@ -290,7 +297,7 @@ export class Parser {
 		const lastToken = this.nodeEnd(child);
 
 		child.tokenIndexes = {
-			start: labels.at(0)?.tokenIndexes?.start ?? nameOrRef?.tokenIndexes?.start,
+			start: labels.at(0)?.tokenIndexes?.start ?? (ref ?? name)?.tokenIndexes?.start,
 			end: lastToken ?? this.prevToken,
 		};
 
@@ -956,10 +963,10 @@ export class Parser {
 	}
 
 	private genIssue = (
-		expectedToken: SyntaxIssue | SyntaxIssue[],
+		issue: SyntaxIssue | SyntaxIssue[],
 		slxBase: ASTBase
 	): Issue<SyntaxIssue> => ({
-		issues: Array.isArray(expectedToken) ? expectedToken : [expectedToken],
+		issues: Array.isArray(issue) ? issue : [issue],
 		slxElement: slxBase,
 		severity: DiagnosticSeverity.Error,
 	});
