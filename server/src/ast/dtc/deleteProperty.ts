@@ -8,7 +8,7 @@ import { PropertyName } from './property';
 export class DeleteProperty extends ASTBase {
 	public _propertyName: PropertyName | null = null;
 
-	constructor(private keyword: Keyword) {
+	constructor(keyword: Keyword) {
 		super();
 		this.addChild(keyword);
 	}
@@ -33,10 +33,5 @@ export class DeleteProperty extends ASTBase {
 				children: this.propertyName?.getDocumentSymbols(),
 			},
 		];
-	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.propertyName?.buildSemanticTokens(builder);
-		this.keyword.buildSemanticTokens(builder);
 	}
 }

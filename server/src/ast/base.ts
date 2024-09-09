@@ -19,6 +19,8 @@ export class ASTBase {
 	}
 
 	buildSemanticTokens(push: BuildSemanticTokensPush) {
+		this._children.forEach((child) => child.buildSemanticTokens(push));
+
 		if (!this.semanticTokenType || !this.semanticTokenModifiers) {
 			return;
 		}

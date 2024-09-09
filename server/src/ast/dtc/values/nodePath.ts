@@ -77,9 +77,4 @@ export class NodePathValue extends ASTBase {
 			},
 		];
 	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.path?.buildSemanticTokens(builder);
-		this.labels.forEach((label) => label.buildSemanticTokens(builder));
-	}
 }

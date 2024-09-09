@@ -38,9 +38,4 @@ export class PropertyValues extends ASTBase {
 			},
 		];
 	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.values.forEach((v) => v?.buildSemanticTokens(builder));
-		this.labels.forEach((v) => v?.buildSemanticTokens(builder));
-	}
 }

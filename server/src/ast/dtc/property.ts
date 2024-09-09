@@ -25,7 +25,7 @@ export class PropertyName extends ASTBase {
 }
 
 export class DtcProperty extends ASTBase {
-	public values: PropertyValues | null = null;
+	private _values: PropertyValues | null = null;
 
 	constructor(
 		public readonly propertyName: PropertyName | null,
@@ -38,6 +38,16 @@ export class DtcProperty extends ASTBase {
 
 	get allLabels() {
 		return [...this.labels, ...(this.values?.allLabels ?? [])];
+	}
+
+	set values(values: PropertyValues | null) {
+		if (this._values) throw new Error('Only on property name is allowed');
+		this._values = values;
+		this.addChild(values);
+	}
+
+	get values() {
+		return this._values;
 	}
 
 	getDocumentSymbols(): DocumentSymbol[] {
@@ -53,11 +63,5 @@ export class DtcProperty extends ASTBase {
 				],
 			},
 		];
-	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.propertyName?.buildSemanticTokens(builder);
-		this.values?.buildSemanticTokens(builder);
-		this.labels.forEach((label) => label.buildSemanticTokens(builder));
 	}
 }

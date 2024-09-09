@@ -21,10 +21,6 @@ export class NumberValues extends ASTBase {
 			},
 		];
 	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		return this.values.forEach((v) => v.buildSemanticTokens(builder));
-	}
 }
 
 export class NumberWithLabelValue extends ASTBase {
@@ -41,11 +37,6 @@ export class NumberWithLabelValue extends ASTBase {
 			...this.number.getDocumentSymbols(),
 			...this.labels.flatMap((label) => label.getDocumentSymbols()),
 		];
-	}
-
-	buildSemanticTokens(push: BuildSemanticTokensPush): void {
-		this.number.buildSemanticTokens(push);
-		this.labels.forEach((label) => label.buildSemanticTokens(push));
 	}
 }
 

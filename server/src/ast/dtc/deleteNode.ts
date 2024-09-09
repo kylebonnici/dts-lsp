@@ -35,9 +35,4 @@ export class DeleteNode extends ASTBase {
 			},
 		];
 	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this._nodeNameOrRef?.buildSemanticTokens(builder);
-		this.keyword.buildSemanticTokens(builder);
-	}
 }

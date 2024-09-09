@@ -21,11 +21,6 @@ export class DtcBaseNode extends ASTBase {
 		];
 	}
 
-	buildSemanticTokens(push: BuildSemanticTokensPush) {
-		this.nodes.forEach((node) => node.buildSemanticTokens(push));
-		this.deleteNodes.forEach((node) => node.buildSemanticTokens(push));
-	}
-
 	get path(): string[] | undefined {
 		if (!this.pathName) return undefined;
 		if (!this.parentNode || this instanceof DtcRootNode) return [this.pathName];
@@ -86,13 +81,6 @@ export class DtcRootNode extends DtcBaseNode {
 			},
 		];
 	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.nodes.forEach((node) => node.buildSemanticTokens(builder));
-		this.deleteNodes.forEach((node) => node.buildSemanticTokens(builder));
-		this.properties.forEach((property) => property.buildSemanticTokens(builder));
-		this.deleteProperties.forEach((property) => property.buildSemanticTokens(builder));
-	}
 }
 
 export class DtcRefNode extends DtcBaseNode {
@@ -138,15 +126,6 @@ export class DtcRefNode extends DtcBaseNode {
 			},
 		];
 	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.labelReferance?.buildSemanticTokens(builder);
-		this.nodes.forEach((node) => node.buildSemanticTokens(builder));
-		this.deleteNodes.forEach((node) => node.buildSemanticTokens(builder));
-		this.properties.forEach((property) => property.buildSemanticTokens(builder));
-		this.deleteProperties.forEach((property) => property.buildSemanticTokens(builder));
-		this.labels.forEach((label) => label.buildSemanticTokens(builder));
-	}
 }
 
 export class DtcChildNode extends DtcBaseNode {
@@ -190,15 +169,6 @@ export class DtcChildNode extends DtcBaseNode {
 				],
 			},
 		];
-	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.name?.buildSemanticTokens(builder);
-		this.nodes.forEach((node) => node.buildSemanticTokens(builder));
-		this.deleteNodes.forEach((node) => node.buildSemanticTokens(builder));
-		this.properties.forEach((property) => property.buildSemanticTokens(builder));
-		this.deleteProperties.forEach((property) => property.buildSemanticTokens(builder));
-		this.labels.forEach((label) => label.buildSemanticTokens(builder));
 	}
 }
 

@@ -41,9 +41,4 @@ export class PropertyValue extends ASTBase {
 			...this.endLabels.flatMap((label) => label.getDocumentSymbols() ?? []),
 		];
 	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.value?.buildSemanticTokens(builder);
-		this.endLabels.forEach((label) => label?.buildSemanticTokens(builder));
-	}
 }

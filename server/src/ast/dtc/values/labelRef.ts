@@ -21,8 +21,4 @@ export class LabelRefValue extends ASTBase {
 			},
 		];
 	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.value?.buildSemanticTokens(builder);
-	}
 }

@@ -21,8 +21,4 @@ export class ByteStringValue extends ASTBase {
 			},
 		];
 	}
-
-	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.values.forEach((v) => v?.buildSemanticTokens(builder));
-	}
 }
