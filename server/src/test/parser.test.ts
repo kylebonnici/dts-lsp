@@ -51,7 +51,7 @@ describe('Parser', () => {
 			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
 				len: 1,
 				col: 0,
-				line: 0,
+				line: 1,
 			});
 			expect(parser.issues[0].slxElement.tokenIndexes?.end?.pos).toEqual({
 				len: 1,
@@ -112,7 +112,7 @@ describe('Parser', () => {
 			});
 			expect(parser.issues[1].slxElement.tokenIndexes?.start?.pos).toEqual({
 				len: 1,
-				col: 0,
+				col: 1,
 				line: 0,
 			});
 			expect(parser.issues[1].slxElement.tokenIndexes?.end?.pos).toEqual({
@@ -231,9 +231,9 @@ describe('Parser', () => {
 			});
 
 			expect(parser.issues[2].slxElement.tokenIndexes?.start?.pos).toEqual({
-				len: 1,
+				len: 5,
 				col: 0,
-				line: 0,
+				line: 1,
 			});
 			expect(parser.issues[2].slxElement.tokenIndexes?.end?.pos).toEqual({
 				len: 5,
@@ -452,9 +452,9 @@ describe('Parser', () => {
 				expect.arrayContaining([SyntaxIssue.END_STATMENT])
 			);
 			expect(parser.issues[2].slxElement.tokenIndexes?.start?.pos).toEqual({
-				len: 5,
+				len: 1,
 				line: 1,
-				col: 0,
+				col: 7,
 			});
 
 			expect(parser.rootDocument.nodes.length).toEqual(1);
@@ -543,9 +543,9 @@ describe('Parser', () => {
 				expect.arrayContaining([SyntaxIssue.END_STATMENT])
 			);
 			expect(parser.issues[2].slxElement.tokenIndexes?.start?.pos).toEqual({
-				len: 5,
+				len: 1,
 				line: 1,
-				col: 0,
+				col: 7,
 			});
 
 			expect(parser.issues[3].issues).toEqual(
@@ -562,8 +562,8 @@ describe('Parser', () => {
 			);
 			expect(parser.issues[4].slxElement.tokenIndexes?.start?.pos).toEqual({
 				len: 1,
-				line: 0,
-				col: 0,
+				line: 1,
+				col: 7,
 			});
 
 			expect(parser.rootDocument.nodes.length).toEqual(1);

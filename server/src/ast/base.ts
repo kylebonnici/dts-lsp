@@ -11,6 +11,8 @@ export class ASTBase {
 	public tokenIndexes?: TokenIndexes;
 	protected semanticTokenType?: SemanticTokenType;
 	protected semanticTokenModifiers?: SemanticTokenModifiers;
+	protected _children: ASTBase[] = [];
+	public parentNode?: ASTBase;
 
 	getDocumentSymbols(): DocumentSymbol[] {
 		return [];
@@ -26,5 +28,13 @@ export class ASTBase {
 			getTokenModifiers(this.semanticTokenModifiers),
 			this.tokenIndexes
 		);
+	}
+
+	get children() {
+		return this._children;
+	}
+	public addChild(child: ASTBase) {
+		child.parentNode = this;
+		this.children.push(child);
 	}
 }

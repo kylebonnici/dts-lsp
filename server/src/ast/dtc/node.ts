@@ -10,9 +10,7 @@ import { DeleteProperty } from './deleteProperty';
 import { LabelRef } from './labelRef';
 
 export class DtcBaseNode extends ASTBase {
-	protected _children: ASTBase[] = [];
-
-	constructor(protected readonly parentNode: DtcBaseNode | null) {
+	constructor() {
 		super();
 	}
 
@@ -31,6 +29,7 @@ export class DtcBaseNode extends ASTBase {
 	get path(): string[] | undefined {
 		if (!this.pathName) return undefined;
 		if (!this.parentNode) return [this.pathName];
+		if (!(this.parentNode instanceof DtcBaseNode)) return undefined;
 		const parentPath = this.parentNode.path;
 		if (!parentPath) return undefined;
 
@@ -41,10 +40,6 @@ export class DtcBaseNode extends ASTBase {
 		return undefined;
 	}
 
-	get children() {
-		return this._children;
-	}
-
 	get nodes() {
 		return this.children.filter((child) => child instanceof DtcBaseNode);
 	}
@@ -52,18 +47,10 @@ export class DtcBaseNode extends ASTBase {
 	get deleteNodes() {
 		return this.children.filter((child) => child instanceof DeleteNode);
 	}
-
-	public addChild(child: ASTBase) {
-		this.children.push(child);
-	}
 }
 
 export class DtcRootNode extends DtcBaseNode {
 	private _keyword: ASTBase | undefined;
-
-	constructor(parentNode: DtcBaseNode | null) {
-		super(parentNode);
-	}
 
 	get properties() {
 		return this.children.filter((child) => child instanceof DtcProperty);
@@ -128,8 +115,8 @@ export class DtcRootNode extends DtcBaseNode {
 export class DtcRefNode extends DtcBaseNode {
 	public labelReferance: LabelRef | null = null;
 
-	constructor(parentNode: DtcBaseNode | null, public readonly labels: LabelAssign[] = []) {
-		super(parentNode);
+	constructor(public readonly labels: LabelAssign[] = []) {
+		super();
 		labels.forEach((label) => {
 			label.parent = this;
 		});
@@ -186,8 +173,8 @@ export class DtcRefNode extends DtcBaseNode {
 export class DtcChildNode extends DtcBaseNode {
 	public name: NodeName | null = null;
 
-	constructor(parentNode: DtcBaseNode, public readonly labels: LabelAssign[] = []) {
-		super(parentNode);
+	constructor(public readonly labels: LabelAssign[] = []) {
+		super();
 		labels.forEach((label) => {
 			label.parent = this;
 		});

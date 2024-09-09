@@ -30,10 +30,10 @@ import { PropertyValues } from './ast/dtc/values/values';
 type AllowNodeRef = 'Ref' | 'Name';
 
 export class Parser {
-	rootDocument = new DtcBaseNode(null);
+	rootDocument = new DtcBaseNode();
 	positionStack: number[] = [];
 	issues: Issue<SyntaxIssue>[] = [];
-	unhandledStaments = new DtcRootNode(null);
+	unhandledStaments = new DtcRootNode();
 
 	constructor(private tokens: Token[]) {
 		this.parse();
@@ -97,7 +97,7 @@ export class Parser {
 		}
 
 		// from this point we can continue an report the expected tokens
-		const rootNode = new DtcRootNode(null);
+		const rootNode = new DtcRootNode();
 		parent.addChild(rootNode);
 		this.processNode(rootNode, 'Name');
 
@@ -246,10 +246,7 @@ export class Parser {
 
 		let name: NodeName | undefined;
 
-		const child =
-			allow === 'Ref'
-				? new DtcRefNode(parentNode, labels)
-				: new DtcChildNode(parentNode, labels);
+		const child = allow === 'Ref' ? new DtcRefNode(labels) : new DtcChildNode(labels);
 
 		const ref = this.isLabelRef();
 		if (ref && allow === 'Name') {
