@@ -7,18 +7,10 @@ import { NumberWithLabelValue } from './number';
 export class ByteStringValue extends ASTBase {
 	constructor(public readonly values: (NumberWithLabelValue | null)[]) {
 		super();
+		this.docSymbolsMeta = {
+			name: 'Byte String Value',
+			kind: SymbolKind.Array,
+		};
 		this.values.forEach((value) => this.addChild(value));
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: 'Byte String Value',
-				kind: SymbolKind.Array,
-				range: toRange(this),
-				selectionRange: toRange(this),
-				children: this.values.filter((v) => v).flatMap((v) => v!.getDocumentSymbols()),
-			},
-		];
 	}
 }

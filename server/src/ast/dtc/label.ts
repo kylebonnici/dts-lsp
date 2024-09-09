@@ -5,37 +5,23 @@ import { toRange } from '../../helpers';
 export class LabelAssign extends ASTBase {
 	constructor(public readonly label: string) {
 		super();
+		this.docSymbolsMeta = {
+			name: this.label,
+			kind: SymbolKind.Module,
+		};
 		this.semanticTokenType = 'variable';
 		this.semanticTokenModifiers = 'declaration';
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: this.label,
-				kind: SymbolKind.Module,
-				range: toRange(this),
-				selectionRange: toRange(this),
-			},
-		];
 	}
 }
 
 export class Label extends ASTBase {
 	constructor(public readonly value: string) {
 		super();
+		this.docSymbolsMeta = {
+			name: this.value,
+			kind: SymbolKind.Module,
+		};
 		this.semanticTokenType = 'variable';
 		this.semanticTokenModifiers = 'declaration';
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: this.value,
-				kind: SymbolKind.Module,
-				range: toRange(this),
-				selectionRange: toRange(this),
-			},
-		];
 	}
 }

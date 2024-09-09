@@ -34,11 +34,4 @@ export class PropertyValue extends ASTBase {
 		}
 		return [...label, ...this.endLabels];
 	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			...(this.value?.getDocumentSymbols() ?? []),
-			...this.endLabels.flatMap((label) => label.getDocumentSymbols() ?? []),
-		];
-	}
 }

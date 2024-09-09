@@ -1,11 +1,11 @@
-import { getTokenModifiers, getTokenTypes } from '../helpers';
+import { getTokenModifiers, getTokenTypes, toRange } from '../helpers';
 import {
 	BuildSemanticTokensPush,
 	SemanticTokenModifiers,
 	SemanticTokenType,
 	TokenIndexes,
 } from 'src/types';
-import { DocumentSymbol } from 'vscode-languageserver';
+import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
 
 export class ASTBase {
 	public tokenIndexes?: TokenIndexes;
@@ -13,9 +13,21 @@ export class ASTBase {
 	protected semanticTokenModifiers?: SemanticTokenModifiers;
 	protected _children: ASTBase[] = [];
 	public parentNode?: ASTBase;
+	protected docSymbolsMeta?: { name: string; kind: SymbolKind };
 
 	getDocumentSymbols(): DocumentSymbol[] {
-		return [];
+		if (!this.docSymbolsMeta)
+			return this.children.flatMap((child) => child.getDocumentSymbols() ?? []);
+
+		return [
+			{
+				name: this.docSymbolsMeta.name,
+				kind: this.docSymbolsMeta.kind,
+				range: toRange(this),
+				selectionRange: toRange(this),
+				children: [...this.children.flatMap((child) => child.getDocumentSymbols() ?? [])],
+			},
+		];
 	}
 
 	buildSemanticTokens(push: BuildSemanticTokensPush) {

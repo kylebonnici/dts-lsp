@@ -7,16 +7,9 @@ export class StringValue extends ASTBase {
 		super();
 		this.semanticTokenType = 'string';
 		this.semanticTokenModifiers = 'declaration';
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: this.value,
-				kind: SymbolKind.String,
-				range: toRange(this),
-				selectionRange: toRange(this),
-			},
-		];
+		this.docSymbolsMeta = {
+			name: this.value,
+			kind: SymbolKind.String,
+		};
 	}
 }

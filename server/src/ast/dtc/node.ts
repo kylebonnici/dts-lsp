@@ -14,13 +14,6 @@ export class DtcBaseNode extends ASTBase {
 		super();
 	}
 
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			...this.nodes.flatMap((node) => node.getDocumentSymbols()),
-			...this.deleteNodes.flatMap((node) => node.getDocumentSymbols()),
-		];
-	}
-
 	get path(): string[] | undefined {
 		if (!this.pathName) return undefined;
 		if (!this.parentNode || this instanceof DtcRootNode) return [this.pathName];
@@ -49,6 +42,13 @@ export class DtcBaseNode extends ASTBase {
 }
 
 export class DtcRootNode extends DtcBaseNode {
+	constructor() {
+		super();
+		this.docSymbolsMeta = {
+			name: '/',
+			kind: SymbolKind.Class,
+		};
+	}
 	get properties() {
 		return this.children.filter((child) => child instanceof DtcProperty);
 	}
@@ -64,33 +64,34 @@ export class DtcRootNode extends DtcBaseNode {
 	get pathName() {
 		return '/';
 	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: '/',
-				kind: SymbolKind.Class,
-				range: toRange(this),
-				selectionRange: toRange(this),
-				children: [
-					...this.nodes.flatMap((node) => node.getDocumentSymbols()),
-					...this.deleteNodes.flatMap((node) => node.getDocumentSymbols()),
-					...this.properties.flatMap((property) => property.getDocumentSymbols()),
-					...this.deleteProperties.flatMap((property) => property.getDocumentSymbols()),
-				],
-			},
-		];
-	}
 }
 
 export class DtcRefNode extends DtcBaseNode {
-	public labelReferance: LabelRef | null = null;
+	private _labelReferance: LabelRef | null = null;
 
 	constructor(public readonly labels: LabelAssign[] = []) {
 		super();
+		this.docSymbolsMeta = {
+			name: 'DTC Name',
+			kind: SymbolKind.Namespace,
+		};
 		labels.forEach((label) => {
 			super.addChild(label);
 		});
+	}
+
+	set labelReferance(labelReferance: LabelRef | null) {
+		if (this._labelReferance) throw new Error('Only on label referance is allowed');
+		this._labelReferance = labelReferance;
+		this.docSymbolsMeta = {
+			name: this.labelReferance?.value ?? 'DTC Name',
+			kind: SymbolKind.Namespace,
+		};
+		this.addChild(labelReferance);
+	}
+
+	get labelReferance() {
+		return this._labelReferance;
 	}
 
 	get nodes() {
@@ -108,34 +109,34 @@ export class DtcRefNode extends DtcBaseNode {
 	get deleteProperties() {
 		return this.children.filter((child) => child instanceof DeleteProperty);
 	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: this.labelReferance?.value ?? 'DTC Name',
-				kind: SymbolKind.Namespace,
-				range: toRange(this),
-				selectionRange: toRange(this),
-				children: [
-					...(this.labelReferance?.getDocumentSymbols() ?? []),
-					...this.nodes.flatMap((node) => node.getDocumentSymbols()),
-					...this.deleteNodes.flatMap((node) => node.getDocumentSymbols()),
-					...this.properties.flatMap((property) => property.getDocumentSymbols()),
-					...this.deleteProperties.flatMap((property) => property.getDocumentSymbols()),
-				],
-			},
-		];
-	}
 }
 
 export class DtcChildNode extends DtcBaseNode {
-	public name: NodeName | null = null;
+	private _name: NodeName | null = null;
 
 	constructor(public readonly labels: LabelAssign[] = []) {
 		super();
+		this.docSymbolsMeta = {
+			name: 'DTC Name',
+			kind: SymbolKind.Namespace,
+		};
 		labels.forEach((label) => {
 			this.addChild(label);
 		});
+	}
+
+	set name(name: NodeName | null) {
+		if (this._name) throw new Error('Only on label referance is allowed');
+		this._name = name;
+		this.docSymbolsMeta = {
+			name: this._name?.toString() ?? 'DTC Name',
+			kind: SymbolKind.Namespace,
+		};
+		this.addChild(name);
+	}
+
+	get name() {
+		return this._name;
 	}
 
 	get nodes() {
@@ -143,7 +144,7 @@ export class DtcChildNode extends DtcBaseNode {
 	}
 
 	get pathName() {
-		return this.name?.toString();
+		return this._name?.toString();
 	}
 	get properties() {
 		return this.children.filter((child) => child instanceof DtcProperty);
@@ -152,29 +153,15 @@ export class DtcChildNode extends DtcBaseNode {
 	get deleteProperties() {
 		return this.children.filter((child) => child instanceof DeleteProperty);
 	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: this.name?.value ?? 'DTC Name',
-				kind: SymbolKind.Namespace,
-				range: toRange(this),
-				selectionRange: toRange(this),
-				children: [
-					...(this.name?.getDocumentSymbols() ?? []),
-					...this.nodes.flatMap((node) => node.getDocumentSymbols()),
-					...this.deleteNodes.flatMap((node) => node.getDocumentSymbols()),
-					...this.properties.flatMap((property) => property.getDocumentSymbols()),
-					...this.deleteProperties.flatMap((property) => property.getDocumentSymbols()),
-				],
-			},
-		];
-	}
 }
 
 export class NodeName extends ASTBase {
 	constructor(public readonly name: string, public readonly address?: number) {
 		super();
+		this.docSymbolsMeta = {
+			name: this.address ? `${this.name}@${this.address}` : this.name,
+			kind: SymbolKind.Class,
+		};
 		this.semanticTokenType = 'variable';
 		this.semanticTokenModifiers = 'declaration';
 	}
@@ -185,17 +172,6 @@ export class NodeName extends ASTBase {
 
 	toString() {
 		return this.address ? `${this.name}@${this.address}` : this.name;
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: this.address ? `${this.name}@${this.address}` : this.name,
-				kind: SymbolKind.Class,
-				range: toRange(this),
-				selectionRange: toRange(this),
-			},
-		];
 	}
 
 	buildSemanticTokens(push: BuildSemanticTokensPush): void {

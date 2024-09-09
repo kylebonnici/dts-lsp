@@ -9,9 +9,13 @@ import { LabelRef } from './labelRef';
 export class DeleteNode extends ASTBase {
 	private _nodeNameOrRef: NodeName | LabelRef | null = null;
 
-	constructor(private keyword: Keyword) {
+	constructor(keyword: Keyword) {
 		super();
 		this.addChild(keyword);
+		this.docSymbolsMeta = {
+			name: 'Delete Node',
+			kind: SymbolKind.Function,
+		};
 	}
 
 	set nodeNameOrRef(nodeNameOrRef: NodeName | LabelRef | null) {
@@ -22,17 +26,5 @@ export class DeleteNode extends ASTBase {
 
 	get nodeNameOrRef() {
 		return this._nodeNameOrRef;
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: 'Delete Node',
-				kind: SymbolKind.Function,
-				range: toRange(this),
-				selectionRange: toRange(this),
-				children: [...(this._nodeNameOrRef?.getDocumentSymbols() ?? [])],
-			},
-		];
 	}
 }

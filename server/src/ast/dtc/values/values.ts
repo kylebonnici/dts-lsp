@@ -11,6 +11,10 @@ export class PropertyValues extends ASTBase {
 		public readonly labels: LabelAssign[]
 	) {
 		super();
+		this.docSymbolsMeta = {
+			name: 'Property Values',
+			kind: SymbolKind.String,
+		};
 		this.labels.forEach((label) => {
 			this.addChild(label);
 		});
@@ -21,21 +25,6 @@ export class PropertyValues extends ASTBase {
 		return [
 			...this.labels,
 			...this.values.flatMap((value) => value?.allLabels).filter((v) => v),
-		];
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: 'Property Values',
-				kind: SymbolKind.String,
-				range: toRange(this),
-				selectionRange: toRange(this),
-				children: [
-					...this.labels.filter((v) => v).flatMap((v) => v!.getDocumentSymbols()),
-					...this.values.filter((v) => v).flatMap((v) => v!.getDocumentSymbols()),
-				],
-			},
 		];
 	}
 }

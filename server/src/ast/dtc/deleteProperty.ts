@@ -10,6 +10,10 @@ export class DeleteProperty extends ASTBase {
 
 	constructor(keyword: Keyword) {
 		super();
+		this.docSymbolsMeta = {
+			name: 'Delete Property',
+			kind: SymbolKind.Function,
+		};
 		this.addChild(keyword);
 	}
 
@@ -21,17 +25,5 @@ export class DeleteProperty extends ASTBase {
 
 	get propertyName() {
 		return this._propertyName;
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			{
-				name: 'Delete Property',
-				kind: SymbolKind.Function,
-				range: toRange(this),
-				selectionRange: toRange(this),
-				children: this.propertyName?.getDocumentSymbols(),
-			},
-		];
 	}
 }
