@@ -47,6 +47,11 @@ export class ASTBase {
 	get children() {
 		return this._children;
 	}
+
+	get allDescendants(): ASTBase[] {
+		return [...this._children, ...this._children.flatMap((child) => child.allDescendants)];
+	}
+
 	protected addChild(child: ASTBase | null) {
 		if (child) {
 			child.parentNode = this;

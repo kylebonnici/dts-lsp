@@ -20,11 +20,4 @@ export class PropertyValues extends ASTBase {
 		});
 		this.values.forEach((value) => this.addChild(value));
 	}
-
-	get allLabels() {
-		return [
-			...this.labels,
-			...this.values.flatMap((value) => value?.allLabels).filter((v) => v),
-		];
-	}
 }

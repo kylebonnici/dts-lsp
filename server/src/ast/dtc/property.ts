@@ -33,10 +33,6 @@ export class DtcProperty extends ASTBase {
 		this.addChild(propertyName);
 	}
 
-	get allLabels() {
-		return [...this.labels, ...(this.values?.allLabels ?? [])];
-	}
-
 	set values(values: PropertyValues | null) {
 		if (this._values) throw new Error('Only on property name is allowed');
 		this._values = values;

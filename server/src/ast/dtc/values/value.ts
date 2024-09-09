@@ -20,18 +20,4 @@ export class PropertyValue extends ASTBase {
 			this.addChild(label);
 		});
 	}
-
-	get allLabels() {
-		const label: (LabelAssign | undefined)[] = [];
-		if (this.value instanceof NodePathValue) {
-			label.push(...this.value.labels);
-		} else if (this.value instanceof LabelRefValue) {
-			label.push(...this.value.labels);
-		} else if (this.value instanceof ByteStringValue) {
-			label.push(...this.value.values.flatMap((value) => value?.labels));
-		} else if (this.value instanceof NumberValues) {
-			label.push(...this.value.values.flatMap((value) => value?.labels));
-		}
-		return [...label, ...this.endLabels];
-	}
 }

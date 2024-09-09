@@ -59,6 +59,13 @@ class Node {
 		this.nodes.splice(index, 1);
 	}
 
+	getNode(name: string) {
+		const index = this.nodes.findIndex((node) => node.name === name);
+		if (index === -1) return;
+
+		return this.nodes[index];
+	}
+
 	deleteProperty(name: string) {
 		const index = this._properties.findIndex((property) => property.name === name);
 		if (index === -1) return;
@@ -114,113 +121,163 @@ export class ContextAware {
 
 	private processRoot(element: DtcBaseNode) {
 		element.children.forEach((child) => {
-			this.processChild(child);
+			this.processChild(child, this.rootNode);
 		});
 	}
 
-	private processChild(element: ASTBase) {
-		if (this.abort.signal.aborted) {
-			return;
+	private processChild(element: ASTBase, runtimeNodeParent: Node) {
+		if (element instanceof DtcBaseNode) {
+			this.processDtcBaseNode(element, runtimeNodeParent);
+		} else if (element instanceof DtcProperty) {
+			this.processDtcProperty(element, runtimeNodeParent);
+		} else if (element instanceof DeleteNode) {
+			this.processDeleteNode(element, runtimeNodeParent);
+		} else if (element instanceof DeleteProperty) {
+			this.processDeleteProperty(element, runtimeNodeParent);
+		} else if (element instanceof LabelAssign) {
+			this.processLabelAssign(element, runtimeNodeParent);
 		}
+	}
+
+	private checkNodeUniqueNames(element: DtcBaseNode) {
+		const names = new Set<string>();
+		element.children.forEach((child) => {
+			if (child instanceof DtcChildNode && child.name) {
+				if (child.name && names.has(child.name.name)) {
+					this.issues.push(this.genIssue(ContextIssues.DUPLICATE_NODE_NAME, child.name));
+				}
+
+				names.add(child.name.toString());
+			} else if (child instanceof DeleteNode && child.nodeNameOrRef instanceof NodeName) {
+				if (!names.has(child.nodeNameOrRef.toString())) {
+					this.issues.push(
+						this.genIssue(ContextIssues.NODE_DOES_NOT_EXIST, child.nodeNameOrRef)
+					);
+				} else {
+					names.delete(child.nodeNameOrRef.toString());
+		}
+			}
+		});
+	}
+
+	private processDtcBaseNode(element: DtcBaseNode, runtimeNodeParent: Node) {
+		this.checkNodeUniqueNames(element);
 
 		if (element instanceof DtcRootNode) {
-			this.processNode(element, this.rootNode);
+			this.processDtcRootNode(element);
 		} else if (element instanceof DtcChildNode) {
-			const resolvedPath = element.path ? this.resolvePath(element.path) : undefined;
-
-			let runTimeNode: Node | undefined;
-			if (resolvedPath) {
-				runTimeNode = this.rootNode.getChild(resolvedPath);
-			}
-
-			// top node in tree is a DtcRefNode which we cannot resolve
-			if (!runTimeNode) {
-				runTimeNode = new Node('');
-			}
-
-			this.processNode(element, runTimeNode);
+			this.processDtcChildNode(element, runtimeNodeParent);
 		} else if (element instanceof DtcRefNode) {
-			element.labels.forEach((label) => this.processLabel(label));
+			this.processDtcRefNode(element);
+		}
+	}
 
+	private processDtcRootNode(element: DtcRootNode) {
+		element.children.forEach((child) => this.processChild(child, this.rootNode));
+	}
+
+	private processDtcChildNode(element: DtcChildNode, runtimeNodeParent: Node) {
+		if (element.name?.name) {
+			const child = new Node(element.name.toString(), element, runtimeNodeParent);
+			runtimeNodeParent.addNode(child);
+			runtimeNodeParent = child;
+		}
+
+		element.children.forEach((child) => this.processChild(child, runtimeNodeParent));
+	}
+
+	private processDtcRefNode(element: DtcRefNode) {
+		let runtimeNode: Node | undefined;
+
+		if (element.labelReferance) {
 			const resolvedPath = element.pathName
 				? this.resolvePath([element.pathName])
 				: undefined;
-
-			let runtimeNode: Node | undefined;
 			if (!resolvedPath) {
 				this.issues.push(
 					this.genIssue(ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE, element)
 				);
-
-				// create dummy runtime node
-				runtimeNode = new Node('');
 			} else {
 				runtimeNode = this.rootNode.getChild(resolvedPath);
 			}
+		}
 
-			if (!runtimeNode) {
-				throw new Error('Should have a runtime node by now');
+		element.children.forEach((child) =>
+			this.processChild(child, runtimeNode ?? new Node(''))
+		);
 			}
 
-			this.processNode(element, runtimeNode);
-		} else if (element instanceof DeleteNode) {
-			if (element.nodeNameOrRef instanceof LabelRef && element.nodeNameOrRef.label) {
-				const resolvedPath = this.resolvePath([element.nodeNameOrRef.label.value]);
-				let runtimeNode: Node | undefined;
-
-				if (resolvedPath) {
-					runtimeNode = this.rootNode.getChild(resolvedPath);
-				}
-
-				if (!runtimeNode) {
+	private processDtcProperty(element: DtcProperty, runtimeNodeParent: Node) {
+		if (
+			element.propertyName?.name &&
+			runtimeNodeParent.hasProperty(element.propertyName.name)
+		) {
 					this.issues.push(
-						this.genIssue(ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE, element.nodeNameOrRef)
+				this.genIssue(ContextIssues.DUPLICATE_PROPERTY_NAME, element.propertyName)
 					);
-				} else {
-					runtimeNode.parent?.deleteNode(runtimeNode.name);
-				}
+		} else if (element.propertyName?.name) {
+			runtimeNodeParent.addProperty(new Property(element));
+		}
+
+		element.children.forEach((child) => this.processChild(child, runtimeNodeParent));
+	}
+
+	private reverseLabelNodeRefLookUp(refName: string): LabelAssign[] {
+		const result = Array.from(this.lablesUsed)
+			.filter((v) => {
+				return v[1].filter(
+					(n) =>
+						n.parentNode instanceof DtcRefNode &&
+						n.parentNode.labelReferance?.value === refName
+				);
+			})
+			.flatMap((n) => n[1]);
+
+		return [...result, ...result.flatMap((l) => this.reverseLabelNodeRefLookUp(l.label))];
+	}
+
+	private processDeleteNode(element: DeleteNode, runtimeNodeParent: Node) {
+		if (element.nodeNameOrRef instanceof NodeName && element.nodeNameOrRef?.value) {
+			if (!runtimeNodeParent.hasNode(element.nodeNameOrRef.value)) {
+				this.issues.push(
+					this.genIssue(ContextIssues.NODE_DOES_NOT_EXIST, element.nodeNameOrRef)
+				);
+			} else {
+				runtimeNodeParent.getNode(element.nodeNameOrRef.value)?.definiton?.labels;
+				runtimeNodeParent.deleteNode(element.nodeNameOrRef.value);
 			}
-		}
-	}
+		} else if (element.nodeNameOrRef instanceof LabelRef && element.nodeNameOrRef.value) {
+			const resolvedPath = this.resolvePath([`&${element.nodeNameOrRef.value}`]);
 
-	public getContextIssue() {
-		const ast = this.fileMap.map(astMap.get);
-		if (ast.some((tree) => !tree)) {
-			return [];
-		}
-
-		ast.forEach((tree) => {});
-		// we have an Abstract tree for all files
-	}
-
-	private processNodeChildrenNodes(node: DtcBaseNode, runtimeNode: Node) {
-		const name = new Set<string>();
-		node.children.forEach((child) => {
-			if (child instanceof DtcChildNode) {
-				if (child.name && name.has(child.name.toString())) {
-					this.issues.push(this.genIssue(ContextIssues.DUPLICATE_NODE_NAME, child.name));
-				}
-				child.labels.forEach((label) => this.processLabel(label));
-				if (child.name?.name) {
-					name.add(child.name.toString());
-					runtimeNode.addNode(new Node(child.name.toString(), child, runtimeNode));
-				}
-			} else if (child instanceof DeleteNode) {
-				if ((child.nodeNameOrRef instanceof NodeName, child.nodeNameOrRef?.value)) {
-					if (!runtimeNode.hasNode(child.nodeNameOrRef.value)) {
+			let runtimeNode: Node | undefined;
+			if (!resolvedPath) {
 						this.issues.push(
-							this.genIssue(ContextIssues.NODE_DOES_NOT_EXIST, child.nodeNameOrRef)
+					this.genIssue(ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE, element)
 						);
 					} else {
-						runtimeNode.deleteNode(child.nodeNameOrRef.value);
-						name.delete(child.nodeNameOrRef.value);
-					}
-				}
+				runtimeNode = this.rootNode.getChild(resolvedPath);
+				runtimeNode?.parent?.deleteNode(runtimeNode.name);
 			}
-		});
+		}
+		element.children.forEach((child) => this.processChild(child, runtimeNodeParent));
 	}
 
-	private processLabel(labelAssign: LabelAssign) {
+	private processDeleteProperty(element: DeleteProperty, runtimeNodeParent: Node) {
+		if (
+			element.propertyName?.name &&
+			!runtimeNodeParent.hasProperty(element.propertyName.name)
+		) {
+			this.issues.push(
+				this.genIssue(ContextIssues.PROPERTY_DOES_NOT_EXIST, element.propertyName)
+			);
+		} else if (element.propertyName?.name) {
+			runtimeNodeParent.deleteProperty(element.propertyName.name);
+					}
+
+		element.children.forEach((child) => this.processChild(child, runtimeNodeParent));
+	}
+
+	private processLabelAssign(labelAssign: LabelAssign, runtimeNodeParent: Node) {
 		if (!this.lablesUsed.has(labelAssign.label)) {
 			this.lablesUsed.set(labelAssign.label, [labelAssign]);
 			return;
@@ -254,56 +311,8 @@ export class ContextAware {
 		}
 
 		otherOwners?.push(labelAssign);
-	}
 
-	private processNode(node: DtcBaseNode, runtimeNode: Node) {
-		if (node instanceof DtcRootNode) {
-			this.processNodeChildrenNodes(node, runtimeNode);
-			this.processNodeProperties(node, runtimeNode);
-
-			node.nodes.forEach((child) => {
-				this.processChild(child);
-			});
-		} else if (node instanceof DtcChildNode) {
-			if (!node.name) {
-				// process in isolation  TODO
-			} else {
-				this.processNodeChildrenNodes(node, runtimeNode);
-				this.processNodeProperties(node, runtimeNode);
-
-				node.nodes.forEach((child) => {
-					this.processChild(child);
-				});
-			}
-		}
-	}
-
-	private processNodeProperties(node: DtcBaseNode, runtimeNode: Node) {
-		node.children.forEach((child) => {
-			if (child instanceof DtcProperty) {
-				child.allLabels.forEach((label) => {
-					if (label) {
-						this.processLabel(label);
-					}
-				});
-
-				if (child.propertyName?.name && runtimeNode.hasProperty(child.propertyName.name)) {
-					this.issues.push(
-						this.genIssue(ContextIssues.DUPLICATE_PROPERTY_NAME, child.propertyName)
-					);
-				} else if (child.propertyName?.name) {
-					runtimeNode.addProperty(new Property(child));
-				}
-			} else if (child instanceof DeleteProperty) {
-				if (child.propertyName?.name && !runtimeNode.hasProperty(child.propertyName.name)) {
-					this.issues.push(
-						this.genIssue(ContextIssues.PROPERTY_DOES_NOT_EXIST, child.propertyName)
-					);
-				} else if (child.propertyName?.name) {
-					runtimeNode.deleteProperty(child.propertyName.name);
-				}
-			}
-		});
+		labelAssign.children.forEach((child) => this.processChild(child, runtimeNodeParent));
 	}
 
 	private resolvePath(path: string[]): string[] | undefined {
