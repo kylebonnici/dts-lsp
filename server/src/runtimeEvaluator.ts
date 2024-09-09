@@ -21,16 +21,36 @@ class Property {
 	get name() {
 		return this.ast.propertyName?.name ?? '[UNSET]';
 	}
+
+	get labels(): LabelAssign[] {
+		return this.ast.allDescendants.filter((c) => c instanceof LabelAssign) as LabelAssign[];
+	}
 }
 class Node {
+	public referances: DtcRefNode[] = [];
+	public definitons: DtcChildNode[] = [];
 	private _properties: Property[] = [];
 	nodes: Node[] = [];
 
-	constructor(
-		public readonly name: string,
-		public readonly definiton?: DtcChildNode,
-		public readonly parent: Node | null = null
-	) {}
+	constructor(public readonly name: string, public readonly parent: Node | null = null) {}
+
+	get labels(): LabelAssign[] {
+		return [
+			...this.referances.flatMap((r) => r.labels),
+			...this.definitons.flatMap((def) => def.labels),
+		];
+	}
+
+	get allDescendantsLabels(): LabelAssign[] {
+		return [
+			...this.definitons.flatMap((def) => def.labels),
+			...(this.referances.flatMap((n) =>
+				n.allDescendants.filter((d) => d instanceof LabelAssign)
+			) as LabelAssign[]),
+			...this.properties.flatMap((p) => p.labels),
+			...this.nodes.flatMap((n) => n.allDescendantsLabels),
+		];
+	}
 
 	get path(): string[] {
 		return this.parent ? [...this.parent.path, this.name] : [this.name];
@@ -93,8 +113,6 @@ export class ContextAware {
 	issues: Issue<ContextIssues>[] = [];
 	private rootNode: Node = new Node('/');
 
-	private lablesUsed = new Map<string, LabelAssign[]>();
-
 	constructor(
 		private fileMap: string[],
 		private readonly abort: AbortController,
@@ -104,6 +122,34 @@ export class ContextAware {
 		}
 	) {
 		this.process();
+		this.reportLabelIssues();
+	}
+
+	private reportLabelIssues() {
+		const lablesUsed = new Map<string, LabelAssign[]>();
+		const all = this.rootNode.allDescendantsLabels;
+		this.rootNode.allDescendantsLabels.forEach((l) => {
+			if (!lablesUsed.has(l.label)) {
+				lablesUsed.set(l.label, [l]);
+			} else {
+				const otherOwners = lablesUsed.get(l.label);
+				const resolvedPath = this.resolvePath([`&${l.label}`]);
+				const node = resolvedPath ? this.rootNode.getChild(resolvedPath) : undefined;
+
+				if (
+					!node ||
+					!node.labels.some((ll) => ll.label === l.label) ||
+					otherOwners?.some((o) => !(o instanceof DtcChildNode || o instanceof DtcRefNode))
+				) {
+					if (otherOwners?.length === 1) {
+						this.issues.push(
+							this.genIssue(ContextIssues.LABEL_ALREADY_IN_USE, otherOwners[0])
+						);
+					}
+					this.issues.push(this.genIssue(ContextIssues.LABEL_ALREADY_IN_USE, l));
+				}
+			}
+		});
 	}
 
 	private process() {
@@ -134,8 +180,6 @@ export class ContextAware {
 			this.processDeleteNode(element, runtimeNodeParent);
 		} else if (element instanceof DeleteProperty) {
 			this.processDeleteProperty(element, runtimeNodeParent);
-		} else if (element instanceof LabelAssign) {
-			this.processLabelAssign(element, runtimeNodeParent);
 		}
 	}
 
@@ -155,7 +199,7 @@ export class ContextAware {
 					);
 				} else {
 					names.delete(child.nodeNameOrRef.toString());
-		}
+				}
 			}
 		});
 	}
@@ -178,7 +222,11 @@ export class ContextAware {
 
 	private processDtcChildNode(element: DtcChildNode, runtimeNodeParent: Node) {
 		if (element.name?.name) {
-			const child = new Node(element.name.toString(), element, runtimeNodeParent);
+			const resolvedPath = element.path ? this.resolvePath(element.path) : undefined;
+			const runtimeNode = resolvedPath ? this.rootNode.getChild(resolvedPath) : undefined;
+
+			const child = runtimeNode ?? new Node(element.name.toString(), runtimeNodeParent);
+			child.definitons.push(element);
 			runtimeNodeParent.addNode(child);
 			runtimeNodeParent = child;
 		}
@@ -198,42 +246,46 @@ export class ContextAware {
 					this.genIssue(ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE, element)
 				);
 			} else {
-				runtimeNode = this.rootNode.getChild(resolvedPath);
+				let isReassign = false;
+				// we need to check if the resolve to the same node or not if it does we can allow this
+				element.labels.forEach((l) => {
+					const pathAssign = this.resolvePath([`&${l.label}`]);
+					const pathExisting = resolvedPath;
+					if (pathAssign && pathExisting.join('/') !== pathAssign.join('/')) {
+						isReassign = true;
+						this.issues.push(this.genIssue(ContextIssues.RE_ASSIGN_NODE_LABEL, l));
+					}
+				});
+
+				if (!isReassign) {
+					runtimeNode = this.rootNode.getChild(resolvedPath);
+					runtimeNode?.referances.push(element);
+				}
+
+				if (!runtimeNode && resolvedPath && !isReassign) {
+					throw new Error('We should have a node by now');
+				}
 			}
 		}
 
 		element.children.forEach((child) =>
 			this.processChild(child, runtimeNode ?? new Node(''))
 		);
-			}
+	}
 
 	private processDtcProperty(element: DtcProperty, runtimeNodeParent: Node) {
 		if (
 			element.propertyName?.name &&
 			runtimeNodeParent.hasProperty(element.propertyName.name)
 		) {
-					this.issues.push(
+			this.issues.push(
 				this.genIssue(ContextIssues.DUPLICATE_PROPERTY_NAME, element.propertyName)
-					);
+			);
 		} else if (element.propertyName?.name) {
 			runtimeNodeParent.addProperty(new Property(element));
 		}
 
 		element.children.forEach((child) => this.processChild(child, runtimeNodeParent));
-	}
-
-	private reverseLabelNodeRefLookUp(refName: string): LabelAssign[] {
-		const result = Array.from(this.lablesUsed)
-			.filter((v) => {
-				return v[1].filter(
-					(n) =>
-						n.parentNode instanceof DtcRefNode &&
-						n.parentNode.labelReferance?.value === refName
-				);
-			})
-			.flatMap((n) => n[1]);
-
-		return [...result, ...result.flatMap((l) => this.reverseLabelNodeRefLookUp(l.label))];
 	}
 
 	private processDeleteNode(element: DeleteNode, runtimeNodeParent: Node) {
@@ -243,7 +295,6 @@ export class ContextAware {
 					this.genIssue(ContextIssues.NODE_DOES_NOT_EXIST, element.nodeNameOrRef)
 				);
 			} else {
-				runtimeNodeParent.getNode(element.nodeNameOrRef.value)?.definiton?.labels;
 				runtimeNodeParent.deleteNode(element.nodeNameOrRef.value);
 			}
 		} else if (element.nodeNameOrRef instanceof LabelRef && element.nodeNameOrRef.value) {
@@ -251,10 +302,10 @@ export class ContextAware {
 
 			let runtimeNode: Node | undefined;
 			if (!resolvedPath) {
-						this.issues.push(
+				this.issues.push(
 					this.genIssue(ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE, element)
-						);
-					} else {
+				);
+			} else {
 				runtimeNode = this.rootNode.getChild(resolvedPath);
 				runtimeNode?.parent?.deleteNode(runtimeNode.name);
 			}
@@ -272,47 +323,9 @@ export class ContextAware {
 			);
 		} else if (element.propertyName?.name) {
 			runtimeNodeParent.deleteProperty(element.propertyName.name);
-					}
+		}
 
 		element.children.forEach((child) => this.processChild(child, runtimeNodeParent));
-	}
-
-	private processLabelAssign(labelAssign: LabelAssign, runtimeNodeParent: Node) {
-		if (!this.lablesUsed.has(labelAssign.label)) {
-			this.lablesUsed.set(labelAssign.label, [labelAssign]);
-			return;
-		}
-
-		const otherOwners = this.lablesUsed.get(labelAssign.label);
-
-		let reportIssue = true;
-		if (labelAssign.parentNode instanceof DtcRefNode) {
-			// we need to check if the resolve to the same node or not if it does we can allow this
-
-			const pathAssign = this.resolvePath([`&${labelAssign.label}`]);
-			const pathExisting = this.resolvePath([labelAssign.parentNode.pathName]);
-			if (pathAssign && pathExisting) {
-				const existingOwner = this.rootNode.getChild(pathExisting)?.definiton;
-				const assignOwner = this.rootNode.getChild(pathAssign)?.definiton;
-				reportIssue = false;
-				if (!(existingOwner && existingOwner === assignOwner)) {
-					this.issues.push(
-						this.genIssue(ContextIssues.RE_ASSIGN_NODE_LABEL, labelAssign.parentNode)
-					);
-				}
-			}
-		}
-
-		if (reportIssue) {
-			if (otherOwners?.length === 1) {
-				this.issues.push(this.genIssue(ContextIssues.LABEL_ALREADY_IN_USE, otherOwners[0]));
-			}
-			this.issues.push(this.genIssue(ContextIssues.LABEL_ALREADY_IN_USE, labelAssign));
-		}
-
-		otherOwners?.push(labelAssign);
-
-		labelAssign.children.forEach((child) => this.processChild(child, runtimeNodeParent));
 	}
 
 	private resolvePath(path: string[]): string[] | undefined {
@@ -320,19 +333,27 @@ export class ContextAware {
 			return path;
 		}
 
-		const lablesOwners = this.lablesUsed.get(path?.[0].slice(1));
+		const allLabels = this.rootNode.allDescendantsLabels;
 
-		const childNodeParent = lablesOwners
-			?.map((label) => label.parentNode)
-			?.find((element) => element instanceof DtcChildNode) as DtcChildNode | undefined;
+		const childNodeParent = allLabels.find(
+			(l) =>
+				l.parentNode instanceof DtcChildNode &&
+				l.parentNode.path &&
+				this.rootNode
+					.getChild(l.parentNode.path)
+					?.labels.some((ll) => ll.label === path?.[0].slice(1))
+		)?.parentNode as DtcChildNode | undefined;
 
 		if (childNodeParent?.path) {
 			return this.resolvePath([...childNodeParent.path, ...path.slice(1)]);
 		}
 
-		const refNodeParent = lablesOwners
-			?.map((label) => label.parentNode)
-			?.find((element) => element instanceof DtcRefNode) as DtcRefNode | undefined;
+		const refNodeParent = allLabels.find(
+			(l) =>
+				l.parentNode instanceof DtcRefNode &&
+				l.parentNode.labelReferance?.label?.value === path?.[0].slice(1)
+		)?.parentNode as DtcRefNode | undefined;
+
 		if (refNodeParent && refNodeParent.labelReferance?.label?.value) {
 			return this.resolvePath([refNodeParent.pathName]);
 		}
