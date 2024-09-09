@@ -12,8 +12,9 @@ export class PropertyValues extends ASTBase {
 	) {
 		super();
 		this.labels.forEach((label) => {
-			label.parent = this;
+			this.addChild(label);
 		});
+		this.values.forEach((value) => this.addChild(value));
 	}
 
 	get allLabels() {

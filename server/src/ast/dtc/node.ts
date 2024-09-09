@@ -28,7 +28,7 @@ export class DtcBaseNode extends ASTBase {
 
 	get path(): string[] | undefined {
 		if (!this.pathName) return undefined;
-		if (!this.parentNode) return [this.pathName];
+		if (!this.parentNode || this instanceof DtcRootNode) return [this.pathName];
 		if (!(this.parentNode instanceof DtcBaseNode)) return undefined;
 		const parentPath = this.parentNode.path;
 		if (!parentPath) return undefined;
@@ -47,11 +47,13 @@ export class DtcBaseNode extends ASTBase {
 	get deleteNodes() {
 		return this.children.filter((child) => child instanceof DeleteNode);
 	}
+
+	public addNodeChild(child: DtcBaseNode | DeleteNode | DtcProperty | DeleteProperty) {
+		this.addChild(child);
+	}
 }
 
 export class DtcRootNode extends DtcBaseNode {
-	private _keyword: ASTBase | undefined;
-
 	get properties() {
 		return this.children.filter((child) => child instanceof DtcProperty);
 	}
@@ -66,24 +68,6 @@ export class DtcRootNode extends DtcBaseNode {
 
 	get pathName() {
 		return '/';
-	}
-
-	private get keyword() {
-		if (!this.tokenIndexes?.start) return;
-		this._keyword ??= new Keyword();
-		const newTokenIndex: Token = {
-			...this.tokenIndexes?.start,
-			pos: {
-				col: this.tokenIndexes.start.pos.col ?? 0,
-				len: 1,
-				line: this.tokenIndexes?.start.pos.line ?? 0,
-			},
-		};
-		this._keyword.tokenIndexes = {
-			start: newTokenIndex,
-			end: newTokenIndex,
-		};
-		return this._keyword;
 	}
 
 	getDocumentSymbols(): DocumentSymbol[] {
@@ -104,7 +88,6 @@ export class DtcRootNode extends DtcBaseNode {
 	}
 
 	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.keyword?.buildSemanticTokens(builder);
 		this.nodes.forEach((node) => node.buildSemanticTokens(builder));
 		this.deleteNodes.forEach((node) => node.buildSemanticTokens(builder));
 		this.properties.forEach((property) => property.buildSemanticTokens(builder));
@@ -118,7 +101,7 @@ export class DtcRefNode extends DtcBaseNode {
 	constructor(public readonly labels: LabelAssign[] = []) {
 		super();
 		labels.forEach((label) => {
-			label.parent = this;
+			super.addChild(label);
 		});
 	}
 
@@ -136,10 +119,6 @@ export class DtcRefNode extends DtcBaseNode {
 
 	get deleteProperties() {
 		return this.children.filter((child) => child instanceof DeleteProperty);
-	}
-
-	public addChild(child: DtcChildNode | DeleteNode) {
-		this.children.push(child);
 	}
 
 	getDocumentSymbols(): DocumentSymbol[] {
@@ -176,7 +155,7 @@ export class DtcChildNode extends DtcBaseNode {
 	constructor(public readonly labels: LabelAssign[] = []) {
 		super();
 		labels.forEach((label) => {
-			label.parent = this;
+			this.addChild(label);
 		});
 	}
 

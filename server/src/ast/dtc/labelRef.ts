@@ -7,6 +7,7 @@ import { Label } from './label';
 export class LabelRef extends ASTBase {
 	constructor(public readonly label: Label | null) {
 		super();
+		this.addChild(label);
 	}
 
 	get value() {

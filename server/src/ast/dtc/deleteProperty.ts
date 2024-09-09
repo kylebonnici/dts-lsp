@@ -6,10 +6,21 @@ import { BuildSemanticTokensPush } from '../../types';
 import { PropertyName } from './property';
 
 export class DeleteProperty extends ASTBase {
-	public propertyName: PropertyName | null = null;
+	public _propertyName: PropertyName | null = null;
 
-	constructor(private keyWord: Keyword) {
+	constructor(private keyword: Keyword) {
 		super();
+		this.addChild(keyword);
+	}
+
+	set propertyName(propertyName: PropertyName | null) {
+		if (this._propertyName) throw new Error('Only on property name is allowed');
+		this._propertyName = propertyName;
+		this.addChild(propertyName);
+	}
+
+	get propertyName() {
+		return this._propertyName;
 	}
 
 	getDocumentSymbols(): DocumentSymbol[] {
@@ -26,6 +37,6 @@ export class DeleteProperty extends ASTBase {
 
 	buildSemanticTokens(builder: BuildSemanticTokensPush) {
 		this.propertyName?.buildSemanticTokens(builder);
-		this.keyWord.buildSemanticTokens(builder);
+		this.keyword.buildSemanticTokens(builder);
 	}
 }

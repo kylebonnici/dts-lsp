@@ -7,10 +7,21 @@ import { NodeName } from './node';
 import { LabelRef } from './labelRef';
 
 export class DeleteNode extends ASTBase {
-	public nodeNameOrRef: NodeName | LabelRef | null = null;
+	private _nodeNameOrRef: NodeName | LabelRef | null = null;
 
-	constructor(private keyWord: Keyword) {
+	constructor(private keyword: Keyword) {
 		super();
+		this.addChild(keyword);
+	}
+
+	set nodeNameOrRef(nodeNameOrRef: NodeName | LabelRef | null) {
+		if (this._nodeNameOrRef) throw new Error('Only on property name is allowed');
+		this._nodeNameOrRef = nodeNameOrRef;
+		this.addChild(nodeNameOrRef);
+	}
+
+	get nodeNameOrRef() {
+		return this._nodeNameOrRef;
 	}
 
 	getDocumentSymbols(): DocumentSymbol[] {
@@ -20,13 +31,13 @@ export class DeleteNode extends ASTBase {
 				kind: SymbolKind.Function,
 				range: toRange(this),
 				selectionRange: toRange(this),
-				children: [...(this.nodeNameOrRef?.getDocumentSymbols() ?? [])],
+				children: [...(this._nodeNameOrRef?.getDocumentSymbols() ?? [])],
 			},
 		];
 	}
 
 	buildSemanticTokens(builder: BuildSemanticTokensPush) {
-		this.nodeNameOrRef?.buildSemanticTokens(builder);
-		this.keyWord.buildSemanticTokens(builder);
+		this._nodeNameOrRef?.buildSemanticTokens(builder);
+		this.keyword.buildSemanticTokens(builder);
 	}
 }

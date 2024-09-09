@@ -15,8 +15,9 @@ export class PropertyValue extends ASTBase {
 		public readonly endLabels: LabelAssign[]
 	) {
 		super();
+		this.addChild(value);
 		this.endLabels.forEach((label) => {
-			label.parent = this;
+			this.addChild(label);
 		});
 	}
 

@@ -7,6 +7,7 @@ import { NumberWithLabelValue } from './number';
 export class ByteStringValue extends ASTBase {
 	constructor(public readonly values: (NumberWithLabelValue | null)[]) {
 		super();
+		this.values.forEach((value) => this.addChild(value));
 	}
 
 	getDocumentSymbols(): DocumentSymbol[] {

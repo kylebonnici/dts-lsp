@@ -229,18 +229,18 @@ export class ContextAware {
 		const otherOwners = this.lablesUsed.get(labelAssign.label);
 
 		let reportIssue = true;
-		if (labelAssign.parent instanceof DtcRefNode) {
+		if (labelAssign.parentNode instanceof DtcRefNode) {
 			// we need to check if the resolve to the same node or not if it does we can allow this
 
 			const pathAssign = this.resolvePath([`&${labelAssign.label}`]);
-			const pathExisting = this.resolvePath([labelAssign.parent.pathName]);
+			const pathExisting = this.resolvePath([labelAssign.parentNode.pathName]);
 			if (pathAssign && pathExisting) {
 				const existingOwner = this.rootNode.getChild(pathExisting)?.definiton;
 				const assignOwner = this.rootNode.getChild(pathAssign)?.definiton;
 				reportIssue = false;
 				if (!(existingOwner && existingOwner === assignOwner)) {
 					this.issues.push(
-						this.genIssue(ContextIssues.RE_ASSIGN_NODE_LABEL, labelAssign.parent)
+						this.genIssue(ContextIssues.RE_ASSIGN_NODE_LABEL, labelAssign.parentNode)
 					);
 				}
 			}
@@ -314,7 +314,7 @@ export class ContextAware {
 		const lablesOwners = this.lablesUsed.get(path?.[0].slice(1));
 
 		const childNodeParent = lablesOwners
-			?.map((label) => label.parent)
+			?.map((label) => label.parentNode)
 			?.find((element) => element instanceof DtcChildNode) as DtcChildNode | undefined;
 
 		if (childNodeParent?.path) {
@@ -322,7 +322,7 @@ export class ContextAware {
 		}
 
 		const refNodeParent = lablesOwners
-			?.map((label) => label.parent)
+			?.map((label) => label.parentNode)
 			?.find((element) => element instanceof DtcRefNode) as DtcRefNode | undefined;
 		if (refNodeParent && refNodeParent.labelReferance?.label?.value) {
 			return this.resolvePath([refNodeParent.pathName]);

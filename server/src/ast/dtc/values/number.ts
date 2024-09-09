@@ -7,6 +7,7 @@ import { LabelAssign } from '../label';
 export class NumberValues extends ASTBase {
 	constructor(public readonly values: NumberWithLabelValue[]) {
 		super();
+		this.values.forEach((value) => this.addChild(value));
 	}
 
 	getDocumentSymbols(): DocumentSymbol[] {
@@ -30,8 +31,9 @@ export class NumberWithLabelValue extends ASTBase {
 	constructor(public readonly number: NumberValue, public readonly labels: LabelAssign[]) {
 		super();
 		this.labels.forEach((label) => {
-			label.parent = this;
+			this.addChild(label);
 		});
+		this.addChild(this.number);
 	}
 
 	getDocumentSymbols(): DocumentSymbol[] {

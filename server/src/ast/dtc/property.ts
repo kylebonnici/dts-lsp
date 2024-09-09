@@ -32,9 +32,8 @@ export class DtcProperty extends ASTBase {
 		public readonly labels: LabelAssign[] = []
 	) {
 		super();
-		this.labels.forEach((label) => {
-			label.parent = this;
-		});
+		this.labels.forEach((label) => this.addChild(label));
+		this.addChild(propertyName);
 	}
 
 	get allLabels() {

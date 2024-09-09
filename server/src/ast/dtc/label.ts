@@ -3,8 +3,6 @@ import { ASTBase } from '../base';
 import { toRange } from '../../helpers';
 
 export class LabelAssign extends ASTBase {
-	public parent?: ASTBase;
-
 	constructor(public readonly label: string) {
 		super();
 		this.semanticTokenType = 'variable';

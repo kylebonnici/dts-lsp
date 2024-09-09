@@ -98,7 +98,7 @@ export class Parser {
 
 		// from this point we can continue an report the expected tokens
 		const rootNode = new DtcRootNode();
-		parent.addChild(rootNode);
+		parent.addNodeChild(rootNode);
 		this.processNode(rootNode, 'Name');
 
 		const lastToken = this.nodeEnd(rootNode) ?? nextToken;
@@ -292,7 +292,7 @@ export class Parser {
 
 		// syntax must be a node ....
 
-		parentNode.addChild(child);
+		parentNode.addNodeChild(child);
 
 		let hasChild: boolean = false;
 		do {
@@ -381,7 +381,7 @@ export class Parser {
 			end: lastToken ?? this.prevToken,
 		};
 
-		parent.addChild(child);
+		parent.addNodeChild(child);
 
 		this.mergeStack();
 		return true;
@@ -435,7 +435,7 @@ export class Parser {
 
 		const lastToken = this.endStatment();
 		node.tokenIndexes = { start: firstToken, end: lastToken };
-		parent.addChild(node);
+		parent.addNodeChild(node);
 		this.mergeStack();
 		return true;
 	}
@@ -491,7 +491,7 @@ export class Parser {
 
 		const lastToken = this.endStatment();
 		node.tokenIndexes = { start: firstToken, end: lastToken };
-		parent.addChild(node);
+		parent.addNodeChild(node);
 
 		this.mergeStack();
 		return true;
@@ -867,7 +867,7 @@ export class Parser {
 			end: nodeName?.tokenIndexes?.end ?? firstToken,
 		};
 
-		nodePath.pathParts.push(nodeName ?? null);
+		nodePath.addPath(nodeName ?? null);
 		nodePath.tokenIndexes.end = nodeName?.tokenIndexes?.end ?? firstToken;
 
 		this.processNodePath(false, nodePath);

@@ -7,9 +7,8 @@ import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
 export class LabelRefValue extends ASTBase {
 	constructor(public readonly value: Label | null, public readonly labels: LabelAssign[]) {
 		super();
-		this.labels.forEach((label) => {
-			label.parent = this;
-		});
+		this.labels.forEach((label) => this.addChild(label));
+		this.addChild(value);
 	}
 
 	getDocumentSymbols(): DocumentSymbol[] {

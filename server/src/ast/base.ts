@@ -33,8 +33,10 @@ export class ASTBase {
 	get children() {
 		return this._children;
 	}
-	public addChild(child: ASTBase) {
-		child.parentNode = this;
-		this.children.push(child);
+	protected addChild(child: ASTBase | null) {
+		if (child) {
+			child.parentNode = this;
+			this.children.push(child);
+		}
 	}
 }

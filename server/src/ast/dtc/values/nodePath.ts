@@ -6,7 +6,7 @@ import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
 import { NodeName } from '../node';
 
 export class NodePath extends ASTBase {
-	pathParts: (NodeName | null)[] = [];
+	private _pathParts: (NodeName | null)[] = [];
 
 	constructor() {
 		super();
@@ -14,10 +14,19 @@ export class NodePath extends ASTBase {
 		this.semanticTokenModifiers = 'declaration';
 	}
 
+	addPath(part: NodeName | null) {
+		this._pathParts.push(part);
+		this.addChild(part);
+	}
+
+	get pathParts() {
+		return this._pathParts;
+	}
+
 	getDocumentSymbols(): DocumentSymbol[] {
 		return [
 			{
-				name: this.pathParts.join('/'),
+				name: this._pathParts.join('/'),
 				kind: SymbolKind.Key,
 				range: toRange(this),
 				selectionRange: toRange(this),
@@ -53,7 +62,7 @@ export class NodePathValue extends ASTBase {
 	) {
 		super();
 		this.labels.forEach((label) => {
-			label.parent = this;
+			this.addChild(label);
 		});
 	}
 
