@@ -40,6 +40,8 @@ export enum ContextIssues {
 	DUPLICATE_NODE_NAME,
 	UNABLE_TO_RESOLVE_CHILD_NODE,
 	LABEL_ALREADY_IN_USE,
+	NODE_DOES_NOT_EXIST,
+	RE_ASSIGN_NODE_LABEL,
 }
 
 export enum LexerToken {

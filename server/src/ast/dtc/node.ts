@@ -140,7 +140,7 @@ export class DtcRefNode extends DtcBaseNode {
 	}
 
 	get pathName() {
-		return this.labelReferance?.toString();
+		return `&${this.labelReferance?.label?.value}`;
 	}
 
 	get properties() {

@@ -116,7 +116,7 @@ export class Parser {
 			this.moveToNextToken;
 		}
 
-		return this.endStatment(slxBase);
+		return this.endStatment();
 	}
 
 	private isNodeEnd() {
@@ -131,10 +131,12 @@ export class Parser {
 	// c presosessor
 	// terninary
 
-	private endStatment(slxBase: ASTBase) {
+	private endStatment() {
 		const currentToken = this.currentToken;
 		if (!validToken(currentToken, LexerToken.SEMICOLON)) {
-			this.issues.push(this.genIssue(SyntaxIssue.END_STATMENT, slxBase));
+			const node = new ASTBase();
+			node.tokenIndexes = { start: this.prevToken, end: this.prevToken };
+			this.issues.push(this.genIssue(SyntaxIssue.END_STATMENT, node));
 			return this.prevToken;
 		}
 
@@ -320,7 +322,11 @@ export class Parser {
 		const token = this.moveToNextToken;
 
 		if (!validToken(token, LexerToken.PROPERTY_NAME)) {
-			if (labels.length && !validToken(token, LexerToken.NODE_NAME)) {
+			if (
+				labels.length &&
+				!validToken(token, LexerToken.NODE_NAME) &&
+				!validToken(token, LexerToken.AMPERSAND) // node label ref start
+			) {
 				// we have seme lables so we are expecing a property or a node then
 				this.issues.push(
 					this.genIssue(
@@ -367,7 +373,7 @@ export class Parser {
 
 		child.values = result ?? null;
 
-		const lastToken = this.endStatment(child);
+		const lastToken = this.endStatment();
 
 		propertyName.tokenIndexes = { start: token, end: token };
 
@@ -430,7 +436,7 @@ export class Parser {
 
 		node.nodeNameOrRef = labelRef ?? nodeName ?? null;
 
-		const lastToken = this.endStatment(node);
+		const lastToken = this.endStatment();
 		node.tokenIndexes = { start: firstToken, end: lastToken };
 		parent.addChild(node);
 		this.mergeStack();
@@ -486,7 +492,7 @@ export class Parser {
 
 		node.propertyName = propertyName;
 
-		const lastToken = this.endStatment(node);
+		const lastToken = this.endStatment();
 		node.tokenIndexes = { start: firstToken, end: lastToken };
 		parent.addChild(node);
 

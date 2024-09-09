@@ -242,6 +242,10 @@ const contextIssuesToMessage = (issue: ContextIssues) => {
 			return 'No node with that referance has been defined';
 		case ContextIssues.LABEL_ALREADY_IN_USE:
 			return 'Label aready defined';
+		case ContextIssues.NODE_DOES_NOT_EXIST:
+			return 'Cannot delete a node before it has been defined';
+		case ContextIssues.RE_ASSIGN_NODE_LABEL:
+			return 'Label has already been assign to a different Node.';
 	}
 };
 
@@ -311,7 +315,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 		diagnostics.push(diagnostic);
 	});
 
-	const contextAware = new ContextAware([textDocument.uri]);
+	const contextAware = new ContextAware([textDocument.uri], new AbortController());
 	contextAware.issues.forEach((issue) => {
 		const diagnostic: Diagnostic = {
 			severity: issue.severity,
@@ -338,7 +342,7 @@ connection.onCompletion(
 		// info and always provide the same completion items.
 		const meta = astMap.get(_textDocumentPosition.textDocument.uri);
 		if (meta) {
-			// TODO`
+			// TODO
 		}
 		return [
 			{
