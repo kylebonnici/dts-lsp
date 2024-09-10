@@ -98,7 +98,13 @@ class Node {
 	}
 
 	addProperty(property: Property) {
+		const index = this._properties.findIndex((p) => p.name === property.name);
+		if (index === -1) {
+			this._properties.push(property);
+		} else {
+			this._properties.splice(index, 1);
 		this._properties.push(property);
+		}
 	}
 
 	getChild(path: string[]): Node | undefined {
@@ -274,14 +280,17 @@ export class ContextAware {
 	}
 
 	private processDtcProperty(element: DtcProperty, runtimeNodeParent: Node) {
-		if (
-			element.propertyName?.name &&
-			runtimeNodeParent.hasProperty(element.propertyName.name)
-		) {
+		if (element.propertyName?.name) {
+			if (runtimeNodeParent.hasProperty(element.propertyName.name)) {
 			this.issues.push(
-				this.genIssue(ContextIssues.DUPLICATE_PROPERTY_NAME, element.propertyName)
+					this.genIssue(
+						ContextIssues.DUPLICATE_PROPERTY_NAME,
+						element.propertyName,
+						DiagnosticSeverity.Information
+					)
 			);
-		} else if (element.propertyName?.name) {
+			}
+
 			runtimeNodeParent.addProperty(new Property(element));
 		}
 
