@@ -233,7 +233,7 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
 const contextIssuesToMessage = (issue: ContextIssues) => {
 	switch (issue) {
 		case ContextIssues.DUPLICATE_PROPERTY_NAME:
-			return 'Label names already defined.';
+			return 'Property name already defined.';
 		case ContextIssues.PROPERTY_DOES_NOT_EXIST:
 			return 'Cannot delete a property before it has been defined';
 		case ContextIssues.DUPLICATE_NODE_NAME:
