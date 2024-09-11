@@ -1,4 +1,8 @@
-import { DiagnosticSeverity } from 'vscode-languageserver';
+import {
+	DiagnosticRelatedInformation,
+	DiagnosticSeverity,
+	DiagnosticTag,
+} from 'vscode-languageserver';
 import { ASTBase } from './ast/base';
 
 export enum SyntaxIssue {
@@ -41,7 +45,8 @@ export enum ContextIssues {
 	UNABLE_TO_RESOLVE_CHILD_NODE,
 	LABEL_ALREADY_IN_USE,
 	NODE_DOES_NOT_EXIST,
-	RE_ASSIGN_NODE_LABEL,
+	DELETE_PROPERTY,
+	DELETE_NODE,
 }
 
 export enum LexerToken {
@@ -170,6 +175,9 @@ export type BuildSemanticTokensPush = (
 
 export interface Issue<T extends SyntaxIssue | ContextIssues> {
 	issues: T[];
-	slxElement: ASTBase;
-	severity: DiagnosticSeverity;
+	astElement: ASTBase;
+	severity?: DiagnosticSeverity;
+	tags?: DiagnosticTag[];
+	linkedTo: ASTBase[];
+	templateStrings: string[];
 }

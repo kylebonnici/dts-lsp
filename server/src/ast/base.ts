@@ -14,6 +14,15 @@ export class ASTBase {
 	protected _children: ASTBase[] = [];
 	public parentNode?: ASTBase;
 	protected docSymbolsMeta?: { name: string; kind: SymbolKind };
+	private _uri?: string;
+
+	get uri(): string | undefined {
+		return this._uri ?? this.parentNode?.uri;
+	}
+
+	set uri(uri: string | undefined) {
+		this._uri = uri;
+	}
 
 	getDocumentSymbols(): DocumentSymbol[] {
 		if (!this.docSymbolsMeta)
@@ -55,6 +64,7 @@ export class ASTBase {
 	protected addChild(child: ASTBase | null) {
 		if (child) {
 			child.parentNode = this;
+			child.uri = this.uri;
 			this.children.push(child);
 		}
 	}

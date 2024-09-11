@@ -35,7 +35,8 @@ export class Parser {
 	issues: Issue<SyntaxIssue>[] = [];
 	unhandledStaments = new DtcRootNode();
 
-	constructor(private tokens: Token[]) {
+	constructor(private tokens: Token[], uri: string) {
+		this.rootDocument.uri = uri;
 		this.parse();
 	}
 
@@ -593,14 +594,6 @@ export class Parser {
 		const value =
 			(this.processNumericValues() || this.processNodePathOrLabelRefValue(dtcProperty)) ??
 			null;
-		if (!value) {
-			this.issues.push(
-				this.genIssue(
-					[SyntaxIssue.NUMERIC_VALUE, SyntaxIssue.NODE_REF, SyntaxIssue.NODE_PATH],
-					dtcProperty
-				)
-			);
-		}
 
 		const endLabels1 = this.processOptionalLablelAssign(true) ?? [];
 
@@ -982,8 +975,10 @@ export class Parser {
 		slxBase: ASTBase
 	): Issue<SyntaxIssue> => ({
 		issues: Array.isArray(issue) ? issue : [issue],
-		slxElement: slxBase,
+		astElement: slxBase,
 		severity: DiagnosticSeverity.Error,
+		linkedTo: [],
+		templateStrings: [],
 	});
 
 	getDocumentSymbols(): DocumentSymbol[] {

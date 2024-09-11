@@ -1,4 +1,5 @@
-import { DiagnosticSeverity, Position } from 'vscode-languageserver';
+/* eslint-disable no-mixed-spaces-and-tabs */
+import { DiagnosticSeverity, DiagnosticTag, Position } from 'vscode-languageserver';
 import { ASTBase } from './ast/base';
 import {
 	DtcBaseNode,
@@ -16,7 +17,8 @@ import { DeleteNode } from './ast/dtc/deleteNode';
 import { LabelRef } from './ast/dtc/labelRef';
 
 class Property {
-	constructor(private ast: DtcProperty) {}
+	replaces?: Property;
+	constructor(public readonly ast: DtcProperty) {}
 
 	get name() {
 		return this.ast.propertyName?.name ?? '[UNSET]';
@@ -25,14 +27,51 @@ class Property {
 	get labels(): LabelAssign[] {
 		return this.ast.allDescendants.filter((c) => c instanceof LabelAssign) as LabelAssign[];
 	}
+
+	get labelsMapped(): {
+		label: LabelAssign;
+		owner: Property | null;
+	}[] {
+		return this.labels.map((l) => ({
+			label: l,
+			owner: this.ast.labels.some((ll) => ll === l) ? this : null,
+		}));
+	}
+
+	get issues(): Issue<ContextIssues>[] {
+		return this.replacedIssues;
+	}
+
+	get replacedIssues(): Issue<ContextIssues>[] {
+		return [
+			...(this.replaces?.replacedIssues ?? []),
+			...(this.replaces
+				? [
+						{
+							issues: [ContextIssues.DUPLICATE_PROPERTY_NAME],
+							severity: DiagnosticSeverity.Hint,
+							astElement: this.replaces.ast,
+							linkedTo: [this.ast],
+							tags: [DiagnosticTag.Unnecessary],
+							templateStrings: [this.name],
+						},
+				  ]
+				: []),
+		];
+	}
 }
 class Node {
 	public referances: DtcRefNode[] = [];
 	public definitons: DtcChildNode[] = [];
 	private _properties: Property[] = [];
-	nodes: Node[] = [];
+	private _deletedProperties: { property: Property; by: DeleteProperty }[] = [];
+	private _deletedNodes: { node: Node; by: DeleteNode }[] = [];
 
-	constructor(public readonly name: string, public readonly parent: Node | null = null) {}
+	private nodes: Node[] = [];
+
+	constructor(public readonly name: string, public readonly parent: Node | null = null) {
+		parent?.addNode(this);
+	}
 
 	get labels(): LabelAssign[] {
 		return [
@@ -41,15 +80,72 @@ class Node {
 		];
 	}
 
+	get labelsMapped() {
+		return this.labels.map((l) => ({
+			label: l,
+			owner: this,
+		}));
+	}
+
 	get allDescendantsLabels(): LabelAssign[] {
 		return [
-			...this.definitons.flatMap((def) => def.labels),
-			...(this.referances.flatMap((n) =>
-				n.allDescendants.filter((d) => d instanceof LabelAssign)
-			) as LabelAssign[]),
+			...this.labels,
 			...this.properties.flatMap((p) => p.labels),
 			...this.nodes.flatMap((n) => n.allDescendantsLabels),
 		];
+	}
+
+	get allDescendantsLabelsMapped(): {
+		label: LabelAssign;
+		owner: Property | Node | null;
+	}[] {
+		return [
+			...this.labelsMapped,
+			...this.properties.flatMap((p) => p.labelsMapped),
+			...this.nodes.flatMap((n) => n.allDescendantsLabelsMapped),
+		];
+	}
+
+	get issues(): Issue<ContextIssues>[] {
+		return [
+			...this.properties.flatMap((p) => p.issues),
+			...this.nodes.flatMap((n) => n.issues),
+			...this.deletedPropertiesIssues,
+			...this.deletedNodesIssues,
+		];
+	}
+
+	get deletedPropertiesIssues(): Issue<ContextIssues>[] {
+		return [
+			...this._deletedProperties.flatMap((meta) => [
+				{
+					issues: [ContextIssues.DELETE_PROPERTY],
+					severity: DiagnosticSeverity.Hint,
+					astElement: meta.property.ast,
+					linkedTo: [meta.by],
+					tags: [DiagnosticTag.Deprecated],
+					templateStrings: [meta.property.name],
+				},
+				...meta.property.issues,
+			]),
+		];
+	}
+
+	get deletedNodesIssues(): Issue<ContextIssues>[] {
+		return this._deletedNodes.flatMap((meta) => [
+			...[...meta.node.definitons, ...meta.node.referances].flatMap((node) => ({
+				issues: [ContextIssues.DELETE_NODE],
+				severity: DiagnosticSeverity.Hint,
+				astElement: node,
+				linkedTo: [meta.by],
+				tags: [DiagnosticTag.Deprecated],
+				templateStrings: [
+					node instanceof DtcChildNode
+						? node.name!.name
+						: node.labelReferance!.label!.value,
+				],
+			})),
+		]);
 	}
 
 	get path(): string[] {
@@ -72,9 +168,18 @@ class Node {
 		return this._properties.some((property) => property.name === name);
 	}
 
-	deleteNode(name: string) {
+	getProperty(name: string) {
+		return this._properties.find((property) => property.name === name);
+	}
+
+	deleteNode(name: string, by: DeleteNode) {
 		const index = this.nodes.findIndex((node) => node.name === name);
 		if (index === -1) return;
+
+		this._deletedNodes.push({
+			node: this.nodes[index],
+			by,
+		});
 
 		this.nodes.splice(index, 1);
 	}
@@ -86,9 +191,14 @@ class Node {
 		return this.nodes[index];
 	}
 
-	deleteProperty(name: string) {
+	deleteProperty(name: string, by: DeleteProperty) {
 		const index = this._properties.findIndex((property) => property.name === name);
 		if (index === -1) return;
+
+		this._deletedProperties.push({
+			property: this._properties[index],
+			by,
+		});
 
 		this._properties.splice(index, 1);
 	}
@@ -102,8 +212,9 @@ class Node {
 		if (index === -1) {
 			this._properties.push(property);
 		} else {
-			this._properties.splice(index, 1);
-		this._properties.push(property);
+			const replaced = this._properties.splice(index, 1)[0];
+			this._properties.push(property);
+			property.replaces = replaced;
 		}
 	}
 
@@ -116,7 +227,7 @@ class Node {
 	}
 }
 export class ContextAware {
-	issues: Issue<ContextIssues>[] = [];
+	_issues: Issue<ContextIssues>[] = [];
 	private rootNode: Node = new Node('/');
 
 	constructor(
@@ -130,44 +241,70 @@ export class ContextAware {
 		this.process();
 		this.reportLabelIssues();
 	}
+	get issues() {
+		return [...this.rootNode.issues, ...this._issues];
+	}
 
 	private reportLabelIssues() {
-		const lablesUsed = new Map<string, LabelAssign[]>();
-		const all = this.rootNode.allDescendantsLabels;
-		this.rootNode.allDescendantsLabels.forEach((l) => {
-			if (!lablesUsed.has(l.label)) {
-				lablesUsed.set(l.label, [l]);
-			} else {
-				const otherOwners = lablesUsed.get(l.label);
-				const resolvedPath = this.resolvePath([`&${l.label}`]);
-				const node = resolvedPath ? this.rootNode.getChild(resolvedPath) : undefined;
+		const lablesUsed = new Map<
+			string,
+			{
+				label: LabelAssign;
+				owner: Property | Node | null;
+				skip?: boolean;
+			}[]
+		>();
 
-				if (
-					!node ||
-					!node.labels.some((ll) => ll.label === l.label) ||
-					otherOwners?.some((o) => !(o instanceof DtcChildNode || o instanceof DtcRefNode))
-				) {
-					if (otherOwners?.length === 1) {
-						this.issues.push(
-							this.genIssue(ContextIssues.LABEL_ALREADY_IN_USE, otherOwners[0])
-						);
-					}
-					this.issues.push(this.genIssue(ContextIssues.LABEL_ALREADY_IN_USE, l));
+		this.rootNode.allDescendantsLabelsMapped.forEach((item) => {
+			if (!lablesUsed.has(item.label.label)) {
+				lablesUsed.set(item.label.label, [item]);
+			} else {
+				lablesUsed.get(item.label.label)?.push(item);
+			}
+		});
+
+		Array.from(lablesUsed).forEach((pair) => {
+			const otherOwners = pair[1];
+			if (otherOwners.length > 1) {
+				const firstLabeledNode = otherOwners.find((o) => o.owner instanceof Node);
+
+				const allSameOwner = otherOwners.every(
+					(owner) => owner && owner.owner === firstLabeledNode?.owner
+				);
+
+				if (!allSameOwner || !firstLabeledNode) {
+					const conflits = otherOwners.filter(
+						(owner) => !(owner && owner.owner === firstLabeledNode?.owner)
+					);
+
+					this._issues.push(
+						this.genIssue(
+							ContextIssues.LABEL_ALREADY_IN_USE,
+							otherOwners.at(-1)!.label,
+							DiagnosticSeverity.Error,
+							otherOwners.slice(0, -1).map((o) => o.label),
+							[],
+							[otherOwners.at(-1)!.label.label]
+						)
+					);
 				}
 			}
 		});
 	}
 
 	private process() {
-		const ast = this.fileMap.map((file) => astMap.get(file)?.parser.rootDocument);
-		if (ast.some((tree) => !tree)) {
+		const ast = this.fileMap.map((file) => ({
+			uri: file,
+			tree: astMap.get(file)?.parser.rootDocument,
+		}));
+		if (ast.some((tree) => !tree.tree)) {
 			return;
 		}
 
-		const trees = ast as DtcBaseNode[];
-
-		trees.forEach((root) => {
-			this.processRoot(root);
+		ast.forEach((root) => {
+			if (root.tree) {
+				this.processRoot(root.tree);
+			}
 		});
 	}
 
@@ -194,13 +331,13 @@ export class ContextAware {
 		element.children.forEach((child) => {
 			if (child instanceof DtcChildNode && child.name) {
 				if (child.name && names.has(child.name.name)) {
-					this.issues.push(this.genIssue(ContextIssues.DUPLICATE_NODE_NAME, child.name));
+					this._issues.push(this.genIssue(ContextIssues.DUPLICATE_NODE_NAME, child.name));
 				}
 
 				names.add(child.name.toString());
 			} else if (child instanceof DeleteNode && child.nodeNameOrRef instanceof NodeName) {
 				if (!names.has(child.nodeNameOrRef.toString())) {
-					this.issues.push(
+					this._issues.push(
 						this.genIssue(ContextIssues.NODE_DOES_NOT_EXIST, child.nodeNameOrRef)
 					);
 				} else {
@@ -233,7 +370,7 @@ export class ContextAware {
 
 			const child = runtimeNode ?? new Node(element.name.toString(), runtimeNodeParent);
 			child.definitons.push(element);
-			runtimeNodeParent.addNode(child);
+
 			runtimeNodeParent = child;
 		}
 
@@ -248,29 +385,12 @@ export class ContextAware {
 				? this.resolvePath([element.pathName])
 				: undefined;
 			if (!resolvedPath) {
-				this.issues.push(
+				this._issues.push(
 					this.genIssue(ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE, element)
 				);
 			} else {
-				let isReassign = false;
-				// we need to check if the resolve to the same node or not if it does we can allow this
-				element.labels.forEach((l) => {
-					const pathAssign = this.resolvePath([`&${l.label}`]);
-					const pathExisting = resolvedPath;
-					if (pathAssign && pathExisting.join('/') !== pathAssign.join('/')) {
-						isReassign = true;
-						this.issues.push(this.genIssue(ContextIssues.RE_ASSIGN_NODE_LABEL, l));
-					}
-				});
-
-				if (!isReassign) {
-					runtimeNode = this.rootNode.getChild(resolvedPath);
-					runtimeNode?.referances.push(element);
-				}
-
-				if (!runtimeNode && resolvedPath && !isReassign) {
-					throw new Error('We should have a node by now');
-				}
+				runtimeNode = this.rootNode.getChild(resolvedPath);
+				runtimeNode?.referances.push(element);
 			}
 		}
 
@@ -281,16 +401,6 @@ export class ContextAware {
 
 	private processDtcProperty(element: DtcProperty, runtimeNodeParent: Node) {
 		if (element.propertyName?.name) {
-			if (runtimeNodeParent.hasProperty(element.propertyName.name)) {
-			this.issues.push(
-					this.genIssue(
-						ContextIssues.DUPLICATE_PROPERTY_NAME,
-						element.propertyName,
-						DiagnosticSeverity.Information
-					)
-			);
-			}
-
 			runtimeNodeParent.addProperty(new Property(element));
 		}
 
@@ -300,23 +410,23 @@ export class ContextAware {
 	private processDeleteNode(element: DeleteNode, runtimeNodeParent: Node) {
 		if (element.nodeNameOrRef instanceof NodeName && element.nodeNameOrRef?.value) {
 			if (!runtimeNodeParent.hasNode(element.nodeNameOrRef.value)) {
-				this.issues.push(
+				this._issues.push(
 					this.genIssue(ContextIssues.NODE_DOES_NOT_EXIST, element.nodeNameOrRef)
 				);
 			} else {
-				runtimeNodeParent.deleteNode(element.nodeNameOrRef.value);
+				runtimeNodeParent.deleteNode(element.nodeNameOrRef.value, element);
 			}
 		} else if (element.nodeNameOrRef instanceof LabelRef && element.nodeNameOrRef.value) {
 			const resolvedPath = this.resolvePath([`&${element.nodeNameOrRef.value}`]);
 
 			let runtimeNode: Node | undefined;
 			if (!resolvedPath) {
-				this.issues.push(
+				this._issues.push(
 					this.genIssue(ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE, element)
 				);
 			} else {
 				runtimeNode = this.rootNode.getChild(resolvedPath);
-				runtimeNode?.parent?.deleteNode(runtimeNode.name);
+				runtimeNode?.parent?.deleteNode(runtimeNode.name, element);
 			}
 		}
 		element.children.forEach((child) => this.processChild(child, runtimeNodeParent));
@@ -327,11 +437,11 @@ export class ContextAware {
 			element.propertyName?.name &&
 			!runtimeNodeParent.hasProperty(element.propertyName.name)
 		) {
-			this.issues.push(
+			this._issues.push(
 				this.genIssue(ContextIssues.PROPERTY_DOES_NOT_EXIST, element.propertyName)
 			);
 		} else if (element.propertyName?.name) {
-			runtimeNodeParent.deleteProperty(element.propertyName.name);
+			runtimeNodeParent.deleteProperty(element.propertyName.name, element);
 		}
 
 		element.children.forEach((child) => this.processChild(child, runtimeNodeParent));
@@ -373,10 +483,16 @@ export class ContextAware {
 	private genIssue = (
 		issue: ContextIssues | ContextIssues[],
 		slxBase: ASTBase,
-		severity: DiagnosticSeverity = DiagnosticSeverity.Error
+		severity: DiagnosticSeverity = DiagnosticSeverity.Error,
+		linkedTo: ASTBase[] = [],
+		tags: DiagnosticTag[] | undefined = undefined,
+		templateStrings: string[] = []
 	): Issue<ContextIssues> => ({
 		issues: Array.isArray(issue) ? issue : [issue],
-		slxElement: slxBase,
+		astElement: slxBase,
 		severity,
+		linkedTo,
+		tags,
+		templateStrings,
 	});
 }

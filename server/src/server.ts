@@ -23,7 +23,7 @@ import {
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Lexer } from './lexer';
 import { astMap } from './resultCache';
-import { ContextIssues, SyntaxIssue, tokenModifiers, tokenTypes } from './types';
+import { ContextIssues, Issue, SyntaxIssue, tokenModifiers, tokenTypes } from './types';
 import { Parser } from './parser';
 import { toRange } from './helpers';
 import { ContextAware } from './runtimeEvaluator';
@@ -230,7 +230,32 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
 	}
 };
 
-const contextIssuesToMessage = (issue: ContextIssues) => {
+const contextIssuesToMessage = (issue: Issue<ContextIssues>) => {
+	return issue.issues
+		.map((_issue) => {
+			switch (_issue) {
+				case ContextIssues.DUPLICATE_PROPERTY_NAME:
+					return `Property "${issue.templateStrings[0]}" is replaced by a later definiton.`;
+				case ContextIssues.PROPERTY_DOES_NOT_EXIST:
+					return 'Cannot delete a property before it has been defined';
+				case ContextIssues.DUPLICATE_NODE_NAME:
+					return 'Node name already defined';
+				case ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE:
+					return 'No node with that referance has been defined';
+				case ContextIssues.LABEL_ALREADY_IN_USE:
+					return `Label name "${issue.templateStrings[0]}" aready defined`;
+				case ContextIssues.DELETE_PROPERTY:
+					return `Property "${issue.templateStrings[0]}" was deleted.`;
+				case ContextIssues.DELETE_NODE:
+					return `Node "${issue.templateStrings[0]}" was deleted.`;
+				case ContextIssues.NODE_DOES_NOT_EXIST:
+					return 'Cannot delete a node before it has been defined';
+			}
+		})
+		.join(' or ');
+};
+
+const contextIssuesToLinkedMessage = (issue: ContextIssues) => {
 	switch (issue) {
 		case ContextIssues.DUPLICATE_PROPERTY_NAME:
 			return 'Property name already defined.';
@@ -241,11 +266,9 @@ const contextIssuesToMessage = (issue: ContextIssues) => {
 		case ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE:
 			return 'No node with that referance has been defined';
 		case ContextIssues.LABEL_ALREADY_IN_USE:
-			return 'Label aready defined';
+			return 'Label aready defined here';
 		case ContextIssues.NODE_DOES_NOT_EXIST:
 			return 'Cannot delete a node before it has been defined';
-		case ContextIssues.RE_ASSIGN_NODE_LABEL:
-			return 'Label has already been assign to a different Node.';
 	}
 };
 
@@ -300,7 +323,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 	// return diagnostics;
 
 	const lexer = new Lexer(textDocument.getText());
-	const parser = new Parser(lexer.tokens);
+	const parser = new Parser(lexer.tokens, textDocument.uri);
 
 	astMap.set(textDocument.uri, { lexer, parser });
 
@@ -308,7 +331,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 	parser.issues.forEach((issue) => {
 		const diagnostic: Diagnostic = {
 			severity: issue.severity,
-			range: toRange(issue.slxElement),
+			range: toRange(issue.astElement),
 			message: issue.issues ? issue.issues.map(syntaxIssueToMessage).join(' or ') : '',
 			source: 'devie tree',
 		};
@@ -319,9 +342,19 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 	contextAware.issues.forEach((issue) => {
 		const diagnostic: Diagnostic = {
 			severity: issue.severity,
-			range: toRange(issue.slxElement),
-			message: issue.issues ? issue.issues.map(contextIssuesToMessage).join(' or ') : '',
+			range: toRange(issue.astElement),
+			message: contextIssuesToMessage(issue),
 			source: 'devie tree',
+			tags: issue.tags,
+			relatedInformation: [
+				...issue.linkedTo.map((element) => ({
+					message: issue.issues.map(contextIssuesToLinkedMessage).join(' or '),
+					location: {
+						uri: element.uri!,
+						range: toRange(element),
+					},
+				})),
+			],
 		};
 		diagnostics.push(diagnostic);
 	});
@@ -346,8 +379,8 @@ connection.onCompletion(
 		}
 		return [
 			{
-				label: 'TypeScript',
-				kind: CompletionItemKind.Text,
+				label: '&label1',
+				kind: CompletionItemKind.Variable,
 				data: 1,
 			},
 			{
