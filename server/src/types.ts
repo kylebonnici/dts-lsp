@@ -1,9 +1,11 @@
 import {
-	DiagnosticRelatedInformation,
 	DiagnosticSeverity,
 	DiagnosticTag,
+	Position as vsCodePosition,
 } from 'vscode-languageserver';
 import { ASTBase } from './ast/base';
+import { Node } from './context/node';
+import { Property } from './context/property';
 
 export enum SyntaxIssue {
 	VALUE,
@@ -180,4 +182,10 @@ export interface Issue<T extends SyntaxIssue | ContextIssues> {
 	tags?: DiagnosticTag[];
 	linkedTo: ASTBase[];
 	templateStrings: string[];
+}
+
+export type SearchableResult = { item: Node | Property; ast: ASTBase } | undefined;
+
+export interface Searchable {
+	getDeepestAstNode(file: string, position: vsCodePosition): SearchableResult;
 }

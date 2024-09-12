@@ -6,7 +6,6 @@ import {
 	createConnection,
 	TextDocuments,
 	Diagnostic,
-	DiagnosticSeverity,
 	ProposedFeatures,
 	InitializeParams,
 	DidChangeConfigurationNotification,
@@ -27,6 +26,9 @@ import { ContextIssues, Issue, SyntaxIssue, tokenModifiers, tokenTypes } from '.
 import { Parser } from './parser';
 import { toRange } from './helpers';
 import { ContextAware } from './runtimeEvaluator';
+import { getCompleteions } from './completion';
+
+let contextAware: ContextAware | undefined;
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -279,49 +281,6 @@ documents.onDidChangeContent((change) => {
 });
 
 async function validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
-	// // In this simple example we get the settings for every validate run.
-	// const settings = await getDocumentSettings(textDocument.uri);
-
-	// // The validator creates diagnostics for all uppercase words length 2 and more
-	// const text = textDocument.getText();
-	// const pattern = /\b[A-Z]{2,}\b/g;
-	// let m: RegExpExecArray | null;
-
-	// let problems = 0;
-	// const diagnostics: Diagnostic[] = [];
-	// while ((m = pattern.exec(text)) && problems < settings.maxNumberOfProblems) {
-	// 	problems++;
-	// 	const diagnostic: Diagnostic = {
-	// 		severity: DiagnosticSeverity.Warning,
-	// 		range: {
-	// 			start: textDocument.positionAt(m.index),
-	// 			end: textDocument.positionAt(m.index + m[0].length),
-	// 		},
-	// 		message: `${m[0]} is all uppercase.`,
-	// 		source: 'ex',
-	// 	};
-	// 	if (hasDiagnosticRelatedInformationCapability) {
-	// 		diagnostic.relatedInformation = [
-	// 			{
-	// 				location: {
-	// 					uri: textDocument.uri,
-	// 					range: Object.assign({}, diagnostic.range),
-	// 				},
-	// 				message: 'Spelling matters',
-	// 			},
-	// 			{
-	// 				location: {
-	// 					uri: textDocument.uri,
-	// 					range: Object.assign({}, diagnostic.range),
-	// 				},
-	// 				message: 'Particularly for names',
-	// 			},
-	// 		];
-	// 	}
-	// 	diagnostics.push(diagnostic);
-	// }
-	// return diagnostics;
-
 	const lexer = new Lexer(textDocument.getText());
 	const parser = new Parser(lexer.tokens, textDocument.uri);
 
@@ -338,7 +297,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 		diagnostics.push(diagnostic);
 	});
 
-	const contextAware = new ContextAware([textDocument.uri], new AbortController());
+	contextAware = new ContextAware([textDocument.uri]);
 	contextAware.issues.forEach((issue) => {
 		const diagnostic: Diagnostic = {
 			severity: issue.severity,
@@ -373,35 +332,25 @@ connection.onCompletion(
 		// The pass parameter contains the position of the text document in
 		// which code complete got requested. For the example we ignore this
 		// info and always provide the same completion items.
-		const meta = astMap.get(_textDocumentPosition.textDocument.uri);
-		if (meta) {
-			// TODO
+		if (contextAware) {
+			const temp = getCompleteions(_textDocumentPosition, contextAware);
+			return temp;
 		}
-		return [
-			{
-				label: '&label1',
-				kind: CompletionItemKind.Variable,
-				data: 1,
-			},
-			{
-				label: 'JavaScript',
-				kind: CompletionItemKind.Text,
-				data: 2,
-			},
-		];
+
+		return [];
 	}
 );
 
 // This handler resolves additional information for the item selected in
 // the completion list.
 connection.onCompletionResolve((item: CompletionItem): CompletionItem => {
-	if (item.data === 1) {
-		item.detail = 'TypeScript details';
-		item.documentation = 'TypeScript documentation';
-	} else if (item.data === 2) {
-		item.detail = 'JavaScript details';
-		item.documentation = 'JavaScript documentation';
-	}
+	// if (item.data === 1) {
+	// 	item.detail = 'TypeScript details';
+	// 	item.documentation = 'TypeScript documentation';
+	// } else if (item.data === 2) {
+	// 	item.detail = 'JavaScript details';
+	// 	item.documentation = 'JavaScript documentation';
+	// }
 	return item;
 });
 

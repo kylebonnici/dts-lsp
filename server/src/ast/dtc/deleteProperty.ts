@@ -4,17 +4,13 @@ import { Keyword } from '../keyword';
 import { toRange } from '../../helpers';
 import { BuildSemanticTokensPush } from '../../types';
 import { PropertyName } from './property';
+import { DeleteBase } from './delete';
 
-export class DeleteProperty extends ASTBase {
+export class DeleteProperty extends DeleteBase {
 	public _propertyName: PropertyName | null = null;
 
 	constructor(keyword: Keyword) {
-		super();
-		this.docSymbolsMeta = {
-			name: 'Delete Property',
-			kind: SymbolKind.Function,
-		};
-		this.addChild(keyword);
+		super('Delete Property', keyword);
 	}
 
 	set propertyName(propertyName: PropertyName | null) {

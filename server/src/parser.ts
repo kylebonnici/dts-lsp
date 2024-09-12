@@ -397,14 +397,30 @@ export class Parser {
 			this.popStack();
 			return false;
 		}
+		const keyword = new Keyword();
+
+		if (
+			!this.currentToken?.value &&
+			!validToken(this.currentToken, LexerToken.CURLY_OPEN)
+		) {
+			keyword.tokenIndexes = { start: firstToken, end: token };
+			this.issues.push(this.genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
+			const node = new DeleteProperty(keyword);
+			node.tokenIndexes = { start: firstToken, end: token };
+			parent.addNodeChild(node);
+			this.mergeStack();
+			return true;
+		}
 
 		token = this.moveToNextToken;
-		if (token?.value && !'delete-node'.startsWith(token.value)) {
+		if (
+			token?.pos.line === firstToken?.pos.line &&
+			token?.value &&
+			!'delete-node'.startsWith(token.value)
+		) {
 			this.popStack();
 			return false;
 		}
-
-		const keyword = new Keyword();
 
 		if (token?.value !== 'delete-node') {
 			this.issues.push(this.genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
@@ -451,13 +467,30 @@ export class Parser {
 			return false;
 		}
 
+		const keyword = new Keyword();
+
+		if (
+			!this.currentToken?.value &&
+			!validToken(this.currentToken, LexerToken.CURLY_OPEN)
+		) {
+			keyword.tokenIndexes = { start: firstToken, end: token };
+			const node = new DeleteProperty(keyword);
+			parent.addNodeChild(node);
+			this.issues.push(this.genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
+			node.tokenIndexes = { start: firstToken, end: token };
+			this.mergeStack();
+			return true;
+		}
+
 		token = this.moveToNextToken;
-		if (token?.value && !'delete-property'.startsWith(token.value)) {
+		if (
+			token?.pos.line === firstToken?.pos.line &&
+			token?.value &&
+			!'delete-property'.startsWith(token.value)
+		) {
 			this.popStack();
 			return false;
 		}
-
-		const keyword = new Keyword();
 
 		if (token?.value !== 'delete-property') {
 			this.issues.push(this.genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
@@ -972,10 +1005,10 @@ export class Parser {
 
 	private genIssue = (
 		issue: SyntaxIssue | SyntaxIssue[],
-		slxBase: ASTBase
+		astBase: ASTBase
 	): Issue<SyntaxIssue> => ({
 		issues: Array.isArray(issue) ? issue : [issue],
-		astElement: slxBase,
+		astElement: astBase,
 		severity: DiagnosticSeverity.Error,
 		linkedTo: [],
 		templateStrings: [],

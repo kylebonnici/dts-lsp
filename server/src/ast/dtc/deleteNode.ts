@@ -5,17 +5,13 @@ import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
 import { toRange } from '../../helpers';
 import { NodeName } from './node';
 import { LabelRef } from './labelRef';
+import { DeleteBase } from './delete';
 
-export class DeleteNode extends ASTBase {
+export class DeleteNode extends DeleteBase {
 	private _nodeNameOrRef: NodeName | LabelRef | null = null;
 
 	constructor(keyword: Keyword) {
-		super();
-		this.addChild(keyword);
-		this.docSymbolsMeta = {
-			name: 'Delete Node',
-			kind: SymbolKind.Function,
-		};
+		super('Delete Node', keyword);
 	}
 
 	set nodeNameOrRef(nodeNameOrRef: NodeName | LabelRef | null) {

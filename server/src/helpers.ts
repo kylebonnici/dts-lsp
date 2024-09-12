@@ -1,3 +1,4 @@
+import { Position } from 'vscode-languageserver';
 import { ASTBase } from './ast/base';
 import {
 	SemanticTokenModifiers,
@@ -27,4 +28,22 @@ export const getTokenTypes = (type: SemanticTokenType) => {
 
 export const getTokenModifiers = (type: SemanticTokenModifiers) => {
 	return tokenModifiers.findIndex((t) => t === type);
+};
+
+export const positionInBetween = (
+	ast: ASTBase,
+	file: string,
+	position: Position
+): boolean => {
+	return !!(
+		ast.uri === file &&
+		ast.tokenIndexes?.start &&
+		ast.tokenIndexes?.end &&
+		(ast.tokenIndexes.start.pos.line < position.line ||
+			(ast.tokenIndexes.start.pos.line === position.line &&
+				ast.tokenIndexes.start.pos.col <= position.character)) &&
+		(ast.tokenIndexes.end.pos.line > position.line ||
+			(ast.tokenIndexes.end.pos.line === position.line &&
+				ast.tokenIndexes.end.pos.col + ast.tokenIndexes.end.pos.len >= position.character))
+	);
 };

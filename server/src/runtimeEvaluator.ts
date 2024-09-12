@@ -15,229 +15,14 @@ import { DeleteProperty } from './ast/dtc/deleteProperty';
 import { LabelAssign } from './ast/dtc/label';
 import { DeleteNode } from './ast/dtc/deleteNode';
 import { LabelRef } from './ast/dtc/labelRef';
+import { Node } from './context/node';
+import { Property } from './context/property';
 
-class Property {
-	replaces?: Property;
-	constructor(public readonly ast: DtcProperty) {}
-
-	get name() {
-		return this.ast.propertyName?.name ?? '[UNSET]';
-	}
-
-	get labels(): LabelAssign[] {
-		return this.ast.allDescendants.filter((c) => c instanceof LabelAssign) as LabelAssign[];
-	}
-
-	get labelsMapped(): {
-		label: LabelAssign;
-		owner: Property | null;
-	}[] {
-		return this.labels.map((l) => ({
-			label: l,
-			owner: this.ast.labels.some((ll) => ll === l) ? this : null,
-		}));
-	}
-
-	get issues(): Issue<ContextIssues>[] {
-		return this.replacedIssues;
-	}
-
-	get replacedIssues(): Issue<ContextIssues>[] {
-		return [
-			...(this.replaces?.replacedIssues ?? []),
-			...(this.replaces
-				? [
-						{
-							issues: [ContextIssues.DUPLICATE_PROPERTY_NAME],
-							severity: DiagnosticSeverity.Hint,
-							astElement: this.replaces.ast,
-							linkedTo: [this.ast],
-							tags: [DiagnosticTag.Unnecessary],
-							templateStrings: [this.name],
-						},
-				  ]
-				: []),
-		];
-	}
-}
-class Node {
-	public referances: DtcRefNode[] = [];
-	public definitons: DtcChildNode[] = [];
-	private _properties: Property[] = [];
-	private _deletedProperties: { property: Property; by: DeleteProperty }[] = [];
-	private _deletedNodes: { node: Node; by: DeleteNode }[] = [];
-
-	private nodes: Node[] = [];
-
-	constructor(public readonly name: string, public readonly parent: Node | null = null) {
-		parent?.addNode(this);
-	}
-
-	get labels(): LabelAssign[] {
-		return [
-			...this.referances.flatMap((r) => r.labels),
-			...this.definitons.flatMap((def) => def.labels),
-		];
-	}
-
-	get labelsMapped() {
-		return this.labels.map((l) => ({
-			label: l,
-			owner: this,
-		}));
-	}
-
-	get allDescendantsLabels(): LabelAssign[] {
-		return [
-			...this.labels,
-			...this.properties.flatMap((p) => p.labels),
-			...this.nodes.flatMap((n) => n.allDescendantsLabels),
-		];
-	}
-
-	get allDescendantsLabelsMapped(): {
-		label: LabelAssign;
-		owner: Property | Node | null;
-	}[] {
-		return [
-			...this.labelsMapped,
-			...this.properties.flatMap((p) => p.labelsMapped),
-			...this.nodes.flatMap((n) => n.allDescendantsLabelsMapped),
-		];
-	}
-
-	get issues(): Issue<ContextIssues>[] {
-		return [
-			...this.properties.flatMap((p) => p.issues),
-			...this.nodes.flatMap((n) => n.issues),
-			...this.deletedPropertiesIssues,
-			...this.deletedNodesIssues,
-		];
-	}
-
-	get deletedPropertiesIssues(): Issue<ContextIssues>[] {
-		return [
-			...this._deletedProperties.flatMap((meta) => [
-				{
-					issues: [ContextIssues.DELETE_PROPERTY],
-					severity: DiagnosticSeverity.Hint,
-					astElement: meta.property.ast,
-					linkedTo: [meta.by],
-					tags: [DiagnosticTag.Deprecated],
-					templateStrings: [meta.property.name],
-				},
-				...meta.property.issues,
-			]),
-		];
-	}
-
-	get deletedNodesIssues(): Issue<ContextIssues>[] {
-		return this._deletedNodes.flatMap((meta) => [
-			...[...meta.node.definitons, ...meta.node.referances].flatMap((node) => ({
-				issues: [ContextIssues.DELETE_NODE],
-				severity: DiagnosticSeverity.Hint,
-				astElement: node,
-				linkedTo: [meta.by],
-				tags: [DiagnosticTag.Deprecated],
-				templateStrings: [
-					node instanceof DtcChildNode
-						? node.name!.name
-						: node.labelReferance!.label!.value,
-				],
-			})),
-		]);
-	}
-
-	get path(): string[] {
-		return this.parent ? [...this.parent.path, this.name] : [this.name];
-	}
-
-	get properties() {
-		return this._properties;
-	}
-
-	get propertyNames() {
-		return this._properties.map((property) => property.name);
-	}
-
-	hasNode(name: string) {
-		return this.nodes.some((node) => node.name === name);
-	}
-
-	hasProperty(name: string) {
-		return this._properties.some((property) => property.name === name);
-	}
-
-	getProperty(name: string) {
-		return this._properties.find((property) => property.name === name);
-	}
-
-	deleteNode(name: string, by: DeleteNode) {
-		const index = this.nodes.findIndex((node) => node.name === name);
-		if (index === -1) return;
-
-		this._deletedNodes.push({
-			node: this.nodes[index],
-			by,
-		});
-
-		this.nodes.splice(index, 1);
-	}
-
-	getNode(name: string) {
-		const index = this.nodes.findIndex((node) => node.name === name);
-		if (index === -1) return;
-
-		return this.nodes[index];
-	}
-
-	deleteProperty(name: string, by: DeleteProperty) {
-		const index = this._properties.findIndex((property) => property.name === name);
-		if (index === -1) return;
-
-		this._deletedProperties.push({
-			property: this._properties[index],
-			by,
-		});
-
-		this._properties.splice(index, 1);
-	}
-
-	addNode(node: Node) {
-		this.nodes.push(node);
-	}
-
-	addProperty(property: Property) {
-		const index = this._properties.findIndex((p) => p.name === property.name);
-		if (index === -1) {
-			this._properties.push(property);
-		} else {
-			const replaced = this._properties.splice(index, 1)[0];
-			this._properties.push(property);
-			property.replaces = replaced;
-		}
-	}
-
-	getChild(path: string[]): Node | undefined {
-		if (path.length === 0) return this;
-		if (path[0] !== this.name) return undefined;
-		path.splice(0, 1);
-		const myChild = this.nodes.find((node) => node.name === path[0]);
-		return myChild?.getChild(path.slice(1));
-	}
-}
 export class ContextAware {
 	_issues: Issue<ContextIssues>[] = [];
-	private rootNode: Node = new Node('/');
+	public readonly rootNode: Node = new Node('/');
 
-	constructor(
-		private fileMap: string[],
-		private readonly abort: AbortController,
-		private readonly stop?: {
-			uri: string;
-			position: Position;
-		}
-	) {
+	constructor(public readonly fileMap: string[]) {
 		this.process();
 		this.reportLabelIssues();
 	}
@@ -360,6 +145,7 @@ export class ContextAware {
 	}
 
 	private processDtcRootNode(element: DtcRootNode) {
+		this.rootNode.roots.push(element);
 		element.children.forEach((child) => this.processChild(child, this.rootNode));
 	}
 
@@ -390,7 +176,8 @@ export class ContextAware {
 				);
 			} else {
 				runtimeNode = this.rootNode.getChild(resolvedPath);
-				runtimeNode?.referances.push(element);
+				runtimeNode?.referancesBy.push(element);
+				this.rootNode?.referances.push(element);
 			}
 		}
 
@@ -409,12 +196,14 @@ export class ContextAware {
 
 	private processDeleteNode(element: DeleteNode, runtimeNodeParent: Node) {
 		if (element.nodeNameOrRef instanceof NodeName && element.nodeNameOrRef?.value) {
-			if (!runtimeNodeParent.hasNode(element.nodeNameOrRef.value)) {
-				this._issues.push(
-					this.genIssue(ContextIssues.NODE_DOES_NOT_EXIST, element.nodeNameOrRef)
-				);
-			} else {
-				runtimeNodeParent.deleteNode(element.nodeNameOrRef.value, element);
+			if (element.parentNode?.parentNode) {
+				if (!runtimeNodeParent.hasNode(element.nodeNameOrRef.value)) {
+					this._issues.push(
+						this.genIssue(ContextIssues.NODE_DOES_NOT_EXIST, element.nodeNameOrRef)
+					);
+				} else {
+					runtimeNodeParent.deleteNode(element.nodeNameOrRef.value, element);
+				}
 			}
 		} else if (element.nodeNameOrRef instanceof LabelRef && element.nodeNameOrRef.value) {
 			const resolvedPath = this.resolvePath([`&${element.nodeNameOrRef.value}`]);
