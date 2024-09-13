@@ -13,6 +13,7 @@ export class Node implements Searchable {
 	public referances: DtcRefNode[] = [];
 	public referancesBy: DtcRefNode[] = [];
 	public definitons: DtcChildNode[] = [];
+	public unlinkedDeletes: DeleteNode[] = [];
 	private _properties: Property[] = [];
 	private _deletedProperties: { property: Property; by: DeleteProperty }[] = [];
 	private _deletedNodes: { node: Node; by: DeleteNode }[] = [];
@@ -33,9 +34,12 @@ export class Node implements Searchable {
 	}
 
 	getDeepestAstNode(file: string, position: Position): SearchableResult {
-		const inNode = [...this.roots, ...this.definitons, ...this.referances].find((i) =>
-			positionInBetween(i, file, position)
-		);
+		const inNode = [
+			...this.roots,
+			...this.definitons,
+			...this.referances,
+			...this.unlinkedDeletes,
+		].find((i) => positionInBetween(i, file, position));
 
 		let _node: Node | undefined;
 		const getNode = () => {
@@ -176,6 +180,10 @@ export class Node implements Searchable {
 
 	get nodes() {
 		return this._nodes;
+	}
+
+	get deletedNodes() {
+		return this._deletedNodes;
 	}
 
 	get propertyNames() {

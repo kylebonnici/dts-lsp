@@ -12,6 +12,58 @@ import { DeleteBase } from './ast/dtc/delete';
 import { Keyword } from './ast/keyword';
 import { PropertyName } from './ast/dtc/property';
 import { NodeName } from './ast/dtc/node';
+import { DeleteNode } from './ast/dtc/deleteNode';
+import { LabelAssign } from './ast/dtc/label';
+
+function getDeleteNodeRefItems(
+	result: SearchableResult,
+	inScope: (ast: ASTBase) => boolean
+): CompletionItem[] {
+	const isNodeDeleteChild = (ast?: ASTBase): boolean => {
+		if (!ast) return false;
+		return ast.parentNode instanceof DeleteNode ? true : isNodeDeleteChild(ast.parentNode);
+	};
+
+	if (
+		!result ||
+		!(result.item instanceof Node) ||
+		!!result.item.parent ||
+		!isNodeDeleteChild(result.ast)
+	) {
+		return [];
+	}
+
+	const resolveNonDeletedScopedLabels = (node: Node): LabelAssign[] => {
+		return [
+			...node.labels.filter(inScope),
+			...node.deletedNodes
+				.filter((n) => !inScope(n.by))
+				.flatMap((n) => resolveNonDeletedScopedLabels(n.node)),
+			...node.nodes.flatMap(resolveNonDeletedScopedLabels),
+		];
+	};
+
+	const getScopeItems = (node: Node) => {
+		return resolveNonDeletedScopedLabels(node).filter((l) => inScope(l));
+	};
+
+	if (result.ast instanceof Keyword) {
+		if (getScopeItems(result.item).length) {
+			return [
+				{
+					label: '/delete-node/ ',
+					kind: CompletionItemKind.Keyword,
+				},
+			];
+		}
+		return [];
+	}
+
+	return Array.from(new Set(getScopeItems(result.item).map((l) => l.label))).map((l) => ({
+		label: `${l};`,
+		kind: CompletionItemKind.Variable,
+	}));
+}
 
 function getDeleteNodeNameItems(
 	result: SearchableResult,
@@ -20,6 +72,7 @@ function getDeleteNodeNameItems(
 	if (
 		!result ||
 		!(result.item instanceof Node) ||
+		!result.item.parent ||
 		!(result.ast.parentNode instanceof DeleteBase)
 	) {
 		return [];
@@ -28,7 +81,7 @@ function getDeleteNodeNameItems(
 	const getScopeItems = (node: Node) => {
 		return [
 			...node.nodes,
-			...node.deletedNodes.filter((n) => inScope(n.by)).map((n) => n.node),
+			...node.deletedNodes.filter((n) => !inScope(n.by)).map((n) => n.node),
 		]
 			.flatMap((n) => n.definitons)
 			.filter((n) => inScope(n));
@@ -47,8 +100,10 @@ function getDeleteNodeNameItems(
 	}
 
 	if (result.ast instanceof NodeName) {
-		return getScopeItems(result.item).map((n) => ({
-			label: `${n.name?.name};`,
+		return Array.from(
+			new Set(getScopeItems(result.item).map((r) => r.name?.toString()))
+		).map((n) => ({
+			label: `${n};`,
 			kind: CompletionItemKind.Variable,
 		}));
 	}
@@ -130,6 +185,7 @@ export function getCompleteions(
 		return [
 			...getDeletePropertyItems(locationMeta, inScope),
 			...getDeleteNodeNameItems(locationMeta, inScope),
+			...getDeleteNodeRefItems(locationMeta, inScope),
 		];
 	}
 

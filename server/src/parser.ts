@@ -393,41 +393,49 @@ export class Parser {
 
 		const firstToken = this.moveToNextToken;
 		let token = firstToken;
+		const keyword = new Keyword();
+
+		const close = () => {
+			keyword.tokenIndexes = { start: firstToken, end: token };
+			const node = new DeleteNode(keyword);
+			node.tokenIndexes = { start: firstToken, end: token };
+			parent.addNodeChild(node);
+			this.mergeStack();
+			return true;
+		};
+
 		if (!validToken(token, LexerToken.FORWARD_SLASH)) {
 			this.popStack();
 			return false;
 		}
-		const keyword = new Keyword();
 
 		if (
 			!this.currentToken?.value &&
 			!validToken(this.currentToken, LexerToken.CURLY_OPEN)
 		) {
-			keyword.tokenIndexes = { start: firstToken, end: token };
 			this.issues.push(this.genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
-			const node = new DeleteProperty(keyword);
-			node.tokenIndexes = { start: firstToken, end: token };
-			parent.addNodeChild(node);
-			this.mergeStack();
-			return true;
+			return close();
 		}
 
-		token = this.moveToNextToken;
 		if (
-			token?.pos.line === firstToken?.pos.line &&
-			token?.value &&
-			!'delete-node'.startsWith(token.value)
+			this.currentToken?.pos.line === firstToken?.pos.line &&
+			this.currentToken?.value &&
+			!'delete-node'.startsWith(this.currentToken.value)
 		) {
 			this.popStack();
 			return false;
 		}
 
-		if (token?.value !== 'delete-node') {
+		if (this.currentToken?.value !== 'delete-node') {
 			this.issues.push(this.genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
+			return close();
+		} else {
+			token = this.moveToNextToken;
 		}
 
 		if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
 			this.issues.push(this.genIssue(SyntaxIssue.FORWARD_SLASH_END_DELETE, keyword));
+			return close();
 		} else {
 			token = this.moveToNextToken;
 		}
@@ -435,22 +443,32 @@ export class Parser {
 
 		const node = new DeleteNode(keyword);
 
-		const labelRef = this.isLabelRef();
-		if (labelRef && allow === 'Name') {
-			this.issues.push(this.genIssue(SyntaxIssue.NODE_NAME, labelRef));
-		}
-		const nodeName = labelRef ? undefined : this.processNodeName(node);
-		if (nodeName && allow === 'Ref') {
-			this.issues.push(this.genIssue(SyntaxIssue.NODE_REF, nodeName));
-		}
+		if (this.currentToken?.pos.line === firstToken?.pos.line) {
+			const labelRef = this.isLabelRef();
+			if (labelRef && allow === 'Name') {
+				this.issues.push(this.genIssue(SyntaxIssue.NODE_NAME, labelRef));
+			}
+			const nodeName = labelRef ? undefined : this.processNodeName(node);
+			if (nodeName && allow === 'Ref') {
+				this.issues.push(this.genIssue(SyntaxIssue.NODE_REF, nodeName));
+			}
 
-		if (!nodeName && !labelRef) {
-			this.issues.push(this.genIssue([SyntaxIssue.NODE_NAME, SyntaxIssue.NODE_REF], node));
+			if (!nodeName && !labelRef) {
+				this.issues.push(
+					this.genIssue([SyntaxIssue.NODE_NAME, SyntaxIssue.NODE_REF], node)
+				);
+			}
+
+			node.nodeNameOrRef = labelRef ?? nodeName ?? null;
+		} else {
+			if (allow === 'Name') {
+				this.issues.push(this.genIssue(SyntaxIssue.NODE_NAME, keyword));
+			} else if (allow === 'Ref') {
+				this.issues.push(this.genIssue(SyntaxIssue.NODE_REF, keyword));
+			}
 		}
-
-		node.nodeNameOrRef = labelRef ?? nodeName ?? null;
-
 		const lastToken = this.endStatment();
+
 		node.tokenIndexes = { start: firstToken, end: lastToken };
 		parent.addNodeChild(node);
 		this.mergeStack();
@@ -462,42 +480,49 @@ export class Parser {
 
 		const firstToken = this.moveToNextToken;
 		let token = firstToken;
+
+		const keyword = new Keyword();
+		const close = () => {
+			keyword.tokenIndexes = { start: firstToken, end: token };
+			const node = new DeleteProperty(keyword);
+			parent.addNodeChild(node);
+			node.tokenIndexes = { start: firstToken, end: token };
+			this.mergeStack();
+			return true;
+		};
+
 		if (!validToken(token, LexerToken.FORWARD_SLASH)) {
 			this.popStack();
 			return false;
 		}
 
-		const keyword = new Keyword();
-
 		if (
 			!this.currentToken?.value &&
 			!validToken(this.currentToken, LexerToken.CURLY_OPEN)
 		) {
-			keyword.tokenIndexes = { start: firstToken, end: token };
-			const node = new DeleteProperty(keyword);
-			parent.addNodeChild(node);
 			this.issues.push(this.genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
-			node.tokenIndexes = { start: firstToken, end: token };
-			this.mergeStack();
-			return true;
+			return close();
 		}
 
-		token = this.moveToNextToken;
 		if (
-			token?.pos.line === firstToken?.pos.line &&
-			token?.value &&
-			!'delete-property'.startsWith(token.value)
+			this.currentToken?.pos.line === firstToken?.pos.line &&
+			this.currentToken?.value &&
+			!'delete-property'.startsWith(this.currentToken.value)
 		) {
 			this.popStack();
 			return false;
 		}
 
-		if (token?.value !== 'delete-property') {
+		if (this.currentToken?.value !== 'delete-property') {
 			this.issues.push(this.genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
+			return close();
+		} else {
+			token = this.moveToNextToken;
 		}
 
 		if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
 			this.issues.push(this.genIssue(SyntaxIssue.FORWARD_SLASH_END_DELETE, keyword));
+			return close();
 		} else {
 			token = this.moveToNextToken;
 		}
@@ -506,22 +531,26 @@ export class Parser {
 
 		const node = new DeleteProperty(keyword);
 
-		if (!validToken(this.currentToken, LexerToken.PROPERTY_NAME)) {
-			this.issues.push(this.genIssue(SyntaxIssue.PROPERTY_NAME, node));
-		} else {
-			token = this.moveToNextToken;
+		if (this.currentToken?.pos.line === firstToken?.pos.line) {
+			if (!validToken(this.currentToken, LexerToken.PROPERTY_NAME)) {
+				this.issues.push(this.genIssue(SyntaxIssue.PROPERTY_NAME, node));
+			} else {
+				token = this.moveToNextToken;
 
-			if (!token?.value) {
-				throw new Error('Token must have value');
+				if (!token?.value) {
+					throw new Error('Token must have value');
+				}
 			}
-		}
 
-		const propertyName = token?.value ? new PropertyName(token.value) : null;
-		if (propertyName) {
-			propertyName.tokenIndexes = { start: token, end: token };
-		}
+			const propertyName = token?.value ? new PropertyName(token.value) : null;
+			if (propertyName) {
+				propertyName.tokenIndexes = { start: token, end: token };
+			}
 
-		node.propertyName = propertyName;
+			node.propertyName = propertyName;
+		} else {
+			this.issues.push(this.genIssue(SyntaxIssue.PROPERTY_NAME, keyword));
+		}
 
 		const lastToken = this.endStatment();
 		node.tokenIndexes = { start: firstToken, end: lastToken };

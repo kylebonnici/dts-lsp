@@ -111,7 +111,7 @@ export class ContextAware {
 		}
 	}
 
-	private checkNodeUniqueNames(element: DtcBaseNode) {
+	private checkNodeUniqueNames(element: DtcBaseNode, runtimeNodeParent: Node) {
 		const names = new Set<string>();
 		element.children.forEach((child) => {
 			if (child instanceof DtcChildNode && child.name) {
@@ -121,7 +121,7 @@ export class ContextAware {
 
 				names.add(child.name.toString());
 			} else if (child instanceof DeleteNode && child.nodeNameOrRef instanceof NodeName) {
-				if (!names.has(child.nodeNameOrRef.toString())) {
+				if (!runtimeNodeParent.hasNode(child.nodeNameOrRef.toString())) {
 					this._issues.push(
 						this.genIssue(ContextIssues.NODE_DOES_NOT_EXIST, child.nodeNameOrRef)
 					);
@@ -133,8 +133,6 @@ export class ContextAware {
 	}
 
 	private processDtcBaseNode(element: DtcBaseNode, runtimeNodeParent: Node) {
-		this.checkNodeUniqueNames(element);
-
 		if (element instanceof DtcRootNode) {
 			this.processDtcRootNode(element);
 		} else if (element instanceof DtcChildNode) {
@@ -146,6 +144,7 @@ export class ContextAware {
 
 	private processDtcRootNode(element: DtcRootNode) {
 		this.rootNode.roots.push(element);
+		this.checkNodeUniqueNames(element, this.rootNode);
 		element.children.forEach((child) => this.processChild(child, this.rootNode));
 	}
 
@@ -158,6 +157,7 @@ export class ContextAware {
 			child.definitons.push(element);
 
 			runtimeNodeParent = child;
+			this.checkNodeUniqueNames(element, child);
 		}
 
 		element.children.forEach((child) => this.processChild(child, runtimeNodeParent));
@@ -178,6 +178,9 @@ export class ContextAware {
 				runtimeNode = this.rootNode.getChild(resolvedPath);
 				runtimeNode?.referancesBy.push(element);
 				this.rootNode?.referances.push(element);
+				if (runtimeNode) {
+					this.checkNodeUniqueNames(element, runtimeNode);
+				}
 			}
 		}
 
@@ -210,6 +213,7 @@ export class ContextAware {
 
 			let runtimeNode: Node | undefined;
 			if (!resolvedPath) {
+				this.rootNode.unlinkedDeletes.push(element);
 				this._issues.push(
 					this.genIssue(ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE, element)
 				);
@@ -217,6 +221,8 @@ export class ContextAware {
 				runtimeNode = this.rootNode.getChild(resolvedPath);
 				runtimeNode?.parent?.deleteNode(runtimeNode.name, element);
 			}
+		} else {
+			this.rootNode.unlinkedDeletes.push(element);
 		}
 		element.children.forEach((child) => this.processChild(child, runtimeNodeParent));
 	}
