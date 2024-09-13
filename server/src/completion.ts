@@ -13,53 +13,47 @@ import { Keyword } from './ast/keyword';
 import { PropertyName } from './ast/dtc/property';
 import { NodeName } from './ast/dtc/node';
 
-function getDeleteNodeKeyword(
-	result: SearchableResult,
-	inScope: (ast: ASTBase) => boolean
-): CompletionItem[] {
-	if (
-		!result ||
-		!(result.ast instanceof Keyword) ||
-		!(result.ast.parentNode instanceof DeleteBase)
-	) {
-		return [];
-	}
-
-	return [
-		{
-			label: '/delete-node/ ',
-			kind: CompletionItemKind.Keyword,
-		},
-	];
-}
-
-function getDeletePropertyKeyword(
+function getDeleteNodeNameItems(
 	result: SearchableResult,
 	inScope: (ast: ASTBase) => boolean
 ): CompletionItem[] {
 	if (
 		!result ||
 		!(result.item instanceof Node) ||
-		!(result.ast instanceof Keyword) ||
 		!(result.ast.parentNode instanceof DeleteBase)
 	) {
 		return [];
 	}
 
-	if (
-		!result.item.properties
-			.flatMap((p) => [p, ...p.allReplaced])
-			.filter((p) => inScope(p.ast)).length
-	) {
+	const getScopeItems = (node: Node) => {
+		return [
+			...node.nodes,
+			...node.deletedNodes.filter((n) => inScope(n.by)).map((n) => n.node),
+		]
+			.flatMap((n) => n.definitons)
+			.filter((n) => inScope(n));
+	};
+
+	if (result.ast instanceof Keyword) {
+		if (getScopeItems(result.item).length) {
+			return [
+				{
+					label: '/delete-node/ ',
+					kind: CompletionItemKind.Keyword,
+				},
+			];
+		}
 		return [];
 	}
 
-	return [
-		{
-			label: '/delete-property/ ',
-			kind: CompletionItemKind.Keyword,
-		},
-	];
+	if (result.ast instanceof NodeName) {
+		return getScopeItems(result.item).map((n) => ({
+			label: `${n.name?.name};`,
+			kind: CompletionItemKind.Variable,
+		}));
+	}
+
+	return [];
 }
 
 function getDeletePropertyItems(
@@ -69,45 +63,37 @@ function getDeletePropertyItems(
 	if (
 		!result ||
 		!(result.item instanceof Node) ||
-		!(result.ast instanceof PropertyName) ||
 		!(result.ast.parentNode instanceof DeleteBase)
 	) {
 		return [];
 	}
 
-	return Array.from(
-		new Set(
-			result.item.properties
-				.flatMap((p) => [p, ...p.allReplaced])
-				.filter((p) => inScope(p.ast))
-				.map((p) => p.name)
-		)
-	).map((p) => ({
-		label: `${p};`,
-		kind: CompletionItemKind.Variable,
-	}));
-}
+	const getSopeItems = (node: Node) => {
+		return node.properties
+			.flatMap((p) => [p, ...p.allReplaced])
+			.filter((p) => inScope(p.ast));
+	};
 
-function getDeleteNodeNameItems(
-	result: SearchableResult,
-	inScope: (ast: ASTBase) => boolean
-): CompletionItem[] {
-	if (
-		!result ||
-		!(result.item instanceof Node) ||
-		!(result.ast instanceof NodeName) ||
-		!(result.ast.parentNode instanceof DeleteBase)
-	) {
+	if (result.ast instanceof PropertyName) {
+		if (getSopeItems(result.item).length) {
+			return [
+				{
+					label: '/delete-property/ ',
+					kind: CompletionItemKind.Keyword,
+				},
+			];
+		}
 		return [];
 	}
 
-	return result.item.nodes
-		.flatMap((n) => n.definitons)
-		.filter((n) => inScope(n))
-		.map((n) => ({
-			label: `${n.name?.name};`,
+	if (result.ast instanceof NodeName) {
+		return Array.from(new Set(getSopeItems(result.item).map((p) => p.name))).map((p) => ({
+			label: `${p};`,
 			kind: CompletionItemKind.Variable,
 		}));
+	}
+
+	return [];
 }
 
 export function getCompleteions(
@@ -125,7 +111,6 @@ export function getCompleteions(
 			const position = location.position;
 			if (ast.uri === location.textDocument.uri) {
 				return !!(
-					ast.tokenIndexes?.start &&
 					ast.tokenIndexes?.end &&
 					(ast.tokenIndexes.end.pos.line < position.line ||
 						(ast.tokenIndexes.end.pos.line === position.line &&
@@ -143,8 +128,6 @@ export function getCompleteions(
 		};
 
 		return [
-			...getDeleteNodeKeyword(locationMeta, inScope),
-			...getDeletePropertyKeyword(locationMeta, inScope),
 			...getDeletePropertyItems(locationMeta, inScope),
 			...getDeleteNodeNameItems(locationMeta, inScope),
 		];
