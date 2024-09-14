@@ -817,7 +817,6 @@ export class Parser {
 			const node = new LabelRef(null);
 			this.issues.push(this.genIssue(SyntaxIssue.LABEL_NAME, slxBase ?? node));
 			node.tokenIndexes = { start: firstToken, end: firstToken };
-			this.moveToNextToken;
 
 			this.mergeStack();
 			return node;
