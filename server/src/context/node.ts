@@ -3,14 +3,14 @@ import { ContextIssues, Issue, Searchable, SearchableResult } from '../types';
 import { Property } from './property';
 import { DeleteProperty } from '../ast/dtc/deleteProperty';
 import { DeleteNode } from '../ast/dtc/deleteNode';
-import { positionInBetween } from '../helpers';
+import { getDeepestAstNodeInBetween, positionInBetween } from '../helpers';
 import { DiagnosticSeverity, DiagnosticTag, Position } from 'vscode-languageserver';
 import { LabelAssign } from '../ast/dtc/label';
 import { ASTBase } from 'src/ast/base';
 
-export class Node implements Searchable {
+export class Node {
 	public referancesBy: DtcRefNode[] = [];
-	public definitons: DtcChildNode[] = [];
+	public definitons: (DtcChildNode | DtcRootNode)[] = [];
 	private _properties: Property[] = [];
 	private _deletedProperties: { property: Property; by: DeleteProperty }[] = [];
 	private _deletedNodes: { node: Node; by: DeleteNode }[] = [];
@@ -30,22 +30,18 @@ export class Node implements Searchable {
 			.find((n) => n);
 	}
 
-	getDeepestAstNode(file: string, position: Position): SearchableResult {
-		const inNode = this.definitons.find((i) => positionInBetween(i, file, position));
-
-		let _node: Node | undefined;
-		const getNode = () => {
-			return _node ?? this;
-		};
-
-		if (inNode instanceof DtcRefNode) {
-			_node = this.getReferenceBy(inNode);
-		}
+	getDeepestAstNode(
+		file: string,
+		position: Position
+	): Omit<SearchableResult, 'runtime'> | undefined {
+		const inNode = [...this.definitons, ...this.referancesBy].find((i) =>
+			positionInBetween(i, file, position)
+		);
 
 		if (inNode) {
 			const inProperty = [
-				...getNode()._properties.flatMap((p) => [p, ...p.allReplaced]),
-				...getNode()._deletedProperties.map((d) => d.property),
+				...this._properties.flatMap((p) => [p, ...p.allReplaced]),
+				...this._deletedProperties.map((d) => d.property),
 			]
 				.map((p) => ({
 					item: p,
@@ -57,10 +53,7 @@ export class Node implements Searchable {
 				return inProperty.item.getDeepestAstNode(file, position);
 			}
 
-			const inChildNode = [
-				...getNode()._nodes,
-				...getNode()._deletedNodes.map((d) => d.node),
-			]
+			const inChildNode = [...this._nodes, ...this._deletedNodes.map((d) => d.node)]
 				.map((n) => n.getDeepestAstNode(file, position))
 				.find((i) => i);
 
@@ -68,17 +61,10 @@ export class Node implements Searchable {
 				return inChildNode;
 			}
 
-			let deepestAstNode: ASTBase | undefined = inNode;
-			let next: ASTBase | undefined = inNode;
-			while (next) {
-				deepestAstNode = next;
-				next = deepestAstNode.children
-					.reverse()
-					.find((c) => positionInBetween(c, file, position));
-			}
+			const deepestAstNode = getDeepestAstNodeInBetween(inNode, file, position);
 
 			return {
-				item: getNode(),
+				item: this,
 				ast: deepestAstNode,
 			};
 		}
@@ -89,7 +75,9 @@ export class Node implements Searchable {
 	get labels(): LabelAssign[] {
 		return [
 			...this.referancesBy.flatMap((r) => r.labels),
-			...this.definitons.flatMap((def) => def.labels),
+			...(
+				this.definitons.filter((def) => def instanceof DtcChildNode) as DtcChildNode[]
+			).flatMap((def) => def.labels),
 		];
 	}
 
@@ -147,7 +135,12 @@ export class Node implements Searchable {
 
 	get deletedNodesIssues(): Issue<ContextIssues>[] {
 		return this._deletedNodes.flatMap((meta) => [
-			...[...meta.node.definitons, ...meta.node.referancesBy].flatMap((node) => ({
+			...[
+				...(meta.node.definitons.filter(
+					(node) => node instanceof DtcChildNode
+				) as DtcChildNode[]),
+				...meta.node.referancesBy,
+			].flatMap((node) => ({
 				issues: [ContextIssues.DELETE_NODE],
 				severity: DiagnosticSeverity.Hint,
 				astElement: node,

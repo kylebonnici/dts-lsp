@@ -6,6 +6,7 @@ import {
 import { ASTBase } from './ast/base';
 import { Node } from './context/node';
 import { Property } from './context/property';
+import { Runtime } from './context/runtime';
 
 export enum SyntaxIssue {
 	VALUE,
@@ -184,8 +185,12 @@ export interface Issue<T extends SyntaxIssue | ContextIssues> {
 	templateStrings: string[];
 }
 
-export type SearchableResult = { item: Node | Property; ast: ASTBase } | undefined;
+export type SearchableResult = {
+	runtime: Runtime;
+	item: Node | Property | null;
+	ast: ASTBase;
+};
 
 export interface Searchable {
-	getDeepestAstNode(file: string, position: vsCodePosition): SearchableResult;
+	getDeepestAstNode(file: string, position: vsCodePosition): SearchableResult | undefined;
 }

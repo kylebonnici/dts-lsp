@@ -97,6 +97,7 @@ export class ContextAware {
 
 	private processDtcRootNode(element: DtcRootNode) {
 		this.runtime.roots.push(element);
+		this.runtime.rootNode.definitons.push(element);
 		this.checkNodeUniqueNames(element, this.runtime.rootNode);
 		element.children.forEach((child) => this.processChild(child, this.runtime.rootNode));
 	}

@@ -5,11 +5,11 @@ import { DiagnosticSeverity, DiagnosticTag, Position } from 'vscode-languageserv
 import { positionInBetween } from '../helpers';
 import { LabelAssign } from '../ast/dtc/label';
 
-export class Property implements Searchable {
+export class Property {
 	replaces?: Property;
 	constructor(public readonly ast: DtcProperty) {}
 
-	getDeepestAstNode(file: string, position: Position): SearchableResult {
+	getDeepestAstNode(file: string, position: Position): Omit<SearchableResult, 'runtime'> {
 		const found = this.ast.children.find((i) => positionInBetween(i, file, position));
 
 		return {

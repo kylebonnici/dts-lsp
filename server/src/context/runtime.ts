@@ -3,7 +3,7 @@ import { ContextIssues, Issue, Searchable, SearchableResult } from '../types';
 import { Property } from './property';
 import { DeleteProperty } from '../ast/dtc/deleteProperty';
 import { DeleteNode } from '../ast/dtc/deleteNode';
-import { positionInBetween } from '../helpers';
+import { getDeepestAstNodeInBetween, positionInBetween } from '../helpers';
 import { DiagnosticSeverity, DiagnosticTag, Position } from 'vscode-languageserver';
 import { LabelAssign } from '../ast/dtc/label';
 import { ASTBase } from 'src/ast/base';
@@ -15,34 +15,24 @@ export class Runtime implements Searchable {
 	public unlinkedDeletes: DeleteNode[] = [];
 	public rootNode: Node = new Node('/');
 
-	getDeepestAstNode(file: string, position: Position): SearchableResult {
-		// return this.rootNode.getDeepestAstNode(file, position) ?? ;
-		const inNode = [...this.roots, ...this.referances, ...this.unlinkedDeletes].find((i) =>
+	getDeepestAstNode(file: string, position: Position): SearchableResult | undefined {
+		const dtcNode = [...this.roots, ...this.referances, ...this.unlinkedDeletes].find((i) =>
 			positionInBetween(i, file, position)
 		);
 
-		let _node: Node | undefined;
-		const getNode = () => {
-			return _node ?? this.rootNode;
-		};
-
-		if (inNode instanceof DtcRefNode) {
-			_node = this.rootNode.getReferenceBy(inNode);
-		}
-
-		if (inNode) {
-			let deepestAstNode: ASTBase | undefined = inNode;
-			let next: ASTBase | undefined = inNode;
-			while (next) {
-				deepestAstNode = next;
-				next = deepestAstNode.children
-					.reverse()
-					.find((c) => positionInBetween(c, file, position));
-			}
-
+		if (dtcNode instanceof DtcRefNode) {
+			const refByNode = this.rootNode.getReferenceBy(dtcNode);
+			const result = refByNode?.getDeepestAstNode(file, position);
+			return result ? { ...result, runtime: this } : undefined;
+		} else if (dtcNode instanceof DtcRootNode && dtcNode.path) {
+			const result = this.rootNode.getDeepestAstNode(file, position);
+			return result ? { ...result, runtime: this } : undefined;
+		} else if (dtcNode) {
+			// unlinkedDeletes
 			return {
-				item: getNode(),
-				ast: deepestAstNode,
+				runtime: this,
+				item: null,
+				ast: getDeepestAstNodeInBetween(dtcNode, file, position),
 			};
 		}
 

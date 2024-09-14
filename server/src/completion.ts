@@ -11,24 +11,36 @@ import { ASTBase } from './ast/base';
 import { DeleteBase } from './ast/dtc/delete';
 import { Keyword } from './ast/keyword';
 import { PropertyName } from './ast/dtc/property';
-import { NodeName } from './ast/dtc/node';
+import { DtcChildNode, DtcRefNode, DtcRootNode, NodeName } from './ast/dtc/node';
 import { DeleteNode } from './ast/dtc/deleteNode';
 import { LabelAssign } from './ast/dtc/label';
 
 function getDeleteNodeRefItems(
-	result: SearchableResult,
+	result: SearchableResult | undefined,
 	inScope: (ast: ASTBase) => boolean
 ): CompletionItem[] {
 	const isNodeDeleteChild = (ast?: ASTBase): boolean => {
 		if (!ast) return false;
-		return ast.parentNode instanceof DeleteNode ? true : isNodeDeleteChild(ast.parentNode);
+		return ast instanceof DeleteNode ? true : isNodeDeleteChild(ast.parentNode);
+	};
+
+	const isRefDeleteNode = (ast?: ASTBase): boolean => {
+		if (!ast) return true;
+		if (
+			ast.parentNode instanceof DtcRefNode ||
+			ast.parentNode instanceof DtcRootNode ||
+			ast.parentNode instanceof DtcChildNode
+		) {
+			return false;
+		}
+		return isRefDeleteNode(ast.parentNode);
 	};
 
 	if (
 		!result ||
-		!(result.item instanceof Node) ||
-		!!result.item.parent ||
-		!isNodeDeleteChild(result.ast)
+		result.item !== null ||
+		!isNodeDeleteChild(result.ast) ||
+		!isRefDeleteNode(result.ast)
 	) {
 		return [];
 	}
@@ -48,7 +60,7 @@ function getDeleteNodeRefItems(
 	};
 
 	if (result.ast instanceof Keyword) {
-		if (getScopeItems(result.item).length) {
+		if (getScopeItems(result.runtime.rootNode).length) {
 			return [
 				{
 					label: '/delete-node/ ',
@@ -59,22 +71,19 @@ function getDeleteNodeRefItems(
 		return [];
 	}
 
-	return Array.from(new Set(getScopeItems(result.item).map((l) => l.label))).map((l) => ({
+	return Array.from(
+		new Set(getScopeItems(result.runtime.rootNode).map((l) => l.label))
+	).map((l) => ({
 		label: `${l};`,
 		kind: CompletionItemKind.Variable,
 	}));
 }
 
 function getDeleteNodeNameItems(
-	result: SearchableResult,
+	result: SearchableResult | undefined,
 	inScope: (ast: ASTBase) => boolean
 ): CompletionItem[] {
-	if (
-		!result ||
-		!(result.item instanceof Node) ||
-		!result.item.parent ||
-		!(result.ast.parentNode instanceof DeleteBase)
-	) {
+	if (!result || !(result.item instanceof Node) || result.item === null) {
 		return [];
 	}
 
@@ -83,7 +92,9 @@ function getDeleteNodeNameItems(
 			...node.nodes,
 			...node.deletedNodes.filter((n) => !inScope(n.by)).map((n) => n.node),
 		]
-			.flatMap((n) => n.definitons)
+			.flatMap(
+				(n) => n.definitons.filter((n) => n instanceof DtcChildNode) as DtcChildNode[]
+			)
 			.filter((n) => inScope(n));
 	};
 
@@ -112,7 +123,7 @@ function getDeleteNodeNameItems(
 }
 
 function getDeletePropertyItems(
-	result: SearchableResult,
+	result: SearchableResult | undefined,
 	inScope: (ast: ASTBase) => boolean
 ): CompletionItem[] {
 	if (

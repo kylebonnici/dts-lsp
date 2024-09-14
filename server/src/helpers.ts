@@ -47,3 +47,19 @@ export const positionInBetween = (
 				ast.tokenIndexes.end.pos.col + ast.tokenIndexes.end.pos.len >= position.character))
 	);
 };
+
+export const getDeepestAstNodeInBetween = (
+	ast: ASTBase,
+	file: string,
+	position: Position
+) => {
+	let deepestAstNode: ASTBase | undefined = ast;
+	let next: ASTBase | undefined = ast;
+	while (next) {
+		deepestAstNode = next;
+		next = deepestAstNode.children
+			.reverse()
+			.find((c) => positionInBetween(c, file, position));
+	}
+	return deepestAstNode;
+};
