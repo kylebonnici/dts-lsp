@@ -157,7 +157,7 @@ export function getCompleteions(
 ): CompletionItem[] {
 	const meta = astMap.get(location.textDocument.uri);
 	if (meta) {
-		const locationMeta = context.rootNode.getDeepestAstNode(
+		const locationMeta = context.runtime.rootNode.getDeepestAstNode(
 			location.textDocument.uri,
 			location.position
 		);

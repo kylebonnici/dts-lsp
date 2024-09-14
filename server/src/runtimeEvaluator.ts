@@ -17,17 +17,18 @@ import { DeleteNode } from './ast/dtc/deleteNode';
 import { LabelRef } from './ast/dtc/labelRef';
 import { Node } from './context/node';
 import { Property } from './context/property';
+import { Runtime } from './context/runtime';
 
 export class ContextAware {
 	_issues: Issue<ContextIssues>[] = [];
-	public readonly rootNode: Node = new Node('/');
+	public readonly runtime = new Runtime();
 
 	constructor(public readonly fileMap: string[]) {
 		this.process();
 		this.reportLabelIssues();
 	}
 	get issues() {
-		return [...this.rootNode.issues, ...this._issues];
+		return [...this.runtime.issues, ...this._issues];
 	}
 
 	private reportLabelIssues() {
@@ -40,7 +41,7 @@ export class ContextAware {
 			}[]
 		>();
 
-		this.rootNode.allDescendantsLabelsMapped.forEach((item) => {
+		this.runtime.rootNode.allDescendantsLabelsMapped.forEach((item) => {
 			if (!lablesUsed.has(item.label.label)) {
 				lablesUsed.set(item.label.label, [item]);
 			} else {
@@ -95,7 +96,7 @@ export class ContextAware {
 
 	private processRoot(element: DtcBaseNode) {
 		element.children.forEach((child) => {
-			this.processChild(child, this.rootNode);
+			this.processChild(child, this.runtime.rootNode);
 		});
 	}
 
@@ -143,15 +144,17 @@ export class ContextAware {
 	}
 
 	private processDtcRootNode(element: DtcRootNode) {
-		this.rootNode.roots.push(element);
-		this.checkNodeUniqueNames(element, this.rootNode);
-		element.children.forEach((child) => this.processChild(child, this.rootNode));
+		this.runtime.roots.push(element);
+		this.checkNodeUniqueNames(element, this.runtime.rootNode);
+		element.children.forEach((child) => this.processChild(child, this.runtime.rootNode));
 	}
 
 	private processDtcChildNode(element: DtcChildNode, runtimeNodeParent: Node) {
 		if (element.name?.name) {
 			const resolvedPath = element.path ? this.resolvePath(element.path) : undefined;
-			const runtimeNode = resolvedPath ? this.rootNode.getChild(resolvedPath) : undefined;
+			const runtimeNode = resolvedPath
+				? this.runtime.rootNode.getChild(resolvedPath)
+				: undefined;
 
 			const child = runtimeNode ?? new Node(element.name.toString(), runtimeNodeParent);
 			child.definitons.push(element);
@@ -175,9 +178,9 @@ export class ContextAware {
 					this.genIssue(ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE, element)
 				);
 			} else {
-				runtimeNode = this.rootNode.getChild(resolvedPath);
+				runtimeNode = this.runtime.rootNode.getChild(resolvedPath);
 				runtimeNode?.referancesBy.push(element);
-				this.rootNode?.referances.push(element);
+				this.runtime.referances.push(element);
 				if (runtimeNode) {
 					this.checkNodeUniqueNames(element, runtimeNode);
 				}
@@ -213,16 +216,16 @@ export class ContextAware {
 
 			let runtimeNode: Node | undefined;
 			if (!resolvedPath) {
-				this.rootNode.unlinkedDeletes.push(element);
+				this.runtime.unlinkedDeletes.push(element);
 				this._issues.push(
 					this.genIssue(ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE, element)
 				);
 			} else {
-				runtimeNode = this.rootNode.getChild(resolvedPath);
+				runtimeNode = this.runtime.rootNode.getChild(resolvedPath);
 				runtimeNode?.parent?.deleteNode(runtimeNode.name, element);
 			}
 		} else {
-			this.rootNode.unlinkedDeletes.push(element);
+			this.runtime.unlinkedDeletes.push(element);
 		}
 		element.children.forEach((child) => this.processChild(child, runtimeNodeParent));
 	}
@@ -247,13 +250,13 @@ export class ContextAware {
 			return path;
 		}
 
-		const allLabels = this.rootNode.allDescendantsLabels;
+		const allLabels = this.runtime.rootNode.allDescendantsLabels;
 
 		const childNodeParent = allLabels.find(
 			(l) =>
 				l.parentNode instanceof DtcChildNode &&
 				l.parentNode.path &&
-				this.rootNode
+				this.runtime.rootNode
 					.getChild(l.parentNode.path)
 					?.labels.some((ll) => ll.label === path?.[0].slice(1))
 		)?.parentNode as DtcChildNode | undefined;

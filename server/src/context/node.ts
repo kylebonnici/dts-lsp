@@ -9,11 +9,8 @@ import { LabelAssign } from '../ast/dtc/label';
 import { ASTBase } from 'src/ast/base';
 
 export class Node implements Searchable {
-	public roots: DtcRootNode[] = [];
-	public referances: DtcRefNode[] = [];
 	public referancesBy: DtcRefNode[] = [];
 	public definitons: DtcChildNode[] = [];
-	public unlinkedDeletes: DeleteNode[] = [];
 	private _properties: Property[] = [];
 	private _deletedProperties: { property: Property; by: DeleteProperty }[] = [];
 	private _deletedNodes: { node: Node; by: DeleteNode }[] = [];
@@ -23,7 +20,7 @@ export class Node implements Searchable {
 		parent?.addNode(this);
 	}
 
-	private getReferenceBy(node: DtcRefNode): Node | undefined {
+	public getReferenceBy(node: DtcRefNode): Node | undefined {
 		if (this.referancesBy.some((n) => n === node)) {
 			return this;
 		}
@@ -34,12 +31,7 @@ export class Node implements Searchable {
 	}
 
 	getDeepestAstNode(file: string, position: Position): SearchableResult {
-		const inNode = [
-			...this.roots,
-			...this.definitons,
-			...this.referances,
-			...this.unlinkedDeletes,
-		].find((i) => positionInBetween(i, file, position));
+		const inNode = this.definitons.find((i) => positionInBetween(i, file, position));
 
 		let _node: Node | undefined;
 		const getNode = () => {
