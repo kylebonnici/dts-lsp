@@ -124,12 +124,15 @@ function getDeletePropertyItems(
 	}
 
 	const getSopeItems = (node: Node) => {
-		return node.properties
+		return [
+			...node.properties,
+			...node.deletedProperties.filter((n) => !inScope(n.by)).map((n) => n.property),
+		]
 			.flatMap((p) => [p, ...p.allReplaced])
 			.filter((p) => inScope(p.ast));
 	};
 
-	if (result.ast instanceof PropertyName) {
+	if (result.ast instanceof Keyword) {
 		if (getSopeItems(result.item).length) {
 			return [
 				{
@@ -141,7 +144,7 @@ function getDeletePropertyItems(
 		return [];
 	}
 
-	if (result.ast instanceof NodeName) {
+	if (result.ast instanceof PropertyName) {
 		return Array.from(new Set(getSopeItems(result.item).map((p) => p.name))).map((p) => ({
 			label: `${p};`,
 			kind: CompletionItemKind.Variable,
@@ -157,7 +160,7 @@ export function getCompleteions(
 ): CompletionItem[] {
 	const meta = astMap.get(location.textDocument.uri);
 	if (meta) {
-		const locationMeta = context.runtime.rootNode.getDeepestAstNode(
+		const locationMeta = context.runtime.getDeepestAstNode(
 			location.textDocument.uri,
 			location.position
 		);

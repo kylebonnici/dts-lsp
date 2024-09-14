@@ -170,6 +170,10 @@ export class Node implements Searchable {
 		return this._properties;
 	}
 
+	get deletedProperties() {
+		return this._deletedProperties;
+	}
+
 	get nodes() {
 		return this._nodes;
 	}
