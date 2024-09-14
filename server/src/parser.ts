@@ -275,6 +275,7 @@ export class Parser {
 		let expectedNode = false;
 		if (ref && child instanceof DtcRefNode) {
 			child.labelReferance = ref;
+			expectedNode = true;
 		} else if (name && child instanceof DtcChildNode) {
 			expectedNode = !!name.address;
 			child.name = name;
@@ -304,7 +305,7 @@ export class Parser {
 
 		child.tokenIndexes = {
 			start: labels.at(0)?.tokenIndexes?.start ?? (ref ?? name)?.tokenIndexes?.start,
-			end: lastToken ?? this.prevToken,
+			end: lastToken ?? this.prevToken ?? (ref ?? name)?.tokenIndexes?.end,
 		};
 
 		this.mergeStack();
@@ -816,6 +817,7 @@ export class Parser {
 			const node = new LabelRef(null);
 			this.issues.push(this.genIssue(SyntaxIssue.LABEL_NAME, slxBase ?? node));
 			node.tokenIndexes = { start: firstToken, end: firstToken };
+			this.moveToNextToken;
 
 			this.mergeStack();
 			return node;

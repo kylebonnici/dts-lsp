@@ -131,14 +131,19 @@ export class ContextAware {
 				this._issues.push(
 					this.genIssue(ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE, element)
 				);
+				this.runtime.unlinkedRefNodes.push(element);
 			} else {
 				runtimeNode = this.runtime.rootNode.getChild(resolvedPath);
 				runtimeNode?.referancesBy.push(element);
-				this.runtime.referances.push(element);
 				if (runtimeNode) {
+					this.runtime.referances.push(element);
 					this.checkNodeUniqueNames(element, runtimeNode);
+				} else {
+					this.runtime.unlinkedRefNodes.push(element);
 				}
 			}
+		} else {
+			this.runtime.unlinkedRefNodes.push(element);
 		}
 
 		element.children.forEach((child) =>

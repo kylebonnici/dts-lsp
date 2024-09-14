@@ -13,17 +13,28 @@ export class Runtime implements Searchable {
 	public roots: DtcRootNode[] = [];
 	public referances: DtcRefNode[] = [];
 	public unlinkedDeletes: DeleteNode[] = [];
+	public unlinkedRefNodes: DtcRefNode[] = [];
 	public rootNode: Node = new Node('/');
 
 	getDeepestAstNode(file: string, position: Position): SearchableResult | undefined {
-		const dtcNode = [...this.roots, ...this.referances, ...this.unlinkedDeletes].find((i) =>
-			positionInBetween(i, file, position)
-		);
+		const dtcNode = [
+			...this.roots,
+			...this.referances,
+			...this.unlinkedDeletes,
+			...this.unlinkedRefNodes,
+		].find((i) => positionInBetween(i, file, position));
 
 		if (dtcNode instanceof DtcRefNode) {
 			const refByNode = this.rootNode.getReferenceBy(dtcNode);
 			const result = refByNode?.getDeepestAstNode(file, position);
-			return result ? { ...result, runtime: this } : undefined;
+			if (result) {
+				return { ...result, runtime: this };
+			}
+			return {
+				item: null,
+				runtime: this,
+				ast: getDeepestAstNodeInBetween(dtcNode, file, position),
+			};
 		} else if (dtcNode instanceof DtcRootNode && dtcNode.path) {
 			const result = this.rootNode.getDeepestAstNode(file, position);
 			return result ? { ...result, runtime: this } : undefined;

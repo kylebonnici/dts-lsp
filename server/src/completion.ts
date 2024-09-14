@@ -16,6 +16,42 @@ import { DeleteNode } from './ast/dtc/deleteNode';
 import { LabelAssign } from './ast/dtc/label';
 import { NodePath } from './ast/dtc/values/nodePath';
 import { Property } from './context/property';
+import { LabelRef } from './ast/dtc/labelRef';
+
+function getCreateNodeRefItems(
+	result: SearchableResult | undefined,
+	inScope: (ast: ASTBase) => boolean
+): CompletionItem[] {
+	if (
+		!result ||
+		result.item !== null ||
+		!(result.ast instanceof LabelRef) ||
+		!(result.ast.parentNode instanceof DtcRefNode)
+	) {
+		return [];
+	}
+
+	const resolveNonDeletedScopedLabels = (node: Node): LabelAssign[] => {
+		return [
+			...node.labels.filter(inScope),
+			...node.deletedNodes
+				.filter((n) => !inScope(n.by))
+				.flatMap((n) => resolveNonDeletedScopedLabels(n.node)),
+			...node.nodes.flatMap(resolveNonDeletedScopedLabels),
+		];
+	};
+
+	const getScopeItems = (node: Node) => {
+		return resolveNonDeletedScopedLabels(node).filter((l) => inScope(l));
+	};
+
+	return Array.from(
+		new Set(getScopeItems(result.runtime.rootNode).map((l) => l.label))
+	).map((l) => ({
+		label: `${l} {\n\t\n};`,
+		kind: CompletionItemKind.Method,
+	}));
+}
 
 function getDeleteNodeRefItems(
 	result: SearchableResult | undefined,
@@ -238,6 +274,7 @@ export function getCompleteions(
 			...getDeleteNodeNameItems(locationMeta, inScope),
 			...getDeleteNodeRefItems(locationMeta, inScope),
 			...getNodeRefPathsItems(locationMeta, inScope),
+			...getCreateNodeRefItems(locationMeta, inScope),
 		];
 	}
 
