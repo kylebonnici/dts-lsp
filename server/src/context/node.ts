@@ -8,6 +8,7 @@ import { DiagnosticSeverity, DiagnosticTag, Position } from 'vscode-languageserv
 import { LabelAssign } from '../ast/dtc/label';
 import { LabelValue } from '../ast/dtc/types';
 import { NodePathValue } from '../ast/dtc/values/nodePath';
+import { ASTBase } from '../ast/base';
 
 export class Node {
 	public referancesBy: DtcRefNode[] = [];
@@ -258,5 +259,16 @@ export class Node {
 		path.splice(0, 1);
 		const myChild = this._nodes.find((node) => node.name === path[0]);
 		return myChild?.getChild(path);
+	}
+
+	getChildFromScope(path: string[], inScope: (ast: ASTBase) => boolean): Node | undefined {
+		if (path.length === 1 && path[0] === this.name) return this;
+		if (path[0] !== this.name) return undefined;
+		path.splice(0, 1);
+		const myChild = [
+			...this._nodes,
+			...this._deletedNodes.filter((n) => !inScope(n.by)).map((n) => n.node),
+		].find((node) => node.name === path[0]);
+		return myChild?.getChildFromScope(path, inScope);
 	}
 }

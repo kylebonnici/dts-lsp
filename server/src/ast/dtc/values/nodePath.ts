@@ -10,12 +10,6 @@ export class NodePath extends ASTBase {
 
 	constructor() {
 		super();
-		this.docSymbolsMeta = {
-			name: this._pathParts.join('/'),
-			kind: SymbolKind.Key,
-		};
-		this.semanticTokenType = 'variable';
-		this.semanticTokenModifiers = 'declaration';
 	}
 
 	addPath(part: NodeName | null) {
@@ -31,12 +25,9 @@ export class NodePath extends ASTBase {
 export class NodePathRef extends ASTBase {
 	constructor(public readonly path: NodePath | null) {
 		super();
-		this.docSymbolsMeta = {
-			name: 'Node Path Referance',
-			kind: SymbolKind.Variable,
-		};
 		this.semanticTokenType = 'variable';
 		this.semanticTokenModifiers = 'declaration';
+		this.addChild(path);
 	}
 }
 
@@ -46,10 +37,7 @@ export class NodePathValue extends ASTBase {
 		public readonly labels: LabelAssign[]
 	) {
 		super();
-		this.docSymbolsMeta = {
-			name: 'Node Path',
-			kind: SymbolKind.Variable,
-		};
+		this.addChild(path);
 		this.labels.forEach((label) => {
 			this.addChild(label);
 		});

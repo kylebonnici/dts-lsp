@@ -2,7 +2,7 @@
 import { DtcProperty } from '../ast/dtc/property';
 import { ContextIssues, Issue, Searchable, SearchableResult } from '../types';
 import { DiagnosticSeverity, DiagnosticTag, Position } from 'vscode-languageserver';
-import { positionInBetween } from '../helpers';
+import { getDeepestAstNodeInBetween, positionInBetween } from '../helpers';
 import { LabelAssign } from '../ast/dtc/label';
 import { LabelRefValue } from '../ast/dtc/values/labelRef';
 import { LabelRef } from '../ast/dtc/labelRef';
@@ -14,11 +14,9 @@ export class Property {
 	constructor(public readonly ast: DtcProperty) {}
 
 	getDeepestAstNode(file: string, position: Position): Omit<SearchableResult, 'runtime'> {
-		const found = this.ast.children.find((i) => positionInBetween(i, file, position));
-
 		return {
 			item: this,
-			ast: found ?? this.ast,
+			ast: getDeepestAstNodeInBetween(this.ast, file, position),
 		};
 	}
 

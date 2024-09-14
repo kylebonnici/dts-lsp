@@ -14,6 +14,8 @@ import { PropertyName } from './ast/dtc/property';
 import { DtcChildNode, DtcRefNode, DtcRootNode, NodeName } from './ast/dtc/node';
 import { DeleteNode } from './ast/dtc/deleteNode';
 import { LabelAssign } from './ast/dtc/label';
+import { NodePath } from './ast/dtc/values/nodePath';
+import { Property } from './context/property';
 
 function getDeleteNodeRefItems(
 	result: SearchableResult | undefined,
@@ -165,6 +167,41 @@ function getDeletePropertyItems(
 	return [];
 }
 
+function getNodeRefPathsItems(
+	result: SearchableResult | undefined,
+	inScope: (ast: ASTBase) => boolean
+): CompletionItem[] {
+	if (!result || !(result.item instanceof Property) || !(result.ast instanceof NodePath)) {
+		return [];
+	}
+
+	const nodePath = result.ast.pathParts.slice(0, -1).map((p) => p!.value);
+
+	if (nodePath.some((p) => !p)) {
+		return [];
+	}
+
+	const getSopeItems = () => {
+		const parentNode = result.runtime.rootNode.getChildFromScope(
+			['/', ...nodePath],
+			inScope
+		);
+
+		return (
+			[
+				...(parentNode?.nodes ?? []),
+				...(parentNode?.deletedNodes.filter((n) => !inScope(n.by)).map((n) => n.node) ??
+					[]),
+			].map((n) => n.name) ?? []
+		);
+	};
+
+	return getSopeItems().map((p) => ({
+		label: `/${[...nodePath, p].join('/')}`,
+		kind: CompletionItemKind.Variable,
+	}));
+}
+
 export function getCompleteions(
 	location: TextDocumentPositionParams,
 	context: ContextAware
@@ -200,6 +237,7 @@ export function getCompleteions(
 			...getDeletePropertyItems(locationMeta, inScope),
 			...getDeleteNodeNameItems(locationMeta, inScope),
 			...getDeleteNodeRefItems(locationMeta, inScope),
+			...getNodeRefPathsItems(locationMeta, inScope),
 		];
 	}
 
