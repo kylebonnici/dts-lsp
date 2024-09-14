@@ -1,4 +1,4 @@
-import { DtcChildNode, DtcRefNode, DtcRootNode } from '../ast/dtc/node';
+import { DtcChildNode, DtcRefNode, DtcRootNode, NodeName } from '../ast/dtc/node';
 import { ContextIssues, Issue, Searchable, SearchableResult } from '../types';
 import { Property } from './property';
 import { DeleteProperty } from '../ast/dtc/deleteProperty';
@@ -39,8 +39,46 @@ export class Runtime implements Searchable {
 		return;
 	}
 
+	resolvePath(path: string[]): string[] | undefined {
+		if (!path?.[0].startsWith('&')) {
+			return path;
+		}
+
+		const allLabels = this.rootNode.allDescendantsLabels;
+
+		const childNodeParent = allLabels.find(
+			(l) =>
+				l.parentNode instanceof DtcChildNode &&
+				l.parentNode.path &&
+				this.rootNode
+					.getChild(l.parentNode.path)
+					?.labels.some((ll) => ll.label === path?.[0].slice(1))
+		)?.parentNode as DtcChildNode | undefined;
+
+		if (childNodeParent?.path) {
+			return this.resolvePath([...childNodeParent.path, ...path.slice(1)]);
+		}
+
+		const refNodeParent = allLabels.find(
+			(l) =>
+				l.parentNode instanceof DtcRefNode &&
+				l.parentNode.labelReferance?.label?.value === path?.[0].slice(1)
+		)?.parentNode as DtcRefNode | undefined;
+
+		if (refNodeParent && refNodeParent.labelReferance?.label?.value) {
+			return this.resolvePath([refNodeParent.pathName]);
+		}
+
+		return;
+	}
+
 	get issues(): Issue<ContextIssues>[] {
-		return [...this.labelIssues(), ...this.rootNode.issues];
+		return [
+			...this.labelIssues(),
+			...this.nodeRefIssues(),
+			...this.nodePathRefIssues(),
+			...this.rootNode.issues,
+		];
 	}
 
 	private labelIssues() {
@@ -85,6 +123,61 @@ export class Runtime implements Searchable {
 							otherOwners.slice(1).map((o) => o.label),
 							[],
 							[otherOwners.at(0)!.label.label]
+						)
+					);
+				}
+			}
+		});
+
+		return issues;
+	}
+
+	private nodeRefIssues() {
+		const issues: Issue<ContextIssues>[] = [];
+
+		const allRef = this.rootNode.nodeRefValues;
+
+		allRef.forEach((ref) => {
+			const resolved = this.resolvePath([`&${ref.label}`]);
+			if (!resolved) {
+				issues.push(this.genIssue(ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE, ref.ast));
+			}
+		});
+
+		return issues;
+	}
+
+	private nodePathRefIssues() {
+		const issues: Issue<ContextIssues>[] = [];
+
+		const allPaths = this.rootNode.nodePathRefValues;
+
+		allPaths.forEach((ref) => {
+			const pathParts = ref.path?.path?.pathParts;
+			if (pathParts && pathParts.every((p) => p?.value)) {
+				const completeParts = pathParts as NodeName[];
+				const okParts: string[] = [];
+				const failed = pathParts.find((p, i) => {
+					const child = this.rootNode.getChild([
+						'/',
+						...completeParts.slice(0, i + 1).map((p) => p.value),
+					]);
+
+					if (child) {
+						okParts.push(p!.value);
+					}
+
+					return !child;
+				});
+				if (failed) {
+					issues.push(
+						this.genIssue(
+							ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH,
+							failed,
+							DiagnosticSeverity.Error,
+							[],
+							[],
+							[failed.value, okParts.join('/')]
 						)
 					);
 				}

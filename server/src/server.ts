@@ -244,6 +244,8 @@ const contextIssuesToMessage = (issue: Issue<ContextIssues>) => {
 					return 'Node name already defined';
 				case ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE:
 					return 'No node with that referance has been defined';
+				case ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH:
+					return `No node with name "${issue.templateStrings[0]}" could be found in "/${issue.templateStrings[1]}".`;
 				case ContextIssues.LABEL_ALREADY_IN_USE:
 					return `Label name "${issue.templateStrings[0]}" aready defined`;
 				case ContextIssues.DELETE_PROPERTY:

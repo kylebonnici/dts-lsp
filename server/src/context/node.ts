@@ -6,7 +6,8 @@ import { DeleteNode } from '../ast/dtc/deleteNode';
 import { getDeepestAstNodeInBetween, positionInBetween } from '../helpers';
 import { DiagnosticSeverity, DiagnosticTag, Position } from 'vscode-languageserver';
 import { LabelAssign } from '../ast/dtc/label';
-import { ASTBase } from 'src/ast/base';
+import { LabelValue } from '../ast/dtc/types';
+import { NodePathValue } from '../ast/dtc/values/nodePath';
 
 export class Node {
 	public referancesBy: DtcRefNode[] = [];
@@ -70,6 +71,20 @@ export class Node {
 		}
 
 		return;
+	}
+
+	get nodeRefValues(): LabelValue[] {
+		return [
+			...this.properties.flatMap((p) => p.nodeRefValues),
+			...this.nodes.flatMap((n) => n.nodeRefValues),
+		];
+	}
+
+	get nodePathRefValues(): NodePathValue[] {
+		return [
+			...this.properties.flatMap((p) => p.nodePathRefValues),
+			...this.nodes.flatMap((n) => n.nodePathRefValues),
+		];
 	}
 
 	get labels(): LabelAssign[] {

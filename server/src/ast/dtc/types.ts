@@ -13,3 +13,5 @@ export type AllValueType =
 	| NumberValues
 	| LabelRef
 	| null;
+
+export type LabelValue = { ast: LabelRef | LabelRefValue; label: string };

@@ -12,7 +12,6 @@ import { DtcProperty } from './ast/dtc/property';
 import { astMap } from './resultCache';
 import { ContextIssues, Issue } from './types';
 import { DeleteProperty } from './ast/dtc/deleteProperty';
-import { LabelAssign } from './ast/dtc/label';
 import { DeleteNode } from './ast/dtc/deleteNode';
 import { LabelRef } from './ast/dtc/labelRef';
 import { Node } from './context/node';
@@ -104,7 +103,9 @@ export class ContextAware {
 
 	private processDtcChildNode(element: DtcChildNode, runtimeNodeParent: Node) {
 		if (element.name?.name) {
-			const resolvedPath = element.path ? this.resolvePath(element.path) : undefined;
+			const resolvedPath = element.path
+				? this.runtime.resolvePath(element.path)
+				: undefined;
 			const runtimeNode = resolvedPath
 				? this.runtime.rootNode.getChild(resolvedPath)
 				: undefined;
@@ -124,7 +125,7 @@ export class ContextAware {
 
 		if (element.labelReferance) {
 			const resolvedPath = element.pathName
-				? this.resolvePath([element.pathName])
+				? this.runtime.resolvePath([element.pathName])
 				: undefined;
 			if (!resolvedPath) {
 				this._issues.push(
@@ -165,7 +166,7 @@ export class ContextAware {
 				}
 			}
 		} else if (element.nodeNameOrRef instanceof LabelRef && element.nodeNameOrRef.value) {
-			const resolvedPath = this.resolvePath([`&${element.nodeNameOrRef.value}`]);
+			const resolvedPath = this.runtime.resolvePath([`&${element.nodeNameOrRef.value}`]);
 
 			let runtimeNode: Node | undefined;
 			if (!resolvedPath) {
@@ -196,39 +197,6 @@ export class ContextAware {
 		}
 
 		element.children.forEach((child) => this.processChild(child, runtimeNodeParent));
-	}
-
-	private resolvePath(path: string[]): string[] | undefined {
-		if (!path?.[0].startsWith('&')) {
-			return path;
-		}
-
-		const allLabels = this.runtime.rootNode.allDescendantsLabels;
-
-		const childNodeParent = allLabels.find(
-			(l) =>
-				l.parentNode instanceof DtcChildNode &&
-				l.parentNode.path &&
-				this.runtime.rootNode
-					.getChild(l.parentNode.path)
-					?.labels.some((ll) => ll.label === path?.[0].slice(1))
-		)?.parentNode as DtcChildNode | undefined;
-
-		if (childNodeParent?.path) {
-			return this.resolvePath([...childNodeParent.path, ...path.slice(1)]);
-		}
-
-		const refNodeParent = allLabels.find(
-			(l) =>
-				l.parentNode instanceof DtcRefNode &&
-				l.parentNode.labelReferance?.label?.value === path?.[0].slice(1)
-		)?.parentNode as DtcRefNode | undefined;
-
-		if (refNodeParent && refNodeParent.labelReferance?.label?.value) {
-			return this.resolvePath([refNodeParent.pathName]);
-		}
-
-		return;
 	}
 
 	private genIssue = (

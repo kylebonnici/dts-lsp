@@ -50,6 +50,7 @@ export enum ContextIssues {
 	NODE_DOES_NOT_EXIST,
 	DELETE_PROPERTY,
 	DELETE_NODE,
+	UNABLE_TO_RESOLVE_NODE_PATH,
 }
 
 export enum LexerToken {
