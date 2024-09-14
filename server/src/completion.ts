@@ -229,7 +229,7 @@ function getNodeRefPathsItems(
 		return [];
 	}
 
-	const nodePath = result.ast.pathParts.slice(0, -1).map((p) => p!.value);
+	const nodePath = result.ast.pathParts.slice(0, -1).map((p) => p!.toString());
 
 	if (nodePath.some((p) => !p)) {
 		return [];

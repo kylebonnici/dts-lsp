@@ -171,7 +171,7 @@ export class Runtime implements Searchable {
 				const failed = pathParts.find((p, i) => {
 					const child = this.rootNode.getChild([
 						'/',
-						...completeParts.slice(0, i + 1).map((p) => p.value),
+						...completeParts.slice(0, i + 1).map((p) => p.toString()),
 					]);
 
 					if (child) {
