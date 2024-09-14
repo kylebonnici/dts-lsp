@@ -17,6 +17,44 @@ import { LabelAssign } from './ast/dtc/label';
 import { NodePath } from './ast/dtc/values/nodePath';
 import { Property } from './context/property';
 import { LabelRef } from './ast/dtc/labelRef';
+import { LabelRefValue } from './ast/dtc/values/labelRef';
+
+const resolveNonDeletedScopedLabels = (
+	node: Node,
+	inScope: (ast: ASTBase) => boolean
+): LabelAssign[] => {
+	return [
+		...node.labels.filter(inScope),
+		...node.deletedNodes
+			.filter((n) => !inScope(n.by))
+			.flatMap((n) => resolveNonDeletedScopedLabels(n.node, inScope)),
+		...node.nodes.flatMap((n) => resolveNonDeletedScopedLabels(n, inScope)),
+	];
+};
+
+function getRefLabelsItems(
+	result: SearchableResult | undefined,
+	inScope: (ast: ASTBase) => boolean
+): CompletionItem[] {
+	if (
+		!result ||
+		!(result.item instanceof Property) ||
+		!(result.ast instanceof LabelRef || result.ast instanceof LabelRefValue)
+	) {
+		return [];
+	}
+
+	const getScopeItems = (node: Node) => {
+		return resolveNonDeletedScopedLabels(node, inScope).filter((l) => inScope(l));
+	};
+
+	return Array.from(
+		new Set(getScopeItems(result.runtime.rootNode).map((l) => l.label))
+	).map((l) => ({
+		label: `${l}`,
+		kind: CompletionItemKind.Method,
+	}));
+}
 
 function getCreateNodeRefItems(
 	result: SearchableResult | undefined,
@@ -31,18 +69,8 @@ function getCreateNodeRefItems(
 		return [];
 	}
 
-	const resolveNonDeletedScopedLabels = (node: Node): LabelAssign[] => {
-		return [
-			...node.labels.filter(inScope),
-			...node.deletedNodes
-				.filter((n) => !inScope(n.by))
-				.flatMap((n) => resolveNonDeletedScopedLabels(n.node)),
-			...node.nodes.flatMap(resolveNonDeletedScopedLabels),
-		];
-	};
-
 	const getScopeItems = (node: Node) => {
-		return resolveNonDeletedScopedLabels(node).filter((l) => inScope(l));
+		return resolveNonDeletedScopedLabels(node, inScope).filter((l) => inScope(l));
 	};
 
 	return Array.from(
@@ -83,18 +111,8 @@ function getDeleteNodeRefItems(
 		return [];
 	}
 
-	const resolveNonDeletedScopedLabels = (node: Node): LabelAssign[] => {
-		return [
-			...node.labels.filter(inScope),
-			...node.deletedNodes
-				.filter((n) => !inScope(n.by))
-				.flatMap((n) => resolveNonDeletedScopedLabels(n.node)),
-			...node.nodes.flatMap(resolveNonDeletedScopedLabels),
-		];
-	};
-
 	const getScopeItems = (node: Node) => {
-		return resolveNonDeletedScopedLabels(node).filter((l) => inScope(l));
+		return resolveNonDeletedScopedLabels(node, inScope).filter((l) => inScope(l));
 	};
 
 	if (result.ast instanceof Keyword) {
@@ -275,6 +293,7 @@ export function getCompleteions(
 			...getDeleteNodeRefItems(locationMeta, inScope),
 			...getNodeRefPathsItems(locationMeta, inScope),
 			...getCreateNodeRefItems(locationMeta, inScope),
+			...getRefLabelsItems(locationMeta, inScope),
 		];
 	}
 
