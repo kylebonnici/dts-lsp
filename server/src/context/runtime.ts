@@ -50,14 +50,73 @@ export class Runtime implements Searchable {
 	}
 
 	get issues(): Issue<ContextIssues>[] {
-		return this.rootNode.issues;
+		return [...this.labelIssues(), ...this.rootNode.issues];
 	}
 
-	get deletedPropertiesIssues(): Issue<ContextIssues>[] {
-		return this.rootNode.deletedPropertiesIssues;
+	private labelIssues() {
+		const issues: Issue<ContextIssues>[] = [];
+
+		const lablesUsed = new Map<
+			string,
+			{
+				label: LabelAssign;
+				owner: Property | Node | null;
+				skip?: boolean;
+			}[]
+		>();
+
+		this.rootNode.allDescendantsLabelsMapped.forEach((item) => {
+			if (!lablesUsed.has(item.label.label)) {
+				lablesUsed.set(item.label.label, [item]);
+			} else {
+				lablesUsed.get(item.label.label)?.push(item);
+			}
+		});
+
+		Array.from(lablesUsed).forEach((pair) => {
+			const otherOwners = pair[1];
+			if (otherOwners.length > 1) {
+				const firstLabeledNode = otherOwners.find((o) => o.owner instanceof Node);
+
+				const allSameOwner = otherOwners.every(
+					(owner) => owner && owner.owner === firstLabeledNode?.owner
+				);
+
+				if (!allSameOwner || !firstLabeledNode) {
+					const conflits = otherOwners.filter(
+						(owner) => !(owner && owner.owner === firstLabeledNode?.owner)
+					);
+
+					issues.push(
+						this.genIssue(
+							ContextIssues.LABEL_ALREADY_IN_USE,
+							otherOwners.at(0)!.label,
+							DiagnosticSeverity.Error,
+							otherOwners.slice(1).map((o) => o.label),
+							[],
+							[otherOwners.at(0)!.label.label]
+						)
+					);
+				}
+			}
+		});
+
+		return issues;
 	}
 
-	get deletedNodesIssues(): Issue<ContextIssues>[] {
-		return this.rootNode.deletedNodesIssues;
-	}
+	private genIssue = (
+		issue: ContextIssues | ContextIssues[],
+		slxBase: ASTBase,
+		severity: DiagnosticSeverity = DiagnosticSeverity.Error,
+		linkedTo: ASTBase[] = [],
+		tags: DiagnosticTag[] | undefined = undefined,
+		templateStrings: string[] = []
+	): Issue<ContextIssues> => ({
+		issues: Array.isArray(issue) ? issue : [issue],
+		astElement: slxBase,
+		severity,
+		linkedTo,
+		tags,
+		templateStrings,
+	});
 }

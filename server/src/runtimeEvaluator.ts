@@ -25,57 +25,9 @@ export class ContextAware {
 
 	constructor(public readonly fileMap: string[]) {
 		this.process();
-		this.reportLabelIssues();
 	}
 	get issues() {
 		return [...this.runtime.issues, ...this._issues];
-	}
-
-	private reportLabelIssues() {
-		const lablesUsed = new Map<
-			string,
-			{
-				label: LabelAssign;
-				owner: Property | Node | null;
-				skip?: boolean;
-			}[]
-		>();
-
-		this.runtime.rootNode.allDescendantsLabelsMapped.forEach((item) => {
-			if (!lablesUsed.has(item.label.label)) {
-				lablesUsed.set(item.label.label, [item]);
-			} else {
-				lablesUsed.get(item.label.label)?.push(item);
-			}
-		});
-
-		Array.from(lablesUsed).forEach((pair) => {
-			const otherOwners = pair[1];
-			if (otherOwners.length > 1) {
-				const firstLabeledNode = otherOwners.find((o) => o.owner instanceof Node);
-
-				const allSameOwner = otherOwners.every(
-					(owner) => owner && owner.owner === firstLabeledNode?.owner
-				);
-
-				if (!allSameOwner || !firstLabeledNode) {
-					const conflits = otherOwners.filter(
-						(owner) => !(owner && owner.owner === firstLabeledNode?.owner)
-					);
-
-					this._issues.push(
-						this.genIssue(
-							ContextIssues.LABEL_ALREADY_IN_USE,
-							otherOwners.at(-1)!.label,
-							DiagnosticSeverity.Error,
-							otherOwners.slice(0, -1).map((o) => o.label),
-							[],
-							[otherOwners.at(-1)!.label.label]
-						)
-					);
-				}
-			}
-		});
 	}
 
 	private process() {
