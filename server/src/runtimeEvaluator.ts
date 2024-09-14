@@ -64,7 +64,7 @@ export class ContextAware {
 	}
 
 	private checkNodeUniqueNames(element: DtcBaseNode, runtimeNodeParent: Node) {
-		const names = new Set<string>();
+		const names = new Set<string>(runtimeNodeParent.nodes.map((n) => n.name));
 		element.children.forEach((child) => {
 			if (child instanceof DtcChildNode && child.name) {
 				if (child.name && names.has(child.name.name)) {
@@ -73,7 +73,7 @@ export class ContextAware {
 
 				names.add(child.name.toString());
 			} else if (child instanceof DeleteNode && child.nodeNameOrRef instanceof NodeName) {
-				if (!runtimeNodeParent.hasNode(child.nodeNameOrRef.toString())) {
+				if (!names.has(child.nodeNameOrRef.toString())) {
 					this._issues.push(
 						this.genIssue(ContextIssues.NODE_DOES_NOT_EXIST, child.nodeNameOrRef)
 					);
