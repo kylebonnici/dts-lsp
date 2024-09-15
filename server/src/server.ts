@@ -21,7 +21,14 @@ import {
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Lexer } from './lexer';
 import { astMap } from './resultCache';
-import { ContextIssues, Issue, SyntaxIssue, tokenModifiers, tokenTypes } from './types';
+import {
+	ContextIssues,
+	Issue,
+	StandardTypeIssue,
+	SyntaxIssue,
+	tokenModifiers,
+	tokenTypes,
+} from './types';
 import { Parser } from './parser';
 import { toRange } from './helpers';
 import { ContextAware } from './runtimeEvaluator';
@@ -63,7 +70,7 @@ connection.onInitialize((params: InitializeParams) => {
 			// Tell the client that this server supports code completion.
 			completionProvider: {
 				resolveProvider: true,
-				triggerCharacters: ['&'],
+				triggerCharacters: ['&', '='],
 			},
 			diagnosticProvider: {
 				interFileDependencies: false,
@@ -276,6 +283,37 @@ const contextIssuesToLinkedMessage = (issue: ContextIssues) => {
 	}
 };
 
+const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
+	return issue.issues
+		.map((_issue) => {
+			switch (_issue) {
+				case StandardTypeIssue.EXPECTED_ENUM:
+					return `Only these value are allowed ${issue.templateStrings[0]}.`;
+				case StandardTypeIssue.EXPECTED_EMPTY:
+					return `Property "${issue.templateStrings[0]}" should not be assigned any value.`;
+				case StandardTypeIssue.EXPECTED_ONE:
+					return `Property "${issue.templateStrings[0]}" can only be assigned one value`;
+				case StandardTypeIssue.EXPECTED_U32:
+					return `Property "${issue.templateStrings[0]}" should be assiged a U32`;
+				case StandardTypeIssue.EXPECTED_U64:
+					return `Property "${issue.templateStrings[0]}" should be assiged a U64`;
+				case StandardTypeIssue.EXPECTED_PHANDEL:
+					return `Property "${issue.templateStrings[0]}" should be assiged a phandel`;
+				case StandardTypeIssue.EXPECTED_STRING:
+					return `Property "${issue.templateStrings[0]}" should be assiged a string`;
+				case StandardTypeIssue.EXPECTED_STRINGLIST:
+					return `Property "${issue.templateStrings[0]}" should be assiged a string list`;
+				case StandardTypeIssue.EXPECTED_COMPOSITE_LENGTH:
+					return `Property "${issue.templateStrings[0]}" expects ${issue.templateStrings[1]} values`;
+				case StandardTypeIssue.REQUIRED:
+					return `Property "${issue.templateStrings[0]}" is requiered.`;
+				case StandardTypeIssue.EXPECTED_U32_U64:
+					return `Property "${issue.templateStrings[0]}" value must be U32 or U64`;
+			}
+		})
+		.join(' or ');
+};
+
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent((change) => {
@@ -316,6 +354,17 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 					},
 				})),
 			],
+		};
+		diagnostics.push(diagnostic);
+	});
+
+	contextAware?.runtime.typesIssues.forEach((issue) => {
+		const diagnostic: Diagnostic = {
+			severity: issue.severity,
+			range: toRange(issue.astElement),
+			message: standardTypeIssueIssuesToMessage(issue),
+			source: 'devie tree',
+			tags: issue.tags,
 		};
 		diagnostics.push(diagnostic);
 	});

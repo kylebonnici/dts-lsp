@@ -1,12 +1,21 @@
 import { DtcChildNode, DtcRefNode, DtcRootNode, NodeName } from '../ast/dtc/node';
-import { ContextIssues, Issue, Searchable, SearchableResult } from '../types';
+import {
+	ContextIssues,
+	Issue,
+	Searchable,
+	SearchableResult,
+	StandardTypeIssue,
+} from '../types';
 import { Property } from './property';
-import { DeleteProperty } from '../ast/dtc/deleteProperty';
 import { DeleteNode } from '../ast/dtc/deleteNode';
-import { getDeepestAstNodeInBetween, positionInBetween } from '../helpers';
+import {
+	genIssue,
+	getDeepestAstNodeInBetween,
+	positionInBetween,
+	sortAstForScope,
+} from '../helpers';
 import { DiagnosticSeverity, DiagnosticTag, Position } from 'vscode-languageserver';
 import { LabelAssign } from '../ast/dtc/label';
-import { ASTBase } from 'src/ast/base';
 import { Node } from './node';
 
 export class Runtime implements Searchable {
@@ -15,6 +24,8 @@ export class Runtime implements Searchable {
 	public unlinkedDeletes: DeleteNode[] = [];
 	public unlinkedRefNodes: DtcRefNode[] = [];
 	public rootNode: Node = new Node('/');
+
+	constructor(private readonly fileOrder: string[]) {}
 
 	getDeepestAstNode(file: string, position: Position): SearchableResult | undefined {
 		const dtcNode = [
@@ -127,7 +138,7 @@ export class Runtime implements Searchable {
 					);
 
 					issues.push(
-						this.genIssue(
+						genIssue(
 							ContextIssues.LABEL_ALREADY_IN_USE,
 							otherOwners.at(0)!.label,
 							DiagnosticSeverity.Error,
@@ -151,11 +162,19 @@ export class Runtime implements Searchable {
 		allRef.forEach((ref) => {
 			const resolved = this.resolvePath([`&${ref.label}`]);
 			if (!resolved) {
-				issues.push(this.genIssue(ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE, ref.ast));
+				issues.push(genIssue(ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE, ref.ast));
 			}
 		});
 
 		return issues;
+	}
+
+	get typesIssues() {
+		const getIssue = (node: Node): Issue<StandardTypeIssue>[] => {
+			return [...node.nodeType.getIssue(this), ...node.nodes.flatMap((n) => getIssue(n))];
+		};
+
+		return getIssue(this.rootNode);
 	}
 
 	private nodePathRefIssues() {
@@ -182,7 +201,7 @@ export class Runtime implements Searchable {
 				});
 				if (failed) {
 					issues.push(
-						this.genIssue(
+						genIssue(
 							ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH,
 							failed,
 							DiagnosticSeverity.Error,
@@ -198,19 +217,7 @@ export class Runtime implements Searchable {
 		return issues;
 	}
 
-	private genIssue = (
-		issue: ContextIssues | ContextIssues[],
-		slxBase: ASTBase,
-		severity: DiagnosticSeverity = DiagnosticSeverity.Error,
-		linkedTo: ASTBase[] = [],
-		tags: DiagnosticTag[] | undefined = undefined,
-		templateStrings: string[] = []
-	): Issue<ContextIssues> => ({
-		issues: Array.isArray(issue) ? issue : [issue],
-		astElement: slxBase,
-		severity,
-		linkedTo,
-		tags,
-		templateStrings,
-	});
+	getOrderedNodeAst(node: Node) {
+		return sortAstForScope([...node.definitons, ...node.referancesBy], this.fileOrder);
+	}
 }

@@ -9,6 +9,7 @@ import { LabelAssign } from '../ast/dtc/label';
 import { LabelValue } from '../ast/dtc/types';
 import { NodePathValue } from '../ast/dtc/values/nodePath';
 import { ASTBase } from '../ast/base';
+import { getStandardType } from '../dtsTypes/standrdTypes';
 
 export class Node {
 	public referancesBy: DtcRefNode[] = [];
@@ -17,6 +18,7 @@ export class Node {
 	private _deletedProperties: { property: Property; by: DeleteProperty }[] = [];
 	private _deletedNodes: { node: Node; by: DeleteNode }[] = [];
 	private _nodes: Node[] = [];
+	public nodeType = getStandardType(this);
 
 	constructor(public readonly name: string, public readonly parent: Node | null = null) {
 		parent?.addNode(this);

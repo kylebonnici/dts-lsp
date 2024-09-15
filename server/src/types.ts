@@ -8,6 +8,20 @@ import { Node } from './context/node';
 import { Property } from './context/property';
 import { Runtime } from './context/runtime';
 
+export enum StandardTypeIssue {
+	REQUIRED,
+	EXPECTED_EMPTY,
+	EXPECTED_STRING,
+	EXPECTED_STRINGLIST,
+	EXPECTED_PHANDEL,
+	EXPECTED_COMPOSITE_LENGTH,
+	EXPECTED_U32,
+	EXPECTED_U64,
+	EXPECTED_U32_U64,
+	EXPECTED_ONE,
+	EXPECTED_ENUM,
+}
+
 export enum SyntaxIssue {
 	VALUE,
 	END_STATMENT,
@@ -110,6 +124,7 @@ export enum LexerToken {
 	LABEL_NAME,
 
 	UNKNOWN,
+	HEX_STRING,
 }
 
 export const tokenTypes = [
@@ -177,7 +192,8 @@ export type BuildSemanticTokensPush = (
 	tokenIndexes?: TokenIndexes
 ) => void;
 
-export interface Issue<T extends SyntaxIssue | ContextIssues> {
+export type IssueTypes = SyntaxIssue | ContextIssues | StandardTypeIssue;
+export interface Issue<T extends IssueTypes> {
 	issues: T[];
 	astElement: ASTBase;
 	severity?: DiagnosticSeverity;

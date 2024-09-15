@@ -1,6 +1,8 @@
-import { Position } from 'vscode-languageserver';
+import { DiagnosticSeverity, DiagnosticTag, Position } from 'vscode-languageserver';
 import { ASTBase } from './ast/base';
 import {
+	Issue,
+	IssueTypes,
 	SemanticTokenModifiers,
 	SemanticTokenType,
 	tokenModifiers,
@@ -62,4 +64,41 @@ export const getDeepestAstNodeInBetween = (
 			.find((c) => positionInBetween(c, file, position));
 	}
 	return deepestAstNode;
+};
+
+export const genIssue = <T extends IssueTypes>(
+	issue: T | T[],
+	slxBase: ASTBase,
+	severity: DiagnosticSeverity = DiagnosticSeverity.Error,
+	linkedTo: ASTBase[] = [],
+	tags: DiagnosticTag[] | undefined = undefined,
+	templateStrings: string[] = []
+): Issue<T> => ({
+	issues: Array.isArray(issue) ? issue : [issue],
+	astElement: slxBase,
+	severity,
+	linkedTo,
+	tags,
+	templateStrings,
+});
+
+export const sortAstForScope = (ast: ASTBase[], fileOrder: string[]) => {
+	return ast.sort((a, b) => {
+		const aFileIndex = fileOrder.findIndex((f) => a.uri);
+		const bFileIndex = fileOrder.findIndex((f) => b.uri);
+
+		if (aFileIndex !== bFileIndex) {
+			return aFileIndex - bFileIndex;
+		}
+
+		if (!a.tokenIndexes?.end || !b.tokenIndexes?.end) {
+			throw new Error('Must have token indexes');
+		}
+
+		if (a.tokenIndexes.end.pos.line !== b.tokenIndexes.end.pos.line) {
+			return a.tokenIndexes.end.pos.line - b.tokenIndexes.end.pos.line;
+		}
+
+		return a.tokenIndexes.end.pos.col - b.tokenIndexes.end.pos.col;
+	});
 };

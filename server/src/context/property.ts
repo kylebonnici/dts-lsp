@@ -8,10 +8,11 @@ import { LabelRefValue } from '../ast/dtc/values/labelRef';
 import { LabelRef } from '../ast/dtc/labelRef';
 import { AllValueType, LabelValue } from '../ast/dtc/types';
 import { NodePathValue } from '../ast/dtc/values/nodePath';
+import { type Node } from './node';
 
 export class Property {
 	replaces?: Property;
-	constructor(public readonly ast: DtcProperty) {}
+	constructor(public readonly ast: DtcProperty, public readonly parent: Node) {}
 
 	getDeepestAstNode(file: string, position: Position): Omit<SearchableResult, 'runtime'> {
 		return {

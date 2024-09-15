@@ -1,10 +1,10 @@
 import { getTokenModifiers, getTokenTypes, toRange } from '../helpers';
-import {
+import type {
 	BuildSemanticTokensPush,
 	SemanticTokenModifiers,
 	SemanticTokenType,
 	TokenIndexes,
-} from 'src/types';
+} from '../types';
 import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
 
 export class ASTBase {

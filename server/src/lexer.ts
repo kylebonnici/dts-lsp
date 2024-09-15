@@ -210,6 +210,7 @@ export class Lexer {
 			this.isNodeOrPropertyName(word) ||
 			this.isHex(word) ||
 			this.isDigits(word) ||
+			this.isHexDigits(word) ||
 			this.isComma(word) ||
 			this.isPropertyName(word) ||
 			this.isNodeNameWithAddress(word) ||
@@ -326,6 +327,19 @@ export class Lexer {
 		if (match?.[0]) {
 			this._tokens.push({
 				tokens: [LexerToken.DIGITS, LexerToken.NUMBER, LexerToken.VALUE],
+				value: match[0],
+				pos: this.generatePos(word, match[0]),
+			});
+			return true;
+		}
+		return false;
+	}
+
+	private isHexDigits(word: string) {
+		const match = word.match(/^([0-9A-Fa-f]{2})+/);
+		if (match?.[0]) {
+			this._tokens.push({
+				tokens: [LexerToken.HEX_STRING, LexerToken.NUMBER, LexerToken.VALUE],
 				value: match[0],
 				pos: this.generatePos(word, match[0]),
 			});

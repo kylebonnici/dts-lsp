@@ -687,7 +687,7 @@ export class Parser {
 			return;
 		}
 
-		const numberValues = this.processNumericValues();
+		const numberValues = this.processNumericValues(() => this.processHexString(true));
 
 		if (!numberValues?.values.length) {
 			this.issues.push(this.genIssue(SyntaxIssue.BYTESTRING, dtcProperty));
@@ -725,10 +725,14 @@ export class Parser {
 		return node;
 	}
 
-	private processNumericValues(): NumberValues | undefined {
+	private processNumericValues(
+		processValue = () => {
+			return this.processHex(false) || this.processDec(true);
+		}
+	): NumberValues | undefined {
 		this.enqueToStack();
 
-		let value = this.processHex(false) || this.processDec(true);
+		let value = processValue();
 		let result: NumberWithLabelValue[] = [];
 
 		if (!value) {
@@ -739,11 +743,11 @@ export class Parser {
 		while (value) {
 			result = [...result, value];
 
-			value = this.processHex(false) || this.processDec(true);
+			value = processValue();
 		}
 
 		if (result) {
-			const nextValue = this.processHex(false) || this.processDec(true);
+			const nextValue = processValue();
 			if (nextValue) {
 				result = [...result, nextValue];
 			}
@@ -764,6 +768,28 @@ export class Parser {
 		const labels = this.processOptionalLablelAssign(acceptLabelName);
 		const token = this.moveToNextToken;
 		if (!validToken(token, LexerToken.HEX)) {
+			this.popStack();
+			return;
+		}
+
+		if (token?.value === undefined) {
+			throw new Error('Token must have value');
+		}
+
+		this.mergeStack();
+		const numbeValue = new NumberValue(Number.parseInt(token.value, 16));
+		numbeValue.tokenIndexes = { start: token, end: token };
+		const node = new NumberWithLabelValue(numbeValue, labels);
+		node.tokenIndexes = { start: labels.at(0)?.tokenIndexes?.end ?? token, end: token };
+		return node;
+	}
+
+	private processHexString(acceptLabelName: boolean): NumberWithLabelValue | undefined {
+		this.enqueToStack();
+
+		const labels = this.processOptionalLablelAssign(acceptLabelName);
+		const token = this.moveToNextToken;
+		if (!validToken(token, LexerToken.HEX_STRING)) {
 			this.popStack();
 			return;
 		}

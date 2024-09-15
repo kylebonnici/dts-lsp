@@ -10,7 +10,7 @@ import { Node } from './context/node';
 import { ASTBase } from './ast/base';
 import { DeleteBase } from './ast/dtc/delete';
 import { Keyword } from './ast/keyword';
-import { PropertyName } from './ast/dtc/property';
+import { DtcProperty, PropertyName } from './ast/dtc/property';
 import { DtcChildNode, DtcRefNode, DtcRootNode, NodeName } from './ast/dtc/node';
 import { DeleteNode } from './ast/dtc/deleteNode';
 import { LabelAssign } from './ast/dtc/label';
@@ -18,6 +18,7 @@ import { NodePath } from './ast/dtc/values/nodePath';
 import { Property } from './context/property';
 import { LabelRef } from './ast/dtc/labelRef';
 import { LabelRefValue } from './ast/dtc/values/labelRef';
+import { PropertyValues } from './ast/dtc/values/values';
 
 const resolveNonDeletedScopedLabels = (
 	node: Node,
@@ -31,6 +32,27 @@ const resolveNonDeletedScopedLabels = (
 		...node.nodes.flatMap((n) => resolveNonDeletedScopedLabels(n, inScope)),
 	];
 };
+
+function getPropertyAssignItems(
+	result: SearchableResult | undefined,
+	inScope: (ast: ASTBase) => boolean
+): CompletionItem[] {
+	if (
+		!result ||
+		!(result.item instanceof Property) ||
+		!(result.ast instanceof DtcProperty) ||
+		result.ast.values?.values.length !== 1 ||
+		result.ast.values?.values[0] !== null
+	) {
+		return [];
+	}
+
+	return (
+		result.item.parent.nodeType.properties
+			.find((p) => p.name === result.item?.name)
+			?.completionItems() ?? []
+	);
+}
 
 function getRefLabelsItems(
 	result: SearchableResult | undefined,
@@ -294,6 +316,7 @@ export function getCompleteions(
 			...getNodeRefPathsItems(locationMeta, inScope),
 			...getCreateNodeRefItems(locationMeta, inScope),
 			...getRefLabelsItems(locationMeta, inScope),
+			...getPropertyAssignItems(locationMeta, inScope),
 		];
 	}
 

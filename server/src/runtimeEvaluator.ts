@@ -17,12 +17,14 @@ import { LabelRef } from './ast/dtc/labelRef';
 import { Node } from './context/node';
 import { Property } from './context/property';
 import { Runtime } from './context/runtime';
+import { genIssue } from './helpers';
 
 export class ContextAware {
 	_issues: Issue<ContextIssues>[] = [];
-	public readonly runtime = new Runtime();
+	public readonly runtime;
 
 	constructor(public readonly fileMap: string[]) {
+		this.runtime = new Runtime(fileMap);
 		this.process();
 	}
 	get issues() {
@@ -68,14 +70,14 @@ export class ContextAware {
 		element.children.forEach((child) => {
 			if (child instanceof DtcChildNode && child.name) {
 				if (child.name && names.has(child.name.name)) {
-					this._issues.push(this.genIssue(ContextIssues.DUPLICATE_NODE_NAME, child.name));
+					this._issues.push(genIssue(ContextIssues.DUPLICATE_NODE_NAME, child.name));
 				}
 
 				names.add(child.name.toString());
 			} else if (child instanceof DeleteNode && child.nodeNameOrRef instanceof NodeName) {
 				if (!names.has(child.nodeNameOrRef.toString())) {
 					this._issues.push(
-						this.genIssue(ContextIssues.NODE_DOES_NOT_EXIST, child.nodeNameOrRef)
+						genIssue(ContextIssues.NODE_DOES_NOT_EXIST, child.nodeNameOrRef)
 					);
 				} else {
 					names.delete(child.nodeNameOrRef.toString());
@@ -128,9 +130,7 @@ export class ContextAware {
 				? this.runtime.resolvePath([element.pathName])
 				: undefined;
 			if (!resolvedPath) {
-				this._issues.push(
-					this.genIssue(ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE, element)
-				);
+				this._issues.push(genIssue(ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE, element));
 				this.runtime.unlinkedRefNodes.push(element);
 			} else {
 				runtimeNode = this.runtime.rootNode.getChild(resolvedPath);
@@ -153,7 +153,7 @@ export class ContextAware {
 
 	private processDtcProperty(element: DtcProperty, runtimeNodeParent: Node) {
 		if (element.propertyName?.name) {
-			runtimeNodeParent.addProperty(new Property(element));
+			runtimeNodeParent.addProperty(new Property(element, runtimeNodeParent));
 		}
 
 		element.children.forEach((child) => this.processChild(child, runtimeNodeParent));
@@ -164,7 +164,7 @@ export class ContextAware {
 			if (element.parentNode?.parentNode) {
 				if (!runtimeNodeParent.hasNode(element.nodeNameOrRef.value)) {
 					this._issues.push(
-						this.genIssue(ContextIssues.NODE_DOES_NOT_EXIST, element.nodeNameOrRef)
+						genIssue(ContextIssues.NODE_DOES_NOT_EXIST, element.nodeNameOrRef)
 					);
 				} else {
 					runtimeNodeParent.deleteNode(element.nodeNameOrRef.value, element);
@@ -176,9 +176,7 @@ export class ContextAware {
 			let runtimeNode: Node | undefined;
 			if (!resolvedPath) {
 				this.runtime.unlinkedDeletes.push(element);
-				this._issues.push(
-					this.genIssue(ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE, element)
-				);
+				this._issues.push(genIssue(ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE, element));
 			} else {
 				runtimeNode = this.runtime.rootNode.getChild(resolvedPath);
 				runtimeNode?.parent?.deleteNode(runtimeNode.name, element);
@@ -195,7 +193,7 @@ export class ContextAware {
 			!runtimeNodeParent.hasProperty(element.propertyName.name)
 		) {
 			this._issues.push(
-				this.genIssue(ContextIssues.PROPERTY_DOES_NOT_EXIST, element.propertyName)
+				genIssue(ContextIssues.PROPERTY_DOES_NOT_EXIST, element.propertyName)
 			);
 		} else if (element.propertyName?.name) {
 			runtimeNodeParent.deleteProperty(element.propertyName.name, element);
@@ -203,20 +201,4 @@ export class ContextAware {
 
 		element.children.forEach((child) => this.processChild(child, runtimeNodeParent));
 	}
-
-	private genIssue = (
-		issue: ContextIssues | ContextIssues[],
-		slxBase: ASTBase,
-		severity: DiagnosticSeverity = DiagnosticSeverity.Error,
-		linkedTo: ASTBase[] = [],
-		tags: DiagnosticTag[] | undefined = undefined,
-		templateStrings: string[] = []
-	): Issue<ContextIssues> => ({
-		issues: Array.isArray(issue) ? issue : [issue],
-		astElement: slxBase,
-		severity,
-		linkedTo,
-		tags,
-		templateStrings,
-	});
 }
