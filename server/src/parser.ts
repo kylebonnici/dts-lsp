@@ -26,10 +26,14 @@ import { LabelRefValue } from './ast/dtc/values/labelRef';
 import { NumberValue, NumberValues, NumberWithLabelValue } from './ast/dtc/values/number';
 import { ByteStringValue } from './ast/dtc/values/byteString';
 import { PropertyValues } from './ast/dtc/values/values';
+import { DtsDocumentVersion } from './ast/dtc/dtsDocVersion';
+import { Comment } from './ast/dtc/comment';
 
 type AllowNodeRef = 'Ref' | 'Name';
 
 export class Parser {
+	others: ASTBase[] = [];
+	includes: ASTBase[] = [];
 	rootDocument = new DtcBaseNode();
 	positionStack: number[] = [];
 	issues: Issue<SyntaxIssue>[] = [];
@@ -53,6 +57,8 @@ export class Parser {
 		const process = () => {
 			if (
 				!(
+					this.isMultiLineComment() ||
+					this.isDtsDocumentVersion() ||
 					this.isRootNodeDefinition(this.rootDocument) ||
 					this.isDeleteNode(this.rootDocument, 'Ref') ||
 					// not valid syntax but we leave this for the next layer to proecess
@@ -77,6 +83,71 @@ export class Parser {
 		if (this.positionStack.length !== 1) {
 			throw new Error('Incorrect final stack size');
 		}
+	}
+
+	private isMultiLineComment(): boolean {
+		this.enqueToStack();
+
+		const firstToken = this.moveToNextToken;
+		let token = firstToken;
+		if (!firstToken || !validToken(firstToken, LexerToken.FORWARD_SLASH)) {
+			this.popStack();
+			return false;
+		}
+
+		token = this.moveToNextToken;
+		if (
+			!validToken(token, LexerToken.MULTI_OPERATOR) ||
+			firstToken.pos.line !== token.pos.line ||
+			firstToken.pos.col + 1 !== token.pos.col
+		) {
+			this.popStack();
+			return false;
+		}
+
+		const isEndComment = (): boolean => {
+			if (!validToken(token, LexerToken.MULTI_OPERATOR)) {
+				return false;
+			}
+
+			if (
+				!this.currentToken ||
+				!validToken(this.currentToken, LexerToken.FORWARD_SLASH) ||
+				token?.pos.line !== this.currentToken?.pos.line ||
+				token?.pos.col + 1 !== this.currentToken?.pos.col
+			) {
+				return false;
+			}
+
+			return true;
+		};
+
+		// we have a comment start
+		let lastLine = token.pos.line;
+		let start = firstToken;
+		const comments: Comment[] = [];
+		do {
+			if (this.currentToken?.pos.line !== lastLine) {
+				const node = new Comment();
+				node.tokenIndexes = { start, end: this.prevToken };
+				comments.push(node);
+
+				lastLine = this.currentToken!.pos.line ?? 0;
+
+				start = this.currentToken!;
+			}
+			token = this.moveToNextToken;
+		} while (!this.done && !isEndComment());
+
+		const node = new Comment();
+		node.tokenIndexes = { start, end: this.currentToken };
+		comments.push(node);
+
+		this.others.push(...comments);
+
+		this.moveToNextToken;
+		this.mergeStack();
+		return true;
 	}
 
 	private isRootNodeDefinition(parent: DtcBaseNode): boolean {
@@ -126,11 +197,6 @@ export class Parser {
 			validToken(this.currentToken, LexerToken.SEMICOLON)
 		);
 	}
-
-	// TODO
-	// no ref
-	// c presosessor
-	// terninary
 
 	private endStatment() {
 		const currentToken = this.currentToken;
@@ -385,6 +451,52 @@ export class Parser {
 
 		parent.addNodeChild(child);
 
+		this.mergeStack();
+		return true;
+	}
+
+	private isDtsDocumentVersion(): boolean {
+		this.enqueToStack();
+
+		const firstToken = this.moveToNextToken;
+		let token = firstToken;
+		const keyword = new Keyword();
+
+		const close = () => {
+			keyword.tokenIndexes = { start: firstToken, end: token };
+			const node = new DeleteNode(keyword);
+			node.tokenIndexes = { start: firstToken, end: token };
+			this.mergeStack();
+			return true;
+		};
+
+		if (!validToken(token, LexerToken.FORWARD_SLASH)) {
+			this.popStack();
+			return false;
+		}
+
+		if (
+			this.currentToken?.pos.line !== firstToken?.pos.line ||
+			this.currentToken?.value !== 'dts-v1'
+		) {
+			this.popStack();
+			return false;
+		} else {
+			this.moveToNextToken;
+		}
+
+		if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
+			this.issues.push(this.genIssue(SyntaxIssue.FORWARD_SLASH_END_DELETE, keyword));
+			return close();
+		} else {
+			token = this.moveToNextToken;
+		}
+		keyword.tokenIndexes = { start: firstToken, end: token };
+
+		const node = new DtsDocumentVersion(keyword);
+		const lastToken = this.endStatment();
+		node.tokenIndexes = { start: firstToken, end: lastToken };
+		this.others.push(node);
 		this.mergeStack();
 		return true;
 	}
@@ -1071,7 +1183,10 @@ export class Parser {
 	});
 
 	getDocumentSymbols(): DocumentSymbol[] {
-		return this.rootDocument.getDocumentSymbols();
+		return [
+			...this.rootDocument.getDocumentSymbols(),
+			...this.others.flatMap((o) => o.getDocumentSymbols()),
+		];
 	}
 
 	buildSemanticTokens(tokensBuilder: SemanticTokensBuilder) {
@@ -1102,6 +1217,8 @@ export class Parser {
 		};
 
 		this.rootDocument.buildSemanticTokens(push);
+		this.others.forEach((a) => a.buildSemanticTokens(push));
+
 		this.tokens
 			.filter(
 				(token) =>
