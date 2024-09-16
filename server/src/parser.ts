@@ -29,6 +29,10 @@ import { DtsDocumentVersion } from './ast/dtc/dtsDocVersion';
 import { Comment } from './ast/dtc/comment';
 import { ArrayValues } from './ast/dtc/values/arrayValue';
 import { LabledValue } from './ast/dtc/values/labledValue';
+import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
+import { Operator, OperatorType } from './ast/cPreprocessors/operator';
+import { ComplexExpression, Expression } from './ast/cPreprocessors/expression';
+import { FunctionCall } from './ast/cPreprocessors/functionCall';
 
 type AllowNodeRef = 'Ref' | 'Name';
 
@@ -115,7 +119,7 @@ export class Parser {
 			return tokens[index - 1];
 		};
 
-		const firstToken = tokens[index];
+		const firstToken = currentToken();
 		let token = firstToken;
 		if (!firstToken || !validToken(firstToken, LexerToken.FORWARD_SLASH)) {
 			return;
@@ -173,7 +177,7 @@ export class Parser {
 		return {
 			comments,
 			tokenUsed,
-			index,
+			index: index - 1,
 		};
 	}
 
@@ -893,25 +897,44 @@ export class Parser {
 		this.enqueToStack();
 
 		const result = this.processLabledValue(
-			(): LabledValue<NumberValue | LabelRef | NodePathRef> | undefined =>
+			(): LabledValue<NumberValue | LabelRef | NodePathRef | Expression> | undefined =>
 				this.processRefValue(false, dtcProperty) ||
-				this.processHex(false) ||
-				this.processDec(true)
+				this.processLabledHex(false) ||
+				this.processLabledExpression(true, false) ||
+				this.processLabledDec(true)
 		);
 
-		this.mergeStack();
 		const node = new ArrayValues(result);
 		node.tokenIndexes = {
 			start: result.at(0)?.tokenIndexes?.start,
 			end: result.at(-1)?.tokenIndexes?.end,
 		};
+		this.mergeStack();
 		return node;
 	}
 
-	private processHex(acceptLabelName: boolean): LabledValue<NumberValue> | undefined {
+	private processLabledHex(acceptLabelName: boolean): LabledValue<NumberValue> | undefined {
 		this.enqueToStack();
 
 		const labels = this.processOptionalLablelAssign(acceptLabelName);
+		const numbeValue = this.processHex();
+		if (!numbeValue) {
+			this.popStack();
+			return;
+		}
+
+		const node = new LabledValue(numbeValue, labels);
+		node.tokenIndexes = {
+			start: labels.at(0)?.tokenIndexes?.end ?? numbeValue.tokenIndexes?.start,
+			end: numbeValue.tokenIndexes?.end,
+		};
+		this.mergeStack();
+		return node;
+	}
+
+	private processHex(): NumberValue | undefined {
+		this.enqueToStack();
+
 		const token = this.moveToNextToken;
 		if (!validToken(token, LexerToken.HEX)) {
 			this.popStack();
@@ -922,12 +945,10 @@ export class Parser {
 			throw new Error('Token must have value');
 		}
 
-		this.mergeStack();
 		const numbeValue = new NumberValue(Number.parseInt(token.value, 16));
 		numbeValue.tokenIndexes = { start: token, end: token };
-		const node = new LabledValue(numbeValue, labels);
-		node.tokenIndexes = { start: labels.at(0)?.tokenIndexes?.end ?? token, end: token };
-		return node;
+		this.mergeStack();
+		return numbeValue;
 	}
 
 	private processHexString(): LabledValue<NumberValue> | undefined {
@@ -952,10 +973,28 @@ export class Parser {
 		return node;
 	}
 
-	private processDec(acceptLabelName: boolean): LabledValue<NumberValue> | undefined {
+	private processLabledDec(acceptLabelName: boolean): LabledValue<NumberValue> | undefined {
 		this.enqueToStack();
 
 		const labels = this.processOptionalLablelAssign(acceptLabelName);
+
+		const numbeValue = this.processDec();
+		if (!numbeValue) {
+			this.popStack();
+			return;
+		}
+		const node = new LabledValue(numbeValue, labels);
+		node.tokenIndexes = {
+			start: labels.at(0)?.tokenIndexes?.end ?? numbeValue.tokenIndexes?.start,
+			end: numbeValue.tokenIndexes?.end,
+		};
+		this.mergeStack();
+		return node;
+	}
+
+	private processDec(): NumberValue | undefined {
+		this.enqueToStack();
+
 		const token = this.moveToNextToken;
 		if (!validToken(token, LexerToken.DIGITS)) {
 			this.popStack();
@@ -969,12 +1008,220 @@ export class Parser {
 		this.mergeStack();
 		const numbeValue = new NumberValue(Number.parseInt(token.value, 10));
 		numbeValue.tokenIndexes = { start: token, end: token };
-		const node = new LabledValue(numbeValue, labels);
+		return numbeValue;
+	}
+
+	private processCIdentifier(): CIdentifier | undefined {
+		this.enqueToStack();
+
+		const token = this.moveToNextToken;
+		if (!validToken(token, LexerToken.C_IDENTIFIER)) {
+			this.popStack();
+			return;
+		}
+
+		if (token?.value === undefined) {
+			throw new Error('Token must have value');
+		}
+
+		this.mergeStack();
+		const idnetifier = new CIdentifier(token.value);
+		idnetifier.tokenIndexes = { start: token, end: token };
+		return idnetifier;
+	}
+
+	private processLabledExpression(
+		checkForLables = true,
+		acceptLabelName = checkForLables
+	): LabledValue<Expression> | undefined {
+		this.enqueToStack();
+
+		let labels: LabelAssign[] = [];
+		if (checkForLables) {
+			labels = this.processOptionalLablelAssign(acceptLabelName);
+		}
+
+		const expression = this.processExpression();
+
+		if (!expression && checkForLables) {
+			this.popStack();
+			return this.processLabledExpression(false);
+		} else if (!expression) {
+			this.popStack();
+			return;
+		}
+
+		const node = new LabledValue(expression, labels);
 		node.tokenIndexes = {
-			start: labels.at(0)?.tokenIndexes?.end ?? token,
-			end: token,
+			start: labels.at(0)?.tokenIndexes?.end ?? expression.tokenIndexes?.end,
+			end: expression.tokenIndexes?.end,
 		};
+		this.mergeStack();
 		return node;
+	}
+
+	private isOperator(): Operator | undefined {
+		this.enqueToStack();
+		const start = this.moveToNextToken;
+		let end = start;
+
+		let operator: OperatorType | undefined;
+		if (validToken(start, LexerToken.AMPERSAND)) {
+			operator = OperatorType.BIT_AND;
+			if (validToken(this.currentToken, LexerToken.AMPERSAND)) {
+				operator = OperatorType.BOOLEAN_AND;
+				end = this.moveToNextToken;
+			}
+		} else if (validToken(start, LexerToken.BIT_NOT)) {
+			operator = OperatorType.BIT_NOT;
+			if (validToken(this.currentToken, LexerToken.ASSIGN_OPERATOR)) {
+				operator = OperatorType.BOOLEAN_NOT_EQ;
+				end = this.moveToNextToken;
+			}
+		} else if (validToken(start, LexerToken.BIT_OR)) {
+			operator = OperatorType.BIT_OR;
+			if (validToken(this.currentToken, LexerToken.BIT_OR)) {
+				operator = OperatorType.BOOLEAN_OR;
+				end = this.moveToNextToken;
+			}
+		} else if (validToken(start, LexerToken.BIT_XOR)) {
+			operator = OperatorType.BIT_XOR;
+		} else if (validToken(start, LexerToken.GT_SYM)) {
+			operator = OperatorType.BOOLEAN_GT;
+			if (validToken(this.currentToken, LexerToken.GT_SYM)) {
+				operator = OperatorType.BIT_RIGHT_SHIFT;
+				end = this.moveToNextToken;
+			} else if (validToken(this.currentToken, LexerToken.ASSIGN_OPERATOR)) {
+				operator = OperatorType.BOOLEAN_GT_EQUAL;
+				end = this.moveToNextToken;
+			}
+		} else if (validToken(start, LexerToken.LT_SYM)) {
+			operator = OperatorType.BOOLEAN_GT;
+			if (validToken(this.currentToken, LexerToken.LT_SYM)) {
+				operator = OperatorType.BIT_LEFT_SHIFT;
+				end = this.moveToNextToken;
+			} else if (validToken(this.currentToken, LexerToken.ASSIGN_OPERATOR)) {
+				operator = OperatorType.BOOLEAN_LT_EQUAL;
+				end = this.moveToNextToken;
+			}
+		} else if (validToken(start, LexerToken.ADD_OPERATOR)) {
+			operator = OperatorType.ARITHMETIC_ADD;
+		} else if (validToken(start, LexerToken.NEG_OPERATOR)) {
+			operator = OperatorType.ARITHMETIC_SUBTRACT;
+		} else if (validToken(start, LexerToken.MULTI_OPERATOR)) {
+			operator = OperatorType.ARITHMETIC_MULTIPLE;
+		} else if (validToken(start, LexerToken.FORWARD_SLASH)) {
+			operator = OperatorType.ARITHMETIC_DIVIDE;
+		} else if (validToken(start, LexerToken.MODULUS_OPERATOR)) {
+			operator = OperatorType.ARITHMETIC_MODULES;
+		}
+
+		if (operator) {
+			const node = new Operator(operator);
+			node.tokenIndexes = { start, end };
+			this.mergeStack();
+			return node;
+		}
+		this.popStack();
+		return;
+	}
+
+	private isFuntion(): FunctionCall | undefined {
+		this.enqueToStack();
+		const identifier = this.processCIdentifier();
+		if (!identifier) {
+			this.popStack();
+			return;
+		}
+
+		let token = this.moveToNextToken;
+		if (!validToken(token, LexerToken.ROUND_OPEN)) {
+			this.popStack();
+			return;
+		}
+
+		const params: Expression[] = [];
+		let exp = this.processExpression();
+		while (exp) {
+			params.push(exp);
+			exp = this.processExpression();
+		}
+
+		if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
+			this.issues.push(
+				this.genIssue(SyntaxIssue.MISSING_ROUND_CLOSE, params.at(-1) ?? identifier)
+			);
+		} else {
+			token = this.moveToNextToken;
+		}
+
+		const node = new FunctionCall(identifier, params);
+		node.tokenIndexes = {
+			start: identifier.tokenIndexes?.start,
+			end: token ?? params.at(-1)?.tokenIndexes?.end,
+		};
+
+		this.mergeStack();
+		return node;
+	}
+
+	private processExpression(): Expression | undefined {
+		this.enqueToStack();
+
+		let complexExpression = false;
+
+		let start: Token | undefined;
+		let token: Token | undefined;
+		if (validToken(this.currentToken, LexerToken.ROUND_OPEN)) {
+			complexExpression = true;
+			start = this.moveToNextToken;
+			token = start;
+		}
+
+		let expression: Expression | undefined =
+			this.isFuntion() ||
+			this.processCIdentifier() ||
+			this.processDec() ||
+			this.processHex();
+
+		if (!expression) {
+			this.popStack();
+			return;
+		}
+
+		if (complexExpression) {
+			const operator = this.isOperator();
+
+			if (operator) {
+				// complex
+				const nextExpression = this.processExpression();
+
+				if (!nextExpression) {
+					this.issues.push(this.genIssue(SyntaxIssue.EXPECTED_EXPRESSION, operator));
+				} else {
+					expression = new ComplexExpression(expression, {
+						operator,
+						expression: nextExpression,
+					});
+				}
+
+				expression.tokenIndexes = {
+					start: start,
+					end: nextExpression?.tokenIndexes?.end ?? operator.tokenIndexes?.end,
+				};
+			}
+
+			if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
+				this.issues.push(
+					this.genIssue(SyntaxIssue.MISSING_ROUND_CLOSE, operator ?? expression)
+				);
+			} else {
+				token = this.moveToNextToken;
+			}
+		}
+
+		this.mergeStack();
+		return expression;
 	}
 
 	private isLabelRef(slxBase?: ASTBase): LabelRef | undefined {

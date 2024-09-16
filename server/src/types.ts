@@ -53,6 +53,8 @@ export enum SyntaxIssue {
 	LABEL_ASSIGN_MISSING_COLON,
 	DELETE_INCOMPLETE,
 	NODE_PATH_WHITE_SPACE_NOT_ALLOWED,
+	MISSING_ROUND_CLOSE,
+	EXPECTED_EXPRESSION,
 }
 
 export enum ContextIssues {
@@ -125,6 +127,8 @@ export enum LexerToken {
 
 	UNKNOWN,
 	HEX_STRING,
+	ROUND_OPEN,
+	ROUND_CLOSE,
 }
 
 export const tokenTypes = [

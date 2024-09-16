@@ -1,14 +1,15 @@
+import { ASTBase } from '../base';
 import { SymbolKind } from 'vscode-languageserver';
-import { Expression } from '../../cPreprocessors/expression';
+import { Expression } from './expression';
 
-export class NumberValue extends Expression {
-	constructor(public readonly value: number) {
+export class CIdentifier extends Expression {
+	constructor(public readonly value: string) {
 		super();
 		this.docSymbolsMeta = {
 			name: this.value.toString(),
-			kind: SymbolKind.Number,
+			kind: SymbolKind.Variable,
 		};
-		this.semanticTokenType = 'number';
+		this.semanticTokenType = 'variable';
 		this.semanticTokenModifiers = 'declaration';
 	}
 

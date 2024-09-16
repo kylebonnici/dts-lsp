@@ -9,8 +9,7 @@ import { LabelAssign } from '../ast/dtc/label';
 import { LabelValue } from '../ast/dtc/types';
 import { ASTBase } from '../ast/base';
 import { getStandardType } from '../dtsTypes/standrdTypes';
-import { NodePathRef } from 'src/ast/dtc/values/nodePath';
-import { LabledValue } from 'src/ast/dtc/values/labledValue';
+import { NodePathRef } from '../ast/dtc/values/nodePath';
 
 export class Node {
 	public referancesBy: DtcRefNode[] = [];

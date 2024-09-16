@@ -236,6 +236,10 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
 			return 'White space is not allowrd after "{" or after "}"';
 		case SyntaxIssue.UNKNOWN:
 			return 'Unknown syntax';
+		case SyntaxIssue.EXPECTED_EXPRESSION:
+			return 'Expected expression';
+		case SyntaxIssue.MISSING_ROUND_CLOSE:
+			return 'Expected "("';
 	}
 };
 

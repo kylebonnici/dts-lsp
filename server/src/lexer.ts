@@ -92,6 +92,8 @@ export class Lexer {
 			char === '}' ||
 			char === '[' ||
 			char === ']' ||
+			char === '(' ||
+			char === ')' ||
 			char === '*' ||
 			char === '%' ||
 			char === '&'
@@ -181,6 +183,8 @@ export class Lexer {
 			this.isSemicolon(word) ||
 			this.isAssignOperator(word) ||
 			this.isForwardSlash(word) ||
+			this.isRoundOpen(word) ||
+			this.isRoundClose(word) ||
 			this.isCurlyOpen(word) ||
 			this.isCurlyClose(word) ||
 			this.isSquareOpen(word) ||
@@ -310,7 +314,7 @@ export class Lexer {
 	}
 
 	private isHex(word: string) {
-		const match = word.match(/^0x[0-9A-Fa-f]+/);
+		const match = word.match(/^0x[0-9A-Fa-f]+$/);
 		if (match?.[0]) {
 			this._tokens.push({
 				tokens: [LexerToken.HEX, LexerToken.NUMBER, LexerToken.VALUE],
@@ -323,7 +327,7 @@ export class Lexer {
 	}
 
 	private isDigits(word: string) {
-		const match = word.match(/^[0-9]+/);
+		const match = word.match(/^[0-9]+$/);
 		if (match?.[0]) {
 			this._tokens.push({
 				tokens: [
@@ -341,7 +345,7 @@ export class Lexer {
 	}
 
 	private isHexDigits(word: string) {
-		const match = word.match(/^([0-9A-Fa-f]{2})+/);
+		const match = word.match(/^([0-9A-Fa-f]{2})+$/);
 		if (match?.[0]) {
 			this._tokens.push({
 				tokens: [LexerToken.HEX_STRING, LexerToken.NUMBER, LexerToken.VALUE],
@@ -498,6 +502,30 @@ export class Lexer {
 		if (word === expected) {
 			this._tokens.push({
 				tokens: [LexerToken.BIT_NOT],
+				pos: this.generatePos(word, expected),
+			});
+			return true;
+		}
+		return false;
+	}
+
+	private isRoundOpen(word: string) {
+		const expected = '(';
+		if (word === expected) {
+			this._tokens.push({
+				tokens: [LexerToken.ROUND_OPEN],
+				pos: this.generatePos(word, expected),
+			});
+			return true;
+		}
+		return false;
+	}
+
+	private isRoundClose(word: string) {
+		const expected = ')';
+		if (word === expected) {
+			this._tokens.push({
+				tokens: [LexerToken.ROUND_CLOSE],
 				pos: this.generatePos(word, expected),
 			});
 			return true;
@@ -804,7 +832,7 @@ export class Lexer {
 	}
 
 	private isCIdenttifier(word: string) {
-		const match = word.match(/^[A-Za-z_]+$/);
+		const match = word.match(/^[A-Za-z_][A-Za-z_0-9]+$/);
 		if (match?.[0]) {
 			this._tokens.push({
 				tokens: [
