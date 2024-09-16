@@ -17,8 +17,6 @@ import { LabelAssign } from './ast/dtc/label';
 import { NodePath } from './ast/dtc/values/nodePath';
 import { Property } from './context/property';
 import { LabelRef } from './ast/dtc/labelRef';
-import { LabelRefValue } from './ast/dtc/values/labelRef';
-import { PropertyValues } from './ast/dtc/values/values';
 
 const resolveNonDeletedScopedLabels = (
 	node: Node,
@@ -58,11 +56,7 @@ function getRefLabelsItems(
 	result: SearchableResult | undefined,
 	inScope: (ast: ASTBase) => boolean
 ): CompletionItem[] {
-	if (
-		!result ||
-		!(result.item instanceof Property) ||
-		!(result.ast instanceof LabelRef || result.ast instanceof LabelRefValue)
-	) {
+	if (!result || !(result.item instanceof Property) || !(result.ast instanceof LabelRef)) {
 		return [];
 	}
 

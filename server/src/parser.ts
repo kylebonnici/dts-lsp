@@ -21,13 +21,14 @@ import { Keyword } from './ast/keyword';
 import { DeleteProperty } from './ast/dtc/deleteProperty';
 import { StringValue } from './ast/dtc/values/string';
 import { PropertyValue } from './ast/dtc/values/value';
-import { NodePath, NodePathRef, NodePathValue } from './ast/dtc/values/nodePath';
-import { LabelRefValue } from './ast/dtc/values/labelRef';
-import { NumberValue, NumberValues, NumberWithLabelValue } from './ast/dtc/values/number';
+import { NodePath, NodePathRef } from './ast/dtc/values/nodePath';
+import { NumberValue } from './ast/dtc/values/number';
 import { ByteStringValue } from './ast/dtc/values/byteString';
 import { PropertyValues } from './ast/dtc/values/values';
 import { DtsDocumentVersion } from './ast/dtc/dtsDocVersion';
 import { Comment } from './ast/dtc/comment';
+import { ArrayValues } from './ast/dtc/values/arrayValue';
+import { LabledValue } from './ast/dtc/values/labledValue';
 
 type AllowNodeRef = 'Ref' | 'Name';
 
@@ -48,7 +49,21 @@ export class Parser {
 		return this.peekIndex() >= this.tokens.length;
 	}
 
+	private cleanUpComments() {
+		const tokensUsed: number[] = [];
+		for (let i = 0; i < this.tokens.length; i++) {
+			const result = Parser.processComments(this.tokens, i);
+			if (result) {
+				i = result.index;
+				tokensUsed.push(...result.tokenUsed);
+				this.others.push(...result.comments);
+			}
+		}
+		tokensUsed.reverse().forEach((i) => this.tokens.splice(i, 1));
+	}
+
 	private parse() {
+		this.cleanUpComments();
 		this.positionStack.push(0);
 		if (this.tokens.length === 0) {
 			return;
@@ -57,7 +72,6 @@ export class Parser {
 		const process = () => {
 			if (
 				!(
-					this.isMultiLineComment() ||
 					this.isDtsDocumentVersion() ||
 					this.isRootNodeDefinition(this.rootDocument) ||
 					this.isDeleteNode(this.rootDocument, 'Ref') ||
@@ -85,36 +99,47 @@ export class Parser {
 		}
 	}
 
-	private isMultiLineComment(): boolean {
-		this.enqueToStack();
+	private static processComments(tokens: Token[], index: number) {
+		const tokenUsed: number[] = [];
 
-		const firstToken = this.moveToNextToken;
+		const move = () => {
+			tokenUsed.push(index++);
+			return tokens[index];
+		};
+
+		const currentToken = () => {
+			return tokens[index];
+		};
+
+		const prevToken = () => {
+			return tokens[index - 1];
+		};
+
+		const firstToken = tokens[index];
 		let token = firstToken;
 		if (!firstToken || !validToken(firstToken, LexerToken.FORWARD_SLASH)) {
-			this.popStack();
-			return false;
+			return;
 		}
 
-		token = this.moveToNextToken;
+		token = move();
+
 		if (
 			!validToken(token, LexerToken.MULTI_OPERATOR) ||
 			firstToken.pos.line !== token.pos.line ||
 			firstToken.pos.col + 1 !== token.pos.col
 		) {
-			this.popStack();
-			return false;
+			return;
 		}
 
 		const isEndComment = (): boolean => {
-			if (!validToken(token, LexerToken.MULTI_OPERATOR)) {
+			if (!validToken(prevToken(), LexerToken.MULTI_OPERATOR)) {
 				return false;
 			}
 
 			if (
-				!this.currentToken ||
-				!validToken(this.currentToken, LexerToken.FORWARD_SLASH) ||
-				token?.pos.line !== this.currentToken?.pos.line ||
-				token?.pos.col + 1 !== this.currentToken?.pos.col
+				!validToken(currentToken(), LexerToken.FORWARD_SLASH) ||
+				prevToken()?.pos.line !== currentToken()?.pos.line ||
+				prevToken()?.pos.col + 1 !== currentToken()?.pos.col
 			) {
 				return false;
 			}
@@ -126,28 +151,30 @@ export class Parser {
 		let lastLine = token.pos.line;
 		let start = firstToken;
 		const comments: Comment[] = [];
+		token = move();
 		do {
-			if (this.currentToken?.pos.line !== lastLine) {
+			if (currentToken()?.pos.line !== lastLine) {
 				const node = new Comment();
-				node.tokenIndexes = { start, end: this.prevToken };
+				node.tokenIndexes = { start, end: prevToken() };
 				comments.push(node);
 
-				lastLine = this.currentToken!.pos.line ?? 0;
+				lastLine = currentToken().pos.line ?? 0;
 
-				start = this.currentToken!;
+				start = currentToken();
 			}
-			token = this.moveToNextToken;
-		} while (!this.done && !isEndComment());
+			token = move();
+		} while (index < tokens.length && !isEndComment());
 
 		const node = new Comment();
-		node.tokenIndexes = { start, end: this.currentToken };
+		node.tokenIndexes = { start, end: currentToken() };
 		comments.push(node);
 
-		this.others.push(...comments);
-
-		this.moveToNextToken;
-		this.mergeStack();
-		return true;
+		move();
+		return {
+			comments,
+			tokenUsed,
+			index,
+		};
 	}
 
 	private isRootNodeDefinition(parent: DtcBaseNode): boolean {
@@ -293,7 +320,7 @@ export class Parser {
 		const hasAddress = token.value.includes('@');
 		const tmp = token.value.split('@');
 		const name = tmp[0];
-		const address = hasAddress ? Number.parseInt(tmp[1]) : undefined;
+		const address = hasAddress ? Number.parseInt(tmp[1], 16) : undefined;
 
 		const node = new NodeName(name, address);
 		node.tokenIndexes = { start: token, end: token };
@@ -343,7 +370,7 @@ export class Parser {
 			child.labelReferance = ref;
 			expectedNode = true;
 		} else if (name && child instanceof DtcChildNode) {
-			expectedNode = !!name.address;
+			expectedNode = name.address !== undefined;
 			child.name = name;
 		}
 
@@ -683,7 +710,7 @@ export class Parser {
 				return (
 					(this.processStringValue() ||
 						this.isLabelRefValue(dtcProperty) ||
-						this.processNumericNodePathOrRefValue(dtcProperty) ||
+						this.__ArrayValues(dtcProperty) ||
 						this.processByteStringValue(dtcProperty)) ??
 					null
 				);
@@ -755,9 +782,7 @@ export class Parser {
 		return node;
 	}
 
-	private processNumericNodePathOrRefValue(
-		dtcProperty: DtcProperty
-	): PropertyValue | undefined {
+	private __ArrayValues(dtcProperty: DtcProperty): PropertyValue | undefined {
 		this.enqueToStack();
 
 		const firstToken = this.moveToNextToken;
@@ -766,9 +791,7 @@ export class Parser {
 			return;
 		}
 
-		const value =
-			(this.processNumericValues() || this.processNodePathOrLabelRefValue(dtcProperty)) ??
-			null;
+		const value = this.processArrayValues(dtcProperty) ?? null;
 
 		const endLabels1 = this.processOptionalLablelAssign(true) ?? [];
 
@@ -799,9 +822,9 @@ export class Parser {
 			return;
 		}
 
-		const numberValues = this.processNumericValues(() => this.processHexString(true));
+		const numberValues = this.processLabledValue(() => this.processHexString());
 
-		if (!numberValues?.values.length) {
+		if (!numberValues?.length) {
 			this.issues.push(this.genIssue(SyntaxIssue.BYTESTRING, dtcProperty));
 		}
 
@@ -813,8 +836,8 @@ export class Parser {
 			this.moveToNextToken;
 		}
 
-		numberValues?.values.forEach((value) => {
-			if ((value.tokenIndexes?.start?.pos.len ?? 0) % 2 !== 0) {
+		numberValues.forEach((value) => {
+			if ((value.value?.tokenIndexes?.start?.pos.len ?? 0) % 2 !== 0) {
 				this.issues.push(this.genIssue(SyntaxIssue.BYTESTRING_EVEN, value));
 			}
 
@@ -826,10 +849,10 @@ export class Parser {
 		const endLabels2 = this.processOptionalLablelAssign(true) ?? [];
 
 		this.mergeStack();
-		const byteString = new ByteStringValue(numberValues?.values ?? []);
+		const byteString = new ByteStringValue(numberValues ?? []);
 		byteString.tokenIndexes = {
-			start: numberValues?.tokenIndexes?.start,
-			end: endLabels2.at(-1)?.tokenIndexes?.end ?? numberValues?.tokenIndexes?.end,
+			start: numberValues.at(0)?.tokenIndexes?.start,
+			end: endLabels2.at(-1)?.tokenIndexes?.end ?? numberValues.at(-1)?.tokenIndexes?.end,
 		};
 
 		const node = new PropertyValue(byteString, [...endLabels1, ...endLabels2]);
@@ -837,24 +860,21 @@ export class Parser {
 		return node;
 	}
 
-	private processNumericValues(
-		processValue = () => {
-			return this.processHex(false) || this.processDec(true);
-		}
-	): NumberValues | undefined {
+	private processLabledValue<T extends ASTBase>(
+		processValue: () => LabledValue<T> | undefined
+	): LabledValue<T>[] {
 		this.enqueToStack();
 
 		let value = processValue();
-		let result: NumberWithLabelValue[] = [];
+		let result: LabledValue<T>[] = [];
 
 		if (!value) {
 			this.popStack();
-			return;
+			return [];
 		}
 
 		while (value) {
 			result = [...result, value];
-
 			value = processValue();
 		}
 
@@ -866,7 +886,21 @@ export class Parser {
 		}
 
 		this.mergeStack();
-		const node = new NumberValues(result);
+		return result;
+	}
+
+	private processArrayValues(dtcProperty: DtcProperty): ArrayValues | undefined {
+		this.enqueToStack();
+
+		const result = this.processLabledValue(
+			(): LabledValue<NumberValue | LabelRef | NodePathRef> | undefined =>
+				this.processRefValue(false, dtcProperty) ||
+				this.processHex(false) ||
+				this.processDec(true)
+		);
+
+		this.mergeStack();
+		const node = new ArrayValues(result);
 		node.tokenIndexes = {
 			start: result.at(0)?.tokenIndexes?.start,
 			end: result.at(-1)?.tokenIndexes?.end,
@@ -874,7 +908,7 @@ export class Parser {
 		return node;
 	}
 
-	private processHex(acceptLabelName: boolean): NumberWithLabelValue | undefined {
+	private processHex(acceptLabelName: boolean): LabledValue<NumberValue> | undefined {
 		this.enqueToStack();
 
 		const labels = this.processOptionalLablelAssign(acceptLabelName);
@@ -891,15 +925,15 @@ export class Parser {
 		this.mergeStack();
 		const numbeValue = new NumberValue(Number.parseInt(token.value, 16));
 		numbeValue.tokenIndexes = { start: token, end: token };
-		const node = new NumberWithLabelValue(numbeValue, labels);
+		const node = new LabledValue(numbeValue, labels);
 		node.tokenIndexes = { start: labels.at(0)?.tokenIndexes?.end ?? token, end: token };
 		return node;
 	}
 
-	private processHexString(acceptLabelName: boolean): NumberWithLabelValue | undefined {
+	private processHexString(): LabledValue<NumberValue> | undefined {
 		this.enqueToStack();
 
-		const labels = this.processOptionalLablelAssign(acceptLabelName);
+		const labels = this.processOptionalLablelAssign(false);
 		const token = this.moveToNextToken;
 		if (!validToken(token, LexerToken.HEX_STRING)) {
 			this.popStack();
@@ -913,12 +947,12 @@ export class Parser {
 		this.mergeStack();
 		const numbeValue = new NumberValue(Number.parseInt(token.value, 16));
 		numbeValue.tokenIndexes = { start: token, end: token };
-		const node = new NumberWithLabelValue(numbeValue, labels);
+		const node = new LabledValue(numbeValue, labels);
 		node.tokenIndexes = { start: labels.at(0)?.tokenIndexes?.end ?? token, end: token };
 		return node;
 	}
 
-	private processDec(acceptLabelName: boolean): NumberWithLabelValue | undefined {
+	private processDec(acceptLabelName: boolean): LabledValue<NumberValue> | undefined {
 		this.enqueToStack();
 
 		const labels = this.processOptionalLablelAssign(acceptLabelName);
@@ -935,7 +969,7 @@ export class Parser {
 		this.mergeStack();
 		const numbeValue = new NumberValue(Number.parseInt(token.value, 10));
 		numbeValue.tokenIndexes = { start: token, end: token };
-		const node = new NumberWithLabelValue(numbeValue, labels);
+		const node = new LabledValue(numbeValue, labels);
 		node.tokenIndexes = {
 			start: labels.at(0)?.tokenIndexes?.end ?? token,
 			end: token,
@@ -996,10 +1030,11 @@ export class Parser {
 		return node;
 	}
 
-	private processNodePathOrLabelRefValue(
+	private processRefValue(
+		acceptLabelName: boolean,
 		dtcProperty: DtcProperty
-	): LabelRefValue | NodePathValue | undefined {
-		const labels = this.processOptionalLablelAssign(true);
+	): LabledValue<LabelRef | NodePathRef> | undefined {
+		const labels = this.processOptionalLablelAssign(acceptLabelName);
 		const firstToken = this.currentToken;
 		if (!validToken(this.currentToken, LexerToken.AMPERSAND)) {
 			return;
@@ -1008,7 +1043,7 @@ export class Parser {
 		const nodePath = this.processNodePathRef();
 
 		if (nodePath !== undefined) {
-			const node = new NodePathValue(nodePath, labels);
+			const node = new LabledValue(nodePath, labels);
 			node.tokenIndexes = {
 				start: labels.at(0)?.tokenIndexes?.start ?? nodePath.tokenIndexes?.start,
 				end: nodePath.tokenIndexes?.end,
@@ -1022,7 +1057,7 @@ export class Parser {
 				this.genIssue([SyntaxIssue.LABEL_NAME, SyntaxIssue.NODE_PATH], dtcProperty)
 			);
 
-			const node = new LabelRefValue(null, labels);
+			const node = new LabledValue<LabelRef>(null, labels);
 			node.tokenIndexes = {
 				start: labels.at(0)?.tokenIndexes?.end ?? firstToken,
 				end: firstToken,
@@ -1030,7 +1065,7 @@ export class Parser {
 			return node;
 		}
 
-		const node = new LabelRefValue(labelRef.label, labels);
+		const node = new LabledValue(labelRef, labels);
 		node.tokenIndexes = {
 			start: labels.at(0)?.tokenIndexes?.end ?? firstToken,
 			end: labelRef.tokenIndexes?.end,

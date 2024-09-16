@@ -10,11 +10,10 @@ import {
 } from 'vscode-languageserver';
 import { PropertyValue } from '../ast/dtc/values/value';
 import { StringValue } from '../ast/dtc/values/string';
-import { NumberValues } from '../ast/dtc/values/number';
 import { LabelRef } from '../ast/dtc/labelRef';
-import { NodePathValue } from '../ast/dtc/values/nodePath';
-import { LabelRefValue } from '../ast/dtc/values/labelRef';
 import { ASTBase } from '../ast/base';
+import { ArrayValues } from '../ast/dtc/values/arrayValue';
+import { NumberValue } from '../ast/dtc/values/number';
 
 export enum PropetyType {
 	EMPTY,
@@ -203,22 +202,19 @@ const propertyValueToPropetyType = (value: PropertyValue | null): PropetyType =>
 		return PropetyType.STRING;
 	}
 
-	if (value.value instanceof NumberValues) {
+	if (value.value instanceof ArrayValues) {
 		if (value.value.values.length === 0 || value.value.values.length === 1) {
-			return PropetyType.U32;
+			return value.value.values[0] instanceof NumberValue
+				? PropetyType.U32
+				: PropetyType.PHANDEL;
 		} else if (value.value.values.length === 2) {
 			return PropetyType.U64;
 		} else {
 			return PropetyType.PROP_ENCODED_ARRAY;
 		}
 	}
-	if (
-		value.value instanceof LabelRef ||
-		value.value instanceof NodePathValue ||
-		value.value instanceof LabelRefValue
-	) {
-		return PropetyType.PHANDEL;
-	}
+
+	// TODO properly
 	return PropetyType.BYTESTRING;
 };
 

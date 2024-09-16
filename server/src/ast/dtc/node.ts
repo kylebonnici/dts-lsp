@@ -159,7 +159,10 @@ export class NodeName extends ASTBase {
 	constructor(public readonly name: string, public readonly address?: number) {
 		super();
 		this.docSymbolsMeta = {
-			name: this.address ? `${this.name}@${this.address}` : this.name,
+			name:
+				this.address !== undefined
+					? `${this.name}@${this.address.toString(16)}`
+					: this.name,
 			kind: SymbolKind.Class,
 		};
 		this.semanticTokenType = 'variable';
@@ -171,7 +174,9 @@ export class NodeName extends ASTBase {
 	}
 
 	toString() {
-		return this.address ? `${this.name}@${this.address}` : this.name;
+		return this.address !== undefined
+			? `${this.name}@${this.address.toString(16)}`
+			: this.name;
 	}
 
 	buildSemanticTokens(push: BuildSemanticTokensPush): void {
@@ -188,7 +193,7 @@ export class NodeName extends ASTBase {
 			start: nameNewStart,
 			end: nameNewStart,
 		});
-		if (this.address) {
+		if (this.address !== undefined) {
 			const addressNewStart = {
 				...this.tokenIndexes.start,
 				pos: {

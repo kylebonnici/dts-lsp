@@ -14,7 +14,7 @@ import {
 	positionInBetween,
 	sortAstForScope,
 } from '../helpers';
-import { DiagnosticSeverity, DiagnosticTag, Position } from 'vscode-languageserver';
+import { DiagnosticSeverity, Position } from 'vscode-languageserver';
 import { LabelAssign } from '../ast/dtc/label';
 import { Node } from './node';
 
@@ -183,7 +183,7 @@ export class Runtime implements Searchable {
 		const allPaths = this.rootNode.nodePathRefValues;
 
 		allPaths.forEach((ref) => {
-			const pathParts = ref.path?.path?.pathParts;
+			const pathParts = ref.path?.pathParts;
 			if (pathParts && pathParts.every((p) => p?.value)) {
 				const completeParts = pathParts as NodeName[];
 				const okParts: string[] = [];

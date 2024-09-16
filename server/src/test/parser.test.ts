@@ -10,17 +10,17 @@ import { DtcChildNode, DtcRootNode, DtcRefNode, NodeName } from '../ast/dtc/node
 import { StringValue } from '../ast/dtc/values/string';
 import { ByteStringValue } from '../ast/dtc/values/byteString';
 import { LabelRef } from '../ast/dtc/labelRef';
-import { NumberValues } from '../ast/dtc/values/number';
 
 import { describe, test, expect } from '@jest/globals';
-import { LabelRefValue } from '../ast/dtc/values/labelRef';
-import { NodePathValue } from '../ast/dtc/values/nodePath';
+import { ArrayValues } from '../ast/dtc/values/arrayValue';
+import { NumberValue } from '../ast/dtc/values/number';
+import { NodePathRef } from '../ast/dtc/values/nodePath';
 
 describe('Parser', () => {
 	describe('Empty root node', () => {
 		test('Complete', async () => {
 			const rootNode = '/{ \n};';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.nodes.length).toEqual(1);
 			const node = parser.rootDocument.nodes[0];
@@ -45,15 +45,15 @@ describe('Parser', () => {
 
 		test('Missing semicolon', async () => {
 			const rootNode = '/{ \n}';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].issues).toEqual([SyntaxIssue.END_STATMENT]);
-			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
+			expect(parser.issues[0].astElement.tokenIndexes?.start?.pos).toEqual({
 				len: 1,
 				col: 0,
 				line: 1,
 			});
-			expect(parser.issues[0].slxElement.tokenIndexes?.end?.pos).toEqual({
+			expect(parser.issues[0].astElement.tokenIndexes?.end?.pos).toEqual({
 				len: 1,
 				col: 0,
 				line: 1,
@@ -71,15 +71,15 @@ describe('Parser', () => {
 
 		test('Missing close curly only', async () => {
 			const rootNode = '/{ \n;';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].issues).toEqual([SyntaxIssue.CURLY_CLOSE]);
-			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
+			expect(parser.issues[0].astElement.tokenIndexes?.start?.pos).toEqual({
 				len: 1,
 				col: 0,
 				line: 0,
 			});
-			expect(parser.issues[0].slxElement.tokenIndexes?.end?.pos).toEqual({
+			expect(parser.issues[0].astElement.tokenIndexes?.end?.pos).toEqual({
 				len: 1,
 				col: 0,
 				line: 1,
@@ -97,25 +97,25 @@ describe('Parser', () => {
 
 		test('Missing close curly and semicolon', async () => {
 			const rootNode = '/{ \n';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(2);
 			expect(parser.issues[0].issues).toEqual([SyntaxIssue.CURLY_CLOSE]);
-			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
+			expect(parser.issues[0].astElement.tokenIndexes?.start?.pos).toEqual({
 				len: 1,
 				col: 0,
 				line: 0,
 			});
-			expect(parser.issues[0].slxElement.tokenIndexes?.end?.pos).toEqual({
+			expect(parser.issues[0].astElement.tokenIndexes?.end?.pos).toEqual({
 				len: 1,
 				col: 1,
 				line: 0,
 			});
-			expect(parser.issues[1].slxElement.tokenIndexes?.start?.pos).toEqual({
+			expect(parser.issues[1].astElement.tokenIndexes?.start?.pos).toEqual({
 				len: 1,
 				col: 1,
 				line: 0,
 			});
-			expect(parser.issues[1].slxElement.tokenIndexes?.end?.pos).toEqual({
+			expect(parser.issues[1].astElement.tokenIndexes?.end?.pos).toEqual({
 				len: 1,
 				col: 1,
 				line: 0,
@@ -135,7 +135,7 @@ describe('Parser', () => {
 	describe('Root node with property no value', () => {
 		test('Complete', async () => {
 			const rootNode = '/{ \nprop1;\n};';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.nodes.length).toEqual(1);
 			const node = parser.rootDocument.nodes[0] as DtcRootNode;
@@ -174,10 +174,10 @@ describe('Parser', () => {
 
 		test('Prop missing semicolon', async () => {
 			const rootNode = '/{ \nprop1\n};';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].issues).toEqual([SyntaxIssue.END_STATMENT]);
-			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
+			expect(parser.issues[0].astElement.tokenIndexes?.start?.pos).toEqual({
 				len: 5,
 				line: 1,
 				col: 0,
@@ -210,32 +210,32 @@ describe('Parser', () => {
 
 		test('Prop missing semicolon + node missing end curly and semicolon', async () => {
 			const rootNode = '/{ \nprop1';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(3);
 			expect(parser.issues[0].issues).toEqual([SyntaxIssue.END_STATMENT]);
-			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
+			expect(parser.issues[0].astElement.tokenIndexes?.start?.pos).toEqual({
 				len: 5,
 				line: 1,
 				col: 0,
 			});
 			expect(parser.issues[1].issues).toEqual([SyntaxIssue.CURLY_CLOSE]);
-			expect(parser.issues[1].slxElement.tokenIndexes?.start?.pos).toEqual({
+			expect(parser.issues[1].astElement.tokenIndexes?.start?.pos).toEqual({
 				len: 1,
 				col: 0,
 				line: 0,
 			});
-			expect(parser.issues[1].slxElement.tokenIndexes?.end?.pos).toEqual({
+			expect(parser.issues[1].astElement.tokenIndexes?.end?.pos).toEqual({
 				len: 5,
 				line: 1,
 				col: 0,
 			});
 
-			expect(parser.issues[2].slxElement.tokenIndexes?.start?.pos).toEqual({
+			expect(parser.issues[2].astElement.tokenIndexes?.start?.pos).toEqual({
 				len: 5,
 				col: 0,
 				line: 1,
 			});
-			expect(parser.issues[2].slxElement.tokenIndexes?.end?.pos).toEqual({
+			expect(parser.issues[2].astElement.tokenIndexes?.end?.pos).toEqual({
 				len: 5,
 				line: 1,
 				col: 0,
@@ -276,7 +276,7 @@ describe('Parser', () => {
 	describe('Root node with property with value', () => {
 		test('Complete', async () => {
 			const rootNode = '/{ \nprop1= < 10 >;\n};';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.nodes.length).toEqual(1);
 			const node = parser.rootDocument.nodes[0] as DtcRootNode;
@@ -320,10 +320,12 @@ describe('Parser', () => {
 			const value = values?.values[0] ?? null;
 
 			expect(value).toBeDefined();
-			expect(value?.value instanceof NumberValues).toBeTruthy();
-			const numberValue = value?.value as NumberValues;
+			expect(value?.value instanceof ArrayValues).toBeTruthy();
+			const arrayValues = value?.value as ArrayValues;
+			expect(arrayValues.values[0].value instanceof NumberValue).toBeTruthy();
+			const numberValue = arrayValues.values[0].value as NumberValue;
 
-			expect(numberValue.values[0].number.value).toBe(10);
+			expect(numberValue.value).toBe(10);
 			expect(numberValue.tokenIndexes?.start?.pos).toEqual({
 				col: 9,
 				len: 2,
@@ -350,21 +352,9 @@ describe('Parser', () => {
 
 		test('mising value ', async () => {
 			const rootNode = '/{ \nprop1= < >;\n};';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 
-			expect(parser.issues.length).toEqual(1);
-			expect(parser.issues[0].issues).toEqual(
-				expect.arrayContaining([
-					SyntaxIssue.NUMERIC_VALUE,
-					SyntaxIssue.NODE_REF,
-					SyntaxIssue.NODE_PATH,
-				])
-			);
-			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
-				len: 5,
-				line: 1,
-				col: 0,
-			});
+			expect(parser.issues.length).toEqual(0);
 
 			expect(parser.rootDocument.nodes.length).toEqual(1);
 			const node = parser.rootDocument.nodes[0] as DtcRootNode;
@@ -408,7 +398,8 @@ describe('Parser', () => {
 			const value = values?.values[0] ?? null;
 
 			expect(value).toBeDefined();
-			expect(value?.value).toBeNull();
+			expect(value?.value instanceof ArrayValues).toBeTruthy();
+			expect((value?.value as ArrayValues).values.length).toBe(0);
 
 			// ------------ value end -----------
 
@@ -425,33 +416,21 @@ describe('Parser', () => {
 
 		test('mising value and end > and semicoloun ', async () => {
 			const rootNode = '/{ \nprop1= < \n};';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 
-			expect(parser.issues.length).toEqual(3);
-			expect(parser.issues[0].issues).toEqual(
-				expect.arrayContaining([
-					SyntaxIssue.NUMERIC_VALUE,
-					SyntaxIssue.NODE_REF,
-					SyntaxIssue.NODE_PATH,
-				])
-			);
-			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
+			expect(parser.issues.length).toEqual(2);
+
+			expect(parser.issues[0].issues).toEqual(expect.arrayContaining([SyntaxIssue.GT_SYM]));
+			expect(parser.issues[0].astElement.tokenIndexes?.start?.pos).toEqual({
 				len: 5,
 				line: 1,
 				col: 0,
 			});
 
-			expect(parser.issues[1].issues).toEqual(expect.arrayContaining([SyntaxIssue.GT_SYM]));
-			expect(parser.issues[1].slxElement.tokenIndexes?.start?.pos).toEqual({
-				len: 5,
-				line: 1,
-				col: 0,
-			});
-
-			expect(parser.issues[2].issues).toEqual(
+			expect(parser.issues[1].issues).toEqual(
 				expect.arrayContaining([SyntaxIssue.END_STATMENT])
 			);
-			expect(parser.issues[2].slxElement.tokenIndexes?.start?.pos).toEqual({
+			expect(parser.issues[1].astElement.tokenIndexes?.start?.pos).toEqual({
 				len: 1,
 				line: 1,
 				col: 7,
@@ -499,7 +478,8 @@ describe('Parser', () => {
 			const value = values?.values[0] ?? null;
 
 			expect(value).toBeDefined();
-			expect(value?.value).toBeNull();
+			expect(value?.value instanceof ArrayValues).toBeTruthy();
+			expect((value?.value as ArrayValues).values.length).toBe(0);
 
 			// ------------ value end -----------
 
@@ -516,51 +496,39 @@ describe('Parser', () => {
 
 		test('mising value and end > and semicoloun + node end', async () => {
 			const rootNode = '/{ \nprop1= <';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 
-			expect(parser.issues.length).toEqual(5);
-			expect(parser.issues[0].issues).toEqual(
-				expect.arrayContaining([
-					SyntaxIssue.NUMERIC_VALUE,
-					SyntaxIssue.NODE_REF,
-					SyntaxIssue.NODE_PATH,
-				])
-			);
-			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
+			expect(parser.issues.length).toEqual(4);
+
+			expect(parser.issues[0].issues).toEqual(expect.arrayContaining([SyntaxIssue.GT_SYM]));
+			expect(parser.issues[0].astElement.tokenIndexes?.start?.pos).toEqual({
 				len: 5,
 				line: 1,
 				col: 0,
 			});
 
-			expect(parser.issues[1].issues).toEqual(expect.arrayContaining([SyntaxIssue.GT_SYM]));
-			expect(parser.issues[1].slxElement.tokenIndexes?.start?.pos).toEqual({
-				len: 5,
-				line: 1,
-				col: 0,
-			});
-
-			expect(parser.issues[2].issues).toEqual(
+			expect(parser.issues[1].issues).toEqual(
 				expect.arrayContaining([SyntaxIssue.END_STATMENT])
 			);
-			expect(parser.issues[2].slxElement.tokenIndexes?.start?.pos).toEqual({
+			expect(parser.issues[1].astElement.tokenIndexes?.start?.pos).toEqual({
 				len: 1,
 				line: 1,
 				col: 7,
 			});
 
-			expect(parser.issues[3].issues).toEqual(
+			expect(parser.issues[2].issues).toEqual(
 				expect.arrayContaining([SyntaxIssue.CURLY_CLOSE])
 			);
-			expect(parser.issues[3].slxElement.tokenIndexes?.start?.pos).toEqual({
+			expect(parser.issues[2].astElement.tokenIndexes?.start?.pos).toEqual({
 				len: 1,
 				line: 0,
 				col: 0,
 			});
 
-			expect(parser.issues[4].issues).toEqual(
+			expect(parser.issues[3].issues).toEqual(
 				expect.arrayContaining([SyntaxIssue.END_STATMENT])
 			);
-			expect(parser.issues[4].slxElement.tokenIndexes?.start?.pos).toEqual({
+			expect(parser.issues[3].astElement.tokenIndexes?.start?.pos).toEqual({
 				len: 1,
 				line: 1,
 				col: 7,
@@ -608,7 +576,8 @@ describe('Parser', () => {
 			const value = values?.values[0] ?? null;
 
 			expect(value).toBeDefined();
-			expect(value?.value).toBeNull();
+			expect(value?.value instanceof ArrayValues).toBeTruthy();
+			expect((value?.value as ArrayValues).values.length).toBe(0);
 
 			// ------------ value end -----------
 
@@ -627,7 +596,7 @@ describe('Parser', () => {
 	describe('Dtc node', () => {
 		test('named with no address', async () => {
 			const rootNode = '/{nodeName { \n};};';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.nodes.length).toEqual(1);
 			expect(parser.rootDocument.nodes[0].nodes[0] instanceof DtcChildNode).toBeTruthy();
@@ -658,7 +627,7 @@ describe('Parser', () => {
 
 		test('named with address complete', async () => {
 			const rootNode = '/{nodeName@200 { \n};};';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.nodes.length).toEqual(1);
 			expect(parser.rootDocument.nodes[0].nodes[0] instanceof DtcChildNode).toBeTruthy();
@@ -690,10 +659,10 @@ describe('Parser', () => {
 
 		test('named with address missing address number', async () => {
 			const rootNode = '/{nodeName@ { \n};};';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].issues).toEqual([SyntaxIssue.NODE_ADDRESS]);
-			expect(parser.issues[0].slxElement.tokenIndexes?.start?.pos).toEqual({
+			expect(parser.issues[0].astElement.tokenIndexes?.start?.pos).toEqual({
 				len: 9,
 				line: 0,
 				col: 2,
@@ -729,7 +698,7 @@ describe('Parser', () => {
 
 		test('named with multiple lables', async () => {
 			const rootNode = '/{label1: label2: nodeName { \n};};';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.nodes.length).toEqual(1);
 			expect(parser.rootDocument.nodes[0].nodes[0] instanceof DtcChildNode).toBeTruthy();
@@ -779,7 +748,7 @@ describe('Parser', () => {
 
 		test('referance node', async () => {
 			const rootNode = '&nodeRef { \n};';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.nodes.length).toEqual(1);
 			expect(parser.rootDocument.nodes[0] instanceof DtcRefNode).toBeTruthy();
@@ -821,7 +790,7 @@ describe('Parser', () => {
 	describe('Dtc nested node', () => {
 		test('nested named nodes', async () => {
 			const rootNode = '&nodeName { \nnodeName2 { \n};\n};';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.nodes.length).toEqual(1);
 			expect(parser.rootDocument.nodes[0] instanceof DtcRefNode).toBeTruthy();
@@ -876,7 +845,7 @@ describe('Parser', () => {
 
 		test('nested named nodes', async () => {
 			const rootNode = '/ { \nnodeName2 { \n};\n};';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.nodes.length).toEqual(1);
 			expect(parser.rootDocument.nodes[0] instanceof DtcRootNode).toBeTruthy();
@@ -930,7 +899,7 @@ describe('Parser', () => {
 	describe('Properties assign with all types', () => {
 		test('property with u32', async () => {
 			const rootNode = 'prop=< 10 >;';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.unhandledStaments.properties.length).toEqual(1);
 			const property = parser.unhandledStaments.properties[0];
@@ -960,25 +929,25 @@ describe('Parser', () => {
 			expect(values?.tokenIndexes?.end?.pos).toStrictEqual({ len: 1, col: 10, line: 0 });
 
 			expect(values?.values.length).toBe(1);
-			expect(values?.values[0]?.value instanceof NumberValues).toBeTruthy();
-			const value = values?.values[0]?.value as NumberValues;
+			expect(values?.values[0]?.value instanceof ArrayValues).toBeTruthy();
+			const arrayValues = values?.values[0]?.value as ArrayValues;
+			expect(arrayValues.values[0].value instanceof NumberValue).toBeTruthy();
+			const value = arrayValues.values[0].value as NumberValue;
 
-			expect(value.values.length).toBe(1);
+			expect(arrayValues.values.length).toBe(1);
 
-			expect(value.values[0].number.value).toBe(10);
-			expect(value.values[0].tokenIndexes?.start?.pos).toStrictEqual({
+			expect(value.value).toBe(10);
+			expect(value.tokenIndexes?.start?.pos).toStrictEqual({
 				len: 2,
 				col: 7,
 				line: 0,
 			});
-			expect(value.values[0].tokenIndexes?.start?.pos).toStrictEqual(
-				value.values[0].tokenIndexes?.end?.pos
-			);
+			expect(value.tokenIndexes?.start?.pos).toStrictEqual(value.tokenIndexes?.end?.pos);
 		});
 
 		test('property missing next value', async () => {
 			const rootNode = 'prop=< 10 >,;';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.unhandledStaments.properties.length).toEqual(1);
 			const property = parser.unhandledStaments.properties[0];
@@ -1008,27 +977,28 @@ describe('Parser', () => {
 			expect(values?.tokenIndexes?.end?.pos).toStrictEqual({ len: 1, col: 11, line: 0 });
 
 			expect(values?.values.length).toBe(2);
-			expect(values?.values[0]?.value instanceof NumberValues).toBeTruthy();
-			const value = values?.values[0]?.value as NumberValues;
 
-			expect(value.values.length).toBe(1);
+			expect(values?.values[0]?.value instanceof ArrayValues).toBeTruthy();
+			const arrayValues = values?.values[0]?.value as ArrayValues;
+			expect(arrayValues.values[0].value instanceof NumberValue).toBeTruthy();
+			const value = arrayValues.values[0].value as NumberValue;
 
-			expect(value.values[0].number.value).toBe(10);
-			expect(value.values[0].tokenIndexes?.start?.pos).toStrictEqual({
+			expect(values?.values.length).toBe(2);
+
+			expect(value.value).toBe(10);
+			expect(value.tokenIndexes?.start?.pos).toStrictEqual({
 				len: 2,
 				col: 7,
 				line: 0,
 			});
-			expect(value.values[0].tokenIndexes?.start?.pos).toStrictEqual(
-				value.values[0].tokenIndexes?.end?.pos
-			);
+			expect(value.tokenIndexes?.start?.pos).toStrictEqual(value.tokenIndexes?.end?.pos);
 
 			expect(values?.values[1]).toBeNull();
 		});
 
 		test('property missing value between', async () => {
 			const rootNode = 'prop=< 10 >,,< 10 >;';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.unhandledStaments.properties.length).toEqual(1);
 			const property = parser.unhandledStaments.properties[0];
@@ -1058,40 +1028,41 @@ describe('Parser', () => {
 			expect(values?.tokenIndexes?.end?.pos).toStrictEqual({ len: 1, col: 18, line: 0 });
 
 			expect(values?.values.length).toBe(3);
-			expect(values?.values[0]?.value instanceof NumberValues).toBeTruthy();
-			const value1 = values?.values[0]?.value as NumberValues;
 
-			expect(value1.values.length).toBe(1);
+			expect(values?.values[0]?.value instanceof ArrayValues).toBeTruthy();
+			const arrayValue1 = values?.values[0]?.value as ArrayValues;
+			expect(arrayValue1.values[0].value instanceof NumberValue).toBeTruthy();
+			const value1 = arrayValue1.values[0].value as NumberValue;
 
-			expect(value1.values[0].number.value).toBe(10);
-			expect(value1.values[0].tokenIndexes?.start?.pos).toStrictEqual({
+			expect(arrayValue1.values.length).toBe(1);
+
+			expect(value1.value).toBe(10);
+			expect(value1.tokenIndexes?.start?.pos).toStrictEqual({
 				len: 2,
 				col: 7,
 				line: 0,
 			});
-			expect(value1.values[0].tokenIndexes?.start?.pos).toStrictEqual(
-				value1.values[0].tokenIndexes?.end?.pos
-			);
+			expect(value1.tokenIndexes?.start?.pos).toStrictEqual(value1.tokenIndexes?.end?.pos);
 
 			expect(values?.values[1]).toBeNull();
 
-			expect(values?.values[2]?.value instanceof NumberValues).toBeTruthy();
-			const value3 = values?.values[2]?.value as NumberValues;
+			expect(values?.values[2]?.value instanceof ArrayValues).toBeTruthy();
+			const arrayValue3 = values?.values[2]?.value as ArrayValues;
+			expect(arrayValue3.values[0].value instanceof NumberValue).toBeTruthy();
+			const value3 = arrayValue3.values[0].value as NumberValue;
 
-			expect(value3.values[0].number.value).toBe(10);
-			expect(value3.values[0].tokenIndexes?.start?.pos).toStrictEqual({
+			expect(value3.value).toBe(10);
+			expect(value3.tokenIndexes?.start?.pos).toStrictEqual({
 				len: 2,
 				col: 15,
 				line: 0,
 			});
-			expect(value3.values[0].tokenIndexes?.start?.pos).toStrictEqual(
-				value3.values[0].tokenIndexes?.end?.pos
-			);
+			expect(value3.tokenIndexes?.start?.pos).toStrictEqual(value3.tokenIndexes?.end?.pos);
 		});
 
 		test('property with u64', async () => {
 			const rootNode = 'prop=< 10 20 >;';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.unhandledStaments.properties.length).toEqual(1);
 			const property = parser.unhandledStaments.properties[0];
@@ -1130,35 +1101,39 @@ describe('Parser', () => {
 
 			expect(propertyValues?.values.length).toBe(1);
 
-			expect(propertyValues?.values[0]?.value instanceof NumberValues).toBeTruthy();
-			const numberValues = propertyValues?.values[0]?.value as NumberValues;
+			expect(propertyValues?.values[0]?.value instanceof ArrayValues).toBeTruthy();
+			const arrayValue1 = propertyValues?.values[0]?.value as ArrayValues;
+			expect(arrayValue1.values[0].value instanceof NumberValue).toBeTruthy();
+			expect(arrayValue1.values[1].value instanceof NumberValue).toBeTruthy();
+			const numberValue1 = arrayValue1.values[0].value as NumberValue;
+			const numberValue2 = arrayValue1.values[1].value as NumberValue;
 
-			expect(numberValues.values.length).toBe(2);
+			expect(arrayValue1.values.length).toBe(2);
 
-			expect(numberValues.values[0].number.value).toBe(10);
-			expect(numberValues.values[0].tokenIndexes?.start?.pos).toStrictEqual({
+			expect(numberValue1.value).toBe(10);
+			expect(numberValue1.tokenIndexes?.start?.pos).toStrictEqual({
 				len: 2,
 				col: 7,
 				line: 0,
 			});
-			expect(numberValues.values[0].tokenIndexes?.start?.pos).toStrictEqual(
-				numberValues.values[0].tokenIndexes?.end?.pos
+			expect(numberValue1.tokenIndexes?.start?.pos).toStrictEqual(
+				numberValue1.tokenIndexes?.end?.pos
 			);
 
-			expect(numberValues.values[1].number.value).toBe(20);
-			expect(numberValues.values[1].tokenIndexes?.start?.pos).toStrictEqual({
+			expect(numberValue2.value).toBe(20);
+			expect(numberValue2.tokenIndexes?.start?.pos).toStrictEqual({
 				len: 2,
 				col: 10,
 				line: 0,
 			});
-			expect(numberValues.values[1].tokenIndexes?.start?.pos).toStrictEqual(
-				numberValues.values[1].tokenIndexes?.end?.pos
+			expect(numberValue2.tokenIndexes?.start?.pos).toStrictEqual(
+				numberValue2.tokenIndexes?.end?.pos
 			);
 		});
 
 		test('property with prop encoded array', async () => {
 			const rootNode = 'prop=< 10 20 30 >;';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.unhandledStaments.properties.length).toEqual(1);
 			const property = parser.unhandledStaments.properties[0];
@@ -1197,45 +1172,51 @@ describe('Parser', () => {
 
 			expect(propertyValues?.values.length).toBe(1);
 
-			expect(propertyValues?.values[0]?.value instanceof NumberValues).toBeTruthy();
-			const numberValues = propertyValues?.values[0]?.value as NumberValues;
+			expect(propertyValues?.values[0]?.value instanceof ArrayValues).toBeTruthy();
+			const arrayValue1 = propertyValues?.values[0]?.value as ArrayValues;
+			expect(arrayValue1.values[0].value instanceof NumberValue).toBeTruthy();
+			expect(arrayValue1.values[1].value instanceof NumberValue).toBeTruthy();
+			expect(arrayValue1.values[2].value instanceof NumberValue).toBeTruthy();
+			const numberValue1 = arrayValue1.values[0].value as NumberValue;
+			const numberValue2 = arrayValue1.values[1].value as NumberValue;
+			const numberValue3 = arrayValue1.values[2].value as NumberValue;
 
-			expect(numberValues.values.length).toBe(3);
+			expect(arrayValue1.values.length).toBe(3);
 
-			expect(numberValues.values[0].number.value).toBe(10);
-			expect(numberValues.values[0].tokenIndexes?.start?.pos).toStrictEqual({
+			expect(numberValue1.value).toBe(10);
+			expect(numberValue1.tokenIndexes?.start?.pos).toStrictEqual({
 				len: 2,
 				col: 7,
 				line: 0,
 			});
-			expect(numberValues.values[0].tokenIndexes?.start?.pos).toStrictEqual(
-				numberValues.values[0].tokenIndexes?.end?.pos
+			expect(numberValue1.tokenIndexes?.start?.pos).toStrictEqual(
+				numberValue1.tokenIndexes?.end?.pos
 			);
 
-			expect(numberValues.values[1].number.value).toBe(20);
-			expect(numberValues.values[1].tokenIndexes?.start?.pos).toStrictEqual({
+			expect(numberValue2.value).toBe(20);
+			expect(numberValue2.tokenIndexes?.start?.pos).toStrictEqual({
 				len: 2,
 				col: 10,
 				line: 0,
 			});
-			expect(numberValues.values[1].tokenIndexes?.start?.pos).toStrictEqual(
-				numberValues.values[1].tokenIndexes?.end?.pos
+			expect(numberValue2.tokenIndexes?.start?.pos).toStrictEqual(
+				numberValue2.tokenIndexes?.end?.pos
 			);
 
-			expect(numberValues.values[2].number.value).toBe(30);
-			expect(numberValues.values[2].tokenIndexes?.start?.pos).toStrictEqual({
+			expect(numberValue3.value).toBe(30);
+			expect(numberValue3.tokenIndexes?.start?.pos).toStrictEqual({
 				len: 2,
 				col: 13,
 				line: 0,
 			});
-			expect(numberValues.values[2].tokenIndexes?.start?.pos).toStrictEqual(
-				numberValues.values[2].tokenIndexes?.end?.pos
+			expect(numberValue3.tokenIndexes?.start?.pos).toStrictEqual(
+				numberValue3.tokenIndexes?.end?.pos
 			);
 		});
 
 		test('property with multiple values', async () => {
 			const rootNode = 'prop="test",,< 20 >;';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.unhandledStaments.properties.length).toEqual(1);
 			const property = parser.unhandledStaments.properties[0];
@@ -1288,24 +1269,27 @@ describe('Parser', () => {
 
 			expect(propertyValues?.values[1]).toBeNull();
 
-			const numberValues3 = propertyValues?.values[2]?.value as NumberValues;
+			expect(propertyValues?.values[2]?.value instanceof ArrayValues).toBeTruthy();
+			const arrayValue1 = propertyValues?.values[2]?.value as ArrayValues;
+			expect(arrayValue1.values[0].value instanceof NumberValue).toBeTruthy();
+			const numberValue3 = arrayValue1.values[0].value as NumberValue;
 
-			expect(numberValues3.values.length).toBe(1);
+			expect(arrayValue1.values.length).toBe(1);
 
-			expect(numberValues3.values[0].number.value).toBe(20);
-			expect(numberValues3.values[0].tokenIndexes?.start?.pos).toStrictEqual({
+			expect(numberValue3.value).toBe(20);
+			expect(numberValue3.tokenIndexes?.start?.pos).toStrictEqual({
 				len: 2,
 				col: 15,
 				line: 0,
 			});
-			expect(numberValues3.values[0].tokenIndexes?.start?.pos).toStrictEqual(
-				numberValues3.values[0].tokenIndexes?.end?.pos
+			expect(numberValue3.tokenIndexes?.start?.pos).toStrictEqual(
+				numberValue3.tokenIndexes?.end?.pos
 			);
 		});
 
 		test('property with cell array label ref', async () => {
 			const rootNode = 'prop=< &nodeLabel >;';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.unhandledStaments.properties.length).toEqual(1);
 			const property = parser.unhandledStaments.properties[0];
@@ -1335,11 +1319,14 @@ describe('Parser', () => {
 			expect(values?.tokenIndexes?.end?.pos).toStrictEqual({ len: 1, col: 18, line: 0 });
 
 			expect(values?.values.length).toBe(1);
-			expect(values?.values[0]?.value instanceof LabelRefValue).toBeTruthy();
-			const labelRef = values?.values[0]?.value as LabelRefValue;
 
-			expect(labelRef.value?.value).toBe('nodeLabel');
-			expect(labelRef.labels.length).toBe(0);
+			expect(values?.values[0]?.value instanceof ArrayValues).toBeTruthy();
+			const arrayValue1 = values?.values[0]?.value as ArrayValues;
+			expect(arrayValue1.values[0].value instanceof LabelRef).toBeTruthy();
+			const labelRef = arrayValue1.values[0].value as LabelRef;
+
+			expect(labelRef.value).toBe('nodeLabel');
+			expect(arrayValue1.values[0].labels.length).toBe(0);
 
 			expect(labelRef.tokenIndexes?.start?.pos).toStrictEqual({
 				len: 1,
@@ -1355,7 +1342,7 @@ describe('Parser', () => {
 
 		test('property with label ref', async () => {
 			const rootNode = 'prop=&nodeLabel;';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.unhandledStaments.properties.length).toEqual(1);
 			const property = parser.unhandledStaments.properties[0];
@@ -1404,7 +1391,7 @@ describe('Parser', () => {
 
 		test('property with node path', async () => {
 			const rootNode = 'prop=< &{/node1@/node2@20/node3} >;';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(1); // -> node1@ node address
 			expect(parser.unhandledStaments.properties.length).toEqual(1);
 			const property = parser.unhandledStaments.properties[0];
@@ -1434,20 +1421,23 @@ describe('Parser', () => {
 			expect(values?.tokenIndexes?.end?.pos).toStrictEqual({ len: 1, col: 33, line: 0 });
 
 			expect(values?.values.length).toBe(1);
-			expect(values?.values[0]?.value instanceof NodePathValue).toBeTruthy();
-			const nodePathValue = values?.values[0]?.value as NodePathValue;
 
-			expect(nodePathValue.path?.path?.pathParts.map((p) => p?.name)).toStrictEqual([
+			expect(values?.values[0]?.value instanceof ArrayValues).toBeTruthy();
+			const arrayValue1 = values?.values[0]?.value as ArrayValues;
+			expect(arrayValue1.values[0].value instanceof NodePathRef).toBeTruthy();
+			const nodePathValue = arrayValue1.values[0].value as NodePathRef;
+
+			expect(nodePathValue.path?.pathParts.map((p) => p?.name)).toStrictEqual([
 				'node1',
 				'node2',
 				'node3',
 			]);
-			expect(nodePathValue.path?.path?.pathParts.map((p) => p?.address)).toStrictEqual([
+			expect(nodePathValue.path?.pathParts.map((p) => p?.address)).toStrictEqual([
 				NaN,
 				20,
 				undefined,
 			]);
-			expect(nodePathValue.labels.length).toBe(0);
+			expect(arrayValue1.values[0].labels.length).toBe(0);
 
 			expect(nodePathValue.tokenIndexes?.start?.pos).toStrictEqual({
 				len: 1,
@@ -1463,7 +1453,7 @@ describe('Parser', () => {
 
 		test('property with byte string', async () => {
 			const rootNode = 'prop=[ 10 20 30 ];';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.unhandledStaments.properties.length).toEqual(1);
 			const property = parser.unhandledStaments.properties[0];
@@ -1497,7 +1487,7 @@ describe('Parser', () => {
 			const numberValues = values?.values[0]?.value as ByteStringValue;
 
 			expect(numberValues.values.length).toBe(3);
-			expect(numberValues.values.map((v) => v?.number.value)).toStrictEqual([10, 20, 30]);
+			expect(numberValues.values.map((v) => v?.value?.value)).toStrictEqual([10, 20, 30]);
 
 			expect(numberValues.tokenIndexes?.start?.pos).toStrictEqual({
 				len: 2,
@@ -1513,7 +1503,7 @@ describe('Parser', () => {
 
 		test('property with string same line', async () => {
 			const rootNode = 'prop="--\\"hello word;\\"--";';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.unhandledStaments.properties.length).toEqual(1);
 			const property = parser.unhandledStaments.properties[0];
@@ -1562,7 +1552,7 @@ describe('Parser', () => {
 
 		test('property with two strings two lines', async () => {
 			const rootNode = 'prop="--\\"hello word;\\"--";\nprop="--\\"hello word;\\"--";';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.unhandledStaments.properties.length).toEqual(2);
 			const property1 = parser.unhandledStaments.properties[0];
@@ -1654,7 +1644,7 @@ describe('Parser', () => {
 
 		test('property with string multi line', async () => {
 			const rootNode = 'prop="--\\"hello\n word;\\"--";';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.unhandledStaments.properties.length).toEqual(1);
 			const property = parser.unhandledStaments.properties[0];
@@ -1704,7 +1694,7 @@ describe('Parser', () => {
 
 	test('property with string missing closing "', async () => {
 		const rootNode = 'prop="--\\"hello word;\\"--;';
-		const parser = new Parser(new Lexer(rootNode).tokens);
+		const parser = new Parser(new Lexer(rootNode).tokens, '');
 		expect(parser.issues.length).toEqual(2);
 		expect(parser.issues[0].issues).toEqual(
 			expect.arrayContaining([SyntaxIssue.DUOUBE_QUOTE])
@@ -1760,7 +1750,7 @@ describe('Parser', () => {
 	describe('Delete', () => {
 		test('delete node name', async () => {
 			const rootNode = '/{/delete-node/ nodeName@400;};';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.nodes[0].deleteNodes.length).toEqual(1);
 			const deleteNode = parser.rootDocument.nodes[0].deleteNodes[0];
@@ -1791,7 +1781,7 @@ describe('Parser', () => {
 
 		test('delete node ref', async () => {
 			const rootNode = '/delete-node/ &ref;';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.deleteNodes.length).toEqual(1);
 			const deleteNode = parser.rootDocument.deleteNodes[0];
@@ -1821,7 +1811,7 @@ describe('Parser', () => {
 
 		test('delete property', async () => {
 			const rootNode = '/delete-property/ prop1;';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.unhandledStaments.deleteProperties.length).toEqual(1);
 			const deleteProperty = parser.unhandledStaments.deleteProperties[0];
@@ -1849,7 +1839,7 @@ describe('Parser', () => {
 
 		test('delete , as property', async () => {
 			const rootNode = '/delete-property/ ,;';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.unhandledStaments.deleteProperties.length).toEqual(1);
 			const deleteProperty = parser.unhandledStaments.deleteProperties[0];
@@ -1879,7 +1869,7 @@ describe('Parser', () => {
 	describe('Unknown syntax', () => {
 		test('garbage', async () => {
 			const rootNode = 'fsfsd $ % ^ @ __ ++ =  "dsfsdf" " fdfsdfdfsd"';
-			const parser = new Parser(new Lexer(rootNode).tokens);
+			const parser = new Parser(new Lexer(rootNode).tokens, '');
 			expect(parser.issues.length).toEqual(8);
 
 			expect(parser.issues[0].issues).toEqual(

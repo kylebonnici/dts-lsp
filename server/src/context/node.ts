@@ -7,9 +7,10 @@ import { getDeepestAstNodeInBetween, positionInBetween } from '../helpers';
 import { DiagnosticSeverity, DiagnosticTag, Position } from 'vscode-languageserver';
 import { LabelAssign } from '../ast/dtc/label';
 import { LabelValue } from '../ast/dtc/types';
-import { NodePathValue } from '../ast/dtc/values/nodePath';
 import { ASTBase } from '../ast/base';
 import { getStandardType } from '../dtsTypes/standrdTypes';
+import { NodePathRef } from 'src/ast/dtc/values/nodePath';
+import { LabledValue } from 'src/ast/dtc/values/labledValue';
 
 export class Node {
 	public referancesBy: DtcRefNode[] = [];
@@ -83,7 +84,7 @@ export class Node {
 		];
 	}
 
-	get nodePathRefValues(): NodePathValue[] {
+	get nodePathRefValues(): NodePathRef[] {
 		return [
 			...this.properties.flatMap((p) => p.nodePathRefValues),
 			...this.nodes.flatMap((n) => n.nodePathRefValues),

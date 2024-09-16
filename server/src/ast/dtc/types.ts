@@ -1,17 +1,8 @@
 import { ByteStringValue } from './values/byteString';
-import { LabelRefValue } from './values/labelRef';
-import { NodePathValue } from './values/nodePath';
 import { StringValue } from './values/string';
 import { LabelRef } from './labelRef';
-import { NumberValues } from './values/number';
+import { ArrayValues } from './values/arrayValue';
 
-export type AllValueType =
-	| NodePathValue
-	| LabelRefValue
-	| StringValue
-	| ByteStringValue
-	| NumberValues
-	| LabelRef
-	| null;
+export type AllValueType = StringValue | ByteStringValue | ArrayValues | LabelRef | null;
 
-export type LabelValue = { ast: LabelRef | LabelRefValue; label: string };
+export type LabelValue = { ast: LabelRef; label: string };

@@ -1,11 +1,10 @@
 import { ASTBase } from '../../base';
-import { toRange } from '../../../helpers';
-import { BuildSemanticTokensPush } from '../../../types';
-import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
-import { NumberWithLabelValue } from './number';
+import { SymbolKind } from 'vscode-languageserver';
+import { LabledValue } from './labledValue';
+import { NumberValue } from './number';
 
 export class ByteStringValue extends ASTBase {
-	constructor(public readonly values: (NumberWithLabelValue | null)[]) {
+	constructor(public readonly values: LabledValue<NumberValue>[]) {
 		super();
 		this.docSymbolsMeta = {
 			name: 'Byte String Value',

@@ -258,7 +258,7 @@ export class Lexer {
 	}
 
 	private isNodeNameWithAddress(word: string) {
-		const match = word.match(/^[A-Za-z][A-Za-z0-9,\\._\\+-]+(@[0-9]*)/);
+		const match = word.match(/^[A-Za-z][A-Za-z0-9,\\._\\+-]+(@[0-9A-Fa-f]*)/);
 		if (match?.[0]) {
 			this._tokens.push({
 				tokens: [LexerToken.NODE_NAME],
@@ -326,7 +326,12 @@ export class Lexer {
 		const match = word.match(/^[0-9]+/);
 		if (match?.[0]) {
 			this._tokens.push({
-				tokens: [LexerToken.DIGITS, LexerToken.NUMBER, LexerToken.VALUE],
+				tokens: [
+					LexerToken.HEX_STRING,
+					LexerToken.DIGITS,
+					LexerToken.NUMBER,
+					LexerToken.VALUE,
+				],
 				value: match[0],
 				pos: this.generatePos(word, match[0]),
 			});
@@ -803,6 +808,7 @@ export class Lexer {
 		if (match?.[0]) {
 			this._tokens.push({
 				tokens: [
+					...(word.match(/^([0-9A-Fa-f]{2})+/) ? [LexerToken.HEX_STRING] : []),
 					LexerToken.C_IDENTIFIER,
 					LexerToken.LABEL_NAME,
 					LexerToken.NODE_NAME,

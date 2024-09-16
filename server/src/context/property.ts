@@ -1,14 +1,14 @@
 /* eslint-disable no-mixed-spaces-and-tabs */
 import { DtcProperty } from '../ast/dtc/property';
-import { ContextIssues, Issue, Searchable, SearchableResult } from '../types';
+import { ContextIssues, Issue, SearchableResult } from '../types';
 import { DiagnosticSeverity, DiagnosticTag, Position } from 'vscode-languageserver';
-import { getDeepestAstNodeInBetween, positionInBetween } from '../helpers';
+import { getDeepestAstNodeInBetween } from '../helpers';
 import { LabelAssign } from '../ast/dtc/label';
-import { LabelRefValue } from '../ast/dtc/values/labelRef';
 import { LabelRef } from '../ast/dtc/labelRef';
 import { AllValueType, LabelValue } from '../ast/dtc/types';
-import { NodePathValue } from '../ast/dtc/values/nodePath';
 import { type Node } from './node';
+import { ArrayValues } from '../ast/dtc/values/arrayValue';
+import { NodePathRef } from '../ast/dtc/values/nodePath';
 
 export class Property {
 	replaces?: Property;
@@ -40,26 +40,36 @@ export class Property {
 			...((values.filter((c) => c instanceof LabelRef && c.value) as LabelRef[]).map(
 				(r) => ({ ast: r, label: r.value })
 			) as LabelValue[]),
-			...((
-				values.filter(
-					(c) => c instanceof LabelRefValue && c.value?.value
-				) as LabelRefValue[]
-			).map((r) => ({ ast: r, label: r.value?.value })) as LabelValue[]),
+			...(values
+				.flatMap((c) => {
+					if (c instanceof ArrayValues) {
+						return c.values
+							.map((v) => v.value)
+							.filter((v) => v instanceof LabelRef) as LabelRef[];
+					}
+					return [];
+				})
+				.map((r) => ({ ast: r, label: r.value })) as LabelValue[]),
 		];
 
 		return result;
 	}
 
-	get nodePathRefValues(): NodePathValue[] {
+	get nodePathRefValues(): NodePathRef[] {
 		const values = this.ast.values?.values
 			.filter((v) => v)
 			.flatMap((v) => v?.value)
 			.filter((v) => v) as AllValueType[] | undefined;
 		if (!values) return [];
 
-		const result = values.filter(
-			(c) => c instanceof NodePathValue && c.path
-		) as NodePathValue[];
+		const result = values.flatMap((c) => {
+			if (c instanceof ArrayValues) {
+				return c.values
+					.map((v) => v.value)
+					.filter((v) => v instanceof NodePathRef) as NodePathRef[];
+			}
+			return [];
+		}) as NodePathRef[];
 
 		return result;
 	}

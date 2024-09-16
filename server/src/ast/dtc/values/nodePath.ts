@@ -30,16 +30,3 @@ export class NodePathRef extends ASTBase {
 		this.addChild(path);
 	}
 }
-
-export class NodePathValue extends ASTBase {
-	constructor(
-		public readonly path: NodePathRef | null,
-		public readonly labels: LabelAssign[]
-	) {
-		super();
-		this.addChild(path);
-		this.labels.forEach((label) => {
-			this.addChild(label);
-		});
-	}
-}
