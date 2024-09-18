@@ -1,4 +1,3 @@
-import { ASTBase } from '../base';
 import { SymbolKind } from 'vscode-languageserver';
 import { Expression } from './expression';
 

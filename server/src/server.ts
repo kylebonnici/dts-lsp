@@ -240,6 +240,10 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
 			return 'Expected expression';
 		case SyntaxIssue.MISSING_ROUND_CLOSE:
 			return 'Expected "("';
+		case SyntaxIssue.INCLUDE_CLOSE_PATH:
+			return 'Include missing ">"';
+		case SyntaxIssue.INVALID_INCLUDE_SYNTAX:
+			return 'Invalid include Syntax';
 	}
 };
 

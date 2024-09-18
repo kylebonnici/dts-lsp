@@ -33,6 +33,7 @@ import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
 import { Operator, OperatorType } from './ast/cPreprocessors/operator';
 import { ComplexExpression, Expression } from './ast/cPreprocessors/expression';
 import { FunctionCall } from './ast/cPreprocessors/functionCall';
+import { Include, IncludePath } from './ast/cPreprocessors/include';
 
 type AllowNodeRef = 'Ref' | 'Name';
 
@@ -76,6 +77,7 @@ export class Parser {
 		const process = () => {
 			if (
 				!(
+					this.isInclude() ||
 					this.isDtsDocumentVersion() ||
 					this.isRootNodeDefinition(this.rootDocument) ||
 					this.isDeleteNode(this.rootDocument, 'Ref') ||
@@ -1165,6 +1167,76 @@ export class Parser {
 		return node;
 	}
 
+	private isInclude(): boolean {
+		this.enqueToStack();
+
+		const start = this.moveToNextToken;
+		const line = start?.pos.line;
+
+		let token = start;
+		if (!validToken(token, LexerToken.C_INCLUDE)) {
+			this.popStack();
+			return false;
+		}
+
+		const keyword = new Keyword();
+		keyword.tokenIndexes = { start, end: start };
+
+		const moveEndOfLine = () => {
+			if (this.currentToken?.pos.line !== line) {
+				return;
+			}
+
+			const begin = this.currentToken;
+			while (this.currentToken?.pos.line === line) {
+				token = this.moveToNextToken;
+			}
+			const node = new ASTBase();
+			node.tokenIndexes = { start: begin, end: token };
+			this.issues.push(this.genIssue(SyntaxIssue.INVALID_INCLUDE_SYNTAX, node));
+		};
+
+		token = this.moveToNextToken;
+		const pathStart = token;
+		const relative = !!validToken(token, LexerToken.STRING);
+		if (!relative && !validToken(token, LexerToken.LT_SYM)) {
+			moveEndOfLine();
+			this.mergeStack();
+			return true;
+		}
+
+		let path = '';
+
+		if (relative) {
+			path = token?.value ?? '';
+		} else {
+			while (token?.pos.line === line && !validToken(token, LexerToken.GT_SYM)) {
+				if (validToken(token, LexerToken.FORWARD_SLASH)) {
+					path += '/';
+				} else {
+					path += token?.value ?? '';
+				}
+				token = this.moveToNextToken;
+			}
+		}
+
+		const incudePath = new IncludePath(path, relative);
+		const node = new Include(keyword, incudePath);
+		this.includes.push(node);
+
+		if (!relative && (token?.pos.line !== line || !validToken(token, LexerToken.GT_SYM))) {
+			this.issues.push(this.genIssue(SyntaxIssue.INCLUDE_CLOSE_PATH, node));
+		}
+
+		incudePath.tokenIndexes = { start: pathStart, end: token };
+		node.tokenIndexes = { start, end: token };
+
+		moveEndOfLine();
+
+		this.mergeStack();
+		return true;
+	}
+
 	private processExpression(): Expression | undefined {
 		this.enqueToStack();
 
@@ -1466,6 +1538,7 @@ export class Parser {
 
 	getDocumentSymbols(): DocumentSymbol[] {
 		return [
+			...this.includes.flatMap((o) => o.getDocumentSymbols()),
 			...this.rootDocument.getDocumentSymbols(),
 			...this.others.flatMap((o) => o.getDocumentSymbols()),
 		];
@@ -1500,6 +1573,7 @@ export class Parser {
 
 		this.rootDocument.buildSemanticTokens(push);
 		this.others.forEach((a) => a.buildSemanticTokens(push));
+		this.includes.forEach((a) => a.buildSemanticTokens(push));
 
 		this.tokens
 			.filter(
