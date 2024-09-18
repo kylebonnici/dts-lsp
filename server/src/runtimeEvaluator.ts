@@ -16,11 +16,13 @@ import { LabelRef } from './ast/dtc/labelRef';
 import { Node } from './context/node';
 import { Property } from './context/property';
 import { Runtime } from './context/runtime';
-import { genIssue } from './helpers';
+import { genIssue, toRange } from './helpers';
 import { Lexer } from './lexer';
 import { Parser } from './parser';
 import { readFileSync } from 'fs-extra';
-import { DiagnosticSeverity } from 'vscode-languageserver';
+import { DiagnosticSeverity, DocumentLink } from 'vscode-languageserver';
+import { Include } from './ast/cPreprocessors/include';
+import { NodePath } from './ast/dtc/values/nodePath';
 
 export class ContextAware {
 	_issues: Issue<ContextIssues>[] = [];
@@ -36,6 +38,24 @@ export class ContextAware {
 
 	get issues() {
 		return [...this.runtime.issues, ...this._issues];
+	}
+
+	getDocumentLinks(file: string): DocumentLink[] {
+		const parser = astMap.get(file)?.parser;
+		return (
+			(parser?.includes
+				.map((include) => {
+					const path = parser.resolveInclude(include, this.includePaths, this.commonPaths);
+					if (path) {
+						const link: DocumentLink = {
+							range: toRange(include.path),
+							target: `file://${path}`,
+						};
+						return link;
+					}
+				})
+				.filter((r) => r) as DocumentLink[]) ?? []
+		);
 	}
 
 	private prepareContext(file: string): string[] {
@@ -78,9 +98,7 @@ export class ContextAware {
 
 		ast.forEach((root) => {
 			if (root.tree) {
-				console.time(`revaluate - ${root.uri}`);
 				this.processRoot(root.tree);
-				console.timeEnd(`revaluate - ${root.uri}`);
 			}
 		});
 	}
@@ -135,7 +153,13 @@ export class ContextAware {
 		this.runtime.roots.push(element);
 		this.runtime.rootNode.definitons.push(element);
 		this.checkNodeUniqueNames(element, this.runtime.rootNode);
-		element.children.forEach((child) => this.processChild(child, this.runtime.rootNode));
+		[...element.children]
+			.sort((a, b) => {
+				if (a instanceof DtcBaseNode && b instanceof DtcBaseNode) return 0;
+				if (a instanceof DtcBaseNode) return -1;
+				return 0;
+			})
+			.forEach((child) => this.processChild(child, this.runtime.rootNode));
 	}
 
 	private processDtcChildNode(element: DtcChildNode, runtimeNodeParent: Node) {
@@ -154,7 +178,13 @@ export class ContextAware {
 			this.checkNodeUniqueNames(element, child);
 		}
 
-		element.children.forEach((child) => this.processChild(child, runtimeNodeParent));
+		[...element.children]
+			.sort((a, b) => {
+				if (a instanceof DtcBaseNode && b instanceof DtcBaseNode) return 0;
+				if (a instanceof DtcBaseNode) return -1;
+				return 0;
+			})
+			.forEach((child) => this.processChild(child, runtimeNodeParent));
 	}
 
 	private processDtcRefNode(element: DtcRefNode) {
@@ -179,7 +209,9 @@ export class ContextAware {
 			} else {
 				element.resolveNodePath ??= [...resolvedPath];
 				runtimeNode = this.runtime.rootNode.getChild(resolvedPath);
-				runtimeNode?.referancesBy.push(element);
+				element.labelReferance.linksTo = runtimeNode;
+				runtimeNode?.linkedRefLabels.push(element.labelReferance);
+				runtimeNode?.referancedBy.push(element);
 				if (runtimeNode) {
 					this.runtime.referances.push(element);
 					this.checkNodeUniqueNames(element, runtimeNode);
@@ -191,14 +223,41 @@ export class ContextAware {
 			this.runtime.unlinkedRefNodes.push(element);
 		}
 
-		element.children.forEach((child) =>
-			this.processChild(child, runtimeNode ?? new Node(''))
-		);
+		[...element.children]
+			.sort((a, b) => {
+				if (a instanceof DtcBaseNode && b instanceof DtcBaseNode) return 0;
+				if (a instanceof DtcBaseNode) return -1;
+				return 0;
+			})
+			.forEach((child) => this.processChild(child, runtimeNode ?? new Node('')));
 	}
 
 	private processDtcProperty(element: DtcProperty, runtimeNodeParent: Node) {
 		if (element.propertyName?.name) {
 			runtimeNodeParent.addProperty(new Property(element, runtimeNodeParent));
+			element.allDescendants.forEach((c) => {
+				if (c instanceof LabelRef) {
+					const resolvesTo = this.runtime.resolvePath([`&${c.label?.value}`]);
+					if (resolvesTo) {
+						const node = this.runtime.rootNode.getChild(resolvesTo);
+						c.linksTo = node;
+						node?.linkedRefLabels.push(c);
+					}
+				} else if (c instanceof NodePath) {
+					let node: Node | undefined = this.runtime.rootNode;
+					const paths = c.pathParts;
+					for (let i = 0; i < paths.length && paths[i]; i++) {
+						const nodePath = paths[i];
+
+						if (nodePath) {
+							const child: Node | undefined = node?.getNode(nodePath.value);
+							nodePath.linksTo = child;
+							child?.linkedNodeNamePaths.push(nodePath);
+							node = child;
+						}
+					}
+				}
+			});
 		}
 
 		element.children.forEach((child) => this.processChild(child, runtimeNodeParent));
@@ -212,6 +271,10 @@ export class ContextAware {
 						genIssue(ContextIssues.NODE_DOES_NOT_EXIST, element.nodeNameOrRef)
 					);
 				} else {
+					runtimeNodeParent.deletes.push(element);
+					element.nodeNameOrRef.linksTo = runtimeNodeParent.getNode(
+						element.nodeNameOrRef.value
+					);
 					runtimeNodeParent.deleteNode(element.nodeNameOrRef.value, element);
 				}
 			}
@@ -233,6 +296,9 @@ export class ContextAware {
 				);
 			} else {
 				runtimeNode = this.runtime.rootNode.getChild(resolvedPath);
+				runtimeNodeParent.deletes.push(element);
+				element.nodeNameOrRef.linksTo = runtimeNode;
+				runtimeNode?.linkedRefLabels.push(element.nodeNameOrRef);
 				runtimeNode?.parent?.deleteNode(runtimeNode.name, element);
 			}
 		} else {
@@ -250,6 +316,7 @@ export class ContextAware {
 				genIssue(ContextIssues.PROPERTY_DOES_NOT_EXIST, element.propertyName)
 			);
 		} else if (element.propertyName?.name) {
+			runtimeNodeParent.deletes.push(element);
 			runtimeNodeParent.deleteProperty(element.propertyName.name, element);
 		}
 

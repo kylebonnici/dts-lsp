@@ -55,17 +55,19 @@ export class Parser {
 	includePaths(incudes: string[], common: string[]) {
 		return this.includes
 			.filter((p) => p.path.path.endsWith('.dts') || p.path.path.endsWith('.dtsi'))
-			.map((include) => {
-				if (include.path.relative) {
-					return [
-						resolve(dirname(this.uri), include.path.path),
-						...common.map((c) => resolve(c, include.path.path)),
-					].find(existsSync);
-				} else {
-					return incudes.map((p) => resolve(p, include.path.path)).find(existsSync);
-				}
-			})
+			.map((include) => this.resolveInclude(include, incudes, common))
 			.filter((p) => p) as string[];
+	}
+
+	resolveInclude(include: Include, incudes: string[], common: string[]) {
+		if (include.path.relative) {
+			return [
+				resolve(dirname(this.uri), include.path.path),
+				...common.map((c) => resolve(c, include.path.path)),
+			].find(existsSync);
+		} else {
+			return incudes.map((p) => resolve(p, include.path.path)).find(existsSync);
+		}
 	}
 
 	get done() {

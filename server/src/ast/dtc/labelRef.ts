@@ -1,10 +1,11 @@
 import { ASTBase } from '../base';
-import { toRange } from '../../helpers';
-import { BuildSemanticTokensPush } from '../../types';
-import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
+import { SymbolKind } from 'vscode-languageserver';
 import { Label } from './label';
+import { type Node } from '../../context/node';
 
 export class LabelRef extends ASTBase {
+	public linksTo?: Node;
+
 	constructor(public readonly label: Label | null) {
 		super();
 		this.docSymbolsMeta = {

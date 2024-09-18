@@ -4,10 +4,10 @@ import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
 import { getTokenModifiers, getTokenTypes, toRange } from '../../helpers';
 import { DtcProperty } from './property';
 import { DeleteNode } from './deleteNode';
-import { Keyword } from '../keyword';
 import { LabelAssign } from './label';
 import { DeleteProperty } from './deleteProperty';
 import { LabelRef } from './labelRef';
+import { Node } from '../../context/node';
 
 export class DtcBaseNode extends ASTBase {
 	constructor() {
@@ -165,6 +165,8 @@ export class DtcChildNode extends DtcBaseNode {
 }
 
 export class NodeName extends ASTBase {
+	public linksTo?: Node;
+
 	constructor(public readonly name: string, public readonly address?: number) {
 		super();
 		this.docSymbolsMeta = {

@@ -33,6 +33,7 @@ import { Parser } from './parser';
 import { toRange } from './helpers';
 import { ContextAware } from './runtimeEvaluator';
 import { getCompleteions } from './completion';
+import { getReferences } from './findReferences';
 
 let contextAware: ContextAware | undefined;
 
@@ -84,6 +85,10 @@ connection.onInitialize((params: InitializeParams) => {
 				},
 				full: true,
 			},
+			documentLinkProvider: {
+				resolveProvider: false,
+			},
+			referencesProvider: true,
 		},
 	};
 	if (hasWorkspaceFolderCapability) {
@@ -172,7 +177,7 @@ connection.languages.diagnostics.on(async (params) => {
 	if (document !== undefined) {
 		return {
 			kind: DocumentDiagnosticReportKind.Full,
-			items: await validateTextDocument(document),
+			items: await getDiagnostics(document),
 		} satisfies DocumentDiagnosticReport;
 	} else {
 		// We don't know the document. We can either try to read it from disk
@@ -336,27 +341,14 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
 
 // // The content of a text document has changed. This event is emitted
 // // when the text document first opened or when its content has changed.
-// documents.onDidChangeContent((change) => {
-// 	validateTextDocument(change.document);
-// });
+documents.onDidChangeContent((change) => {
+	// validateTextDocument(change.document);
 
-async function validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
-	const uri = textDocument.uri.replace('file://', '');
-	const lexer = new Lexer(textDocument.getText());
+	const uri = change.document.uri.replace('file://', '');
+	const lexer = new Lexer(change.document.getText());
 	const parser = new Parser(lexer.tokens, uri);
 
 	astMap.set(uri, { lexer, parser });
-
-	const diagnostics: Diagnostic[] = [];
-	parser.issues.forEach((issue) => {
-		const diagnostic: Diagnostic = {
-			severity: issue.severity,
-			range: toRange(issue.astElement),
-			message: issue.issues ? issue.issues.map(syntaxIssueToMessage).join(' or ') : '',
-			source: 'devie tree',
-		};
-		diagnostics.push(diagnostic);
-	});
 
 	if (!contextAware?.contextFiles().some((p) => p === uri)) {
 		console.log('new context');
@@ -368,8 +360,23 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 	console.time('revaluate');
 	contextAware.revaluate();
 	console.timeEnd('revaluate');
+});
 
-	contextAware.issues
+async function getDiagnostics(textDocument: TextDocument): Promise<Diagnostic[]> {
+	const uri = textDocument.uri.replace('file://', '');
+	const diagnostics: Diagnostic[] = [];
+
+	astMap.get(uri)?.parser.issues.forEach((issue) => {
+		const diagnostic: Diagnostic = {
+			severity: issue.severity,
+			range: toRange(issue.astElement),
+			message: issue.issues ? issue.issues.map(syntaxIssueToMessage).join(' or ') : '',
+			source: 'devie tree',
+		};
+		diagnostics.push(diagnostic);
+	});
+
+	contextAware?.issues
 		.filter((issue) => issue.astElement.uri === uri)
 		.forEach((issue) => {
 			const diagnostic: Diagnostic = {
@@ -463,4 +470,16 @@ connection.languages.semanticTokens.on((h) => {
 	data?.parser.buildSemanticTokens(tokensBuilder);
 
 	return tokensBuilder.build();
+});
+
+connection.onDocumentLinks((event) => {
+	const uri = event.textDocument.uri.replace('file://', '');
+	return contextAware?.getDocumentLinks(uri);
+});
+
+connection.onReferences((event) => {
+	if (contextAware) {
+		return getReferences(event, contextAware);
+	}
+	return [];
 });

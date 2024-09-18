@@ -18,7 +18,7 @@ export class NodePath extends ASTBase {
 	}
 
 	get pathParts() {
-		return this._pathParts;
+		return [...this._pathParts];
 	}
 }
 

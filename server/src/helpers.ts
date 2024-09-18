@@ -1,14 +1,22 @@
-import { DiagnosticSeverity, DiagnosticTag, Position } from 'vscode-languageserver';
+import {
+	DiagnosticSeverity,
+	DiagnosticTag,
+	Position,
+	TextDocumentPositionParams,
+} from 'vscode-languageserver';
 import { ASTBase } from './ast/base';
 import {
 	Issue,
 	IssueTypes,
+	SearchableResult,
 	SemanticTokenModifiers,
 	SemanticTokenType,
 	Token,
 	tokenModifiers,
 	tokenTypes,
 } from './types';
+import { ContextAware } from './runtimeEvaluator';
+import { astMap } from './resultCache';
 
 export const toRange = (slxBase: ASTBase) => {
 	return {
@@ -118,3 +126,43 @@ export const sortAstForScope = (ast: ASTBase[], fileOrder: string[]) => {
 		return a.tokenIndexes.end.pos.col - b.tokenIndexes.end.pos.col;
 	});
 };
+
+export function nodeFinder<T>(
+	location: TextDocumentPositionParams,
+	context: ContextAware,
+	action: (result: SearchableResult | undefined, inScope: (ast: ASTBase) => boolean) => T[]
+): T[] {
+	const uri = location.textDocument.uri.replace('file://', '');
+	const meta = astMap.get(uri);
+	if (meta) {
+		console.time('search');
+		const locationMeta = context.runtime.getDeepestAstNode(
+			context.contextFiles().slice(0, context.contextFiles().indexOf(uri)),
+			uri,
+			location.position
+		);
+		console.timeEnd('search');
+
+		const inScope = (ast: ASTBase) => {
+			const position = location.position;
+			if (ast.uri === uri) {
+				return !!(
+					ast.tokenIndexes?.end &&
+					(ast.tokenIndexes.end.pos.line < position.line ||
+						(ast.tokenIndexes.end.pos.line === position.line &&
+							ast.tokenIndexes.end.pos.col + ast.tokenIndexes.end.pos.len <=
+								position.character))
+				);
+			}
+
+			const contextFiles = context.contextFiles();
+			const validFiles = contextFiles.slice(0, contextFiles.indexOf(uri) + 1);
+
+			return validFiles.some((uri) => uri === ast.uri);
+		};
+
+		return action(locationMeta, inScope);
+	}
+
+	return [];
+}

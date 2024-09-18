@@ -3,7 +3,6 @@ import {
 	CompletionItemKind,
 	TextDocumentPositionParams,
 } from 'vscode-languageserver';
-import { astMap } from './resultCache';
 import { ContextAware } from './runtimeEvaluator';
 import { SearchableResult } from './types';
 import { Node } from './context/node';
@@ -17,6 +16,7 @@ import { LabelAssign } from './ast/dtc/label';
 import { NodePath } from './ast/dtc/values/nodePath';
 import { Property } from './context/property';
 import { LabelRef } from './ast/dtc/labelRef';
+import { nodeFinder } from './helpers';
 
 const resolveNonDeletedScopedLabels = (
 	node: Node,
@@ -276,45 +276,13 @@ export function getCompleteions(
 	location: TextDocumentPositionParams,
 	context: ContextAware
 ): CompletionItem[] {
-	const uri = location.textDocument.uri.replace('file://', '');
-	const meta = astMap.get(uri);
-	if (meta) {
-		console.time('search');
-		const locationMeta = context.runtime.getDeepestAstNode(
-			context.contextFiles().slice(0, context.contextFiles().indexOf(uri)),
-			uri,
-			location.position
-		);
-		console.timeEnd('search');
-
-		const inScope = (ast: ASTBase) => {
-			const position = location.position;
-			if (ast.uri === uri) {
-				return !!(
-					ast.tokenIndexes?.end &&
-					(ast.tokenIndexes.end.pos.line < position.line ||
-						(ast.tokenIndexes.end.pos.line === position.line &&
-							ast.tokenIndexes.end.pos.col + ast.tokenIndexes.end.pos.len <=
-								position.character))
-				);
-			}
-
-			const contextFiles = context.contextFiles();
-			const validFiles = contextFiles.slice(0, contextFiles.indexOf(uri) + 1);
-
-			return validFiles.some((uri) => uri === ast.uri);
-		};
-
-		return [
-			...getDeletePropertyItems(locationMeta, inScope),
-			...getDeleteNodeNameItems(locationMeta, inScope),
-			...getDeleteNodeRefItems(locationMeta, inScope),
-			...getNodeRefPathsItems(locationMeta, inScope),
-			...getCreateNodeRefItems(locationMeta, inScope),
-			...getRefLabelsItems(locationMeta, inScope),
-			...getPropertyAssignItems(locationMeta, inScope),
-		];
-	}
-
-	return [];
+	return nodeFinder(location, context, (locationMeta, inScope) => [
+		...getDeletePropertyItems(locationMeta, inScope),
+		...getDeleteNodeNameItems(locationMeta, inScope),
+		...getDeleteNodeRefItems(locationMeta, inScope),
+		...getNodeRefPathsItems(locationMeta, inScope),
+		...getCreateNodeRefItems(locationMeta, inScope),
+		...getRefLabelsItems(locationMeta, inScope),
+		...getPropertyAssignItems(locationMeta, inScope),
+	]);
 }

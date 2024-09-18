@@ -25,6 +25,7 @@ import { DiagnosticSeverity, Position } from 'vscode-languageserver';
 import { LabelAssign } from '../ast/dtc/label';
 import { Node } from './node';
 import { astMap } from '../resultCache';
+import { DeleteBase } from '../ast/dtc/delete';
 
 export class Runtime implements Searchable {
 	public roots: DtcRootNode[] = [];
@@ -257,6 +258,6 @@ export class Runtime implements Searchable {
 	}
 
 	getOrderedNodeAst(node: Node) {
-		return sortAstForScope([...node.definitons, ...node.referancesBy], this.fileOrder);
+		return sortAstForScope([...node.definitons, ...node.referancedBy], this.fileOrder);
 	}
 }

@@ -1,4 +1,4 @@
-import { DtcChildNode, DtcRefNode, DtcRootNode } from '../ast/dtc/node';
+import { DtcChildNode, DtcRefNode, DtcRootNode, NodeName } from '../ast/dtc/node';
 import { ContextIssues, Issue, Searchable, SearchableResult } from '../types';
 import { Property } from './property';
 import { DeleteProperty } from '../ast/dtc/deleteProperty';
@@ -10,14 +10,20 @@ import { LabelValue } from '../ast/dtc/types';
 import { ASTBase } from '../ast/base';
 import { getStandardType } from '../dtsTypes/standrdTypes';
 import { NodePathRef } from '../ast/dtc/values/nodePath';
+import { DeleteBase } from '../ast/dtc/delete';
+import { LabelRef } from '../ast/dtc/labelRef';
 
 export class Node {
-	public referancesBy: DtcRefNode[] = [];
+	public referancedBy: DtcRefNode[] = [];
 	public definitons: (DtcChildNode | DtcRootNode)[] = [];
 	private _properties: Property[] = [];
 	private _deletedProperties: { property: Property; by: DeleteProperty }[] = [];
 	private _deletedNodes: { node: Node; by: DeleteNode }[] = [];
+	public deletes: DeleteBase[] = [];
 	private _nodes: Node[] = [];
+	linkedNodeNamePaths: NodeName[] = [];
+	linkedRefLabels: LabelRef[] = [];
+
 	public nodeType = getStandardType(this);
 
 	constructor(public readonly name: string, public readonly parent: Node | null = null) {
@@ -25,7 +31,7 @@ export class Node {
 	}
 
 	public getReferenceBy(node: DtcRefNode): Node | undefined {
-		if (this.referancesBy.some((n) => n === node)) {
+		if (this.referancedBy.some((n) => n === node)) {
 			return this;
 		}
 
@@ -39,14 +45,25 @@ export class Node {
 		file: string,
 		position: Position
 	): Omit<SearchableResult, 'runtime'> | undefined {
-		const inNode = [...this.definitons, ...this.referancesBy].find((i) =>
+		const inNode = [...this.definitons, ...this.referancedBy].find((i) =>
 			positionInBetween(i, file, position)
 		);
 
 		if (inNode) {
+			const inDeletes = this.deletes
+				.map((p) => ({
+					item: this,
+					ast: getDeepestAstNodeInBetween(p, previousFiles, file, position),
+				}))
+				.find((i) => positionInBetween(i.ast, file, position));
+
+			if (inDeletes) {
+				return inDeletes;
+			}
+
 			const inProperty = [
 				...this._properties.flatMap((p) => [p, ...p.allReplaced]),
-				...this._deletedProperties.map((d) => d.property),
+				...this._deletedProperties.flatMap((d) => [d.property, ...d.property.allReplaced]),
 			]
 				.map((p) => ({
 					item: p,
@@ -98,7 +115,7 @@ export class Node {
 
 	get labels(): LabelAssign[] {
 		return [
-			...this.referancesBy.flatMap((r) => r.labels),
+			...this.referancedBy.flatMap((r) => r.labels),
 			...(
 				this.definitons.filter((def) => def instanceof DtcChildNode) as DtcChildNode[]
 			).flatMap((def) => def.labels),
@@ -163,7 +180,7 @@ export class Node {
 				...(meta.node.definitons.filter(
 					(node) => node instanceof DtcChildNode
 				) as DtcChildNode[]),
-				...meta.node.referancesBy,
+				...meta.node.referancedBy,
 			].flatMap((node) => ({
 				issues: [ContextIssues.DELETE_NODE],
 				severity: DiagnosticSeverity.Hint,
@@ -258,6 +275,7 @@ export class Node {
 			const replaced = this._properties.splice(index, 1)[0];
 			this._properties.push(property);
 			property.replaces = replaced;
+			replaced.replacedBy = property;
 		}
 	}
 

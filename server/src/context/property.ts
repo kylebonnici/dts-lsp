@@ -12,6 +12,7 @@ import { NodePathRef } from '../ast/dtc/values/nodePath';
 
 export class Property {
 	replaces?: Property;
+	replacedBy?: Property;
 	constructor(public readonly ast: DtcProperty, public readonly parent: Node) {}
 
 	getDeepestAstNode(
