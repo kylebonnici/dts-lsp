@@ -57,6 +57,8 @@ export enum SyntaxIssue {
 	EXPECTED_EXPRESSION,
 	INVALID_INCLUDE_SYNTAX,
 	INCLUDE_CLOSE_PATH,
+	MISSING_COMMA,
+	NODE_NAME_ADDRESS_WHITE_SPACE,
 }
 
 export enum ContextIssues {
@@ -72,10 +74,6 @@ export enum ContextIssues {
 }
 
 export enum LexerToken {
-	PROPERTY_NAME,
-	LABEL_ASSIGN,
-	NODE_NAME,
-	OMIT_IF_NO_REF,
 	ASSIGN_OPERATOR,
 	SEMICOLON,
 	CURLY_OPEN,
@@ -97,12 +95,10 @@ export enum LexerToken {
 	MODULUS_OPERATOR,
 	DIGITS,
 	HEX,
-	NUMBER,
 	STRING,
 	DUOUBE_QUOTE,
 	SINGLE_QUOTE,
 	COMMA,
-	VALUE,
 	// EOL,
 
 	C_DEFINE,
@@ -121,16 +117,20 @@ export enum LexerToken {
 	C_ELSE,
 	C_ENDIF,
 
-	C_IDENTIFIER,
 	C_TRUE,
 	C_FALSE,
 	AMPERSAND,
-	LABEL_NAME,
 
 	UNKNOWN,
-	HEX_STRING,
 	ROUND_OPEN,
 	ROUND_CLOSE,
+	QUESTION_MARK,
+	PERIOD,
+	HASH,
+	LETTERS,
+	UNDERSCOURE,
+	AT,
+	COLON,
 }
 
 export const tokenTypes = [
@@ -184,7 +184,7 @@ export interface Position {
 export interface Token {
 	tokens: LexerToken[];
 	pos: Position;
-	value?: string;
+	value: string;
 }
 
 export interface TokenIndexes {
@@ -215,5 +215,9 @@ export type SearchableResult = {
 };
 
 export interface Searchable {
-	getDeepestAstNode(file: string, position: vsCodePosition): SearchableResult | undefined;
+	getDeepestAstNode(
+		previousFiles: string[],
+		file: string,
+		position: vsCodePosition
+	): SearchableResult | undefined;
 }

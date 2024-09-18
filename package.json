@@ -25,7 +25,9 @@
 					"Device Tree"
 				],
 				"extensions": [
-					".dts"
+					".dts",
+					".dtsi",
+					".overlay"
 				],
 				"configuration": "syntax/devicetree-language.json"
 			}

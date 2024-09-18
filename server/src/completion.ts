@@ -135,7 +135,7 @@ function getDeleteNodeRefItems(
 		if (getScopeItems(result.runtime.rootNode).length) {
 			return [
 				{
-					label: '/delete-node/ ',
+					label: '/delete-node/',
 					kind: CompletionItemKind.Keyword,
 				},
 			];
@@ -146,7 +146,7 @@ function getDeleteNodeRefItems(
 	return Array.from(
 		new Set(getScopeItems(result.runtime.rootNode).map((l) => l.label))
 	).map((l) => ({
-		label: `${l};`,
+		label: result.ast instanceof DeleteNode ? `&${l};` : `${l};`,
 		kind: CompletionItemKind.Variable,
 	}));
 }
@@ -174,7 +174,7 @@ function getDeleteNodeNameItems(
 		if (getScopeItems(result.item).length) {
 			return [
 				{
-					label: '/delete-node/ ',
+					label: '/delete-node/',
 					kind: CompletionItemKind.Keyword,
 				},
 			];
@@ -219,7 +219,7 @@ function getDeletePropertyItems(
 		if (getSopeItems(result.item).length) {
 			return [
 				{
-					label: '/delete-property/ ',
+					label: '/delete-property/',
 					kind: CompletionItemKind.Keyword,
 				},
 			];
@@ -276,16 +276,20 @@ export function getCompleteions(
 	location: TextDocumentPositionParams,
 	context: ContextAware
 ): CompletionItem[] {
-	const meta = astMap.get(location.textDocument.uri);
+	const uri = location.textDocument.uri.replace('file://', '');
+	const meta = astMap.get(uri);
 	if (meta) {
+		console.time('search');
 		const locationMeta = context.runtime.getDeepestAstNode(
-			location.textDocument.uri,
+			context.contextFiles().slice(0, context.contextFiles().indexOf(uri)),
+			uri,
 			location.position
 		);
+		console.timeEnd('search');
 
 		const inScope = (ast: ASTBase) => {
 			const position = location.position;
-			if (ast.uri === location.textDocument.uri) {
+			if (ast.uri === uri) {
 				return !!(
 					ast.tokenIndexes?.end &&
 					(ast.tokenIndexes.end.pos.line < position.line ||
@@ -295,10 +299,8 @@ export function getCompleteions(
 				);
 			}
 
-			const validFiles = context.fileMap.slice(
-				0,
-				context.fileMap.indexOf(location.textDocument.uri)
-			);
+			const contextFiles = context.contextFiles();
+			const validFiles = contextFiles.slice(0, contextFiles.indexOf(uri) + 1);
 
 			return validFiles.some((uri) => uri === ast.uri);
 		};

@@ -19,7 +19,7 @@ export class DtcBaseNode extends ASTBase {
 		if (!this.parentNode || this instanceof DtcRootNode) return [this.pathName];
 		if (!(this.parentNode instanceof DtcBaseNode)) return undefined;
 		const parentPath = this.parentNode.path;
-		if (!parentPath) return undefined;
+		if (!parentPath) return [this.pathName];
 
 		return [...parentPath, this.pathName];
 	}
@@ -68,6 +68,7 @@ export class DtcRootNode extends DtcBaseNode {
 
 export class DtcRefNode extends DtcBaseNode {
 	private _labelReferance: LabelRef | null = null;
+	public resolveNodePath?: string[];
 
 	constructor(public readonly labels: LabelAssign[] = []) {
 		super();
@@ -90,6 +91,14 @@ export class DtcRefNode extends DtcBaseNode {
 		this.addChild(labelReferance);
 	}
 
+	get path(): string[] | undefined {
+		if (this.resolveNodePath) {
+			return this.resolveNodePath;
+		}
+
+		return super.path;
+	}
+
 	get labelReferance() {
 		return this._labelReferance;
 	}
@@ -99,7 +108,7 @@ export class DtcRefNode extends DtcBaseNode {
 	}
 
 	get pathName() {
-		return `&${this.labelReferance?.label?.value}`;
+		return this.labelReferance?.label ? `&${this.labelReferance?.label?.value}` : undefined;
 	}
 
 	get properties() {

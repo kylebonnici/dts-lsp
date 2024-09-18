@@ -14,10 +14,14 @@ export class Property {
 	replaces?: Property;
 	constructor(public readonly ast: DtcProperty, public readonly parent: Node) {}
 
-	getDeepestAstNode(file: string, position: Position): Omit<SearchableResult, 'runtime'> {
+	getDeepestAstNode(
+		previousFiles: string[],
+		file: string,
+		position: Position
+	): Omit<SearchableResult, 'runtime'> {
 		return {
 			item: this,
-			ast: getDeepestAstNodeInBetween(this.ast, file, position),
+			ast: getDeepestAstNodeInBetween(this.ast, previousFiles, file, position),
 		};
 	}
 

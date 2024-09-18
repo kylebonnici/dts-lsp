@@ -16,7 +16,7 @@ export class Include extends ASTBase {
 }
 
 export class IncludePath extends ASTBase {
-	constructor(public readonly path: string, public readonly relative: boolean) {
+	constructor(private readonly _path: string, public readonly relative: boolean) {
 		super();
 		this.docSymbolsMeta = {
 			name: basename(this.path),
@@ -24,5 +24,12 @@ export class IncludePath extends ASTBase {
 		};
 		this.semanticTokenType = 'string';
 		this.semanticTokenModifiers = 'declaration';
+	}
+
+	get path() {
+		if (this.relative) {
+			return this._path.slice(1, -1);
+		}
+		return this._path;
 	}
 }

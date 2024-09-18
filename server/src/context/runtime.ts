@@ -1,4 +1,10 @@
-import { DtcChildNode, DtcRefNode, DtcRootNode, NodeName } from '../ast/dtc/node';
+import {
+	DtcBaseNode,
+	DtcChildNode,
+	DtcRefNode,
+	DtcRootNode,
+	NodeName,
+} from '../ast/dtc/node';
 import {
 	ContextIssues,
 	Issue,
@@ -11,12 +17,14 @@ import { DeleteNode } from '../ast/dtc/deleteNode';
 import {
 	genIssue,
 	getDeepestAstNodeInBetween,
+	isLastTokenOnLine,
 	positionInBetween,
 	sortAstForScope,
 } from '../helpers';
 import { DiagnosticSeverity, Position } from 'vscode-languageserver';
 import { LabelAssign } from '../ast/dtc/label';
 import { Node } from './node';
+import { astMap } from '../resultCache';
 
 export class Runtime implements Searchable {
 	public roots: DtcRootNode[] = [];
@@ -27,34 +35,42 @@ export class Runtime implements Searchable {
 
 	constructor(private readonly fileOrder: string[]) {}
 
-	getDeepestAstNode(file: string, position: Position): SearchableResult | undefined {
+	getDeepestAstNode(
+		previousFiles: string[],
+		file: string,
+		position: Position
+	): SearchableResult | undefined {
 		const dtcNode = [
 			...this.roots,
 			...this.referances,
 			...this.unlinkedDeletes,
 			...this.unlinkedRefNodes,
-		].find((i) => positionInBetween(i, file, position));
+		].find(
+			(i) =>
+				positionInBetween(i, file, position) ||
+				isLastTokenOnLine(astMap.get(file)?.lexer.tokens, i, position)
+		);
 
 		if (dtcNode instanceof DtcRefNode) {
 			const refByNode = this.rootNode.getReferenceBy(dtcNode);
-			const result = refByNode?.getDeepestAstNode(file, position);
+			const result = refByNode?.getDeepestAstNode(previousFiles, file, position);
 			if (result) {
 				return { ...result, runtime: this };
 			}
 			return {
 				item: null,
 				runtime: this,
-				ast: getDeepestAstNodeInBetween(dtcNode, file, position),
+				ast: getDeepestAstNodeInBetween(dtcNode, previousFiles, file, position),
 			};
 		} else if (dtcNode instanceof DtcRootNode && dtcNode.path) {
-			const result = this.rootNode.getDeepestAstNode(file, position);
+			const result = this.rootNode.getDeepestAstNode(previousFiles, file, position);
 			return result ? { ...result, runtime: this } : undefined;
 		} else if (dtcNode) {
 			// unlinkedDeletes
 			return {
 				runtime: this,
 				item: null,
-				ast: getDeepestAstNodeInBetween(dtcNode, file, position),
+				ast: getDeepestAstNodeInBetween(dtcNode, previousFiles, file, position),
 			};
 		}
 
@@ -68,27 +84,41 @@ export class Runtime implements Searchable {
 
 		const allLabels = this.rootNode.allDescendantsLabels;
 
-		const childNodeParent = allLabels.find(
-			(l) =>
-				l.parentNode instanceof DtcChildNode &&
-				l.parentNode.path &&
-				this.rootNode
-					.getChild(l.parentNode.path)
-					?.labels.some((ll) => ll.label === path?.[0].slice(1))
-		)?.parentNode as DtcChildNode | undefined;
+		// const childNodeParent = allLabels.find(
+		// 	(l) =>
+		// 		l.parentNode instanceof DtcChildNode &&
+		// 		l.parentNode.path &&
+		// 		this.rootNode
+		// 			.getChild(l.parentNode.path)
+		// 			?.labels.some((ll) => ll.label === path?.[0].slice(1))
+		// )?.parentNode as DtcChildNode | undefined;
 
-		if (childNodeParent?.path) {
-			return this.resolvePath([...childNodeParent.path, ...path.slice(1)]);
-		}
+		// if (childNodeParent?.path) {
+		// 	return this.resolvePath([...childNodeParent.path, ...path.slice(1)]);
+		// }
 
-		const refNodeParent = allLabels.find(
-			(l) =>
-				l.parentNode instanceof DtcRefNode &&
-				l.parentNode.labelReferance?.label?.value === path?.[0].slice(1)
-		)?.parentNode as DtcRefNode | undefined;
+		// const refNodeParent = allLabels.find(
+		// 	(l) =>
+		// 		l.parentNode instanceof DtcRefNode &&
+		// 		l.parentNode.labelReferance?.label?.value === path?.[0].slice(1)
+		// )?.parentNode as DtcRefNode | undefined;
 
-		if (refNodeParent && refNodeParent.labelReferance?.label?.value) {
-			return this.resolvePath([refNodeParent.pathName]);
+		// if (refNodeParent && refNodeParent.labelReferance?.label?.value) {
+		// 	if (refNodeParent.pathName) {
+		// 		const resolvedPath = this.resolvePath([refNodeParent.pathName]);
+		// 		refNodeParent.resolveNodePath = resolvedPath;
+		// 		return resolvedPath;
+		// 	}
+		// }
+
+		const label = allLabels.find(
+			(l) => l.label === path?.[0].slice(1) && l.parentNode instanceof DtcBaseNode
+		)?.parentNode as DtcBaseNode | undefined;
+
+		const newPath = label?.path;
+
+		if (newPath) {
+			return this.resolvePath(newPath);
 		}
 
 		return;
@@ -162,7 +192,16 @@ export class Runtime implements Searchable {
 		allRef.forEach((ref) => {
 			const resolved = this.resolvePath([`&${ref.label}`]);
 			if (!resolved) {
-				issues.push(genIssue(ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE, ref.ast));
+				issues.push(
+					genIssue(
+						ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
+						ref.ast,
+						DiagnosticSeverity.Error,
+						[],
+						[],
+						[ref.label]
+					)
+				);
 			}
 		});
 

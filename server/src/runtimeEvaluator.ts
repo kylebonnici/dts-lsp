@@ -1,5 +1,4 @@
 /* eslint-disable no-mixed-spaces-and-tabs */
-import { DiagnosticSeverity, DiagnosticTag, Position } from 'vscode-languageserver';
 import { ASTBase } from './ast/base';
 import {
 	DtcBaseNode,
@@ -18,31 +17,70 @@ import { Node } from './context/node';
 import { Property } from './context/property';
 import { Runtime } from './context/runtime';
 import { genIssue } from './helpers';
+import { Lexer } from './lexer';
+import { Parser } from './parser';
+import { readFileSync } from 'fs-extra';
+import { DiagnosticSeverity } from 'vscode-languageserver';
 
 export class ContextAware {
 	_issues: Issue<ContextIssues>[] = [];
-	public readonly runtime;
+	public runtime: Runtime;
 
-	constructor(public readonly fileMap: string[]) {
-		this.runtime = new Runtime(fileMap);
-		this.process();
+	constructor(
+		private readonly includePaths: string[],
+		private readonly commonPaths: string[],
+		public readonly fileMap: string[]
+	) {
+		this.runtime = new Runtime(this.contextFiles());
 	}
+
 	get issues() {
 		return [...this.runtime.issues, ...this._issues];
 	}
 
-	private process() {
-		const ast = this.fileMap.map((file) => ({
-			uri: file,
-			tree: astMap.get(file)?.parser.rootDocument,
-		}));
+	private prepareContext(file: string): string[] {
+		let parser = astMap.get(file)?.parser;
+
+		if (!parser) {
+			const lexer = new Lexer(readFileSync(file).toString());
+			parser = new Parser(lexer.tokens, file);
+			astMap.set(file, { lexer, parser });
+		}
+
+		return [
+			...parser
+				.includePaths(this.includePaths, this.commonPaths)
+				.flatMap((p) => this.prepareContext(p)),
+			file,
+		];
+	}
+
+	public contextFiles() {
+		return this.fileMap.flatMap((f) => this.prepareContext(f));
+	}
+
+	public revaluate() {
+		const files = this.contextFiles();
+
+		this.runtime = new Runtime(files);
+		this._issues = [];
+
+		const ast = files.map((file) => {
+			return {
+				uri: file,
+				tree: astMap.get(file)?.parser.rootDocument,
+			};
+		});
+
 		if (ast.some((tree) => !tree.tree)) {
 			return;
 		}
 
 		ast.forEach((root) => {
 			if (root.tree) {
+				console.time(`revaluate - ${root.uri}`);
 				this.processRoot(root.tree);
+				console.timeEnd(`revaluate - ${root.uri}`);
 			}
 		});
 	}
@@ -66,7 +104,8 @@ export class ContextAware {
 	}
 
 	private checkNodeUniqueNames(element: DtcBaseNode, runtimeNodeParent: Node) {
-		const names = new Set<string>(runtimeNodeParent.nodes.map((n) => n.name));
+		const fullNames = new Set<string>(runtimeNodeParent.nodes.map((n) => n.name));
+		const names = new Set<string>();
 		element.children.forEach((child) => {
 			if (child instanceof DtcChildNode && child.name) {
 				if (child.name && names.has(child.name.name)) {
@@ -75,11 +114,7 @@ export class ContextAware {
 
 				names.add(child.name.toString());
 			} else if (child instanceof DeleteNode && child.nodeNameOrRef instanceof NodeName) {
-				if (!names.has(child.nodeNameOrRef.toString())) {
-					this._issues.push(
-						genIssue(ContextIssues.NODE_DOES_NOT_EXIST, child.nodeNameOrRef)
-					);
-				} else {
+				if (fullNames.has(child.nodeNameOrRef.toString())) {
 					names.delete(child.nodeNameOrRef.toString());
 				}
 			}
@@ -126,13 +161,23 @@ export class ContextAware {
 		let runtimeNode: Node | undefined;
 
 		if (element.labelReferance) {
-			const resolvedPath = element.pathName
-				? this.runtime.resolvePath([element.pathName])
-				: undefined;
+			const resolvedPath =
+				element.resolveNodePath ??
+				(element.pathName ? this.runtime.resolvePath([element.pathName]) : undefined);
 			if (!resolvedPath) {
-				this._issues.push(genIssue(ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE, element));
+				this._issues.push(
+					genIssue(
+						ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
+						element.labelReferance,
+						DiagnosticSeverity.Error,
+						[],
+						[],
+						[element.labelReferance.label?.value ?? '']
+					)
+				);
 				this.runtime.unlinkedRefNodes.push(element);
 			} else {
+				element.resolveNodePath ??= [...resolvedPath];
 				runtimeNode = this.runtime.rootNode.getChild(resolvedPath);
 				runtimeNode?.referancesBy.push(element);
 				if (runtimeNode) {
@@ -176,7 +221,16 @@ export class ContextAware {
 			let runtimeNode: Node | undefined;
 			if (!resolvedPath) {
 				this.runtime.unlinkedDeletes.push(element);
-				this._issues.push(genIssue(ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE, element));
+				this._issues.push(
+					genIssue(
+						ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
+						element,
+						DiagnosticSeverity.Error,
+						[],
+						[],
+						[element.nodeNameOrRef.value]
+					)
+				);
 			} else {
 				runtimeNode = this.runtime.rootNode.getChild(resolvedPath);
 				runtimeNode?.parent?.deleteNode(runtimeNode.name, element);

@@ -35,7 +35,11 @@ export function activate(context: ExtensionContext) {
 		documentSelector: [{ scheme: 'file', language: 'devicetree' }],
 		synchronize: {
 			configurationSection: 'devicetree',
-			fileEvents: [workspace.createFileSystemWatcher('**/*.dts')],
+			fileEvents: [
+				workspace.createFileSystemWatcher('**/*.dts'),
+				workspace.createFileSystemWatcher('**/*.dtsi'),
+				workspace.createFileSystemWatcher('**/*.overlay'),
+			],
 		},
 	};
 

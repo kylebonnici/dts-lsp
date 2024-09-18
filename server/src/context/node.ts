@@ -35,6 +35,7 @@ export class Node {
 	}
 
 	getDeepestAstNode(
+		previousFiles: string[],
 		file: string,
 		position: Position
 	): Omit<SearchableResult, 'runtime'> | undefined {
@@ -54,18 +55,23 @@ export class Node {
 				.find((i) => positionInBetween(i.ast, file, position));
 
 			if (inProperty) {
-				return inProperty.item.getDeepestAstNode(file, position);
+				return inProperty.item.getDeepestAstNode(previousFiles, file, position);
 			}
 
 			const inChildNode = [...this._nodes, ...this._deletedNodes.map((d) => d.node)]
-				.map((n) => n.getDeepestAstNode(file, position))
+				.map((n) => n.getDeepestAstNode(previousFiles, file, position))
 				.find((i) => i);
 
 			if (inChildNode) {
 				return inChildNode;
 			}
 
-			const deepestAstNode = getDeepestAstNodeInBetween(inNode, file, position);
+			const deepestAstNode = getDeepestAstNodeInBetween(
+				inNode,
+				previousFiles,
+				file,
+				position
+			);
 
 			return {
 				item: this,
@@ -258,19 +264,21 @@ export class Node {
 	getChild(path: string[]): Node | undefined {
 		if (path.length === 1 && path[0] === this.name) return this;
 		if (path[0] !== this.name) return undefined;
-		path.splice(0, 1);
-		const myChild = this._nodes.find((node) => node.name === path[0]);
-		return myChild?.getChild(path);
+		const copy = [...path];
+		copy.splice(0, 1);
+		const myChild = this._nodes.find((node) => node.name === copy[0]);
+		return myChild?.getChild(copy);
 	}
 
 	getChildFromScope(path: string[], inScope: (ast: ASTBase) => boolean): Node | undefined {
 		if (path.length === 1 && path[0] === this.name) return this;
 		if (path[0] !== this.name) return undefined;
-		path.splice(0, 1);
+		const copy = [...path];
+		copy.splice(0, 1);
 		const myChild = [
 			...this._nodes,
 			...this._deletedNodes.filter((n) => !inScope(n.by)).map((n) => n.node),
-		].find((node) => node.name === path[0]);
-		return myChild?.getChildFromScope(path, inScope);
+		].find((node) => node.name === copy[0]);
+		return myChild?.getChildFromScope(copy, inScope);
 	}
 }

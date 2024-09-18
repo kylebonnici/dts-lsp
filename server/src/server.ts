@@ -70,7 +70,7 @@ connection.onInitialize((params: InitializeParams) => {
 			// Tell the client that this server supports code completion.
 			completionProvider: {
 				resolveProvider: true,
-				triggerCharacters: ['&', '='],
+				triggerCharacters: ['&', '=', ' '],
 			},
 			diagnosticProvider: {
 				interFileDependencies: false,
@@ -110,13 +110,23 @@ connection.onInitialized(() => {
 
 // The example settings
 interface ExampleSettings {
-	maxNumberOfProblems: number;
+	includePath: string[];
+	common: string[];
 }
 
 // The global settings, used when the `workspace/configuration` request is not supported by the client.
 // Please note that this is not the case when using this server with the client provided in this example
 // but could happen with other clients.
-const defaultSettings: ExampleSettings = { maxNumberOfProblems: 1000 };
+const defaultSettings: ExampleSettings = {
+	includePath: [
+		'/opt/nordic/ncs/v2.7.0/zephyr/dts',
+		'/opt/nordic/ncs/v2.7.0/zephyr/dts/arm',
+		'/opt/nordic/ncs/v2.7.0/zephyr/dts/arm64/',
+		'/opt/nordic/ncs/v2.7.0/zephyr/dts/riscv',
+		'/opt/nordic/ncs/v2.7.0/zephyr/dts/common',
+	],
+	common: ['/opt/nordic/ncs/v2.7.0/zephyr/dts/common'],
+};
 let globalSettings: ExampleSettings = defaultSettings;
 
 // Cache the settings of all open documents
@@ -244,6 +254,8 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
 			return 'Include missing ">"';
 		case SyntaxIssue.INVALID_INCLUDE_SYNTAX:
 			return 'Invalid include Syntax';
+		case SyntaxIssue.MISSING_COMMA:
+			return 'Missing ","';
 	}
 };
 
@@ -258,7 +270,7 @@ const contextIssuesToMessage = (issue: Issue<ContextIssues>) => {
 				case ContextIssues.DUPLICATE_NODE_NAME:
 					return 'Node name already defined';
 				case ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE:
-					return 'No node with that referance has been defined';
+					return `No node with that referance "${issue.templateStrings[0]}" has been defined`;
 				case ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH:
 					return `No node with name "${issue.templateStrings[0]}" could be found in "/${issue.templateStrings[1]}".`;
 				case ContextIssues.LABEL_ALREADY_IN_USE:
@@ -322,17 +334,18 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
 		.join(' or ');
 };
 
-// The content of a text document has changed. This event is emitted
-// when the text document first opened or when its content has changed.
-documents.onDidChangeContent((change) => {
-	validateTextDocument(change.document);
-});
+// // The content of a text document has changed. This event is emitted
+// // when the text document first opened or when its content has changed.
+// documents.onDidChangeContent((change) => {
+// 	validateTextDocument(change.document);
+// });
 
 async function validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
+	const uri = textDocument.uri.replace('file://', '');
 	const lexer = new Lexer(textDocument.getText());
-	const parser = new Parser(lexer.tokens, textDocument.uri);
+	const parser = new Parser(lexer.tokens, uri);
 
-	astMap.set(textDocument.uri, { lexer, parser });
+	astMap.set(uri, { lexer, parser });
 
 	const diagnostics: Diagnostic[] = [];
 	parser.issues.forEach((issue) => {
@@ -345,37 +358,51 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 		diagnostics.push(diagnostic);
 	});
 
-	contextAware = new ContextAware([textDocument.uri]);
-	contextAware.issues.forEach((issue) => {
-		const diagnostic: Diagnostic = {
-			severity: issue.severity,
-			range: toRange(issue.astElement),
-			message: contextIssuesToMessage(issue),
-			source: 'devie tree',
-			tags: issue.tags,
-			relatedInformation: [
-				...issue.linkedTo.map((element) => ({
-					message: issue.issues.map(contextIssuesToLinkedMessage).join(' or '),
-					location: {
-						uri: element.uri!,
-						range: toRange(element),
-					},
-				})),
-			],
-		};
-		diagnostics.push(diagnostic);
-	});
+	if (!contextAware?.contextFiles().some((p) => p === uri)) {
+		console.log('new context');
+		contextAware = new ContextAware(defaultSettings.includePath, defaultSettings.common, [
+			uri,
+		]);
+	}
 
-	contextAware?.runtime.typesIssues.forEach((issue) => {
-		const diagnostic: Diagnostic = {
-			severity: issue.severity,
-			range: toRange(issue.astElement),
-			message: standardTypeIssueIssuesToMessage(issue),
-			source: 'devie tree',
-			tags: issue.tags,
-		};
-		diagnostics.push(diagnostic);
-	});
+	console.time('revaluate');
+	contextAware.revaluate();
+	console.timeEnd('revaluate');
+
+	contextAware.issues
+		.filter((issue) => issue.astElement.uri === uri)
+		.forEach((issue) => {
+			const diagnostic: Diagnostic = {
+				severity: issue.severity,
+				range: toRange(issue.astElement),
+				message: contextIssuesToMessage(issue),
+				source: 'devie tree',
+				tags: issue.tags,
+				relatedInformation: [
+					...issue.linkedTo.map((element) => ({
+						message: issue.issues.map(contextIssuesToLinkedMessage).join(' or '),
+						location: {
+							uri: `file://${element.uri!}`,
+							range: toRange(element),
+						},
+					})),
+				],
+			};
+			diagnostics.push(diagnostic);
+		});
+
+	contextAware?.runtime.typesIssues
+		.filter((issue) => issue.astElement.uri === uri)
+		.forEach((issue) => {
+			const diagnostic: Diagnostic = {
+				severity: issue.severity,
+				range: toRange(issue.astElement),
+				message: standardTypeIssueIssuesToMessage(issue),
+				source: 'devie tree',
+				tags: issue.tags,
+			};
+			diagnostics.push(diagnostic);
+		});
 
 	return diagnostics;
 }
@@ -421,16 +448,18 @@ documents.listen(connection);
 connection.listen();
 
 connection.onDocumentSymbol((h) => {
-	const data = astMap.get(h.textDocument.uri);
+	const uri = h.textDocument.uri.replace('file://', '');
+	const data = astMap.get(uri);
 	if (!data) return [];
 
 	return data.parser.getDocumentSymbols();
 });
 
 connection.languages.semanticTokens.on((h) => {
+	const uri = h.textDocument.uri.replace('file://', '');
 	const tokensBuilder = new SemanticTokensBuilder();
 
-	const data = astMap.get(h.textDocument.uri);
+	const data = astMap.get(uri);
 	data?.parser.buildSemanticTokens(tokensBuilder);
 
 	return tokensBuilder.build();

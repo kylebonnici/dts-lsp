@@ -5,6 +5,7 @@ import {
 	IssueTypes,
 	SemanticTokenModifiers,
 	SemanticTokenType,
+	Token,
 	tokenModifiers,
 	tokenTypes,
 } from './types';
@@ -50,8 +51,23 @@ export const positionInBetween = (
 	);
 };
 
+export const isLastTokenOnLine = (
+	tokens: Token[] | undefined,
+	ast: ASTBase,
+	position: Position
+) => {
+	if (!tokens) {
+		return false;
+	}
+	const lineTokens = tokens.filter((t) => t.pos.line === position.line);
+	const lastLineToken = lineTokens.at(-1);
+	if (lastLineToken && lastLineToken.pos.col >= position.character) return false; // we should have matched positionInBetween
+	return ast.tokenIndexes?.end === lastLineToken;
+};
+
 export const getDeepestAstNodeInBetween = (
 	ast: ASTBase,
+	previousFiles: string[],
 	file: string,
 	position: Position
 ) => {

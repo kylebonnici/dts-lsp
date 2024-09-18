@@ -4,7 +4,7 @@ import {
 	SemanticTokensBuilder,
 } from 'vscode-languageserver';
 import { Issue, LexerToken, SyntaxIssue, Token, TokenIndexes } from './types';
-import { getTokenModifiers, getTokenTypes, toRange } from './helpers';
+import { genIssue, getTokenModifiers, getTokenTypes, toRange } from './helpers';
 import {
 	DtcBaseNode,
 	DtcChildNode,
@@ -34,20 +34,38 @@ import { Operator, OperatorType } from './ast/cPreprocessors/operator';
 import { ComplexExpression, Expression } from './ast/cPreprocessors/expression';
 import { FunctionCall } from './ast/cPreprocessors/functionCall';
 import { Include, IncludePath } from './ast/cPreprocessors/include';
+import { existsSync } from 'fs-extra';
+import { resolve, dirname } from 'path';
 
 type AllowNodeRef = 'Ref' | 'Name';
 
 export class Parser {
 	others: ASTBase[] = [];
-	includes: ASTBase[] = [];
+	includes: Include[] = [];
 	rootDocument = new DtcBaseNode();
 	positionStack: number[] = [];
 	issues: Issue<SyntaxIssue>[] = [];
 	unhandledStaments = new DtcRootNode();
 
-	constructor(private tokens: Token[], uri: string) {
+	constructor(private tokens: Token[], private readonly uri: string) {
 		this.rootDocument.uri = uri;
 		this.parse();
+	}
+
+	includePaths(incudes: string[], common: string[]) {
+		return this.includes
+			.filter((p) => p.path.path.endsWith('.dts') || p.path.path.endsWith('.dtsi'))
+			.map((include) => {
+				if (include.path.relative) {
+					return [
+						resolve(dirname(this.uri), include.path.path),
+						...common.map((c) => resolve(c, include.path.path)),
+					].find(existsSync);
+				} else {
+					return incudes.map((p) => resolve(p, include.path.path)).find(existsSync);
+				}
+			})
+			.filter((p) => p) as string[];
 	}
 
 	get done() {
@@ -91,7 +109,7 @@ export class Parser {
 				const node = new ASTBase();
 				const token = this.moveToNextToken;
 				node.tokenIndexes = { start: token, end: token };
-				this.issues.push(this.genIssue(SyntaxIssue.UNKNOWN, node));
+				this.issues.push(genIssue(SyntaxIssue.UNKNOWN, node));
 				this.reportExtraEndStaments();
 			}
 		};
@@ -216,7 +234,7 @@ export class Parser {
 		const nextToken = this.currentToken;
 		const expectedToken = LexerToken.CURLY_CLOSE;
 		if (!validToken(nextToken, expectedToken)) {
-			this.issues.push(this.genIssue(SyntaxIssue.CURLY_CLOSE, slxBase));
+			this.issues.push(genIssue(SyntaxIssue.CURLY_CLOSE, slxBase));
 		} else {
 			this.moveToNextToken;
 		}
@@ -236,7 +254,7 @@ export class Parser {
 		if (!validToken(currentToken, LexerToken.SEMICOLON)) {
 			const node = new ASTBase();
 			node.tokenIndexes = { start: this.prevToken, end: this.prevToken };
-			this.issues.push(this.genIssue(SyntaxIssue.END_STATMENT, node));
+			this.issues.push(genIssue(SyntaxIssue.END_STATMENT, node));
 			return this.prevToken;
 		}
 
@@ -252,7 +270,7 @@ export class Parser {
 			const token = this.moveToNextToken;
 			const node = new ASTBase();
 			node.tokenIndexes = { start: token, end: token };
-			this.issues.push(this.genIssue(SyntaxIssue.NO_STAMENTE, node));
+			this.issues.push(genIssue(SyntaxIssue.NO_STAMENTE, node));
 		}
 	}
 
@@ -272,7 +290,7 @@ export class Parser {
 				const node = new ASTBase();
 				const token = this.moveToNextToken;
 				node.tokenIndexes = { start: token, end: token };
-				this.issues.push(this.genIssue(SyntaxIssue.UNKNOWN, node));
+				this.issues.push(genIssue(SyntaxIssue.UNKNOWN, node));
 				this.reportExtraEndStaments();
 			} else {
 				if (this.done) {
@@ -288,55 +306,13 @@ export class Parser {
 		const labels: LabelAssign[] = [];
 
 		// Find all labels before node/property/value.....
-		let token = this.currentToken;
-		while (
-			validToken(token, LexerToken.LABEL_ASSIGN) ||
-			(acceptLabelName &&
-				validToken(token, LexerToken.LABEL_NAME) &&
-				token?.pos.line === this.prevToken.pos.line)
-		) {
-			if (token?.value) {
-				const node = new LabelAssign(token.value);
-				node.tokenIndexes = { start: token, end: token };
-				labels.push(node);
-
-				if (validToken(token, LexerToken.LABEL_NAME)) {
-					this.issues.push(this.genIssue(SyntaxIssue.LABEL_ASSIGN_MISSING_COLON, node));
-				}
-			}
-			this.moveToNextToken;
-			token = this.currentToken;
+		let labelAssign = this.isLabelAssign(acceptLabelName);
+		while (labelAssign) {
+			labels.push(labelAssign);
+			labelAssign = this.isLabelAssign(acceptLabelName);
 		}
 
 		return labels;
-	}
-
-	private processNodeName(slxBase: ASTBase): NodeName | undefined {
-		const token = this.currentToken;
-		if (!validToken(token, LexerToken.NODE_NAME)) {
-			return;
-		} else {
-			this.moveToNextToken;
-		}
-
-		if (!token?.value) {
-			throw new Error('Token must have value');
-		}
-
-		const hasAddress = token.value.includes('@');
-		const tmp = token.value.split('@');
-		const name = tmp[0];
-		const address = hasAddress ? Number.parseInt(tmp[1], 16) : undefined;
-
-		const node = new NodeName(name, address);
-		node.tokenIndexes = { start: token, end: token };
-
-		// <nodeName>@
-		if (hasAddress && Number.isNaN(address)) {
-			this.issues.push(this.genIssue(SyntaxIssue.NODE_ADDRESS, slxBase));
-		}
-
-		return node;
 	}
 
 	private isChildNode(parentNode: DtcBaseNode, allow: AllowNodeRef): boolean {
@@ -350,11 +326,11 @@ export class Parser {
 
 		const ref = this.isLabelRef();
 		if (ref && allow === 'Name') {
-			this.issues.push(this.genIssue([SyntaxIssue.NODE_NAME], ref));
+			this.issues.push(genIssue([SyntaxIssue.NODE_NAME], ref));
 		}
 
 		if (!ref) {
-			name = this.processNodeName(child);
+			name = this.isNodeName();
 
 			if (!name) {
 				if (!validToken(this.currentToken, LexerToken.CURLY_OPEN)) {
@@ -363,11 +339,9 @@ export class Parser {
 					return false;
 				}
 
-				this.issues.push(
-					this.genIssue([SyntaxIssue.NODE_NAME, SyntaxIssue.NODE_REF], child)
-				);
+				this.issues.push(genIssue([SyntaxIssue.NODE_NAME, SyntaxIssue.NODE_REF], child));
 			} else if (allow === 'Ref') {
-				this.issues.push(this.genIssue([SyntaxIssue.NODE_REF], name));
+				this.issues.push(genIssue([SyntaxIssue.NODE_REF], name));
 			}
 		}
 
@@ -380,15 +354,16 @@ export class Parser {
 			child.name = name;
 		}
 
-		const token = this.moveToNextToken;
-		if (!validToken(token, LexerToken.CURLY_OPEN)) {
+		if (!validToken(this.currentToken, LexerToken.CURLY_OPEN)) {
 			if (expectedNode) {
-				this.issues.push(this.genIssue(SyntaxIssue.CURLY_OPEN, child));
+				this.issues.push(genIssue(SyntaxIssue.CURLY_OPEN, child));
 			} else {
 				// this could be a property
 				this.popStack();
 				return false;
 			}
+		} else {
+			this.moveToNextToken;
 		}
 
 		// syntax must be a node ....
@@ -411,78 +386,196 @@ export class Parser {
 		return true;
 	}
 
+	private isNodeName(): NodeName | undefined {
+		this.enqueToStack();
+		const valid = this.consumeAnyConcurrentTokens(
+			[
+				LexerToken.DIGITS,
+				LexerToken.LETTERS,
+				LexerToken.COMMA,
+				LexerToken.PERIOD,
+				LexerToken.UNDERSCOURE,
+				LexerToken.ADD_OPERATOR,
+				LexerToken.NEG_OPERATOR,
+			].map(validateToken)
+		);
+
+		if (!valid.length) {
+			this.popStack();
+			return;
+		}
+
+		const name = valid.map((v) => v.value).join('');
+
+		if (!name.match(/^[A-Za-z]/)) {
+			this.popStack();
+			return;
+		}
+
+		const atValid = this.checkConcurrentTokens([validateToken(LexerToken.AT)]);
+		if (atValid.length) {
+			const addressValid = this.consumeAnyConcurrentTokens(
+				[LexerToken.DIGITS, LexerToken.HEX].map(validateToken)
+			);
+
+			const address = addressValid.length
+				? Number.parseInt(addressValid.map((v) => v.value).join(''), 16)
+				: NaN;
+			const node = new NodeName(name, address);
+
+			node.tokenIndexes = { start: valid[0], end: addressValid.at(-1) ?? valid.at(-1) };
+
+			if (!this.adjesentTokens(valid.at(-1), atValid[0])) {
+				this.issues.push(genIssue(SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE, node));
+			} else if (Number.isNaN(address)) {
+				this.issues.push(genIssue(SyntaxIssue.NODE_ADDRESS, node));
+			} else if (
+				!Number.isNaN(address) &&
+				!this.adjesentTokens(atValid.at(-1), addressValid[0])
+			) {
+				this.issues.push(genIssue(SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE, node));
+			}
+
+			this.mergeStack();
+			return node;
+		}
+
+		const node = new NodeName(name);
+		node.tokenIndexes = { start: valid[0], end: valid.at(-1) };
+		this.mergeStack();
+		return node;
+	}
+
+	private isPropertyName(): PropertyName | undefined {
+		this.enqueToStack();
+		const valid = this.consumeAnyConcurrentTokens(
+			[
+				LexerToken.DIGITS,
+				LexerToken.LETTERS,
+				LexerToken.COMMA,
+				LexerToken.PERIOD,
+				LexerToken.UNDERSCOURE,
+				LexerToken.ADD_OPERATOR,
+				LexerToken.NEG_OPERATOR,
+				LexerToken.QUESTION_MARK,
+				LexerToken.HASH,
+			].map(validateToken)
+		);
+
+		if (!valid.length) {
+			this.popStack();
+			return;
+		}
+		const node = new PropertyName(valid.map((v) => v.value).join(''));
+		node.tokenIndexes = { start: valid[0], end: valid.at(-1) };
+		this.mergeStack();
+		return node;
+	}
+
+	private isLabelName(): Label | undefined {
+		this.enqueToStack();
+		const valid = this.consumeAnyConcurrentTokens(
+			[LexerToken.DIGITS, LexerToken.LETTERS, LexerToken.UNDERSCOURE].map(validateToken)
+		);
+
+		if (!valid.length) {
+			this.popStack();
+			return undefined;
+		}
+
+		const name = valid.map((v) => v.value).join('');
+
+		if (!name.match(/^[A-Za-z]/)) {
+			this.popStack();
+			return;
+		}
+
+		const node = new Label(name);
+		node.tokenIndexes = { start: valid[0], end: valid.at(-1) };
+		this.mergeStack();
+		return node;
+	}
+
+	private isLabelAssign(acceptLabelName: boolean): LabelAssign | undefined {
+		this.enqueToStack();
+		const valid = this.consumeAnyConcurrentTokens(
+			[LexerToken.DIGITS, LexerToken.LETTERS, LexerToken.UNDERSCOURE].map(validateToken)
+		);
+
+		if (!valid.length) {
+			this.popStack();
+			return;
+		}
+
+		const name = valid.map((v) => v.value).join('');
+
+		if (!name.match(/^[A-Za-z]/)) {
+			this.popStack();
+			return;
+		}
+
+		const node = new LabelAssign(name);
+		const token = this.currentToken;
+		if (!validToken(token, LexerToken.COLON)) {
+			if (acceptLabelName) {
+				this.issues.push(genIssue(SyntaxIssue.LABEL_ASSIGN_MISSING_COLON, node));
+			} else {
+				this.popStack();
+				return;
+			}
+		} else {
+			this.moveToNextToken;
+		}
+
+		node.tokenIndexes = { start: valid[0], end: token ?? valid.at(-1) };
+		this.mergeStack();
+		return node;
+	}
+
 	private isProperty(parent: DtcBaseNode): boolean {
 		this.enqueToStack();
 
 		const labels = this.processOptionalLablelAssign();
 
-		let name: string | null;
-		const token = this.moveToNextToken;
+		const propertyName = this.isPropertyName();
 
-		if (!validToken(token, LexerToken.PROPERTY_NAME)) {
-			if (
-				labels.length &&
-				!validToken(token, LexerToken.NODE_NAME) &&
-				!validToken(token, LexerToken.AMPERSAND) // node label ref start
-			) {
-				// we have seme lables so we are expecing a property or a node then
-				this.issues.push(
-					this.genIssue(
-						[SyntaxIssue.PROPERTY_DEFINITION, SyntaxIssue.NODE_DEFINITION],
-						parent
-					)
-				);
-				name = null;
-				this.mergeStack();
-				return false;
-			} else {
-				this.popStack();
-				return false;
-			}
+		if (!propertyName) {
+			this.popStack();
+			return false;
 		}
 
 		if (
-			validToken(this.currentToken, LexerToken.CURLY_OPEN) &&
-			validToken(this.prevToken, LexerToken.NODE_NAME)
+			validToken(this.currentToken, LexerToken.CURLY_OPEN) ||
+			validToken(this.currentToken, LexerToken.AT)
 		) {
 			// this is a node not a property
 			this.popStack();
 			return false;
 		}
 
-		if (!token?.value) {
-			throw new Error('Token must have value');
-		}
-
-		name = token.value;
-
-		const propertyName = new PropertyName(name);
-		const child = new DtcProperty(propertyName, labels);
+		const node = new DtcProperty(propertyName, labels);
 
 		let result: PropertyValues | undefined;
 		if (validToken(this.currentToken, LexerToken.ASSIGN_OPERATOR)) {
 			this.moveToNextToken;
-			result = this.processValue(child);
+			result = this.processValue(node);
 
 			if (!result.values.filter((v) => !!v).length) {
-				this.issues.push(this.genIssue(SyntaxIssue.VALUE, child));
+				this.issues.push(genIssue(SyntaxIssue.VALUE, node));
 			}
 		}
 
-		child.values = result ?? null;
-
+		node.values = result ?? null;
 		const lastToken = this.endStatment();
-
-		propertyName.tokenIndexes = { start: token, end: token };
 
 		// create property object
 
-		child.tokenIndexes = {
-			start: labels.at(0)?.tokenIndexes?.start ?? token,
+		node.tokenIndexes = {
+			start: labels.at(0)?.tokenIndexes?.start ?? propertyName.tokenIndexes?.start,
 			end: lastToken ?? this.prevToken,
 		};
 
-		parent.addNodeChild(child);
+		parent.addNodeChild(node);
 
 		this.mergeStack();
 		return true;
@@ -491,35 +584,43 @@ export class Parser {
 	private isDtsDocumentVersion(): boolean {
 		this.enqueToStack();
 
-		const firstToken = this.moveToNextToken;
-		let token = firstToken;
 		const keyword = new Keyword();
 
 		const close = () => {
 			keyword.tokenIndexes = { start: firstToken, end: token };
-			const node = new DeleteNode(keyword);
-			node.tokenIndexes = { start: firstToken, end: token };
 			this.mergeStack();
 			return true;
 		};
 
-		if (!validToken(token, LexerToken.FORWARD_SLASH)) {
+		const valid = this.checkConcurrentTokens([
+			validateToken(LexerToken.FORWARD_SLASH),
+			validateValue('d'),
+			validateValue('ts'),
+			validateToken(LexerToken.NEG_OPERATOR),
+			validateValue('v'),
+			validateValue('1'),
+		]);
+
+		if (!valid.length) {
 			this.popStack();
 			return false;
 		}
 
-		if (
-			this.currentToken?.pos.line !== firstToken?.pos.line ||
-			this.currentToken?.value !== 'dts-v1'
-		) {
+		const firstToken = valid[0];
+		let token: Token | undefined = firstToken;
+
+		if (valid.length === 1 && !validToken(this.currentToken, LexerToken.CURLY_OPEN)) {
 			this.popStack();
 			return false;
-		} else {
-			this.moveToNextToken;
+		}
+
+		if (valid.length !== 6) {
+			this.popStack();
+			return false;
 		}
 
 		if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
-			this.issues.push(this.genIssue(SyntaxIssue.FORWARD_SLASH_END_DELETE, keyword));
+			this.issues.push(genIssue(SyntaxIssue.FORWARD_SLASH_END_DELETE, keyword));
 			return close();
 		} else {
 			token = this.moveToNextToken;
@@ -537,50 +638,51 @@ export class Parser {
 	private isDeleteNode(parent: DtcBaseNode, allow: AllowNodeRef): boolean {
 		this.enqueToStack();
 
-		const firstToken = this.moveToNextToken;
-		let token = firstToken;
+		const valid = this.checkConcurrentTokens([
+			validateToken(LexerToken.FORWARD_SLASH),
+			validateValue('de'),
+			validateValue('lete'),
+			validateToken(LexerToken.NEG_OPERATOR),
+			validateValue('node'),
+		]);
+
+		if (!valid.length) {
+			this.popStack();
+			return false;
+		}
+
+		const firstToken = valid[0];
+		let token: Token | undefined = firstToken;
 		const keyword = new Keyword();
 
 		const close = () => {
-			keyword.tokenIndexes = { start: firstToken, end: token };
+			keyword.tokenIndexes = { start: firstToken, end: valid.at(-1) };
 			const node = new DeleteNode(keyword);
-			node.tokenIndexes = { start: firstToken, end: token };
+			node.tokenIndexes = { start: firstToken, end: valid.at(-1) };
 			parent.addNodeChild(node);
 			this.mergeStack();
 			return true;
 		};
 
-		if (!validToken(token, LexerToken.FORWARD_SLASH)) {
+		if (valid.length === 1 && !validToken(this.currentToken, LexerToken.CURLY_OPEN)) {
+			this.issues.push(genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
+			return close();
+		}
+
+		const stringValue = valid.map((t) => t.value ?? '').join('');
+
+		if (!'/delete-node/'.startsWith(stringValue) || stringValue.endsWith('-')) {
 			this.popStack();
 			return false;
 		}
 
-		if (
-			!this.currentToken?.value &&
-			!validToken(this.currentToken, LexerToken.CURLY_OPEN)
-		) {
-			this.issues.push(this.genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
+		if (valid.length !== 5) {
+			this.issues.push(genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
 			return close();
-		}
-
-		if (
-			this.currentToken?.pos.line === firstToken?.pos.line &&
-			this.currentToken?.value &&
-			!'delete-node'.startsWith(this.currentToken.value)
-		) {
-			this.popStack();
-			return false;
-		}
-
-		if (this.currentToken?.value !== 'delete-node') {
-			this.issues.push(this.genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
-			return close();
-		} else {
-			token = this.moveToNextToken;
 		}
 
 		if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
-			this.issues.push(this.genIssue(SyntaxIssue.FORWARD_SLASH_END_DELETE, keyword));
+			this.issues.push(genIssue(SyntaxIssue.FORWARD_SLASH_END_DELETE, keyword));
 			return close();
 		} else {
 			token = this.moveToNextToken;
@@ -589,28 +691,26 @@ export class Parser {
 
 		const node = new DeleteNode(keyword);
 
-		if (this.currentToken?.pos.line === firstToken?.pos.line) {
+		if (this.sameLine(keyword.tokenIndexes?.end, firstToken)) {
 			const labelRef = this.isLabelRef();
 			if (labelRef && allow === 'Name') {
-				this.issues.push(this.genIssue(SyntaxIssue.NODE_NAME, labelRef));
+				this.issues.push(genIssue(SyntaxIssue.NODE_NAME, labelRef));
 			}
-			const nodeName = labelRef ? undefined : this.processNodeName(node);
+			const nodeName = labelRef ? undefined : this.isNodeName();
 			if (nodeName && allow === 'Ref') {
-				this.issues.push(this.genIssue(SyntaxIssue.NODE_REF, nodeName));
+				this.issues.push(genIssue(SyntaxIssue.NODE_REF, nodeName));
 			}
 
 			if (!nodeName && !labelRef) {
-				this.issues.push(
-					this.genIssue([SyntaxIssue.NODE_NAME, SyntaxIssue.NODE_REF], node)
-				);
+				this.issues.push(genIssue([SyntaxIssue.NODE_NAME, SyntaxIssue.NODE_REF], node));
 			}
 
 			node.nodeNameOrRef = labelRef ?? nodeName ?? null;
 		} else {
 			if (allow === 'Name') {
-				this.issues.push(this.genIssue(SyntaxIssue.NODE_NAME, keyword));
+				this.issues.push(genIssue(SyntaxIssue.NODE_NAME, keyword));
 			} else if (allow === 'Ref') {
-				this.issues.push(this.genIssue(SyntaxIssue.NODE_REF, keyword));
+				this.issues.push(genIssue(SyntaxIssue.NODE_REF, keyword));
 			}
 		}
 		const lastToken = this.endStatment();
@@ -624,50 +724,51 @@ export class Parser {
 	private isDeleteProperty(parent: DtcBaseNode): boolean {
 		this.enqueToStack();
 
-		const firstToken = this.moveToNextToken;
-		let token = firstToken;
+		const valid = this.checkConcurrentTokens([
+			validateToken(LexerToken.FORWARD_SLASH),
+			validateValue('de'),
+			validateValue('lete'),
+			validateToken(LexerToken.NEG_OPERATOR),
+			validateValue('property'),
+		]);
 
+		if (!valid.length) {
+			this.popStack();
+			return false;
+		}
+
+		const firstToken = valid[0];
+		let token: Token | undefined = firstToken;
 		const keyword = new Keyword();
+
 		const close = () => {
-			keyword.tokenIndexes = { start: firstToken, end: token };
+			keyword.tokenIndexes = { start: firstToken, end: valid.at(-1) };
 			const node = new DeleteProperty(keyword);
+			node.tokenIndexes = { start: firstToken, end: valid.at(-1) };
 			parent.addNodeChild(node);
-			node.tokenIndexes = { start: firstToken, end: token };
 			this.mergeStack();
 			return true;
 		};
 
-		if (!validToken(token, LexerToken.FORWARD_SLASH)) {
+		if (valid.length === 1 && !validToken(this.currentToken, LexerToken.CURLY_OPEN)) {
+			this.issues.push(genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
+			return close();
+		}
+
+		const stringValue = valid.map((t) => t.value ?? '').join('');
+
+		if (!'/delete-property/'.startsWith(stringValue) || stringValue.endsWith('-')) {
 			this.popStack();
 			return false;
 		}
 
-		if (
-			!this.currentToken?.value &&
-			!validToken(this.currentToken, LexerToken.CURLY_OPEN)
-		) {
-			this.issues.push(this.genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
+		if (valid.length !== 5) {
+			this.issues.push(genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
 			return close();
-		}
-
-		if (
-			this.currentToken?.pos.line === firstToken?.pos.line &&
-			this.currentToken?.value &&
-			!'delete-property'.startsWith(this.currentToken.value)
-		) {
-			this.popStack();
-			return false;
-		}
-
-		if (this.currentToken?.value !== 'delete-property') {
-			this.issues.push(this.genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
-			return close();
-		} else {
-			token = this.moveToNextToken;
 		}
 
 		if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
-			this.issues.push(this.genIssue(SyntaxIssue.FORWARD_SLASH_END_DELETE, keyword));
+			this.issues.push(genIssue(SyntaxIssue.FORWARD_SLASH_END_DELETE, keyword));
 			return close();
 		} else {
 			token = this.moveToNextToken;
@@ -677,25 +778,15 @@ export class Parser {
 
 		const node = new DeleteProperty(keyword);
 
-		if (this.currentToken?.pos.line === firstToken?.pos.line) {
-			if (!validToken(this.currentToken, LexerToken.PROPERTY_NAME)) {
-				this.issues.push(this.genIssue(SyntaxIssue.PROPERTY_NAME, node));
-			} else {
-				token = this.moveToNextToken;
-
-				if (!token?.value) {
-					throw new Error('Token must have value');
-				}
+		if (this.sameLine(keyword.tokenIndexes?.end, firstToken)) {
+			const propertyName = this.isPropertyName();
+			if (!propertyName) {
+				this.issues.push(genIssue(SyntaxIssue.PROPERTY_NAME, node));
 			}
 
-			const propertyName = token?.value ? new PropertyName(token.value) : null;
-			if (propertyName) {
-				propertyName.tokenIndexes = { start: token, end: token };
-			}
-
-			node.propertyName = propertyName;
+			node.propertyName = propertyName ?? null;
 		} else {
-			this.issues.push(this.genIssue(SyntaxIssue.PROPERTY_NAME, keyword));
+			this.issues.push(genIssue(SyntaxIssue.PROPERTY_NAME, keyword));
 		}
 
 		const lastToken = this.endStatment();
@@ -716,7 +807,7 @@ export class Parser {
 				return (
 					(this.processStringValue() ||
 						this.isLabelRefValue(dtcProperty) ||
-						this.__ArrayValues(dtcProperty) ||
+						this.arrayValues(dtcProperty) ||
 						this.processByteStringValue(dtcProperty)) ??
 					null
 				);
@@ -724,7 +815,7 @@ export class Parser {
 			const value = [getValue()];
 
 			if (!value) {
-				this.issues.push(this.genIssue(SyntaxIssue.VALUE, dtcProperty));
+				this.issues.push(genIssue(SyntaxIssue.VALUE, dtcProperty));
 			}
 
 			while (validToken(this.currentToken, LexerToken.COMMA)) {
@@ -735,7 +826,7 @@ export class Parser {
 				if (next === null) {
 					const node = new ASTBase();
 					node.tokenIndexes = { start, end };
-					this.issues.push(this.genIssue(SyntaxIssue.VALUE, node));
+					this.issues.push(genIssue(SyntaxIssue.VALUE, node));
 				}
 				value.push(next);
 			}
@@ -771,7 +862,7 @@ export class Parser {
 
 		if (!token.value.match(/["']$/)) {
 			this.issues.push(
-				this.genIssue(
+				genIssue(
 					token.value.startsWith('"') ? SyntaxIssue.DUOUBE_QUOTE : SyntaxIssue.SINGLE_QUOTE,
 					propValue
 				)
@@ -788,13 +879,15 @@ export class Parser {
 		return node;
 	}
 
-	private __ArrayValues(dtcProperty: DtcProperty): PropertyValue | undefined {
+	private arrayValues(dtcProperty: DtcProperty): PropertyValue | undefined {
 		this.enqueToStack();
 
-		const firstToken = this.moveToNextToken;
+		const firstToken = this.currentToken;
 		if (!validToken(firstToken, LexerToken.LT_SYM)) {
 			this.popStack();
 			return;
+		} else {
+			this.moveToNextToken;
 		}
 
 		const value = this.processArrayValues(dtcProperty) ?? null;
@@ -802,7 +895,7 @@ export class Parser {
 		const endLabels1 = this.processOptionalLablelAssign(true) ?? [];
 
 		if (!validToken(this.currentToken, LexerToken.GT_SYM)) {
-			this.issues.push(this.genIssue(SyntaxIssue.GT_SYM, dtcProperty));
+			this.issues.push(genIssue(SyntaxIssue.GT_SYM, dtcProperty));
 		} else {
 			this.moveToNextToken;
 		}
@@ -831,24 +924,29 @@ export class Parser {
 		const numberValues = this.processLabledValue(() => this.processHexString());
 
 		if (!numberValues?.length) {
-			this.issues.push(this.genIssue(SyntaxIssue.BYTESTRING, dtcProperty));
+			this.issues.push(genIssue(SyntaxIssue.BYTESTRING, dtcProperty));
 		}
 
 		const endLabels1 = this.processOptionalLablelAssign(true) ?? [];
 
 		if (!validToken(this.currentToken, LexerToken.SQUARE_CLOSE)) {
-			this.issues.push(this.genIssue(SyntaxIssue.SQUARE_CLOSE, dtcProperty));
+			this.issues.push(genIssue(SyntaxIssue.SQUARE_CLOSE, dtcProperty));
 		} else {
 			this.moveToNextToken;
 		}
 
 		numberValues.forEach((value) => {
-			if ((value.value?.tokenIndexes?.start?.pos.len ?? 0) % 2 !== 0) {
-				this.issues.push(this.genIssue(SyntaxIssue.BYTESTRING_EVEN, value));
+			let len = 0;
+			if (value.value?.tokenIndexes?.start === value.value?.tokenIndexes?.end) {
+				len = value.value?.tokenIndexes?.start?.pos.len ?? 0;
+			} else {
+				const len =
+					(value.value?.tokenIndexes?.start?.pos.len ?? 0) +
+					(value.value?.tokenIndexes?.end?.pos.len ?? 0);
 			}
 
-			if (value.tokenIndexes?.start?.tokens.some((tok) => tok === LexerToken.HEX)) {
-				this.issues.push(this.genIssue(SyntaxIssue.BYTESTRING_HEX, value));
+			if (len % 2 !== 0) {
+				this.issues.push(genIssue(SyntaxIssue.BYTESTRING_EVEN, value));
 			}
 		});
 
@@ -902,8 +1000,8 @@ export class Parser {
 			(): LabledValue<NumberValue | LabelRef | NodePathRef | Expression> | undefined =>
 				this.processRefValue(false, dtcProperty) ||
 				this.processLabledHex(false) ||
-				this.processLabledExpression(true, false) ||
-				this.processLabledDec(true)
+				this.processLabledDec(false) ||
+				this.processLabledExpression(true, false)
 		);
 
 		const node = new ArrayValues(result);
@@ -937,18 +1035,26 @@ export class Parser {
 	private processHex(): NumberValue | undefined {
 		this.enqueToStack();
 
-		const token = this.moveToNextToken;
-		if (!validToken(token, LexerToken.HEX)) {
+		const validStart = this.checkConcurrentTokens([validateValue('0'), validateValue('x')]);
+
+		if (!validStart.length) {
 			this.popStack();
 			return;
 		}
 
-		if (token?.value === undefined) {
-			throw new Error('Token must have value');
+		const validValue = this.consumeAnyConcurrentTokens(
+			[LexerToken.DIGITS, LexerToken.HEX].map(validateToken)
+		);
+
+		if (!validValue.length) {
+			this.popStack();
+			return;
 		}
 
-		const numbeValue = new NumberValue(Number.parseInt(token.value, 16));
-		numbeValue.tokenIndexes = { start: token, end: token };
+		const num = Number.parseInt(validValue.map((v) => v.value).join(''), 16);
+		const numbeValue = new NumberValue(num);
+		numbeValue.tokenIndexes = { start: validStart[0], end: validValue.at(-1) };
+
 		this.mergeStack();
 		return numbeValue;
 	}
@@ -957,21 +1063,25 @@ export class Parser {
 		this.enqueToStack();
 
 		const labels = this.processOptionalLablelAssign(false);
-		const token = this.moveToNextToken;
-		if (!validToken(token, LexerToken.HEX_STRING)) {
+		const valid = this.consumeAnyConcurrentTokens(
+			[LexerToken.HEX, LexerToken.HEX].map(validateToken)
+		);
+
+		if (!valid.length) {
 			this.popStack();
 			return;
 		}
 
-		if (token?.value === undefined) {
-			throw new Error('Token must have value');
-		}
+		const num = Number.parseInt(valid.map((v) => v.value).join(''), 16);
+		const numbeValue = new NumberValue(num);
+		numbeValue.tokenIndexes = { start: valid[0], end: valid.at(-1) };
+		const node = new LabledValue(numbeValue, labels);
+		node.tokenIndexes = {
+			start: labels.at(0)?.tokenIndexes?.end ?? valid[0],
+			end: valid.at(-1),
+		};
 
 		this.mergeStack();
-		const numbeValue = new NumberValue(Number.parseInt(token.value, 16));
-		numbeValue.tokenIndexes = { start: token, end: token };
-		const node = new LabledValue(numbeValue, labels);
-		node.tokenIndexes = { start: labels.at(0)?.tokenIndexes?.end ?? token, end: token };
 		return node;
 	}
 
@@ -997,38 +1107,44 @@ export class Parser {
 	private processDec(): NumberValue | undefined {
 		this.enqueToStack();
 
-		const token = this.moveToNextToken;
-		if (!validToken(token, LexerToken.DIGITS)) {
+		const valid = this.consumeAnyConcurrentTokens([LexerToken.DIGITS].map(validateToken));
+
+		if (!valid.length) {
 			this.popStack();
 			return;
 		}
 
-		if (token?.value === undefined) {
-			throw new Error('Token must have value');
-		}
+		const num = Number.parseInt(valid.map((v) => v.value).join(''), 10);
+		const numbeValue = new NumberValue(num);
+		numbeValue.tokenIndexes = { start: valid[0], end: valid.at(-1) };
 
 		this.mergeStack();
-		const numbeValue = new NumberValue(Number.parseInt(token.value, 10));
-		numbeValue.tokenIndexes = { start: token, end: token };
 		return numbeValue;
 	}
 
 	private processCIdentifier(): CIdentifier | undefined {
 		this.enqueToStack();
 
-		const token = this.moveToNextToken;
-		if (!validToken(token, LexerToken.C_IDENTIFIER)) {
+		const valid = this.consumeAnyConcurrentTokens(
+			[LexerToken.DIGITS, LexerToken.LETTERS, LexerToken.UNDERSCOURE].map(validateToken)
+		);
+
+		if (!valid.length) {
+			this.popStack();
+			return undefined;
+		}
+
+		const name = valid.map((v) => v.value).join('');
+
+		if (!name.match(/^[A-Za-z]/)) {
 			this.popStack();
 			return;
 		}
 
-		if (token?.value === undefined) {
-			throw new Error('Token must have value');
-		}
+		const idnetifier = new CIdentifier(name);
+		idnetifier.tokenIndexes = { start: valid[0], end: valid.at(-1) };
 
 		this.mergeStack();
-		const idnetifier = new CIdentifier(token.value);
-		idnetifier.tokenIndexes = { start: token, end: token };
 		return idnetifier;
 	}
 
@@ -1045,10 +1161,7 @@ export class Parser {
 
 		const expression = this.processExpression();
 
-		if (!expression && checkForLables) {
-			this.popStack();
-			return this.processLabledExpression(false);
-		} else if (!expression) {
+		if (!expression) {
 			this.popStack();
 			return;
 		}
@@ -1146,12 +1259,20 @@ export class Parser {
 		let exp = this.processExpression();
 		while (exp) {
 			params.push(exp);
+			if (
+				!validToken(this.currentToken, LexerToken.COMMA) &&
+				!validToken(this.currentToken, LexerToken.ROUND_CLOSE)
+			) {
+				this.issues.push(genIssue(SyntaxIssue.MISSING_COMMA, exp));
+			} else if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
+				token = this.moveToNextToken;
+			}
 			exp = this.processExpression();
 		}
 
 		if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
 			this.issues.push(
-				this.genIssue(SyntaxIssue.MISSING_ROUND_CLOSE, params.at(-1) ?? identifier)
+				genIssue(SyntaxIssue.MISSING_ROUND_CLOSE, params.at(-1) ?? identifier)
 			);
 		} else {
 			token = this.moveToNextToken;
@@ -1193,7 +1314,7 @@ export class Parser {
 			}
 			const node = new ASTBase();
 			node.tokenIndexes = { start: begin, end: token };
-			this.issues.push(this.genIssue(SyntaxIssue.INVALID_INCLUDE_SYNTAX, node));
+			this.issues.push(genIssue(SyntaxIssue.INVALID_INCLUDE_SYNTAX, node));
 		};
 
 		token = this.moveToNextToken;
@@ -1210,12 +1331,11 @@ export class Parser {
 		if (relative) {
 			path = token?.value ?? '';
 		} else {
-			while (token?.pos.line === line && !validToken(token, LexerToken.GT_SYM)) {
-				if (validToken(token, LexerToken.FORWARD_SLASH)) {
-					path += '/';
-				} else {
-					path += token?.value ?? '';
-				}
+			while (
+				this.currentToken?.pos.line === line &&
+				!validToken(this.currentToken, LexerToken.GT_SYM)
+			) {
+				path += this.currentToken?.value ?? '';
 				token = this.moveToNextToken;
 			}
 		}
@@ -1224,8 +1344,15 @@ export class Parser {
 		const node = new Include(keyword, incudePath);
 		this.includes.push(node);
 
-		if (!relative && (token?.pos.line !== line || !validToken(token, LexerToken.GT_SYM))) {
-			this.issues.push(this.genIssue(SyntaxIssue.INCLUDE_CLOSE_PATH, node));
+		if (!relative) {
+			if (
+				this.currentToken?.pos.line !== line ||
+				!validToken(this.currentToken, LexerToken.GT_SYM)
+			) {
+				this.issues.push(genIssue(SyntaxIssue.INCLUDE_CLOSE_PATH, node));
+			} else {
+				token = this.moveToNextToken;
+			}
 		}
 
 		incudePath.tokenIndexes = { start: pathStart, end: token };
@@ -1253,9 +1380,8 @@ export class Parser {
 		let expression: Expression | undefined =
 			this.isFuntion() ||
 			this.processCIdentifier() ||
-			this.processDec() ||
-			this.processHex();
-
+			this.processHex() ||
+			this.processDec();
 		if (!expression) {
 			this.popStack();
 			return;
@@ -1269,7 +1395,7 @@ export class Parser {
 				const nextExpression = this.processExpression();
 
 				if (!nextExpression) {
-					this.issues.push(this.genIssue(SyntaxIssue.EXPECTED_EXPRESSION, operator));
+					this.issues.push(genIssue(SyntaxIssue.EXPECTED_EXPRESSION, operator));
 				} else {
 					expression = new ComplexExpression(expression, {
 						operator,
@@ -1284,9 +1410,7 @@ export class Parser {
 			}
 
 			if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
-				this.issues.push(
-					this.genIssue(SyntaxIssue.MISSING_ROUND_CLOSE, operator ?? expression)
-				);
+				this.issues.push(genIssue(SyntaxIssue.MISSING_ROUND_CLOSE, operator ?? expression));
 			} else {
 				token = this.moveToNextToken;
 			}
@@ -1298,31 +1422,26 @@ export class Parser {
 
 	private isLabelRef(slxBase?: ASTBase): LabelRef | undefined {
 		this.enqueToStack();
-		const firstToken = this.moveToNextToken;
+		const firstToken = this.currentToken;
 		if (!validToken(firstToken, LexerToken.AMPERSAND)) {
 			this.popStack();
 			return;
+		} else {
+			this.moveToNextToken;
 		}
 
-		if (!validToken(this.currentToken, LexerToken.LABEL_NAME)) {
+		const labelName = this.isLabelName();
+		if (!labelName) {
 			const node = new LabelRef(null);
-			this.issues.push(this.genIssue(SyntaxIssue.LABEL_NAME, slxBase ?? node));
+			this.issues.push(genIssue(SyntaxIssue.LABEL_NAME, slxBase ?? node));
 			node.tokenIndexes = { start: firstToken, end: firstToken };
 
 			this.mergeStack();
 			return node;
 		}
 
-		const token = this.moveToNextToken;
-
-		if (token?.value === undefined) {
-			throw new Error('Token must have value');
-		}
-
-		const labelName = new Label(token.value);
-		labelName.tokenIndexes = { start: token, end: token };
 		const node = new LabelRef(labelName);
-		node.tokenIndexes = { start: firstToken, end: token };
+		node.tokenIndexes = { start: firstToken, end: labelName.tokenIndexes?.end };
 		this.mergeStack();
 		return node;
 	}
@@ -1353,9 +1472,11 @@ export class Parser {
 		acceptLabelName: boolean,
 		dtcProperty: DtcProperty
 	): LabledValue<LabelRef | NodePathRef> | undefined {
+		this.enqueToStack();
 		const labels = this.processOptionalLablelAssign(acceptLabelName);
 		const firstToken = this.currentToken;
 		if (!validToken(this.currentToken, LexerToken.AMPERSAND)) {
+			this.popStack();
 			return;
 		}
 
@@ -1367,13 +1488,14 @@ export class Parser {
 				start: labels.at(0)?.tokenIndexes?.start ?? nodePath.tokenIndexes?.start,
 				end: nodePath.tokenIndexes?.end,
 			};
+			this.mergeStack();
 			return node;
 		}
 
 		const labelRef = this.isLabelRef(dtcProperty);
 		if (labelRef === undefined) {
 			this.issues.push(
-				this.genIssue([SyntaxIssue.LABEL_NAME, SyntaxIssue.NODE_PATH], dtcProperty)
+				genIssue([SyntaxIssue.LABEL_NAME, SyntaxIssue.NODE_PATH], dtcProperty)
 			);
 
 			const node = new LabledValue<LabelRef>(null, labels);
@@ -1381,6 +1503,7 @@ export class Parser {
 				start: labels.at(0)?.tokenIndexes?.end ?? firstToken,
 				end: firstToken,
 			};
+			this.mergeStack();
 			return node;
 		}
 
@@ -1389,6 +1512,7 @@ export class Parser {
 			start: labels.at(0)?.tokenIndexes?.end ?? firstToken,
 			end: labelRef.tokenIndexes?.end,
 		};
+		this.mergeStack();
 		return node;
 	}
 
@@ -1402,12 +1526,12 @@ export class Parser {
 				this.popStack();
 				return;
 			}
-			this.issues.push(this.genIssue(SyntaxIssue.FORWARD_SLASH_START_PATH, nodePath));
+			this.issues.push(genIssue(SyntaxIssue.FORWARD_SLASH_START_PATH, nodePath));
 		}
 
-		const nodeName = this.processNodeName(nodePath);
+		const nodeName = this.isNodeName();
 		if (!nodeName) {
-			this.issues.push(this.genIssue(SyntaxIssue.NODE_NAME, nodePath));
+			this.issues.push(genIssue(SyntaxIssue.NODE_NAME, nodePath));
 		}
 
 		nodePath.tokenIndexes ??= {
@@ -1451,7 +1575,7 @@ export class Parser {
 		const lastToken = this.currentToken;
 		const afterPath = lastToken;
 		if (!validToken(lastToken, LexerToken.CURLY_CLOSE)) {
-			this.issues.push(this.genIssue(SyntaxIssue.CURLY_CLOSE, node));
+			this.issues.push(genIssue(SyntaxIssue.CURLY_CLOSE, node));
 		} else {
 			this.moveToNextToken;
 		}
@@ -1469,7 +1593,7 @@ export class Parser {
 			(beforPath.pos.col !== nodePathRange?.start.character - 1 ||
 				afterPath.pos.col !== nodePathRange?.end.character)
 		) {
-			this.issues.push(this.genIssue(SyntaxIssue.NODE_PATH_WHITE_SPACE_NOT_ALLOWED, node));
+			this.issues.push(genIssue(SyntaxIssue.NODE_PATH_WHITE_SPACE_NOT_ALLOWED, node));
 		}
 
 		this.mergeStack();
@@ -1493,7 +1617,7 @@ export class Parser {
 	private mergeStack() {
 		const value = this.positionStack.pop();
 
-		if (!value) {
+		if (value === undefined) {
 			throw new Error('Index out of bounds');
 		}
 
@@ -1524,17 +1648,6 @@ export class Parser {
 
 		this.positionStack[this.positionStack.length - 1]++;
 	}
-
-	private genIssue = (
-		issue: SyntaxIssue | SyntaxIssue[],
-		astBase: ASTBase
-	): Issue<SyntaxIssue> => ({
-		issues: Array.isArray(issue) ? issue : [issue],
-		astElement: astBase,
-		severity: DiagnosticSeverity.Error,
-		linkedTo: [],
-		templateStrings: [],
-	});
 
 	getDocumentSymbols(): DocumentSymbol[] {
 		return [
@@ -1596,7 +1709,73 @@ export class Parser {
 				tokensBuilder.push(r.line, r.char, r.length, r.tokenType, r.tokenModifiers)
 			);
 	}
+
+	private checkConcurrentTokens(
+		cmps: ((token: Token | undefined, index?: number) => 'yes' | 'no' | 'patrial')[]
+	) {
+		this.enqueToStack();
+
+		const tokens: Token[] = [];
+
+		cmps.every((cmp) => {
+			const token = this.currentToken;
+			const result = cmp(token);
+			let continueLoop = false;
+
+			if (result !== 'no' && token) {
+				tokens.push(token);
+				this.moveToNextToken;
+				continueLoop = this.adjesentTokens(token, this.currentToken);
+			}
+			return result === 'yes' && continueLoop;
+		});
+
+		this.mergeStack();
+		return tokens;
+	}
+
+	private consumeAnyConcurrentTokens(
+		cmps: ((token: Token | undefined, index?: number) => 'yes' | 'no' | 'patrial')[]
+	) {
+		this.enqueToStack();
+
+		const tokens: Token[] = [];
+
+		let token: Token | undefined;
+		let continueLoop = true;
+		while (cmps.some((cmp) => cmp(this.currentToken) === 'yes' && continueLoop)) {
+			tokens.push(this.currentToken!);
+			token = this.currentToken;
+			this.moveToNextToken;
+			continueLoop = this.adjesentTokens(token, this.currentToken);
+		}
+
+		this.mergeStack();
+		return tokens;
+	}
+
+	private sameLine(tokenA?: Token, tokenB?: Token) {
+		return !!tokenA && !!tokenB && tokenA.pos.line === tokenB.pos.line;
+	}
+
+	private adjesentTokens(tokenA?: Token, tokenB?: Token) {
+		return (
+			!!tokenA &&
+			!!tokenB &&
+			this.sameLine(tokenA, tokenB) &&
+			tokenA.pos.col + tokenA.pos.len === tokenB.pos.col
+		);
+	}
 }
 
 const validToken = (token: Token | undefined, expected: LexerToken) =>
 	token?.tokens.some((t) => t === expected);
+
+const validateValue = (expected: string) => (token: Token | undefined) =>
+	token?.value && expected === token.value
+		? 'yes'
+		: validateValueStartsWith(expected)(token);
+const validateToken = (expected: LexerToken) => (token: Token | undefined) =>
+	token?.tokens.some((t) => t === expected) ? 'yes' : 'no';
+const validateValueStartsWith = (expected: string) => (token: Token | undefined) =>
+	token?.value && expected.startsWith(token.value) ? 'patrial' : 'no';
