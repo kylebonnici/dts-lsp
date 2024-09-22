@@ -59,6 +59,9 @@ export enum SyntaxIssue {
 	INCLUDE_CLOSE_PATH,
 	MISSING_COMMA,
 	NODE_NAME_ADDRESS_WHITE_SPACE,
+	EXPECTED_IDENTIFIER_FUNCTION_LIKE,
+	EXPECTED_IDENTIFIER,
+	MISSING_C_END_IF,
 }
 
 export enum ContextIssues {
@@ -188,8 +191,8 @@ export interface Token {
 }
 
 export interface TokenIndexes {
-	start?: Token;
-	end?: Token;
+	start: Token;
+	end: Token;
 }
 
 export type BuildSemanticTokensPush = (
@@ -221,3 +224,5 @@ export interface Searchable {
 		position: vsCodePosition
 	): SearchableResult | undefined;
 }
+
+export type Disposable = () => void;

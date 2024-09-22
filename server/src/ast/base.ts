@@ -3,12 +3,12 @@ import type {
 	BuildSemanticTokensPush,
 	SemanticTokenModifiers,
 	SemanticTokenType,
+	Token,
 	TokenIndexes,
 } from '../types';
 import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
 
 export class ASTBase {
-	public tokenIndexes?: TokenIndexes;
 	protected semanticTokenType?: SemanticTokenType;
 	protected semanticTokenModifiers?: SemanticTokenModifiers;
 	protected _children: ASTBase[] = [];
@@ -16,12 +16,31 @@ export class ASTBase {
 	protected docSymbolsMeta?: { name: string; kind: SymbolKind };
 	private _uri?: string;
 
+	lastToken?: Token;
+	fisrtToken?: Token;
+
+	constructor(_tokenIndexes?: TokenIndexes) {
+		this.fisrtToken = _tokenIndexes?.start;
+		this.lastToken = _tokenIndexes?.end;
+	}
+
 	get uri(): string | undefined {
 		return this._uri ?? this.parentNode?.uri;
 	}
 
 	set uri(uri: string | undefined) {
 		this._uri = uri;
+	}
+
+	get tokenIndexes(): TokenIndexes {
+		return {
+			start: this.fisrtToken ?? this._children[0].tokenIndexes.start,
+			end:
+				this.lastToken ??
+				this._children.at(-1)?.tokenIndexes.end ??
+				this.fisrtToken ??
+				this._children[0].tokenIndexes.start,
+		};
 	}
 
 	getDocumentSymbols(): DocumentSymbol[] {

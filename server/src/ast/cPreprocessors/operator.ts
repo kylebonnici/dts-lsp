@@ -1,3 +1,4 @@
+import { TokenIndexes } from 'src/types';
 import { ASTBase } from '../base';
 
 export enum OperatorType {
@@ -21,8 +22,8 @@ export enum OperatorType {
 }
 
 export class Operator extends ASTBase {
-	constructor(public readonly operator: OperatorType) {
-		super();
+	constructor(public readonly operator: OperatorType, tokenIndexe: TokenIndexes) {
+		super(tokenIndexe);
 		this.semanticTokenType = 'operator';
 		this.semanticTokenModifiers = 'declaration';
 	}

@@ -1,12 +1,12 @@
 import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
 import { CIdentifier } from './cIdentifier';
-import { Expression } from './expression';
 import { toRange } from '../../helpers';
+import { ASTBase } from '../base';
 
-export class FunctionCall extends Expression {
+export class FunctionDefinition extends ASTBase {
 	constructor(
 		public readonly functionName: CIdentifier,
-		public readonly params: Expression[]
+		public readonly params: CIdentifier[]
 	) {
 		super();
 		this.addChild(functionName);
@@ -23,9 +23,5 @@ export class FunctionCall extends Expression {
 				children: this.params.flatMap((p) => p.getDocumentSymbols()),
 			},
 		];
-	}
-
-	evaluate(): string {
-		throw new Error('Not Implimented');
 	}
 }

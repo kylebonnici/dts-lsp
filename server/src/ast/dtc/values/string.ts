@@ -1,9 +1,9 @@
 import { ASTBase } from '../../base';
-import { toRange } from '../../../helpers';
-import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
+import { SymbolKind } from 'vscode-languageserver';
+import { TokenIndexes } from '../../../types';
 
 export class StringValue extends ASTBase {
-	constructor(public readonly value: string) {
+	constructor(public readonly value: string, _tokenIndexes?: TokenIndexes) {
 		super();
 		this.semanticTokenType = 'string';
 		this.semanticTokenModifiers = 'declaration';

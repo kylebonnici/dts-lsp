@@ -8,7 +8,6 @@ import {
 	NodeName,
 } from './ast/dtc/node';
 import { DtcProperty } from './ast/dtc/property';
-import { astMap } from './resultCache';
 import { ContextIssues, Issue } from './types';
 import { DeleteProperty } from './ast/dtc/deleteProperty';
 import { DeleteNode } from './ast/dtc/deleteNode';
@@ -17,23 +16,33 @@ import { Node } from './context/node';
 import { Property } from './context/property';
 import { Runtime } from './context/runtime';
 import { genIssue, toRange } from './helpers';
-import { Lexer } from './lexer';
 import { Parser } from './parser';
-import { readFileSync } from 'fs-extra';
 import { DiagnosticSeverity, DocumentLink } from 'vscode-languageserver';
-import { Include } from './ast/cPreprocessors/include';
 import { NodePath } from './ast/dtc/values/nodePath';
 
 export class ContextAware {
 	_issues: Issue<ContextIssues>[] = [];
 	public runtime: Runtime;
+	public parsers: Parser[];
 
 	constructor(
 		private readonly includePaths: string[],
 		private readonly commonPaths: string[],
 		public readonly fileMap: string[]
 	) {
+		this.parsers = fileMap.map((f) => new Parser(f, this.includePaths, this.commonPaths));
 		this.runtime = new Runtime(this.contextFiles());
+		let debaounce: NodeJS.Timeout;
+		this.parsers.forEach((p) =>
+			p.registerOnReparsed(() => {
+				clearTimeout(debaounce);
+				debaounce = setTimeout(() => {
+					console.time('revaluate');
+					this.revaluate();
+					console.timeEnd('revaluate');
+				});
+			})
+		);
 	}
 
 	get issues() {
@@ -41,11 +50,11 @@ export class ContextAware {
 	}
 
 	getDocumentLinks(file: string): DocumentLink[] {
-		const parser = astMap.get(file)?.parser;
+		const parser = this.parsers.find((p) => p.uri === file);
 		return (
 			(parser?.includes
 				.map((include) => {
-					const path = parser.resolveInclude(include, this.includePaths, this.commonPaths);
+					const path = parser.resolveInclude(include);
 					if (path) {
 						const link: DocumentLink = {
 							range: toRange(include.path),
@@ -58,48 +67,20 @@ export class ContextAware {
 		);
 	}
 
-	private prepareContext(file: string): string[] {
-		let parser = astMap.get(file)?.parser;
-
-		if (!parser) {
-			const lexer = new Lexer(readFileSync(file).toString());
-			parser = new Parser(lexer.tokens, file);
-			astMap.set(file, { lexer, parser });
-		}
-
-		return [
-			...parser
-				.includePaths(this.includePaths, this.commonPaths)
-				.flatMap((p) => this.prepareContext(p)),
-			file,
-		];
-	}
-
 	public contextFiles() {
-		return this.fileMap.flatMap((f) => this.prepareContext(f));
+		return this.parsers.flatMap((parser) => parser.includePaths());
 	}
 
-	public revaluate() {
+	private revaluate() {
 		const files = this.contextFiles();
 
 		this.runtime = new Runtime(files);
 		this._issues = [];
 
-		const ast = files.map((file) => {
-			return {
-				uri: file,
-				tree: astMap.get(file)?.parser.rootDocument,
-			};
-		});
-
-		if (ast.some((tree) => !tree.tree)) {
-			return;
-		}
-
-		ast.forEach((root) => {
-			if (root.tree) {
-				this.processRoot(root.tree);
-			}
+		this.parsers.forEach((p) => {
+			p.allDocuments.forEach((d) => {
+				this.processRoot(d);
+			});
 		});
 	}
 

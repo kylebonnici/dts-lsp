@@ -19,8 +19,6 @@ import {
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { Lexer } from './lexer';
-import { astMap } from './resultCache';
 import {
 	ContextIssues,
 	Issue,
@@ -29,7 +27,6 @@ import {
 	tokenModifiers,
 	tokenTypes,
 } from './types';
-import { Parser } from './parser';
 import { toRange } from './helpers';
 import { ContextAware } from './runtimeEvaluator';
 import { getCompleteions } from './completion';
@@ -345,10 +342,6 @@ documents.onDidChangeContent((change) => {
 	// validateTextDocument(change.document);
 
 	const uri = change.document.uri.replace('file://', '');
-	const lexer = new Lexer(change.document.getText());
-	const parser = new Parser(lexer.tokens, uri);
-
-	astMap.set(uri, { lexer, parser });
 
 	if (!contextAware?.contextFiles().some((p) => p === uri)) {
 		console.log('new context');
@@ -356,17 +349,17 @@ documents.onDidChangeContent((change) => {
 			uri,
 		]);
 	}
-
-	console.time('revaluate');
-	contextAware.revaluate();
-	console.timeEnd('revaluate');
 });
+
+function getContextParser(file: string) {
+	return contextAware?.parsers.find((p) => p.uri === file);
+}
 
 async function getDiagnostics(textDocument: TextDocument): Promise<Diagnostic[]> {
 	const uri = textDocument.uri.replace('file://', '');
 	const diagnostics: Diagnostic[] = [];
 
-	astMap.get(uri)?.parser.issues.forEach((issue) => {
+	getContextParser(uri)?.issues.forEach((issue) => {
 		const diagnostic: Diagnostic = {
 			severity: issue.severity,
 			range: toRange(issue.astElement),
@@ -456,18 +449,15 @@ connection.listen();
 
 connection.onDocumentSymbol((h) => {
 	const uri = h.textDocument.uri.replace('file://', '');
-	const data = astMap.get(uri);
-	if (!data) return [];
 
-	return data.parser.getDocumentSymbols();
+	return getContextParser(uri)?.getDocumentSymbols() ?? [];
 });
 
 connection.languages.semanticTokens.on((h) => {
 	const uri = h.textDocument.uri.replace('file://', '');
 	const tokensBuilder = new SemanticTokensBuilder();
 
-	const data = astMap.get(uri);
-	data?.parser.buildSemanticTokens(tokensBuilder);
+	getContextParser(uri)?.buildSemanticTokens(tokensBuilder);
 
 	return tokensBuilder.build();
 });

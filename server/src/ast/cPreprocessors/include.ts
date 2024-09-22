@@ -2,6 +2,7 @@ import { SymbolKind } from 'vscode-languageserver';
 import { ASTBase } from '../base';
 import { Keyword } from '../keyword';
 import { basename } from 'path';
+import { TokenIndexes } from 'src/types';
 
 export class Include extends ASTBase {
 	constructor(public readonly keyword: Keyword, public readonly path: IncludePath) {
@@ -16,8 +17,12 @@ export class Include extends ASTBase {
 }
 
 export class IncludePath extends ASTBase {
-	constructor(private readonly _path: string, public readonly relative: boolean) {
-		super();
+	constructor(
+		private readonly _path: string,
+		public readonly relative: boolean,
+		tokenIndexes: TokenIndexes
+	) {
+		super(tokenIndexes);
 		this.docSymbolsMeta = {
 			name: basename(this.path),
 			kind: SymbolKind.File,

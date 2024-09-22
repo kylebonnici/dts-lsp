@@ -1,10 +1,11 @@
 import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
 import { ASTBase } from '../base';
 import { toRange } from '../../helpers';
+import { TokenIndexes } from 'src/types';
 
 export class LabelAssign extends ASTBase {
-	constructor(public readonly label: string) {
-		super();
+	constructor(public readonly label: string, tokenIndex: TokenIndexes) {
+		super(tokenIndex);
 		this.docSymbolsMeta = {
 			name: this.label,
 			kind: SymbolKind.Module,
@@ -15,8 +16,8 @@ export class LabelAssign extends ASTBase {
 }
 
 export class Label extends ASTBase {
-	constructor(public readonly value: string) {
-		super();
+	constructor(public readonly value: string, tokenIndex: TokenIndexes) {
+		super(tokenIndex);
 		this.docSymbolsMeta = {
 			name: this.value,
 			kind: SymbolKind.Module,

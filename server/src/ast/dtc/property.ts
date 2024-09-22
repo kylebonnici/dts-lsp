@@ -1,13 +1,12 @@
-import { BuildSemanticTokensPush } from '../../types';
+import { Token, TokenIndexes } from '../../types';
 import { ASTBase } from '../base';
-import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
-import { toRange } from '../../helpers';
+import { SymbolKind } from 'vscode-languageserver';
 import { LabelAssign } from './label';
 import { PropertyValues } from './values/values';
 
 export class PropertyName extends ASTBase {
-	constructor(public readonly name: string) {
-		super();
+	constructor(public readonly name: string, tokenIndex: TokenIndexes) {
+		super(tokenIndex);
 		this.docSymbolsMeta = {
 			name: this.name,
 			kind: SymbolKind.Property,

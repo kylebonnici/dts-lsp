@@ -24,8 +24,7 @@ import {
 import { DiagnosticSeverity, Position } from 'vscode-languageserver';
 import { LabelAssign } from '../ast/dtc/label';
 import { Node } from './node';
-import { astMap } from '../resultCache';
-import { DeleteBase } from '../ast/dtc/delete';
+import { getTokenizedDocmentProvider } from 'src/providers/tokenizedDocument';
 
 export class Runtime implements Searchable {
 	public roots: DtcRootNode[] = [];
@@ -49,7 +48,11 @@ export class Runtime implements Searchable {
 		].find(
 			(i) =>
 				positionInBetween(i, file, position) ||
-				isLastTokenOnLine(astMap.get(file)?.lexer.tokens, i, position)
+				isLastTokenOnLine(
+					getTokenizedDocmentProvider().requestTokens(file, false),
+					i,
+					position
+				)
 		);
 
 		if (dtcNode instanceof DtcRefNode) {
