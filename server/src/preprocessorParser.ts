@@ -36,19 +36,13 @@ import { FunctionDefinition } from './ast/cPreprocessors/functionDefinition';
 type Callback = (forced: boolean) => void;
 
 export class PreprocessorParser {
-	protected events = new EventEmitter();
 	others: ASTBase[] = [];
 	includes: Include[] = [];
 	positionStack: number[] = [];
 	issues: Issue<SyntaxIssue>[] = [];
 	protected tokens: Token[];
-	protected disposables: (() => void)[] = [];
-	protected dtor: (() => void)[] = [];
 	chidParsers: (PreprocessorParser | Parser)[] = [];
-	private readonly parentMacrosSnapshot = new Map<string, CMacro>();
-	private revaluating: Promise<void> = Promise.resolve();
-
-	private macroSnapshot = new Map<string, CMacro>();
+	private processing: Promise<void> = Promise.resolve();
 
 	constructor(
 		public readonly uri: string,
@@ -65,16 +59,7 @@ export class PreprocessorParser {
 			this.tokens = getTokenizedDocmentProvider().requestTokens(uri, true);
 		}
 
-		macros.forEach((v, k) => this.parentMacrosSnapshot.set(k, v));
-
-		this.dtor.push(
-			provider.registerOnFileChange(uri, (tokens) => {
-				this.tokens = tokens;
-				this.revaluating = this.parse(true);
-			})
-		);
-
-		this.revaluating = this.parse(true);
+		this.processing = this.parse();
 	}
 
 	get allParsers(): (PreprocessorParser | Parser)[] {
@@ -82,22 +67,11 @@ export class PreprocessorParser {
 	}
 
 	stable(): Promise<void> {
-		return this.revaluating;
-	}
-
-	dispose() {
-		this.dtor.forEach((p) => p());
-	}
-
-	registerOnReparsed(callback: Callback): Disposable {
-		this.events.on('parsed', callback);
-		return () => {
-			this.events.removeListener('parsed', callback);
-		};
+		return this.processing;
 	}
 
 	parsedFiles() {
-		return this.allParsers.flatMap((p) => [p.uri, ...p.includePaths()]);
+		return [this.uri, ...this.allParsers.flatMap((p) => p.includePaths())];
 	}
 
 	includePaths() {
@@ -225,12 +199,6 @@ export class PreprocessorParser {
 			this.chidParsers.push(childParser);
 
 			await childParser.stable();
-
-			this.disposables.push(
-				childParser.registerOnReparsed((force: boolean) => {
-					this.revaluating = this.parse(force);
-				})
-			);
 		}
 
 		const endIndex = this.peekIndex();
@@ -397,34 +365,9 @@ export class PreprocessorParser {
 		await this.lineProcessor();
 	}
 
-	protected reset() {
-		this.others = [];
-		this.includes = [];
-		this.positionStack = [];
-		this.issues = [];
-
-		this.disposables.forEach((p) => p());
-		this.chidParsers.forEach((p) => p.dispose());
-		this.chidParsers = [];
-		this.disposables = [];
-
-		this.macros.clear();
-		this.parentMacrosSnapshot.forEach((v, k) => {
-			this.macros.set(k, v);
-		});
-	}
-
-	protected async parse(forced: boolean, emit = true) {
-		if (!forced) {
-			if (emit) this.emitParsed();
-			return;
-		}
+	protected async parse() {
 		console.log('C Parsing begin', this.uri);
 
-		this.macroSnapshot.clear();
-		this.macros.forEach((v, k) => this.macroSnapshot.set(k, v));
-
-		this.reset();
 		this.cleanUpComments();
 
 		this.positionStack.push(0);
@@ -441,26 +384,7 @@ export class PreprocessorParser {
 		}
 
 		this.positionStack = [];
-		if (emit) this.emitParsed();
 		console.log('C Parsing end', this.uri);
-	}
-
-	protected emitParsed() {
-		this.events.emit('parsed', this.hasMacrosChanged());
-	}
-
-	private hasMacrosChanged() {
-		if (this.macros.size !== this.macroSnapshot.size) {
-			return true;
-		}
-
-		return Array.from(this.macros).some(([k, m]) => {
-			if (!this.macroSnapshot.has(k)) {
-				return true;
-			}
-
-			return this.macroSnapshot.get(k)?.toString() !== m.toString();
-		});
 	}
 
 	private static processComments(tokens: Token[], index: number, uri: string) {

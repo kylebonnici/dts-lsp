@@ -14,7 +14,7 @@ class TokenizedDocmentProvider {
 		const lexer = new Lexer(text);
 		this.fileMap.set(uri, lexer);
 		this.dependencies.get(uri)?.forEach((c) => c(lexer.tokens));
-		return lexer.tokens;
+		return [...lexer.tokens];
 	}
 
 	requestTokens(uri: string, renewIfNotFound: boolean): Token[] {
@@ -23,18 +23,6 @@ class TokenizedDocmentProvider {
 			return [...this.renewLexer(uri)];
 		}
 		return [...(tokens ?? [])];
-	}
-
-	registerOnFileChange(uri: string, callback: Callback): Disposable {
-		if (!this.dependencies.has(uri)) {
-			this.dependencies.set(uri, [callback]);
-		} else {
-			this.dependencies.get(uri)?.push(callback);
-		}
-		return () => {
-			const newList = this.dependencies.get(uri)?.filter((c) => c !== callback);
-			if (newList) this.dependencies.set(uri, newList);
-		};
 	}
 }
 

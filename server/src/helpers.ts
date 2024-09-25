@@ -133,6 +133,9 @@ export function nodeFinder<T>(
 	context: ContextAware,
 	action: (result: SearchableResult | undefined, inScope: (ast: ASTBase) => boolean) => T[]
 ): T[] {
+	if (!context.runtime) {
+		return [];
+	}
 	const uri = location.textDocument.uri.replace('file://', '');
 
 	console.time('search');

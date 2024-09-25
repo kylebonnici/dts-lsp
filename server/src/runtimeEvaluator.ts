@@ -22,36 +22,17 @@ import { NodePath } from './ast/dtc/values/nodePath';
 
 export class ContextAware {
 	_issues: Issue<ContextIssues>[] = [];
-	public runtime: Runtime;
-	public parsers: Parser[];
+	public runtime?: Runtime;
+	public parsers: Parser[] = [];
 	private revaluating: Promise<void> = Promise.resolve();
 
 	constructor(
 		private readonly includePaths: string[],
 		private readonly commonPaths: string[],
 		public readonly fileMap: string[],
-		openFile?: { uri: string; text: string }
+		private readonly openFile?: { uri: string; text: string }
 	) {
-		this.parsers = fileMap.map(
-			(f) =>
-				new Parser(
-					f,
-					this.includePaths,
-					this.commonPaths,
-					undefined,
-					f === openFile?.uri ? openFile.text : undefined
-				)
-		);
-		this.runtime = new Runtime(this.contextFiles());
-
-		this.parsers.forEach((p) =>
-			p.registerOnReparsed(() => {
-				this.revaluating = new Promise((resolve) => {
-					this.revaluate();
-					resolve();
-				});
-			})
-		);
+		this.reparse();
 	}
 
 	stable(): Promise<void> {
@@ -59,7 +40,7 @@ export class ContextAware {
 	}
 
 	get issues() {
-		return [...this.runtime.issues, ...this._issues];
+		return [...(this.runtime?.issues ?? []), ...this._issues];
 	}
 
 	getDocumentLinks(file: string): DocumentLink[] {
@@ -84,11 +65,30 @@ export class ContextAware {
 		return this.parsers.flatMap((parser) => parser.parsedFiles());
 	}
 
-	private revaluate() {
-		console.time('revaluate');
+	reparse() {
+		this.parsers = this.fileMap.map(
+			(f) =>
+				new Parser(
+					f,
+					this.includePaths,
+					this.commonPaths,
+					undefined,
+					f === this.openFile?.uri ? this.openFile.text : undefined
+				)
+		);
+
+		this.revaluating = new Promise((resolve) => {
+			Promise.all(this.parsers.map((p) => p.stable())).then(() => {
+				this.evaluate();
+				resolve();
+			});
+		});
+	}
+
+	private evaluate() {
+		console.time('evaluate');
 
 		const files = this.contextFiles();
-
 		this.runtime = new Runtime(files);
 		this._issues = [];
 
@@ -97,24 +97,27 @@ export class ContextAware {
 				this.processRoot(d);
 			});
 		});
-		console.timeEnd('revaluate');
+		console.timeEnd('evaluate');
 	}
 
 	private processRoot(element: DtcBaseNode) {
-		element.children.forEach((child) => {
-			this.processChild(child, this.runtime.rootNode);
-		});
+		const runtime = this.runtime;
+		if (runtime) {
+			element.children.forEach((child) => {
+				this.processChild(child, runtime.rootNode, runtime);
+			});
+		}
 	}
 
-	private processChild(element: ASTBase, runtimeNodeParent: Node) {
+	private processChild(element: ASTBase, runtimeNodeParent: Node, runtime: Runtime) {
 		if (element instanceof DtcBaseNode) {
-			this.processDtcBaseNode(element, runtimeNodeParent);
+			this.processDtcBaseNode(element, runtimeNodeParent, runtime);
 		} else if (element instanceof DtcProperty) {
-			this.processDtcProperty(element, runtimeNodeParent);
+			this.processDtcProperty(element, runtimeNodeParent, runtime);
 		} else if (element instanceof DeleteNode) {
-			this.processDeleteNode(element, runtimeNodeParent);
+			this.processDeleteNode(element, runtimeNodeParent, runtime);
 		} else if (element instanceof DeleteProperty) {
-			this.processDeleteProperty(element, runtimeNodeParent);
+			this.processDeleteProperty(element, runtimeNodeParent, runtime);
 		}
 	}
 
@@ -136,36 +139,42 @@ export class ContextAware {
 		});
 	}
 
-	private processDtcBaseNode(element: DtcBaseNode, runtimeNodeParent: Node) {
+	private processDtcBaseNode(
+		element: DtcBaseNode,
+		runtimeNodeParent: Node,
+		runtime: Runtime
+	) {
 		if (element instanceof DtcRootNode) {
-			this.processDtcRootNode(element);
+			this.processDtcRootNode(element, runtime);
 		} else if (element instanceof DtcChildNode) {
-			this.processDtcChildNode(element, runtimeNodeParent);
+			this.processDtcChildNode(element, runtimeNodeParent, runtime);
 		} else if (element instanceof DtcRefNode) {
-			this.processDtcRefNode(element);
+			this.processDtcRefNode(element, runtime);
 		}
 	}
 
-	private processDtcRootNode(element: DtcRootNode) {
-		this.runtime.roots.push(element);
-		this.runtime.rootNode.definitons.push(element);
-		this.checkNodeUniqueNames(element, this.runtime.rootNode);
+	private processDtcRootNode(element: DtcRootNode, runtime: Runtime) {
+		runtime.roots.push(element);
+		runtime.rootNode.definitons.push(element);
+		this.checkNodeUniqueNames(element, runtime.rootNode);
 		[...element.children]
 			.sort((a, b) => {
 				if (a instanceof DtcBaseNode && b instanceof DtcBaseNode) return 0;
 				if (a instanceof DtcBaseNode) return -1;
 				return 0;
 			})
-			.forEach((child) => this.processChild(child, this.runtime.rootNode));
+			.forEach((child) => this.processChild(child, runtime.rootNode, runtime));
 	}
 
-	private processDtcChildNode(element: DtcChildNode, runtimeNodeParent: Node) {
+	private processDtcChildNode(
+		element: DtcChildNode,
+		runtimeNodeParent: Node,
+		runtime: Runtime
+	) {
 		if (element.name?.name) {
-			const resolvedPath = element.path
-				? this.runtime.resolvePath(element.path)
-				: undefined;
+			const resolvedPath = element.path ? runtime.resolvePath(element.path) : undefined;
 			const runtimeNode = resolvedPath
-				? this.runtime.rootNode.getChild(resolvedPath)
+				? runtime.rootNode.getChild(resolvedPath)
 				: undefined;
 
 			const child = runtimeNode ?? new Node(element.name.toString(), runtimeNodeParent);
@@ -181,16 +190,16 @@ export class ContextAware {
 				if (a instanceof DtcBaseNode) return -1;
 				return 0;
 			})
-			.forEach((child) => this.processChild(child, runtimeNodeParent));
+			.forEach((child) => this.processChild(child, runtimeNodeParent, runtime));
 	}
 
-	private processDtcRefNode(element: DtcRefNode) {
+	private processDtcRefNode(element: DtcRefNode, runtime: Runtime) {
 		let runtimeNode: Node | undefined;
 
 		if (element.labelReferance) {
 			const resolvedPath =
 				element.resolveNodePath ??
-				(element.pathName ? this.runtime.resolvePath([element.pathName]) : undefined);
+				(element.pathName ? runtime.resolvePath([element.pathName]) : undefined);
 			if (!resolvedPath) {
 				this._issues.push(
 					genIssue(
@@ -202,22 +211,22 @@ export class ContextAware {
 						[element.labelReferance.label?.value ?? '']
 					)
 				);
-				this.runtime.unlinkedRefNodes.push(element);
+				runtime.unlinkedRefNodes.push(element);
 			} else {
 				element.resolveNodePath ??= [...resolvedPath];
-				runtimeNode = this.runtime.rootNode.getChild(resolvedPath);
+				runtimeNode = runtime.rootNode.getChild(resolvedPath);
 				element.labelReferance.linksTo = runtimeNode;
 				runtimeNode?.linkedRefLabels.push(element.labelReferance);
 				runtimeNode?.referancedBy.push(element);
 				if (runtimeNode) {
-					this.runtime.referances.push(element);
+					runtime.referances.push(element);
 					this.checkNodeUniqueNames(element, runtimeNode);
 				} else {
-					this.runtime.unlinkedRefNodes.push(element);
+					runtime.unlinkedRefNodes.push(element);
 				}
 			}
 		} else {
-			this.runtime.unlinkedRefNodes.push(element);
+			runtime.unlinkedRefNodes.push(element);
 		}
 
 		[...element.children]
@@ -226,22 +235,26 @@ export class ContextAware {
 				if (a instanceof DtcBaseNode) return -1;
 				return 0;
 			})
-			.forEach((child) => this.processChild(child, runtimeNode ?? new Node('')));
+			.forEach((child) => this.processChild(child, runtimeNode ?? new Node(''), runtime));
 	}
 
-	private processDtcProperty(element: DtcProperty, runtimeNodeParent: Node) {
+	private processDtcProperty(
+		element: DtcProperty,
+		runtimeNodeParent: Node,
+		runtime: Runtime
+	) {
 		if (element.propertyName?.name) {
 			runtimeNodeParent.addProperty(new Property(element, runtimeNodeParent));
 			element.allDescendants.forEach((c) => {
 				if (c instanceof LabelRef) {
-					const resolvesTo = this.runtime.resolvePath([`&${c.label?.value}`]);
+					const resolvesTo = runtime.resolvePath([`&${c.label?.value}`]);
 					if (resolvesTo) {
-						const node = this.runtime.rootNode.getChild(resolvesTo);
+						const node = runtime.rootNode.getChild(resolvesTo);
 						c.linksTo = node;
 						node?.linkedRefLabels.push(c);
 					}
 				} else if (c instanceof NodePath) {
-					let node: Node | undefined = this.runtime.rootNode;
+					let node: Node | undefined = runtime.rootNode;
 					const paths = c.pathParts;
 					for (let i = 0; i < paths.length && paths[i]; i++) {
 						const nodePath = paths[i];
@@ -257,10 +270,16 @@ export class ContextAware {
 			});
 		}
 
-		element.children.forEach((child) => this.processChild(child, runtimeNodeParent));
+		element.children.forEach((child) =>
+			this.processChild(child, runtimeNodeParent, runtime)
+		);
 	}
 
-	private processDeleteNode(element: DeleteNode, runtimeNodeParent: Node) {
+	private processDeleteNode(
+		element: DeleteNode,
+		runtimeNodeParent: Node,
+		runtime: Runtime
+	) {
 		if (element.nodeNameOrRef instanceof NodeName && element.nodeNameOrRef?.value) {
 			if (element.parentNode?.parentNode) {
 				if (!runtimeNodeParent.hasNode(element.nodeNameOrRef.value)) {
@@ -276,11 +295,11 @@ export class ContextAware {
 				}
 			}
 		} else if (element.nodeNameOrRef instanceof LabelRef && element.nodeNameOrRef.value) {
-			const resolvedPath = this.runtime.resolvePath([`&${element.nodeNameOrRef.value}`]);
+			const resolvedPath = runtime.resolvePath([`&${element.nodeNameOrRef.value}`]);
 
 			let runtimeNode: Node | undefined;
 			if (!resolvedPath) {
-				this.runtime.unlinkedDeletes.push(element);
+				runtime.unlinkedDeletes.push(element);
 				this._issues.push(
 					genIssue(
 						ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
@@ -292,19 +311,25 @@ export class ContextAware {
 					)
 				);
 			} else {
-				runtimeNode = this.runtime.rootNode.getChild(resolvedPath);
+				runtimeNode = runtime.rootNode.getChild(resolvedPath);
 				runtimeNodeParent.deletes.push(element);
 				element.nodeNameOrRef.linksTo = runtimeNode;
 				runtimeNode?.linkedRefLabels.push(element.nodeNameOrRef);
 				runtimeNode?.parent?.deleteNode(runtimeNode.name, element);
 			}
 		} else {
-			this.runtime.unlinkedDeletes.push(element);
+			runtime.unlinkedDeletes.push(element);
 		}
-		element.children.forEach((child) => this.processChild(child, runtimeNodeParent));
+		element.children.forEach((child) =>
+			this.processChild(child, runtimeNodeParent, runtime)
+		);
 	}
 
-	private processDeleteProperty(element: DeleteProperty, runtimeNodeParent: Node) {
+	private processDeleteProperty(
+		element: DeleteProperty,
+		runtimeNodeParent: Node,
+		runtime: Runtime
+	) {
 		if (
 			element.propertyName?.name &&
 			!runtimeNodeParent.hasProperty(element.propertyName.name)
@@ -317,6 +342,8 @@ export class ContextAware {
 			runtimeNodeParent.deleteProperty(element.propertyName.name, element);
 		}
 
-		element.children.forEach((child) => this.processChild(child, runtimeNodeParent));
+		element.children.forEach((child) =>
+			this.processChild(child, runtimeNodeParent, runtime)
+		);
 	}
 }

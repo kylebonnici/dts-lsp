@@ -357,6 +357,7 @@ documents.onDidChangeContent((change) => {
 		);
 	} else {
 		getTokenizedDocmentProvider().renewLexer(uri, change.document.getText());
+		contextAware.reparse();
 	}
 });
 
@@ -402,7 +403,7 @@ async function getDiagnostics(textDocument: TextDocument): Promise<Diagnostic[]>
 			diagnostics.push(diagnostic);
 		});
 
-	contextAware?.runtime.typesIssues
+	contextAware?.runtime?.typesIssues
 		.filter((issue) => issue.astElement.uri === uri)
 		.forEach((issue) => {
 			const diagnostic: Diagnostic = {

@@ -89,13 +89,8 @@ export class Parser extends PreprocessorParser {
 		];
 	}
 
-	protected async parse(forced: boolean) {
-		await super.parse(forced, false);
-
-		this.rootDocument = new DtcBaseNode();
-		this.rootDocument.uri = this.uri;
-		this.unhandledStaments = new DtcRootNode();
-		this.unhandledStaments.uri = this.uri;
+	protected async parse() {
+		await super.parse();
 
 		console.log('Parsing being', this.uri);
 
@@ -113,7 +108,6 @@ export class Parser extends PreprocessorParser {
 		}
 
 		console.log('Parsing end', this.uri);
-		this.emitParsed();
 	}
 
 	private isRootNodeDefinition(parent: DtcBaseNode): boolean {
