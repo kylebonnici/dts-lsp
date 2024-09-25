@@ -63,7 +63,7 @@ export class ContextAware {
 	}
 
 	getDocumentLinks(file: string): DocumentLink[] {
-		const parser = this.parsers.find((p) => p.uri === file);
+		const parser = this.parsers.flatMap((p) => p.allParsers).find((p) => p.uri === file);
 		return (
 			(parser?.includes
 				.map((include) => {

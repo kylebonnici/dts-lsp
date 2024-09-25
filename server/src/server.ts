@@ -361,7 +361,7 @@ documents.onDidChangeContent((change) => {
 });
 
 function getContextParser(file: string) {
-	return contextAware?.parsers.find((p) => p.uri === file);
+	return contextAware?.parsers.flatMap((p) => p.allParsers).find((p) => p.uri === file);
 }
 
 async function getDiagnostics(textDocument: TextDocument): Promise<Diagnostic[]> {

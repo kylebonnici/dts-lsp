@@ -77,6 +77,10 @@ export class PreprocessorParser {
 		this.revaluating = this.parse(true);
 	}
 
+	get allParsers(): (PreprocessorParser | Parser)[] {
+		return [this, ...this.chidParsers.flatMap((p) => p.allParsers)];
+	}
+
 	stable(): Promise<void> {
 		return this.revaluating;
 	}
@@ -93,7 +97,7 @@ export class PreprocessorParser {
 	}
 
 	parsedFiles() {
-		return [this.uri, ...this.includePaths()];
+		return this.allParsers.flatMap((p) => [p.uri, ...p.includePaths()]);
 	}
 
 	includePaths() {
