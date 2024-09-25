@@ -1,8 +1,4 @@
 import { ASTBase } from '../../base';
-import { toRange } from '../../../helpers';
-import { BuildSemanticTokensPush } from '../../../types';
-import { LabelAssign } from '../label';
-import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
 import { NodeName } from '../node';
 
 export class NodePath extends ASTBase {

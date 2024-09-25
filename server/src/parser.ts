@@ -4,7 +4,13 @@ import {
 	SemanticTokensBuilder,
 } from 'vscode-languageserver';
 import { Issue, LexerToken, SyntaxIssue, Token, TokenIndexes } from './types';
-import { genIssue, getTokenModifiers, getTokenTypes, toRange } from './helpers';
+import {
+	createTokenIndex,
+	genIssue,
+	getTokenModifiers,
+	getTokenTypes,
+	toRange,
+} from './helpers';
 import {
 	DtcBaseNode,
 	DtcChildNode,
@@ -108,11 +114,12 @@ export class Parser {
 					this.isChildNode(this.rootDocument, 'Ref')
 				)
 			) {
-				const node = new ASTBase();
 				const token = this.moveToNextToken;
-				node.tokenIndexes = { start: token, end: token };
-				this.issues.push(genIssue(SyntaxIssue.UNKNOWN, node));
-				this.reportExtraEndStaments();
+				if (token) {
+					const node = new ASTBase(createTokenIndex(token));
+					this.issues.push(genIssue(SyntaxIssue.UNKNOWN, node));
+					this.reportExtraEndStaments();
+				}
 			}
 		};
 
@@ -180,8 +187,7 @@ export class Parser {
 		token = move();
 		do {
 			if (currentToken()?.pos.line !== lastLine) {
-				const node = new Comment();
-				node.tokenIndexes = { start, end: prevToken() };
+				const node = new Comment(createTokenIndex(start, prevToken()));
 				comments.push(node);
 
 				lastLine = currentToken().pos.line ?? 0;
@@ -191,8 +197,7 @@ export class Parser {
 			token = move();
 		} while (index < tokens.length && !isEndComment());
 
-		const node = new Comment();
-		node.tokenIndexes = { start, end: currentToken() };
+		const node = new Comment(createTokenIndex(start, currentToken()));
 		comments.push(node);
 
 		move();
@@ -227,15 +232,15 @@ export class Parser {
 		this.processNode(rootNode, 'Name');
 
 		const lastToken = this.nodeEnd(rootNode) ?? nextToken;
-		rootNode.tokenIndexes = { start: firstToken, end: lastToken };
+		rootNode.fisrtToken = firstToken;
+		rootNode.lastToken = lastToken;
 		this.mergeStack();
 		return true;
 	}
 
 	private nodeEnd(slxBase: ASTBase) {
 		const nextToken = this.currentToken;
-		const expectedToken = LexerToken.CURLY_CLOSE;
-		if (!validToken(nextToken, expectedToken)) {
+		if (!validToken(nextToken, LexerToken.CURLY_CLOSE)) {
 			this.issues.push(genIssue(SyntaxIssue.CURLY_CLOSE, slxBase));
 		} else {
 			this.moveToNextToken;
@@ -254,10 +259,12 @@ export class Parser {
 	private endStatment() {
 		const currentToken = this.currentToken;
 		if (!validToken(currentToken, LexerToken.SEMICOLON)) {
-			const node = new ASTBase();
-			node.tokenIndexes = { start: this.prevToken, end: this.prevToken };
-			this.issues.push(genIssue(SyntaxIssue.END_STATMENT, node));
-			return this.prevToken;
+			const token = this.prevToken;
+			if (token) {
+				const node = new ASTBase(createTokenIndex(this.prevToken));
+				this.issues.push(genIssue(SyntaxIssue.END_STATMENT, node));
+				return this.prevToken;
+			}
 		}
 
 		this.moveToNextToken;
@@ -270,9 +277,10 @@ export class Parser {
 	private reportExtraEndStaments() {
 		while (validToken(this.currentToken, LexerToken.SEMICOLON)) {
 			const token = this.moveToNextToken;
-			const node = new ASTBase();
-			node.tokenIndexes = { start: token, end: token };
-			this.issues.push(genIssue(SyntaxIssue.NO_STAMENTE, node));
+			if (token) {
+				const node = new ASTBase(createTokenIndex(token));
+				this.issues.push(genIssue(SyntaxIssue.NO_STAMENTE, node));
+			}
 		}
 	}
 
@@ -289,11 +297,12 @@ export class Parser {
 				this.isChildNode(parent, allow);
 
 			if (!child && !this.isNodeEnd() && !this.done) {
-				const node = new ASTBase();
 				const token = this.moveToNextToken;
-				node.tokenIndexes = { start: token, end: token };
-				this.issues.push(genIssue(SyntaxIssue.UNKNOWN, node));
-				this.reportExtraEndStaments();
+				if (token) {
+					const node = new ASTBase(createTokenIndex(token));
+					this.issues.push(genIssue(SyntaxIssue.UNKNOWN, node));
+					this.reportExtraEndStaments();
+				}
 			} else {
 				if (this.done) {
 					break;
@@ -379,10 +388,7 @@ export class Parser {
 
 		const lastToken = this.nodeEnd(child);
 
-		child.tokenIndexes = {
-			start: labels.at(0)?.tokenIndexes?.start ?? (ref ?? name)?.tokenIndexes?.start,
-			end: lastToken ?? this.prevToken ?? (ref ?? name)?.tokenIndexes?.end,
-		};
+		child.lastToken = lastToken;
 
 		this.mergeStack();
 		return true;
@@ -423,9 +429,11 @@ export class Parser {
 			const address = addressValid.length
 				? Number.parseInt(addressValid.map((v) => v.value).join(''), 16)
 				: NaN;
-			const node = new NodeName(name, address);
-
-			node.tokenIndexes = { start: valid[0], end: addressValid.at(-1) ?? valid.at(-1) };
+			const node = new NodeName(
+				name,
+				createTokenIndex(valid[0], addressValid.at(-1) ?? valid.at(-1)),
+				address
+			);
 
 			if (!this.adjesentTokens(valid.at(-1), atValid[0])) {
 				this.issues.push(genIssue(SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE, node));
@@ -442,8 +450,7 @@ export class Parser {
 			return node;
 		}
 
-		const node = new NodeName(name);
-		node.tokenIndexes = { start: valid[0], end: valid.at(-1) };
+		const node = new NodeName(name, createTokenIndex(valid[0], valid.at(-1)));
 		this.mergeStack();
 		return node;
 	}
@@ -468,8 +475,10 @@ export class Parser {
 			this.popStack();
 			return;
 		}
-		const node = new PropertyName(valid.map((v) => v.value).join(''));
-		node.tokenIndexes = { start: valid[0], end: valid.at(-1) };
+		const node = new PropertyName(
+			valid.map((v) => v.value).join(''),
+			createTokenIndex(valid[0], valid.at(-1))
+		);
 		this.mergeStack();
 		return node;
 	}
@@ -492,8 +501,7 @@ export class Parser {
 			return;
 		}
 
-		const node = new Label(name);
-		node.tokenIndexes = { start: valid[0], end: valid.at(-1) };
+		const node = new Label(name, createTokenIndex(valid[0], valid.at(-1)));
 		this.mergeStack();
 		return node;
 	}
@@ -516,9 +524,11 @@ export class Parser {
 			return;
 		}
 
-		const node = new LabelAssign(name);
 		const token = this.currentToken;
-		if (!validToken(token, LexerToken.COLON)) {
+		const hasColon = token && validToken(token, LexerToken.COLON);
+		const node = new LabelAssign(name, createTokenIndex(valid[0], token ?? valid.at(-1)));
+
+		if (!hasColon) {
 			if (acceptLabelName) {
 				this.issues.push(genIssue(SyntaxIssue.LABEL_ASSIGN_MISSING_COLON, node));
 			} else {
@@ -529,7 +539,6 @@ export class Parser {
 			this.moveToNextToken;
 		}
 
-		node.tokenIndexes = { start: valid[0], end: token ?? valid.at(-1) };
 		this.mergeStack();
 		return node;
 	}
@@ -571,11 +580,7 @@ export class Parser {
 		const lastToken = this.endStatment();
 
 		// create property object
-
-		node.tokenIndexes = {
-			start: labels.at(0)?.tokenIndexes?.start ?? propertyName.tokenIndexes?.start,
-			end: lastToken ?? this.prevToken,
-		};
+		node.lastToken = lastToken;
 
 		parent.addNodeChild(node);
 
@@ -585,14 +590,6 @@ export class Parser {
 
 	private isDtsDocumentVersion(): boolean {
 		this.enqueToStack();
-
-		const keyword = new Keyword();
-
-		const close = () => {
-			keyword.tokenIndexes = { start: firstToken, end: token };
-			this.mergeStack();
-			return true;
-		};
 
 		const valid = this.checkConcurrentTokens([
 			validateToken(LexerToken.FORWARD_SLASH),
@@ -621,18 +618,22 @@ export class Parser {
 			return false;
 		}
 
+		const keyword = new Keyword();
+		keyword.fisrtToken = firstToken;
+		const node = new DtsDocumentVersion(keyword);
+		this.others.push(node);
+
 		if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
-			this.issues.push(genIssue(SyntaxIssue.FORWARD_SLASH_END_DELETE, keyword));
-			return close();
+			this.issues.push(genIssue(SyntaxIssue.FORWARD_SLASH_END_DELETE, node));
+			this.mergeStack();
+			return true;
 		} else {
 			token = this.moveToNextToken;
 		}
-		keyword.tokenIndexes = { start: firstToken, end: token };
 
-		const node = new DtsDocumentVersion(keyword);
-		const lastToken = this.endStatment();
-		node.tokenIndexes = { start: firstToken, end: lastToken };
-		this.others.push(node);
+		keyword.lastToken = token;
+
+		node.lastToken = this.endStatment();
 		this.mergeStack();
 		return true;
 	}
@@ -656,11 +657,11 @@ export class Parser {
 		const firstToken = valid[0];
 		let token: Token | undefined = firstToken;
 		const keyword = new Keyword();
+		keyword.fisrtToken = firstToken;
 
 		const close = () => {
-			keyword.tokenIndexes = { start: firstToken, end: valid.at(-1) };
+			keyword.lastToken = valid.at(-1);
 			const node = new DeleteNode(keyword);
-			node.tokenIndexes = { start: firstToken, end: valid.at(-1) };
 			parent.addNodeChild(node);
 			this.mergeStack();
 			return true;
@@ -689,7 +690,7 @@ export class Parser {
 		} else {
 			token = this.moveToNextToken;
 		}
-		keyword.tokenIndexes = { start: firstToken, end: token };
+		keyword.lastToken = token;
 
 		const node = new DeleteNode(keyword);
 
@@ -717,7 +718,7 @@ export class Parser {
 		}
 		const lastToken = this.endStatment();
 
-		node.tokenIndexes = { start: firstToken, end: lastToken };
+		node.lastToken = lastToken;
 		parent.addNodeChild(node);
 		this.mergeStack();
 		return true;
@@ -740,13 +741,14 @@ export class Parser {
 		}
 
 		const firstToken = valid[0];
+
 		let token: Token | undefined = firstToken;
 		const keyword = new Keyword();
+		keyword.fisrtToken = firstToken;
 
 		const close = () => {
-			keyword.tokenIndexes = { start: firstToken, end: valid.at(-1) };
+			keyword.lastToken = valid.at(-1);
 			const node = new DeleteProperty(keyword);
-			node.tokenIndexes = { start: firstToken, end: valid.at(-1) };
 			parent.addNodeChild(node);
 			this.mergeStack();
 			return true;
@@ -776,7 +778,7 @@ export class Parser {
 			token = this.moveToNextToken;
 		}
 
-		keyword.tokenIndexes = { start: firstToken, end: token };
+		keyword.lastToken = token;
 
 		const node = new DeleteProperty(keyword);
 
@@ -792,7 +794,7 @@ export class Parser {
 		}
 
 		const lastToken = this.endStatment();
-		node.tokenIndexes = { start: firstToken, end: lastToken };
+		node.lastToken = lastToken;
 		parent.addNodeChild(node);
 
 		this.mergeStack();
@@ -825,9 +827,8 @@ export class Parser {
 				const end = this.currentToken;
 				this.moveToNextToken;
 				const next = getValue();
-				if (next === null) {
-					const node = new ASTBase();
-					node.tokenIndexes = { start, end };
+				if (start && next === null) {
+					const node = new ASTBase(createTokenIndex(start, end));
 					this.issues.push(genIssue(SyntaxIssue.VALUE, node));
 				}
 				value.push(next);
@@ -840,10 +841,6 @@ export class Parser {
 
 		this.mergeStack();
 		const node = new PropertyValues(values, labels);
-		node.tokenIndexes = {
-			start: labels.at(0)?.tokenIndexes?.start ?? values.at(0)?.tokenIndexes?.start,
-			end: this.prevToken,
-		};
 		return node;
 	}
 
@@ -860,7 +857,7 @@ export class Parser {
 			throw new Error('Token must have value');
 		}
 
-		const propValue = new StringValue(token.value);
+		const propValue = new StringValue(token.value, createTokenIndex(token));
 
 		if (!token.value.match(/["']$/)) {
 			this.issues.push(
@@ -871,12 +868,9 @@ export class Parser {
 			);
 		}
 
-		propValue.tokenIndexes = { start: token, end: token };
-
 		const endLabels = this.processOptionalLablelAssign(true) ?? [];
 
 		const node = new PropertyValue(propValue, endLabels);
-		node.tokenIndexes = { start: token, end: token };
 		this.mergeStack();
 		return node;
 	}
@@ -906,10 +900,8 @@ export class Parser {
 
 		this.mergeStack();
 		const node = new PropertyValue(value, [...endLabels1, ...endLabels2]);
-		node.tokenIndexes = {
-			start: firstToken,
-			end: endLabels2.at(-1)?.tokenIndexes?.end ?? this.prevToken,
-		};
+		node.fisrtToken = firstToken;
+		node.lastToken = this.prevToken;
 		return node;
 	}
 
@@ -956,13 +948,10 @@ export class Parser {
 
 		this.mergeStack();
 		const byteString = new ByteStringValue(numberValues ?? []);
-		byteString.tokenIndexes = {
-			start: numberValues.at(0)?.tokenIndexes?.start,
-			end: endLabels2.at(-1)?.tokenIndexes?.end ?? numberValues.at(-1)?.tokenIndexes?.end,
-		};
 
 		const node = new PropertyValue(byteString, [...endLabels1, ...endLabels2]);
-		node.tokenIndexes = { start: firstToken, end: this.prevToken };
+		node.fisrtToken = firstToken;
+		byteString.lastToken = this.prevToken;
 		return node;
 	}
 
@@ -1007,10 +996,6 @@ export class Parser {
 		);
 
 		const node = new ArrayValues(result);
-		node.tokenIndexes = {
-			start: result.at(0)?.tokenIndexes?.start,
-			end: result.at(-1)?.tokenIndexes?.end,
-		};
 		this.mergeStack();
 		return node;
 	}
@@ -1026,10 +1011,6 @@ export class Parser {
 		}
 
 		const node = new LabledValue(numbeValue, labels);
-		node.tokenIndexes = {
-			start: labels.at(0)?.tokenIndexes?.end ?? numbeValue.tokenIndexes?.start,
-			end: numbeValue.tokenIndexes?.end,
-		};
 		this.mergeStack();
 		return node;
 	}
@@ -1054,8 +1035,10 @@ export class Parser {
 		}
 
 		const num = Number.parseInt(validValue.map((v) => v.value).join(''), 16);
-		const numbeValue = new NumberValue(num);
-		numbeValue.tokenIndexes = { start: validStart[0], end: validValue.at(-1) };
+		const numbeValue = new NumberValue(
+			num,
+			createTokenIndex(validStart[0], validValue.at(-1))
+		);
 
 		this.mergeStack();
 		return numbeValue;
@@ -1075,14 +1058,9 @@ export class Parser {
 		}
 
 		const num = Number.parseInt(valid.map((v) => v.value).join(''), 16);
-		const numbeValue = new NumberValue(num);
-		numbeValue.tokenIndexes = { start: valid[0], end: valid.at(-1) };
-		const node = new LabledValue(numbeValue, labels);
-		node.tokenIndexes = {
-			start: labels.at(0)?.tokenIndexes?.end ?? valid[0],
-			end: valid.at(-1),
-		};
+		const numbeValue = new NumberValue(num, createTokenIndex(valid[0], valid.at(-1)));
 
+		const node = new LabledValue(numbeValue, labels);
 		this.mergeStack();
 		return node;
 	}
@@ -1098,10 +1076,6 @@ export class Parser {
 			return;
 		}
 		const node = new LabledValue(numbeValue, labels);
-		node.tokenIndexes = {
-			start: labels.at(0)?.tokenIndexes?.end ?? numbeValue.tokenIndexes?.start,
-			end: numbeValue.tokenIndexes?.end,
-		};
 		this.mergeStack();
 		return node;
 	}
@@ -1117,8 +1091,7 @@ export class Parser {
 		}
 
 		const num = Number.parseInt(valid.map((v) => v.value).join(''), 10);
-		const numbeValue = new NumberValue(num);
-		numbeValue.tokenIndexes = { start: valid[0], end: valid.at(-1) };
+		const numbeValue = new NumberValue(num, createTokenIndex(valid[0], valid.at(-1)));
 
 		this.mergeStack();
 		return numbeValue;
@@ -1138,13 +1111,12 @@ export class Parser {
 
 		const name = valid.map((v) => v.value).join('');
 
-		if (!name.match(/^[A-Za-z]/)) {
+		if (!name.match(/^[_A-Za-z]/)) {
 			this.popStack();
 			return;
 		}
 
-		const idnetifier = new CIdentifier(name);
-		idnetifier.tokenIndexes = { start: valid[0], end: valid.at(-1) };
+		const idnetifier = new CIdentifier(name, createTokenIndex(valid[0], valid.at(-1)));
 
 		this.mergeStack();
 		return idnetifier;
@@ -1169,10 +1141,6 @@ export class Parser {
 		}
 
 		const node = new LabledValue(expression, labels);
-		node.tokenIndexes = {
-			start: labels.at(0)?.tokenIndexes?.end ?? expression.tokenIndexes?.end,
-			end: expression.tokenIndexes?.end,
-		};
 		this.mergeStack();
 		return node;
 	}
@@ -1180,6 +1148,12 @@ export class Parser {
 	private isOperator(): Operator | undefined {
 		this.enqueToStack();
 		const start = this.moveToNextToken;
+
+		if (!start) {
+			this.popStack();
+			return;
+		}
+
 		let end = start;
 
 		let operator: OperatorType | undefined;
@@ -1234,8 +1208,7 @@ export class Parser {
 		}
 
 		if (operator) {
-			const node = new Operator(operator);
-			node.tokenIndexes = { start, end };
+			const node = new Operator(operator, createTokenIndex(start, end));
 			this.mergeStack();
 			return node;
 		}
@@ -1281,11 +1254,6 @@ export class Parser {
 		}
 
 		const node = new FunctionCall(identifier, params);
-		node.tokenIndexes = {
-			start: identifier.tokenIndexes?.start,
-			end: token ?? params.at(-1)?.tokenIndexes?.end,
-		};
-
 		this.mergeStack();
 		return node;
 	}
@@ -1297,13 +1265,12 @@ export class Parser {
 		const line = start?.pos.line;
 
 		let token = start;
-		if (!validToken(token, LexerToken.C_INCLUDE)) {
+		if (!start || !validToken(token, LexerToken.C_INCLUDE)) {
 			this.popStack();
 			return false;
 		}
 
-		const keyword = new Keyword();
-		keyword.tokenIndexes = { start, end: start };
+		const keyword = new Keyword(createTokenIndex(start));
 
 		const moveEndOfLine = () => {
 			if (this.currentToken?.pos.line !== line) {
@@ -1314,15 +1281,16 @@ export class Parser {
 			while (this.currentToken?.pos.line === line) {
 				token = this.moveToNextToken;
 			}
-			const node = new ASTBase();
-			node.tokenIndexes = { start: begin, end: token };
-			this.issues.push(genIssue(SyntaxIssue.INVALID_INCLUDE_SYNTAX, node));
+			if (begin) {
+				const node = new ASTBase(createTokenIndex(begin));
+				this.issues.push(genIssue(SyntaxIssue.INVALID_INCLUDE_SYNTAX, node));
+			}
 		};
 
 		token = this.moveToNextToken;
 		const pathStart = token;
 		const relative = !!validToken(token, LexerToken.STRING);
-		if (!relative && !validToken(token, LexerToken.LT_SYM)) {
+		if (!pathStart || (!relative && !validToken(token, LexerToken.LT_SYM))) {
 			moveEndOfLine();
 			this.mergeStack();
 			return true;
@@ -1342,23 +1310,24 @@ export class Parser {
 			}
 		}
 
-		const incudePath = new IncludePath(path, relative);
-		const node = new Include(keyword, incudePath);
-		this.includes.push(node);
-
 		if (!relative) {
+			const currentToken = this.currentToken;
 			if (
-				this.currentToken?.pos.line !== line ||
+				currentToken?.pos.line !== line ||
 				!validToken(this.currentToken, LexerToken.GT_SYM)
 			) {
-				this.issues.push(genIssue(SyntaxIssue.INCLUDE_CLOSE_PATH, node));
+				if (currentToken) {
+					const node = new ASTBase(createTokenIndex(currentToken));
+					this.issues.push(genIssue(SyntaxIssue.INCLUDE_CLOSE_PATH, node));
+				}
 			} else {
 				token = this.moveToNextToken;
 			}
 		}
 
-		incudePath.tokenIndexes = { start: pathStart, end: token };
-		node.tokenIndexes = { start, end: token };
+		const incudePath = new IncludePath(path, relative, createTokenIndex(pathStart, token));
+		const node = new Include(keyword, incudePath);
+		this.includes.push(node);
 
 		moveEndOfLine();
 
@@ -1404,11 +1373,6 @@ export class Parser {
 						expression: nextExpression,
 					});
 				}
-
-				expression.tokenIndexes = {
-					start: start,
-					end: nextExpression?.tokenIndexes?.end ?? operator.tokenIndexes?.end,
-				};
 			}
 
 			if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
@@ -1436,14 +1400,13 @@ export class Parser {
 		if (!labelName) {
 			const node = new LabelRef(null);
 			this.issues.push(genIssue(SyntaxIssue.LABEL_NAME, slxBase ?? node));
-			node.tokenIndexes = { start: firstToken, end: firstToken };
-
+			node.fisrtToken = firstToken;
 			this.mergeStack();
 			return node;
 		}
 
 		const node = new LabelRef(labelName);
-		node.tokenIndexes = { start: firstToken, end: labelName.tokenIndexes?.end };
+		node.fisrtToken = firstToken;
 		this.mergeStack();
 		return node;
 	}
@@ -1461,11 +1424,6 @@ export class Parser {
 		const endLabels = this.processOptionalLablelAssign(true);
 
 		const node = new PropertyValue(labelRef, endLabels);
-		node.tokenIndexes = {
-			start: labelRef.tokenIndexes?.start,
-			end: endLabels.at(-1)?.tokenIndexes?.end ?? labelRef.tokenIndexes?.end,
-		};
-
 		this.mergeStack();
 		return node;
 	}
@@ -1486,10 +1444,6 @@ export class Parser {
 
 		if (nodePath !== undefined) {
 			const node = new LabledValue(nodePath, labels);
-			node.tokenIndexes = {
-				start: labels.at(0)?.tokenIndexes?.start ?? nodePath.tokenIndexes?.start,
-				end: nodePath.tokenIndexes?.end,
-			};
 			this.mergeStack();
 			return node;
 		}
@@ -1501,19 +1455,13 @@ export class Parser {
 			);
 
 			const node = new LabledValue<LabelRef>(null, labels);
-			node.tokenIndexes = {
-				start: labels.at(0)?.tokenIndexes?.end ?? firstToken,
-				end: firstToken,
-			};
+			node.fisrtToken = labels.at(0)?.fisrtToken ?? firstToken;
 			this.mergeStack();
 			return node;
 		}
 
 		const node = new LabledValue(labelRef, labels);
-		node.tokenIndexes = {
-			start: labels.at(0)?.tokenIndexes?.end ?? firstToken,
-			end: labelRef.tokenIndexes?.end,
-		};
+		node.fisrtToken = labels.at(0)?.fisrtToken ?? firstToken;
 		this.mergeStack();
 		return node;
 	}
@@ -1536,13 +1484,10 @@ export class Parser {
 			this.issues.push(genIssue(SyntaxIssue.NODE_NAME, nodePath));
 		}
 
-		nodePath.tokenIndexes ??= {
-			start: firstToken,
-			end: nodeName?.tokenIndexes?.end ?? firstToken,
-		};
+		nodePath.fisrtToken ??= firstToken;
+		nodePath.lastToken = nodeName?.lastToken ?? firstToken;
 
 		nodePath.addPath(nodeName ?? null);
-		nodePath.tokenIndexes.end = nodeName?.tokenIndexes?.end ?? firstToken;
 
 		this.processNodePath(false, nodePath);
 
@@ -1582,10 +1527,8 @@ export class Parser {
 			this.moveToNextToken;
 		}
 
-		node.tokenIndexes = {
-			start: firstToken,
-			end: lastToken ?? nodePath?.tokenIndexes?.end ?? this.prevToken,
-		};
+		node.fisrtToken = firstToken;
+		node.lastToken = lastToken ?? this.prevToken;
 
 		const nodePathRange = nodePath ? toRange(nodePath) : undefined;
 		if (
@@ -1640,7 +1583,12 @@ export class Parser {
 	}
 
 	get prevToken() {
-		return this.tokens[this.peekIndex() - 1];
+		const index = this.peekIndex() - 1;
+		if (index === -1) {
+			return;
+		}
+
+		return this.tokens[index];
 	}
 
 	private moveStackIndex() {
