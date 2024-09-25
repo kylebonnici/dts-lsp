@@ -2,7 +2,7 @@ import { SymbolKind } from 'vscode-languageserver';
 import { ASTBase } from '../base';
 import { Keyword } from '../keyword';
 import { basename } from 'path';
-import { TokenIndexes } from 'src/types';
+import { TokenIndexes } from '../../types';
 
 export class Include extends ASTBase {
 	constructor(public readonly keyword: Keyword, public readonly path: IncludePath) {

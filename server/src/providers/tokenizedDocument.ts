@@ -10,7 +10,7 @@ class TokenizedDocmentProvider {
 	private dependencies = new Map<string, Callback[]>();
 
 	renewLexer(uri: string, text?: string): Token[] {
-		text = readFileSync(uri).toString();
+		text ??= readFileSync(uri).toString();
 		const lexer = new Lexer(text);
 		this.fileMap.set(uri, lexer);
 		this.dependencies.get(uri)?.forEach((c) => c(lexer.tokens));
@@ -20,9 +20,9 @@ class TokenizedDocmentProvider {
 	requestTokens(uri: string, renewIfNotFound: boolean): Token[] {
 		const tokens = this.fileMap.get(uri)?.tokens;
 		if (!tokens && renewIfNotFound) {
-			return this.renewLexer(uri);
+			return [...this.renewLexer(uri)];
 		}
-		return tokens ?? [];
+		return [...(tokens ?? [])];
 	}
 
 	registerOnFileChange(uri: string, callback: Callback): Disposable {

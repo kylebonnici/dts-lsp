@@ -28,4 +28,10 @@ export class FunctionCall extends Expression {
 	evaluate(): string {
 		throw new Error('Not Implimented');
 	}
+
+	toString() {
+		return `${this.functionName.toString()}(${this.params
+			.map((p) => p.toString())
+			.join(',')})`;
+	}
 }

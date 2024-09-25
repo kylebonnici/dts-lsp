@@ -24,4 +24,8 @@ export class FunctionDefinition extends ASTBase {
 			},
 		];
 	}
+
+	toString() {
+		return `${this.functionName}(${this.params.map((p) => p.toString()).join(',')})`;
+	}
 }

@@ -31,6 +31,7 @@ import { toRange } from './helpers';
 import { ContextAware } from './runtimeEvaluator';
 import { getCompleteions } from './completion';
 import { getReferences } from './findReferences';
+import { getTokenizedDocmentProvider } from './providers/tokenizedDocument';
 
 let contextAware: ContextAware | undefined;
 
@@ -126,6 +127,7 @@ const defaultSettings: ExampleSettings = {
 		'/opt/nordic/ncs/v2.7.0/zephyr/dts/arm64/',
 		'/opt/nordic/ncs/v2.7.0/zephyr/dts/riscv',
 		'/opt/nordic/ncs/v2.7.0/zephyr/dts/common',
+		'/opt/nordic/ncs/v2.7.0/zephyr/include',
 	],
 	common: ['/opt/nordic/ncs/v2.7.0/zephyr/dts/common'],
 };
@@ -343,11 +345,18 @@ documents.onDidChangeContent((change) => {
 
 	const uri = change.document.uri.replace('file://', '');
 
+	// TODO Cancel prev operation?
+
 	if (!contextAware?.contextFiles().some((p) => p === uri)) {
 		console.log('new context');
-		contextAware = new ContextAware(defaultSettings.includePath, defaultSettings.common, [
-			uri,
-		]);
+		contextAware = new ContextAware(
+			defaultSettings.includePath,
+			defaultSettings.common,
+			[uri],
+			{ uri, text: change.document.getText() }
+		);
+	} else {
+		getTokenizedDocmentProvider().renewLexer(uri, change.document.getText());
 	}
 });
 
@@ -358,6 +367,8 @@ function getContextParser(file: string) {
 async function getDiagnostics(textDocument: TextDocument): Promise<Diagnostic[]> {
 	const uri = textDocument.uri.replace('file://', '');
 	const diagnostics: Diagnostic[] = [];
+
+	await contextAware?.stable();
 
 	getContextParser(uri)?.issues.forEach((issue) => {
 		const diagnostic: Diagnostic = {
@@ -414,11 +425,12 @@ connection.onDidChangeWatchedFiles((_change) => {
 
 // This handler provides the initial list of the completion items.
 connection.onCompletion(
-	(_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
+	async (_textDocumentPosition: TextDocumentPositionParams): Promise<CompletionItem[]> => {
 		// The pass parameter contains the position of the text document in
 		// which code complete got requested. For the example we ignore this
 		// info and always provide the same completion items.
 		if (contextAware) {
+			await contextAware?.stable();
 			const temp = getCompleteions(_textDocumentPosition, contextAware);
 			return temp;
 		}
@@ -447,27 +459,31 @@ documents.listen(connection);
 // Listen on the connection
 connection.listen();
 
-connection.onDocumentSymbol((h) => {
+connection.onDocumentSymbol(async (h) => {
 	const uri = h.textDocument.uri.replace('file://', '');
-
+	await contextAware?.stable();
 	return getContextParser(uri)?.getDocumentSymbols() ?? [];
 });
 
-connection.languages.semanticTokens.on((h) => {
+connection.languages.semanticTokens.on(async (h) => {
 	const uri = h.textDocument.uri.replace('file://', '');
 	const tokensBuilder = new SemanticTokensBuilder();
 
+	await contextAware?.stable();
 	getContextParser(uri)?.buildSemanticTokens(tokensBuilder);
 
 	return tokensBuilder.build();
 });
 
-connection.onDocumentLinks((event) => {
+connection.onDocumentLinks(async (event) => {
 	const uri = event.textDocument.uri.replace('file://', '');
+	await contextAware?.stable();
 	return contextAware?.getDocumentLinks(uri);
 });
 
-connection.onReferences((event) => {
+connection.onReferences(async (event) => {
+	await contextAware?.stable();
+
 	if (contextAware) {
 		return getReferences(event, contextAware);
 	}

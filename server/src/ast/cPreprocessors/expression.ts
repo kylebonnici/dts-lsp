@@ -21,4 +21,12 @@ export class ComplexExpression extends Expression {
 	evaluate(): string {
 		throw new Error('Not Implimented');
 	}
+
+	toString() {
+		return `(${this.expression.toString()}${
+			this.join
+				? ` ${this.join.operator.toString()} ${this.join.expression.toString()}`
+				: ''
+		})`;
+	}
 }

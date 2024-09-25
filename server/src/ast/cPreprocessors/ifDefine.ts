@@ -13,7 +13,7 @@ export class CPreprocessorContent extends ASTBase {
 export abstract class CIfBase extends ASTBase {
 	constructor(
 		public readonly keyword: Keyword,
-		public readonly content: CPreprocessorContent
+		public readonly content: CPreprocessorContent | null
 	) {
 		super();
 		this.addChild(keyword);
@@ -24,15 +24,23 @@ export class CIfDef extends CIfBase {
 	constructor(
 		keyword: Keyword,
 		public readonly identifier: CIdentifier | null,
-		content: CPreprocessorContent
+		content: CPreprocessorContent | null
 	) {
 		super(keyword, content);
 		this.addChild(identifier);
 		this.addChild(content);
 	}
+
+	useBlock(macros: Map<string, CMacro>) {
+		return this.identifier && macros.has(this.identifier.name);
+	}
 }
 
-export class CIfNotDef extends CIfDef {}
+export class CIfNotDef extends CIfDef {
+	useBlock(macros: Map<string, CMacro>) {
+		return this.identifier && !macros.has(this.identifier.name);
+	}
+}
 
 export class CElse extends CIfBase {}
 
@@ -69,8 +77,8 @@ export class IfDefineBlock extends ASTBase {
 			end: getIndex(this.ifDef.identifier.tokenIndexes.end),
 		});
 
-		const useElseCode = !macros.has(this.ifDef.identifier.name);
-		if (useElseCode) {
+		const useMainBlock = this.ifDef.useBlock(macros);
+		if (!useMainBlock && this.ifDef.content) {
 			invalidRange.push({
 				start: getIndex(this.ifDef.content.tokenIndexes.start),
 				end: getIndex(this.ifDef.content.tokenIndexes.end),
@@ -83,7 +91,7 @@ export class IfDefineBlock extends ASTBase {
 				end: getIndex(this.elseOption.keyword.tokenIndexes.end),
 			});
 
-			if (!useElseCode) {
+			if (useMainBlock && this.elseOption.content) {
 				invalidRange.push({
 					start: getIndex(this.elseOption.content.tokenIndexes.start),
 					end: getIndex(this.elseOption.content.tokenIndexes.end),

@@ -1,11 +1,8 @@
-import { DocumentSymbol, SemanticTokensBuilder } from 'vscode-languageserver';
-import { Issue, LexerToken, SyntaxIssue, Token, TokenIndexes } from './types';
+import { LexerToken, SyntaxIssue, Token } from './types';
 import {
 	adjesentTokens,
 	createTokenIndex,
 	genIssue,
-	getTokenModifiers,
-	getTokenTypes,
 	sameLine,
 	toRange,
 	validateToken,
@@ -33,22 +30,16 @@ import { NumberValue } from './ast/dtc/values/number';
 import { ByteStringValue } from './ast/dtc/values/byteString';
 import { PropertyValues } from './ast/dtc/values/values';
 import { DtsDocumentVersion } from './ast/dtc/dtsDocVersion';
-import { Comment } from './ast/dtc/comment';
 import { ArrayValues } from './ast/dtc/values/arrayValue';
 import { LabledValue } from './ast/dtc/values/labledValue';
 import { Expression } from './ast/cPreprocessors/expression';
-import { Include } from './ast/cPreprocessors/include';
 import { PreprocessorParser } from './preprocessorParser';
 import { CMacro } from './ast/cPreprocessors/macro';
 
 type AllowNodeRef = 'Ref' | 'Name';
 
 export class Parser extends PreprocessorParser {
-	others: ASTBase[] = [];
-	includes: Include[] = [];
 	rootDocument = new DtcBaseNode();
-	positionStack: number[] = [];
-	issues: Issue<SyntaxIssue>[] = [];
 	unhandledStaments = new DtcRootNode();
 
 	constructor(
@@ -60,6 +51,7 @@ export class Parser extends PreprocessorParser {
 	) {
 		super(uri, incudes, common, macros, text);
 		this.rootDocument.uri = uri;
+		this.unhandledStaments.uri = uri;
 	}
 
 	get done() {
@@ -88,14 +80,31 @@ export class Parser extends PreprocessorParser {
 		}
 	}
 
-	get allDocuments() {
-		return this.chidParsers
-			.filter((p) => p instanceof Parser)
-			.map((p) => this.rootDocument);
+	get allDocuments(): DtcBaseNode[] {
+		return [
+			this.rootDocument,
+			...((this.chidParsers.filter((p) => p instanceof Parser) as Parser[]).map(
+				(p) => p.rootDocument
+			) as DtcBaseNode[]),
+		];
+	}
+	protected reset() {
+		super.reset();
+
+		this.rootDocument = new DtcBaseNode();
+		this.rootDocument.uri = this.uri;
+		this.unhandledStaments = new DtcRootNode();
+		this.unhandledStaments.uri = this.uri;
 	}
 
-	protected parse() {
-		super.parse();
+	protected async parse(forced: boolean) {
+		await super.parse(forced);
+
+		if (!forced) {
+			this.emitParsed();
+			return;
+		}
+		console.log('Parsing being', this.uri);
 
 		this.positionStack.push(0);
 		if (this.tokens.length === 0) {
@@ -110,13 +119,15 @@ export class Parser extends PreprocessorParser {
 			throw new Error('Incorrect final stack size');
 		}
 
-		this.events.emit('parsed');
+		this.emitParsed();
+		console.log('Parsing end', this.uri);
 	}
 
 	private isRootNodeDefinition(parent: DtcBaseNode): boolean {
 		this.enqueToStack();
 
-		let nextToken = this.moveToNextToken;
+		const firstToken = this.moveToNextToken;
+		let nextToken = firstToken;
 		let expectedToken = LexerToken.FORWARD_SLASH;
 		if (!nextToken || !validToken(nextToken, expectedToken)) {
 			this.popStack();
@@ -135,7 +146,8 @@ export class Parser extends PreprocessorParser {
 		parent.addNodeChild(rootNode);
 		this.processNode(rootNode, 'Name');
 
-		this.nodeEnd(rootNode);
+		rootNode.fisrtToken = firstToken;
+		rootNode.lastToken = this.nodeEnd(rootNode);
 		this.mergeStack();
 		return true;
 	}
@@ -525,6 +537,7 @@ export class Parser extends PreprocessorParser {
 		if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
 			const keyword = new Keyword(createTokenIndex(firstToken, token));
 			const node = new DtsDocumentVersion(keyword);
+			node.uri = this.uri;
 			this.others.push(node);
 			this.issues.push(genIssue(SyntaxIssue.FORWARD_SLASH_END_DELETE, node));
 			this.mergeStack();
@@ -536,6 +549,7 @@ export class Parser extends PreprocessorParser {
 		const keyword = new Keyword(createTokenIndex(firstToken, token));
 		const lastToken = this.endStatment();
 		const node = new DtsDocumentVersion(keyword);
+		node.uri = this.uri;
 		node.lastToken = lastToken;
 		this.others.push(node);
 		this.mergeStack();
@@ -1149,64 +1163,7 @@ export class Parser extends PreprocessorParser {
 		return this.tokens[this.peekIndex() - 1];
 	}
 
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			...this.includes.flatMap((o) => o.getDocumentSymbols()),
-			...this.rootDocument.getDocumentSymbols(),
-			...this.others.flatMap((o) => o.getDocumentSymbols()),
-		];
-	}
-
-	buildSemanticTokens(tokensBuilder: SemanticTokensBuilder) {
-		const result: {
-			line: number;
-			char: number;
-			length: number;
-			tokenType: number;
-			tokenModifiers: number;
-		}[] = [];
-		const push = (
-			tokenType: number,
-			tokenModifiers: number,
-			tokenIndexes?: TokenIndexes
-		) => {
-			if (!tokenIndexes?.start || !tokenIndexes?.end) return;
-
-			const lengthEnd =
-				tokenIndexes.end.pos.col - tokenIndexes.start.pos.col + tokenIndexes.end.pos.len;
-			result.push({
-				line: tokenIndexes.start.pos.line,
-				char: tokenIndexes.start.pos.col,
-				length:
-					tokenIndexes.end === tokenIndexes.start ? tokenIndexes.end.pos.len : lengthEnd,
-				tokenType,
-				tokenModifiers,
-			});
-		};
-
-		this.rootDocument.buildSemanticTokens(push);
-		this.others.forEach((a) => a.buildSemanticTokens(push));
-		this.includes.forEach((a) => a.buildSemanticTokens(push));
-
-		this.tokens
-			.filter(
-				(token) =>
-					validToken(token, LexerToken.CURLY_OPEN) ||
-					validToken(token, LexerToken.CURLY_CLOSE)
-			)
-			.forEach((token) => {
-				result.push({
-					line: token.pos.len,
-					char: token.pos.col,
-					length: 1,
-					tokenType: getTokenTypes('struct'),
-					tokenModifiers: getTokenModifiers('declaration'),
-				});
-			});
-		result
-			.sort((a, b) => (a.line === b.line ? a.char - b.char : a.line - b.line))
-			.forEach((r) =>
-				tokensBuilder.push(r.line, r.char, r.length, r.tokenType, r.tokenModifiers)
-			);
+	get allAstItems() {
+		return [...super.allAstItems, this.rootDocument];
 	}
 }

@@ -1,7 +1,6 @@
-import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
+import { SymbolKind } from 'vscode-languageserver';
 import { ASTBase } from '../base';
-import { toRange } from '../../helpers';
-import { TokenIndexes } from 'src/types';
+import { TokenIndexes } from '../../types';
 
 export class LabelAssign extends ASTBase {
 	constructor(public readonly label: string, tokenIndex: TokenIndexes) {

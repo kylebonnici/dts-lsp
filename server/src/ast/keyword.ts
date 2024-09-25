@@ -1,4 +1,4 @@
-import { TokenIndexes } from 'src/types';
+import { TokenIndexes } from '../types';
 import { ASTBase } from './base';
 
 export class Keyword extends ASTBase {

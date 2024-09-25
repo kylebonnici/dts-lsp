@@ -1,10 +1,4 @@
-import {
-	DtcBaseNode,
-	DtcChildNode,
-	DtcRefNode,
-	DtcRootNode,
-	NodeName,
-} from '../ast/dtc/node';
+import { DtcBaseNode, DtcRefNode, DtcRootNode, NodeName } from '../ast/dtc/node';
 import {
 	ContextIssues,
 	Issue,
@@ -24,7 +18,7 @@ import {
 import { DiagnosticSeverity, Position } from 'vscode-languageserver';
 import { LabelAssign } from '../ast/dtc/label';
 import { Node } from './node';
-import { getTokenizedDocmentProvider } from 'src/providers/tokenizedDocument';
+import { getTokenizedDocmentProvider } from '../providers/tokenizedDocument';
 
 export class Runtime implements Searchable {
 	public roots: DtcRootNode[] = [];
@@ -87,33 +81,6 @@ export class Runtime implements Searchable {
 		}
 
 		const allLabels = this.rootNode.allDescendantsLabels;
-
-		// const childNodeParent = allLabels.find(
-		// 	(l) =>
-		// 		l.parentNode instanceof DtcChildNode &&
-		// 		l.parentNode.path &&
-		// 		this.rootNode
-		// 			.getChild(l.parentNode.path)
-		// 			?.labels.some((ll) => ll.label === path?.[0].slice(1))
-		// )?.parentNode as DtcChildNode | undefined;
-
-		// if (childNodeParent?.path) {
-		// 	return this.resolvePath([...childNodeParent.path, ...path.slice(1)]);
-		// }
-
-		// const refNodeParent = allLabels.find(
-		// 	(l) =>
-		// 		l.parentNode instanceof DtcRefNode &&
-		// 		l.parentNode.labelReferance?.label?.value === path?.[0].slice(1)
-		// )?.parentNode as DtcRefNode | undefined;
-
-		// if (refNodeParent && refNodeParent.labelReferance?.label?.value) {
-		// 	if (refNodeParent.pathName) {
-		// 		const resolvedPath = this.resolvePath([refNodeParent.pathName]);
-		// 		refNodeParent.resolveNodePath = resolvedPath;
-		// 		return resolvedPath;
-		// 	}
-		// }
 
 		const label = allLabels.find(
 			(l) => l.label === path?.[0].slice(1) && l.parentNode instanceof DtcBaseNode

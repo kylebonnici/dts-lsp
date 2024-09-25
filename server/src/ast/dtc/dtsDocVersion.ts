@@ -14,9 +14,4 @@ export class DtsDocumentVersion extends ASTBase {
 			kind: SymbolKind.Function,
 		};
 	}
-
-	get tokenIndexes(): TokenIndexes {
-		const tokenIndexes = super.tokenIndexes;
-		return this.lastToken ? { ...tokenIndexes, end: this.lastToken } : tokenIndexes;
-	}
 }

@@ -4,7 +4,7 @@ import { TokenIndexes } from '../../../types';
 
 export class StringValue extends ASTBase {
 	constructor(public readonly value: string, _tokenIndexes?: TokenIndexes) {
-		super();
+		super(_tokenIndexes);
 		this.semanticTokenType = 'string';
 		this.semanticTokenModifiers = 'declaration';
 		this.docSymbolsMeta = {

@@ -1,6 +1,6 @@
 import { SymbolKind } from 'vscode-languageserver';
 import { Expression } from './expression';
-import { TokenIndexes } from 'src/types';
+import { TokenIndexes } from '../../types';
 
 export class CIdentifier extends Expression {
 	constructor(public readonly name: string, tokenIndexes: TokenIndexes) {
@@ -15,5 +15,9 @@ export class CIdentifier extends Expression {
 
 	evaluate(): string {
 		throw new Error('Not Implimented');
+	}
+
+	toString() {
+		return this.name;
 	}
 }

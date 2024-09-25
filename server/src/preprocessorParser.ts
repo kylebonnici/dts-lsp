@@ -3,8 +3,6 @@ import { Issue, LexerToken, SyntaxIssue, Token, TokenIndexes, Disposable } from 
 import {
 	adjesentTokens,
 	genIssue,
-	getTokenModifiers,
-	getTokenTypes,
 	createTokenIndex,
 	validateToken,
 	validateValue,
@@ -35,7 +33,7 @@ import {
 import { Parser } from './parser';
 import { FunctionDefinition } from './ast/cPreprocessors/functionDefinition';
 
-type Callback = () => void;
+type Callback = (forced: boolean) => void;
 
 export class PreprocessorParser {
 	protected events = new EventEmitter();
@@ -47,6 +45,10 @@ export class PreprocessorParser {
 	protected disposables: (() => void)[] = [];
 	protected dtor: (() => void)[] = [];
 	chidParsers: (PreprocessorParser | Parser)[] = [];
+	private readonly parentMacrosSnapshot = new Map<string, CMacro>();
+	private revaluating: Promise<void> = Promise.resolve();
+
+	private macroSnapshot = new Map<string, CMacro>();
 
 	constructor(
 		public readonly uri: string,
@@ -58,19 +60,25 @@ export class PreprocessorParser {
 		const provider = getTokenizedDocmentProvider();
 
 		if (text) {
-			this.tokens = provider.renewLexer(text);
+			this.tokens = provider.renewLexer(uri, text);
 		} else {
 			this.tokens = getTokenizedDocmentProvider().requestTokens(uri, true);
 		}
 
+		macros.forEach((v, k) => this.parentMacrosSnapshot.set(k, v));
+
 		this.dtor.push(
 			provider.registerOnFileChange(uri, (tokens) => {
 				this.tokens = tokens;
-				this.parse();
+				this.revaluating = this.parse(true);
 			})
 		);
 
-		this.parse();
+		this.revaluating = this.parse(true);
+	}
+
+	stable(): Promise<void> {
+		return this.revaluating;
 	}
 
 	dispose() {
@@ -78,19 +86,21 @@ export class PreprocessorParser {
 	}
 
 	registerOnReparsed(callback: Callback): Disposable {
-		this.events.on('parced', callback);
+		this.events.on('parsed', callback);
 		return () => {
-			this.events.removeListener('parced', callback);
+			this.events.removeListener('parsed', callback);
 		};
+	}
+
+	parsedFiles() {
+		return [this.uri, ...this.includePaths()];
 	}
 
 	includePaths() {
 		return this.includes
 			.filter(
-				(p) =>
-					p.path.path.endsWith('.dts') ||
-					p.path.path.endsWith('.dtsi') ||
-					p.path.path.endsWith('.h')
+				(p) => p.path.path.endsWith('.dts') || p.path.path.endsWith('.dtsi') //||
+				// p.path.path.endsWith('.h')
 			)
 			.map((include) => this.resolveInclude(include))
 			.filter((p) => p) as string[];
@@ -114,7 +124,7 @@ export class PreprocessorParser {
 	private cleanUpComments() {
 		const tokensConsumedIndexes: number[] = [];
 		for (let i = 0; i < this.tokens.length; i++) {
-			const result = PreprocessorParser.processComments(this.tokens, i);
+			const result = PreprocessorParser.processComments(this.tokens, i, this.uri);
 			if (result) {
 				i = result.index;
 				tokensConsumedIndexes.push(...result.tokenUsed);
@@ -124,7 +134,7 @@ export class PreprocessorParser {
 		tokensConsumedIndexes.reverse().forEach((i) => this.tokens.splice(i, 1));
 	}
 
-	private lineProcessor() {
+	private async lineProcessor() {
 		this.enqueToStack();
 
 		//must be firstToken
@@ -135,20 +145,23 @@ export class PreprocessorParser {
 		}
 
 		const line = this.currentToken?.pos.line;
-		this.processInclude() || this.processDefinitions() || this.processIfDefBlock();
+		const found =
+			(await this.processInclude()) ||
+			this.processDefinitions() ||
+			this.processIfDefBlock();
 
-		if (line) {
-			this.moveEndOfLine(line);
+		if (line !== undefined) {
+			this.moveEndOfLine(line, !!found);
 		}
 
 		this.mergeStack();
 	}
 
-	private processInclude(): boolean {
+	private async processInclude(): Promise<boolean> {
 		this.enqueToStack();
 
+		const startIndex = this.peekIndex();
 		const start = this.moveToNextToken;
-
 		let token = start;
 		if (!token || !validToken(token, LexerToken.C_INCLUDE)) {
 			this.popStack();
@@ -183,6 +196,7 @@ export class PreprocessorParser {
 
 		const incudePath = new IncludePath(path, relative, createTokenIndex(pathStart, token));
 		const node = new Include(keyword, incudePath);
+		node.uri = this.uri;
 		this.includes.push(node);
 
 		if (!relative) {
@@ -199,26 +213,33 @@ export class PreprocessorParser {
 		this.mergeStack();
 
 		const resolvedPath = this.resolveInclude(node);
-		if (resolvedPath) {
+		if (resolvedPath && !resolvedPath.endsWith('.h')) {
 			const childParser = resolvedPath.endsWith('.h')
 				? new PreprocessorParser(resolvedPath, this.incudes, this.common, this.macros)
 				: new Parser(resolvedPath, this.incudes, this.common, this.macros);
 
 			this.chidParsers.push(childParser);
 
+			await childParser.stable();
+
 			this.disposables.push(
-				childParser.registerOnReparsed(() => {
-					this.parse();
+				childParser.registerOnReparsed((force: boolean) => {
+					this.revaluating = this.parse(force);
 				})
 			);
 		}
 
+		const endIndex = this.peekIndex();
+		this.tokens.splice(startIndex, endIndex - startIndex);
+
+		this.positionStack[this.positionStack.length - 1] = startIndex;
 		return true;
 	}
 
 	private processDefinitions() {
 		this.enqueToStack();
 
+		const startIndex = this.peekIndex();
 		const token = this.moveToNextToken;
 		if (!token || !validToken(token, LexerToken.C_DEFINE)) {
 			this.popStack();
@@ -227,7 +248,7 @@ export class PreprocessorParser {
 
 		const keyword = new Keyword(createTokenIndex(token));
 
-		const definition = this.processCIdentifier() || this.isFuntionDefinition();
+		const definition = this.isFuntionDefinition() || this.processCIdentifier();
 		if (!definition) {
 			this.issues.push(genIssue(SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE, keyword));
 			this.mergeStack();
@@ -235,9 +256,14 @@ export class PreprocessorParser {
 		}
 
 		const expression = this.processExpression(true);
-		const macro = new CMacro(definition, expression);
+		const macro = new CMacro(keyword, definition, expression);
 		this.macros.set(macro.name, macro);
 		this.others.push(macro);
+
+		const endIndex = this.peekIndex();
+		this.tokens.splice(startIndex, endIndex - startIndex);
+
+		this.positionStack[this.positionStack.length - 1] = startIndex;
 		this.mergeStack();
 		return true;
 	}
@@ -245,6 +271,7 @@ export class PreprocessorParser {
 	private processIfDefBlock() {
 		this.enqueToStack();
 
+		const startIndex = this.peekIndex();
 		const preIf = this.processIfDef() || this.processIfNotDef();
 		if (!preIf) {
 			this.popStack();
@@ -269,6 +296,12 @@ export class PreprocessorParser {
 		node.uri = this.uri;
 		this.others.push(node);
 
+		const rangeToClean = node.getInValidTokenRange(this.macros, this.tokens).reverse();
+		rangeToClean.forEach((r) => {
+			this.tokens.splice(r.start, r.end - r.start + 1);
+		});
+
+		this.positionStack[this.positionStack.length - 1] = startIndex;
 		this.mergeStack();
 		return true;
 	}
@@ -292,7 +325,11 @@ export class PreprocessorParser {
 		const tokens = this.moveToToken(
 			[LexerToken.C_ELSE, LexerToken.C_ENDIF].map((t) => validateToken(t))
 		);
-		const content = new CPreprocessorContent(createTokenIndex(token, tokens.at(-1)));
+
+		let content: CPreprocessorContent | null = null;
+		if (tokens.length) {
+			content = new CPreprocessorContent(createTokenIndex(tokens[0], tokens.at(-1)));
+		}
 
 		const node = new CIfDef(keyword, identifier ?? null, content);
 
@@ -319,7 +356,11 @@ export class PreprocessorParser {
 		const tokens = this.moveToToken(
 			[LexerToken.C_ELSE, LexerToken.C_ENDIF].map((t) => validateToken(t))
 		);
-		const content = new CPreprocessorContent(createTokenIndex(token, tokens.at(-1)));
+
+		let content: CPreprocessorContent | null = null;
+		if (tokens.length) {
+			content = new CPreprocessorContent(createTokenIndex(tokens[0], tokens.at(-1)));
+		}
 		const node = new CIfNotDef(keyword, identifier ?? null, content);
 
 		this.mergeStack();
@@ -338,22 +379,48 @@ export class PreprocessorParser {
 		const keyword = new Keyword(createTokenIndex(token));
 
 		const tokens = this.moveToToken([LexerToken.C_ENDIF].map((t) => validateToken(t)));
-		const content = new CPreprocessorContent(createTokenIndex(token, tokens.at(-1)));
+		let content: CPreprocessorContent | null = null;
+		if (tokens.length) {
+			content = new CPreprocessorContent(createTokenIndex(tokens[0], tokens.at(-1)));
+		}
 		const node = new CElse(keyword, content);
 
 		this.mergeStack();
 		return node;
 	}
 
-	private preProcess() {
-		this.lineProcessor();
+	private async preProcess() {
+		await this.lineProcessor();
 	}
 
-	protected parse(emit = true) {
+	protected reset() {
+		this.others = [];
+		this.includes = [];
+		this.positionStack = [];
+		this.issues = [];
+
 		this.disposables.forEach((p) => p());
 		this.chidParsers.forEach((p) => p.dispose());
 		this.chidParsers = [];
 		this.disposables = [];
+
+		this.macros.clear();
+		this.parentMacrosSnapshot.forEach((v, k) => {
+			this.macros.set(k, v);
+		});
+	}
+
+	protected async parse(forced: boolean, emit = true) {
+		if (!forced) {
+			if (emit) this.emitParsed();
+			return;
+		}
+		console.log('C Parsing begin', this.uri);
+
+		this.macroSnapshot.clear();
+		this.macros.forEach((v, k) => this.macroSnapshot.set(k, v));
+
+		this.reset();
 		this.cleanUpComments();
 
 		this.positionStack.push(0);
@@ -362,26 +429,37 @@ export class PreprocessorParser {
 		}
 
 		while (!this.done) {
-			this.preProcess();
+			await this.preProcess();
 		}
 
 		if (this.positionStack.length !== 1) {
 			throw new Error('Incorrect final stack size');
 		}
 
-		const ifdefs = this.others.filter((o) => o instanceof IfDefineBlock) as IfDefineBlock[];
-		const rangeToClean = ifdefs
-			.flatMap((i) => i.getInValidTokenRange(this.macros, this.tokens))
-			.reverse();
-		this.tokens = this.tokens.filter((t, i) =>
-			rangeToClean.findIndex((r) => r.start <= i && r.end >= i)
-		);
-
 		this.positionStack = [];
-		if (emit) this.events.emit('parsed');
+		if (emit) this.emitParsed();
+		console.log('C Parsing end', this.uri);
 	}
 
-	private static processComments(tokens: Token[], index: number) {
+	protected emitParsed() {
+		this.events.emit('parsed', this.hasMacrosChanged());
+	}
+
+	private hasMacrosChanged() {
+		if (this.macros.size !== this.macroSnapshot.size) {
+			return true;
+		}
+
+		return Array.from(this.macros).some(([k, m]) => {
+			if (!this.macroSnapshot.has(k)) {
+				return true;
+			}
+
+			return this.macroSnapshot.get(k)?.toString() !== m.toString();
+		});
+	}
+
+	private static processComments(tokens: Token[], index: number, uri: string) {
 		const tokenUsed: number[] = [];
 
 		const move = () => {
@@ -437,6 +515,7 @@ export class PreprocessorParser {
 		do {
 			if (currentToken()?.pos.line !== lastLine) {
 				const node = new Comment(createTokenIndex(start, prevToken()));
+				node.uri = uri;
 				comments.push(node);
 
 				lastLine = currentToken().pos.line ?? 0;
@@ -517,7 +596,7 @@ export class PreprocessorParser {
 
 		const name = valid.map((v) => v.value).join('');
 
-		if (!name.match(/^[A-Za-z]/)) {
+		if (!name.match(/^[_A-Za-z]/)) {
 			this.popStack();
 			return;
 		}
@@ -589,6 +668,11 @@ export class PreprocessorParser {
 			operator = OperatorType.ARITHMETIC_DIVIDE;
 		} else if (validToken(start, LexerToken.MODULUS_OPERATOR)) {
 			operator = OperatorType.ARITHMETIC_MODULES;
+		} else if (validToken(start, LexerToken.HASH)) {
+			if (validToken(this.currentToken, LexerToken.HASH)) {
+				operator = OperatorType.C_CONCAT;
+				end = this.moveToNextToken;
+			}
 		}
 
 		if (operator) {
@@ -660,7 +744,7 @@ export class PreprocessorParser {
 		}
 
 		const params: Expression[] = [];
-		let exp = this.processExpression();
+		let exp = this.processExpression(true);
 		while (exp) {
 			params.push(exp);
 			if (
@@ -696,17 +780,22 @@ export class PreprocessorParser {
 
 		let start: Token | undefined;
 		let token: Token | undefined;
+		let expression: Expression | undefined;
+
+		let hasOpenBraket = false;
 		if (validToken(this.currentToken, LexerToken.ROUND_OPEN)) {
 			complexExpression = true;
 			start = this.moveToNextToken;
 			token = start;
+			expression = this.processExpression(true);
+			hasOpenBraket = true;
 		}
 
-		let expression: Expression | undefined =
+		expression ??=
 			this.isFuntionCall() ||
 			this.processCIdentifier() ||
 			this.processHex() ||
-			this.processDec();
+			this.processDec(); // todo process 0x
 		if (!expression) {
 			this.popStack();
 			return;
@@ -717,7 +806,7 @@ export class PreprocessorParser {
 
 			if (operator) {
 				// complex
-				const nextExpression = this.processExpression();
+				const nextExpression = this.processExpression(true);
 
 				if (!nextExpression) {
 					this.issues.push(genIssue(SyntaxIssue.EXPECTED_EXPRESSION, operator));
@@ -729,9 +818,12 @@ export class PreprocessorParser {
 					expression.uri = this.uri;
 				}
 			}
+		}
 
+		if (hasOpenBraket) {
 			if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
-				this.issues.push(genIssue(SyntaxIssue.MISSING_ROUND_CLOSE, operator ?? expression));
+				const node = new ASTBase(createTokenIndex(this.prevToken!));
+				this.issues.push(genIssue(SyntaxIssue.MISSING_ROUND_CLOSE, node));
 			} else {
 				token = this.moveToNextToken;
 			}
@@ -779,6 +871,8 @@ export class PreprocessorParser {
 	}
 
 	get prevToken() {
+		const index = this.peekIndex() - 1;
+		if (index < 0) return;
 		return this.tokens.at(this.peekIndex() - 1);
 	}
 
@@ -810,10 +904,11 @@ export class PreprocessorParser {
 	};
 
 	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			...this.includes.flatMap((o) => o.getDocumentSymbols()),
-			...this.others.flatMap((o) => o.getDocumentSymbols()),
-		];
+		return this.allAstItems.flatMap((o) => o.getDocumentSymbols());
+	}
+
+	get allAstItems() {
+		return [...this.includes, ...this.others];
 	}
 
 	buildSemanticTokens(tokensBuilder: SemanticTokensBuilder) {
@@ -843,24 +938,8 @@ export class PreprocessorParser {
 			});
 		};
 
-		this.others.forEach((a) => a.buildSemanticTokens(push));
-		this.includes.forEach((a) => a.buildSemanticTokens(push));
+		this.allAstItems.forEach((a) => a.buildSemanticTokens(push));
 
-		this.tokens
-			.filter(
-				(token) =>
-					validToken(token, LexerToken.CURLY_OPEN) ||
-					validToken(token, LexerToken.CURLY_CLOSE)
-			)
-			.forEach((token) => {
-				result.push({
-					line: token.pos.len,
-					char: token.pos.col,
-					length: 1,
-					tokenType: getTokenTypes('struct'),
-					tokenModifiers: getTokenModifiers('declaration'),
-				});
-			});
 		result
 			.sort((a, b) => (a.line === b.line ? a.char - b.char : a.line - b.line))
 			.forEach((r) =>
@@ -918,10 +997,8 @@ export class PreprocessorParser {
 		this.enqueToStack();
 
 		const tokens: Token[] = [];
-		let token: Token | undefined;
-		while (cmps.some((cmp) => cmp(this.currentToken) !== 'yes')) {
+		while (cmps.every((cmp) => cmp(this.currentToken) === 'no')) {
 			tokens.push(this.currentToken!);
-			token = this.currentToken;
 			this.moveToNextToken;
 		}
 

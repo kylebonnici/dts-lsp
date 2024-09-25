@@ -47,12 +47,13 @@ export class ASTBase {
 		if (!this.docSymbolsMeta)
 			return this.children.flatMap((child) => child.getDocumentSymbols() ?? []);
 
+		const range = toRange(this);
 		return [
 			{
 				name: this.docSymbolsMeta.name,
 				kind: this.docSymbolsMeta.kind,
-				range: toRange(this),
-				selectionRange: toRange(this),
+				range,
+				selectionRange: range,
 				children: [...this.children.flatMap((child) => child.getDocumentSymbols() ?? [])],
 			},
 		];

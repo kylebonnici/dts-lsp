@@ -24,25 +24,38 @@ export class ContextAware {
 	_issues: Issue<ContextIssues>[] = [];
 	public runtime: Runtime;
 	public parsers: Parser[];
+	private revaluating: Promise<void> = Promise.resolve();
 
 	constructor(
 		private readonly includePaths: string[],
 		private readonly commonPaths: string[],
-		public readonly fileMap: string[]
+		public readonly fileMap: string[],
+		openFile?: { uri: string; text: string }
 	) {
-		this.parsers = fileMap.map((f) => new Parser(f, this.includePaths, this.commonPaths));
+		this.parsers = fileMap.map(
+			(f) =>
+				new Parser(
+					f,
+					this.includePaths,
+					this.commonPaths,
+					undefined,
+					f === openFile?.uri ? openFile.text : undefined
+				)
+		);
 		this.runtime = new Runtime(this.contextFiles());
-		let debaounce: NodeJS.Timeout;
+
 		this.parsers.forEach((p) =>
 			p.registerOnReparsed(() => {
-				clearTimeout(debaounce);
-				debaounce = setTimeout(() => {
-					console.time('revaluate');
+				this.revaluating = new Promise((resolve) => {
 					this.revaluate();
-					console.timeEnd('revaluate');
+					resolve();
 				});
 			})
 		);
+	}
+
+	stable(): Promise<void> {
+		return this.revaluating;
 	}
 
 	get issues() {
@@ -68,10 +81,12 @@ export class ContextAware {
 	}
 
 	public contextFiles() {
-		return this.parsers.flatMap((parser) => parser.includePaths());
+		return this.parsers.flatMap((parser) => parser.parsedFiles());
 	}
 
 	private revaluate() {
+		console.time('revaluate');
+
 		const files = this.contextFiles();
 
 		this.runtime = new Runtime(files);
@@ -82,6 +97,7 @@ export class ContextAware {
 				this.processRoot(d);
 			});
 		});
+		console.timeEnd('revaluate');
 	}
 
 	private processRoot(element: DtcBaseNode) {

@@ -2,9 +2,12 @@ import { SymbolKind } from 'vscode-languageserver';
 import { Expression } from './expression';
 import { CIdentifier } from './cIdentifier';
 import { FunctionDefinition } from './functionDefinition';
+import { Keyword } from '../keyword';
+import { ASTBase } from '../base';
 
-export class CMacro extends Expression {
+export class CMacro extends ASTBase {
 	constructor(
+		public readonly keyword: Keyword,
 		public readonly identifier: CIdentifier | FunctionDefinition,
 		public readonly expression?: Expression
 	) {
@@ -16,6 +19,7 @@ export class CMacro extends Expression {
 		};
 		this.semanticTokenType = simple ? 'function' : 'variable';
 		this.semanticTokenModifiers = 'declaration';
+		this.addChild(keyword);
 		this.addChild(this.identifier);
 		if (this.expression) {
 			this.addChild(this.expression);
@@ -28,7 +32,7 @@ export class CMacro extends Expression {
 			: this.identifier.functionName.name;
 	}
 
-	evaluate(): string {
-		throw new Error('Not Implimented');
+	toString() {
+		return `${this.identifier.toString()} ${this.expression?.toString() ?? ''}`;
 	}
 }
