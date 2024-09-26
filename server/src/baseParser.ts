@@ -1,12 +1,14 @@
 import { DocumentSymbol, SemanticTokensBuilder } from 'vscode-languageserver';
-import { Issue, SyntaxIssue, Token } from './types';
+import { Issue, SyntaxIssue, Token, TokenIndexes } from './types';
 import { adjesentTokens } from './helpers';
+import { ASTBase } from './ast/base';
 
 export abstract class BaseParser {
 	positionStack: number[] = [];
 	issues: Issue<SyntaxIssue>[] = [];
 
-	constructor(protected tokens: Token[], public readonly uri: string) {}
+	public abstract get tokens(): Token[];
+	public abstract get uri(): string;
 
 	get done() {
 		return this.peekIndex() >= this.tokens.length;
@@ -110,6 +112,45 @@ export abstract class BaseParser {
 		return tokens;
 	}
 
-	abstract getDocumentSymbols(): DocumentSymbol[];
-	abstract buildSemanticTokens(tokensBuilder: SemanticTokensBuilder): void;
+	abstract get allAstItems(): ASTBase[];
+
+	getDocumentSymbols(): DocumentSymbol[] {
+		return this.allAstItems.flatMap((o) => o.getDocumentSymbols());
+	}
+
+	buildSemanticTokens(tokensBuilder: SemanticTokensBuilder) {
+		const result: {
+			line: number;
+			char: number;
+			length: number;
+			tokenType: number;
+			tokenModifiers: number;
+		}[] = [];
+		const push = (
+			tokenType: number,
+			tokenModifiers: number,
+			tokenIndexes?: TokenIndexes
+		) => {
+			if (!tokenIndexes?.start || !tokenIndexes?.end) return;
+
+			const lengthEnd =
+				tokenIndexes.end.pos.col - tokenIndexes.start.pos.col + tokenIndexes.end.pos.len;
+			result.push({
+				line: tokenIndexes.start.pos.line,
+				char: tokenIndexes.start.pos.col,
+				length:
+					tokenIndexes.end === tokenIndexes.start ? tokenIndexes.end.pos.len : lengthEnd,
+				tokenType,
+				tokenModifiers,
+			});
+		};
+
+		this.allAstItems.forEach((a) => a.buildSemanticTokens(push));
+
+		result
+			.sort((a, b) => (a.line === b.line ? a.char - b.char : a.line - b.line))
+			.forEach((r) =>
+				tokensBuilder.push(r.line, r.char, r.length, r.tokenType, r.tokenModifiers)
+			);
+	}
 }

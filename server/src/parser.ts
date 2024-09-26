@@ -1,11 +1,8 @@
-import { DocumentSymbol, SemanticTokensBuilder } from 'vscode-languageserver';
 import { Issue, LexerToken, SyntaxIssue, Token, TokenIndexes } from './types';
 import {
 	adjesentTokens,
 	createTokenIndex,
 	genIssue,
-	getTokenModifiers,
-	getTokenTypes,
 	sameLine,
 	toRange,
 	validateToken,
@@ -33,7 +30,6 @@ import { NumberValue } from './ast/dtc/values/number';
 import { ByteStringValue } from './ast/dtc/values/byteString';
 import { PropertyValues } from './ast/dtc/values/values';
 import { DtsDocumentVersion } from './ast/dtc/dtsDocVersion';
-import { Comment } from './ast/dtc/comment';
 import { ArrayValues } from './ast/dtc/values/arrayValue';
 import { LabledValue } from './ast/dtc/values/labledValue';
 import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
@@ -44,10 +40,14 @@ import { Include, IncludePath } from './ast/cPreprocessors/include';
 import { existsSync } from 'fs-extra';
 import { resolve, dirname } from 'path';
 import { BaseParser } from './baseParser';
+import { CommentsParser } from './commensParser';
 
 type AllowNodeRef = 'Ref' | 'Name';
 
 export class Parser extends BaseParser {
+	private commentsParser: CommentsParser;
+	public tokens: Token[];
+
 	others: ASTBase[] = [];
 	includes: Include[] = [];
 	rootDocument = new DtcBaseNode();
@@ -55,8 +55,10 @@ export class Parser extends BaseParser {
 	issues: Issue<SyntaxIssue>[] = [];
 	unhandledStaments = new DtcRootNode();
 
-	constructor(tokens: Token[], uri: string) {
-		super(tokens, uri);
+	constructor(tokens: Token[], public readonly uri: string) {
+		super();
+		this.commentsParser = new CommentsParser(tokens, uri);
+		this.tokens = this.commentsParser.tokens;
 		this.rootDocument.uri = uri;
 		this.parse();
 	}
@@ -83,21 +85,7 @@ export class Parser extends BaseParser {
 		return this.peekIndex() >= this.tokens.length;
 	}
 
-	private cleanUpComments() {
-		const tokensUsed: number[] = [];
-		for (let i = 0; i < this.tokens.length; i++) {
-			const result = Parser.processComments(this.tokens, i);
-			if (result) {
-				i = result.index;
-				tokensUsed.push(...result.tokenUsed);
-				this.others.push(...result.comments);
-			}
-		}
-		tokensUsed.reverse().forEach((i) => this.tokens.splice(i, 1));
-	}
-
 	private parse() {
-		this.cleanUpComments();
 		this.positionStack.push(0);
 		if (this.tokens.length === 0) {
 			return;
@@ -133,82 +121,6 @@ export class Parser extends BaseParser {
 		if (this.positionStack.length !== 1) {
 			throw new Error('Incorrect final stack size');
 		}
-	}
-
-	private static processComments(tokens: Token[], index: number) {
-		const tokenUsed: number[] = [];
-
-		const move = () => {
-			tokenUsed.push(index++);
-			return tokens[index];
-		};
-
-		const currentToken = () => {
-			return tokens[index];
-		};
-
-		const prevToken = () => {
-			return tokens[index - 1];
-		};
-
-		const firstToken = currentToken();
-		let token = firstToken;
-		if (!firstToken || !validToken(firstToken, LexerToken.FORWARD_SLASH)) {
-			return;
-		}
-
-		token = move();
-
-		if (
-			!validToken(token, LexerToken.MULTI_OPERATOR) ||
-			firstToken.pos.line !== token.pos.line ||
-			firstToken.pos.col + 1 !== token.pos.col
-		) {
-			return;
-		}
-
-		const isEndComment = (): boolean => {
-			if (!validToken(prevToken(), LexerToken.MULTI_OPERATOR)) {
-				return false;
-			}
-
-			if (
-				!validToken(currentToken(), LexerToken.FORWARD_SLASH) ||
-				prevToken()?.pos.line !== currentToken()?.pos.line ||
-				prevToken()?.pos.col + 1 !== currentToken()?.pos.col
-			) {
-				return false;
-			}
-
-			return true;
-		};
-
-		// we have a comment start
-		let lastLine = token.pos.line;
-		let start = firstToken;
-		const comments: Comment[] = [];
-		token = move();
-		do {
-			if (currentToken()?.pos.line !== lastLine) {
-				const node = new Comment(createTokenIndex(start, prevToken()));
-				comments.push(node);
-
-				lastLine = currentToken().pos.line ?? 0;
-
-				start = currentToken();
-			}
-			token = move();
-		} while (index < tokens.length && !isEndComment());
-
-		const node = new Comment(createTokenIndex(start, currentToken()));
-		comments.push(node);
-
-		move();
-		return {
-			comments,
-			tokenUsed,
-			index: index - 1,
-		};
 	}
 
 	private isRootNodeDefinition(parent: DtcBaseNode): boolean {
@@ -1556,64 +1468,12 @@ export class Parser extends BaseParser {
 		return node;
 	}
 
-	getDocumentSymbols(): DocumentSymbol[] {
+	get allAstItems(): ASTBase[] {
 		return [
-			...this.includes.flatMap((o) => o.getDocumentSymbols()),
-			...this.rootDocument.getDocumentSymbols(),
-			...this.others.flatMap((o) => o.getDocumentSymbols()),
+			...this.includes,
+			this.rootDocument,
+			...this.others,
+			...this.commentsParser.allAstItems,
 		];
-	}
-
-	buildSemanticTokens(tokensBuilder: SemanticTokensBuilder) {
-		const result: {
-			line: number;
-			char: number;
-			length: number;
-			tokenType: number;
-			tokenModifiers: number;
-		}[] = [];
-		const push = (
-			tokenType: number,
-			tokenModifiers: number,
-			tokenIndexes?: TokenIndexes
-		) => {
-			if (!tokenIndexes?.start || !tokenIndexes?.end) return;
-
-			const lengthEnd =
-				tokenIndexes.end.pos.col - tokenIndexes.start.pos.col + tokenIndexes.end.pos.len;
-			result.push({
-				line: tokenIndexes.start.pos.line,
-				char: tokenIndexes.start.pos.col,
-				length:
-					tokenIndexes.end === tokenIndexes.start ? tokenIndexes.end.pos.len : lengthEnd,
-				tokenType,
-				tokenModifiers,
-			});
-		};
-
-		this.rootDocument.buildSemanticTokens(push);
-		this.others.forEach((a) => a.buildSemanticTokens(push));
-		this.includes.forEach((a) => a.buildSemanticTokens(push));
-
-		this.tokens
-			.filter(
-				(token) =>
-					validToken(token, LexerToken.CURLY_OPEN) ||
-					validToken(token, LexerToken.CURLY_CLOSE)
-			)
-			.forEach((token) => {
-				result.push({
-					line: token.pos.len,
-					char: token.pos.col,
-					length: 1,
-					tokenType: getTokenTypes('struct'),
-					tokenModifiers: getTokenModifiers('declaration'),
-				});
-			});
-		result
-			.sort((a, b) => (a.line === b.line ? a.char - b.char : a.line - b.line))
-			.forEach((r) =>
-				tokensBuilder.push(r.line, r.char, r.length, r.tokenType, r.tokenModifiers)
-			);
 	}
 }
