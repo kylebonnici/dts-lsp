@@ -263,7 +263,7 @@ export class Parser {
 			if (token) {
 				const node = new ASTBase(createTokenIndex(this.prevToken));
 				this.issues.push(genIssue(SyntaxIssue.END_STATMENT, node));
-				return this.prevToken;
+				return token;
 			}
 		}
 
@@ -1479,12 +1479,15 @@ export class Parser {
 			this.issues.push(genIssue(SyntaxIssue.FORWARD_SLASH_START_PATH, nodePath));
 		}
 
+		if (first) {
+			nodePath.fisrtToken = firstToken;
+		}
+
 		const nodeName = this.isNodeName();
 		if (!nodeName) {
 			this.issues.push(genIssue(SyntaxIssue.NODE_NAME, nodePath));
 		}
 
-		nodePath.fisrtToken ??= firstToken;
 		nodePath.lastToken = nodeName?.lastToken ?? firstToken;
 
 		nodePath.addPath(nodeName ?? null);
