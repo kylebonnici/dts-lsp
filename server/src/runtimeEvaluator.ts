@@ -24,6 +24,7 @@ export class ContextAware {
 	_issues: Issue<ContextIssues>[] = [];
 	private _runtime?: Runtime;
 	public parser: Parser;
+	private unlinkedPropertyRefValues: LabelRef[] = [];
 
 	constructor(uri: string, includePath: string[], common: string[]) {
 		this.parser = new Parser(uri, includePath, common);
@@ -161,14 +162,24 @@ export class ContextAware {
 				? runtime.rootNode.getChild(resolvedPath)
 				: undefined;
 
-			if (resolvedPath) {
-				element.labels.forEach((label) => {
-					runtime.lablesUsedCache.set(label.label, resolvedPath);
-				});
-			}
-
 			const child = runtimeNode ?? new Node(element.name.toString(), runtimeNodeParent);
 			child.definitons.push(element);
+
+			if (resolvedPath) {
+				const unlinked = this.unlinkedPropertyRefValues;
+				const toRemove: number[] = [];
+				element.labels.forEach((label) => {
+					runtime.lablesUsedCache.set(label.label, resolvedPath);
+					unlinked.forEach((l, i) => {
+						if (l.value === label.label) {
+							l.linksTo = child;
+							child.linkedRefLabels.push(l);
+							toRemove.push(i);
+						}
+					});
+				});
+				toRemove.reverse().forEach((i) => this.unlinkedPropertyRefValues.splice(i, 1));
+			}
 
 			runtimeNodeParent = child;
 			this.checkNodeUniqueNames(element, child);
@@ -247,6 +258,8 @@ export class ContextAware {
 						const node = runtime.rootNode.getChild(resolvesTo);
 						c.linksTo = node;
 						node?.linkedRefLabels.push(c);
+					} else {
+						this.unlinkedPropertyRefValues.push(c);
 					}
 				} else if (c instanceof NodePath) {
 					let node: Node | undefined = runtime.rootNode;
