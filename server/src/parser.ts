@@ -1205,6 +1205,11 @@ export class Parser {
 			operator = OperatorType.ARITHMETIC_DIVIDE;
 		} else if (validToken(start, LexerToken.MODULUS_OPERATOR)) {
 			operator = OperatorType.ARITHMETIC_MODULES;
+		} else if (validToken(start, LexerToken.HASH)) {
+			if (validToken(this.currentToken, LexerToken.HASH)) {
+				operator = OperatorType.C_CONCAT;
+				end = this.moveToNextToken;
+			}
 		}
 
 		if (operator) {
