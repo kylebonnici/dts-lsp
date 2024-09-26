@@ -161,6 +161,12 @@ export class ContextAware {
 				? runtime.rootNode.getChild(resolvedPath)
 				: undefined;
 
+			if (resolvedPath) {
+				element.labels.forEach((label) => {
+					runtime.lablesUsedCache.set(label.label, resolvedPath);
+				});
+			}
+
 			const child = runtimeNode ?? new Node(element.name.toString(), runtimeNodeParent);
 			child.definitons.push(element);
 
@@ -202,6 +208,11 @@ export class ContextAware {
 				element.labelReferance.linksTo = runtimeNode;
 				runtimeNode?.linkedRefLabels.push(element.labelReferance);
 				runtimeNode?.referancedBy.push(element);
+
+				element.labels.forEach((label) => {
+					runtime.lablesUsedCache.set(label.label, resolvedPath);
+				});
+
 				if (runtimeNode) {
 					runtime.referances.push(element);
 					this.checkNodeUniqueNames(element, runtimeNode);
@@ -272,10 +283,13 @@ export class ContextAware {
 					);
 				} else {
 					runtimeNodeParent.deletes.push(element);
-					element.nodeNameOrRef.linksTo = runtimeNodeParent.getNode(
-						element.nodeNameOrRef.value
-					);
+					const nodeToBeDeleted = runtimeNodeParent.getNode(element.nodeNameOrRef.value);
+					element.nodeNameOrRef.linksTo = nodeToBeDeleted;
 					runtimeNodeParent.deleteNode(element.nodeNameOrRef.value, element);
+
+					nodeToBeDeleted?.labels.forEach((label) => {
+						runtime.lablesUsedCache.delete(label.label);
+					});
 				}
 			}
 		} else if (element.nodeNameOrRef instanceof LabelRef && element.nodeNameOrRef.value) {
@@ -298,6 +312,11 @@ export class ContextAware {
 				runtimeNode = runtime.rootNode.getChild(resolvedPath);
 				runtimeNodeParent.deletes.push(element);
 				element.nodeNameOrRef.linksTo = runtimeNode;
+
+				runtimeNode?.labels.forEach((label) => {
+					runtime.lablesUsedCache.delete(label.label);
+				});
+
 				runtimeNode?.linkedRefLabels.push(element.nodeNameOrRef);
 				runtimeNode?.parent?.deleteNode(runtimeNode.name, element);
 			}

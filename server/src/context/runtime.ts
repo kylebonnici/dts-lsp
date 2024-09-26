@@ -35,6 +35,8 @@ export class Runtime implements Searchable {
 
 	constructor(private readonly orderedFiles: string[]) {}
 
+	public lablesUsedCache = new Map<string, string[]>();
+
 	getDeepestAstNode(
 		previousFiles: string[],
 		file: string,
@@ -82,9 +84,13 @@ export class Runtime implements Searchable {
 	}
 
 	resolvePath(path: string[]): string[] | undefined {
-		this;
 		if (!path?.[0].startsWith('&')) {
 			return path;
+		}
+
+		const fromCache = this.lablesUsedCache.get(path[0].slice(1));
+		if (fromCache) {
+			return fromCache;
 		}
 
 		const allLabels = this.rootNode.allDescendantsLabels;
