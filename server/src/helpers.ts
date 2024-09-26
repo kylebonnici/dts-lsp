@@ -15,6 +15,7 @@ import {
 	tokenModifiers,
 	tokenTypes,
 	TokenIndexes,
+	LexerToken,
 } from './types';
 import { ContextAware } from './runtimeEvaluator';
 import { astMap } from './resultCache';
@@ -171,3 +172,28 @@ export function nodeFinder<T>(
 export function createTokenIndex(start: Token, end?: Token): TokenIndexes {
 	return { start, end: end ?? start };
 }
+
+export const validToken = (token: Token | undefined, expected: LexerToken) =>
+	token?.tokens.some((t) => t === expected);
+
+export const validateValue = (expected: string) => (token: Token | undefined) =>
+	token?.value && expected === token.value
+		? 'yes'
+		: validateValueStartsWith(expected)(token);
+export const validateToken = (expected: LexerToken) => (token: Token | undefined) =>
+	token?.tokens.some((t) => t === expected) ? 'yes' : 'no';
+export const validateValueStartsWith = (expected: string) => (token: Token | undefined) =>
+	token?.value && expected.startsWith(token.value) ? 'patrial' : 'no';
+
+export const sameLine = (tokenA?: Token, tokenB?: Token) => {
+	return !!tokenA && !!tokenB && tokenA.pos.line === tokenB.pos.line;
+};
+
+export const adjesentTokens = (tokenA?: Token, tokenB?: Token) => {
+	return (
+		!!tokenA &&
+		!!tokenB &&
+		sameLine(tokenA, tokenB) &&
+		tokenA.pos.col + tokenA.pos.len === tokenB.pos.col
+	);
+};

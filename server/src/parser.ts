@@ -1,15 +1,16 @@
-import {
-	DiagnosticSeverity,
-	DocumentSymbol,
-	SemanticTokensBuilder,
-} from 'vscode-languageserver';
+import { DocumentSymbol, SemanticTokensBuilder } from 'vscode-languageserver';
 import { Issue, LexerToken, SyntaxIssue, Token, TokenIndexes } from './types';
 import {
+	adjesentTokens,
 	createTokenIndex,
 	genIssue,
 	getTokenModifiers,
 	getTokenTypes,
+	sameLine,
 	toRange,
+	validateToken,
+	validateValue,
+	validToken,
 } from './helpers';
 import {
 	DtcBaseNode,
@@ -42,10 +43,11 @@ import { FunctionCall } from './ast/cPreprocessors/functionCall';
 import { Include, IncludePath } from './ast/cPreprocessors/include';
 import { existsSync } from 'fs-extra';
 import { resolve, dirname } from 'path';
+import { BaseParser } from './baseParser';
 
 type AllowNodeRef = 'Ref' | 'Name';
 
-export class Parser {
+export class Parser extends BaseParser {
 	others: ASTBase[] = [];
 	includes: Include[] = [];
 	rootDocument = new DtcBaseNode();
@@ -53,7 +55,8 @@ export class Parser {
 	issues: Issue<SyntaxIssue>[] = [];
 	unhandledStaments = new DtcRootNode();
 
-	constructor(private tokens: Token[], private readonly uri: string) {
+	constructor(tokens: Token[], uri: string) {
+		super(tokens, uri);
 		this.rootDocument.uri = uri;
 		this.parse();
 	}
@@ -435,13 +438,13 @@ export class Parser {
 				address
 			);
 
-			if (!this.adjesentTokens(valid.at(-1), atValid[0])) {
+			if (!adjesentTokens(valid.at(-1), atValid[0])) {
 				this.issues.push(genIssue(SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE, node));
 			} else if (Number.isNaN(address)) {
 				this.issues.push(genIssue(SyntaxIssue.NODE_ADDRESS, node));
 			} else if (
 				!Number.isNaN(address) &&
-				!this.adjesentTokens(atValid.at(-1), addressValid[0])
+				!adjesentTokens(atValid.at(-1), addressValid[0])
 			) {
 				this.issues.push(genIssue(SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE, node));
 			}
@@ -694,7 +697,7 @@ export class Parser {
 
 		const node = new DeleteNode(keyword);
 
-		if (this.sameLine(keyword.tokenIndexes?.end, firstToken)) {
+		if (sameLine(keyword.tokenIndexes?.end, firstToken)) {
 			const labelRef = this.isLabelRef();
 			if (labelRef && allow === 'Name') {
 				this.issues.push(genIssue(SyntaxIssue.NODE_NAME, labelRef));
@@ -782,7 +785,7 @@ export class Parser {
 
 		const node = new DeleteProperty(keyword);
 
-		if (this.sameLine(keyword.tokenIndexes?.end, firstToken)) {
+		if (sameLine(keyword.tokenIndexes?.end, firstToken)) {
 			const propertyName = this.isPropertyName();
 			if (!propertyName) {
 				this.issues.push(genIssue(SyntaxIssue.PROPERTY_NAME, node));
@@ -1553,60 +1556,6 @@ export class Parser {
 		return node;
 	}
 
-	private get moveToNextToken() {
-		const token = this.currentToken;
-		this.moveStackIndex();
-		return token;
-	}
-
-	private enqueToStack() {
-		this.positionStack.push(this.peekIndex());
-	}
-
-	private popStack() {
-		this.positionStack.pop();
-	}
-
-	private mergeStack() {
-		const value = this.positionStack.pop();
-
-		if (value === undefined) {
-			throw new Error('Index out of bounds');
-		}
-
-		this.positionStack[this.positionStack.length - 1] = value;
-	}
-
-	private peekIndex(depth = 1) {
-		const peek = this.positionStack.at(-1 * depth);
-		if (peek === undefined) {
-			throw new Error('Index out of bounds');
-		}
-
-		return peek;
-	}
-
-	get currentToken() {
-		return this.tokens.at(this.peekIndex());
-	}
-
-	get prevToken() {
-		const index = this.peekIndex() - 1;
-		if (index === -1) {
-			return;
-		}
-
-		return this.tokens[index];
-	}
-
-	private moveStackIndex() {
-		if (this.positionStack[this.positionStack.length - 1] === undefined) {
-			throw new Error('Index out of bounds');
-		}
-
-		this.positionStack[this.positionStack.length - 1]++;
-	}
-
 	getDocumentSymbols(): DocumentSymbol[] {
 		return [
 			...this.includes.flatMap((o) => o.getDocumentSymbols()),
@@ -1667,73 +1616,4 @@ export class Parser {
 				tokensBuilder.push(r.line, r.char, r.length, r.tokenType, r.tokenModifiers)
 			);
 	}
-
-	private checkConcurrentTokens(
-		cmps: ((token: Token | undefined, index?: number) => 'yes' | 'no' | 'patrial')[]
-	) {
-		this.enqueToStack();
-
-		const tokens: Token[] = [];
-
-		cmps.every((cmp) => {
-			const token = this.currentToken;
-			const result = cmp(token);
-			let continueLoop = false;
-
-			if (result !== 'no' && token) {
-				tokens.push(token);
-				this.moveToNextToken;
-				continueLoop = this.adjesentTokens(token, this.currentToken);
-			}
-			return result === 'yes' && continueLoop;
-		});
-
-		this.mergeStack();
-		return tokens;
-	}
-
-	private consumeAnyConcurrentTokens(
-		cmps: ((token: Token | undefined, index?: number) => 'yes' | 'no' | 'patrial')[]
-	) {
-		this.enqueToStack();
-
-		const tokens: Token[] = [];
-
-		let token: Token | undefined;
-		let continueLoop = true;
-		while (cmps.some((cmp) => cmp(this.currentToken) === 'yes' && continueLoop)) {
-			tokens.push(this.currentToken!);
-			token = this.currentToken;
-			this.moveToNextToken;
-			continueLoop = this.adjesentTokens(token, this.currentToken);
-		}
-
-		this.mergeStack();
-		return tokens;
-	}
-
-	private sameLine(tokenA?: Token, tokenB?: Token) {
-		return !!tokenA && !!tokenB && tokenA.pos.line === tokenB.pos.line;
-	}
-
-	private adjesentTokens(tokenA?: Token, tokenB?: Token) {
-		return (
-			!!tokenA &&
-			!!tokenB &&
-			this.sameLine(tokenA, tokenB) &&
-			tokenA.pos.col + tokenA.pos.len === tokenB.pos.col
-		);
-	}
 }
-
-const validToken = (token: Token | undefined, expected: LexerToken) =>
-	token?.tokens.some((t) => t === expected);
-
-const validateValue = (expected: string) => (token: Token | undefined) =>
-	token?.value && expected === token.value
-		? 'yes'
-		: validateValueStartsWith(expected)(token);
-const validateToken = (expected: LexerToken) => (token: Token | undefined) =>
-	token?.tokens.some((t) => t === expected) ? 'yes' : 'no';
-const validateValueStartsWith = (expected: string) => (token: Token | undefined) =>
-	token?.value && expected.startsWith(token.value) ? 'patrial' : 'no';
