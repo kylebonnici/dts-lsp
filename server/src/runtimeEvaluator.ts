@@ -43,9 +43,13 @@ export class ContextAware {
 	getDocumentLinks(file: string): DocumentLink[] {
 		const parser = astMap.get(file)?.parser;
 		return (
-			(parser?.includes
+			(parser?.cPreprocessorParser?.includes
 				.map((include) => {
-					const path = parser.resolveInclude(include, this.includePaths, this.commonPaths);
+					const path = parser.cPreprocessorParser.resolveInclude(
+						include,
+						this.includePaths,
+						this.commonPaths
+					);
 					if (path) {
 						const link: DocumentLink = {
 							range: toRange(include.path),
@@ -68,7 +72,7 @@ export class ContextAware {
 		}
 
 		return [
-			...parser
+			...parser.cPreprocessorParser
 				.includePaths(this.includePaths, this.commonPaths)
 				.flatMap((p) => this.prepareContext(p)),
 			file,

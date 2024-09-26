@@ -36,49 +36,28 @@ import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
 import { Operator, OperatorType } from './ast/cPreprocessors/operator';
 import { ComplexExpression, Expression } from './ast/cPreprocessors/expression';
 import { FunctionCall } from './ast/cPreprocessors/functionCall';
-import { Include, IncludePath } from './ast/cPreprocessors/include';
-import { existsSync } from 'fs-extra';
-import { resolve, dirname } from 'path';
 import { BaseParser } from './baseParser';
 import { CommentsParser } from './commensParser';
+import { CPreprocessorParser } from './cPreprocessorParser';
 
 type AllowNodeRef = 'Ref' | 'Name';
 
 export class Parser extends BaseParser {
 	private commentsParser: CommentsParser;
-	public tokens: Token[];
+	cPreprocessorParser: CPreprocessorParser;
 
 	others: ASTBase[] = [];
-	includes: Include[] = [];
 	rootDocument = new DtcBaseNode();
 	positionStack: number[] = [];
 	issues: Issue<SyntaxIssue>[] = [];
 	unhandledStaments = new DtcRootNode();
 
-	constructor(tokens: Token[], public readonly uri: string) {
+	constructor(public tokens: Token[], public readonly uri: string) {
 		super();
 		this.commentsParser = new CommentsParser(tokens, uri);
-		this.tokens = this.commentsParser.tokens;
+		this.cPreprocessorParser = new CPreprocessorParser(tokens, uri);
 		this.rootDocument.uri = uri;
 		this.parse();
-	}
-
-	includePaths(incudes: string[], common: string[]) {
-		return this.includes
-			.filter((p) => p.path.path.endsWith('.dts') || p.path.path.endsWith('.dtsi'))
-			.map((include) => this.resolveInclude(include, incudes, common))
-			.filter((p) => p) as string[];
-	}
-
-	resolveInclude(include: Include, incudes: string[], common: string[]) {
-		if (include.path.relative) {
-			return [
-				resolve(dirname(this.uri), include.path.path),
-				...common.map((c) => resolve(c, include.path.path)),
-			].find(existsSync);
-		} else {
-			return incudes.map((p) => resolve(p, include.path.path)).find(existsSync);
-		}
 	}
 
 	get done() {
@@ -94,7 +73,6 @@ export class Parser extends BaseParser {
 		const process = () => {
 			if (
 				!(
-					this.isInclude() ||
 					this.isDtsDocumentVersion() ||
 					this.isRootNodeDefinition(this.rootDocument) ||
 					this.isDeleteNode(this.rootDocument, 'Ref') ||
@@ -1178,83 +1156,6 @@ export class Parser extends BaseParser {
 		return node;
 	}
 
-	private isInclude(): boolean {
-		this.enqueToStack();
-
-		const start = this.moveToNextToken;
-		const line = start?.pos.line;
-
-		let token = start;
-		if (!start || !validToken(token, LexerToken.C_INCLUDE)) {
-			this.popStack();
-			return false;
-		}
-
-		const keyword = new Keyword(createTokenIndex(start));
-
-		const moveEndOfLine = () => {
-			if (this.currentToken?.pos.line !== line) {
-				return;
-			}
-
-			const begin = this.currentToken;
-			while (this.currentToken?.pos.line === line) {
-				token = this.moveToNextToken;
-			}
-			if (begin) {
-				const node = new ASTBase(createTokenIndex(begin));
-				this.issues.push(genIssue(SyntaxIssue.INVALID_INCLUDE_SYNTAX, node));
-			}
-		};
-
-		token = this.moveToNextToken;
-		const pathStart = token;
-		const relative = !!validToken(token, LexerToken.STRING);
-		if (!pathStart || (!relative && !validToken(token, LexerToken.LT_SYM))) {
-			moveEndOfLine();
-			this.mergeStack();
-			return true;
-		}
-
-		let path = '';
-
-		if (relative) {
-			path = token?.value ?? '';
-		} else {
-			while (
-				this.currentToken?.pos.line === line &&
-				!validToken(this.currentToken, LexerToken.GT_SYM)
-			) {
-				path += this.currentToken?.value ?? '';
-				token = this.moveToNextToken;
-			}
-		}
-
-		if (!relative) {
-			const currentToken = this.currentToken;
-			if (
-				currentToken?.pos.line !== line ||
-				!validToken(this.currentToken, LexerToken.GT_SYM)
-			) {
-				if (currentToken) {
-					const node = new ASTBase(createTokenIndex(currentToken));
-					this.issues.push(genIssue(SyntaxIssue.INCLUDE_CLOSE_PATH, node));
-				}
-			} else {
-				token = this.moveToNextToken;
-			}
-		}
-
-		const incudePath = new IncludePath(path, relative, createTokenIndex(pathStart, token));
-		const node = new Include(keyword, incudePath);
-		this.includes.push(node);
-
-		moveEndOfLine();
-
-		this.mergeStack();
-		return true;
-	}
-
 	private processExpression(): Expression | undefined {
 		this.enqueToStack();
 
@@ -1470,7 +1371,7 @@ export class Parser extends BaseParser {
 
 	get allAstItems(): ASTBase[] {
 		return [
-			...this.includes,
+			...this.cPreprocessorParser.allAstItems,
 			this.rootDocument,
 			...this.others,
 			...this.commentsParser.allAstItems,
