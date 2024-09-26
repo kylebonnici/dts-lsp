@@ -6,43 +6,66 @@ import { Include, IncludePath } from './ast/cPreprocessors/include';
 import { existsSync } from 'fs-extra';
 import { resolve, dirname } from 'path';
 import { BaseParser } from './baseParser';
+import { Parser } from './parser';
+import { getTokenizedDocmentProvider } from './providers/tokenizedDocument';
 import { CommentsParser } from './commensParser';
 
 export class CPreprocessorParser extends BaseParser {
+	private commentsParser: CommentsParser;
+	public tokens: Token[] = [];
 	includes: Include[] = [];
 
 	// tokens must be filtered out from commnets by now
-	constructor(public tokens: Token[], public readonly uri: string) {
+	constructor(
+		public readonly uri: string,
+		private incudes: string[],
+		private common: string[]
+	) {
 		super();
-		this.parse();
+		this.commentsParser = new CommentsParser(this.uri);
 	}
 
-	includePaths(incudes: string[], common: string[]) {
+	includePaths() {
 		return this.includes
 			.filter((p) => p.path.path.endsWith('.dts') || p.path.path.endsWith('.dtsi'))
-			.map((include) => this.resolveInclude(include, incudes, common))
+			.map((include) => this.resolveInclude(include))
 			.filter((p) => p) as string[];
 	}
 
-	resolveInclude(include: Include, incudes: string[], common: string[]) {
+	resolveInclude(include: Include) {
 		if (include.path.relative) {
 			return [
 				resolve(dirname(this.uri), include.path.path),
-				...common.map((c) => resolve(c, include.path.path)),
+				...this.common.map((c) => resolve(c, include.path.path)),
 			].find(existsSync);
 		} else {
-			return incudes.map((p) => resolve(p, include.path.path)).find(existsSync);
+			return this.incudes.map((p) => resolve(p, include.path.path)).find(existsSync);
 		}
 	}
 
-	private parse() {
+	protected reset() {
+		super.reset();
+		this.includes = [];
+	}
+
+	public async reparse(): Promise<void> {
+		this.reset();
+		this.commentsParser.reparse();
+		this.parsing = this.parse();
+		return this.parsing;
+	}
+
+	public async parse() {
+		await this.commentsParser.stable;
+		this.tokens = this.commentsParser.tokens;
+
 		this.positionStack.push(0);
 		if (this.tokens.length === 0) {
 			return;
 		}
 
 		while (!this.done) {
-			this.preProcess();
+			await this.lineProcessor();
 		}
 
 		if (this.positionStack.length !== 1) {
@@ -69,11 +92,7 @@ export class CPreprocessorParser extends BaseParser {
 		return end;
 	};
 
-	private async preProcess() {
-		await this.lineProcessor();
-	}
-
-	private lineProcessor() {
+	private async lineProcessor() {
 		this.enqueToStack();
 
 		//must be firstToken
@@ -84,7 +103,7 @@ export class CPreprocessorParser extends BaseParser {
 		}
 
 		const line = this.currentToken?.pos.line;
-		const found = this.processInclude();
+		const found = await this.processInclude();
 
 		if (line !== undefined) {
 			this.moveEndOfLine(line, !!found);
@@ -146,6 +165,14 @@ export class CPreprocessorParser extends BaseParser {
 			}
 		}
 
+		const resolvedPath = this.resolveInclude(node);
+		if (resolvedPath && !resolvedPath.endsWith('.h')) {
+			const tokens = getTokenizedDocmentProvider().requestTokens(resolvedPath, true);
+			const childParser = new Parser(resolvedPath, this.incudes, this.common);
+			this.childParsers.push(childParser);
+			await childParser.stable;
+		}
+
 		this.mergeStack();
 
 		const endIndex = this.peekIndex();
@@ -156,6 +183,6 @@ export class CPreprocessorParser extends BaseParser {
 	}
 
 	get allAstItems(): ASTBase[] {
-		return this.includes;
+		return [...this.includes, ...this.commentsParser.allAstItems];
 	}
 }

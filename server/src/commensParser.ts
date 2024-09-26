@@ -4,13 +4,14 @@ import { createTokenIndex, validToken } from './helpers';
 import { Comment } from './ast/dtc/comment';
 import { BaseParser } from './baseParser';
 import { ASTBase } from './ast/base';
+import { getTokenizedDocmentProvider } from './providers/tokenizedDocument';
 
 export class CommentsParser extends BaseParser {
 	comments: Comment[] = [];
+	public tokens: Token[] = [];
 
-	constructor(public tokens: Token[], public readonly uri: string) {
+	constructor(public readonly uri: string) {
 		super();
-		this.parse();
 	}
 
 	private cleanUpComments() {
@@ -30,7 +31,18 @@ export class CommentsParser extends BaseParser {
 		return this.comments;
 	}
 
-	private parse() {
+	protected reset() {
+		super.reset();
+		this.comments = [];
+	}
+
+	public reparse() {
+		this.reset();
+		return this.parse();
+	}
+
+	protected async parse() {
+		this.tokens = getTokenizedDocmentProvider().requestTokens(this.uri, true);
 		this.cleanUpComments();
 	}
 

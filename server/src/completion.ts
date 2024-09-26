@@ -272,10 +272,10 @@ function getNodeRefPathsItems(
 	}));
 }
 
-export function getCompleteions(
+export async function getCompleteions(
 	location: TextDocumentPositionParams,
 	context: ContextAware
-): CompletionItem[] {
+): Promise<CompletionItem[]> {
 	return nodeFinder(location, context, (locationMeta, inScope) => [
 		...getDeletePropertyItems(locationMeta, inScope),
 		...getDeleteNodeNameItems(locationMeta, inScope),

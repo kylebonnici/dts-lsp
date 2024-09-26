@@ -18,7 +18,6 @@ import {
 	LexerToken,
 } from './types';
 import { ContextAware } from './runtimeEvaluator';
-import { astMap } from './resultCache';
 
 export const toRange = (slxBase: ASTBase) => {
 	return {
@@ -85,7 +84,7 @@ export const getDeepestAstNodeInBetween = (
 	let next: ASTBase | undefined = ast;
 	while (next) {
 		deepestAstNode = next;
-		next = deepestAstNode.children
+		next = [...deepestAstNode.children]
 			.reverse()
 			.find((c) => positionInBetween(c, file, position));
 	}
@@ -109,7 +108,8 @@ export const genIssue = <T extends IssueTypes>(
 });
 
 export const sortAstForScope = (ast: ASTBase[], fileOrder: string[]) => {
-	return ast.sort((a, b) => {
+	const arrayCopy = [...ast];
+	return arrayCopy.sort((a, b) => {
 		const aFileIndex = fileOrder.findIndex((f) => a.uri);
 		const bFileIndex = fileOrder.findIndex((f) => b.uri);
 
@@ -129,44 +129,41 @@ export const sortAstForScope = (ast: ASTBase[], fileOrder: string[]) => {
 	});
 };
 
-export function nodeFinder<T>(
+export async function nodeFinder<T>(
 	location: TextDocumentPositionParams,
 	context: ContextAware,
 	action: (result: SearchableResult | undefined, inScope: (ast: ASTBase) => boolean) => T[]
-): T[] {
+): Promise<T[]> {
 	const uri = location.textDocument.uri.replace('file://', '');
-	const meta = astMap.get(uri);
-	if (meta) {
-		console.time('search');
-		const locationMeta = context.runtime.getDeepestAstNode(
-			context.contextFiles().slice(0, context.contextFiles().indexOf(uri)),
-			uri,
-			location.position
-		);
-		console.timeEnd('search');
 
-		const inScope = (ast: ASTBase) => {
-			const position = location.position;
-			if (ast.uri === uri) {
-				return !!(
-					ast.tokenIndexes?.end &&
-					(ast.tokenIndexes.end.pos.line < position.line ||
-						(ast.tokenIndexes.end.pos.line === position.line &&
-							ast.tokenIndexes.end.pos.col + ast.tokenIndexes.end.pos.len <=
-								position.character))
-				);
-			}
+	console.time('search');
+	const orderedFiles = await context.getOrderedContextFiles();
+	const runtime = await context.getRuntime();
+	const locationMeta = runtime.getDeepestAstNode(
+		orderedFiles.slice(0, orderedFiles.indexOf(uri)),
+		uri,
+		location.position
+	);
+	console.timeEnd('search');
 
-			const contextFiles = context.contextFiles();
-			const validFiles = contextFiles.slice(0, contextFiles.indexOf(uri) + 1);
+	const inScope = (ast: ASTBase) => {
+		const position = location.position;
+		if (ast.uri === uri) {
+			return !!(
+				ast.tokenIndexes?.end &&
+				(ast.tokenIndexes.end.pos.line < position.line ||
+					(ast.tokenIndexes.end.pos.line === position.line &&
+						ast.tokenIndexes.end.pos.col + ast.tokenIndexes.end.pos.len <=
+							position.character))
+			);
+		}
 
-			return validFiles.some((uri) => uri === ast.uri);
-		};
+		const validFiles = orderedFiles.slice(0, orderedFiles.indexOf(uri) + 1);
 
-		return action(locationMeta, inScope);
-	}
+		return validFiles.some((uri) => uri === ast.uri);
+	};
 
-	return [];
+	return action(locationMeta, inScope);
 }
 
 export function createTokenIndex(start: Token, end?: Token): TokenIndexes {

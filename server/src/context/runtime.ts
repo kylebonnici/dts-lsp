@@ -24,7 +24,6 @@ import {
 import { DiagnosticSeverity, Position } from 'vscode-languageserver';
 import { LabelAssign } from '../ast/dtc/label';
 import { Node } from './node';
-import { astMap } from '../resultCache';
 import { getTokenizedDocmentProvider } from '../providers/tokenizedDocument';
 
 export class Runtime implements Searchable {
@@ -34,7 +33,7 @@ export class Runtime implements Searchable {
 	public unlinkedRefNodes: DtcRefNode[] = [];
 	public rootNode: Node = new Node('/');
 
-	constructor(private readonly fileOrder: string[]) {}
+	constructor(private readonly orderedFiles: string[]) {}
 
 	getDeepestAstNode(
 		previousFiles: string[],
@@ -83,6 +82,7 @@ export class Runtime implements Searchable {
 	}
 
 	resolvePath(path: string[]): string[] | undefined {
+		this;
 		if (!path?.[0].startsWith('&')) {
 			return path;
 		}
@@ -235,6 +235,6 @@ export class Runtime implements Searchable {
 	}
 
 	getOrderedNodeAst(node: Node) {
-		return sortAstForScope([...node.definitons, ...node.referancedBy], this.fileOrder);
+		return sortAstForScope([...node.definitons, ...node.referancedBy], this.orderedFiles);
 	}
 }

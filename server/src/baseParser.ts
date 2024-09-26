@@ -2,13 +2,45 @@ import { DocumentSymbol, SemanticTokensBuilder } from 'vscode-languageserver';
 import { Issue, SyntaxIssue, Token, TokenIndexes } from './types';
 import { adjesentTokens } from './helpers';
 import { ASTBase } from './ast/base';
+import { Parser } from './parser';
 
 export abstract class BaseParser {
 	positionStack: number[] = [];
 	issues: Issue<SyntaxIssue>[] = [];
+	childParsers: Parser[] = [];
 
-	public abstract get tokens(): Token[];
+	protected parsing: Promise<void>;
+
 	public abstract get uri(): string;
+	public abstract get tokens(): Token[];
+	protected abstract parse(): Promise<void>;
+	public abstract reparse(): Promise<void>;
+
+	constructor() {
+		this.parsing = new Promise<void>((resolve) => {
+			setTimeout(() => {
+				this.parse().then(resolve);
+			});
+		});
+	}
+
+	protected reset() {
+		this.positionStack = [];
+		this.issues = [];
+		this.childParsers = [];
+	}
+
+	get orderedParsers(): Parser[] {
+		return (
+			this instanceof Parser
+				? [this, ...this.cPreprocessorParser.orderedParsers]
+				: this.childParsers.flatMap((p) => p.orderedParsers)
+		).reverse();
+	}
+
+	get stable() {
+		return this.parsing;
+	}
 
 	get done() {
 		return this.peekIndex() >= this.tokens.length;

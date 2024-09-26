@@ -37,34 +37,49 @@ import { Operator, OperatorType } from './ast/cPreprocessors/operator';
 import { ComplexExpression, Expression } from './ast/cPreprocessors/expression';
 import { FunctionCall } from './ast/cPreprocessors/functionCall';
 import { BaseParser } from './baseParser';
-import { CommentsParser } from './commensParser';
 import { CPreprocessorParser } from './cPreprocessorParser';
 
 type AllowNodeRef = 'Ref' | 'Name';
 
 export class Parser extends BaseParser {
-	private commentsParser: CommentsParser;
+	public tokens: Token[] = [];
 	cPreprocessorParser: CPreprocessorParser;
 
 	others: ASTBase[] = [];
 	rootDocument = new DtcBaseNode();
-	positionStack: number[] = [];
 	issues: Issue<SyntaxIssue>[] = [];
 	unhandledStaments = new DtcRootNode();
 
-	constructor(public tokens: Token[], public readonly uri: string) {
+	constructor(
+		public readonly uri: string,
+		private incudes: string[],
+		private common: string[]
+	) {
 		super();
-		this.commentsParser = new CommentsParser(tokens, uri);
-		this.cPreprocessorParser = new CPreprocessorParser(tokens, uri);
+		this.cPreprocessorParser = new CPreprocessorParser(this.uri, this.incudes, this.common);
 		this.rootDocument.uri = uri;
-		this.parse();
 	}
 
-	get done() {
-		return this.peekIndex() >= this.tokens.length;
+	protected reset() {
+		super.reset();
+		this.others = [];
+		this.rootDocument = new DtcBaseNode();
+		this.rootDocument.uri = this.uri;
+		this.issues = [];
+		this.unhandledStaments = new DtcRootNode();
 	}
 
-	private parse() {
+	public async reparse(): Promise<void> {
+		this.reset();
+		this.cPreprocessorParser.reparse();
+		this.parsing = this.parse();
+		return this.parsing;
+	}
+
+	async parse() {
+		await this.cPreprocessorParser.stable;
+		this.tokens = this.cPreprocessorParser.tokens;
+
 		this.positionStack.push(0);
 		if (this.tokens.length === 0) {
 			return;
@@ -1370,11 +1385,6 @@ export class Parser extends BaseParser {
 	}
 
 	get allAstItems(): ASTBase[] {
-		return [
-			...this.cPreprocessorParser.allAstItems,
-			this.rootDocument,
-			...this.others,
-			...this.commentsParser.allAstItems,
-		];
+		return [...this.cPreprocessorParser.allAstItems, this.rootDocument, ...this.others];
 	}
 }

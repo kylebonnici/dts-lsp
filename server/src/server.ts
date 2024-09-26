@@ -19,8 +19,6 @@ import {
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { Lexer } from './lexer';
-import { astMap } from './resultCache';
 import {
 	ContextIssues,
 	Issue,
@@ -342,24 +340,28 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
 
 // // The content of a text document has changed. This event is emitted
 // // when the text document first opened or when its content has changed.
-documents.onDidChangeContent((change) => {
-	// validateTextDocument(change.document);
-
+documents.onDidChangeContent(async (change) => {
+	console.time('revaluate');
 	const uri = change.document.uri.replace('file://', '');
-	const tokens = getTokenizedDocmentProvider().renewLexer(uri, change.document.getText());
-	const parser = new Parser(tokens, uri);
 
-	astMap.set(uri, parser);
+	getTokenizedDocmentProvider().renewLexer(uri, change.document.getText());
 
-	if (!contextAware?.contextFiles().some((p) => p === uri)) {
+	if (
+		!contextAware ||
+		!(await contextAware?.getOrderedContextFiles())?.some((p) => p === uri)
+	) {
 		console.log('new context');
-		contextAware = new ContextAware(defaultSettings.includePath, defaultSettings.common, [
+
+		contextAware = new ContextAware(
 			uri,
-		]);
+			defaultSettings.includePath,
+			defaultSettings.common
+		);
+		await contextAware.parser.stable;
+	} else {
+		await contextAware.revaluate(uri);
 	}
 
-	console.time('revaluate');
-	contextAware.revaluate();
 	console.timeEnd('revaluate');
 });
 
@@ -367,7 +369,10 @@ async function getDiagnostics(textDocument: TextDocument): Promise<Diagnostic[]>
 	const uri = textDocument.uri.replace('file://', '');
 	const diagnostics: Diagnostic[] = [];
 
-	astMap.get(uri)?.issues.forEach((issue) => {
+	await contextAware?.parser.stable;
+
+	const parser = await contextAware?.getParser(uri);
+	parser?.issues.forEach((issue) => {
 		const diagnostic: Diagnostic = {
 			severity: issue.severity,
 			range: toRange(issue.astElement),
@@ -377,7 +382,8 @@ async function getDiagnostics(textDocument: TextDocument): Promise<Diagnostic[]>
 		diagnostics.push(diagnostic);
 	});
 
-	contextAware?.issues
+	const contextIssues = (await contextAware?.getContextIssues()) ?? [];
+	contextIssues
 		.filter((issue) => issue.astElement.uri === uri)
 		.forEach((issue) => {
 			const diagnostic: Diagnostic = {
@@ -399,7 +405,8 @@ async function getDiagnostics(textDocument: TextDocument): Promise<Diagnostic[]>
 			diagnostics.push(diagnostic);
 		});
 
-	contextAware?.runtime.typesIssues
+	const runtime = await contextAware?.getRuntime();
+	runtime?.typesIssues
 		.filter((issue) => issue.astElement.uri === uri)
 		.forEach((issue) => {
 			const diagnostic: Diagnostic = {
@@ -422,12 +429,12 @@ connection.onDidChangeWatchedFiles((_change) => {
 
 // This handler provides the initial list of the completion items.
 connection.onCompletion(
-	(_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
+	async (_textDocumentPosition: TextDocumentPositionParams): Promise<CompletionItem[]> => {
 		// The pass parameter contains the position of the text document in
 		// which code complete got requested. For the example we ignore this
 		// info and always provide the same completion items.
 		if (contextAware) {
-			const temp = getCompleteions(_textDocumentPosition, contextAware);
+			const temp = await getCompleteions(_textDocumentPosition, contextAware);
 			return temp;
 		}
 
@@ -455,19 +462,19 @@ documents.listen(connection);
 // Listen on the connection
 connection.listen();
 
-connection.onDocumentSymbol((h) => {
+connection.onDocumentSymbol(async (h) => {
 	const uri = h.textDocument.uri.replace('file://', '');
-	const data = astMap.get(uri);
+	const data = await contextAware?.getParser(uri);
 	if (!data) return [];
 
 	return data.getDocumentSymbols();
 });
 
-connection.languages.semanticTokens.on((h) => {
+connection.languages.semanticTokens.on(async (h) => {
 	const uri = h.textDocument.uri.replace('file://', '');
 	const tokensBuilder = new SemanticTokensBuilder();
 
-	const data = astMap.get(uri);
+	const data = await contextAware?.getParser(uri);
 	data?.buildSemanticTokens(tokensBuilder);
 
 	return tokensBuilder.build();
