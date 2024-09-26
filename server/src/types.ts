@@ -188,8 +188,8 @@ export interface Token {
 }
 
 export interface TokenIndexes {
-	start?: Token;
-	end?: Token;
+	start: Token;
+	end: Token;
 }
 
 export type BuildSemanticTokensPush = (

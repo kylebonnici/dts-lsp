@@ -1,11 +1,12 @@
 import { SymbolKind } from 'vscode-languageserver';
 import { Expression } from './expression';
+import { TokenIndexes } from 'src/types';
 
 export class CIdentifier extends Expression {
-	constructor(public readonly value: string) {
-		super();
+	constructor(public readonly name: string, tokenIndexes: TokenIndexes) {
+		super(tokenIndexes);
 		this.docSymbolsMeta = {
-			name: this.value.toString(),
+			name: this.name.toString(),
 			kind: SymbolKind.Variable,
 		};
 		this.semanticTokenType = 'variable';
@@ -14,5 +15,9 @@ export class CIdentifier extends Expression {
 
 	evaluate(): string {
 		throw new Error('Not Implimented');
+	}
+
+	toString() {
+		return this.name;
 	}
 }

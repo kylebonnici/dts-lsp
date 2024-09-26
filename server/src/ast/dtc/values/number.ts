@@ -1,9 +1,10 @@
 import { SymbolKind } from 'vscode-languageserver';
 import { Expression } from '../../cPreprocessors/expression';
+import { TokenIndexes } from 'src/types';
 
 export class NumberValue extends Expression {
-	constructor(public readonly value: number) {
-		super();
+	constructor(public readonly value: number, tokenIndexes: TokenIndexes) {
+		super(tokenIndexes);
 		this.docSymbolsMeta = {
 			name: this.value.toString(),
 			kind: SymbolKind.Number,
@@ -14,5 +15,9 @@ export class NumberValue extends Expression {
 
 	evaluate(): string {
 		throw new Error('Not Implimented');
+	}
+
+	toString() {
+		return this.value.toString();
 	}
 }

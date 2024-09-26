@@ -1,6 +1,6 @@
-import { BuildSemanticTokensPush, Token } from '../../types';
+import { BuildSemanticTokensPush, Token, TokenIndexes } from '../../types';
 import { ASTBase } from '../base';
-import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
+import { SymbolKind } from 'vscode-languageserver';
 import { getTokenModifiers, getTokenTypes, toRange } from '../../helpers';
 import { DtcProperty } from './property';
 import { DeleteNode } from './deleteNode';
@@ -167,8 +167,12 @@ export class DtcChildNode extends DtcBaseNode {
 export class NodeName extends ASTBase {
 	public linksTo?: Node;
 
-	constructor(public readonly name: string, public readonly address?: number) {
-		super();
+	constructor(
+		public readonly name: string,
+		tokenIndex: TokenIndexes,
+		public readonly address?: number
+	) {
+		super(tokenIndex);
 		this.docSymbolsMeta = {
 			name:
 				this.address !== undefined

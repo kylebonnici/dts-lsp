@@ -14,6 +14,7 @@ import {
 	Token,
 	tokenModifiers,
 	tokenTypes,
+	TokenIndexes,
 } from './types';
 import { ContextAware } from './runtimeEvaluator';
 import { astMap } from './resultCache';
@@ -165,4 +166,8 @@ export function nodeFinder<T>(
 	}
 
 	return [];
+}
+
+export function createTokenIndex(start: Token, end?: Token): TokenIndexes {
+	return { start, end: end ?? start };
 }
