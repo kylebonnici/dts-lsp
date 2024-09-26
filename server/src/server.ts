@@ -34,6 +34,7 @@ import { toRange } from './helpers';
 import { ContextAware } from './runtimeEvaluator';
 import { getCompleteions } from './completion';
 import { getReferences } from './findReferences';
+import { getTokenizedDocmentProvider } from './providers/tokenizedDocument';
 
 let contextAware: ContextAware | undefined;
 
@@ -345,10 +346,10 @@ documents.onDidChangeContent((change) => {
 	// validateTextDocument(change.document);
 
 	const uri = change.document.uri.replace('file://', '');
-	const lexer = new Lexer(change.document.getText());
-	const parser = new Parser(lexer.tokens, uri);
+	const tokens = getTokenizedDocmentProvider().renewLexer(uri, change.document.getText());
+	const parser = new Parser(tokens, uri);
 
-	astMap.set(uri, { lexer, parser });
+	astMap.set(uri, parser);
 
 	if (!contextAware?.contextFiles().some((p) => p === uri)) {
 		console.log('new context');
@@ -366,7 +367,7 @@ async function getDiagnostics(textDocument: TextDocument): Promise<Diagnostic[]>
 	const uri = textDocument.uri.replace('file://', '');
 	const diagnostics: Diagnostic[] = [];
 
-	astMap.get(uri)?.parser.issues.forEach((issue) => {
+	astMap.get(uri)?.issues.forEach((issue) => {
 		const diagnostic: Diagnostic = {
 			severity: issue.severity,
 			range: toRange(issue.astElement),
@@ -459,7 +460,7 @@ connection.onDocumentSymbol((h) => {
 	const data = astMap.get(uri);
 	if (!data) return [];
 
-	return data.parser.getDocumentSymbols();
+	return data.getDocumentSymbols();
 });
 
 connection.languages.semanticTokens.on((h) => {
@@ -467,7 +468,7 @@ connection.languages.semanticTokens.on((h) => {
 	const tokensBuilder = new SemanticTokensBuilder();
 
 	const data = astMap.get(uri);
-	data?.parser.buildSemanticTokens(tokensBuilder);
+	data?.buildSemanticTokens(tokensBuilder);
 
 	return tokensBuilder.build();
 });

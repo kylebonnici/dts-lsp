@@ -23,6 +23,7 @@ import { readFileSync } from 'fs-extra';
 import { DiagnosticSeverity, DocumentLink } from 'vscode-languageserver';
 import { Include } from './ast/cPreprocessors/include';
 import { NodePath } from './ast/dtc/values/nodePath';
+import { getTokenizedDocmentProvider } from './providers/tokenizedDocument';
 
 export class ContextAware {
 	_issues: Issue<ContextIssues>[] = [];
@@ -41,7 +42,7 @@ export class ContextAware {
 	}
 
 	getDocumentLinks(file: string): DocumentLink[] {
-		const parser = astMap.get(file)?.parser;
+		const parser = astMap.get(file);
 		return (
 			(parser?.cPreprocessorParser?.includes
 				.map((include) => {
@@ -63,12 +64,12 @@ export class ContextAware {
 	}
 
 	private prepareContext(file: string): string[] {
-		let parser = astMap.get(file)?.parser;
+		let parser = astMap.get(file);
 
 		if (!parser) {
-			const lexer = new Lexer(readFileSync(file).toString());
-			parser = new Parser(lexer.tokens, file);
-			astMap.set(file, { lexer, parser });
+			const tokens = getTokenizedDocmentProvider().requestTokens(file, true);
+			parser = new Parser(tokens, file);
+			astMap.set(file, parser);
 		}
 
 		return [
@@ -92,7 +93,7 @@ export class ContextAware {
 		const ast = files.map((file) => {
 			return {
 				uri: file,
-				tree: astMap.get(file)?.parser.rootDocument,
+				tree: astMap.get(file)?.rootDocument,
 			};
 		});
 
