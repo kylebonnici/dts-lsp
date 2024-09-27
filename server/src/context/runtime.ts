@@ -24,8 +24,7 @@ import {
 import { DiagnosticSeverity, Position } from 'vscode-languageserver';
 import { LabelAssign } from '../ast/dtc/label';
 import { Node } from './node';
-import { astMap } from '../resultCache';
-import { DeleteBase } from '../ast/dtc/delete';
+import { getTokenizedDocmentProvider } from '../providers/tokenizedDocument';
 
 export class Runtime implements Searchable {
 	public roots: DtcRootNode[] = [];
@@ -34,7 +33,9 @@ export class Runtime implements Searchable {
 	public unlinkedRefNodes: DtcRefNode[] = [];
 	public rootNode: Node = new Node('/');
 
-	constructor(private readonly fileOrder: string[]) {}
+	constructor(private readonly orderedFiles: string[]) {}
+
+	public lablesUsedCache = new Map<string, string[]>();
 
 	getDeepestAstNode(
 		previousFiles: string[],
@@ -49,7 +50,11 @@ export class Runtime implements Searchable {
 		].find(
 			(i) =>
 				positionInBetween(i, file, position) ||
-				isLastTokenOnLine(astMap.get(file)?.lexer.tokens, i, position)
+				isLastTokenOnLine(
+					getTokenizedDocmentProvider().requestTokens(file, false),
+					i,
+					position
+				)
 		);
 
 		if (dtcNode instanceof DtcRefNode) {
@@ -81,6 +86,11 @@ export class Runtime implements Searchable {
 	resolvePath(path: string[]): string[] | undefined {
 		if (!path?.[0].startsWith('&')) {
 			return path;
+		}
+
+		const fromCache = this.lablesUsedCache.get(path[0].slice(1));
+		if (fromCache) {
+			return fromCache;
 		}
 
 		const allLabels = this.rootNode.allDescendantsLabels;
@@ -231,6 +241,6 @@ export class Runtime implements Searchable {
 	}
 
 	getOrderedNodeAst(node: Node) {
-		return sortAstForScope([...node.definitons, ...node.referancedBy], this.fileOrder);
+		return sortAstForScope([...node.definitons, ...node.referancedBy], this.orderedFiles);
 	}
 }

@@ -1,15 +1,13 @@
-import {
-	DiagnosticSeverity,
-	DocumentSymbol,
-	SemanticTokensBuilder,
-} from 'vscode-languageserver';
 import { Issue, LexerToken, SyntaxIssue, Token, TokenIndexes } from './types';
 import {
+	adjesentTokens,
 	createTokenIndex,
 	genIssue,
-	getTokenModifiers,
-	getTokenTypes,
+	sameLine,
 	toRange,
+	validateToken,
+	validateValue,
+	validToken,
 } from './helpers';
 import {
 	DtcBaseNode,
@@ -32,69 +30,56 @@ import { NumberValue } from './ast/dtc/values/number';
 import { ByteStringValue } from './ast/dtc/values/byteString';
 import { PropertyValues } from './ast/dtc/values/values';
 import { DtsDocumentVersion } from './ast/dtc/dtsDocVersion';
-import { Comment } from './ast/dtc/comment';
 import { ArrayValues } from './ast/dtc/values/arrayValue';
 import { LabledValue } from './ast/dtc/values/labledValue';
 import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
 import { Operator, OperatorType } from './ast/cPreprocessors/operator';
 import { ComplexExpression, Expression } from './ast/cPreprocessors/expression';
 import { FunctionCall } from './ast/cPreprocessors/functionCall';
-import { Include, IncludePath } from './ast/cPreprocessors/include';
-import { existsSync } from 'fs-extra';
-import { resolve, dirname } from 'path';
+import { BaseParser } from './baseParser';
+import { CPreprocessorParser } from './cPreprocessorParser';
 
 type AllowNodeRef = 'Ref' | 'Name';
 
-export class Parser {
+export class Parser extends BaseParser {
+	public tokens: Token[] = [];
+	cPreprocessorParser: CPreprocessorParser;
+
 	others: ASTBase[] = [];
-	includes: Include[] = [];
 	rootDocument = new DtcBaseNode();
-	positionStack: number[] = [];
 	issues: Issue<SyntaxIssue>[] = [];
 	unhandledStaments = new DtcRootNode();
 
-	constructor(private tokens: Token[], private readonly uri: string) {
+	constructor(
+		public readonly uri: string,
+		private incudes: string[],
+		private common: string[]
+	) {
+		super();
+		this.cPreprocessorParser = new CPreprocessorParser(this.uri, this.incudes, this.common);
 		this.rootDocument.uri = uri;
-		this.parse();
 	}
 
-	includePaths(incudes: string[], common: string[]) {
-		return this.includes
-			.filter((p) => p.path.path.endsWith('.dts') || p.path.path.endsWith('.dtsi'))
-			.map((include) => this.resolveInclude(include, incudes, common))
-			.filter((p) => p) as string[];
+	protected reset() {
+		super.reset();
+		this.others = [];
+		this.rootDocument = new DtcBaseNode();
+		this.rootDocument.uri = this.uri;
+		this.issues = [];
+		this.unhandledStaments = new DtcRootNode();
 	}
 
-	resolveInclude(include: Include, incudes: string[], common: string[]) {
-		if (include.path.relative) {
-			return [
-				resolve(dirname(this.uri), include.path.path),
-				...common.map((c) => resolve(c, include.path.path)),
-			].find(existsSync);
-		} else {
-			return incudes.map((p) => resolve(p, include.path.path)).find(existsSync);
-		}
+	public async reparse(): Promise<void> {
+		this.reset();
+		this.cPreprocessorParser.reparse();
+		this.parsing = this.parse();
+		return this.parsing;
 	}
 
-	get done() {
-		return this.peekIndex() >= this.tokens.length;
-	}
+	async parse() {
+		await this.cPreprocessorParser.stable;
+		this.tokens = this.cPreprocessorParser.tokens;
 
-	private cleanUpComments() {
-		const tokensUsed: number[] = [];
-		for (let i = 0; i < this.tokens.length; i++) {
-			const result = Parser.processComments(this.tokens, i);
-			if (result) {
-				i = result.index;
-				tokensUsed.push(...result.tokenUsed);
-				this.others.push(...result.comments);
-			}
-		}
-		tokensUsed.reverse().forEach((i) => this.tokens.splice(i, 1));
-	}
-
-	private parse() {
-		this.cleanUpComments();
 		this.positionStack.push(0);
 		if (this.tokens.length === 0) {
 			return;
@@ -103,7 +88,6 @@ export class Parser {
 		const process = () => {
 			if (
 				!(
-					this.isInclude() ||
 					this.isDtsDocumentVersion() ||
 					this.isRootNodeDefinition(this.rootDocument) ||
 					this.isDeleteNode(this.rootDocument, 'Ref') ||
@@ -130,82 +114,6 @@ export class Parser {
 		if (this.positionStack.length !== 1) {
 			throw new Error('Incorrect final stack size');
 		}
-	}
-
-	private static processComments(tokens: Token[], index: number) {
-		const tokenUsed: number[] = [];
-
-		const move = () => {
-			tokenUsed.push(index++);
-			return tokens[index];
-		};
-
-		const currentToken = () => {
-			return tokens[index];
-		};
-
-		const prevToken = () => {
-			return tokens[index - 1];
-		};
-
-		const firstToken = currentToken();
-		let token = firstToken;
-		if (!firstToken || !validToken(firstToken, LexerToken.FORWARD_SLASH)) {
-			return;
-		}
-
-		token = move();
-
-		if (
-			!validToken(token, LexerToken.MULTI_OPERATOR) ||
-			firstToken.pos.line !== token.pos.line ||
-			firstToken.pos.col + 1 !== token.pos.col
-		) {
-			return;
-		}
-
-		const isEndComment = (): boolean => {
-			if (!validToken(prevToken(), LexerToken.MULTI_OPERATOR)) {
-				return false;
-			}
-
-			if (
-				!validToken(currentToken(), LexerToken.FORWARD_SLASH) ||
-				prevToken()?.pos.line !== currentToken()?.pos.line ||
-				prevToken()?.pos.col + 1 !== currentToken()?.pos.col
-			) {
-				return false;
-			}
-
-			return true;
-		};
-
-		// we have a comment start
-		let lastLine = token.pos.line;
-		let start = firstToken;
-		const comments: Comment[] = [];
-		token = move();
-		do {
-			if (currentToken()?.pos.line !== lastLine) {
-				const node = new Comment(createTokenIndex(start, prevToken()));
-				comments.push(node);
-
-				lastLine = currentToken().pos.line ?? 0;
-
-				start = currentToken();
-			}
-			token = move();
-		} while (index < tokens.length && !isEndComment());
-
-		const node = new Comment(createTokenIndex(start, currentToken()));
-		comments.push(node);
-
-		move();
-		return {
-			comments,
-			tokenUsed,
-			index: index - 1,
-		};
 	}
 
 	private isRootNodeDefinition(parent: DtcBaseNode): boolean {
@@ -292,9 +200,9 @@ export class Parser {
 		do {
 			child =
 				this.isProperty(parent) ||
+				this.isChildNode(parent, allow) ||
 				this.isDeleteNode(parent, allow) ||
-				this.isDeleteProperty(parent) ||
-				this.isChildNode(parent, allow);
+				this.isDeleteProperty(parent);
 
 			if (!child && !this.isNodeEnd() && !this.done) {
 				const token = this.moveToNextToken;
@@ -329,11 +237,17 @@ export class Parser {
 	private isChildNode(parentNode: DtcBaseNode, allow: AllowNodeRef): boolean {
 		this.enqueToStack();
 
+		let omitIfNoRef: Keyword | undefined;
+		if (allow === 'Name') {
+			omitIfNoRef = this.isOmitIfNoRefNode();
+		}
+
 		const labels = this.processOptionalLablelAssign();
 
 		let name: NodeName | undefined;
 
-		const child = allow === 'Ref' ? new DtcRefNode(labels) : new DtcChildNode(labels);
+		const child =
+			allow === 'Ref' ? new DtcRefNode(labels) : new DtcChildNode(labels, omitIfNoRef);
 
 		const ref = this.isLabelRef();
 		if (ref && allow === 'Name') {
@@ -435,13 +349,13 @@ export class Parser {
 				address
 			);
 
-			if (!this.adjesentTokens(valid.at(-1), atValid[0])) {
+			if (!adjesentTokens(valid.at(-1), atValid[0])) {
 				this.issues.push(genIssue(SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE, node));
 			} else if (Number.isNaN(address)) {
 				this.issues.push(genIssue(SyntaxIssue.NODE_ADDRESS, node));
 			} else if (
 				!Number.isNaN(address) &&
-				!this.adjesentTokens(atValid.at(-1), addressValid[0])
+				!adjesentTokens(atValid.at(-1), addressValid[0])
 			) {
 				this.issues.push(genIssue(SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE, node));
 			}
@@ -638,6 +552,31 @@ export class Parser {
 		return true;
 	}
 
+	private isOmitIfNoRefNode(): Keyword | undefined {
+		this.enqueToStack();
+
+		const valid = this.checkConcurrentTokens([
+			validateToken(LexerToken.FORWARD_SLASH),
+			validateValue('omit'),
+			validateToken(LexerToken.NEG_OPERATOR),
+			validateValue('if'),
+			validateToken(LexerToken.NEG_OPERATOR),
+			validateValue('no'),
+			validateToken(LexerToken.NEG_OPERATOR),
+			validateValue('ref'),
+			validateToken(LexerToken.FORWARD_SLASH),
+		]);
+
+		if (valid.length !== 9) {
+			this.popStack();
+			return;
+		}
+
+		const keyword = new Keyword(createTokenIndex(valid[0], valid.at(-1)));
+		this.mergeStack();
+		return keyword;
+	}
+
 	private isDeleteNode(parent: DtcBaseNode, allow: AllowNodeRef): boolean {
 		this.enqueToStack();
 
@@ -694,7 +633,7 @@ export class Parser {
 
 		const node = new DeleteNode(keyword);
 
-		if (this.sameLine(keyword.tokenIndexes?.end, firstToken)) {
+		if (sameLine(keyword.tokenIndexes?.end, firstToken)) {
 			const labelRef = this.isLabelRef();
 			if (labelRef && allow === 'Name') {
 				this.issues.push(genIssue(SyntaxIssue.NODE_NAME, labelRef));
@@ -782,7 +721,7 @@ export class Parser {
 
 		const node = new DeleteProperty(keyword);
 
-		if (this.sameLine(keyword.tokenIndexes?.end, firstToken)) {
+		if (sameLine(keyword.tokenIndexes?.end, firstToken)) {
 			const propertyName = this.isPropertyName();
 			if (!propertyName) {
 				this.issues.push(genIssue(SyntaxIssue.PROPERTY_NAME, node));
@@ -1263,83 +1202,6 @@ export class Parser {
 		return node;
 	}
 
-	private isInclude(): boolean {
-		this.enqueToStack();
-
-		const start = this.moveToNextToken;
-		const line = start?.pos.line;
-
-		let token = start;
-		if (!start || !validToken(token, LexerToken.C_INCLUDE)) {
-			this.popStack();
-			return false;
-		}
-
-		const keyword = new Keyword(createTokenIndex(start));
-
-		const moveEndOfLine = () => {
-			if (this.currentToken?.pos.line !== line) {
-				return;
-			}
-
-			const begin = this.currentToken;
-			while (this.currentToken?.pos.line === line) {
-				token = this.moveToNextToken;
-			}
-			if (begin) {
-				const node = new ASTBase(createTokenIndex(begin));
-				this.issues.push(genIssue(SyntaxIssue.INVALID_INCLUDE_SYNTAX, node));
-			}
-		};
-
-		token = this.moveToNextToken;
-		const pathStart = token;
-		const relative = !!validToken(token, LexerToken.STRING);
-		if (!pathStart || (!relative && !validToken(token, LexerToken.LT_SYM))) {
-			moveEndOfLine();
-			this.mergeStack();
-			return true;
-		}
-
-		let path = '';
-
-		if (relative) {
-			path = token?.value ?? '';
-		} else {
-			while (
-				this.currentToken?.pos.line === line &&
-				!validToken(this.currentToken, LexerToken.GT_SYM)
-			) {
-				path += this.currentToken?.value ?? '';
-				token = this.moveToNextToken;
-			}
-		}
-
-		if (!relative) {
-			const currentToken = this.currentToken;
-			if (
-				currentToken?.pos.line !== line ||
-				!validToken(this.currentToken, LexerToken.GT_SYM)
-			) {
-				if (currentToken) {
-					const node = new ASTBase(createTokenIndex(currentToken));
-					this.issues.push(genIssue(SyntaxIssue.INCLUDE_CLOSE_PATH, node));
-				}
-			} else {
-				token = this.moveToNextToken;
-			}
-		}
-
-		const incudePath = new IncludePath(path, relative, createTokenIndex(pathStart, token));
-		const node = new Include(keyword, incudePath);
-		this.includes.push(node);
-
-		moveEndOfLine();
-
-		this.mergeStack();
-		return true;
-	}
-
 	private processExpression(): Expression | undefined {
 		this.enqueToStack();
 
@@ -1553,187 +1415,7 @@ export class Parser {
 		return node;
 	}
 
-	private get moveToNextToken() {
-		const token = this.currentToken;
-		this.moveStackIndex();
-		return token;
-	}
-
-	private enqueToStack() {
-		this.positionStack.push(this.peekIndex());
-	}
-
-	private popStack() {
-		this.positionStack.pop();
-	}
-
-	private mergeStack() {
-		const value = this.positionStack.pop();
-
-		if (value === undefined) {
-			throw new Error('Index out of bounds');
-		}
-
-		this.positionStack[this.positionStack.length - 1] = value;
-	}
-
-	private peekIndex(depth = 1) {
-		const peek = this.positionStack.at(-1 * depth);
-		if (peek === undefined) {
-			throw new Error('Index out of bounds');
-		}
-
-		return peek;
-	}
-
-	get currentToken() {
-		return this.tokens.at(this.peekIndex());
-	}
-
-	get prevToken() {
-		const index = this.peekIndex() - 1;
-		if (index === -1) {
-			return;
-		}
-
-		return this.tokens[index];
-	}
-
-	private moveStackIndex() {
-		if (this.positionStack[this.positionStack.length - 1] === undefined) {
-			throw new Error('Index out of bounds');
-		}
-
-		this.positionStack[this.positionStack.length - 1]++;
-	}
-
-	getDocumentSymbols(): DocumentSymbol[] {
-		return [
-			...this.includes.flatMap((o) => o.getDocumentSymbols()),
-			...this.rootDocument.getDocumentSymbols(),
-			...this.others.flatMap((o) => o.getDocumentSymbols()),
-		];
-	}
-
-	buildSemanticTokens(tokensBuilder: SemanticTokensBuilder) {
-		const result: {
-			line: number;
-			char: number;
-			length: number;
-			tokenType: number;
-			tokenModifiers: number;
-		}[] = [];
-		const push = (
-			tokenType: number,
-			tokenModifiers: number,
-			tokenIndexes?: TokenIndexes
-		) => {
-			if (!tokenIndexes?.start || !tokenIndexes?.end) return;
-
-			const lengthEnd =
-				tokenIndexes.end.pos.col - tokenIndexes.start.pos.col + tokenIndexes.end.pos.len;
-			result.push({
-				line: tokenIndexes.start.pos.line,
-				char: tokenIndexes.start.pos.col,
-				length:
-					tokenIndexes.end === tokenIndexes.start ? tokenIndexes.end.pos.len : lengthEnd,
-				tokenType,
-				tokenModifiers,
-			});
-		};
-
-		this.rootDocument.buildSemanticTokens(push);
-		this.others.forEach((a) => a.buildSemanticTokens(push));
-		this.includes.forEach((a) => a.buildSemanticTokens(push));
-
-		this.tokens
-			.filter(
-				(token) =>
-					validToken(token, LexerToken.CURLY_OPEN) ||
-					validToken(token, LexerToken.CURLY_CLOSE)
-			)
-			.forEach((token) => {
-				result.push({
-					line: token.pos.len,
-					char: token.pos.col,
-					length: 1,
-					tokenType: getTokenTypes('struct'),
-					tokenModifiers: getTokenModifiers('declaration'),
-				});
-			});
-		result
-			.sort((a, b) => (a.line === b.line ? a.char - b.char : a.line - b.line))
-			.forEach((r) =>
-				tokensBuilder.push(r.line, r.char, r.length, r.tokenType, r.tokenModifiers)
-			);
-	}
-
-	private checkConcurrentTokens(
-		cmps: ((token: Token | undefined, index?: number) => 'yes' | 'no' | 'patrial')[]
-	) {
-		this.enqueToStack();
-
-		const tokens: Token[] = [];
-
-		cmps.every((cmp) => {
-			const token = this.currentToken;
-			const result = cmp(token);
-			let continueLoop = false;
-
-			if (result !== 'no' && token) {
-				tokens.push(token);
-				this.moveToNextToken;
-				continueLoop = this.adjesentTokens(token, this.currentToken);
-			}
-			return result === 'yes' && continueLoop;
-		});
-
-		this.mergeStack();
-		return tokens;
-	}
-
-	private consumeAnyConcurrentTokens(
-		cmps: ((token: Token | undefined, index?: number) => 'yes' | 'no' | 'patrial')[]
-	) {
-		this.enqueToStack();
-
-		const tokens: Token[] = [];
-
-		let token: Token | undefined;
-		let continueLoop = true;
-		while (cmps.some((cmp) => cmp(this.currentToken) === 'yes' && continueLoop)) {
-			tokens.push(this.currentToken!);
-			token = this.currentToken;
-			this.moveToNextToken;
-			continueLoop = this.adjesentTokens(token, this.currentToken);
-		}
-
-		this.mergeStack();
-		return tokens;
-	}
-
-	private sameLine(tokenA?: Token, tokenB?: Token) {
-		return !!tokenA && !!tokenB && tokenA.pos.line === tokenB.pos.line;
-	}
-
-	private adjesentTokens(tokenA?: Token, tokenB?: Token) {
-		return (
-			!!tokenA &&
-			!!tokenB &&
-			this.sameLine(tokenA, tokenB) &&
-			tokenA.pos.col + tokenA.pos.len === tokenB.pos.col
-		);
+	get allAstItems(): ASTBase[] {
+		return [...this.cPreprocessorParser.allAstItems, this.rootDocument, ...this.others];
 	}
 }
-
-const validToken = (token: Token | undefined, expected: LexerToken) =>
-	token?.tokens.some((t) => t === expected);
-
-const validateValue = (expected: string) => (token: Token | undefined) =>
-	token?.value && expected === token.value
-		? 'yes'
-		: validateValueStartsWith(expected)(token);
-const validateToken = (expected: LexerToken) => (token: Token | undefined) =>
-	token?.tokens.some((t) => t === expected) ? 'yes' : 'no';
-const validateValueStartsWith = (expected: string) => (token: Token | undefined) =>
-	token?.value && expected.startsWith(token.value) ? 'patrial' : 'no';

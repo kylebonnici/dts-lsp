@@ -8,6 +8,7 @@ import { LabelAssign } from './label';
 import { DeleteProperty } from './deleteProperty';
 import { LabelRef } from './labelRef';
 import { Node } from '../../context/node';
+import { Keyword } from '../keyword';
 
 export class DtcBaseNode extends ASTBase {
 	constructor() {
@@ -123,12 +124,20 @@ export class DtcRefNode extends DtcBaseNode {
 export class DtcChildNode extends DtcBaseNode {
 	private _name: NodeName | null = null;
 
-	constructor(public readonly labels: LabelAssign[] = []) {
+	constructor(
+		public readonly labels: LabelAssign[] = [],
+		public readonly omitIfNoRef?: Keyword
+	) {
 		super();
 		this.docSymbolsMeta = {
 			name: 'DTC Name',
 			kind: SymbolKind.Namespace,
 		};
+
+		if (omitIfNoRef) {
+			this.addChild(omitIfNoRef);
+		}
+
 		labels.forEach((label) => {
 			this.addChild(label);
 		});
