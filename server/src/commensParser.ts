@@ -1,6 +1,5 @@
-import { DocumentSymbol, SemanticTokensBuilder } from 'vscode-languageserver';
 import { LexerToken, Token } from './types';
-import { createTokenIndex, validToken } from './helpers';
+import { adjesentTokens, createTokenIndex, validToken } from './helpers';
 import { Comment } from './ast/dtc/comment';
 import { BaseParser } from './baseParser';
 import { ASTBase } from './ast/base';
@@ -85,8 +84,7 @@ export class CommentsParser extends BaseParser {
 
 			if (
 				!validToken(currentToken(), LexerToken.FORWARD_SLASH) ||
-				prevToken()?.pos.line !== currentToken()?.pos.line ||
-				prevToken()?.pos.col + 1 !== currentToken()?.pos.col
+				!adjesentTokens(prevToken(), currentToken())
 			) {
 				return false;
 			}

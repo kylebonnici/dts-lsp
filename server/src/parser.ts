@@ -200,9 +200,9 @@ export class Parser extends BaseParser {
 		do {
 			child =
 				this.isProperty(parent) ||
+				this.isChildNode(parent, allow) ||
 				this.isDeleteNode(parent, allow) ||
-				this.isDeleteProperty(parent) ||
-				this.isChildNode(parent, allow);
+				this.isDeleteProperty(parent);
 
 			if (!child && !this.isNodeEnd() && !this.done) {
 				const token = this.moveToNextToken;
@@ -237,11 +237,17 @@ export class Parser extends BaseParser {
 	private isChildNode(parentNode: DtcBaseNode, allow: AllowNodeRef): boolean {
 		this.enqueToStack();
 
+		let omitIfNoRef: Keyword | undefined;
+		if (allow === 'Name') {
+			omitIfNoRef = this.isOmitIfNoRefNode();
+		}
+
 		const labels = this.processOptionalLablelAssign();
 
 		let name: NodeName | undefined;
 
-		const child = allow === 'Ref' ? new DtcRefNode(labels) : new DtcChildNode(labels);
+		const child =
+			allow === 'Ref' ? new DtcRefNode(labels) : new DtcChildNode(labels, omitIfNoRef);
 
 		const ref = this.isLabelRef();
 		if (ref && allow === 'Name') {
@@ -544,6 +550,31 @@ export class Parser extends BaseParser {
 		node.lastToken = this.endStatment();
 		this.mergeStack();
 		return true;
+	}
+
+	private isOmitIfNoRefNode(): Keyword | undefined {
+		this.enqueToStack();
+
+		const valid = this.checkConcurrentTokens([
+			validateToken(LexerToken.FORWARD_SLASH),
+			validateValue('omit'),
+			validateToken(LexerToken.NEG_OPERATOR),
+			validateValue('if'),
+			validateToken(LexerToken.NEG_OPERATOR),
+			validateValue('no'),
+			validateToken(LexerToken.NEG_OPERATOR),
+			validateValue('ref'),
+			validateToken(LexerToken.FORWARD_SLASH),
+		]);
+
+		if (valid.length !== 9) {
+			this.popStack();
+			return;
+		}
+
+		const keyword = new Keyword(createTokenIndex(valid[0], valid.at(-1)));
+		this.mergeStack();
+		return keyword;
 	}
 
 	private isDeleteNode(parent: DtcBaseNode, allow: AllowNodeRef): boolean {

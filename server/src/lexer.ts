@@ -1,6 +1,7 @@
 import { LexerToken, Position, Token } from './types';
 
 export class Lexer {
+	inComment = false;
 	lineNumber = 0;
 	columnNumber = 0;
 	lines: string[];
@@ -125,6 +126,12 @@ export class Lexer {
 			if (!this.move() || this.lineNumber !== currLine) {
 				return word;
 			}
+		}
+
+		if (word === '/' && this.currentChar === '*') {
+			this.inComment = true;
+		} else if (this.inComment && word === '*' && this.currentChar === '/') {
+			this.inComment = false;
 		}
 
 		return word;
@@ -547,6 +554,8 @@ export class Lexer {
 	}
 
 	private isString(word: string) {
+		if (this.inComment) return false;
+
 		const match = word.match(/^["']/);
 		if (match?.[0]) {
 			// rewind to begining of string just after "
