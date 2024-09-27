@@ -274,7 +274,7 @@ function getNodeRefPathsItems(
 
 export async function getCompleteions(
 	location: TextDocumentPositionParams,
-	context: ContextAware
+	context: ContextAware[]
 ): Promise<CompletionItem[]> {
 	return nodeFinder(location, context, (locationMeta, inScope) => [
 		...getDeletePropertyItems(locationMeta, inScope),

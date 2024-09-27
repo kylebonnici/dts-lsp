@@ -32,8 +32,6 @@ import { PropertyValues } from './ast/dtc/values/values';
 import { DtsDocumentVersion } from './ast/dtc/dtsDocVersion';
 import { ArrayValues } from './ast/dtc/values/arrayValue';
 import { LabledValue } from './ast/dtc/values/labledValue';
-import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
-import { Operator, OperatorType } from './ast/cPreprocessors/operator';
 import { ComplexExpression, Expression } from './ast/cPreprocessors/expression';
 import { FunctionCall } from './ast/cPreprocessors/functionCall';
 import { BaseParser } from './baseParser';
@@ -256,6 +254,10 @@ export class Parser extends BaseParser {
 
 		if (!ref) {
 			name = this.isNodeName();
+
+			if (!name && !ref) {
+				child.fisrtToken = this.currentToken;
+			}
 
 			if (!name) {
 				if (!validToken(this.currentToken, LexerToken.CURLY_OPEN)) {
