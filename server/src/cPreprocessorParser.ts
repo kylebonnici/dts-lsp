@@ -1,5 +1,5 @@
 import { LexerToken, SyntaxIssue, Token } from './types';
-import { createTokenIndex, genIssue, validToken } from './helpers';
+import { createTokenIndex, genIssue, sameLine, validateToken, validToken } from './helpers';
 import { ASTBase } from './ast/base';
 import { Keyword } from './ast/keyword';
 import { Include, IncludePath } from './ast/cPreprocessors/include';
@@ -9,17 +9,22 @@ import { BaseParser } from './baseParser';
 import { Parser } from './parser';
 import { getTokenizedDocmentProvider } from './providers/tokenizedDocument';
 import { CommentsParser } from './commensParser';
+import { CMacro, CMacroContent } from './ast/cPreprocessors/macro';
+import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
+import { FunctionDefinition, Variadic } from './ast/cPreprocessors/functionDefinition';
 
 export class CPreprocessorParser extends BaseParser {
 	private commentsParser: CommentsParser;
 	public tokens: Token[] = [];
 	includes: Include[] = [];
+	private nodes: ASTBase[] = [];
 
 	// tokens must be filtered out from commnets by now
 	constructor(
 		public readonly uri: string,
 		private incudes: string[],
-		private common: string[]
+		private common: string[],
+		public macros: Map<string, CMacro> = new Map<string, CMacro>()
 	) {
 		super();
 		this.commentsParser = new CommentsParser(this.uri);
@@ -103,13 +108,72 @@ export class CPreprocessorParser extends BaseParser {
 		}
 
 		const line = this.currentToken?.pos.line;
-		const found = await this.processInclude();
+		const found = (await this.processInclude()) || this.processDefinitions();
 
 		if (line !== undefined) {
 			this.moveEndOfLine(line, !!found);
 		}
 
 		this.mergeStack();
+	}
+
+	private processDefinitions() {
+		this.enqueToStack();
+
+		const startIndex = this.peekIndex();
+		const token = this.moveToNextToken;
+		if (!token || !validToken(token, LexerToken.C_DEFINE)) {
+			this.popStack();
+			return false;
+		}
+
+		const keyword = new Keyword(createTokenIndex(token));
+
+		const definition = this.isFuntionDefinition() || this.processCIdentifier();
+		if (!definition) {
+			this.issues.push(genIssue(SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE, keyword));
+			this.mergeStack();
+			return true;
+		}
+
+		const defninitionContent = this.consumeDefinitionContent();
+		let content: CMacroContent | undefined;
+		if (defninitionContent.length) {
+			content = new CMacroContent(
+				createTokenIndex(defninitionContent[0]),
+				defninitionContent
+			);
+		}
+		const macro = new CMacro(keyword, definition, content);
+		this.macros.set(macro.name, macro);
+		this.nodes.push(macro);
+
+		const endIndex = this.peekIndex();
+		this.tokens.splice(startIndex, endIndex - startIndex);
+
+		this.positionStack[this.positionStack.length - 1] = startIndex;
+		this.mergeStack();
+		return true;
+	}
+
+	private consumeDefinitionContent(): Token[] {
+		const tokens: Token[] = [];
+
+		let prevToken = this.prevToken;
+
+		while (
+			sameLine(prevToken, this.currentToken) ||
+			(prevToken && // allow to break line at end of line with \
+				validToken(prevToken, LexerToken.BACK_SLASH) &&
+				prevToken.pos.line + 1 === this.currentToken?.pos.line)
+		) {
+			prevToken = this.moveToNextToken;
+			if (prevToken) {
+				tokens.push(prevToken);
+			}
+		}
+
+		return tokens;
 	}
 
 	private async processInclude(): Promise<boolean> {
@@ -182,7 +246,70 @@ export class CPreprocessorParser extends BaseParser {
 		return true;
 	}
 
+	protected isFuntionDefinition(): FunctionDefinition | undefined {
+		this.enqueToStack();
+		const identifier = this.processCIdentifier();
+		if (!identifier) {
+			this.popStack();
+			return;
+		}
+
+		let token = this.moveToNextToken;
+		if (!validToken(token, LexerToken.ROUND_OPEN)) {
+			this.popStack();
+			return;
+		}
+
+		const params: (CIdentifier | Variadic)[] = [];
+		let param = this.processCIdentifier() || this.processVariadic();
+		while (param) {
+			params.push(param);
+			if (
+				!validToken(this.currentToken, LexerToken.COMMA) &&
+				!validToken(this.currentToken, LexerToken.ROUND_CLOSE)
+			) {
+				this.issues.push(genIssue(SyntaxIssue.MISSING_COMMA, param));
+			} else if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
+				token = this.moveToNextToken;
+			}
+			param = this.processCIdentifier() || this.processVariadic();
+		}
+
+		if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
+			this.issues.push(
+				genIssue(SyntaxIssue.MISSING_ROUND_CLOSE, params.at(-1) ?? identifier)
+			);
+		} else {
+			token = this.moveToNextToken;
+		}
+
+		const node = new FunctionDefinition(identifier, params);
+		node.uri = this.uri;
+
+		this.mergeStack();
+		return node;
+	}
+
+	private processVariadic() {
+		this.enqueToStack();
+
+		const valid = this.checkConcurrentTokens([
+			validateToken(LexerToken.PERIOD),
+			validateToken(LexerToken.PERIOD),
+			validateToken(LexerToken.PERIOD),
+		]);
+
+		if (valid.length !== 3) {
+			this.popStack();
+			return;
+		}
+
+		const variadic = new Variadic(createTokenIndex(valid[0], valid.at(-1)));
+		this.mergeStack();
+		return variadic;
+	}
+
 	get allAstItems(): ASTBase[] {
-		return [...this.includes, ...this.commentsParser.allAstItems];
+		return [...this.includes, ...this.nodes, ...this.commentsParser.allAstItems];
 	}
 }

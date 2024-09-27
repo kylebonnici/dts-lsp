@@ -2,11 +2,18 @@ import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
 import { CIdentifier } from './cIdentifier';
 import { toRange } from '../../helpers';
 import { ASTBase } from '../base';
+import { Keyword } from '../keyword';
+
+export class Variadic extends Keyword {
+	toString() {
+		return '...';
+	}
+}
 
 export class FunctionDefinition extends ASTBase {
 	constructor(
 		public readonly functionName: CIdentifier,
-		public readonly params: CIdentifier[]
+		public readonly params: (CIdentifier | Variadic)[]
 	) {
 		super();
 		this.addChild(functionName);

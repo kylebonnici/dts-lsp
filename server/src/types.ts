@@ -59,6 +59,7 @@ export enum SyntaxIssue {
 	INCLUDE_CLOSE_PATH,
 	MISSING_COMMA,
 	NODE_NAME_ADDRESS_WHITE_SPACE,
+	EXPECTED_IDENTIFIER_FUNCTION_LIKE,
 }
 
 export enum ContextIssues {
