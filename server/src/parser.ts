@@ -1036,31 +1036,6 @@ export class Parser extends BaseParser {
 		return numbeValue;
 	}
 
-	private processCIdentifier(): CIdentifier | undefined {
-		this.enqueToStack();
-
-		const valid = this.consumeAnyConcurrentTokens(
-			[LexerToken.DIGITS, LexerToken.LETTERS, LexerToken.UNDERSCOURE].map(validateToken)
-		);
-
-		if (!valid.length) {
-			this.popStack();
-			return undefined;
-		}
-
-		const name = valid.map((v) => v.value).join('');
-
-		if (!name.match(/^[_A-Za-z]/)) {
-			this.popStack();
-			return;
-		}
-
-		const idnetifier = new CIdentifier(name, createTokenIndex(valid[0], valid.at(-1)));
-
-		this.mergeStack();
-		return idnetifier;
-	}
-
 	private processLabledExpression(
 		checkForLables = true,
 		acceptLabelName = checkForLables
@@ -1082,82 +1057,6 @@ export class Parser extends BaseParser {
 		const node = new LabledValue(expression, labels);
 		this.mergeStack();
 		return node;
-	}
-
-	private isOperator(): Operator | undefined {
-		this.enqueToStack();
-		const start = this.moveToNextToken;
-
-		if (!start) {
-			this.popStack();
-			return;
-		}
-
-		let end = start;
-
-		let operator: OperatorType | undefined;
-		if (validToken(start, LexerToken.AMPERSAND)) {
-			operator = OperatorType.BIT_AND;
-			if (validToken(this.currentToken, LexerToken.AMPERSAND)) {
-				operator = OperatorType.BOOLEAN_AND;
-				end = this.moveToNextToken;
-			}
-		} else if (validToken(start, LexerToken.BIT_NOT)) {
-			operator = OperatorType.BIT_NOT;
-			if (validToken(this.currentToken, LexerToken.ASSIGN_OPERATOR)) {
-				operator = OperatorType.BOOLEAN_NOT_EQ;
-				end = this.moveToNextToken;
-			}
-		} else if (validToken(start, LexerToken.BIT_OR)) {
-			operator = OperatorType.BIT_OR;
-			if (validToken(this.currentToken, LexerToken.BIT_OR)) {
-				operator = OperatorType.BOOLEAN_OR;
-				end = this.moveToNextToken;
-			}
-		} else if (validToken(start, LexerToken.BIT_XOR)) {
-			operator = OperatorType.BIT_XOR;
-		} else if (validToken(start, LexerToken.GT_SYM)) {
-			operator = OperatorType.BOOLEAN_GT;
-			if (validToken(this.currentToken, LexerToken.GT_SYM)) {
-				operator = OperatorType.BIT_RIGHT_SHIFT;
-				end = this.moveToNextToken;
-			} else if (validToken(this.currentToken, LexerToken.ASSIGN_OPERATOR)) {
-				operator = OperatorType.BOOLEAN_GT_EQUAL;
-				end = this.moveToNextToken;
-			}
-		} else if (validToken(start, LexerToken.LT_SYM)) {
-			operator = OperatorType.BOOLEAN_GT;
-			if (validToken(this.currentToken, LexerToken.LT_SYM)) {
-				operator = OperatorType.BIT_LEFT_SHIFT;
-				end = this.moveToNextToken;
-			} else if (validToken(this.currentToken, LexerToken.ASSIGN_OPERATOR)) {
-				operator = OperatorType.BOOLEAN_LT_EQUAL;
-				end = this.moveToNextToken;
-			}
-		} else if (validToken(start, LexerToken.ADD_OPERATOR)) {
-			operator = OperatorType.ARITHMETIC_ADD;
-		} else if (validToken(start, LexerToken.NEG_OPERATOR)) {
-			operator = OperatorType.ARITHMETIC_SUBTRACT;
-		} else if (validToken(start, LexerToken.MULTI_OPERATOR)) {
-			operator = OperatorType.ARITHMETIC_MULTIPLE;
-		} else if (validToken(start, LexerToken.FORWARD_SLASH)) {
-			operator = OperatorType.ARITHMETIC_DIVIDE;
-		} else if (validToken(start, LexerToken.MODULUS_OPERATOR)) {
-			operator = OperatorType.ARITHMETIC_MODULES;
-		} else if (validToken(start, LexerToken.HASH)) {
-			if (validToken(this.currentToken, LexerToken.HASH)) {
-				operator = OperatorType.C_CONCAT;
-				end = this.moveToNextToken;
-			}
-		}
-
-		if (operator) {
-			const node = new Operator(operator, createTokenIndex(start, end));
-			this.mergeStack();
-			return node;
-		}
-		this.popStack();
-		return;
 	}
 
 	private isFuntion(): FunctionCall | undefined {
