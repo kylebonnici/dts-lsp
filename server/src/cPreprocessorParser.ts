@@ -5,13 +5,20 @@ import { Keyword } from './ast/keyword';
 import { Include, IncludePath } from './ast/cPreprocessors/include';
 import { existsSync } from 'fs-extra';
 import { resolve, dirname } from 'path';
-import { BaseParser } from './baseParser';
+import { BaseParser, Block } from './baseParser';
 import { Parser } from './parser';
 import { getTokenizedDocmentProvider } from './providers/tokenizedDocument';
 import { CommentsParser } from './commensParser';
 import { CMacro, CMacroContent } from './ast/cPreprocessors/macro';
 import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
 import { FunctionDefinition, Variadic } from './ast/cPreprocessors/functionDefinition';
+import {
+	CElse,
+	CIfDef,
+	CIfNotDef,
+	CPreprocessorContent,
+	IfDefineBlock,
+} from './ast/cPreprocessors/ifDefine';
 
 export class CPreprocessorParser extends BaseParser {
 	private commentsParser: CommentsParser;
@@ -51,6 +58,8 @@ export class CPreprocessorParser extends BaseParser {
 	protected reset() {
 		super.reset();
 		this.includes = [];
+		this.macros = new Map<string, CMacro>();
+		this.nodes = [];
 	}
 
 	public async reparse(): Promise<void> {
@@ -108,7 +117,8 @@ export class CPreprocessorParser extends BaseParser {
 		}
 
 		const line = this.currentToken?.pos.line;
-		const found = (await this.processInclude()) || this.processDefinitions();
+		const found =
+			(await this.processInclude()) || this.processDefinitions() || this.processIfBlocks();
 
 		if (line !== undefined) {
 			this.moveEndOfLine(line, !!found);
@@ -307,6 +317,103 @@ export class CPreprocessorParser extends BaseParser {
 		const variadic = new Variadic(createTokenIndex(valid[0], valid.at(-1)));
 		this.mergeStack();
 		return variadic;
+	}
+
+	private processIfBlocks() {
+		const startIndex = this.peekIndex();
+
+		const block = this.parseScopedBlock(
+			[LexerToken.C_IFDEF, LexerToken.C_IFNDEF, LexerToken.C_IF],
+			[LexerToken.C_ENDIF],
+			[LexerToken.C_ELSE]
+		);
+		if (!block) {
+			return;
+		}
+
+		if (
+			validToken(block.startToken, LexerToken.C_IFDEF) ||
+			validToken(block.startToken, LexerToken.C_IFNDEF)
+		) {
+			let ifDefBlock: IfDefineBlock | undefined;
+			if (validToken(block.startToken, LexerToken.C_IFDEF)) {
+				ifDefBlock = this.processIfDefBlock(
+					block,
+					(
+						keyword: Keyword,
+						identifier: CIdentifier | null,
+						content: CPreprocessorContent
+					) => new CIfDef(keyword, identifier ?? null, content)
+				);
+			} else {
+				ifDefBlock = this.processIfDefBlock(
+					block,
+					(
+						keyword: Keyword,
+						identifier: CIdentifier | null,
+						content: CPreprocessorContent
+					) => new CIfNotDef(keyword, identifier ?? null, content)
+				);
+			}
+
+			this.nodes.push(ifDefBlock);
+
+			const rangeToClean = ifDefBlock
+				.getInValidTokenRange(this.macros, this.tokens)
+				.reverse();
+			rangeToClean.forEach((r) => {
+				this.tokens.splice(r.start, r.end - r.start + 1);
+			});
+
+			// rewind to proves the content of the if def that was true
+			this.positionStack[this.positionStack.length - 1] = startIndex;
+			return;
+		}
+	}
+
+	private processIfDefBlock(
+		block: Block,
+		ifCreator: (
+			keyword: Keyword,
+			identifier: CIdentifier | null,
+			content: CPreprocessorContent
+		) => CIfDef | CIfNotDef
+	): IfDefineBlock {
+		this.enqueToStack();
+
+		const ifDefKeyword = new Keyword(createTokenIndex(block.startToken));
+		const endifKeyword = new Keyword(createTokenIndex(block.endToken));
+
+		// rewind so we can capture the identifier
+		this.positionStack[this.positionStack.length - 1] =
+			this.getTokenIndex(block.startToken) + 1;
+		const identifier = this.processCIdentifier();
+		if (!identifier) {
+			this.issues.push(genIssue(SyntaxIssue.EXPECTED_IDENTIFIER, ifDefKeyword));
+		}
+
+		const mainBlockEndIndex = this.getTokenIndex(block.splitTokens[0].at(-1));
+
+		const ifDefContent = new CPreprocessorContent(
+			createTokenIndex(this.currentToken!, this.tokens[mainBlockEndIndex])
+		);
+		const ifDef = ifCreator(ifDefKeyword, identifier ?? null, ifDefContent);
+
+		let cElse: CElse | undefined;
+
+		if (block.splitTokens.length > 1) {
+			const elseIndex = this.getTokenIndex(block.splitTokens[1][0]);
+			const elseKeyword = new Keyword(createTokenIndex(this.tokens[elseIndex]));
+			const elseContent = new CPreprocessorContent(
+				createTokenIndex(this.tokens[elseIndex + 1], block.splitTokens[1].at(-1))
+			);
+			cElse = new CElse(elseKeyword, elseContent);
+		}
+
+		const ifDefBlock = new IfDefineBlock(ifDef, endifKeyword, cElse);
+
+		this.popStack();
+		return ifDefBlock;
 	}
 
 	get allAstItems(): ASTBase[] {

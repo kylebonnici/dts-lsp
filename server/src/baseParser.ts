@@ -288,4 +288,74 @@ export abstract class BaseParser {
 		this.popStack();
 		return;
 	}
+
+	protected parseScopedBlock(
+		openTokens: LexerToken[],
+		closeTokens: LexerToken[],
+		splitTokens: LexerToken[]
+	): Block | undefined {
+		this.enqueToStack();
+
+		const start = this.moveToNextToken;
+		if (!start || !openTokens.some((t) => validToken(start, t))) {
+			this.popStack();
+			return;
+		}
+
+		const items: BlockItem[] = [];
+		const split: Token[][] = [];
+		split[0] = [];
+
+		while (!closeTokens.some((t) => validToken(this.currentToken, t))) {
+			const token = this.moveToNextToken;
+
+			if (splitTokens.some((t) => validToken(token, t))) {
+				split[split.length] = [];
+			}
+
+			if (token) {
+				items.push(token);
+				split[split.length - 1].push(token);
+			}
+
+			if (openTokens.some((t) => validToken(this.currentToken, t))) {
+				const nestedBlock = this.parseScopedBlock(openTokens, closeTokens, splitTokens);
+				if (nestedBlock) {
+					items.push(nestedBlock);
+					split[split.length - 1].push(
+						nestedBlock.startToken,
+						...nestedBlock.splitTokens.flat(),
+						nestedBlock.endToken
+					);
+				}
+			}
+		}
+
+		const end = this.moveToNextToken;
+
+		const block: Block = {
+			startToken: start,
+			items,
+			splitTokens: split,
+			endToken: end,
+		};
+
+		this.mergeStack();
+		return block;
+	}
+
+	getTokenIndex(token?: Token) {
+		return token ? this.tokens.findIndex((item) => item === token) : -1;
+	}
 }
+
+export type BlockItem = Token | Block;
+export interface Block {
+	startToken: Token;
+	items: BlockItem[];
+	splitTokens: Token[][];
+	endToken: Token;
+}
+
+export const isToken = (item: BlockItem): item is Token =>
+	(item as Block).items === undefined;

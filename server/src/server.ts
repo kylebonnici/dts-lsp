@@ -259,6 +259,12 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
 			return 'Invalid include Syntax';
 		case SyntaxIssue.MISSING_COMMA:
 			return 'Missing ","';
+		case SyntaxIssue.EXPECTED_IDENTIFIER:
+			return 'Expected Macro Idenifier';
+		case SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE:
+			return 'Expected Macro Idenifier or Function like Macro';
+		case SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE:
+			return 'No white space between no name and address is allowed';
 	}
 };
 
