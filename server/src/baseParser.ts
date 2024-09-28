@@ -290,14 +290,14 @@ export abstract class BaseParser {
 	}
 
 	protected parseScopedBlock(
-		openTokens: LexerToken[],
-		closeTokens: LexerToken[],
-		splitTokens: LexerToken[]
+		isOpen: (token?: Token) => boolean,
+		isClose: (token?: Token) => boolean,
+		isSplit?: (token?: Token) => boolean
 	): Block | undefined {
 		this.enqueToStack();
 
 		const start = this.moveToNextToken;
-		if (!start || !openTokens.some((t) => validToken(start, t))) {
+		if (!start || !isOpen(start)) {
 			this.popStack();
 			return;
 		}
@@ -306,10 +306,10 @@ export abstract class BaseParser {
 		const split: Token[][] = [];
 		split[0] = [];
 
-		while (!closeTokens.some((t) => validToken(this.currentToken, t))) {
+		while (!isClose(this.currentToken)) {
 			const token = this.moveToNextToken;
 
-			if (splitTokens.some((t) => validToken(token, t))) {
+			if (isSplit?.(token)) {
 				split[split.length] = [];
 			}
 
@@ -318,8 +318,8 @@ export abstract class BaseParser {
 				split[split.length - 1].push(token);
 			}
 
-			if (openTokens.some((t) => validToken(this.currentToken, t))) {
-				const nestedBlock = this.parseScopedBlock(openTokens, closeTokens, splitTokens);
+			if (isOpen(this.currentToken)) {
+				const nestedBlock = this.parseScopedBlock(isOpen, isClose, isSplit);
 				if (nestedBlock) {
 					items.push(nestedBlock);
 					split[split.length - 1].push(

@@ -323,9 +323,32 @@ export class CPreprocessorParser extends BaseParser {
 		const startIndex = this.peekIndex();
 
 		const block = this.parseScopedBlock(
-			[LexerToken.C_IFDEF, LexerToken.C_IFNDEF, LexerToken.C_IF],
-			[LexerToken.C_ENDIF],
-			[LexerToken.C_ELSE]
+			(token?: Token) => {
+				const prevTokenIndex = this.getTokenIndex(token) - 1;
+				return (
+					!!token &&
+					[LexerToken.C_IFDEF, LexerToken.C_IFNDEF, LexerToken.C_IF].some((t) =>
+						validToken(token, t)
+					) &&
+					!sameLine(this.tokens.at(prevTokenIndex), token)
+				);
+			},
+			(token?: Token) => {
+				const prevTokenIndex = this.getTokenIndex(token) - 1;
+				return (
+					!!token &&
+					[LexerToken.C_ENDIF].some((t) => validToken(token, t)) &&
+					!sameLine(this.tokens.at(prevTokenIndex), token)
+				);
+			},
+			(token?: Token) => {
+				const prevTokenIndex = this.getTokenIndex(token) - 1;
+				return (
+					!!token &&
+					[LexerToken.C_ELSE].some((t) => validToken(token, t)) &&
+					!sameLine(this.tokens.at(prevTokenIndex), token)
+				);
+			}
 		);
 		if (!block) {
 			return;
