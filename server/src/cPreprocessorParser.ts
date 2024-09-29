@@ -25,6 +25,7 @@ export class CPreprocessorParser extends BaseParser {
 	public tokens: Token[] = [];
 	includes: Include[] = [];
 	private nodes: ASTBase[] = [];
+	private macroSnapShot: Map<string, CMacro> = new Map<string, CMacro>();
 
 	// tokens must be filtered out from commnets by now
 	constructor(
@@ -35,6 +36,7 @@ export class CPreprocessorParser extends BaseParser {
 	) {
 		super();
 		this.commentsParser = new CommentsParser(this.uri);
+		Array.from(macros).forEach(([k, m]) => this.macroSnapShot.set(k, m));
 	}
 
 	includePaths() {
@@ -63,7 +65,8 @@ export class CPreprocessorParser extends BaseParser {
 	protected reset() {
 		super.reset();
 		this.includes = [];
-		this.macros = new Map<string, CMacro>();
+		this.macros.clear();
+		Array.from(this.macroSnapShot).forEach(([k, m]) => this.macros.set(k, m));
 		this.nodes = [];
 	}
 

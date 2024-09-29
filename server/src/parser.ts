@@ -36,6 +36,7 @@ import { ComplexExpression, Expression } from './ast/cPreprocessors/expression';
 import { FunctionCall } from './ast/cPreprocessors/functionCall';
 import { BaseParser } from './baseParser';
 import { CPreprocessorParser } from './cPreprocessorParser';
+import { CMacro } from './ast/cPreprocessors/macro';
 
 type AllowNodeRef = 'Ref' | 'Name';
 
@@ -51,10 +52,16 @@ export class Parser extends BaseParser {
 	constructor(
 		public readonly uri: string,
 		private incudes: string[],
-		private common: string[]
+		private common: string[],
+		macros: Map<string, CMacro> = new Map<string, CMacro>()
 	) {
 		super();
-		this.cPreprocessorParser = new CPreprocessorParser(this.uri, this.incudes, this.common);
+		this.cPreprocessorParser = new CPreprocessorParser(
+			this.uri,
+			this.incudes,
+			this.common,
+			macros
+		);
 		this.rootDocument.uri = uri;
 	}
 
