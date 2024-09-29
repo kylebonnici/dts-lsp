@@ -1070,7 +1070,7 @@ export class Parser extends BaseParser {
 		return node;
 	}
 
-	private isFuntion(): FunctionCall | undefined {
+	private isFuntionCall(): FunctionCall | undefined {
 		this.enqueToStack();
 		const identifier = this.processCIdentifier();
 		if (!identifier) {
@@ -1126,7 +1126,7 @@ export class Parser extends BaseParser {
 		}
 
 		let expression: Expression | undefined =
-			this.isFuntion() ||
+			this.isFuntionCall() ||
 			this.processCIdentifier() ||
 			this.processHex() ||
 			this.processDec();
