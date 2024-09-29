@@ -247,8 +247,8 @@ export class CPreprocessorParser extends BaseParser {
 
 		const resolvedPath = this.resolveInclude(node);
 		if (resolvedPath && !resolvedPath.endsWith('.h')) {
-			const tokens = getTokenizedDocmentProvider().requestTokens(resolvedPath, true);
-			const childParser = new Parser(resolvedPath, this.incudes, this.common);
+			getTokenizedDocmentProvider().requestTokens(resolvedPath, true);
+			const childParser = new Parser(resolvedPath, this.incudes, this.common, this.macros);
 			this.childParsers.push(childParser);
 			await childParser.stable;
 		}
