@@ -9,7 +9,7 @@ export class CIdentifier extends Expression {
 			name: this.name.toString(),
 			kind: SymbolKind.Variable,
 		};
-		this.semanticTokenType = 'variable';
+		this.semanticTokenType = 'macro';
 		this.semanticTokenModifiers = 'declaration';
 	}
 

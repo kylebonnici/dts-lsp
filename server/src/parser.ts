@@ -33,7 +33,7 @@ import { DtsDocumentVersion } from './ast/dtc/dtsDocVersion';
 import { ArrayValues } from './ast/dtc/values/arrayValue';
 import { LabledValue } from './ast/dtc/values/labledValue';
 import { ComplexExpression, Expression } from './ast/cPreprocessors/expression';
-import { FunctionCall } from './ast/cPreprocessors/functionCall';
+import { CMacroCall, CMacroCallParam } from './ast/cPreprocessors/functionCall';
 import { BaseParser } from './baseParser';
 import { CPreprocessorParser } from './cPreprocessorParser';
 import { CMacro } from './ast/cPreprocessors/macro';
@@ -1070,7 +1070,7 @@ export class Parser extends BaseParser {
 		return node;
 	}
 
-	private isFuntionCall(): FunctionCall | undefined {
+	private isFuntionCall(): CMacroCall | undefined {
 		this.enqueToStack();
 		const identifier = this.processCIdentifier();
 		if (!identifier) {
@@ -1078,36 +1078,14 @@ export class Parser extends BaseParser {
 			return;
 		}
 
-		let token = this.moveToNextToken;
-		if (!validToken(token, LexerToken.ROUND_OPEN)) {
+		const params = this.processMacroCallParams();
+
+		if (!params) {
 			this.popStack();
 			return;
 		}
 
-		const params: Expression[] = [];
-		let exp = this.processExpression();
-		while (exp) {
-			params.push(exp);
-			if (
-				!validToken(this.currentToken, LexerToken.COMMA) &&
-				!validToken(this.currentToken, LexerToken.ROUND_CLOSE)
-			) {
-				this.issues.push(genIssue(SyntaxIssue.MISSING_COMMA, exp));
-			} else if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
-				token = this.moveToNextToken;
-			}
-			exp = this.processExpression();
-		}
-
-		if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
-			this.issues.push(
-				genIssue(SyntaxIssue.MISSING_ROUND_CLOSE, params.at(-1) ?? identifier)
-			);
-		} else {
-			token = this.moveToNextToken;
-		}
-
-		const node = new FunctionCall(identifier, params);
+		const node = new CMacroCall(identifier, params);
 		this.mergeStack();
 		return node;
 	}
@@ -1161,6 +1139,27 @@ export class Parser extends BaseParser {
 
 		this.mergeStack();
 		return expression;
+	}
+
+	private processMacroCallParams(): CMacroCallParam[] | undefined {
+		if (!validToken(this.currentToken, LexerToken.ROUND_OPEN)) {
+			return;
+		}
+
+		const block = this.parseScopedBlock(
+			(token?: Token) => !!validToken(token, LexerToken.ROUND_OPEN),
+			(token?: Token) => !!validToken(token, LexerToken.ROUND_CLOSE),
+			(token?: Token) => !!validToken(token, LexerToken.COMMA)
+		);
+
+		return block?.splitTokens.map((param, i) => {
+			const tokens = param.filter((p) => !validToken(p, LexerToken.COMMA));
+			return new CMacroCallParam(
+				tokens.map((p) => p.value).join(''),
+				createTokenIndex(tokens[0], tokens.at(-1)),
+				i
+			);
+		});
 	}
 
 	private isLabelRef(slxBase?: ASTBase): LabelRef | undefined {
