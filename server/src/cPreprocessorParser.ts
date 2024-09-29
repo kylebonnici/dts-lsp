@@ -241,6 +241,7 @@ export class CPreprocessorParser extends BaseParser {
 				this.issues.push(genIssue(SyntaxIssue.INCLUDE_CLOSE_PATH, node));
 			} else {
 				token = this.moveToNextToken;
+				incudePath.lastToken = token;
 			}
 		}
 
