@@ -78,6 +78,8 @@ export class Parser extends BaseParser {
 		await this.cPreprocessorParser.stable;
 		this.tokens = this.cPreprocessorParser.tokens;
 
+		if (this.uri.endsWith('.h')) return;
+
 		this.positionStack.push(0);
 		if (this.tokens.length === 0) {
 			return;

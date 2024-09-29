@@ -39,7 +39,12 @@ export class CPreprocessorParser extends BaseParser {
 
 	includePaths() {
 		return this.includes
-			.filter((p) => p.path.path.endsWith('.dts') || p.path.path.endsWith('.dtsi'))
+			.filter(
+				(p) =>
+					p.path.path.endsWith('.dts') ||
+					p.path.path.endsWith('.dtsi') ||
+					p.path.path.endsWith('.h')
+			)
 			.map((include) => this.resolveInclude(include))
 			.filter((p) => p) as string[];
 	}

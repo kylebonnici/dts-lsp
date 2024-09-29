@@ -127,6 +127,7 @@ const defaultSettings: ExampleSettings = {
 		'/opt/nordic/ncs/v2.7.0/zephyr/dts/arm64/',
 		'/opt/nordic/ncs/v2.7.0/zephyr/dts/riscv',
 		'/opt/nordic/ncs/v2.7.0/zephyr/dts/common',
+		'/opt/nordic/ncs/v2.7.0/zephyr/include',
 	],
 	common: ['/opt/nordic/ncs/v2.7.0/zephyr/dts/common'],
 };
