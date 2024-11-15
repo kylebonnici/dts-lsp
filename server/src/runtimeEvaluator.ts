@@ -332,6 +332,7 @@ export class ContextAware {
 
 				runtimeNode?.linkedRefLabels.push(element.nodeNameOrRef);
 				runtimeNode?.parent?.deleteNode(runtimeNode.name, element);
+				runtime.globalDeletes.push(element);
 			}
 		} else {
 			runtime.unlinkedDeletes.push(element);

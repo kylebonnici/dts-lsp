@@ -31,6 +31,7 @@ export class Runtime implements Searchable {
 	public referances: DtcRefNode[] = [];
 	public unlinkedDeletes: DeleteNode[] = [];
 	public unlinkedRefNodes: DtcRefNode[] = [];
+	public globalDeletes: DeleteNode[] = [];
 	public rootNode: Node = new Node('/');
 
 	constructor(private readonly orderedFiles: string[]) {}
@@ -47,6 +48,7 @@ export class Runtime implements Searchable {
 			...this.referances,
 			...this.unlinkedDeletes,
 			...this.unlinkedRefNodes,
+			...this.globalDeletes,
 		].find(
 			(i) =>
 				positionInBetween(i, file, position) ||

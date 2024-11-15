@@ -2,7 +2,7 @@ import { Location, TextDocumentPositionParams } from 'vscode-languageserver';
 import { ContextAware } from './runtimeEvaluator';
 import { SearchableResult } from './types';
 import { Node } from './context/node';
-import { DtcChildNode, NodeName } from './ast/dtc/node';
+import { DtcChildNode, DtcRefNode, NodeName } from './ast/dtc/node';
 import { Label, LabelAssign } from './ast/dtc/label';
 import { LabelRef } from './ast/dtc/labelRef';
 import { nodeFinder, toRange } from './helpers';
@@ -10,7 +10,7 @@ import { DtcProperty, PropertyName } from './ast/dtc/property';
 import { Property } from './context/property';
 import { DeleteProperty } from './ast/dtc/deleteProperty';
 
-function getPropertyReferances(result: SearchableResult | undefined): Location[] {
+function getPropertyDefinition(result: SearchableResult | undefined): Location[] {
 	if (!result || result.item === null || !(result.ast instanceof PropertyName)) {
 		return [];
 	}
@@ -24,16 +24,9 @@ function getPropertyReferances(result: SearchableResult | undefined): Location[]
 	};
 
 	const gentItem = (property: Property) => {
-		return [
-			property.ast,
-			...property.allReplaced.map((p) => p.ast),
-			...[property.parent.deletedProperties.find((p) => (p.property = property))?.by ?? []],
-		]
+		return [property.ast, ...property.allReplaced.map((p) => p.ast)]
 			.map((dtc) => {
 				if (dtc instanceof DtcProperty) {
-					return Location.create(`file://${dtc.uri}`, toRange(dtc.propertyName ?? dtc));
-				}
-				if (dtc instanceof DeleteProperty) {
 					return Location.create(`file://${dtc.uri}`, toRange(dtc.propertyName ?? dtc));
 				}
 			})
@@ -58,7 +51,7 @@ function getPropertyReferances(result: SearchableResult | undefined): Location[]
 	return [];
 }
 
-function getNodeReferances(result: SearchableResult | undefined): Location[] {
+function getNodeDefinition(result: SearchableResult | undefined): Location[] {
 	if (
 		!result ||
 		(!(result.ast instanceof NodeName) &&
@@ -69,16 +62,13 @@ function getNodeReferances(result: SearchableResult | undefined): Location[] {
 	}
 
 	const gentItem = (node: Node) => {
-		return [...node.linkedRefLabels, ...node.linkedNodeNamePaths, ...node.definitons]
+		return [...node.definitons, ...node.referancedBy]
 			.map((dtc) => {
 				if (dtc instanceof DtcChildNode) {
-					return Location.create(`file://${dtc.uri}`, toRange(dtc.name ?? dtc));
-				}
-				if (dtc instanceof NodeName) {
 					return Location.create(`file://${dtc.uri}`, toRange(dtc));
 				}
-				if (dtc instanceof LabelRef) {
-					return Location.create(`file://${dtc.uri}`, toRange(dtc.label ?? dtc));
+				if (dtc instanceof DtcRefNode) {
+					return Location.create(`file://${dtc.uri}`, toRange(dtc));
 				}
 			})
 			.filter((r) => r) as Location[];
@@ -102,12 +92,12 @@ function getNodeReferances(result: SearchableResult | undefined): Location[] {
 	return [];
 }
 
-export async function getReferences(
+export async function getDefinitions(
 	location: TextDocumentPositionParams,
 	contexts: ContextAware[]
 ): Promise<Location[]> {
 	return nodeFinder(location, contexts, (locationMeta) => [
-		...getNodeReferances(locationMeta),
-		...getPropertyReferances(locationMeta),
+		...getNodeDefinition(locationMeta),
+		...getPropertyDefinition(locationMeta),
 	]);
 }

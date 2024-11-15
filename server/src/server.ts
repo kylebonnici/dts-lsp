@@ -32,6 +32,8 @@ import { ContextAware } from './runtimeEvaluator';
 import { getCompleteions } from './completion';
 import { getReferences } from './findReferences';
 import { getTokenizedDocmentProvider } from './providers/tokenizedDocument';
+import { getDefinitions } from './findDefinitons';
+import { getDeclaration } from './findDeclarations';
 
 let contextAware: ContextAware[] = [];
 
@@ -86,6 +88,8 @@ connection.onInitialize((params: InitializeParams) => {
 			documentLinkProvider: {
 				resolveProvider: false,
 			},
+			definitionProvider: true,
+			declarationProvider: true,
 			referencesProvider: true,
 		},
 	};
@@ -518,4 +522,12 @@ connection.onDocumentLinks(async (event) => {
 
 connection.onReferences(async (event) => {
 	return getReferences(event, contextAware);
+});
+
+connection.onDefinition(async (event) => {
+	return getDefinitions(event, contextAware);
+});
+
+connection.onDeclaration(async (event) => {
+	return getDeclaration(event, contextAware);
 });
