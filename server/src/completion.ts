@@ -1,6 +1,7 @@
 import {
 	CompletionItem,
 	CompletionItemKind,
+	InsertTextFormat,
 	TextDocumentPositionParams,
 } from 'vscode-languageserver';
 import { ContextAware } from './runtimeEvaluator';
@@ -89,12 +90,16 @@ function getCreateNodeRefItems(
 		return resolveNonDeletedScopedLabels(node, inScope).filter((l) => inScope(l));
 	};
 
-	return Array.from(
-		new Set(getScopeItems(result.runtime.rootNode).map((l) => l.label))
-	).map((l) => ({
-		label: `${l} {\n\t\n};`,
-		kind: CompletionItemKind.Method,
-	}));
+	return [
+		...Array.from(new Set(getScopeItems(result.runtime.rootNode).map((l) => l.label))).map(
+			(l) => ({
+				label: l,
+				insertText: `${l} {\n$1\n};`,
+				kind: CompletionItemKind.Value,
+				insertTextFormat: InsertTextFormat.Snippet,
+			})
+		),
+	];
 }
 
 function getDeleteNodeRefItems(
@@ -274,7 +279,7 @@ function getNodeRefPathsItems(
 
 export async function getCompleteions(
 	location: TextDocumentPositionParams,
-	context: ContextAware
+	context: ContextAware[]
 ): Promise<CompletionItem[]> {
 	return nodeFinder(location, context, (locationMeta, inScope) => [
 		...getDeletePropertyItems(locationMeta, inScope),

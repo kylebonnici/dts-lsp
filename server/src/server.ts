@@ -27,14 +27,15 @@ import {
 	tokenModifiers,
 	tokenTypes,
 } from './types';
-import { Parser } from './parser';
-import { toRange } from './helpers';
+import { findContext, resolveContextFiles, toRange } from './helpers';
 import { ContextAware } from './runtimeEvaluator';
 import { getCompleteions } from './completion';
 import { getReferences } from './findReferences';
 import { getTokenizedDocmentProvider } from './providers/tokenizedDocument';
+import { getDefinitions } from './findDefinitons';
+import { getDeclaration } from './findDeclarations';
 
-let contextAware: ContextAware | undefined;
+let contextAware: ContextAware[] = [];
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -87,6 +88,8 @@ connection.onInitialize((params: InitializeParams) => {
 			documentLinkProvider: {
 				resolveProvider: false,
 			},
+			definitionProvider: true,
+			declarationProvider: true,
 			referencesProvider: true,
 		},
 	};
@@ -128,6 +131,7 @@ const defaultSettings: ExampleSettings = {
 		'/opt/nordic/ncs/v2.7.0/zephyr/dts/arm64/',
 		'/opt/nordic/ncs/v2.7.0/zephyr/dts/riscv',
 		'/opt/nordic/ncs/v2.7.0/zephyr/dts/common',
+		'/opt/nordic/ncs/v2.7.0/zephyr/include',
 	],
 	common: ['/opt/nordic/ncs/v2.7.0/zephyr/dts/common'],
 };
@@ -260,6 +264,12 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
 			return 'Invalid include Syntax';
 		case SyntaxIssue.MISSING_COMMA:
 			return 'Missing ","';
+		case SyntaxIssue.EXPECTED_IDENTIFIER:
+			return 'Expected Macro Idenifier';
+		case SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE:
+			return 'Expected Macro Idenifier or Function like Macro';
+		case SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE:
+			return 'No white space between no name and address is allowed';
 	}
 };
 
@@ -346,20 +356,32 @@ documents.onDidChangeContent(async (change) => {
 
 	getTokenizedDocmentProvider().renewLexer(uri, change.document.getText());
 
-	if (
-		!contextAware ||
-		!(await contextAware?.getOrderedContextFiles())?.some((p) => p === uri)
-	) {
+	const context = await findContext(contextAware, uri);
+
+	if (!context) {
 		console.log('new context');
 
-		contextAware = new ContextAware(
+		const newContext = new ContextAware(
 			uri,
 			defaultSettings.includePath,
 			defaultSettings.common
 		);
-		await contextAware.parser.stable;
+		contextAware.push(newContext);
+
+		await newContext.parser.stable;
+		const newContextFiles = await newContext.getOrderedContextFiles();
+		const contextFiles = await resolveContextFiles(contextAware);
+		const contextToClean = contextFiles
+			.filter(
+				(o) =>
+					o.context !== newContext && newContextFiles.some((f) => o.files.indexOf(f) !== -1)
+			)
+			.map((o) => o.context);
+		contextAware = contextAware.filter((c) => contextToClean.indexOf(c) === -1);
+		console.log('cleanin up contexts', contextToClean.length, contextAware.length);
+		contextAware.push(newContext);
 	} else {
-		await contextAware.revaluate(uri);
+		await context.context.revaluate(uri);
 	}
 
 	console.timeEnd('revaluate');
@@ -369,9 +391,10 @@ async function getDiagnostics(textDocument: TextDocument): Promise<Diagnostic[]>
 	const uri = textDocument.uri.replace('file://', '');
 	const diagnostics: Diagnostic[] = [];
 
-	await contextAware?.parser.stable;
+	const contextMeta = await findContext(contextAware, uri);
+	await contextMeta?.context.parser.stable;
 
-	const parser = await contextAware?.getParser(uri);
+	const parser = await contextMeta?.context.getParser(uri);
 	parser?.issues.forEach((issue) => {
 		const diagnostic: Diagnostic = {
 			severity: issue.severity,
@@ -382,7 +405,7 @@ async function getDiagnostics(textDocument: TextDocument): Promise<Diagnostic[]>
 		diagnostics.push(diagnostic);
 	});
 
-	const contextIssues = (await contextAware?.getContextIssues()) ?? [];
+	const contextIssues = (await contextMeta?.context.getContextIssues()) ?? [];
 	contextIssues
 		.filter((issue) => issue.astElement.uri === uri)
 		.forEach((issue) => {
@@ -405,7 +428,7 @@ async function getDiagnostics(textDocument: TextDocument): Promise<Diagnostic[]>
 			diagnostics.push(diagnostic);
 		});
 
-	const runtime = await contextAware?.getRuntime();
+	const runtime = await contextMeta?.context.getRuntime();
 	runtime?.typesIssues
 		.filter((issue) => issue.astElement.uri === uri)
 		.forEach((issue) => {
@@ -464,30 +487,47 @@ connection.listen();
 
 connection.onDocumentSymbol(async (h) => {
 	const uri = h.textDocument.uri.replace('file://', '');
-	const data = await contextAware?.getParser(uri);
-	if (!data) return [];
+	const contextMeta = await findContext(contextAware, uri);
 
+	const data = await contextMeta?.context.getParser(uri);
+	if (!data) return [];
 	return data.getDocumentSymbols();
 });
 
 connection.languages.semanticTokens.on(async (h) => {
 	const uri = h.textDocument.uri.replace('file://', '');
+
 	const tokensBuilder = new SemanticTokensBuilder();
 
-	const data = await contextAware?.getParser(uri);
+	const contextMeta = await findContext(contextAware, uri);
+
+	const data = await contextMeta?.context.getParser(uri);
+	if (!data) {
+		console.log('no parser for uri found');
+	}
+	console.log('found semanticTokens', uri);
+
+	await data?.stable;
 	data?.buildSemanticTokens(tokensBuilder);
 
 	return tokensBuilder.build();
 });
 
-connection.onDocumentLinks((event) => {
+connection.onDocumentLinks(async (event) => {
 	const uri = event.textDocument.uri.replace('file://', '');
-	return contextAware?.getDocumentLinks(uri);
+	const contextMeta = await findContext(contextAware, uri);
+
+	return contextMeta?.context.getDocumentLinks(uri);
 });
 
-connection.onReferences((event) => {
-	if (contextAware) {
-		return getReferences(event, contextAware);
-	}
-	return [];
+connection.onReferences(async (event) => {
+	return getReferences(event, contextAware);
+});
+
+connection.onDefinition(async (event) => {
+	return getDefinitions(event, contextAware);
+});
+
+connection.onDeclaration(async (event) => {
+	return getDeclaration(event, contextAware);
 });

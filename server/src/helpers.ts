@@ -131,14 +131,18 @@ export const sortAstForScope = (ast: ASTBase[], fileOrder: string[]) => {
 
 export async function nodeFinder<T>(
 	location: TextDocumentPositionParams,
-	context: ContextAware,
+	contexts: ContextAware[],
 	action: (result: SearchableResult | undefined, inScope: (ast: ASTBase) => boolean) => T[]
 ): Promise<T[]> {
 	const uri = location.textDocument.uri.replace('file://', '');
 
+	const contextMeta = await findContext(contexts, uri);
+
+	if (!contextMeta) return [];
+
 	console.time('search');
-	const orderedFiles = await context.getOrderedContextFiles();
-	const runtime = await context.getRuntime();
+	const orderedFiles = await contextMeta.context.getOrderedContextFiles();
+	const runtime = await contextMeta.context.getRuntime();
 	const locationMeta = runtime.getDeepestAstNode(
 		orderedFiles.slice(0, orderedFiles.indexOf(uri)),
 		uri,
@@ -193,4 +197,16 @@ export const adjesentTokens = (tokenA?: Token, tokenB?: Token) => {
 		sameLine(tokenA, tokenB) &&
 		tokenA.pos.col + tokenA.pos.len === tokenB.pos.col
 	);
+};
+
+export const resolveContextFiles = async (contextAware: ContextAware[]) => {
+	return Promise.all(
+		contextAware.map(async (c) => ({ context: c, files: await c.getOrderedContextFiles() }))
+	);
+};
+
+export const findContext = async (contextAware: ContextAware[], uri: string) => {
+	const contextFiles = await resolveContextFiles(contextAware);
+
+	return contextFiles.find((c) => c.files.some((p) => p === uri));
 };
