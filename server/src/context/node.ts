@@ -269,9 +269,12 @@ export class Node {
     this._nodes.splice(index, 1);
   }
 
-  getNode(name: string, address?: number) {
+  getNode(name: string, address?: number, strict = true) {
+    const isAddressNeeded =
+      strict || this._nodes.filter((node) => node.name === name).length > 1;
     const index = this._nodes.findIndex(
-      (node) => node.name === name && node.address === address
+      (node) =>
+        node.name === name && (!isAddressNeeded || node.address === address)
     );
     if (index === -1) return;
 
@@ -308,13 +311,17 @@ export class Node {
     }
   }
 
-  getChild(path: string[]): Node | undefined {
-    if (path.length === 1 && path[0] === this.fullName) return this;
-    if (path[0] !== this.fullName) return undefined;
+  getChild(path: string[], strict = true): Node | undefined {
     const copy = [...path];
     copy.splice(0, 1);
-    const myChild = this._nodes.find((node) => node.fullName === copy[0]);
-    return myChild?.getChild(copy);
+    const split = copy[0].split("@");
+    const name = split[0];
+    const address =
+      split[1] !== undefined ? Number.parseInt(split[1]) : undefined;
+    const myChild = this.getNode(name, address, strict);
+    if (copy.length === 1 || !myChild) return myChild;
+
+    return myChild.getChild(copy);
   }
 
   getChildFromScope(

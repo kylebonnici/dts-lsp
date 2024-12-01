@@ -308,7 +308,8 @@ export class ContextAware {
             if (nodePath) {
               const child: Node | undefined = node?.getNode(
                 nodePath.name,
-                nodePath.address
+                nodePath.address,
+                false
               );
               nodePath.linksTo = child;
               child?.linkedNodeNamePaths.push(nodePath);
