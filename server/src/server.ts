@@ -278,6 +278,8 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "Expected Macro Idenifier or Function like Macro";
     case SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE:
       return "No white space between no name and address is allowed";
+    case SyntaxIssue.EXPECTED_VALUE:
+      return "Expected Value";
   }
 };
 

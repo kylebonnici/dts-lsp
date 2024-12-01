@@ -61,6 +61,7 @@ export enum SyntaxIssue {
   NODE_NAME_ADDRESS_WHITE_SPACE,
   EXPECTED_IDENTIFIER_FUNCTION_LIKE,
   EXPECTED_IDENTIFIER,
+  EXPECTED_VALUE,
 }
 
 export enum ContextIssues {
