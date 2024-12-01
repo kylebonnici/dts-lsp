@@ -332,7 +332,7 @@ export class Node {
     return myChild?.getChildFromScope(copy, inScope);
   }
 
-  private get fullName() {
+  get fullName() {
     if (this.address) {
       return `${this.name}@${this.address}`;
     }

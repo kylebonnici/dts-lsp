@@ -30,7 +30,7 @@ import {
 } from "./types";
 import { findContext, resolveContextFiles, toRange } from "./helpers";
 import { ContextAware } from "./runtimeEvaluator";
-import { getCompleteions } from "./completion";
+import { getCompletions } from "./getCompletions";
 import { getReferences } from "./findReferences";
 import { getTokenizedDocmentProvider } from "./providers/tokenizedDocument";
 import { getDefinitions } from "./findDefinitons";
@@ -479,7 +479,7 @@ connection.onCompletion(
     // which code complete got requested. For the example we ignore this
     // info and always provide the same completion items.
     if (contextAware) {
-      const temp = await getCompleteions(_textDocumentPosition, contextAware);
+      const temp = await getCompletions(_textDocumentPosition, contextAware);
       return temp;
     }
 
