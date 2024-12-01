@@ -1,30 +1,29 @@
 import {
 	DtcBaseNode,
-	DtcChildNode,
 	DtcRefNode,
 	DtcRootNode,
 	NodeName,
-} from '../ast/dtc/node';
+} from "../ast/dtc/node";
 import {
 	ContextIssues,
 	Issue,
 	Searchable,
 	SearchableResult,
 	StandardTypeIssue,
-} from '../types';
-import { Property } from './property';
-import { DeleteNode } from '../ast/dtc/deleteNode';
+} from "../types";
+import { Property } from "./property";
+import { DeleteNode } from "../ast/dtc/deleteNode";
 import {
 	genIssue,
 	getDeepestAstNodeInBetween,
 	isLastTokenOnLine,
 	positionInBetween,
 	sortAstForScope,
-} from '../helpers';
-import { DiagnosticSeverity, Position } from 'vscode-languageserver';
-import { LabelAssign } from '../ast/dtc/label';
-import { Node } from './node';
-import { getTokenizedDocmentProvider } from '../providers/tokenizedDocument';
+} from "../helpers";
+import { DiagnosticSeverity, Position } from "vscode-languageserver";
+import { LabelAssign } from "../ast/dtc/label";
+import { Node } from "./node";
+import { getTokenizedDocmentProvider } from "../providers/tokenizedDocument";
 
 export class Runtime implements Searchable {
 	public roots: DtcRootNode[] = [];
@@ -32,7 +31,7 @@ export class Runtime implements Searchable {
 	public unlinkedDeletes: DeleteNode[] = [];
 	public unlinkedRefNodes: DtcRefNode[] = [];
 	public globalDeletes: DeleteNode[] = [];
-	public rootNode: Node = new Node('/');
+  public rootNode: Node = new Node("/");
 
 	constructor(private readonly orderedFiles: string[]) {}
 
@@ -61,7 +60,11 @@ export class Runtime implements Searchable {
 
 		if (dtcNode instanceof DtcRefNode) {
 			const refByNode = this.rootNode.getReferenceBy(dtcNode);
-			const result = refByNode?.getDeepestAstNode(previousFiles, file, position);
+      const result = refByNode?.getDeepestAstNode(
+        previousFiles,
+        file,
+        position
+      );
 			if (result) {
 				return { ...result, runtime: this };
 			}
@@ -71,7 +74,11 @@ export class Runtime implements Searchable {
 				ast: getDeepestAstNodeInBetween(dtcNode, previousFiles, file, position),
 			};
 		} else if (dtcNode instanceof DtcRootNode && dtcNode.path) {
-			const result = this.rootNode.getDeepestAstNode(previousFiles, file, position);
+      const result = this.rootNode.getDeepestAstNode(
+        previousFiles,
+        file,
+        position
+      );
 			return result ? { ...result, runtime: this } : undefined;
 		} else if (dtcNode) {
 			// unlinkedDeletes
@@ -86,7 +93,7 @@ export class Runtime implements Searchable {
 	}
 
 	resolvePath(path: string[]): string[] | undefined {
-		if (!path?.[0].startsWith('&')) {
+    if (!path?.[0].startsWith("&")) {
 			return path;
 		}
 
@@ -98,7 +105,8 @@ export class Runtime implements Searchable {
 		const allLabels = this.rootNode.allDescendantsLabels;
 
 		const label = allLabels.find(
-			(l) => l.label === path?.[0].slice(1) && l.parentNode instanceof DtcBaseNode
+      (l) =>
+        l.label === path?.[0].slice(1) && l.parentNode instanceof DtcBaseNode
 		)?.parentNode as DtcBaseNode | undefined;
 
 		const newPath = label?.path;
@@ -142,7 +150,9 @@ export class Runtime implements Searchable {
 		Array.from(lablesUsed).forEach((pair) => {
 			const otherOwners = pair[1];
 			if (otherOwners.length > 1) {
-				const firstLabeledNode = otherOwners.find((o) => o.owner instanceof Node);
+        const firstLabeledNode = otherOwners.find(
+          (o) => o.owner instanceof Node
+        );
 
 				const allSameOwner = otherOwners.every(
 					(owner) => owner && owner.owner === firstLabeledNode?.owner
@@ -196,7 +206,10 @@ export class Runtime implements Searchable {
 
 	get typesIssues() {
 		const getIssue = (node: Node): Issue<StandardTypeIssue>[] => {
-			return [...node.nodeType.getIssue(this), ...node.nodes.flatMap((n) => getIssue(n))];
+      return [
+        ...node.nodeType.getIssue(this),
+        ...node.nodes.flatMap((n) => getIssue(n)),
+      ];
 		};
 
 		return getIssue(this.rootNode);
@@ -232,7 +245,7 @@ export class Runtime implements Searchable {
 							DiagnosticSeverity.Error,
 							[],
 							[],
-							[failed.value, okParts.join('/')]
+              [failed.value, okParts.join("/")]
 						)
 					);
 				}
@@ -243,6 +256,9 @@ export class Runtime implements Searchable {
 	}
 
 	getOrderedNodeAst(node: Node) {
-		return sortAstForScope([...node.definitons, ...node.referancedBy], this.orderedFiles);
+    return sortAstForScope(
+      [...node.definitons, ...node.referancedBy],
+      this.orderedFiles
+    );
 	}
 }
