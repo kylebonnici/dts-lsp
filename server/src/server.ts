@@ -555,7 +555,5 @@ connection.onDeclaration(async (event) => {
 });
 
 connection.onCodeAction(async (event) => {
-  const a = getCodeActions(event);
-  console.log(getCodeActions(event));
   return getCodeActions(event);
 });
