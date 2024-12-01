@@ -252,20 +252,26 @@ export class Parser extends BaseParser {
     const labels = this.processOptionalLablelAssign();
 
     let name: NodeName | undefined;
+    let ref: LabelRef | undefined;
 
     const child =
       allow === "Ref"
         ? new DtcRefNode(labels)
         : new DtcChildNode(labels, omitIfNoRef);
 
-    const ref = this.isLabelRef();
-    if (ref && allow === "Name") {
-      this.issues.push(genIssue([SyntaxIssue.NODE_NAME], ref));
+    if (allow === "Ref") {
+      ref = this.isLabelRef();
+      if (ref) {
+        this.issues.push(genIssue([SyntaxIssue.NODE_REF], ref));
+      }
+    } else if (allow === "Name") {
+      name = this.isNodeName();
+      if (ref) {
+        this.issues.push(genIssue([SyntaxIssue.NODE_NAME], ref));
+      }
     }
 
     if (!ref) {
-      name = this.isNodeName();
-
       if (!name && !ref) {
         child.firstToken = this.currentToken;
       }
@@ -278,7 +284,10 @@ export class Parser extends BaseParser {
         }
 
         this.issues.push(
-          genIssue([SyntaxIssue.NODE_NAME, SyntaxIssue.NODE_REF], child)
+          genIssue(
+            [allow === "Name" ? SyntaxIssue.NODE_NAME : SyntaxIssue.NODE_REF],
+            child
+          )
         );
       } else if (allow === "Ref") {
         this.issues.push(genIssue([SyntaxIssue.NODE_REF], name));
