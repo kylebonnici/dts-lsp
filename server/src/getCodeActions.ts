@@ -50,6 +50,7 @@ const syntaxIssueToCodeAction = (
     case SyntaxIssue.MISSING_ROUND_CLOSE:
     case SyntaxIssue.INCLUDE_CLOSE_PATH:
     case SyntaxIssue.MISSING_COMMA:
+    default:
       return;
   }
 };
@@ -59,8 +60,10 @@ export function getCodeActions(
 ): CodeAction[] {
   return codeActionParams.context.diagnostics
     .flatMap((diagnostic) => {
-      const tmp = diagnostic.data as { syntaxIssue?: SyntaxIssue }[];
-      return tmp.map((d) => {
+      const tmp = diagnostic.data as
+        | { syntaxIssue?: SyntaxIssue }[]
+        | undefined;
+      return tmp?.map((d) => {
         if (d.syntaxIssue !== undefined) {
           return syntaxIssueToCodeAction(
             d.syntaxIssue,
