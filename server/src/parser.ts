@@ -513,7 +513,7 @@ export class Parser extends BaseParser {
       this.moveToNextToken;
       result = this.processValue(node);
 
-      if (!result.values.filter((v) => !!v).length) {
+      if (!result?.values.filter((v) => !!v).length) {
         this.issues.push(genIssue(SyntaxIssue.VALUE, node));
       }
     }
@@ -787,7 +787,7 @@ export class Parser extends BaseParser {
     return true;
   }
 
-  private processValue(dtcProperty: DtcProperty): PropertyValues {
+  private processValue(dtcProperty: DtcProperty): PropertyValues | undefined {
     this.enqueToStack();
 
     const labels = this.processOptionalLablelAssign(true);
@@ -802,12 +802,13 @@ export class Parser extends BaseParser {
           null
         );
       };
-      const value = [getValue()];
+      const value = getValue();
 
       if (!value) {
-        this.issues.push(genIssue(SyntaxIssue.VALUE, dtcProperty));
+        return [];
       }
 
+      const values = [value];
       while (validToken(this.currentToken, LexerToken.COMMA)) {
         const start = this.prevToken;
         const end = this.currentToken;
@@ -817,13 +818,18 @@ export class Parser extends BaseParser {
           const node = new ASTBase(createTokenIndex(start, end));
           this.issues.push(genIssue(SyntaxIssue.VALUE, node));
         }
-        value.push(next);
+        values.push(next!);
       }
 
-      return value;
+      return values;
     };
 
     const values = getValues();
+
+    if (values.length === 0) {
+      this.popStack();
+      return;
+    }
 
     this.mergeStack();
     const node = new PropertyValues(values, labels);
