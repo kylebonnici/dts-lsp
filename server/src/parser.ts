@@ -292,6 +292,8 @@ export class Parser extends BaseParser {
     } else if (name && child instanceof DtcChildNode) {
       expectedNode = name.address !== undefined;
       child.name = name;
+    } else {
+      child.firstToken = this.currentToken;
     }
 
     if (!validToken(this.currentToken, LexerToken.CURLY_OPEN)) {
