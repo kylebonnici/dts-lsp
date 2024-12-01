@@ -18,7 +18,7 @@ import { Runtime } from "./context/runtime";
 import { genIssue, toRange } from "./helpers";
 import { Parser } from "./parser";
 import { DiagnosticSeverity, DocumentLink } from "vscode-languageserver";
-import { NodePath } from "./ast/dtc/values/nodePath";
+import { NodePath, NodePathRef } from "./ast/dtc/values/nodePath";
 
 export class ContextAware {
   _issues: Issue<ContextIssues>[] = [];
@@ -332,7 +332,7 @@ export class ContextAware {
   ) {
     if (
       element.nodeNameOrRef instanceof NodeName &&
-      element.nodeNameOrRef?.value
+      element.nodeNameOrRef.value
     ) {
       if (element.parentNode?.parentNode) {
         if (
@@ -398,6 +398,73 @@ export class ContextAware {
           element,
           runtimeNode.address
         );
+
+        if (
+          element.parentNode instanceof DtcBaseNode &&
+          !element.parentNode.pathName
+        ) {
+          runtime.globalDeletes.push(element);
+        }
+      }
+    } else if (
+      element.nodeNameOrRef instanceof NodePathRef &&
+      element.nodeNameOrRef.path &&
+      !element.nodeNameOrRef.path.pathParts.some((p) => !p)
+    ) {
+      const resolvedPath = [
+        "/",
+        ...(element.nodeNameOrRef.path.pathParts as NodeName[]).map((n) =>
+          n.toString()
+        ),
+      ];
+
+      const runtimeNode = runtime.rootNode.getChild(resolvedPath, false);
+      if (!runtimeNode) {
+        runtime.unlinkedDeletes.push(element);
+        this._issues.push(
+          genIssue(
+            ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH,
+            element,
+            DiagnosticSeverity.Error,
+            [],
+            [],
+            [element.nodeNameOrRef.path.toString()]
+          )
+        );
+      }
+      runtimeNodeParent.deletes.push(element);
+
+      runtimeNode?.labels.forEach((label) => {
+        runtime.lablesUsedCache.delete(label.label);
+      });
+
+      let node: Node | undefined = runtime.rootNode;
+      const paths = element.nodeNameOrRef.path.pathParts;
+      for (let i = 0; i < paths.length && paths[i]; i++) {
+        const nodePath = paths[i];
+
+        if (nodePath) {
+          const child: Node | undefined = node?.getNode(
+            nodePath.name,
+            nodePath.address,
+            false
+          );
+          nodePath.linksTo = child;
+          child?.linkedNodeNamePaths.push(nodePath);
+          node = child;
+        }
+      }
+
+      runtimeNode?.parent?.deleteNode(
+        runtimeNode.name,
+        element,
+        runtimeNode.address
+      );
+
+      if (
+        element.parentNode instanceof DtcBaseNode &&
+        !element.parentNode.pathName
+      ) {
         runtime.globalDeletes.push(element);
       }
     } else {

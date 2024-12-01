@@ -268,11 +268,7 @@ function getNodeRefPathsItems(
   result: SearchableResult | undefined,
   inScope: (ast: ASTBase) => boolean
 ): CompletionItem[] {
-  if (
-    !result ||
-    !(result.item instanceof Property) ||
-    !(result.ast instanceof NodePath)
-  ) {
+  if (!result || !(result.ast instanceof NodePath)) {
     return [];
   }
 

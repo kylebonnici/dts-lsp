@@ -668,22 +668,27 @@ export class Parser extends BaseParser {
     const node = new DeleteNode(keyword);
 
     if (sameLine(keyword.tokenIndexes?.end, firstToken)) {
-      const labelRef = this.isLabelRef();
+      const nodePathRef = this.processNodePathRef();
+      if (nodePathRef && allow === "Name") {
+        this.issues.push(genIssue(SyntaxIssue.NODE_NAME, nodePathRef));
+      }
+
+      const labelRef = nodePathRef ? undefined : this.isLabelRef();
       if (labelRef && allow === "Name") {
         this.issues.push(genIssue(SyntaxIssue.NODE_NAME, labelRef));
       }
+
       const nodeName = labelRef ? undefined : this.isNodeName();
       if (nodeName && allow === "Ref") {
         this.issues.push(genIssue(SyntaxIssue.NODE_REF, nodeName));
       }
 
-      if (!nodeName && !labelRef) {
+      if (!nodePathRef && !nodeName && !labelRef) {
         this.issues.push(
           genIssue([SyntaxIssue.NODE_NAME, SyntaxIssue.NODE_REF], node)
         );
       }
-
-      node.nodeNameOrRef = labelRef ?? nodeName ?? null;
+      node.nodeNameOrRef = nodePathRef ?? labelRef ?? nodeName ?? null;
     } else {
       if (allow === "Name") {
         this.issues.push(genIssue(SyntaxIssue.NODE_NAME, keyword));
