@@ -16,7 +16,7 @@ const syntaxIssueToCodeAction = (
   switch (issue) {
     case SyntaxIssue.END_STATMENT:
       return {
-        title: "Add semicolun",
+        title: "Add semicolon",
         diagnostics: [diagnostic],
         kind: CodeActionKind.QuickFix,
         isPreferred: true,
