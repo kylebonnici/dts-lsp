@@ -16,6 +16,7 @@ import {
   DocumentDiagnosticReportKind,
   type DocumentDiagnosticReport,
   SemanticTokensBuilder,
+  CodeActionKind,
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -34,6 +35,7 @@ import { getReferences } from "./findReferences";
 import { getTokenizedDocmentProvider } from "./providers/tokenizedDocument";
 import { getDefinitions } from "./findDefinitons";
 import { getDeclaration } from "./findDeclarations";
+import { getCodeActions } from "./getCodeActions";
 
 let contextAware: ContextAware[] = [];
 
@@ -76,6 +78,9 @@ connection.onInitialize((params: InitializeParams) => {
       diagnosticProvider: {
         interFileDependencies: false,
         workspaceDiagnostics: false,
+      },
+      codeActionProvider: {
+        codeActionKinds: [CodeActionKind.QuickFix],
       },
       documentSymbolProvider: true,
       semanticTokensProvider: {
@@ -413,6 +418,7 @@ async function getDiagnostics(
         ? issue.issues.map(syntaxIssueToMessage).join(" or ")
         : "",
       source: "devie tree",
+      data: issue.issues.map((syntaxIssue) => ({ syntaxIssue })),
     };
     diagnostics.push(diagnostic);
   });
@@ -546,4 +552,10 @@ connection.onDefinition(async (event) => {
 
 connection.onDeclaration(async (event) => {
   return getDeclaration(event, contextAware);
+});
+
+connection.onCodeAction(async (event) => {
+  const a = getCodeActions(event);
+  console.log(getCodeActions(event));
+  return getCodeActions(event);
 });
