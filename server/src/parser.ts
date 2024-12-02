@@ -261,14 +261,8 @@ export class Parser extends BaseParser {
 
     if (allow === "Ref") {
       ref = this.isLabelRef();
-      if (ref) {
-        this.issues.push(genIssue([SyntaxIssue.NODE_REF], ref));
-      }
     } else if (allow === "Name") {
       name = this.isNodeName();
-      if (ref) {
-        this.issues.push(genIssue([SyntaxIssue.NODE_NAME], ref));
-      }
     }
 
     if (!ref) {
@@ -376,8 +370,9 @@ export class Parser extends BaseParser {
       );
 
       if (!adjesentTokens(valid.at(-1), atValid[0])) {
+        const whiteSpace = new ASTBase(createTokenIndex(valid[0], atValid[0]));
         this.issues.push(
-          genIssue(SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE, node)
+          genIssue(SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE, whiteSpace)
         );
       } else if (Number.isNaN(address)) {
         this.issues.push(genIssue(SyntaxIssue.NODE_ADDRESS, node));
@@ -385,8 +380,11 @@ export class Parser extends BaseParser {
         !Number.isNaN(address) &&
         !adjesentTokens(atValid.at(-1), addressValid[0])
       ) {
+        const whiteSpace = new ASTBase(
+          createTokenIndex(atValid[0], addressValid.at(0))
+        );
         this.issues.push(
-          genIssue(SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE, node)
+          genIssue(SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE, whiteSpace)
         );
       }
 
