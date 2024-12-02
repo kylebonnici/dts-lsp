@@ -9,7 +9,7 @@ import {
 import { ASTBase } from "./ast/base";
 import { Keyword } from "./ast/keyword";
 import { Include, IncludePath } from "./ast/cPreprocessors/include";
-import { existsSync } from "fs-extra";
+import { existsSync } from "fs";
 import { resolve, dirname } from "path";
 import { BaseParser, Block } from "./baseParser";
 import { Parser } from "./parser";
