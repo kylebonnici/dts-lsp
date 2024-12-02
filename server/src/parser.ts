@@ -266,25 +266,23 @@ export class Parser extends BaseParser {
     }
 
     if (!ref) {
-      if (!name && !ref) {
-        child.firstToken = this.currentToken;
-      }
-
       if (!name) {
         if (!validToken(this.currentToken, LexerToken.CURLY_OPEN)) {
-          // must be property then ....
+          // could be property then ....
           this.popStack();
           return false;
         }
 
+        child.firstToken = this.currentToken;
+
         this.issues.push(
           genIssue(
-            [allow === "Name" ? SyntaxIssue.NODE_NAME : SyntaxIssue.NODE_REF],
+            allow === "Name"
+              ? [SyntaxIssue.NODE_NAME]
+              : [SyntaxIssue.NODE_REF, SyntaxIssue.ROOT_NODE_NAME],
             child
           )
         );
-      } else if (allow === "Ref") {
-        this.issues.push(genIssue([SyntaxIssue.NODE_REF], name));
       }
     }
 
@@ -295,13 +293,13 @@ export class Parser extends BaseParser {
     } else if (name && child instanceof DtcChildNode) {
       expectedNode = name.address !== undefined;
       child.name = name;
-    } else {
-      child.firstToken = this.currentToken;
     }
 
     if (!validToken(this.currentToken, LexerToken.CURLY_OPEN)) {
       if (expectedNode) {
-        this.issues.push(genIssue(SyntaxIssue.CURLY_OPEN, child));
+        const refOrName = ref ?? name;
+        if (refOrName)
+          this.issues.push(genIssue(SyntaxIssue.CURLY_OPEN, refOrName));
       } else {
         // this could be a property
         this.popStack();
@@ -370,13 +368,18 @@ export class Parser extends BaseParser {
       );
 
       if (!adjesentTokens(valid.at(-1), atValid[0])) {
-        const whiteSpace = new ASTBase(createTokenIndex(valid[0], atValid[0]));
+        const whiteSpace = new ASTBase(
+          createTokenIndex(valid.at(-1)!, atValid[0])
+        );
         this.issues.push(
           genIssue(SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE, whiteSpace)
         );
-      } else if (Number.isNaN(address)) {
+      }
+      if (Number.isNaN(address)) {
         this.issues.push(genIssue(SyntaxIssue.NODE_ADDRESS, node));
-      } else if (
+      }
+
+      if (
         !Number.isNaN(address) &&
         !adjesentTokens(atValid.at(-1), addressValid[0])
       ) {

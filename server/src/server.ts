@@ -21,6 +21,7 @@ import {
 
 import { TextDocument } from "vscode-languageserver-textdocument";
 import {
+  CodeActionDiagnosticData,
   ContextIssues,
   Issue,
   StandardTypeIssue,
@@ -230,6 +231,8 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "Expected node path";
     case SyntaxIssue.NODE_REF:
       return "Expected node ref";
+    case SyntaxIssue.ROOT_NODE_NAME:
+      return "Expected root node name";
     case SyntaxIssue.GT_SYM:
       return "Expected '>'";
     case SyntaxIssue.LT_SYM:
@@ -420,7 +423,11 @@ async function getDiagnostics(
         ? issue.issues.map(syntaxIssueToMessage).join(" or ")
         : "",
       source: "devie tree",
-      data: issue.issues.map((syntaxIssue) => ({ syntaxIssue })),
+      data: {
+        firstToken: issue.astElement.firstToken,
+        lastToken: issue.astElement.lastToken,
+        issues: issue.issues,
+      } as CodeActionDiagnosticData,
     };
     diagnostics.push(diagnostic);
   });

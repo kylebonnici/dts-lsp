@@ -4,11 +4,14 @@ import {
   CodeActionParams,
   Diagnostic,
   Position,
+  Range,
   TextEdit,
 } from "vscode-languageserver";
-import { SyntaxIssue } from "./types";
+import { CodeActionDiagnosticData, SyntaxIssue, Token } from "./types";
 
 const syntaxIssueToCodeAction = (
+  firstToken: Token,
+  lastToken: Token,
   issue: SyntaxIssue,
   diagnostic: Diagnostic,
   uri: string
@@ -35,6 +38,48 @@ const syntaxIssueToCodeAction = (
         },
       };
     case SyntaxIssue.CURLY_OPEN:
+      return {
+        title: "Add open curly",
+        diagnostics: [diagnostic],
+        kind: CodeActionKind.QuickFix,
+        isPreferred: true,
+        edit: {
+          changes: {
+            [uri]: [
+              TextEdit.insert(
+                Position.create(
+                  diagnostic.range.end.line,
+                  diagnostic.range.end.character
+                ),
+                " {"
+              ),
+            ],
+          },
+        },
+      };
+    case SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE:
+      return {
+        title: "Remove white space",
+        diagnostics: [diagnostic],
+        kind: CodeActionKind.QuickFix,
+        isPreferred: true,
+        edit: {
+          changes: {
+            [uri]: [
+              TextEdit.replace(
+                Range.create(
+                  Position.create(
+                    diagnostic.range.start.line,
+                    firstToken.pos.col + firstToken.pos.len
+                  ),
+                  Position.create(diagnostic.range.end.line, lastToken.pos.col)
+                ),
+                ""
+              ),
+            ],
+          },
+        },
+      };
     case SyntaxIssue.CURLY_CLOSE:
     case SyntaxIssue.OPEN_SQUARE:
     case SyntaxIssue.SQUARE_CLOSE:
@@ -60,17 +105,15 @@ export function getCodeActions(
 ): CodeAction[] {
   return codeActionParams.context.diagnostics
     .flatMap((diagnostic) => {
-      const tmp = diagnostic.data as
-        | { syntaxIssue?: SyntaxIssue }[]
-        | undefined;
-      return tmp?.map((d) => {
-        if (d.syntaxIssue !== undefined) {
-          return syntaxIssueToCodeAction(
-            d.syntaxIssue,
-            diagnostic,
-            codeActionParams.textDocument.uri
-          );
-        }
+      const tmp = diagnostic.data as CodeActionDiagnosticData | undefined;
+      return tmp?.issues.map((issue) => {
+        return syntaxIssueToCodeAction(
+          tmp.firstToken,
+          tmp.lastToken,
+          issue,
+          diagnostic,
+          codeActionParams.textDocument.uri
+        );
       });
     })
     .filter((c) => !!c) as CodeAction[];

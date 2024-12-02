@@ -8,6 +8,12 @@ import { Node } from "./context/node";
 import { Property } from "./context/property";
 import { Runtime } from "./context/runtime";
 
+export type CodeActionDiagnosticData = {
+  issues: SyntaxIssue[];
+  firstToken: Token;
+  lastToken: Token;
+};
+
 export enum StandardTypeIssue {
   REQUIRED,
   EXPECTED_EMPTY,
@@ -37,6 +43,7 @@ export enum SyntaxIssue {
   NUMERIC_VALUE,
   NODE_PATH,
   NODE_REF,
+  ROOT_NODE_NAME,
   GT_SYM,
   LT_SYM,
   BYTESTRING,

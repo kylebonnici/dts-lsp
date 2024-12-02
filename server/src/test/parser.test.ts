@@ -232,6 +232,23 @@ describe("Parser", () => {
       });
     });
 
+    test("Labled Ref Node", async () => {
+      mockReadFileSync("l1: l2: &label{};");
+      const parser = new Parser("/folder/dts.dts", [], []);
+      await parser.stable;
+      expect(parser.issues.length).toEqual(0);
+      expect(parser.rootDocument.children.length).toEqual(1);
+      expect(
+        parser.rootDocument.children[0] instanceof DtcRefNode
+      ).toBeTruthy();
+      const refNode = parser.rootDocument.children[0] as DtcRefNode;
+
+      expect(refNode.labels.length).toEqual(2);
+      expect(refNode.labels[0].label).toEqual("l1");
+      expect(refNode.labels[1].label).toEqual("l2");
+      expect(refNode.labelReferance?.value).toEqual("label");
+    });
+
     test("Child node, no address", async () => {
       mockReadFileSync("/{node1{};};");
       const parser = new Parser("/folder/dts.dts", [], []);
@@ -266,6 +283,25 @@ describe("Parser", () => {
       expect(node1.lastToken.pos.col).toEqual(12);
     });
 
+    test("Child node, multilabled with address", async () => {
+      mockReadFileSync("/{l1: l2: node1@20{};};");
+      const parser = new Parser("/folder/dts.dts", [], []);
+      await parser.stable;
+      expect(parser.issues.length).toEqual(0);
+      expect(parser.rootDocument.children.length).toEqual(1);
+      const rootDtc = parser.rootDocument.children[0];
+
+      expect(rootDtc.children[0] instanceof DtcChildNode).toBeTruthy();
+      const node1 = rootDtc.children[0] as DtcChildNode;
+      expect(node1.name?.name).toEqual("node1");
+      expect(node1.name?.name);
+      expect(node1.name?.address).toEqual(0x20);
+
+      expect(node1.labels.length).toEqual(2);
+      expect(node1.labels[0].label).toEqual("l1");
+      expect(node1.labels[1].label).toEqual("l2");
+    });
+
     test("Child node, missing address", async () => {
       mockReadFileSync("/{node1@{};};");
       const parser = new Parser("/folder/dts.dts", [], []);
@@ -287,16 +323,11 @@ describe("Parser", () => {
       expect(parser.issues[0].issues).toEqual([
         SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE,
       ]);
-      expect(parser.issues[0].astElement.firstToken.pos).toEqual({
-        line: 0,
-        col: 7,
-        len: 1,
-      });
-      expect(parser.issues[0].astElement.lastToken.pos).toEqual({
-        line: 0,
-        col: 9,
-        len: 2,
-      });
+      expect(
+        parser.issues[0].astElement.firstToken.pos.col +
+          parser.issues[0].astElement.firstToken.pos.len
+      ).toEqual(8);
+      expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(9);
 
       const rootDtc = parser.rootDocument.children[0];
       const node1 = rootDtc.children[0];
@@ -316,8 +347,13 @@ describe("Parser", () => {
       expect(parser.issues[0].issues).toEqual([
         SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE,
       ]);
-      expect(parser.issues[0].astElement.firstToken.pos.col).toEqual(2);
+      expect(
+        parser.issues[0].astElement.firstToken.pos.col +
+          parser.issues[0].astElement.firstToken.pos.len
+      ).toEqual(7);
+
       expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(8);
+      expect(parser.issues[0].astElement.lastToken.pos.len).toEqual(1);
 
       const rootDtc = parser.rootDocument.children[0];
       const node1 = rootDtc.children[0];
@@ -327,6 +363,90 @@ describe("Parser", () => {
       expect((node1.children[0] as NodeName).address).toBe(0x20);
       expect(node1.firstToken.pos.col).toEqual(2);
       expect(node1.lastToken.pos.col).toEqual(13);
+    });
+
+    test("Child node, with address missing curly open", async () => {
+      mockReadFileSync("/{node1@20 };};");
+      const parser = new Parser("/folder/dts.dts", [], []);
+      await parser.stable;
+      expect(parser.issues.length).toEqual(1);
+      expect(parser.issues[0].issues).toEqual([SyntaxIssue.CURLY_OPEN]);
+      expect(parser.issues[0].astElement.firstToken.pos.col).toEqual(2);
+      expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(8);
+      expect(parser.issues[0].astElement.lastToken.pos.len).toEqual(2);
+    });
+
+    test("Root node, missing name or ref", async () => {
+      mockReadFileSync("{};");
+      const parser = new Parser("/folder/dts.dts", [], []);
+      await parser.stable;
+      expect(parser.issues.length).toEqual(1);
+      expect(parser.issues[0].issues).toEqual([
+        SyntaxIssue.NODE_REF,
+        SyntaxIssue.ROOT_NODE_NAME,
+      ]);
+      expect(parser.issues[0].astElement.firstToken.pos.col).toEqual(0);
+      expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(2);
+    });
+
+    test("Ref node, no ref label", async () => {
+      mockReadFileSync("&{};");
+      const parser = new Parser("/folder/dts.dts", [], []);
+      await parser.stable;
+      expect(parser.issues.length).toEqual(1);
+      expect(parser.issues[0].issues).toEqual([SyntaxIssue.LABEL_NAME]);
+      expect(parser.issues[0].astElement.firstToken.pos.col).toEqual(0);
+      expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(0);
+    });
+
+    test("Labeled Ref node, no ref label", async () => {
+      mockReadFileSync("label: &{};");
+      const parser = new Parser("/folder/dts.dts", [], []);
+      await parser.stable;
+      expect(parser.issues.length).toEqual(1);
+      expect(parser.issues[0].issues).toEqual([SyntaxIssue.LABEL_NAME]);
+      expect(parser.issues[0].astElement.firstToken.pos.col).toEqual(7);
+      expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(7);
+    });
+
+    test("Child node, missing node name", async () => {
+      mockReadFileSync("/{ {};};");
+      const parser = new Parser("/folder/dts.dts", [], []);
+      await parser.stable;
+      expect(parser.issues.length).toEqual(1);
+      expect(parser.issues[0].issues).toEqual([SyntaxIssue.NODE_NAME]);
+      expect(parser.issues[0].astElement.firstToken.pos.col).toEqual(3);
+      expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(5);
+    });
+
+    test("Labled Child node, missing node name", async () => {
+      mockReadFileSync("/{ label: {};};");
+      const parser = new Parser("/folder/dts.dts", [], []);
+      await parser.stable;
+      expect(parser.issues.length).toEqual(1);
+      expect(parser.issues[0].issues).toEqual([SyntaxIssue.NODE_NAME]);
+      expect(parser.issues[0].astElement.firstToken.pos.col).toEqual(10);
+
+      const rootDtc = parser.rootDocument.children[0];
+      expect(rootDtc.children[0] instanceof DtcChildNode).toBeTruthy();
+      expect((rootDtc.children[0] as DtcChildNode).labels[0].label).toBe(
+        "label"
+      );
+    });
+
+    test("Ref Node, missing open curly", async () => {
+      mockReadFileSync("&label };");
+      const parser = new Parser("/folder/dts.dts", [], []);
+      await parser.stable;
+      expect(parser.issues.length).toEqual(1);
+      expect(parser.issues[0].issues).toEqual([SyntaxIssue.CURLY_OPEN]);
+      expect(parser.issues[0].astElement.firstToken.pos.col).toEqual(0);
+      expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(1);
+      expect(parser.issues[0].astElement.lastToken.pos.len).toEqual(5);
+
+      const refNode = parser.rootDocument.children[0];
+      expect(refNode instanceof DtcRefNode).toBeTruthy();
+      expect((refNode as DtcRefNode).labelReferance?.value).toBe("label");
     });
   });
 });
