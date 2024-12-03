@@ -8,8 +8,11 @@ export class NodePath extends ASTBase {
     super();
   }
 
-  addPath(part: NodeName | null) {
+  addPath(part: NodeName | null, pathDivider?: ASTBase) {
     this._pathParts.push(part);
+    if (pathDivider) {
+      this.addChild(pathDivider);
+    }
     this.addChild(part);
   }
 

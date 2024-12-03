@@ -11,6 +11,9 @@ import { Node } from "../../context/node";
 import { Keyword } from "../keyword";
 
 export class DtcBaseNode extends ASTBase {
+  public openScope?: Token;
+  public closeScope?: Token;
+
   constructor() {
     super();
   }

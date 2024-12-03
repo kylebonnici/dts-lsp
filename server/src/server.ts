@@ -37,6 +37,7 @@ import { getTokenizedDocmentProvider } from "./providers/tokenizedDocument";
 import { getDefinitions } from "./findDefinitons";
 import { getDeclaration } from "./findDeclarations";
 import { getCodeActions } from "./getCodeActions";
+import { getDocumentFormating } from "./getDocumentFormating";
 
 let contextAware: ContextAware[] = [];
 
@@ -81,7 +82,7 @@ connection.onInitialize((params: InitializeParams) => {
         workspaceDiagnostics: false,
       },
       codeActionProvider: {
-        codeActionKinds: [CodeActionKind.QuickFix],
+        codeActionKinds: [CodeActionKind.QuickFix, CodeActionKind.SourceFixAll],
       },
       documentSymbolProvider: true,
       semanticTokensProvider: {
@@ -97,6 +98,7 @@ connection.onInitialize((params: InitializeParams) => {
       definitionProvider: true,
       declarationProvider: true,
       referencesProvider: true,
+      documentFormattingProvider: true,
     },
   };
   if (hasWorkspaceFolderCapability) {
@@ -261,8 +263,6 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "Missing ':' for label assign";
     case SyntaxIssue.DELETE_INCOMPLETE:
       return "Did you mean /delete-node/ or /delete-property/";
-    case SyntaxIssue.NODE_PATH_WHITE_SPACE_NOT_ALLOWED:
-      return 'White space is not allowrd after "{" or after "}"';
     case SyntaxIssue.UNKNOWN:
       return "Unknown syntax";
     case SyntaxIssue.EXPECTED_EXPRESSION:
@@ -279,8 +279,8 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "Expected Macro Idenifier";
     case SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE:
       return "Expected Macro Idenifier or Function like Macro";
-    case SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE:
-      return "No white space between no name and address is allowed";
+    case SyntaxIssue.WHITE_SPACE:
+      return "White space is not allowed";
     case SyntaxIssue.EXPECTED_VALUE:
       return "Expected Value";
   }
@@ -563,6 +563,10 @@ connection.onDeclaration(async (event) => {
   return getDeclaration(event, contextAware);
 });
 
-connection.onCodeAction(async (event) => {
+connection.onCodeAction((event) => {
   return getCodeActions(event);
+});
+
+connection.onDocumentFormatting((event) => {
+  return getDocumentFormating(event, contextAware);
 });

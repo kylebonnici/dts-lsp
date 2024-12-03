@@ -21,7 +21,7 @@ const syntaxIssueToCodeAction = (
       return {
         title: "Add semicolon",
         diagnostics: [diagnostic],
-        kind: CodeActionKind.QuickFix,
+        kind: CodeActionKind.SourceFixAll,
         isPreferred: true,
         edit: {
           changes: {
@@ -41,7 +41,7 @@ const syntaxIssueToCodeAction = (
       return {
         title: "Add open curly",
         diagnostics: [diagnostic],
-        kind: CodeActionKind.QuickFix,
+        kind: CodeActionKind.SourceFixAll,
         isPreferred: true,
         edit: {
           changes: {
@@ -57,7 +57,7 @@ const syntaxIssueToCodeAction = (
           },
         },
       };
-    case SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE:
+    case SyntaxIssue.WHITE_SPACE:
       return {
         title: "Remove white space",
         diagnostics: [diagnostic],
@@ -81,6 +81,25 @@ const syntaxIssueToCodeAction = (
         },
       };
     case SyntaxIssue.CURLY_CLOSE:
+      return {
+        title: "Add close curly",
+        diagnostics: [diagnostic],
+        kind: CodeActionKind.QuickFix,
+        isPreferred: true,
+        edit: {
+          changes: {
+            [uri]: [
+              TextEdit.insert(
+                Position.create(
+                  diagnostic.range.end.line,
+                  diagnostic.range.end.character
+                ),
+                "}"
+              ),
+            ],
+          },
+        },
+      };
     case SyntaxIssue.OPEN_SQUARE:
     case SyntaxIssue.SQUARE_CLOSE:
     case SyntaxIssue.GT_SYM:
@@ -88,10 +107,28 @@ const syntaxIssueToCodeAction = (
     case SyntaxIssue.DUOUBE_QUOTE:
     case SyntaxIssue.SINGLE_QUOTE:
     case SyntaxIssue.FORWARD_SLASH_START_PATH:
+      return {
+        title: "Add '/'",
+        diagnostics: [diagnostic],
+        kind: CodeActionKind.QuickFix,
+        isPreferred: true,
+        edit: {
+          changes: {
+            [uri]: [
+              TextEdit.insert(
+                Position.create(
+                  diagnostic.range.end.line,
+                  diagnostic.range.end.character
+                ),
+                "/"
+              ),
+            ],
+          },
+        },
+      };
     case SyntaxIssue.FORWARD_SLASH_END_DELETE:
     case SyntaxIssue.NO_STAMENTE:
     case SyntaxIssue.LABEL_ASSIGN_MISSING_COLON:
-    case SyntaxIssue.NODE_PATH_WHITE_SPACE_NOT_ALLOWED:
     case SyntaxIssue.MISSING_ROUND_CLOSE:
     case SyntaxIssue.INCLUDE_CLOSE_PATH:
     case SyntaxIssue.MISSING_COMMA:

@@ -95,14 +95,16 @@ export class Parser extends BaseParser {
     const process = () => {
       if (
         !(
-          this.isDtsDocumentVersion() ||
-          this.isRootNodeDefinition(this.rootDocument) ||
-          this.isDeleteNode(this.rootDocument, "Ref") ||
-          // Valid use case
-          this.isChildNode(this.rootDocument, "Ref") ||
-          // not valid syntax but we leave this for the next layer to proecess
-          this.isProperty(this.unhandledStaments) ||
-          this.isDeleteProperty(this.unhandledStaments)
+          (
+            this.isDtsDocumentVersion() ||
+            this.isRootNodeDefinition(this.rootDocument) ||
+            this.isDeleteNode(this.rootDocument, "Ref") ||
+            // Valid use case
+            this.isChildNode(this.rootDocument, "Ref") ||
+            // not valid syntax but we leave this for the next layer to proecess
+            this.isProperty(this.unhandledStaments) || // TODO syntax issues
+            this.isDeleteProperty(this.unhandledStaments)
+          ) // TODO syntax issues
         )
       ) {
         const token = this.moveToNextToken;
@@ -143,6 +145,7 @@ export class Parser extends BaseParser {
 
     // from this point we can continue an report the expected tokens
     const rootNode = new DtcRootNode();
+    rootNode.openScope = nextToken;
     parent.addNodeChild(rootNode);
     this.processNode(rootNode, "Name");
 
@@ -153,13 +156,21 @@ export class Parser extends BaseParser {
     return true;
   }
 
-  private nodeEnd(slxBase: ASTBase) {
+  private nodeEnd(dtcNode: DtcBaseNode) {
     const nextToken = this.currentToken;
     if (!validToken(nextToken, LexerToken.CURLY_CLOSE)) {
-      this.issues.push(genIssue(SyntaxIssue.CURLY_CLOSE, slxBase));
+      const prevToken = this.prevToken;
+      if (prevToken) {
+        const node = new ASTBase(createTokenIndex(prevToken));
+        this.issues.push(genIssue(SyntaxIssue.CURLY_CLOSE, node));
+      }
+
+      return this.endStatment(false);
     } else {
       this.moveToNextToken;
     }
+
+    dtcNode.closeScope = this.prevToken;
 
     return this.endStatment();
   }
@@ -171,11 +182,11 @@ export class Parser extends BaseParser {
     );
   }
 
-  private endStatment() {
+  private endStatment(report = true) {
     const currentToken = this.currentToken;
     if (!validToken(currentToken, LexerToken.SEMICOLON)) {
       const token = this.prevToken;
-      if (token) {
+      if (token && report) {
         const node = new ASTBase(createTokenIndex(this.prevToken));
         this.issues.push(genIssue(SyntaxIssue.END_STATMENT, node));
         return token;
@@ -309,6 +320,8 @@ export class Parser extends BaseParser {
       this.moveToNextToken;
     }
 
+    child.openScope = this.prevToken;
+
     // syntax must be a node ....
 
     parentNode.addNodeChild(child);
@@ -371,9 +384,7 @@ export class Parser extends BaseParser {
         const whiteSpace = new ASTBase(
           createTokenIndex(valid.at(-1)!, atValid[0])
         );
-        this.issues.push(
-          genIssue(SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE, whiteSpace)
-        );
+        this.issues.push(genIssue(SyntaxIssue.WHITE_SPACE, whiteSpace));
       }
       if (Number.isNaN(address)) {
         this.issues.push(genIssue(SyntaxIssue.NODE_ADDRESS, node));
@@ -386,9 +397,7 @@ export class Parser extends BaseParser {
         const whiteSpace = new ASTBase(
           createTokenIndex(atValid[0], addressValid.at(0))
         );
-        this.issues.push(
-          genIssue(SyntaxIssue.NODE_NAME_ADDRESS_WHITE_SPACE, whiteSpace)
-        );
+        this.issues.push(genIssue(SyntaxIssue.WHITE_SPACE, whiteSpace));
       }
 
       this.mergeStack();
@@ -1335,30 +1344,39 @@ export class Parser extends BaseParser {
   ): NodePath | undefined {
     this.enqueToStack();
 
-    const firstToken = this.moveToNextToken;
+    let firstToken: Token | undefined;
 
-    if (!validToken(firstToken, LexerToken.FORWARD_SLASH)) {
+    if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
       if (!first) {
         this.popStack();
         return;
       }
-      this.issues.push(
-        genIssue(SyntaxIssue.FORWARD_SLASH_START_PATH, nodePath)
-      );
-    }
-
-    if (first) {
-      nodePath.firstToken = firstToken;
+      if (this.prevToken) {
+        this.issues.push(
+          genIssue(
+            SyntaxIssue.FORWARD_SLASH_START_PATH,
+            new ASTBase(createTokenIndex(this.prevToken))
+          )
+        );
+      }
+    } else {
+      firstToken = this.moveToNextToken;
     }
 
     const nodeName = this.isNodeName();
     if (!nodeName) {
-      this.issues.push(genIssue(SyntaxIssue.NODE_NAME, nodePath));
+      this.issues.push(
+        genIssue(
+          SyntaxIssue.NODE_NAME,
+          new ASTBase(createTokenIndex(firstToken!))
+        )
+      );
     }
 
-    nodePath.lastToken = nodeName?.lastToken ?? firstToken;
-
-    nodePath.addPath(nodeName ?? null);
+    nodePath.addPath(
+      nodeName ?? null,
+      firstToken ? new ASTBase(createTokenIndex(firstToken)) : undefined
+    );
 
     this.processNodePath(false, nodePath);
 
@@ -1390,29 +1408,68 @@ export class Parser extends BaseParser {
 
     const node = new NodePathRef(nodePath ?? null);
 
-    const lastToken = this.currentToken;
+    const lastToken = this.currentToken ?? this.prevToken;
     const afterPath = lastToken;
+
+    nodePath?.children.forEach((p, i) => {
+      if (
+        i === nodePath?.children.length - 1 &&
+        p &&
+        afterPath &&
+        p.lastToken.pos.col + p.lastToken.pos.len !== afterPath.pos.col
+      ) {
+        this.issues.push(
+          genIssue(
+            SyntaxIssue.WHITE_SPACE,
+            new ASTBase(createTokenIndex(p.lastToken, afterPath))
+          )
+        );
+        return;
+      }
+      if (
+        i === 0 &&
+        beforPath &&
+        beforPath.pos.col + beforPath.pos.len !== p?.firstToken.pos.col
+      ) {
+        this.issues.push(
+          genIssue(
+            SyntaxIssue.WHITE_SPACE,
+            new ASTBase(createTokenIndex(beforPath, p?.firstToken))
+          )
+        );
+        return;
+      }
+      const nextPart = nodePath?.children[i + 1];
+      if (
+        p &&
+        nextPart &&
+        p.lastToken.pos.col + p.lastToken.pos.len !==
+          nextPart?.firstToken.pos.col
+      ) {
+        this.issues.push(
+          genIssue(
+            SyntaxIssue.WHITE_SPACE,
+            new ASTBase(createTokenIndex(p.lastToken, nextPart?.firstToken))
+          )
+        );
+      }
+    });
+
     if (!validToken(lastToken, LexerToken.CURLY_CLOSE)) {
-      this.issues.push(genIssue(SyntaxIssue.CURLY_CLOSE, node));
+      if (this.prevToken) {
+        this.issues.push(
+          genIssue(
+            SyntaxIssue.CURLY_CLOSE,
+            new ASTBase(createTokenIndex(this.prevToken))
+          )
+        );
+      }
     } else {
       this.moveToNextToken;
     }
 
     node.firstToken = firstToken;
     node.lastToken = lastToken ?? this.prevToken;
-
-    const nodePathRange = nodePath ? toRange(nodePath) : undefined;
-    if (
-      nodePathRange &&
-      beforPath &&
-      afterPath &&
-      (beforPath.pos.col !== nodePathRange?.start.character - 1 ||
-        afterPath.pos.col !== nodePathRange?.end.character)
-    ) {
-      this.issues.push(
-        genIssue(SyntaxIssue.NODE_PATH_WHITE_SPACE_NOT_ALLOWED, node)
-      );
-    }
 
     this.mergeStack();
     return node;

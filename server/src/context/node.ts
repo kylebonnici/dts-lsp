@@ -317,7 +317,7 @@ export class Node {
     const split = copy[0].split("@");
     const name = split[0];
     const address =
-      split[1] !== undefined ? Number.parseInt(split[1]) : undefined;
+      split[1] !== undefined ? Number.parseInt(split[1], 16) : undefined;
     const myChild = this.getNode(name, address, strict);
     if (copy.length === 1 || !myChild) return myChild;
 
