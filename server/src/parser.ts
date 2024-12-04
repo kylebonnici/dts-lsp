@@ -1054,7 +1054,7 @@ export class Parser extends BaseParser {
       validateValue("x"),
     ]);
 
-    if (!validStart.length) {
+    if (validStart.length !== 2) {
       this.popStack();
       return;
     }
@@ -1368,7 +1368,7 @@ export class Parser extends BaseParser {
       this.issues.push(
         genIssue(
           SyntaxIssue.NODE_NAME,
-          new ASTBase(createTokenIndex(firstToken!))
+          new ASTBase(createTokenIndex(firstToken ?? this.prevToken!))
         )
       );
     }

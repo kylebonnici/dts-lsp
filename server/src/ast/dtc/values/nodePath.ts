@@ -1,3 +1,4 @@
+import { SymbolKind } from "vscode-languageserver";
 import { ASTBase } from "../../base";
 import { NodeName } from "../node";
 
@@ -28,6 +29,10 @@ export class NodePath extends ASTBase {
 export class NodePathRef extends ASTBase {
   constructor(public readonly path: NodePath | null) {
     super();
+    this.docSymbolsMeta = {
+      name: `/${this.path?.toString() ?? ""}`,
+      kind: SymbolKind.Namespace,
+    };
     this.semanticTokenType = "variable";
     this.semanticTokenModifiers = "declaration";
     this.addChild(path);

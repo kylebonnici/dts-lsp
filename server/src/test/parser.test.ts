@@ -16,6 +16,11 @@ import {
 import { DtcProperty } from "../ast/dtc/property";
 import { resetTokenizedDocmentProvider } from "../providers/tokenizedDocument";
 import { LabelRef } from "../ast/dtc/labelRef";
+import { PropertyValues } from "../ast/dtc/values/values";
+import { ArrayValues } from "../ast/dtc/values/arrayValue";
+import { NumberValue } from "../ast/dtc/values/number";
+import { LabledValue } from "../ast/dtc/values/labledValue";
+import { NodePathRef } from "../ast/dtc/values/nodePath";
 
 jest.mock("fs", () => ({
   readFileSync: jest.fn().mockImplementation(() => {
@@ -333,6 +338,137 @@ describe("Parser", () => {
         expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(22);
 
         expect(parser.issues[0].astElement.lastToken.pos.len).toEqual(1);
+      });
+
+      test("missing ending curly", async () => {
+        mockReadFileSync("/{prop=<&{/node1/node2>;};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.CURLY_CLOSE]);
+
+        expect(
+          parser.issues[0].astElement.lastToken.pos.col +
+            parser.issues[0].astElement.lastToken.pos.len
+        ).toEqual(22);
+      });
+    });
+
+    test("Single outside label ref ", async () => {
+      mockReadFileSync("/{prop=&l1;};");
+      const parser = new Parser("/folder/dts.dts", [], []);
+      await parser.stable;
+      expect(parser.issues.length).toEqual(0);
+      const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+      expect(rootDts.properties.length).toEqual(1);
+      expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+      expect(
+        rootDts.properties[0].values instanceof PropertyValues
+      ).toBeTruthy();
+      expect(rootDts.properties[0].values?.values.length).toEqual(1);
+      expect(
+        rootDts.properties[0].values?.values[0]?.value instanceof LabelRef
+      ).toBeTruthy();
+      expect(
+        (rootDts.properties[0].values?.values[0]?.value as LabelRef).label
+          ?.value
+      ).toEqual("l1");
+    });
+
+    describe("Cell array", () => {
+      test("Single cell array", async () => {
+        mockReadFileSync("/{prop=<10 20 30 0xFF 0xaa>;};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+        const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+        expect(rootDts.properties.length).toEqual(1);
+        expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+        expect(
+          rootDts.properties[0].values instanceof PropertyValues
+        ).toBeTruthy();
+        expect(rootDts.properties[0].values?.values.length).toEqual(1);
+        expect(
+          rootDts.properties[0].values?.values[0]?.value instanceof ArrayValues
+        ).toBeTruthy();
+        expect(
+          (
+            rootDts.properties[0].values?.values[0]?.value as ArrayValues
+          ).values.map((v) => (v.value as NumberValue).value)
+        ).toEqual([10, 20, 30, 0xff, 0xaa]);
+      });
+
+      test("Single inside label ref ", async () => {
+        mockReadFileSync("/{prop=<&l1>;};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+        const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+        expect(rootDts.properties.length).toEqual(1);
+        expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+        expect(
+          rootDts.properties[0].values instanceof PropertyValues
+        ).toBeTruthy();
+        expect(rootDts.properties[0].values?.values.length).toEqual(1);
+        expect(
+          rootDts.properties[0].values?.values[0]?.value instanceof ArrayValues
+        ).toBeTruthy();
+        expect(
+          (rootDts.properties[0].values?.values[0]?.value as ArrayValues)
+            .values[0].value instanceof LabelRef
+        ).toBeTruthy();
+        expect(
+          (
+            (rootDts.properties[0].values?.values[0]?.value as ArrayValues)
+              .values[0].value as LabelRef
+          ).value
+        ).toEqual("l1");
+      });
+
+      test("Single Array Values inside mixed  ", async () => {
+        mockReadFileSync("/{prop=<&l1 &{/node1/node2} 20 >;};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+        const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+        expect(
+          (rootDts.properties[0].values?.values[0]?.value as ArrayValues)
+            .values[0].value instanceof LabelRef
+        ).toBeTruthy();
+        expect(
+          (
+            (rootDts.properties[0].values?.values[0]?.value as ArrayValues)
+              .values[0].value as LabelRef
+          ).value
+        ).toEqual("l1");
+
+        expect(
+          (rootDts.properties[0].values?.values[0]?.value as ArrayValues)
+            .values[1].value instanceof NodePathRef
+        ).toBeTruthy();
+        expect(
+          (
+            (rootDts.properties[0].values?.values[0]?.value as ArrayValues)
+              .values[1].value as NodePathRef
+          ).path?.pathParts.map((p) => p?.toString())
+        ).toEqual(["node1", "node2"]);
+
+        expect(
+          (rootDts.properties[0].values?.values[0]?.value as ArrayValues)
+            .values[2].value instanceof NumberValue
+        ).toBeTruthy();
+        expect(
+          (
+            (rootDts.properties[0].values?.values[0]?.value as ArrayValues)
+              .values[2].value as NumberValue
+          ).value
+        ).toEqual(20);
+
+        rootDts.getDocumentSymbols();
       });
     });
   });

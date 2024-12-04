@@ -268,11 +268,14 @@ function getNodeRefPathsItems(
   result: SearchableResult | undefined,
   inScope: (ast: ASTBase) => boolean
 ): CompletionItem[] {
-  if (!result || !(result.ast instanceof NodePath)) {
+  const nodePathObj: ASTBase | undefined =
+    result?.ast instanceof NodePath ? result.ast : result?.ast.parentNode;
+
+  if (!result || !nodePathObj || !(nodePathObj instanceof NodePath)) {
     return [];
   }
 
-  const nodePath = result.ast.pathParts.slice(0, -1).map((p) => p!.toString());
+  const nodePath = nodePathObj.pathParts.slice(0, -1).map((p) => p!.toString());
 
   if (nodePath.some((p) => !p)) {
     return [];
