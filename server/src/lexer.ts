@@ -210,8 +210,8 @@ export class Lexer {
       this.isCEndIf(word) ||
       this.isCFalse(word) ||
       this.isCTrue(word) ||
-      this.isDigits(word) ||
-      this.isHexDigits(word) ||
+      this.isDigit(word) ||
+      this.isHexDigit(word) ||
       this.isLetters(word) ||
       // single char words
       this.isComma(word) ||
@@ -282,11 +282,11 @@ export class Lexer {
     return false;
   }
 
-  private isDigits(word: string) {
-    const match = word.match(/^[0-9]+/);
+  private isDigit(word: string) {
+    const match = word.match(/^[0-9]/);
     if (match?.[0]) {
       this._tokens.push({
-        tokens: [LexerToken.HEX, LexerToken.DIGITS],
+        tokens: [LexerToken.HEX, LexerToken.DIGIT],
         value: match[0],
         pos: this.generatePos(word, match[0]),
       });
@@ -295,8 +295,8 @@ export class Lexer {
     return false;
   }
 
-  private isHexDigits(word: string) {
-    const match = word.match(/^[A-Fa-f]+/);
+  private isHexDigit(word: string) {
+    const match = word.match(/^[A-Fa-f]/);
     if (match?.[0]) {
       this._tokens.push({
         tokens: [LexerToken.HEX, LexerToken.LETTERS],

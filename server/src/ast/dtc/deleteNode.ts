@@ -13,7 +13,7 @@ export class DeleteNode extends DeleteBase {
 
   set nodeNameOrRef(nodeNameOrRef: NodeName | LabelRef | NodePathRef | null) {
     if (this._nodeNameOrRef)
-      throw new Error("Only on property name is allowed");
+      throw new Error("Only one property name is allowed");
     this._nodeNameOrRef = nodeNameOrRef;
     this.addChild(nodeNameOrRef);
   }

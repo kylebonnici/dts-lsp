@@ -13,14 +13,16 @@ import {
   DtcRootNode,
   NodeName,
 } from "../ast/dtc/node";
-import { DtcProperty } from "../ast/dtc/property";
+import { DtcProperty, PropertyName } from "../ast/dtc/property";
 import { resetTokenizedDocmentProvider } from "../providers/tokenizedDocument";
 import { LabelRef } from "../ast/dtc/labelRef";
 import { PropertyValues } from "../ast/dtc/values/values";
 import { ArrayValues } from "../ast/dtc/values/arrayValue";
 import { NumberValue } from "../ast/dtc/values/number";
-import { LabledValue } from "../ast/dtc/values/labledValue";
 import { NodePathRef } from "../ast/dtc/values/nodePath";
+import { StringValue } from "../ast/dtc/values/string";
+import { ByteStringValue } from "../ast/dtc/values/byteString";
+import { DeleteNode } from "../ast/dtc/deleteNode";
 
 jest.mock("fs", () => ({
   readFileSync: jest.fn().mockImplementation(() => {
@@ -141,8 +143,8 @@ describe("Parser", () => {
       expect(parser.issues.length).toEqual(1);
       expect(parser.issues[0].issues).toEqual([SyntaxIssue.CURLY_OPEN]);
       expect(parser.issues[0].astElement.firstToken.pos.col).toEqual(2);
-      expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(8);
-      expect(parser.issues[0].astElement.lastToken.pos.len).toEqual(2);
+      expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(9);
+      expect(parser.issues[0].astElement.lastToken.pos.len).toEqual(1);
     });
 
     test("Ref Node", async () => {
@@ -327,34 +329,164 @@ describe("Parser", () => {
   });
 
   describe("Property values", () => {
-    describe("Node Ref Path", () => {
-      test("Ends with extra slash", async () => {
-        mockReadFileSync("/{prop=<&{/node1/node2/}>;};");
+    describe("Bytestring value", () => {
+      test("With spaces ", async () => {
+        mockReadFileSync("/{prop=[00 11 22 33];};");
         const parser = new Parser("/folder/dts.dts", [], []);
         await parser.stable;
-        expect(parser.issues.length).toEqual(1);
-        expect(parser.issues[0].issues).toEqual([SyntaxIssue.NODE_NAME]);
+        expect(parser.issues.length).toEqual(0);
+        const rootDts = parser.rootDocument.children[0] as DtcRootNode;
 
-        expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(22);
-
-        expect(parser.issues[0].astElement.lastToken.pos.len).toEqual(1);
+        expect(rootDts.properties.length).toEqual(1);
+        expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+        expect(
+          rootDts.properties[0].values instanceof PropertyValues
+        ).toBeTruthy();
+        expect(rootDts.properties[0].values?.values.length).toEqual(1);
+        expect(
+          rootDts.properties[0].values?.values[0]?.value instanceof
+            ByteStringValue
+        ).toBeTruthy();
+        expect(
+          (
+            rootDts.properties[0].values?.values[0]?.value as ByteStringValue
+          ).values.map((v) => v.value?.value)
+        ).toEqual([0x00, 0x11, 0x22, 0x33]);
       });
 
-      test("missing ending curly", async () => {
-        mockReadFileSync("/{prop=<&{/node1/node2>;};");
+      test("With no spaces ", async () => {
+        mockReadFileSync("/{prop=[00112233];};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+        const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+        expect(rootDts.properties.length).toEqual(1);
+        expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+        expect(
+          rootDts.properties[0].values instanceof PropertyValues
+        ).toBeTruthy();
+        expect(rootDts.properties[0].values?.values.length).toEqual(1);
+        expect(
+          rootDts.properties[0].values?.values[0]?.value instanceof
+            ByteStringValue
+        ).toBeTruthy();
+        expect(
+          (
+            rootDts.properties[0].values?.values[0]?.value as ByteStringValue
+          ).values.map((v) => v.value?.value)
+        ).toEqual([0x00, 0x11, 0x22, 0x33]);
+      });
+
+      test("Mixed spaces and no spaces ", async () => {
+        mockReadFileSync("/{prop=[00 1122 33];};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+        const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+        expect(rootDts.properties.length).toEqual(1);
+        expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+        expect(
+          rootDts.properties[0].values instanceof PropertyValues
+        ).toBeTruthy();
+        expect(rootDts.properties[0].values?.values.length).toEqual(1);
+        expect(
+          rootDts.properties[0].values?.values[0]?.value instanceof
+            ByteStringValue
+        ).toBeTruthy();
+        expect(
+          (
+            rootDts.properties[0].values?.values[0]?.value as ByteStringValue
+          ).values.map((v) => v.value?.value)
+        ).toEqual([0x00, 0x11, 0x22, 0x33]);
+      });
+
+      test("With no odd values no spaces ", async () => {
+        mockReadFileSync("/{prop=[0011223];};");
         const parser = new Parser("/folder/dts.dts", [], []);
         await parser.stable;
         expect(parser.issues.length).toEqual(1);
-        expect(parser.issues[0].issues).toEqual([SyntaxIssue.CURLY_CLOSE]);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.BYTESTRING_EVEN]);
+        expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(14);
+        expect(parser.issues[0].astElement.lastToken.pos.len).toEqual(1);
 
+        const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+        expect(rootDts.properties.length).toEqual(1);
+        expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
         expect(
-          parser.issues[0].astElement.lastToken.pos.col +
-            parser.issues[0].astElement.lastToken.pos.len
-        ).toEqual(22);
+          rootDts.properties[0].values instanceof PropertyValues
+        ).toBeTruthy();
+        expect(rootDts.properties[0].values?.values.length).toEqual(1);
+        expect(
+          rootDts.properties[0].values?.values[0]?.value instanceof
+            ByteStringValue
+        ).toBeTruthy();
+        expect(
+          (
+            rootDts.properties[0].values?.values[0]?.value as ByteStringValue
+          ).values.map((v) => v.value?.value)
+        ).toEqual([0x00, 0x11, 0x22, 0x3]);
+      });
+
+      test("With no odd values with spaces - 1", async () => {
+        mockReadFileSync("/{prop=[00 11 22 3];};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.BYTESTRING_EVEN]);
+        expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(17);
+        expect(parser.issues[0].astElement.lastToken.pos.len).toEqual(1);
+
+        const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+        expect(rootDts.properties.length).toEqual(1);
+        expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+        expect(
+          rootDts.properties[0].values instanceof PropertyValues
+        ).toBeTruthy();
+        expect(rootDts.properties[0].values?.values.length).toEqual(1);
+        expect(
+          rootDts.properties[0].values?.values[0]?.value instanceof
+            ByteStringValue
+        ).toBeTruthy();
+        expect(
+          (
+            rootDts.properties[0].values?.values[0]?.value as ByteStringValue
+          ).values.map((v) => v.value?.value)
+        ).toEqual([0x00, 0x11, 0x22, 0x3]);
+      });
+
+      test("With no odd values with spaces - 1", async () => {
+        mockReadFileSync("/{prop=[00 11 2 33];};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.BYTESTRING_EVEN]);
+        expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(14);
+        expect(parser.issues[0].astElement.lastToken.pos.len).toEqual(1);
+
+        const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+        expect(rootDts.properties.length).toEqual(1);
+        expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+        expect(
+          rootDts.properties[0].values instanceof PropertyValues
+        ).toBeTruthy();
+        expect(rootDts.properties[0].values?.values.length).toEqual(1);
+        expect(
+          rootDts.properties[0].values?.values[0]?.value instanceof
+            ByteStringValue
+        ).toBeTruthy();
+        expect(
+          (
+            rootDts.properties[0].values?.values[0]?.value as ByteStringValue
+          ).values.map((v) => v.value?.value)
+        ).toEqual([0x00, 0x11, 0x2, 0x33]);
       });
     });
-
-    test("Single outside label ref ", async () => {
+    test("Label ref ", async () => {
       mockReadFileSync("/{prop=&l1;};");
       const parser = new Parser("/folder/dts.dts", [], []);
       await parser.stable;
@@ -376,8 +508,117 @@ describe("Parser", () => {
       ).toEqual("l1");
     });
 
+    describe("String value", () => {
+      test("String value single qotes with double qotes inside", async () => {
+        mockReadFileSync("/{prop='He said \"Hi\".';};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+        const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+        expect(rootDts.properties.length).toEqual(1);
+        expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+        expect(
+          rootDts.properties[0].values instanceof PropertyValues
+        ).toBeTruthy();
+        expect(rootDts.properties[0].values?.values.length).toEqual(1);
+        expect(
+          rootDts.properties[0].values?.values[0]?.value instanceof StringValue
+        ).toBeTruthy();
+        expect(
+          (
+            rootDts.properties[0].values?.values[0]?.value as StringValue
+          ).toString()
+        ).toEqual("'He said \"Hi\".'");
+      });
+
+      test("String value double qotes and single qotes inside", async () => {
+        mockReadFileSync("/{prop=\"He said 'Hi'.\";};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+        const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+        expect(rootDts.properties.length).toEqual(1);
+        expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+        expect(
+          rootDts.properties[0].values instanceof PropertyValues
+        ).toBeTruthy();
+        expect(rootDts.properties[0].values?.values.length).toEqual(1);
+        expect(
+          rootDts.properties[0].values?.values[0]?.value instanceof StringValue
+        ).toBeTruthy();
+        expect(
+          (rootDts.properties[0].values?.values[0]?.value as StringValue).value
+        ).toEqual("\"He said 'Hi'.\"");
+      });
+
+      test("String value double qotes and double qotes inside", async () => {
+        mockReadFileSync('/{prop="He said \\"Hi\\".";};');
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+        const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+        expect(rootDts.properties.length).toEqual(1);
+        expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+        expect(
+          rootDts.properties[0].values instanceof PropertyValues
+        ).toBeTruthy();
+        expect(rootDts.properties[0].values?.values.length).toEqual(1);
+        expect(
+          rootDts.properties[0].values?.values[0]?.value instanceof StringValue
+        ).toBeTruthy();
+        expect(
+          (rootDts.properties[0].values?.values[0]?.value as StringValue).value
+        ).toEqual('"He said \\"Hi\\"."');
+      });
+
+      test("String value Single qotes and Single qotes inside", async () => {
+        mockReadFileSync("/{prop='He said \\'Hi\\'.';};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+        const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+        expect(rootDts.properties.length).toEqual(1);
+        expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+        expect(
+          rootDts.properties[0].values instanceof PropertyValues
+        ).toBeTruthy();
+        expect(rootDts.properties[0].values?.values.length).toEqual(1);
+        expect(
+          rootDts.properties[0].values?.values[0]?.value instanceof StringValue
+        ).toBeTruthy();
+        expect(
+          (rootDts.properties[0].values?.values[0]?.value as StringValue).value
+        ).toEqual("'He said \\'Hi\\'.'");
+      });
+
+      test("Multi line String value", async () => {
+        mockReadFileSync("/{prop='He said \n nice line breal\n right?';};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+        const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+        expect(rootDts.properties.length).toEqual(1);
+        expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+        expect(
+          rootDts.properties[0].values instanceof PropertyValues
+        ).toBeTruthy();
+        expect(rootDts.properties[0].values?.values.length).toEqual(1);
+        expect(
+          rootDts.properties[0].values?.values[0]?.value instanceof StringValue
+        ).toBeTruthy();
+        expect(
+          (rootDts.properties[0].values?.values[0]?.value as StringValue).value
+        ).toEqual("'He said \n nice line breal\n right?'");
+      });
+    });
+
     describe("Cell array", () => {
-      test("Single cell array", async () => {
+      test("Number Array", async () => {
         mockReadFileSync("/{prop=<10 20 30 0xFF 0xaa>;};");
         const parser = new Parser("/folder/dts.dts", [], []);
         await parser.stable;
@@ -398,6 +639,12 @@ describe("Parser", () => {
             rootDts.properties[0].values?.values[0]?.value as ArrayValues
           ).values.map((v) => (v.value as NumberValue).value)
         ).toEqual([10, 20, 30, 0xff, 0xaa]);
+
+        expect(
+          (
+            rootDts.properties[0].values?.values[0]?.value as ArrayValues
+          ).values.map((v) => (v.value as NumberValue).toString())
+        ).toEqual(["10", "20", "30", (0xff).toString(), (0xaa).toString()]);
       });
 
       test("Single inside label ref ", async () => {
@@ -469,6 +716,75 @@ describe("Parser", () => {
         ).toEqual(20);
 
         rootDts.getDocumentSymbols();
+      });
+
+      describe("Node Ref Path", () => {
+        test("Ends with extra slash", async () => {
+          mockReadFileSync("/{prop=<&{/node1/node2/}>;};");
+          const parser = new Parser("/folder/dts.dts", [], []);
+          await parser.stable;
+          expect(parser.issues.length).toEqual(1);
+          expect(parser.issues[0].issues).toEqual([SyntaxIssue.NODE_NAME]);
+
+          expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(22);
+
+          expect(parser.issues[0].astElement.lastToken.pos.len).toEqual(1);
+        });
+
+        test("missing ending curly", async () => {
+          mockReadFileSync("/{prop=<&{/node1/node2>;};");
+          const parser = new Parser("/folder/dts.dts", [], []);
+          await parser.stable;
+          expect(parser.issues.length).toEqual(1);
+          expect(parser.issues[0].issues).toEqual([SyntaxIssue.CURLY_CLOSE]);
+
+          expect(
+            parser.issues[0].astElement.lastToken.pos.col +
+              parser.issues[0].astElement.lastToken.pos.len
+          ).toEqual(22);
+        });
+      });
+
+      test("labled number array", async () => {
+        mockReadFileSync(
+          "/{l1: prop=l2: <l3: 10 l4: 20 l5: 30 l6: 0xFF l7: 0xaa l8:> l9: ;};"
+        );
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+        const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+        expect(rootDts.properties.length).toEqual(1);
+        expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+        expect(rootDts.properties[0].labels.map((l) => l.label)).toEqual([
+          "l1",
+        ]);
+        expect(
+          rootDts.properties[0].values instanceof PropertyValues
+        ).toBeTruthy();
+        expect(rootDts.properties[0].values?.values.length).toEqual(1);
+        expect(
+          rootDts.properties[0].values?.values[0]?.value instanceof ArrayValues
+        ).toBeTruthy();
+        expect(
+          (
+            rootDts.properties[0].values?.values[0]?.value as ArrayValues
+          ).values.map((v) => (v.value as NumberValue).value)
+        ).toEqual([10, 20, 30, 0xff, 0xaa]);
+
+        expect(
+          rootDts.properties[0].values?.labels.map((l) => l.label)
+        ).toEqual(["l2"]);
+
+        expect(
+          rootDts.properties[0].values?.values[0]?.endLabels.map((l) => l.label)
+        ).toEqual(["l8", "l9"]);
+
+        expect(
+          (
+            rootDts.properties[0].values?.values[0]?.value as ArrayValues
+          ).values.map((v) => v.labels.map((l) => l.label))
+        ).toEqual([["l3"], ["l4"], ["l5"], ["l6"], ["l7"]]);
       });
     });
   });
@@ -716,6 +1032,114 @@ describe("Parser", () => {
       expect((rootDtc.children[0] as DtcChildNode).labels[0].label).toBe(
         "label"
       );
+    });
+  });
+
+  describe("Delete", () => {
+    describe("Node", () => {
+      test("with node name no address", async () => {
+        mockReadFileSync("/{/delete-node/ nodeName;};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+        expect(rootDts.deleteNodes.length).toEqual(1);
+        expect(
+          rootDts.deleteNodes[0].nodeNameOrRef instanceof NodeName
+        ).toBeTruthy();
+        expect((rootDts.deleteNodes[0].nodeNameOrRef as NodeName).name).toEqual(
+          "nodeName"
+        );
+      });
+
+      test("with node name with address", async () => {
+        mockReadFileSync("/{/delete-node/ nodeName@200;};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+        expect(rootDts.deleteNodes.length).toEqual(1);
+        expect(
+          rootDts.deleteNodes[0].nodeNameOrRef instanceof NodeName
+        ).toBeTruthy();
+        expect((rootDts.deleteNodes[0].nodeNameOrRef as NodeName).name).toEqual(
+          "nodeName"
+        );
+        expect(
+          (rootDts.deleteNodes[0].nodeNameOrRef as NodeName).address
+        ).toEqual(0x200);
+      });
+
+      test("with node path ref in root node - expects node name", async () => {
+        mockReadFileSync("/{/delete-node/ &{/node1/node2@200};};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.NODE_NAME]);
+
+        expect(parser.issues[0].astElement.firstToken.pos.col).toEqual(16);
+        expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(34);
+      });
+
+      test("with label ref in root node - expects node name", async () => {
+        mockReadFileSync("/{/delete-node/ &l1;};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.NODE_NAME]);
+
+        expect(parser.issues[0].astElement.firstToken.pos.col).toEqual(16);
+        expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(18);
+      });
+
+      test("with node path ref in raw doc", async () => {
+        mockReadFileSync("/delete-node/ &{/node1/node2@200};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const deleteNode = parser.rootDocument.children[0] as DeleteNode;
+
+        expect(deleteNode.nodeNameOrRef instanceof NodePathRef).toBeTruthy();
+        expect(
+          (deleteNode.nodeNameOrRef as NodePathRef).path?.pathParts.map((p) =>
+            p?.toString()
+          )
+        ).toEqual(["node1", "node2@200"]);
+        expect((deleteNode.nodeNameOrRef as NodeName).address).toEqual(0x200);
+      });
+
+      test("with label ref in raw doc", async () => {
+        mockReadFileSync("/delete-node/ &l1;");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const deleteNode = parser.rootDocument.children[0] as DeleteNode;
+
+        expect(deleteNode.nodeNameOrRef instanceof LabelRef).toBeTruthy();
+        expect((deleteNode.nodeNameOrRef as LabelRef).label?.value).toEqual(
+          "l1"
+        );
+      });
+    });
+
+    describe("Property", () => {
+      test("Property in node", async () => {
+        mockReadFileSync("/{/delete-property/ prop1;};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+        expect(rootDts.deleteProperties.length).toEqual(1);
+        expect(rootDts.deleteProperties[0].propertyName?.name).toEqual("prop1");
+      });
     });
   });
 });

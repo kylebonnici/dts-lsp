@@ -1,32 +1,30 @@
-import { ASTBase } from '../base';
-import { Operator } from './operator';
+import { ASTBase } from "../base";
+import { Operator } from "./operator";
 
-export abstract class Expression extends ASTBase {
-	public abstract evaluate(): string;
-}
+export abstract class Expression extends ASTBase {}
 
 export class ComplexExpression extends Expression {
-	constructor(
-		public readonly expression: Expression,
-		public readonly join?: { operator: Operator; expression: Expression }
-	) {
-		super();
-		this.addChild(expression);
-		if (join) {
-			this.addChild(join.operator);
-			this.addChild(join.expression);
-		}
-	}
+  constructor(
+    public readonly expression: Expression,
+    public readonly join?: { operator: Operator; expression: Expression }
+  ) {
+    super();
+    this.addChild(expression);
+    if (join) {
+      this.addChild(join.operator);
+      this.addChild(join.expression);
+    }
+  }
 
-	evaluate(): string {
-		throw new Error('Not Implimented');
-	}
+  evaluate(): string {
+    throw new Error("Not Implimented");
+  }
 
-	toString() {
-		return `(${this.expression.toString()}${
-			this.join
-				? ` ${this.join.operator.toString()} ${this.join.expression.toString()}`
-				: ''
-		})`;
-	}
+  toString() {
+    return `(${this.expression.toString()}${
+      this.join
+        ? ` ${this.join.operator.toString()} ${this.join.expression.toString()}`
+        : ""
+    })`;
+  }
 }

@@ -343,7 +343,7 @@ export class Parser extends BaseParser {
     this.enqueToStack();
     const valid = this.consumeAnyConcurrentTokens(
       [
-        LexerToken.DIGITS,
+        LexerToken.DIGIT,
         LexerToken.LETTERS,
         LexerToken.COMMA,
         LexerToken.PERIOD,
@@ -368,7 +368,7 @@ export class Parser extends BaseParser {
     const atValid = this.checkConcurrentTokens([validateToken(LexerToken.AT)]);
     if (atValid.length) {
       const addressValid = this.consumeAnyConcurrentTokens(
-        [LexerToken.DIGITS, LexerToken.HEX].map(validateToken)
+        [LexerToken.DIGIT, LexerToken.HEX].map(validateToken)
       );
 
       const address = addressValid.length
@@ -413,7 +413,7 @@ export class Parser extends BaseParser {
     this.enqueToStack();
     const valid = this.consumeAnyConcurrentTokens(
       [
-        LexerToken.DIGITS,
+        LexerToken.DIGIT,
         LexerToken.LETTERS,
         LexerToken.COMMA,
         LexerToken.PERIOD,
@@ -440,7 +440,7 @@ export class Parser extends BaseParser {
   private isLabelName(): Label | undefined {
     this.enqueToStack();
     const valid = this.consumeAnyConcurrentTokens(
-      [LexerToken.DIGITS, LexerToken.LETTERS, LexerToken.UNDERSCOURE].map(
+      [LexerToken.DIGIT, LexerToken.LETTERS, LexerToken.UNDERSCOURE].map(
         validateToken
       )
     );
@@ -465,7 +465,7 @@ export class Parser extends BaseParser {
   private isLabelAssign(acceptLabelName: boolean): LabelAssign | undefined {
     this.enqueToStack();
     const valid = this.consumeAnyConcurrentTokens(
-      [LexerToken.DIGITS, LexerToken.LETTERS, LexerToken.UNDERSCOURE].map(
+      [LexerToken.DIGIT, LexerToken.LETTERS, LexerToken.UNDERSCOURE].map(
         validateToken
       )
     );
@@ -634,7 +634,8 @@ export class Parser extends BaseParser {
 
     const valid = this.checkConcurrentTokens([
       validateToken(LexerToken.FORWARD_SLASH),
-      validateValue("de"),
+      validateValue("d"),
+      validateValue("e"),
       validateValue("lete"),
       validateToken(LexerToken.NEG_OPERATOR),
       validateValue("node"),
@@ -673,7 +674,7 @@ export class Parser extends BaseParser {
       return false;
     }
 
-    if (valid.length !== 5) {
+    if (valid.length !== 6) {
       this.issues.push(genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
       return close();
     }
@@ -730,7 +731,8 @@ export class Parser extends BaseParser {
 
     const valid = this.checkConcurrentTokens([
       validateToken(LexerToken.FORWARD_SLASH),
-      validateValue("de"),
+      validateValue("d"),
+      validateValue("e"),
       validateValue("lete"),
       validateToken(LexerToken.NEG_OPERATOR),
       validateValue("property"),
@@ -773,7 +775,7 @@ export class Parser extends BaseParser {
       return false;
     }
 
-    if (valid.length !== 5) {
+    if (valid.length !== 6) {
       this.issues.push(genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
       return close();
     }
@@ -1060,7 +1062,7 @@ export class Parser extends BaseParser {
     }
 
     const validValue = this.consumeAnyConcurrentTokens(
-      [LexerToken.DIGITS, LexerToken.HEX].map(validateToken)
+      [LexerToken.DIGIT, LexerToken.HEX].map(validateToken)
     );
 
     if (!validValue.length) {
@@ -1082,7 +1084,7 @@ export class Parser extends BaseParser {
     this.enqueToStack();
 
     const labels = this.processOptionalLablelAssign(false);
-    const valid = this.consumeAnyConcurrentTokens(
+    const valid = this.checkConcurrentTokens(
       [LexerToken.HEX, LexerToken.HEX].map(validateToken)
     );
 
@@ -1123,7 +1125,7 @@ export class Parser extends BaseParser {
     this.enqueToStack();
 
     const valid = this.consumeAnyConcurrentTokens(
-      [LexerToken.DIGITS].map(validateToken)
+      [LexerToken.DIGIT].map(validateToken)
     );
 
     if (!valid.length) {
