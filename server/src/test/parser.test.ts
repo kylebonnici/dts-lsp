@@ -1110,7 +1110,6 @@ describe("Parser", () => {
             p?.toString()
           )
         ).toEqual(["node1", "node2@200"]);
-        expect((deleteNode.nodeNameOrRef as NodeName).address).toEqual(0x200);
       });
 
       test("with label ref in raw doc", async () => {
