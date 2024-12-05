@@ -19,7 +19,7 @@ export class DtcBaseNode extends ASTBase {
   }
 
   get path(): string[] | undefined {
-    if (!this.pathName) return undefined;
+    if (!this.pathName) return ["__UNDEFINED__"];
     if (!this.parentNode || this instanceof DtcRootNode) return [this.pathName];
     if (!(this.parentNode instanceof DtcBaseNode)) return undefined;
     const parentPath = this.parentNode.path;
