@@ -102,7 +102,7 @@ export class Parser extends BaseParser {
             // Valid use case
             this.isChildNode(this.rootDocument, "Ref") ||
             // not valid syntax but we leave this for the next layer to proecess
-            this.isProperty(this.unhandledStaments) || // TODO syntax issues
+            this.isProperty(this.unhandledStaments) ||
             this.isDeleteProperty(this.unhandledStaments)
           ) // TODO syntax issues
         )
@@ -119,6 +119,16 @@ export class Parser extends BaseParser {
     while (!this.done) {
       process();
     }
+
+    this.unhandledStaments.properties.forEach((prop) => {
+      this.issues.push(genIssue(SyntaxIssue.PROPETY_MUST_BE_IN_NODE, prop));
+    });
+
+    this.unhandledStaments.deleteProperties.forEach((delProp) => {
+      this.issues.push(
+        genIssue(SyntaxIssue.PROPETY_DELETE_MUST_BE_IN_NODE, delProp)
+      );
+    });
 
     if (this.positionStack.length !== 1) {
       throw new Error("Incorrect final stack size");
@@ -1482,6 +1492,8 @@ export class Parser extends BaseParser {
       ...this.cPreprocessorParser.allAstItems,
       this.rootDocument,
       ...this.others,
+      ...this.unhandledStaments.properties,
+      ...this.unhandledStaments.deleteProperties,
     ];
   }
 }

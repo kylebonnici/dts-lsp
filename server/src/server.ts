@@ -283,6 +283,10 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "White space is not allowed";
     case SyntaxIssue.EXPECTED_VALUE:
       return "Expected Value";
+    case SyntaxIssue.PROPETY_MUST_BE_IN_NODE:
+      return "Properties can only be defined in a node.";
+    case SyntaxIssue.PROPETY_DELETE_MUST_BE_IN_NODE:
+      return "Properties can only be deleted inside a node.";
   }
 };
 
