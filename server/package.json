@@ -18,7 +18,7 @@
   },
   "scripts": {
     "test": "jest",
-    "testWithCoverage": "jest --coverage"
+    "test:coverage": "jest --coverage"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",

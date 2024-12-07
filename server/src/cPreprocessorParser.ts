@@ -142,7 +142,7 @@ export class CPreprocessorParser extends BaseParser {
     const found =
       (await this.processInclude()) ||
       this.processDefinitions() ||
-      this.processIfBlocks();
+      this.processIfDefBlocks();
 
     if (line !== undefined) {
       this.moveEndOfLine(line, !!found);
@@ -355,7 +355,7 @@ export class CPreprocessorParser extends BaseParser {
     return variadic;
   }
 
-  private processIfBlocks() {
+  private processIfDefBlocks() {
     const startIndex = this.peekIndex();
 
     const block = this.parseScopedBlock(
@@ -363,7 +363,7 @@ export class CPreprocessorParser extends BaseParser {
         const prevTokenIndex = this.getTokenIndex(token) - 1;
         return (
           !!token &&
-          [LexerToken.C_IFDEF, LexerToken.C_IFNDEF, LexerToken.C_IF].some((t) =>
+          [LexerToken.C_IFDEF, LexerToken.C_IFNDEF].some((t) =>
             validToken(token, t)
           ) &&
           !sameLine(this.tokens.at(prevTokenIndex), token)
@@ -474,7 +474,7 @@ export class CPreprocessorParser extends BaseParser {
 
     const ifDefBlock = new IfDefineBlock(ifDef, endifKeyword, cElse);
 
-    this.popStack();
+    this.mergeStack();
     return ifDefBlock;
   }
 

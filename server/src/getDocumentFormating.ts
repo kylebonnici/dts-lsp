@@ -8,6 +8,7 @@ import { ContextAware } from "./runtimeEvaluator";
 import { DtcBaseNode } from "./ast/dtc/node";
 import { DtcProperty } from "./ast/dtc/property";
 import { DeleteBase } from "./ast/dtc/delete";
+import { ASTBase } from "./ast/base";
 
 export function getDocumentFormating(
   documentFormattingParams: DocumentFormattingParams,
@@ -19,89 +20,103 @@ export function getDocumentFormating(
       documentFormattingParams.textDocument.uri.replace("file://", "")
   );
 
-  return parser ? getTextEdit(parser.parser.rootDocument) : [];
+  return parser
+    ? parser.parser.allAstItems.flatMap((base) => getTextEdit(base))
+    : [];
 }
 
 const getTextEdit = (
-  node: DtcBaseNode,
+  astNode: ASTBase,
   level = 0,
   line: { value?: number } = { value: undefined }
 ): TextEdit[] => {
   const delta = 2; // TODO pass in
   const expectedIndent = level * delta;
 
-  return node.children.flatMap((c) => {
-    if (
-      c instanceof DtcProperty ||
-      c instanceof DeleteBase ||
-      c instanceof DtcBaseNode
-    ) {
-      const newLine =
-        line !== undefined && line.value === c.firstToken.pos.line;
+  if (
+    astNode instanceof DtcProperty ||
+    astNode instanceof DeleteBase ||
+    astNode instanceof DtcBaseNode
+  ) {
+    const newLine =
+      line !== undefined && line.value === astNode.firstToken.pos.line;
 
-      line.value = c.firstToken.pos.line;
+    line.value = astNode.firstToken.pos.line;
 
-      const result: TextEdit[] = [];
-      const currentIndent = newLine ? 0 : c.firstToken.pos.col;
-      if (newLine) {
-        result.push(
-          TextEdit.replace(
-            Range.create(
-              Position.create(c.firstToken.pos.line, c.firstToken.pos.col),
-              Position.create(c.firstToken.pos.line, c.firstToken.pos.col)
+    const result: TextEdit[] = [];
+    const currentIndent = newLine ? 0 : astNode.firstToken.pos.col;
+    if (newLine) {
+      result.push(
+        TextEdit.replace(
+          Range.create(
+            Position.create(
+              astNode.firstToken.pos.line,
+              astNode.firstToken.pos.col
             ),
-            `\n${"".padStart(expectedIndent, " ")}`
-          )
-        );
-      } else {
-        result.push(
-          TextEdit.replace(
-            Range.create(
-              Position.create(c.firstToken.pos.line, 0),
-              Position.create(c.firstToken.pos.line, currentIndent)
-            ),
-            "".padStart(expectedIndent, " ")
-          )
-        );
-      }
-
-      if (c instanceof DtcBaseNode) {
-        result.push(...getTextEdit(c, level + 1, line));
-
-        if (c.closeScope) {
-          const newLine =
-            line !== undefined && line.value === c.closeScope.pos.line;
-          const currentIndent = newLine ? 0 : c.closeScope.pos.col;
-
-          line.value = c.closeScope.pos.line;
-
-          if (newLine) {
-            result.push(
-              TextEdit.replace(
-                Range.create(
-                  Position.create(c.closeScope.pos.line, c.closeScope.pos.col),
-                  Position.create(c.closeScope.pos.line, c.closeScope.pos.col)
-                ),
-                `\n${"".padStart(expectedIndent, " ")}`
-              )
-            );
-          } else {
-            result.push(
-              TextEdit.replace(
-                Range.create(
-                  Position.create(c.closeScope.pos.line, 0),
-                  Position.create(c.closeScope.pos.line, currentIndent)
-                ),
-                "".padStart(expectedIndent, " ")
-              )
-            );
-          }
-        }
-      }
-
-      return result;
+            Position.create(
+              astNode.firstToken.pos.line,
+              astNode.firstToken.pos.col
+            )
+          ),
+          `\n${"".padStart(expectedIndent, " ")}`
+        )
+      );
+    } else {
+      result.push(
+        TextEdit.replace(
+          Range.create(
+            Position.create(astNode.firstToken.pos.line, 0),
+            Position.create(astNode.firstToken.pos.line, currentIndent)
+          ),
+          "".padStart(expectedIndent, " ")
+        )
+      );
     }
 
-    return [];
-  });
+    if (astNode instanceof DtcBaseNode) {
+      result.push(
+        ...astNode.children.flatMap((c) => getTextEdit(c, level + 1, line))
+      );
+
+      if (astNode.closeScope) {
+        const newLine =
+          line !== undefined && line.value === astNode.closeScope.pos.line;
+        const currentIndent = newLine ? 0 : astNode.closeScope.pos.col;
+
+        line.value = astNode.closeScope.pos.line;
+
+        if (newLine) {
+          result.push(
+            TextEdit.replace(
+              Range.create(
+                Position.create(
+                  astNode.closeScope.pos.line,
+                  astNode.closeScope.pos.col
+                ),
+                Position.create(
+                  astNode.closeScope.pos.line,
+                  astNode.closeScope.pos.col
+                )
+              ),
+              `\n${"".padStart(expectedIndent, " ")}`
+            )
+          );
+        } else {
+          result.push(
+            TextEdit.replace(
+              Range.create(
+                Position.create(astNode.closeScope.pos.line, 0),
+                Position.create(astNode.closeScope.pos.line, currentIndent)
+              ),
+              "".padStart(expectedIndent, " ")
+            )
+          );
+        }
+      }
+    }
+
+    return result;
+  }
+
+  return [];
 };

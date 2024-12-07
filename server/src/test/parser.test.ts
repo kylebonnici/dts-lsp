@@ -24,6 +24,9 @@ import { StringValue } from "../ast/dtc/values/string";
 import { ByteStringValue } from "../ast/dtc/values/byteString";
 import { DeleteNode } from "../ast/dtc/deleteNode";
 import { Comment } from "../ast/dtc/comment";
+import { IfDefineBlock } from "../ast/cPreprocessors/ifDefine";
+import { CPreprocessorParser } from "../cPreprocessorParser";
+import { CMacro } from "../ast/cPreprocessors/macro";
 
 jest.mock("fs", () => ({
   readFileSync: jest.fn().mockImplementation(() => {
@@ -1396,6 +1399,233 @@ describe("Parser", () => {
           rootDts.properties[0].values?.values[0]?.value as ArrayValues
         ).values.map((v) => (v.value as NumberValue).value)
       ).toEqual([10]);
+    });
+  });
+
+  describe("C Pre processors", () => {
+    describe("If def", () => {
+      test("If def - end", async () => {
+        mockReadFileSync("#IFDEF HELLO\nsome\nstuff\n#endif");
+        const parser = new CPreprocessorParser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfDefineBlock
+        ) as IfDefineBlock[];
+        expect(ifDefineBlocks.length).toEqual(1);
+
+        const ifDefineBlock = ifDefineBlocks[0];
+        expect(ifDefineBlock.ifDef.identifier?.name).toEqual("HELLO");
+        expect(ifDefineBlock.ifDef.content?.tokenIndexes.start.pos.col).toEqual(
+          0
+        );
+        expect(
+          ifDefineBlock.ifDef.content?.tokenIndexes.start.pos.line
+        ).toEqual(1);
+        expect(
+          ifDefineBlock.ifDef.content!.tokenIndexes.end.pos.col +
+            ifDefineBlock.ifDef.content!.tokenIndexes.end.pos.len
+        ).toEqual(5);
+        expect(ifDefineBlock.ifDef.content?.tokenIndexes.end.pos.line).toEqual(
+          2
+        );
+        expect(ifDefineBlock.elseOption).toBeUndefined();
+      });
+
+      test("If def - else if - end", async () => {
+        mockReadFileSync("#IFDEF HELLO\nsome\nstuff\n#else\nfoo\nbar\n#endif");
+        const parser = new CPreprocessorParser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfDefineBlock
+        ) as IfDefineBlock[];
+        expect(ifDefineBlocks.length).toEqual(1);
+
+        const ifDefineBlock = ifDefineBlocks[0];
+        expect(ifDefineBlock.ifDef.identifier?.name).toEqual("HELLO");
+        expect(ifDefineBlock.ifDef.content?.tokenIndexes.start.pos.col).toEqual(
+          0
+        );
+        expect(
+          ifDefineBlock.ifDef.content?.tokenIndexes.start.pos.line
+        ).toEqual(1);
+        expect(
+          ifDefineBlock.ifDef.content!.tokenIndexes.end.pos.col +
+            ifDefineBlock.ifDef.content!.tokenIndexes.end.pos.len
+        ).toEqual(5);
+        expect(ifDefineBlock.ifDef.content?.tokenIndexes.end.pos.line).toEqual(
+          2
+        );
+
+        expect(
+          ifDefineBlock.elseOption?.content?.tokenIndexes.start.pos.col
+        ).toEqual(0);
+        expect(
+          ifDefineBlock.elseOption?.content?.tokenIndexes.start.pos.line
+        ).toEqual(4);
+        expect(
+          ifDefineBlock.elseOption!.content!.tokenIndexes.end.pos.col +
+            ifDefineBlock.elseOption!.content!.tokenIndexes.end.pos.len
+        ).toEqual(3);
+        expect(
+          ifDefineBlock.elseOption!.content?.tokenIndexes.end.pos.line
+        ).toEqual(5);
+      });
+
+      test("Nested If def - else - end -- Use else", async () => {
+        mockReadFileSync(
+          `#IFDEF HELLO\n#IFDEF AGAIN\nsome\nstuff\n#else\nfoo\nbar\n#endif\n#else\n#IFDEF HELLO_AGAIN\nsome\nstuff\n#else\nfoo\nbar\n#endif\n#endif`
+        );
+        const parser = new CPreprocessorParser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfDefineBlock
+        ) as IfDefineBlock[];
+        expect(ifDefineBlocks.length).toEqual(2);
+
+        const ifDefineBlockOuter = ifDefineBlocks[0];
+        expect(ifDefineBlockOuter.ifDef.identifier?.name).toEqual("HELLO");
+        expect(
+          ifDefineBlockOuter.ifDef.content?.tokenIndexes.start.pos.col
+        ).toEqual(0);
+        expect(
+          ifDefineBlockOuter.ifDef.content?.tokenIndexes.start.pos.line
+        ).toEqual(1);
+        expect(
+          ifDefineBlockOuter.ifDef.content!.tokenIndexes.end.pos.col +
+            ifDefineBlockOuter.ifDef.content!.tokenIndexes.end.pos.len
+        ).toEqual(6);
+        expect(
+          ifDefineBlockOuter.ifDef.content?.tokenIndexes.end.pos.line
+        ).toEqual(7);
+
+        expect(
+          ifDefineBlockOuter.elseOption?.content?.tokenIndexes.start.pos.col
+        ).toEqual(0);
+        expect(
+          ifDefineBlockOuter.elseOption?.content?.tokenIndexes.start.pos.line
+        ).toEqual(9);
+        expect(
+          ifDefineBlockOuter.elseOption!.content!.tokenIndexes.end.pos.col +
+            ifDefineBlockOuter.elseOption!.content!.tokenIndexes.end.pos.len
+        ).toEqual(6);
+        expect(
+          ifDefineBlockOuter.elseOption!.content?.tokenIndexes.end.pos.line
+        ).toEqual(15);
+
+        const ifDefineBlockInner = ifDefineBlocks[1];
+        expect(ifDefineBlockInner.ifDef.identifier?.name).toEqual(
+          "HELLO_AGAIN"
+        );
+        expect(
+          ifDefineBlockInner.ifDef.content?.tokenIndexes.start.pos.col
+        ).toEqual(0);
+        expect(
+          ifDefineBlockInner.ifDef.content?.tokenIndexes.start.pos.line
+        ).toEqual(10);
+        expect(
+          ifDefineBlockInner.ifDef.content!.tokenIndexes.end.pos.col +
+            ifDefineBlockInner.ifDef.content!.tokenIndexes.end.pos.len
+        ).toEqual(5);
+        expect(
+          ifDefineBlockInner.ifDef.content?.tokenIndexes.end.pos.line
+        ).toEqual(11);
+
+        expect(
+          ifDefineBlockInner.elseOption?.content?.tokenIndexes.start.pos.col
+        ).toEqual(0);
+        expect(
+          ifDefineBlockInner.elseOption?.content?.tokenIndexes.start.pos.line
+        ).toEqual(13);
+        expect(
+          ifDefineBlockInner.elseOption!.content!.tokenIndexes.end.pos.col +
+            ifDefineBlockInner.elseOption!.content!.tokenIndexes.end.pos.len
+        ).toEqual(3);
+        expect(
+          ifDefineBlockInner.elseOption!.content?.tokenIndexes.end.pos.line
+        ).toEqual(14);
+      });
+
+      test("Nested If def - else - end -- Use HELLO and AGAIN", async () => {
+        mockReadFileSync(
+          `#DEFINE HELLO\n#DEFINE AGAIN\n#IFDEF HELLO\n#IFDEF AGAIN\nsome\nstuff\n#else\nfoo\nbar\n#endif\n#else\n#IFDEF HELLO_AGAIN
+          \nsome\nstuff\n#else\nfoo\nbar\n#endif\n#endif`
+        );
+
+        const parser = new CPreprocessorParser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfDefineBlock
+        ) as IfDefineBlock[];
+        expect(ifDefineBlocks.length).toEqual(2);
+
+        const ifDefineBlockOuter = ifDefineBlocks[0];
+        expect(ifDefineBlockOuter.ifDef.identifier?.name).toEqual("HELLO");
+        expect(
+          ifDefineBlockOuter.ifDef.content?.tokenIndexes.start.pos.col
+        ).toEqual(0);
+        expect(
+          ifDefineBlockOuter.ifDef.content?.tokenIndexes.start.pos.line
+        ).toEqual(3);
+        expect(
+          ifDefineBlockOuter.ifDef.content!.tokenIndexes.end.pos.col +
+            ifDefineBlockOuter.ifDef.content!.tokenIndexes.end.pos.len
+        ).toEqual(6);
+        expect(
+          ifDefineBlockOuter.ifDef.content?.tokenIndexes.end.pos.line
+        ).toEqual(9);
+
+        expect(
+          ifDefineBlockOuter.elseOption?.content?.tokenIndexes.start.pos.col
+        ).toEqual(0);
+        expect(
+          ifDefineBlockOuter.elseOption?.content?.tokenIndexes.start.pos.line
+        ).toEqual(11);
+        expect(
+          ifDefineBlockOuter.elseOption!.content!.tokenIndexes.end.pos.col +
+            ifDefineBlockOuter.elseOption!.content!.tokenIndexes.end.pos.len
+        ).toEqual(6);
+        expect(
+          ifDefineBlockOuter.elseOption!.content?.tokenIndexes.end.pos.line
+        ).toEqual(18);
+
+        const ifDefineBlockInner = ifDefineBlocks[1];
+        expect(ifDefineBlockInner.ifDef.identifier?.name).toEqual("AGAIN");
+        expect(
+          ifDefineBlockInner.ifDef.content?.tokenIndexes.start.pos.col
+        ).toEqual(0);
+        expect(
+          ifDefineBlockInner.ifDef.content?.tokenIndexes.start.pos.line
+        ).toEqual(4);
+        expect(
+          ifDefineBlockInner.ifDef.content!.tokenIndexes.end.pos.col +
+            ifDefineBlockInner.ifDef.content!.tokenIndexes.end.pos.len
+        ).toEqual(5);
+        expect(
+          ifDefineBlockInner.ifDef.content?.tokenIndexes.end.pos.line
+        ).toEqual(5);
+
+        expect(
+          ifDefineBlockInner.elseOption?.content?.tokenIndexes.start.pos.col
+        ).toEqual(0);
+        expect(
+          ifDefineBlockInner.elseOption?.content?.tokenIndexes.start.pos.line
+        ).toEqual(7);
+        expect(
+          ifDefineBlockInner.elseOption!.content!.tokenIndexes.end.pos.col +
+            ifDefineBlockInner.elseOption!.content!.tokenIndexes.end.pos.len
+        ).toEqual(3);
+        expect(
+          ifDefineBlockInner.elseOption!.content?.tokenIndexes.end.pos.line
+        ).toEqual(8);
+      });
     });
   });
 });
