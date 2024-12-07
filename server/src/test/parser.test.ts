@@ -23,6 +23,7 @@ import { NodePathRef } from "../ast/dtc/values/nodePath";
 import { StringValue } from "../ast/dtc/values/string";
 import { ByteStringValue } from "../ast/dtc/values/byteString";
 import { DeleteNode } from "../ast/dtc/deleteNode";
+import { Comment } from "../ast/dtc/comment";
 
 jest.mock("fs", () => ({
   readFileSync: jest.fn().mockImplementation(() => {
@@ -927,6 +928,17 @@ describe("Parser", () => {
               parser.issues[0].astElement.lastToken.pos.len
           ).toEqual(14);
         });
+
+        test("Missing value", async () => {
+          mockReadFileSync("/{prop=<10 20>, ,<20 30>;};");
+          const parser = new Parser("/folder/dts.dts", [], []);
+          await parser.stable;
+          expect(parser.issues.length).toEqual(1);
+
+          expect(parser.issues[0].issues).toEqual([SyntaxIssue.VALUE]);
+          expect(parser.issues[0].astElement.firstToken.pos.col).toEqual(14);
+          expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(16);
+        });
       });
     });
   });
@@ -1296,6 +1308,94 @@ describe("Parser", () => {
             parser.issues[0].astElement.lastToken.pos.len
         ).toEqual(24);
       });
+    });
+  });
+
+  describe("Comments", () => {
+    test("inline", async () => {
+      mockReadFileSync("    // foo bar    .");
+      const parser = new Parser("/folder/dts.dts", [], []);
+      await parser.stable;
+
+      expect(parser.issues.length).toEqual(0);
+      expect(parser.allAstItems.length).toEqual(1);
+
+      expect(parser.allAstItems[0] instanceof Comment).toBeTruthy();
+
+      const comment = parser.allAstItems[0] as Comment;
+      expect(comment.firstToken.pos.col).toEqual(4);
+      expect(comment.lastToken.pos.col).toEqual(18);
+    });
+
+    test("Multi line on single line ", async () => {
+      mockReadFileSync("    /* foo bar */ ");
+      const parser = new Parser("/folder/dts.dts", [], []);
+      await parser.stable;
+
+      expect(parser.issues.length).toEqual(0);
+      expect(parser.allAstItems.length).toEqual(1);
+
+      expect(parser.allAstItems[0] instanceof Comment).toBeTruthy();
+
+      const comment = parser.allAstItems[0] as Comment;
+      expect(comment.firstToken.pos.col).toEqual(4);
+      expect(comment.lastToken.pos.col).toEqual(16);
+    });
+
+    test("Multi line on multi line", async () => {
+      mockReadFileSync("    /* foo \nbar */ ");
+      const parser = new Parser("/folder/dts.dts", [], []);
+      await parser.stable;
+
+      expect(parser.issues.length).toEqual(0);
+      expect(parser.allAstItems.length).toEqual(2);
+
+      expect(parser.allAstItems[0] instanceof Comment).toBeTruthy();
+
+      const commentLine1 = parser.allAstItems[0] as Comment;
+      const commentLine2 = parser.allAstItems[1] as Comment;
+      expect(commentLine1.firstToken.pos.col).toEqual(4);
+      expect(commentLine1.firstToken.pos.line).toEqual(0);
+      expect(
+        commentLine1.lastToken.pos.col + commentLine1.lastToken.pos.len
+      ).toEqual(10);
+
+      expect(commentLine2.firstToken.pos.col).toEqual(0);
+      expect(commentLine2.firstToken.pos.line).toEqual(1);
+      expect(commentLine2.lastToken.pos.col).toEqual(5);
+      expect(commentLine2.lastToken.pos.line).toEqual(1);
+    });
+
+    test("Multi line between elements", async () => {
+      mockReadFileSync("/{prop= /* foo bar */  <10>;};");
+      const parser = new Parser("/folder/dts.dts", [], []);
+      await parser.stable;
+
+      expect(parser.issues.length).toEqual(0);
+
+      const comments = parser.allAstItems.filter(
+        (o) => o instanceof Comment
+      ) as Comment[];
+      expect(comments.length).toEqual(1);
+
+      const comment = parser.allAstItems[0] as Comment;
+      expect(comment.firstToken.pos.col).toEqual(8);
+      expect(comment.lastToken.pos.col).toEqual(20);
+
+      const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+      expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+      expect(
+        rootDts.properties[0].values instanceof PropertyValues
+      ).toBeTruthy();
+      expect(rootDts.properties[0].values?.values.length).toEqual(1);
+      expect(
+        rootDts.properties[0].values?.values[0]?.value instanceof ArrayValues
+      ).toBeTruthy();
+      expect(
+        (
+          rootDts.properties[0].values?.values[0]?.value as ArrayValues
+        ).values.map((v) => (v.value as NumberValue).value)
+      ).toEqual([10]);
     });
   });
 });

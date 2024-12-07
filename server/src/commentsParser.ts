@@ -127,6 +127,7 @@ export class CommentsParser extends BaseParser {
 
     if (
       !validToken(tokens[index], LexerToken.FORWARD_SLASH) ||
+      tokens.length === index + 1 ||
       !validToken(tokens[index + 1], LexerToken.FORWARD_SLASH)
     ) {
       return;
@@ -134,7 +135,7 @@ export class CommentsParser extends BaseParser {
 
     const comments: Comment[] = [];
 
-    while (tokens[index].pos.line === tokens[index + 1].pos.line) {
+    while (tokens[index].pos.line === tokens.at(index + 1)?.pos.line) {
       tokenUsed.push(index++);
     }
 

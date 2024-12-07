@@ -850,8 +850,8 @@ export class Parser extends BaseParser {
           this.moveToNextToken;
         }
         const next = getValue();
-        if (start && next === null && shouldHaveValue) {
-          const node = new ASTBase(createTokenIndex(start, end));
+        if (end && next === null && shouldHaveValue) {
+          const node = new ASTBase(createTokenIndex(end, this.currentToken));
           this.issues.push(genIssue(SyntaxIssue.VALUE, node));
         }
         if (!shouldHaveValue && next === null) {
@@ -1500,7 +1500,7 @@ export class Parser extends BaseParser {
   get allAstItems(): ASTBase[] {
     return [
       ...this.cPreprocessorParser.allAstItems,
-      this.rootDocument,
+      ...this.rootDocument.children,
       ...this.others,
       ...this.unhandledStaments.properties,
       ...this.unhandledStaments.deleteProperties,
