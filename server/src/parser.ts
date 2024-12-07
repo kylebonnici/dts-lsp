@@ -842,14 +842,24 @@ export class Parser extends BaseParser {
       }
 
       const values = [value];
-      while (validToken(this.currentToken, LexerToken.COMMA)) {
+      while (!validToken(this.currentToken, LexerToken.SEMICOLON)) {
         const start = this.prevToken;
         const end = this.currentToken;
-        this.moveToNextToken;
+        const shouldHaveValue = validToken(this.currentToken, LexerToken.COMMA);
+        if (shouldHaveValue) {
+          this.moveToNextToken;
+        }
         const next = getValue();
-        if (start && next === null) {
+        if (start && next === null && shouldHaveValue) {
           const node = new ASTBase(createTokenIndex(start, end));
           this.issues.push(genIssue(SyntaxIssue.VALUE, node));
+        }
+        if (!shouldHaveValue && next === null) {
+          break;
+        }
+        if (start && !shouldHaveValue && next) {
+          const node = new ASTBase(createTokenIndex(start));
+          this.issues.push(genIssue(SyntaxIssue.MISSING_COMMA, node));
         }
         values.push(next!);
       }

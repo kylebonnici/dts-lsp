@@ -61,7 +61,7 @@ const syntaxIssueToCodeAction = (
       return {
         title: "Remove white space",
         diagnostics: [diagnostic],
-        kind: CodeActionKind.QuickFix,
+        kind: CodeActionKind.SourceFixAll,
         isPreferred: true,
         edit: {
           changes: {
@@ -100,12 +100,6 @@ const syntaxIssueToCodeAction = (
           },
         },
       };
-    case SyntaxIssue.OPEN_SQUARE:
-    case SyntaxIssue.SQUARE_CLOSE:
-    case SyntaxIssue.GT_SYM:
-    case SyntaxIssue.LT_SYM:
-    case SyntaxIssue.DUOUBE_QUOTE:
-    case SyntaxIssue.SINGLE_QUOTE:
     case SyntaxIssue.FORWARD_SLASH_START_PATH:
       return {
         title: "Add '/'",
@@ -126,12 +120,37 @@ const syntaxIssueToCodeAction = (
           },
         },
       };
+    case SyntaxIssue.MISSING_COMMA:
+      return {
+        title: "Add comma",
+        diagnostics: [diagnostic],
+        kind: CodeActionKind.SourceFixAll,
+        isPreferred: true,
+        edit: {
+          changes: {
+            [uri]: [
+              TextEdit.insert(
+                Position.create(
+                  diagnostic.range.end.line,
+                  diagnostic.range.end.character
+                ),
+                ","
+              ),
+            ],
+          },
+        },
+      };
     case SyntaxIssue.FORWARD_SLASH_END_DELETE:
     case SyntaxIssue.NO_STAMENTE:
     case SyntaxIssue.LABEL_ASSIGN_MISSING_COLON:
     case SyntaxIssue.MISSING_ROUND_CLOSE:
     case SyntaxIssue.INCLUDE_CLOSE_PATH:
-    case SyntaxIssue.MISSING_COMMA:
+    case SyntaxIssue.OPEN_SQUARE:
+    case SyntaxIssue.SQUARE_CLOSE:
+    case SyntaxIssue.GT_SYM:
+    case SyntaxIssue.LT_SYM:
+    case SyntaxIssue.DUOUBE_QUOTE:
+    case SyntaxIssue.SINGLE_QUOTE:
     default:
       return;
   }
@@ -140,7 +159,7 @@ const syntaxIssueToCodeAction = (
 export function getCodeActions(
   codeActionParams: CodeActionParams
 ): CodeAction[] {
-  return codeActionParams.context.diagnostics
+  const results = codeActionParams.context.diagnostics
     .flatMap((diagnostic) => {
       const tmp = diagnostic.data as CodeActionDiagnosticData | undefined;
       return tmp?.issues.map((issue) => {
@@ -154,4 +173,31 @@ export function getCodeActions(
       });
     })
     .filter((c) => !!c) as CodeAction[];
+
+  const onSaveAuto = results.filter(
+    (r) => r.kind === CodeActionKind.SourceFixAll
+  );
+  const others = results.filter((r) => r.kind !== CodeActionKind.SourceFixAll);
+  const combinedEdits = onSaveAuto.flatMap(
+    (p) => p.edit?.changes?.[codeActionParams.textDocument.uri] ?? []
+  );
+
+  return [
+    ...others,
+    ...onSaveAuto.map((o) => ({ ...o, kind: CodeActionKind.QuickFix })),
+    ...(combinedEdits.length
+      ? [
+          {
+            title: "Fix All",
+            kind: CodeActionKind.SourceFixAll,
+            isPreferred: true,
+            edit: {
+              changes: {
+                [codeActionParams.textDocument.uri]: combinedEdits,
+              },
+            },
+          },
+        ]
+      : []),
+  ];
 }

@@ -827,34 +827,105 @@ describe("Parser", () => {
       describe("Multiple values", () => {
         test("Mixed valid", async () => {
           mockReadFileSync(
-            "/{prop=<10 0xaa>, 'FOO', \"Bar\", [10 20], [3040], &l1, <&{/node1/node2} 10>;};"
+            "/{prop=<10 0xaa>, 'Foo', \"Bar\", [10 20], [3040], &l1, <&{/node1/node2} 10>;};"
           );
           const parser = new Parser("/folder/dts.dts", [], []);
           await parser.stable;
           expect(parser.issues.length).toEqual(0);
           const rootDts = parser.rootDocument.children[0] as DtcRootNode;
 
-          // expect(rootDts.properties.length).toEqual(1);
-          // expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
-          // expect(
-          //   rootDts.properties[0].values instanceof PropertyValues
-          // ).toBeTruthy();
-          // expect(rootDts.properties[0].values?.values.length).toEqual(1);
-          // expect(
-          //   rootDts.properties[0].values?.values[0]?.value instanceof
-          //     ArrayValues
-          // ).toBeTruthy();
-          // expect(
-          //   (
-          //     rootDts.properties[0].values?.values[0]?.value as ArrayValues
-          //   ).values.map((v) => (v.value as NumberValue).value)
-          // ).toEqual([10, 20, 30, 0xff, 0xaa]);
+          expect(rootDts.properties.length).toEqual(1);
+          expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+          expect(
+            rootDts.properties[0].values instanceof PropertyValues
+          ).toBeTruthy();
 
-          // expect(
-          //   (
-          //     rootDts.properties[0].values?.values[0]?.value as ArrayValues
-          //   ).values.map((v) => (v.value as NumberValue).toString())
-          // ).toEqual(["10", "20", "30", (0xff).toString(), (0xaa).toString()]);
+          const values = rootDts.properties[0].values as PropertyValues;
+
+          expect(values?.values.length).toEqual(7);
+
+          expect(values?.values[0]?.value instanceof ArrayValues).toBeTruthy();
+          expect(
+            (values?.values[0]?.value as ArrayValues).values.map(
+              (v) => (v.value as NumberValue).value
+            )
+          ).toEqual([10, 0xaa]);
+          expect(
+            (values?.values[0]?.value as ArrayValues).values.map((v) =>
+              (v.value as NumberValue).toString()
+            )
+          ).toEqual(["10", (0xaa).toString()]);
+
+          expect(values?.values[1]?.value instanceof StringValue).toBeTruthy();
+          expect((values?.values[1]?.value as StringValue).value).toEqual(
+            "'Foo'"
+          );
+
+          expect(values?.values[2]?.value instanceof StringValue).toBeTruthy();
+          expect((values?.values[2]?.value as StringValue).value).toEqual(
+            '"Bar"'
+          );
+
+          expect(
+            values?.values[3]?.value instanceof ByteStringValue
+          ).toBeTruthy();
+          expect(
+            (values?.values[3]?.value as ByteStringValue).values.map(
+              (v) => v.value?.value
+            )
+          ).toEqual([0x10, 0x20]);
+
+          expect(
+            values?.values[4]?.value instanceof ByteStringValue
+          ).toBeTruthy();
+          expect(
+            (values?.values[4]?.value as ByteStringValue).values.map(
+              (v) => v.value?.value
+            )
+          ).toEqual([0x30, 0x40]);
+
+          expect(values?.values[5]?.value instanceof LabelRef).toBeTruthy();
+          expect((values?.values[5]?.value as LabelRef).label?.value).toEqual(
+            "l1"
+          );
+
+          expect(values?.values[6]?.value instanceof ArrayValues).toBeTruthy();
+          expect(
+            (values?.values[6]?.value as ArrayValues).values.length
+          ).toEqual(2);
+          expect(
+            (values?.values[6]?.value as ArrayValues).values[0].value instanceof
+              NodePathRef
+          ).toBeTruthy();
+          expect(
+            (
+              (values?.values[6]?.value as ArrayValues).values[0]
+                .value as NodePathRef
+            ).path?.pathParts.map((m) => m?.toString())
+          ).toEqual(["node1", "node2"]);
+          expect(
+            (values?.values[6]?.value as ArrayValues).values[1].value instanceof
+              NumberValue
+          ).toBeTruthy();
+          expect(
+            (
+              (values?.values[6]?.value as ArrayValues).values[1]
+                .value as NumberValue
+            ).value
+          ).toEqual(10);
+        });
+
+        test("Missing comma", async () => {
+          mockReadFileSync("/{prop=<10 20> <20 30>;};");
+          const parser = new Parser("/folder/dts.dts", [], []);
+          await parser.stable;
+          expect(parser.issues.length).toEqual(1);
+
+          expect(parser.issues[0].issues).toEqual([SyntaxIssue.MISSING_COMMA]);
+          expect(
+            parser.issues[0].astElement.lastToken.pos.col +
+              parser.issues[0].astElement.lastToken.pos.len
+          ).toEqual(14);
         });
       });
     });
