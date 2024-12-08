@@ -496,7 +496,7 @@ export class Parser extends BaseParser {
     const hasColon = token && validToken(token, LexerToken.COLON);
     const node = new LabelAssign(
       name,
-      createTokenIndex(valid[0], token ?? valid.at(-1))
+      createTokenIndex(valid[0], hasColon ? token : valid.at(-1))
     );
 
     if (!hasColon) {
@@ -600,7 +600,8 @@ export class Parser extends BaseParser {
     this.others.push(node);
 
     if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
-      this.issues.push(genIssue(SyntaxIssue.FORWARD_SLASH_END_DELETE, node));
+      keyword.lastToken = valid.at(-1);
+      this.issues.push(genIssue(SyntaxIssue.MISSING_FORWARD_SLASH_END, node));
       this.mergeStack();
       return true;
     } else {
@@ -661,20 +662,16 @@ export class Parser extends BaseParser {
     const keyword = new Keyword();
     keyword.firstToken = firstToken;
 
-    const close = () => {
-      keyword.lastToken = valid.at(-1);
-      const node = new DeleteNode(keyword);
-      parent.addNodeChild(node);
-      this.mergeStack();
-      return true;
-    };
-
     if (
       valid.length === 1 &&
       !validToken(this.currentToken, LexerToken.CURLY_OPEN)
     ) {
       this.issues.push(genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
-      return close();
+      keyword.lastToken = valid.at(-1);
+      const node = new DeleteNode(keyword);
+      parent.addNodeChild(node);
+      this.mergeStack();
+      return true;
     }
 
     const stringValue = valid.map((t) => t.value ?? "").join("");
@@ -684,19 +681,26 @@ export class Parser extends BaseParser {
       return false;
     }
 
-    if (valid.length !== 6) {
-      this.issues.push(genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
-      return close();
-    }
-
-    if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
-      this.issues.push(genIssue(SyntaxIssue.FORWARD_SLASH_END_DELETE, keyword));
-      return close();
+    keyword.lastToken = valid.at(-1);
+    if ("/delete-node" !== stringValue) {
+      this.issues.push(
+        genIssue(
+          stringValue.startsWith("/delete-n")
+            ? SyntaxIssue.DELETE_NODE_INCOMPLETE
+            : SyntaxIssue.DELETE_INCOMPLETE,
+          keyword
+        )
+      );
     } else {
-      token = this.moveToNextToken;
+      if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
+        this.issues.push(
+          genIssue(SyntaxIssue.MISSING_FORWARD_SLASH_END, keyword)
+        );
+      } else {
+        token = this.moveToNextToken;
+        keyword.lastToken = token;
+      }
     }
-    keyword.lastToken = token;
-
     const node = new DeleteNode(keyword);
 
     if (sameLine(keyword.tokenIndexes?.end, firstToken)) {
@@ -759,20 +763,16 @@ export class Parser extends BaseParser {
     const keyword = new Keyword();
     keyword.firstToken = firstToken;
 
-    const close = () => {
-      keyword.lastToken = valid.at(-1);
-      const node = new DeleteProperty(keyword);
-      parent.addNodeChild(node);
-      this.mergeStack();
-      return true;
-    };
-
     if (
       valid.length === 1 &&
       !validToken(this.currentToken, LexerToken.CURLY_OPEN)
     ) {
       this.issues.push(genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
-      return close();
+      keyword.lastToken = valid.at(-1);
+      const node = new DeleteProperty(keyword);
+      parent.addNodeChild(node);
+      this.mergeStack();
+      return true;
     }
 
     const stringValue = valid.map((t) => t.value ?? "").join("");
@@ -785,19 +785,26 @@ export class Parser extends BaseParser {
       return false;
     }
 
-    if (valid.length !== 6) {
-      this.issues.push(genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
-      return close();
-    }
-
-    if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
-      this.issues.push(genIssue(SyntaxIssue.FORWARD_SLASH_END_DELETE, keyword));
-      return close();
+    keyword.lastToken = valid.at(-1);
+    if ("/delete-property" !== stringValue) {
+      this.issues.push(
+        genIssue(
+          stringValue.startsWith("/delete-p")
+            ? SyntaxIssue.DELETE_PROPERTY_INCOMPLETE
+            : SyntaxIssue.DELETE_INCOMPLETE,
+          keyword
+        )
+      );
     } else {
-      token = this.moveToNextToken;
+      if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
+        this.issues.push(
+          genIssue(SyntaxIssue.MISSING_FORWARD_SLASH_END, keyword)
+        );
+      } else {
+        token = this.moveToNextToken;
+        keyword.lastToken = token;
+      }
     }
-
-    keyword.lastToken = token;
 
     const node = new DeleteProperty(keyword);
 
@@ -1230,20 +1237,26 @@ export class Parser extends BaseParser {
     }
 
     if (complexExpression) {
-      const operator = this.isOperator();
+      let operator = this.isOperator();
 
-      if (operator) {
+      while (operator) {
         // complex
         const nextExpression = this.processExpression();
 
         if (!nextExpression) {
           this.issues.push(genIssue(SyntaxIssue.EXPECTED_EXPRESSION, operator));
         } else {
-          expression = new ComplexExpression(expression, {
-            operator,
-            expression: nextExpression,
-          });
+          if (expression instanceof ComplexExpression) {
+            expression.addExpression(operator, nextExpression);
+          } else {
+            expression = new ComplexExpression(expression, {
+              operator,
+              expression: nextExpression,
+            });
+          }
         }
+
+        operator = this.isOperator();
       }
 
       if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
@@ -1271,9 +1284,17 @@ export class Parser extends BaseParser {
     );
 
     return block?.splitTokens.map((param, i) => {
-      const tokens = param.filter((p) => !validToken(p, LexerToken.COMMA));
+      const tokens = i ? param.slice(1) : param;
       return new CMacroCallParam(
-        tokens.map((p) => p.value).join(""),
+        tokens
+          .map((p, i) => {
+            let v = p.value;
+            if (p.pos.line === tokens.at(i + 1)?.pos.line) {
+              v = v.padEnd(tokens[i + 1].pos.col - p.pos.col, " ");
+            }
+            return v;
+          })
+          .join(""),
         createTokenIndex(tokens[0], tokens.at(-1)),
         i
       );

@@ -176,7 +176,7 @@ export class CPreprocessorParser extends BaseParser {
     let content: CMacroContent | undefined;
     if (defninitionContent.length) {
       content = new CMacroContent(
-        createTokenIndex(defninitionContent[0]),
+        createTokenIndex(defninitionContent[0], defninitionContent.at(-1)),
         defninitionContent
       );
     }
@@ -321,15 +321,18 @@ export class CPreprocessorParser extends BaseParser {
       param = this.processCIdentifier() || this.processVariadic();
     }
 
+    const node = new FunctionDefinition(identifier, params);
+
     if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
+      node.lastToken = this.prevToken;
       this.issues.push(
-        genIssue(SyntaxIssue.MISSING_ROUND_CLOSE, params.at(-1) ?? identifier)
+        genIssue(SyntaxIssue.MISSING_ROUND_CLOSE, params.at(-1) ?? node)
       );
     } else {
       token = this.moveToNextToken;
+      node.lastToken = token;
     }
 
-    const node = new FunctionDefinition(identifier, params);
     node.uri = this.uri;
 
     this.mergeStack();

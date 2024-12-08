@@ -16,15 +16,12 @@ export class ComplexExpression extends Expression {
     }
   }
 
-  evaluate(): string {
-    throw new Error("Not Implimented");
+  addExpression(operator: Operator, expression: Expression) {
+    this.addChild(operator);
+    this.addChild(expression);
   }
 
   toString() {
-    return `(${this.expression.toString()}${
-      this.join
-        ? ` ${this.join.operator.toString()} ${this.join.expression.toString()}`
-        : ""
-    })`;
+    return `(${this.children.map((c) => c.toString()).join(" ")})`;
   }
 }

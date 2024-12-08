@@ -13,7 +13,7 @@ import {
   DtcRootNode,
   NodeName,
 } from "../ast/dtc/node";
-import { DtcProperty, PropertyName } from "../ast/dtc/property";
+import { DtcProperty } from "../ast/dtc/property";
 import { resetTokenizedDocmentProvider } from "../providers/tokenizedDocument";
 import { LabelRef } from "../ast/dtc/labelRef";
 import { PropertyValues } from "../ast/dtc/values/values";
@@ -26,7 +26,15 @@ import { DeleteNode } from "../ast/dtc/deleteNode";
 import { Comment } from "../ast/dtc/comment";
 import { IfDefineBlock } from "../ast/cPreprocessors/ifDefine";
 import { CPreprocessorParser } from "../cPreprocessorParser";
+import { DtsDocumentVersion } from "../ast/dtc/dtsDocVersion";
+import { CMacroCall } from "../ast/cPreprocessors/functionCall";
+import { ComplexExpression } from "../ast/cPreprocessors/expression";
+import { CIdentifier } from "../ast/cPreprocessors/cIdentifier";
 import { CMacro } from "../ast/cPreprocessors/macro";
+import {
+  FunctionDefinition,
+  Variadic,
+} from "../ast/cPreprocessors/functionDefinition";
 
 jest.mock("fs", () => ({
   readFileSync: jest.fn().mockImplementation(() => {
@@ -45,95 +53,149 @@ describe("Parser", () => {
     resetTokenizedDocmentProvider();
   });
 
-  describe("Missing semicolon", () => {
-    test("Root Node", async () => {
-      mockReadFileSync("/{}");
+  describe("Doc version", () => {
+    test("Valid", async () => {
+      mockReadFileSync("/dts-v1/;");
+      const parser = new Parser("/folder/dts.dts", [], []);
+      await parser.stable;
+      expect(parser.issues.length).toEqual(0);
+
+      expect(parser.others.length).toEqual(1);
+      expect(parser.others[0] instanceof DtsDocumentVersion).toBeTruthy();
+    });
+
+    test("Missing end slash", async () => {
+      mockReadFileSync("/dts-v1");
       const parser = new Parser("/folder/dts.dts", [], []);
       await parser.stable;
       expect(parser.issues.length).toEqual(1);
-      expect(parser.issues[0].issues).toEqual([SyntaxIssue.END_STATMENT]);
-      expect(parser.issues[0].astElement.lastToken.pos).toEqual({
-        line: 0,
-        col: 2,
-        len: 1,
+      expect(parser.issues[0].issues).toEqual([
+        SyntaxIssue.MISSING_FORWARD_SLASH_END,
+      ]);
+      expect(
+        parser.issues[0].astElement.lastToken.pos.col +
+          parser.issues[0].astElement.lastToken.pos.len
+      ).toEqual(7);
+    });
+  });
+
+  describe("Semicolon", () => {
+    describe("Missing", () => {
+      test("Doc version", async () => {
+        mockReadFileSync("/dts-v1/");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.END_STATMENT]);
+        expect(parser.issues[0].astElement.lastToken.pos).toEqual({
+          line: 0,
+          col: 7,
+          len: 1,
+        });
+      });
+
+      test("Root Node", async () => {
+        mockReadFileSync("/{}");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.END_STATMENT]);
+        expect(parser.issues[0].astElement.lastToken.pos).toEqual({
+          line: 0,
+          col: 2,
+          len: 1,
+        });
+      });
+
+      test("Child Node", async () => {
+        mockReadFileSync("/{ node {}};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.END_STATMENT]);
+        expect(parser.issues[0].astElement.lastToken.pos).toEqual({
+          line: 0,
+          col: 9,
+          len: 1,
+        });
+      });
+
+      test("Root and Child Node", async () => {
+        mockReadFileSync("/{ node {}}");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(2);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.END_STATMENT]);
+        expect(parser.issues[0].astElement.lastToken.pos).toEqual({
+          line: 0,
+          col: 9,
+          len: 1,
+        });
+
+        expect(parser.issues[1].issues).toEqual([SyntaxIssue.END_STATMENT]);
+        expect(parser.issues[1].astElement.lastToken.pos).toEqual({
+          line: 0,
+          col: 10,
+          len: 1,
+        });
+      });
+
+      test("Property no value", async () => {
+        mockReadFileSync("/{ prop1 };");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.END_STATMENT]);
+        expect(parser.issues[0].astElement.lastToken.pos).toEqual({
+          line: 0,
+          col: 7,
+          len: 1,
+        });
+      });
+
+      test("Property with value", async () => {
+        mockReadFileSync("/{ prop1=<10> };");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.END_STATMENT]);
+        expect(parser.issues[0].astElement.lastToken.pos).toEqual({
+          line: 0,
+          col: 12,
+          len: 1,
+        });
+      });
+
+      test("Property in node with value", async () => {
+        mockReadFileSync("/{ node {prop1=<10>} };");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(2);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.END_STATMENT]);
+        expect(parser.issues[0].astElement.lastToken.pos).toEqual({
+          line: 0,
+          col: 18,
+          len: 1,
+        });
+
+        expect(parser.issues[1].issues).toEqual([SyntaxIssue.END_STATMENT]);
+        expect(parser.issues[1].astElement.lastToken.pos).toEqual({
+          line: 0,
+          col: 19,
+          len: 1,
+        });
       });
     });
 
-    test("Child Node", async () => {
-      mockReadFileSync("/{ node {}};");
+    test("Extra", async () => {
+      mockReadFileSync("/{};;");
       const parser = new Parser("/folder/dts.dts", [], []);
       await parser.stable;
       expect(parser.issues.length).toEqual(1);
-      expect(parser.issues[0].issues).toEqual([SyntaxIssue.END_STATMENT]);
+      expect(parser.issues[0].issues).toEqual([SyntaxIssue.NO_STAMENTE]);
       expect(parser.issues[0].astElement.lastToken.pos).toEqual({
         line: 0,
-        col: 9,
-        len: 1,
-      });
-    });
-
-    test("Root and Child Node", async () => {
-      mockReadFileSync("/{ node {}}");
-      const parser = new Parser("/folder/dts.dts", [], []);
-      await parser.stable;
-      expect(parser.issues.length).toEqual(2);
-      expect(parser.issues[0].issues).toEqual([SyntaxIssue.END_STATMENT]);
-      expect(parser.issues[0].astElement.lastToken.pos).toEqual({
-        line: 0,
-        col: 9,
-        len: 1,
-      });
-
-      expect(parser.issues[1].issues).toEqual([SyntaxIssue.END_STATMENT]);
-      expect(parser.issues[1].astElement.lastToken.pos).toEqual({
-        line: 0,
-        col: 10,
-        len: 1,
-      });
-    });
-
-    test("Property no value", async () => {
-      mockReadFileSync("/{ prop1 };");
-      const parser = new Parser("/folder/dts.dts", [], []);
-      await parser.stable;
-      expect(parser.issues.length).toEqual(1);
-      expect(parser.issues[0].issues).toEqual([SyntaxIssue.END_STATMENT]);
-      expect(parser.issues[0].astElement.lastToken.pos).toEqual({
-        line: 0,
-        col: 7,
-        len: 1,
-      });
-    });
-
-    test("Property with value", async () => {
-      mockReadFileSync("/{ prop1=<10> };");
-      const parser = new Parser("/folder/dts.dts", [], []);
-      await parser.stable;
-      expect(parser.issues.length).toEqual(1);
-      expect(parser.issues[0].issues).toEqual([SyntaxIssue.END_STATMENT]);
-      expect(parser.issues[0].astElement.lastToken.pos).toEqual({
-        line: 0,
-        col: 12,
-        len: 1,
-      });
-    });
-
-    test("Property in node with value", async () => {
-      mockReadFileSync("/{ node {prop1=<10>} };");
-      const parser = new Parser("/folder/dts.dts", [], []);
-      await parser.stable;
-      expect(parser.issues.length).toEqual(2);
-      expect(parser.issues[0].issues).toEqual([SyntaxIssue.END_STATMENT]);
-      expect(parser.issues[0].astElement.lastToken.pos).toEqual({
-        line: 0,
-        col: 18,
-        len: 1,
-      });
-
-      expect(parser.issues[1].issues).toEqual([SyntaxIssue.END_STATMENT]);
-      expect(parser.issues[1].astElement.lastToken.pos).toEqual({
-        line: 0,
-        col: 19,
+        col: 4,
         len: 1,
       });
     });
@@ -683,6 +745,163 @@ describe("Parser", () => {
           ).toEqual(["10", "20", "30", (0xff).toString(), (0xaa).toString()]);
         });
 
+        describe("Macro calls", () => {
+          test("With params", async () => {
+            mockReadFileSync("/{prop=<ADD(1,2)>;};");
+            const parser = new Parser("/folder/dts.dts", [], []);
+            await parser.stable;
+            expect(parser.issues.length).toEqual(0);
+            const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+            expect(rootDts.properties.length).toEqual(1);
+            expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+            expect(
+              rootDts.properties[0].values instanceof PropertyValues
+            ).toBeTruthy();
+            expect(rootDts.properties[0].values?.values.length).toEqual(1);
+            expect(
+              rootDts.properties[0].values?.values[0]?.value instanceof
+                ArrayValues
+            ).toBeTruthy();
+            expect(
+              (rootDts.properties[0].values?.values[0]?.value as ArrayValues)
+                .values[0].value instanceof CMacroCall
+            ).toBeTruthy();
+
+            const macro = (
+              rootDts.properties[0].values?.values[0]?.value as ArrayValues
+            ).values[0].value as CMacroCall;
+
+            expect(macro.functionName.name).toEqual("ADD");
+            expect(macro.params.map((p) => p.value)).toEqual(["1", "2"]);
+          });
+
+          test("C Macro exression missing coma", async () => {
+            mockReadFileSync("/{prop=<ADD(1 2)>;};");
+            const parser = new Parser("/folder/dts.dts", [], []);
+            await parser.stable;
+            expect(parser.issues.length).toEqual(0);
+            const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+            expect(rootDts.properties.length).toEqual(1);
+            expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+            expect(
+              rootDts.properties[0].values instanceof PropertyValues
+            ).toBeTruthy();
+            expect(rootDts.properties[0].values?.values.length).toEqual(1);
+            expect(
+              rootDts.properties[0].values?.values[0]?.value instanceof
+                ArrayValues
+            ).toBeTruthy();
+            expect(
+              (rootDts.properties[0].values?.values[0]?.value as ArrayValues)
+                .values[0].value instanceof CMacroCall
+            ).toBeTruthy();
+
+            const macro = (
+              rootDts.properties[0].values?.values[0]?.value as ArrayValues
+            ).values[0].value as CMacroCall;
+
+            expect(macro.functionName.name).toEqual("ADD");
+            expect(macro.params.map((p) => p.value)).toEqual(["1 2"]);
+          });
+
+          test("Nested call", async () => {
+            mockReadFileSync("/{prop=<ADD(1,MULT(2, 5))>;};");
+            const parser = new Parser("/folder/dts.dts", [], []);
+            await parser.stable;
+            expect(parser.issues.length).toEqual(0);
+            const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+            expect(rootDts.properties.length).toEqual(1);
+            expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+            expect(
+              rootDts.properties[0].values instanceof PropertyValues
+            ).toBeTruthy();
+            expect(rootDts.properties[0].values?.values.length).toEqual(1);
+            expect(
+              rootDts.properties[0].values?.values[0]?.value instanceof
+                ArrayValues
+            ).toBeTruthy();
+            expect(
+              (rootDts.properties[0].values?.values[0]?.value as ArrayValues)
+                .values[0].value instanceof CMacroCall
+            ).toBeTruthy();
+
+            const macro = (
+              rootDts.properties[0].values?.values[0]?.value as ArrayValues
+            ).values[0].value as CMacroCall;
+
+            expect(macro.functionName.name).toEqual("ADD");
+            expect(macro.params.map((p) => p.value)).toEqual([
+              "1",
+              "MULT(2, 5)",
+            ]);
+          });
+
+          test("Math expression call", async () => {
+            mockReadFileSync("/{prop=<ADD(1,(2 + 5) * (50 + 1))>;};");
+            const parser = new Parser("/folder/dts.dts", [], []);
+            await parser.stable;
+            expect(parser.issues.length).toEqual(0);
+            const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+            expect(rootDts.properties.length).toEqual(1);
+            expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+            expect(
+              rootDts.properties[0].values instanceof PropertyValues
+            ).toBeTruthy();
+            expect(rootDts.properties[0].values?.values.length).toEqual(1);
+            expect(
+              rootDts.properties[0].values?.values[0]?.value instanceof
+                ArrayValues
+            ).toBeTruthy();
+            expect(
+              (rootDts.properties[0].values?.values[0]?.value as ArrayValues)
+                .values[0].value instanceof CMacroCall
+            ).toBeTruthy();
+
+            const macro = (
+              rootDts.properties[0].values?.values[0]?.value as ArrayValues
+            ).values[0].value as CMacroCall;
+
+            expect(macro.functionName.name).toEqual("ADD");
+            expect(macro.params.map((p) => p.value)).toEqual([
+              "1",
+              "(2 + 5) * (50 + 1)",
+            ]);
+          });
+        });
+
+        test("Labled expression ", async () => {
+          mockReadFileSync("/{prop=<(10 + 20 * 4 / 5 + (10 + 20 - 30))>;};");
+          const parser = new Parser("/folder/dts.dts", [], []);
+          await parser.stable;
+          expect(parser.issues.length).toEqual(0);
+          const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+          expect(rootDts.properties.length).toEqual(1);
+          expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+          expect(
+            rootDts.properties[0].values instanceof PropertyValues
+          ).toBeTruthy();
+          expect(rootDts.properties[0].values?.values.length).toEqual(1);
+          expect(
+            rootDts.properties[0].values?.values[0]?.value instanceof
+              ArrayValues
+          ).toBeTruthy();
+          expect(
+            (rootDts.properties[0].values?.values[0]?.value as ArrayValues)
+              .values[0].value instanceof ComplexExpression
+          ).toBeTruthy();
+          expect(
+            (
+              (rootDts.properties[0].values?.values[0]?.value as ArrayValues)
+                .values[0].value as ComplexExpression
+            ).toString()
+          ).toEqual("(10 + 20 * 4 / 5 + (10 + 20 - 30))");
+        });
+
         test("Single inside label ref ", async () => {
           mockReadFileSync("/{prop=<&l1>;};");
           const parser = new Parser("/folder/dts.dts", [], []);
@@ -825,6 +1044,50 @@ describe("Parser", () => {
               rootDts.properties[0].values?.values[0]?.value as ArrayValues
             ).values.map((v) => v.labels.map((l) => l.label))
           ).toEqual([["l3"], ["l4"], ["l5"], ["l6"], ["l7"]]);
+        });
+
+        test("labled number array Missing :", async () => {
+          mockReadFileSync("/{prop= l1 l2 <10>;};");
+          const parser = new Parser("/folder/dts.dts", [], []);
+          await parser.stable;
+          expect(parser.issues.length).toEqual(2);
+          expect(parser.issues[0].issues).toEqual([
+            SyntaxIssue.LABEL_ASSIGN_MISSING_COLON,
+          ]);
+          expect(
+            parser.issues[0].astElement.lastToken.pos.col +
+              parser.issues[0].astElement.lastToken.pos.len
+          ).toEqual(10);
+
+          expect(parser.issues[1].issues).toEqual([
+            SyntaxIssue.LABEL_ASSIGN_MISSING_COLON,
+          ]);
+          expect(
+            parser.issues[1].astElement.lastToken.pos.col +
+              parser.issues[1].astElement.lastToken.pos.len
+          ).toEqual(13);
+
+          const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+          expect(rootDts.properties.length).toEqual(1);
+          expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+          expect(
+            rootDts.properties[0].values instanceof PropertyValues
+          ).toBeTruthy();
+          expect(rootDts.properties[0].values?.values.length).toEqual(1);
+          expect(
+            rootDts.properties[0].values?.values[0]?.value instanceof
+              ArrayValues
+          ).toBeTruthy();
+          expect(
+            (
+              rootDts.properties[0].values?.values[0]?.value as ArrayValues
+            ).values.map((v) => (v.value as NumberValue).value)
+          ).toEqual([10]);
+
+          expect(
+            rootDts.properties[0].values?.labels.map((l) => l.label)
+          ).toEqual(["l1", "l2"]);
         });
       });
 
@@ -1282,6 +1545,60 @@ describe("Parser", () => {
           "l1"
         );
       });
+
+      test("missing end forad slash", async () => {
+        mockReadFileSync("/{/delete-node nodeName;};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([
+          SyntaxIssue.MISSING_FORWARD_SLASH_END,
+        ]);
+
+        expect(
+          parser.issues[0].astElement.lastToken.pos.col +
+            parser.issues[0].astElement.lastToken.pos.len
+        ).toEqual(14);
+
+        const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+        expect(rootDts.deleteNodes.length).toEqual(1);
+        expect(
+          rootDts.deleteNodes[0].nodeNameOrRef instanceof NodeName
+        ).toBeTruthy();
+        expect((rootDts.deleteNodes[0].nodeNameOrRef as NodeName).name).toEqual(
+          "nodeName"
+        );
+      });
+
+      test("incomplete - 1", async () => {
+        mockReadFileSync("/");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([
+          SyntaxIssue.DELETE_INCOMPLETE,
+        ]);
+
+        expect(parser.issues[0].astElement.firstToken.pos.col).toEqual(0);
+        expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(0);
+      });
+
+      test("incomplete - 2", async () => {
+        mockReadFileSync("/delete-n &l1;");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([
+          SyntaxIssue.DELETE_NODE_INCOMPLETE,
+        ]);
+
+        expect(parser.issues[0].astElement.firstToken.pos.col).toEqual(0);
+        expect(
+          parser.issues[0].astElement.lastToken.pos.col +
+            parser.issues[0].astElement.lastToken.pos.len
+        ).toEqual(9);
+      });
     });
 
     describe("Property", () => {
@@ -1310,6 +1627,57 @@ describe("Parser", () => {
           parser.issues[0].astElement.lastToken.pos.col +
             parser.issues[0].astElement.lastToken.pos.len
         ).toEqual(24);
+      });
+
+      test("missing end forad slash", async () => {
+        mockReadFileSync("/{/delete-property propName;};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([
+          SyntaxIssue.MISSING_FORWARD_SLASH_END,
+        ]);
+
+        expect(
+          parser.issues[0].astElement.lastToken.pos.col +
+            parser.issues[0].astElement.lastToken.pos.len
+        ).toEqual(18);
+
+        const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+        expect(rootDts.deleteProperties.length).toEqual(1);
+        expect(rootDts.deleteProperties[0].propertyName?.name).toEqual(
+          "propName"
+        );
+      });
+
+      test("incomplete - 1", async () => {
+        mockReadFileSync("/");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([
+          SyntaxIssue.DELETE_INCOMPLETE,
+        ]);
+
+        expect(parser.issues[0].astElement.firstToken.pos.col).toEqual(0);
+        expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(0);
+      });
+
+      test("incomplete - 2", async () => {
+        mockReadFileSync("/{/delete-p p1;};");
+        const parser = new Parser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([
+          SyntaxIssue.DELETE_PROPERTY_INCOMPLETE,
+        ]);
+
+        expect(parser.issues[0].astElement.firstToken.pos.col).toEqual(2);
+        expect(
+          parser.issues[0].astElement.lastToken.pos.col +
+            parser.issues[0].astElement.lastToken.pos.len
+        ).toEqual(11);
       });
     });
   });
@@ -1403,7 +1771,166 @@ describe("Parser", () => {
   });
 
   describe("C Pre processors", () => {
+    describe("#DEFINE", () => {
+      test("Simple name", async () => {
+        mockReadFileSync("#DEFINE FOO_BAR");
+        const parser = new CPreprocessorParser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const cMacros = parser.allAstItems.filter(
+          (o) => o instanceof CMacro
+        ) as CMacro[];
+        expect(cMacros.length).toEqual(1);
+
+        const cMacro = cMacros[0];
+        expect(cMacro.name).toEqual("FOO_BAR");
+        expect(cMacro.tokenIndexes.start.pos.col).toEqual(0);
+
+        expect(
+          cMacro.tokenIndexes.end.pos.col + cMacro.tokenIndexes.end.pos.len
+        ).toEqual(15);
+
+        expect(cMacro.toString()).toEqual("FOO_BAR");
+      });
+
+      test("Function like", async () => {
+        mockReadFileSync("#DEFINE ADD(a,b) a + b");
+        const parser = new CPreprocessorParser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const cMacros = parser.allAstItems.filter(
+          (o) => o instanceof CMacro
+        ) as CMacro[];
+        expect(cMacros.length).toEqual(1);
+
+        const cMacro = cMacros[0];
+        expect(cMacro.name).toEqual("ADD");
+        expect(cMacro.tokenIndexes.start.pos.col).toEqual(0);
+
+        expect(
+          cMacro.tokenIndexes.end.pos.col + cMacro.tokenIndexes.end.pos.len
+        ).toEqual(22);
+
+        expect(cMacro.content?.toString()).toEqual("a + b");
+
+        expect(cMacro.toString()).toEqual("ADD(a,b) a + b");
+      });
+
+      test("Variadic function like", async () => {
+        mockReadFileSync("#DEFINE ADD(a,b, ...) a + b + c + d");
+        const parser = new CPreprocessorParser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const cMacros = parser.allAstItems.filter(
+          (o) => o instanceof CMacro
+        ) as CMacro[];
+        expect(cMacros.length).toEqual(1);
+
+        const cMacro = cMacros[0];
+        expect(cMacro.name).toEqual("ADD");
+        expect(cMacro.tokenIndexes.start.pos.col).toEqual(0);
+
+        expect(cMacro.identifier instanceof FunctionDefinition).toBeTruthy();
+        expect((cMacro.identifier as FunctionDefinition).params.length).toEqual(
+          3
+        );
+        expect(
+          (cMacro.identifier as FunctionDefinition).params[0] instanceof
+            CIdentifier
+        ).toBeTruthy();
+        expect(
+          (cMacro.identifier as FunctionDefinition).params[1] instanceof
+            CIdentifier
+        ).toBeTruthy();
+        expect(
+          (cMacro.identifier as FunctionDefinition).params[2] instanceof
+            Variadic
+        ).toBeTruthy();
+
+        expect(
+          cMacro.tokenIndexes.end.pos.col + cMacro.tokenIndexes.end.pos.len
+        ).toEqual(35);
+
+        expect(cMacro.content?.toString()).toEqual("a + b + c + d");
+
+        expect(cMacro.toString()).toEqual("ADD(a,b,...) a + b + c + d");
+      });
+
+      test("Multi line", async () => {
+        mockReadFileSync("#DEFINE ADD(a,b,c,d) a + b \\\n + c + d");
+        const parser = new CPreprocessorParser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const cMacros = parser.allAstItems.filter(
+          (o) => o instanceof CMacro
+        ) as CMacro[];
+        expect(cMacros.length).toEqual(1);
+
+        const cMacro = cMacros[0];
+        expect(cMacro.name).toEqual("ADD");
+        expect(cMacro.tokenIndexes.start.pos.col).toEqual(0);
+
+        expect(
+          cMacro.tokenIndexes.end.pos.col + cMacro.tokenIndexes.end.pos.len
+        ).toEqual(8);
+        expect(cMacro.tokenIndexes.end.pos.line).toEqual(1);
+
+        expect(cMacro.content?.toString()).toEqual("a + b + c + d");
+
+        expect(cMacro.toString()).toEqual("ADD(a,b,c,d) a + b + c + d");
+      });
+
+      test("Missing comma function like", async () => {
+        mockReadFileSync("#DEFINE ADD(a b) a + b");
+        const parser = new CPreprocessorParser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.MISSING_COMMA]);
+        expect(
+          parser.issues[0].astElement.lastToken.pos.col +
+            parser.issues[0].astElement.lastToken.pos.len
+        ).toEqual(13);
+      });
+
+      test("Missing close round bracket function like - 1", async () => {
+        mockReadFileSync("#DEFINE ADD(a, b a + b");
+        const parser = new CPreprocessorParser("/folder/dts.dts", [], []);
+        await parser.stable;
+        const issues = parser.issues.filter((i) =>
+          i.issues.some((ii) => ii === SyntaxIssue.MISSING_ROUND_CLOSE)
+        );
+        expect(issues.length).toEqual(1);
+        expect(issues[0].issues).toEqual([SyntaxIssue.MISSING_ROUND_CLOSE]);
+        expect(
+          issues[0].astElement.lastToken.pos.col +
+            issues[0].astElement.lastToken.pos.len
+        ).toEqual(18);
+      });
+
+      test("Missing close round bracket function like - 2", async () => {
+        mockReadFileSync("#DEFINE FOO(");
+        const parser = new CPreprocessorParser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([
+          SyntaxIssue.MISSING_ROUND_CLOSE,
+        ]);
+        expect(
+          parser.issues[0].astElement.lastToken.pos.col +
+            parser.issues[0].astElement.lastToken.pos.len
+        ).toEqual(12);
+      });
+    });
+
+    // TODO
+    describe("Includes", () => {});
+
     describe("If def", () => {
+      // TODO error cases....
       test("If def - end", async () => {
         mockReadFileSync("#IFDEF HELLO\nsome\nstuff\n#endif");
         const parser = new CPreprocessorParser("/folder/dts.dts", [], []);

@@ -255,14 +255,18 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "Expected '/' in the state of a node path";
     case SyntaxIssue.BYTESTRING_HEX:
       return "Expected hex values are not allowed";
-    case SyntaxIssue.FORWARD_SLASH_END_DELETE:
-      return "Trailing '/' at the end of delete keyword";
+    case SyntaxIssue.MISSING_FORWARD_SLASH_END:
+      return "Missing '/'";
     case SyntaxIssue.NO_STAMENTE:
       return "Found ';' without a statment";
     case SyntaxIssue.LABEL_ASSIGN_MISSING_COLON:
       return "Missing ':' for label assign";
     case SyntaxIssue.DELETE_INCOMPLETE:
       return "Did you mean /delete-node/ or /delete-property/";
+    case SyntaxIssue.DELETE_NODE_INCOMPLETE:
+      return "Did you mean /delete-node/";
+    case SyntaxIssue.DELETE_PROPERTY_INCOMPLETE:
+      return "Did you mean /delete-property/";
     case SyntaxIssue.UNKNOWN:
       return "Unknown syntax";
     case SyntaxIssue.EXPECTED_EXPRESSION:

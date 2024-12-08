@@ -15,133 +15,235 @@ const syntaxIssueToCodeAction = (
   issue: SyntaxIssue,
   diagnostic: Diagnostic,
   uri: string
-): CodeAction | undefined => {
+): CodeAction[] | undefined => {
   switch (issue) {
     case SyntaxIssue.END_STATMENT:
-      return {
-        title: "Add semicolon",
-        diagnostics: [diagnostic],
-        kind: CodeActionKind.SourceFixAll,
-        isPreferred: true,
-        edit: {
-          changes: {
-            [uri]: [
-              TextEdit.insert(
-                Position.create(
-                  diagnostic.range.end.line,
-                  diagnostic.range.end.character
-                ),
-                ";"
-              ),
-            ],
-          },
-        },
-      };
-    case SyntaxIssue.CURLY_OPEN:
-      return {
-        title: "Add open curly",
-        diagnostics: [diagnostic],
-        kind: CodeActionKind.SourceFixAll,
-        isPreferred: true,
-        edit: {
-          changes: {
-            [uri]: [
-              TextEdit.insert(
-                Position.create(
-                  diagnostic.range.end.line,
-                  diagnostic.range.end.character
-                ),
-                " {"
-              ),
-            ],
-          },
-        },
-      };
-    case SyntaxIssue.WHITE_SPACE:
-      return {
-        title: "Remove white space",
-        diagnostics: [diagnostic],
-        kind: CodeActionKind.SourceFixAll,
-        isPreferred: true,
-        edit: {
-          changes: {
-            [uri]: [
-              TextEdit.replace(
-                Range.create(
+      return [
+        {
+          title: "Add semicolon",
+          diagnostics: [diagnostic],
+          kind: CodeActionKind.SourceFixAll,
+          isPreferred: true,
+          edit: {
+            changes: {
+              [uri]: [
+                TextEdit.insert(
                   Position.create(
-                    diagnostic.range.start.line,
-                    firstToken.pos.col + firstToken.pos.len
+                    diagnostic.range.end.line,
+                    diagnostic.range.end.character
                   ),
-                  Position.create(diagnostic.range.end.line, lastToken.pos.col)
+                  ";"
                 ),
-                ""
-              ),
-            ],
+              ],
+            },
           },
         },
-      };
+      ];
+    case SyntaxIssue.CURLY_OPEN:
+      return [
+        {
+          title: "Add open curly",
+          diagnostics: [diagnostic],
+          kind: CodeActionKind.SourceFixAll,
+          isPreferred: true,
+          edit: {
+            changes: {
+              [uri]: [
+                TextEdit.insert(
+                  Position.create(
+                    diagnostic.range.end.line,
+                    diagnostic.range.end.character
+                  ),
+                  " {"
+                ),
+              ],
+            },
+          },
+        },
+      ];
+    case SyntaxIssue.WHITE_SPACE:
+      return [
+        {
+          title: "Remove white space",
+          diagnostics: [diagnostic],
+          kind: CodeActionKind.SourceFixAll,
+          isPreferred: true,
+          edit: {
+            changes: {
+              [uri]: [
+                TextEdit.replace(
+                  Range.create(
+                    Position.create(
+                      diagnostic.range.start.line,
+                      firstToken.pos.col + firstToken.pos.len
+                    ),
+                    Position.create(
+                      diagnostic.range.end.line,
+                      lastToken.pos.col
+                    )
+                  ),
+                  ""
+                ),
+              ],
+            },
+          },
+        },
+      ];
     case SyntaxIssue.CURLY_CLOSE:
-      return {
-        title: "Add close curly",
-        diagnostics: [diagnostic],
-        kind: CodeActionKind.QuickFix,
-        isPreferred: true,
-        edit: {
-          changes: {
-            [uri]: [
-              TextEdit.insert(
-                Position.create(
-                  diagnostic.range.end.line,
-                  diagnostic.range.end.character
+      return [
+        {
+          title: "Add close curly",
+          diagnostics: [diagnostic],
+          kind: CodeActionKind.QuickFix,
+          isPreferred: true,
+          edit: {
+            changes: {
+              [uri]: [
+                TextEdit.insert(
+                  Position.create(
+                    diagnostic.range.end.line,
+                    diagnostic.range.end.character
+                  ),
+                  "}"
                 ),
-                "}"
-              ),
-            ],
+              ],
+            },
           },
         },
-      };
+      ];
     case SyntaxIssue.FORWARD_SLASH_START_PATH:
-      return {
-        title: "Add '/'",
-        diagnostics: [diagnostic],
-        kind: CodeActionKind.QuickFix,
-        isPreferred: true,
-        edit: {
-          changes: {
-            [uri]: [
-              TextEdit.insert(
-                Position.create(
-                  diagnostic.range.end.line,
-                  diagnostic.range.end.character
+      return [
+        {
+          title: "Add '/'",
+          diagnostics: [diagnostic],
+          kind: CodeActionKind.QuickFix,
+          isPreferred: true,
+          edit: {
+            changes: {
+              [uri]: [
+                TextEdit.insert(
+                  Position.create(
+                    diagnostic.range.end.line,
+                    diagnostic.range.end.character
+                  ),
+                  "/"
                 ),
-                "/"
-              ),
-            ],
+              ],
+            },
           },
         },
-      };
+      ];
     case SyntaxIssue.MISSING_COMMA:
-      return {
-        title: "Add comma",
-        diagnostics: [diagnostic],
-        kind: CodeActionKind.SourceFixAll,
-        isPreferred: true,
-        edit: {
-          changes: {
-            [uri]: [
-              TextEdit.insert(
-                Position.create(
-                  diagnostic.range.end.line,
-                  diagnostic.range.end.character
+      return [
+        {
+          title: "Add comma",
+          diagnostics: [diagnostic],
+          kind: CodeActionKind.SourceFixAll,
+          isPreferred: true,
+          edit: {
+            changes: {
+              [uri]: [
+                TextEdit.insert(
+                  Position.create(
+                    diagnostic.range.end.line,
+                    diagnostic.range.end.character
+                  ),
+                  ","
                 ),
-                ","
-              ),
-            ],
+              ],
+            },
           },
         },
-      };
-    case SyntaxIssue.FORWARD_SLASH_END_DELETE:
+      ];
+    case SyntaxIssue.MISSING_FORWARD_SLASH_END:
+      return [
+        {
+          title: "Add '/'",
+          diagnostics: [diagnostic],
+          kind: CodeActionKind.SourceFixAll,
+          isPreferred: true,
+          edit: {
+            changes: {
+              [uri]: [
+                TextEdit.insert(
+                  Position.create(
+                    diagnostic.range.end.line,
+                    diagnostic.range.end.character
+                  ),
+                  "/"
+                ),
+              ],
+            },
+          },
+        },
+      ];
     case SyntaxIssue.NO_STAMENTE:
+      return [
+        {
+          title: "Remove ';'",
+          diagnostics: [diagnostic],
+          kind: CodeActionKind.SourceFixAll,
+          isPreferred: true,
+          edit: {
+            changes: {
+              [uri]: [TextEdit.del(diagnostic.range)],
+            },
+          },
+        },
+      ];
+    case SyntaxIssue.DELETE_NODE_INCOMPLETE:
+      return [
+        {
+          title: "Complete Keyword '/delete-node/",
+          diagnostics: [diagnostic],
+          kind: CodeActionKind.SourceFixAll,
+          isPreferred: true,
+          edit: {
+            changes: {
+              [uri]: [TextEdit.replace(diagnostic.range, "/delete-node/")],
+            },
+          },
+        },
+      ];
+    case SyntaxIssue.DELETE_PROPERTY_INCOMPLETE:
+      return [
+        {
+          title: "Complete Keyword '/delete-property/",
+          diagnostics: [diagnostic],
+          kind: CodeActionKind.SourceFixAll,
+          isPreferred: true,
+          edit: {
+            changes: {
+              [uri]: [TextEdit.replace(diagnostic.range, "/delete-property/")],
+            },
+          },
+        },
+      ];
+    case SyntaxIssue.DELETE_INCOMPLETE:
+      return [
+        {
+          title: "Complete Keyword '/delete-property/",
+          diagnostics: [diagnostic],
+          kind: CodeActionKind.QuickFix,
+          isPreferred: true,
+          edit: {
+            changes: {
+              [uri]: [TextEdit.replace(diagnostic.range, "/delete-property/")],
+            },
+          },
+        },
+        {
+          title: "Complete Keyword '/delete-node/",
+          diagnostics: [diagnostic],
+          kind: CodeActionKind.QuickFix,
+          isPreferred: true,
+          edit: {
+            changes: {
+              [uri]: [TextEdit.replace(diagnostic.range, "/delete-node/")],
+            },
+          },
+        },
+      ];
     case SyntaxIssue.LABEL_ASSIGN_MISSING_COLON:
     case SyntaxIssue.MISSING_ROUND_CLOSE:
     case SyntaxIssue.INCLUDE_CLOSE_PATH:
@@ -162,15 +264,15 @@ export function getCodeActions(
   const results = codeActionParams.context.diagnostics
     .flatMap((diagnostic) => {
       const tmp = diagnostic.data as CodeActionDiagnosticData | undefined;
-      return tmp?.issues.map((issue) => {
-        return syntaxIssueToCodeAction(
+      return tmp?.issues.flatMap((issue) =>
+        syntaxIssueToCodeAction(
           tmp.firstToken,
           tmp.lastToken,
           issue,
           diagnostic,
           codeActionParams.textDocument.uri
-        );
-      });
+        )
+      );
     })
     .filter((c) => !!c) as CodeAction[];
 
