@@ -71,6 +71,7 @@ export abstract class BaseParser {
     const value = this.positionStack.pop();
 
     if (value === undefined) {
+      /* istanbul ignore next */
       throw new Error("Index out of bounds");
     }
 
@@ -80,6 +81,7 @@ export abstract class BaseParser {
   protected peekIndex(depth = 1) {
     const peek = this.positionStack.at(-1 * depth);
     if (peek === undefined) {
+      /* istanbul ignore next */
       throw new Error("Index out of bounds");
     }
 
@@ -101,6 +103,7 @@ export abstract class BaseParser {
 
   protected moveStackIndex() {
     if (this.positionStack[this.positionStack.length - 1] === undefined) {
+      /* istanbul ignore next */
       throw new Error("Index out of bounds");
     }
 
@@ -384,6 +387,3 @@ export interface Block {
   splitTokens: Token[][];
   endToken: Token;
 }
-
-export const isToken = (item: BlockItem): item is Token =>
-  (item as Block).items === undefined;

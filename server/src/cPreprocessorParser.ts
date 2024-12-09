@@ -102,6 +102,7 @@ export class CPreprocessorParser extends BaseParser {
     }
 
     if (this.positionStack.length !== 1) {
+      /* istanbul ignore next */
       throw new Error("Incorrect final stack size");
     }
   }

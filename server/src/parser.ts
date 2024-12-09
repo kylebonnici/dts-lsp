@@ -131,6 +131,7 @@ export class Parser extends BaseParser {
     });
 
     if (this.positionStack.length !== 1) {
+      /* istanbul ignore next */
       throw new Error("Incorrect final stack size");
     }
   }
@@ -896,6 +897,7 @@ export class Parser extends BaseParser {
     }
 
     if (!token?.value) {
+      /* istanbul ignore next */
       throw new Error("Token must have value");
     }
 
