@@ -40,14 +40,30 @@ jest.mock("fs", () => ({
   readFileSync: jest.fn().mockImplementation(() => {
     throw new Error("readFileSync - Not mocked");
   }),
+  existsSync: jest.fn().mockImplementation(() => {
+    throw new Error("existsSync - Not mocked");
+  }),
 }));
 
-const mockReadFileSync = (content: string) => {
-  //   (fs.readFileSync as unknown as jest.Mock).mockReset();
+const mockReadFileSync = (content: string, path?: string) => {
   (fs.readFileSync as unknown as jest.Mock).mockImplementation(() => {
     return content;
   });
 };
+
+const mockReadFilesSync = (content: { [path: string]: string }) => {
+  (fs.readFileSync as unknown as jest.Mock).mockClear();
+
+  (fs.readFileSync as unknown as jest.Mock).mockImplementation((p) => {
+    return content[p as string];
+  });
+
+  (fs.existsSync as unknown as jest.Mock).mockClear();
+  (fs.existsSync as unknown as jest.Mock).mockImplementation((p) => {
+    return content[p as string] !== undefined;
+  });
+};
+
 describe("Parser", () => {
   beforeEach(() => {
     resetTokenizedDocmentProvider();
@@ -1927,10 +1943,24 @@ describe("Parser", () => {
     });
 
     // TODO
-    describe("Includes", () => {});
+    describe("Includes", () => {
+      test("Include relative", async () => {
+        mockReadFilesSync({
+          "/folder/dts.dts": '#include "some.dtsi"',
+          "/folder/some.dtsi": "",
+        });
+        const parser = new CPreprocessorParser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+        expect(parser.includes.length).toEqual(1);
+        expect(parser.includes[0].path.path).toEqual("some.dtsi");
+
+        expect(fs.existsSync).toBeCalledWith("/folder/some.dtsi");
+        expect(fs.readFileSync).nthCalledWith(2, "/folder/some.dtsi");
+      });
+    });
 
     describe("If def", () => {
-      // TODO error cases....
       test("If def - end", async () => {
         mockReadFileSync("#IFDEF HELLO\nsome\nstuff\n#endif");
         const parser = new CPreprocessorParser("/folder/dts.dts", [], []);

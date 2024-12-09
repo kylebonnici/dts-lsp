@@ -936,8 +936,10 @@ export class Parser extends BaseParser {
 
     const endLabels1 = this.processOptionalLablelAssign(true) ?? [];
 
+    const node = new PropertyValue(value, [...endLabels1]);
+
     if (!validToken(this.currentToken, LexerToken.GT_SYM)) {
-      this.issues.push(genIssue(SyntaxIssue.GT_SYM, dtcProperty));
+      this.issues.push(genIssue(SyntaxIssue.GT_SYM, node));
     } else {
       this.moveToNextToken;
     }
@@ -945,7 +947,8 @@ export class Parser extends BaseParser {
     const endLabels2 = this.processOptionalLablelAssign(true) ?? [];
 
     this.mergeStack();
-    const node = new PropertyValue(value, [...endLabels1, ...endLabels2]);
+
+    node.endLabels.push(...endLabels2);
     if (!value) {
       this.issues.push(genIssue(SyntaxIssue.EXPECTED_VALUE, node));
     }
@@ -968,17 +971,7 @@ export class Parser extends BaseParser {
 
     const numberValues = this.processLabledValue(() => this.processHexString());
 
-    if (!numberValues?.length) {
-      this.issues.push(genIssue(SyntaxIssue.BYTESTRING, dtcProperty));
-    }
-
     const endLabels1 = this.processOptionalLablelAssign(true) ?? [];
-
-    if (!validToken(this.currentToken, LexerToken.SQUARE_CLOSE)) {
-      this.issues.push(genIssue(SyntaxIssue.SQUARE_CLOSE, dtcProperty));
-    } else {
-      this.moveToNextToken;
-    }
 
     numberValues.forEach((value) => {
       let len = 0;
@@ -995,12 +988,24 @@ export class Parser extends BaseParser {
       }
     });
 
+    const byteString = new ByteStringValue(numberValues ?? []);
+    if (byteString.values.length === 0) {
+      byteString.firstToken = firstToken;
+      this.issues.push(genIssue(SyntaxIssue.BYTESTRING, byteString));
+    }
+
+    const node = new PropertyValue(byteString, [...endLabels1]);
+
+    if (!validToken(this.currentToken, LexerToken.SQUARE_CLOSE)) {
+      this.issues.push(genIssue(SyntaxIssue.SQUARE_CLOSE, node));
+    } else {
+      this.moveToNextToken;
+    }
+
     const endLabels2 = this.processOptionalLablelAssign(true) ?? [];
 
     this.mergeStack();
-    const byteString = new ByteStringValue(numberValues ?? []);
-
-    const node = new PropertyValue(byteString, [...endLabels1, ...endLabels2]);
+    node.endLabels.push(...endLabels2);
     node.firstToken = firstToken;
     byteString.lastToken = this.prevToken;
     return node;

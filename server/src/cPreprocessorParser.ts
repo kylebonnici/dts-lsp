@@ -65,11 +65,11 @@ export class CPreprocessorParser extends BaseParser {
       return [
         resolve(dirname(this.uri), include.path.path),
         ...this.common.map((c) => resolve(c, include.path.path)),
-      ].find(existsSync);
+      ].find((p) => existsSync(p));
     } else {
       return this.incudes
         .map((p) => resolve(p, include.path.path))
-        .find(existsSync);
+        .find((p) => existsSync(p));
     }
   }
 
