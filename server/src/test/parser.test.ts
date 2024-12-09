@@ -1788,6 +1788,20 @@ describe("Parser", () => {
 
   describe("C Pre processors", () => {
     describe("#DEFINE", () => {
+      test("Missing identifier", async () => {
+        mockReadFileSync("#DEFINE");
+        const parser = new CPreprocessorParser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([
+          SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE,
+        ]);
+        expect(
+          parser.issues[0].astElement.lastToken.pos.col +
+            parser.issues[0].astElement.lastToken.pos.len
+        ).toEqual(7);
+      });
+
       test("Simple name", async () => {
         mockReadFileSync("#DEFINE FOO_BAR");
         const parser = new CPreprocessorParser("/folder/dts.dts", [], []);
@@ -1958,9 +1972,64 @@ describe("Parser", () => {
         expect(fs.existsSync).toBeCalledWith("/folder/some.dtsi");
         expect(fs.readFileSync).nthCalledWith(2, "/folder/some.dtsi");
       });
+      test("Include absolute", async () => {
+        mockReadFilesSync({
+          "/folder/dts.dts": "#include <my_inclueds/some.dtsi>",
+          "/my/inclueds/my_inclueds/some.dtsi": "",
+        });
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          ["/my/inclueds"],
+          []
+        );
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+        expect(parser.includes.length).toEqual(1);
+        expect(parser.includes[0].path.path).toEqual("my_inclueds/some.dtsi");
+
+        expect(fs.existsSync).toBeCalledWith(
+          "/my/inclueds/my_inclueds/some.dtsi"
+        );
+        expect(fs.readFileSync).nthCalledWith(
+          2,
+          "/my/inclueds/my_inclueds/some.dtsi"
+        );
+      });
+
+      test("Include absolute", async () => {
+        mockReadFilesSync({
+          "/folder/dts.dts": "#include <my_inclueds/some.dtsi",
+          "/my/inclueds/my_inclueds/some.dtsi": "",
+        });
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          ["/my/inclueds"],
+          []
+        );
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.GT_SYM]);
+        expect(
+          parser.issues[0].astElement.lastToken.pos.col +
+            parser.issues[0].astElement.lastToken.pos.len
+        ).toEqual(31);
+      });
     });
 
     describe("If def", () => {
+      test("Missing identifier", async () => {
+        mockReadFileSync("#IFDEF\n#endif");
+        const parser = new CPreprocessorParser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([
+          SyntaxIssue.EXPECTED_IDENTIFIER,
+        ]);
+        expect(
+          parser.issues[0].astElement.lastToken.pos.col +
+            parser.issues[0].astElement.lastToken.pos.len
+        ).toEqual(6);
+      });
       test("If def - end", async () => {
         mockReadFileSync("#IFDEF HELLO\nsome\nstuff\n#endif");
         const parser = new CPreprocessorParser("/folder/dts.dts", [], []);
@@ -2182,6 +2251,35 @@ describe("Parser", () => {
         expect(
           ifDefineBlockInner.elseOption!.content?.tokenIndexes.end.pos.line
         ).toEqual(8);
+      });
+
+      test("If not def - end", async () => {
+        mockReadFileSync("#IFNDEF HELLO\nsome\nstuff\n#endif");
+        const parser = new CPreprocessorParser("/folder/dts.dts", [], []);
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfDefineBlock
+        ) as IfDefineBlock[];
+        expect(ifDefineBlocks.length).toEqual(1);
+
+        const ifDefineBlock = ifDefineBlocks[0];
+        expect(ifDefineBlock.ifDef.identifier?.name).toEqual("HELLO");
+        expect(ifDefineBlock.ifDef.content?.tokenIndexes.start.pos.col).toEqual(
+          0
+        );
+        expect(
+          ifDefineBlock.ifDef.content?.tokenIndexes.start.pos.line
+        ).toEqual(1);
+        expect(
+          ifDefineBlock.ifDef.content!.tokenIndexes.end.pos.col +
+            ifDefineBlock.ifDef.content!.tokenIndexes.end.pos.len
+        ).toEqual(5);
+        expect(ifDefineBlock.ifDef.content?.tokenIndexes.end.pos.line).toEqual(
+          2
+        );
+        expect(ifDefineBlock.elseOption).toBeUndefined();
       });
     });
   });

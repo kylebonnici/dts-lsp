@@ -244,12 +244,32 @@ const syntaxIssueToCodeAction = (
           },
         },
       ];
+    case SyntaxIssue.GT_SYM:
+      return [
+        {
+          title: "Add '>'",
+          diagnostics: [diagnostic],
+          kind: CodeActionKind.SourceFixAll,
+          isPreferred: true,
+          edit: {
+            changes: {
+              [uri]: [
+                TextEdit.insert(
+                  Position.create(
+                    diagnostic.range.end.line,
+                    diagnostic.range.end.character
+                  ),
+                  ">"
+                ),
+              ],
+            },
+          },
+        },
+      ];
     case SyntaxIssue.LABEL_ASSIGN_MISSING_COLON:
     case SyntaxIssue.MISSING_ROUND_CLOSE:
-    case SyntaxIssue.INCLUDE_CLOSE_PATH:
     case SyntaxIssue.OPEN_SQUARE:
     case SyntaxIssue.SQUARE_CLOSE:
-    case SyntaxIssue.GT_SYM:
     case SyntaxIssue.LT_SYM:
     case SyntaxIssue.DUOUBE_QUOTE:
     case SyntaxIssue.SINGLE_QUOTE:

@@ -264,7 +264,7 @@ export class CPreprocessorParser extends BaseParser {
         this.currentToken?.pos.line !== line ||
         !validToken(this.currentToken, LexerToken.GT_SYM)
       ) {
-        this.issues.push(genIssue(SyntaxIssue.INCLUDE_CLOSE_PATH, node));
+        this.issues.push(genIssue(SyntaxIssue.GT_SYM, node));
       } else {
         token = this.moveToNextToken;
         incudePath.lastToken = token;
