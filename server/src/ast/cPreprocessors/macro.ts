@@ -3,7 +3,7 @@ import { FunctionDefinition } from "./functionDefinition";
 import { Keyword } from "../keyword";
 import { ASTBase } from "../base";
 import { LexerToken, Token, TokenIndexes } from "../../types";
-import { validToken } from "../../../src/helpers";
+import { validToken } from "../../helpers";
 
 export class CMacroContent extends ASTBase {
   constructor(tokenIndexes: TokenIndexes, public readonly content: Token[]) {
