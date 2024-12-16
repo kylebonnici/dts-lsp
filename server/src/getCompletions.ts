@@ -160,6 +160,18 @@ function getDeleteNodeRefItems(
         },
       ];
     }
+
+    if (result.runtime.rootNode.nodes.length) {
+      return [
+        {
+          label: "/delete-node/ &{}",
+          insertText: `/delete-node/ &{/$1};`,
+          kind: CompletionItemKind.Value,
+          insertTextFormat: InsertTextFormat.Snippet,
+        },
+      ];
+    }
+
     return [];
   }
 

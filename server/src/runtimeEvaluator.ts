@@ -172,8 +172,13 @@ export class ContextAware {
     this.checkNodeUniqueNames(element, runtime.rootNode);
     [...element.children]
       .sort((a, b) => {
-        if (a instanceof DtcBaseNode && b instanceof DtcBaseNode) return 0;
-        if (a instanceof DtcBaseNode) return -1;
+        if (
+          (a instanceof DtcProperty && b instanceof DeleteProperty) ||
+          (b instanceof DtcProperty && a instanceof DeleteProperty)
+        )
+          return 0;
+
+        if (b instanceof DtcProperty) return 1;
         return 0;
       })
       .forEach((child) => this.processChild(child, runtime.rootNode, runtime));
@@ -376,7 +381,7 @@ export class ContextAware {
         this._issues.push(
           genIssue(
             ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
-            element,
+            element.nodeNameOrRef,
             DiagnosticSeverity.Error,
             [],
             [],
@@ -418,26 +423,6 @@ export class ContextAware {
         ),
       ];
 
-      const runtimeNode = runtime.rootNode.getChild(resolvedPath, false);
-      if (!runtimeNode) {
-        runtime.unlinkedDeletes.push(element);
-        this._issues.push(
-          genIssue(
-            ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH,
-            element,
-            DiagnosticSeverity.Error,
-            [],
-            [],
-            [element.nodeNameOrRef.path.toString()]
-          )
-        );
-      }
-      runtimeNodeParent.deletes.push(element);
-
-      runtimeNode?.labels.forEach((label) => {
-        runtime.lablesUsedCache.delete(label.label);
-      });
-
       let node: Node | undefined = runtime.rootNode;
       const paths = element.nodeNameOrRef.path.pathParts;
       for (let i = 0; i < paths.length && paths[i]; i++) {
@@ -454,6 +439,42 @@ export class ContextAware {
           node = child;
         }
       }
+
+      const allPathDefined = element.nodeNameOrRef.path.pathParts.every(
+        (p) => p
+      );
+      const unresolvedNodeName = element.nodeNameOrRef.path.pathParts.find(
+        (p) => p && !p.linksTo
+      );
+
+      const runtimeNode = element.nodeNameOrRef.path.pathParts.at(-1)?.linksTo;
+
+      if (!runtimeNode) {
+        runtime.unlinkedDeletes.push(element);
+        if (unresolvedNodeName) {
+          this._issues.push(
+            genIssue(
+              ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH,
+              unresolvedNodeName,
+              DiagnosticSeverity.Error,
+              [],
+              [],
+              [
+                unresolvedNodeName.toString(),
+                `${element.nodeNameOrRef.path.pathParts
+                  .filter((p) => p?.linksTo)
+                  .map((p) => p?.toString())
+                  .join("/")}`,
+              ]
+            )
+          );
+        }
+      }
+      runtimeNodeParent.deletes.push(element);
+
+      runtimeNode?.labels.forEach((label) => {
+        runtime.lablesUsedCache.delete(label.label);
+      });
 
       runtimeNode?.parent?.deleteNode(
         runtimeNode.name,

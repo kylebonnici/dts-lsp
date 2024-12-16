@@ -828,6 +828,15 @@ export class Parser extends BaseParser {
     return true;
   }
 
+  private isNodePathRef(): PropertyValue | undefined {
+    const nodePathRef = this.processNodePathRef();
+    if (!nodePathRef) return;
+
+    const endLabels = this.processOptionalLablelAssign(true) ?? [];
+    const node = new PropertyValue(nodePathRef, [...endLabels]);
+    return node;
+  }
+
   private processValue(dtcProperty: DtcProperty): PropertyValues | undefined {
     this.enqueToStack();
 
@@ -837,9 +846,10 @@ export class Parser extends BaseParser {
       const getValue = () => {
         return (
           (this.processStringValue() ||
+            this.isNodePathRef() ||
             this.isLabelRefValue(dtcProperty) ||
             this.arrayValues(dtcProperty) ||
-            this.processByteStringValue(dtcProperty)) ??
+            this.processByteStringValue()) ??
           null
         );
       };
@@ -957,9 +967,7 @@ export class Parser extends BaseParser {
     return node;
   }
 
-  private processByteStringValue(
-    dtcProperty: DtcProperty
-  ): PropertyValue | undefined {
+  private processByteStringValue(): PropertyValue | undefined {
     this.enqueToStack();
 
     const firstToken = this.moveToNextToken;
@@ -977,10 +985,6 @@ export class Parser extends BaseParser {
       let len = 0;
       if (value.value?.tokenIndexes?.start === value.value?.tokenIndexes?.end) {
         len = value.value?.tokenIndexes?.start?.pos.len ?? 0;
-      } else {
-        const len =
-          (value.value?.tokenIndexes?.start?.pos.len ?? 0) +
-          (value.value?.tokenIndexes?.end?.pos.len ?? 0);
       }
 
       if (len % 2 !== 0) {

@@ -190,6 +190,14 @@ export class Node {
           tags: [DiagnosticTag.Deprecated],
           templateStrings: [meta.property.name],
         },
+        ...meta.property.allReplaced.map((p) => ({
+          issues: [ContextIssues.DELETE_PROPERTY],
+          severity: DiagnosticSeverity.Hint,
+          astElement: p.ast,
+          linkedTo: [meta.by],
+          tags: [DiagnosticTag.Deprecated],
+          templateStrings: [meta.property.name],
+        })),
         ...meta.property.issues,
       ]),
     ];
