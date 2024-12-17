@@ -23,7 +23,7 @@ const mockReadFileSync = (content: string, path?: string) => {
     return content;
   });
 };
-describe("Issues", () => {
+describe("Context Issues", () => {
   beforeEach(() => {
     resetTokenizedDocmentProvider();
   });
