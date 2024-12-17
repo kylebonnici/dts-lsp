@@ -119,12 +119,7 @@ export class Runtime implements Searchable {
   }
 
   get issues(): Issue<ContextIssues>[] {
-    return [
-      ...this.labelIssues(),
-      ...this.nodeRefIssues(),
-      ...this.nodePathRefIssues(),
-      ...this.rootNode.issues,
-    ];
+    return [...this.labelIssues(), ...this.rootNode.issues];
   }
 
   private labelIssues() {
@@ -180,30 +175,6 @@ export class Runtime implements Searchable {
     return issues;
   }
 
-  private nodeRefIssues() {
-    const issues: Issue<ContextIssues>[] = [];
-
-    const allRef = this.rootNode.nodeRefValues;
-
-    allRef.forEach((ref) => {
-      const resolved = this.resolvePath([`&${ref.label}`]);
-      if (!resolved) {
-        issues.push(
-          genIssue(
-            ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
-            ref.ast,
-            DiagnosticSeverity.Error,
-            [],
-            [],
-            [ref.label]
-          )
-        );
-      }
-    });
-
-    return issues;
-  }
-
   get typesIssues() {
     const getIssue = (node: Node): Issue<StandardTypeIssue>[] => {
       return [
@@ -213,46 +184,6 @@ export class Runtime implements Searchable {
     };
 
     return getIssue(this.rootNode);
-  }
-
-  private nodePathRefIssues() {
-    const issues: Issue<ContextIssues>[] = [];
-
-    const allPaths = this.rootNode.nodePathRefValues;
-
-    allPaths.forEach((ref) => {
-      const pathParts = ref.path?.pathParts;
-      if (pathParts && pathParts.every((p) => p?.value)) {
-        const completeParts = pathParts as NodeName[];
-        const okParts: string[] = [];
-        const failed = pathParts.find((p, i) => {
-          const child = this.rootNode.getChild(
-            ["/", ...completeParts.slice(0, i + 1).map((p) => p.toString())],
-            false
-          );
-
-          if (child) {
-            okParts.push(p!.value);
-          }
-
-          return !child;
-        });
-        if (failed) {
-          issues.push(
-            genIssue(
-              ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH,
-              failed,
-              DiagnosticSeverity.Error,
-              [],
-              [],
-              [failed.value, okParts.join("/")]
-            )
-          );
-        }
-      }
-    });
-
-    return issues;
   }
 
   getOrderedNodeAst(node: Node) {

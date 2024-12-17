@@ -62,6 +62,20 @@ describe("Issues", () => {
     ).toEqual(25);
   });
 
+  test("Delete propety before create", async () => {
+    mockReadFileSync("/{/delete-property/ prop1; prop1;};");
+    const context = new ContextAware("/folder/dts.dts", [], []);
+    await context.parser.stable;
+    const issues = await context.getContextIssues();
+    expect(issues.length).toEqual(1);
+    expect(issues[0].issues).toEqual([ContextIssues.PROPERTY_DOES_NOT_EXIST]);
+    expect(issues[0].astElement.firstToken.pos.col).toEqual(20);
+    expect(
+      issues[0].astElement.lastToken.pos.col +
+        issues[0].astElement.lastToken.pos.len
+    ).toEqual(25);
+  });
+
   test("Duplicate node name in node", async () => {
     mockReadFileSync("/{node{};node{}};");
     const context = new ContextAware("/folder/dts.dts", [], []);
@@ -77,6 +91,22 @@ describe("Issues", () => {
   });
 
   describe("Unable to resolve node name", () => {
+    test("prop with invalid ref", async () => {
+      mockReadFileSync("/{prop1=&l1};");
+      const context = new ContextAware("/folder/dts.dts", [], []);
+      await context.parser.stable;
+      const issues = await context.getContextIssues();
+      expect(issues.length).toEqual(1);
+      expect(issues[0].issues).toEqual([
+        ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
+      ]);
+
+      expect(issues[0].astElement.firstToken.pos.col).toEqual(8);
+      expect(
+        issues[0].astElement.lastToken.pos.col +
+          issues[0].astElement.lastToken.pos.len
+      ).toEqual(11);
+    });
     test("Node Ref", async () => {
       mockReadFileSync("&nodeLabel{};");
       const context = new ContextAware("/folder/dts.dts", [], []);
@@ -91,6 +121,42 @@ describe("Issues", () => {
         issues[0].astElement.lastToken.pos.col +
           issues[0].astElement.lastToken.pos.len
       ).toEqual(10);
+    });
+
+    test("Reference deleted Node with ref", async () => {
+      mockReadFileSync("/{l1: node1 {};}; /delete-node/ &l1; &l1{};");
+      const context = new ContextAware("/folder/dts.dts", [], []);
+      await context.parser.stable;
+      const issues = await context.getContextIssues();
+      expect(issues.length).toEqual(2);
+      expect(issues[0].issues).toEqual([ContextIssues.DELETE_NODE]);
+
+      expect(issues[1].issues).toEqual([
+        ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
+      ]);
+      expect(issues[1].astElement.firstToken.pos.col).toEqual(37);
+      expect(
+        issues[1].astElement.lastToken.pos.col +
+          issues[1].astElement.lastToken.pos.len
+      ).toEqual(40);
+    });
+
+    test("Reference deleted Node with name", async () => {
+      mockReadFileSync("/{l1: node1{}; /delete-node/ node1;}; &l1{};");
+      const context = new ContextAware("/folder/dts.dts", [], []);
+      await context.parser.stable;
+      const issues = await context.getContextIssues();
+      expect(issues.length).toEqual(2);
+      expect(issues[0].issues).toEqual([ContextIssues.DELETE_NODE]);
+
+      expect(issues[1].issues).toEqual([
+        ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
+      ]);
+      expect(issues[1].astElement.firstToken.pos.col).toEqual(38);
+      expect(
+        issues[1].astElement.lastToken.pos.col +
+          issues[1].astElement.lastToken.pos.len
+      ).toEqual(41);
     });
 
     test("Delete Node with Ref", async () => {
@@ -338,6 +404,59 @@ describe("Issues", () => {
           issues[0].astElement.lastToken.pos.len
       ).toEqual(35);
       expect(issues[0].templateStrings).toEqual(["node2", "node1"]);
+    });
+  });
+
+  describe("Resolve label ref", () => {
+    test("Delete node with path not existsing", async () => {
+      mockReadFileSync("/{l1: node1{};};/delete-node/ &l2;");
+      const context = new ContextAware("/folder/dts.dts", [], []);
+      await context.parser.stable;
+      const issues = await context.getContextIssues();
+      expect(issues.length).toEqual(1);
+      expect(issues[0].issues).toEqual([
+        ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
+      ]);
+      expect(issues[0].astElement.firstToken.pos.col).toEqual(30);
+      expect(
+        issues[0].astElement.lastToken.pos.col +
+          issues[0].astElement.lastToken.pos.len
+      ).toEqual(33);
+      expect(issues[0].templateStrings).toEqual(["l2"]);
+    });
+
+    test("property array label ref value", async () => {
+      mockReadFileSync("/{l1: node1{};}; /{prop1=<&l2>;};");
+      const context = new ContextAware("/folder/dts.dts", [], []);
+      await context.parser.stable;
+      const issues = await context.getContextIssues();
+      expect(issues.length).toEqual(1);
+      expect(issues[0].issues).toEqual([
+        ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
+      ]);
+      expect(issues[0].astElement.firstToken.pos.col).toEqual(26);
+      expect(
+        issues[0].astElement.lastToken.pos.col +
+          issues[0].astElement.lastToken.pos.len
+      ).toEqual(29);
+      expect(issues[0].templateStrings).toEqual(["l2"]);
+    });
+
+    test("property node path ref", async () => {
+      mockReadFileSync("/{l1: node1{};}; /{prop1=&l2;};");
+      const context = new ContextAware("/folder/dts.dts", [], []);
+      await context.parser.stable;
+      const issues = await context.getContextIssues();
+      expect(issues.length).toEqual(1);
+      expect(issues[0].issues).toEqual([
+        ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
+      ]);
+      expect(issues[0].astElement.firstToken.pos.col).toEqual(25);
+      expect(
+        issues[0].astElement.lastToken.pos.col +
+          issues[0].astElement.lastToken.pos.len
+      ).toEqual(28);
+      expect(issues[0].templateStrings).toEqual(["l2"]);
     });
   });
 });

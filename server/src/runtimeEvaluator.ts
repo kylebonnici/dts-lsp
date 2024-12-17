@@ -24,7 +24,6 @@ export class ContextAware {
   _issues: Issue<ContextIssues>[] = [];
   private _runtime?: Runtime;
   public parser: Parser;
-  private unlinkedPropertyRefValues: LabelRef[] = [];
 
   constructor(uri: string, includePath: string[], common: string[]) {
     this.parser = new Parser(uri, includePath, common);
@@ -70,6 +69,77 @@ export class ContextAware {
     return (await this.getOrderedParsers()).map((f) => f.uri);
   }
 
+  private linkPropertiesLablesAndNodePaths(runtime: Runtime) {
+    const getAllProperties = (node: Node): Property[] => {
+      return [...node.properties, ...node.nodes.flatMap(getAllProperties)];
+    };
+    const allProperties = getAllProperties(runtime.rootNode);
+
+    allProperties.forEach((p) =>
+      p.ast.allDescendants.forEach((c) => {
+        if (c instanceof LabelRef) {
+          const resolvesTo = runtime.resolvePath([`&${c.label?.value}`]);
+          if (resolvesTo) {
+            const node = runtime.rootNode.getChild(resolvesTo);
+            c.linksTo = node;
+            node?.linkedRefLabels.push(c);
+          } else if (c.value) {
+            this._issues.push(
+              genIssue(
+                ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
+                c,
+                DiagnosticSeverity.Error,
+                [],
+                [],
+                [c.value]
+              )
+            );
+          }
+        } else if (c instanceof NodePath) {
+          let node: Node | undefined = runtime.rootNode;
+          const paths = c.pathParts;
+          for (let i = 0; i < paths.length && paths[i]; i++) {
+            let issueFound = false;
+            const nodePath = paths[i];
+
+            if (nodePath) {
+              const child: Node | undefined = node?.getNode(
+                nodePath.name,
+                nodePath.address,
+                false
+              );
+              nodePath.linksTo = child;
+              if (!issueFound && !child) {
+                issueFound = true;
+
+                this._issues.push(
+                  genIssue(
+                    ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH,
+                    nodePath,
+                    DiagnosticSeverity.Error,
+                    [],
+                    [],
+                    [
+                      nodePath.toString(),
+                      `${c.pathParts
+                        .filter((p) => p?.linksTo)
+                        .map((p) => p?.toString())
+                        .join("/")}`,
+                    ]
+                  )
+                );
+              }
+              child?.linkedNodeNamePaths.push(nodePath);
+              node = child;
+            } else {
+              break;
+            }
+          }
+        }
+      })
+    );
+  }
+
   public async revaluate(uri?: string) {
     if (uri) {
       const parser = await this.getParser(uri);
@@ -83,6 +153,7 @@ export class ContextAware {
     this._issues = [];
 
     parsers.forEach((parser) => this.processRoot(parser.rootDocument, runtime));
+    this.linkPropertiesLablesAndNodePaths(runtime);
 
     this._runtime = runtime;
     return runtime;
@@ -202,24 +273,6 @@ export class ContextAware {
         new Node(element.name.name, element.name.address, runtimeNodeParent);
       child.definitons.push(element);
 
-      if (resolvedPath) {
-        const unlinked = this.unlinkedPropertyRefValues;
-        const toRemove: number[] = [];
-        element.labels.forEach((label) => {
-          runtime.lablesUsedCache.set(label.label, resolvedPath);
-          unlinked.forEach((l, i) => {
-            if (l.value === label.label) {
-              l.linksTo = child;
-              child.linkedRefLabels.push(l);
-              toRemove.push(i);
-            }
-          });
-        });
-        toRemove
-          .reverse()
-          .forEach((i) => this.unlinkedPropertyRefValues.splice(i, 1));
-      }
-
       runtimeNodeParent = child;
       this.checkNodeUniqueNames(element, child);
     }
@@ -294,35 +347,6 @@ export class ContextAware {
   ) {
     if (element.propertyName?.name) {
       runtimeNodeParent.addProperty(new Property(element, runtimeNodeParent));
-      element.allDescendants.forEach((c) => {
-        if (c instanceof LabelRef) {
-          const resolvesTo = runtime.resolvePath([`&${c.label?.value}`]);
-          if (resolvesTo) {
-            const node = runtime.rootNode.getChild(resolvesTo);
-            c.linksTo = node;
-            node?.linkedRefLabels.push(c);
-          } else {
-            this.unlinkedPropertyRefValues.push(c);
-          }
-        } else if (c instanceof NodePath) {
-          let node: Node | undefined = runtime.rootNode;
-          const paths = c.pathParts;
-          for (let i = 0; i < paths.length && paths[i]; i++) {
-            const nodePath = paths[i];
-
-            if (nodePath) {
-              const child: Node | undefined = node?.getNode(
-                nodePath.name,
-                nodePath.address,
-                false
-              );
-              nodePath.linksTo = child;
-              child?.linkedNodeNamePaths.push(nodePath);
-              node = child;
-            }
-          }
-        }
-      });
     }
 
     element.children.forEach((child) =>

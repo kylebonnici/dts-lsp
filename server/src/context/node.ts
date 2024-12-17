@@ -118,20 +118,6 @@ export class Node {
     return;
   }
 
-  get nodeRefValues(): LabelValue[] {
-    return [
-      ...this.properties.flatMap((p) => p.nodeRefValues),
-      ...this.nodes.flatMap((n) => n.nodeRefValues),
-    ];
-  }
-
-  get nodePathRefValues(): NodePathRef[] {
-    return [
-      ...this.properties.flatMap((p) => p.nodePathRefValues),
-      ...this.nodes.flatMap((n) => n.nodePathRefValues),
-    ];
-  }
-
   get labels(): LabelAssign[] {
     return [
       ...this.referancedBy.flatMap((r) => r.labels),
