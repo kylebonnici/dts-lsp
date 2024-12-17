@@ -4,4 +4,8 @@ module.exports = {
   transform: {
     "^.+.tsx?$": ["ts-jest",{}],
   },
+  collectCoverageFrom: [
+    '**/*.{ts,tsx}',
+    '!dist/*',
+  ]
 };
