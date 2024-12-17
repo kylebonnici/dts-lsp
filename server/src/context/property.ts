@@ -40,54 +40,6 @@ export class Property {
     ) as LabelAssign[];
   }
 
-  get nodeRefValues(): LabelValue[] {
-    const values = this.ast.values?.values
-      .filter((v) => v)
-      .flatMap((v) => v?.value)
-      .filter((v) => v) as AllValueType[] | undefined;
-    if (!values) return [];
-
-    const result = [
-      ...((
-        values.filter((c) => c instanceof LabelRef && c.value) as LabelRef[]
-      ).map((r) => ({ ast: r, label: r.value })) as LabelValue[]),
-      ...(values
-        .flatMap((c) => {
-          if (c instanceof ArrayValues) {
-            return c.values
-              .map((v) => v.value)
-              .filter((v) => v instanceof LabelRef) as LabelRef[];
-          }
-          return [];
-        })
-        .map((r) => ({ ast: r, label: r.value })) as LabelValue[]),
-    ];
-
-    return result;
-  }
-
-  get nodePathRefValues(): NodePathRef[] {
-    const values = this.ast.values?.values
-      .filter((v) => v)
-      .flatMap((v) => v?.value)
-      .filter((v) => v) as AllValueType[] | undefined;
-    if (!values) return [];
-
-    const result = values.flatMap((c) => {
-      if (c instanceof ArrayValues) {
-        return c.values
-          .map((v) => v.value)
-          .filter((v) => v instanceof NodePathRef) as NodePathRef[];
-      }
-      if (c instanceof NodePathRef) {
-        return [c];
-      }
-      return [];
-    }) as NodePathRef[];
-
-    return result;
-  }
-
   get labelsMapped(): {
     label: LabelAssign;
     owner: Property | null;
