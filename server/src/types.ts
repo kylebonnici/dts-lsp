@@ -10,8 +10,8 @@ import { Runtime } from "./context/runtime";
 
 export type CodeActionDiagnosticData = {
   issues: SyntaxIssue[];
-  firstToken: Token;
-  lastToken: Token;
+  firstToken: Omit<Token, "prevToken" | "nextToken">;
+  lastToken: Omit<Token, "prevToken" | "nextToken">;
 };
 
 export enum StandardTypeIssue {
@@ -194,8 +194,8 @@ export interface Position {
   len: number;
 }
 export interface Token {
-  prevToken?: Omit<Token, "prevToken" | "nextToken">;
-  nextToken?: Omit<Token, "prevToken" | "nextToken">;
+  prevToken?: Token;
+  nextToken?: Token;
   tokens: LexerToken[];
   pos: Position;
   value: string;
