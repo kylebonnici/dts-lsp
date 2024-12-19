@@ -283,7 +283,7 @@ export class Lexer {
   private isLetters(word: string) {
     const match = word.match(/^[A-Za-z]+/);
     if (match?.[0]) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.LETTERS],
         value: match?.[0],
         pos: this.generatePos(word, match?.[0]),
@@ -296,7 +296,7 @@ export class Lexer {
   private isDigit(word: string) {
     const match = word.match(/^[0-9]/);
     if (match?.[0]) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.HEX, LexerToken.DIGIT],
         value: match[0],
         pos: this.generatePos(word, match[0]),
@@ -309,7 +309,7 @@ export class Lexer {
   private isHexDigit(word: string) {
     const match = word.match(/^[A-Fa-f]/);
     if (match?.[0]) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.HEX, LexerToken.LETTERS],
         value: match[0],
         pos: this.generatePos(word, match[0]),
@@ -322,7 +322,7 @@ export class Lexer {
   private isCurlyOpen(word: string) {
     const expected = "{";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.CURLY_OPEN],
         pos: this.generatePos(word, expected),
         value: "{",
@@ -335,7 +335,7 @@ export class Lexer {
   private isCurlyClose(word: string) {
     const expected = "}";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.CURLY_CLOSE],
         pos: this.generatePos(word, expected),
         value: "}",
@@ -348,7 +348,7 @@ export class Lexer {
   private isSemicolon(word: string) {
     const expected = ";";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.SEMICOLON],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -361,7 +361,7 @@ export class Lexer {
   private isColon(word: string) {
     const expected = ":";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.COLON],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -374,7 +374,7 @@ export class Lexer {
   private isHash(word: string) {
     const expected = "#";
     if (word.startsWith(expected)) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.HASH],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -385,7 +385,7 @@ export class Lexer {
   }
 
   private unkownToken(word: string) {
-    this._tokens.push({
+    this.pushToken({
       tokens: [LexerToken.UNKNOWN],
       pos: this.generatePos(word, " "),
       value: word,
@@ -396,7 +396,7 @@ export class Lexer {
   private isAssignOperator(word: string) {
     const expected = "=";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.ASSIGN_OPERATOR],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -409,7 +409,7 @@ export class Lexer {
   private isGtSym(word: string) {
     const expected = ">";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.GT_SYM],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -422,7 +422,7 @@ export class Lexer {
   private isLtSym(word: string) {
     const expected = "<";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.LT_SYM],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -435,7 +435,7 @@ export class Lexer {
   private isLogicalNot(word: string) {
     const expected = "!";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.LOGICAL_NOT],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -448,7 +448,7 @@ export class Lexer {
   private isBitwiseOr(word: string) {
     const expected = "|";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.BIT_OR],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -461,7 +461,7 @@ export class Lexer {
   private isBitwiseXOr(word: string) {
     const expected = "^";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.BIT_XOR],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -474,7 +474,7 @@ export class Lexer {
   private isAmpersand(word: string) {
     const expected = "&";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.AMPERSAND, LexerToken.BIT_AND],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -487,7 +487,7 @@ export class Lexer {
   private isBitwiseNot(word: string) {
     const expected = "~";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.BIT_NOT],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -500,7 +500,7 @@ export class Lexer {
   private isRoundOpen(word: string) {
     const expected = "(";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.ROUND_OPEN],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -514,7 +514,7 @@ export class Lexer {
   private isRoundClose(word: string) {
     const expected = ")";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.ROUND_CLOSE],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -527,7 +527,7 @@ export class Lexer {
   private isSquareOpen(word: string) {
     const expected = "[";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.SQUARE_OPEN],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -540,7 +540,7 @@ export class Lexer {
   private isSquareClose(word: string) {
     const expected = "]";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.SQUARE_CLOSE],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -553,7 +553,7 @@ export class Lexer {
   private isComma(word: string) {
     const expected = ",";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.COMMA],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -582,7 +582,7 @@ export class Lexer {
       const line = this.lineNumber;
       const col = this.columnNumber;
       const string = this.getString(match[0]);
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.STRING],
         value: string,
         pos: {
@@ -600,7 +600,7 @@ export class Lexer {
   private isForwardSlash(word: string) {
     const expected = "/";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.FORWARD_SLASH],
         pos: this.generatePos(word, expected),
         value: "/",
@@ -613,7 +613,7 @@ export class Lexer {
   private isBackSlash(word: string) {
     const expected = "\\";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.BACK_SLASH],
         pos: this.generatePos(word, expected),
         value: "\\",
@@ -626,7 +626,7 @@ export class Lexer {
   private isAddOperator(word: string) {
     const expected = "+";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.ADD_OPERATOR],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -639,7 +639,7 @@ export class Lexer {
   private isQuestionMark(word: string) {
     const expected = "?";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.QUESTION_MARK],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -652,7 +652,7 @@ export class Lexer {
   private isPeriod(word: string) {
     const expected = ".";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.PERIOD],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -665,7 +665,7 @@ export class Lexer {
   private isNegeteOperator(word: string) {
     const expected = "-";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.NEG_OPERATOR],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -678,7 +678,7 @@ export class Lexer {
   private isUnderScore(word: string) {
     const expected = "_";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.UNDERSCOURE],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -691,7 +691,7 @@ export class Lexer {
   private isAt(word: string) {
     const expected = "@";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.AT],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -704,7 +704,7 @@ export class Lexer {
   private isMultiplicationOperator(word: string) {
     const expected = "*";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.MULTI_OPERATOR],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -717,7 +717,7 @@ export class Lexer {
   private isModulusOperator(word: string) {
     const expected = "%";
     if (word === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.MODULUS_OPERATOR],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -730,7 +730,7 @@ export class Lexer {
   private isCDefine(word: string) {
     const expected = "#define";
     if (word.toLowerCase() === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.C_DEFINE],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -743,7 +743,7 @@ export class Lexer {
   private isCInclude(word: string) {
     const expected = "#include";
     if (word.toLowerCase() === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.C_INCLUDE],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -756,7 +756,7 @@ export class Lexer {
   private isCLine(word: string) {
     const expected = "#line";
     if (word.toLowerCase() === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.C_LINE],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -769,7 +769,7 @@ export class Lexer {
   private isCUndef(word: string) {
     const expected = "#undef";
     if (word.toLowerCase() === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.C_UNDEF],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -782,7 +782,7 @@ export class Lexer {
   private isCError(word: string) {
     const expected = "#error";
     if (word.toLowerCase() === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.C_ERROR],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -795,7 +795,7 @@ export class Lexer {
   private isCPragma(word: string) {
     const expected = "#pragma";
     if (word.toLowerCase() === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.C_PRAGMA],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -808,7 +808,7 @@ export class Lexer {
   private isCDefined(word: string) {
     const expected = "#defined";
     if (word.toLowerCase() === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.C_DEFINED],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -821,7 +821,7 @@ export class Lexer {
   private isCIf(word: string) {
     const expected = "#if";
     if (word.toLowerCase() === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.C_IF],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -834,7 +834,7 @@ export class Lexer {
   private isCIfDef(word: string) {
     const expected = "#ifdef";
     if (word.toLowerCase() === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.C_IFDEF],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -847,7 +847,7 @@ export class Lexer {
   private isCIfNDef(word: string) {
     const expected = "#ifndef";
     if (word.toLowerCase() === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.C_IFNDEF],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -860,7 +860,7 @@ export class Lexer {
   private isCElIf(word: string) {
     const expected = "#elif";
     if (word.toLowerCase() === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.C_ELIF],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -873,7 +873,7 @@ export class Lexer {
   private isCElse(word: string) {
     const expected = "#else";
     if (word.toLowerCase() === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.C_ELSE],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -886,7 +886,7 @@ export class Lexer {
   private isCEndIf(word: string) {
     const expected = "#endif";
     if (word.toLowerCase() === expected) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.C_ENDIF],
         pos: this.generatePos(word, expected),
         value: expected,
@@ -899,7 +899,7 @@ export class Lexer {
   private isCTrue(word: string) {
     const expects = "true";
     if (word == expects) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.C_TRUE],
         value: expects,
         pos: this.generatePos(word, expects),
@@ -912,7 +912,7 @@ export class Lexer {
   private isCFalse(word: string) {
     const expects = "false";
     if (word == expects) {
-      this._tokens.push({
+      this.pushToken({
         tokens: [LexerToken.C_FALSE],
         value: expects,
         pos: this.generatePos(word, expects),
