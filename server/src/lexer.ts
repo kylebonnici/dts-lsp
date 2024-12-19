@@ -270,9 +270,10 @@ export class Lexer {
   }
 
   private pushToken(token: Token) {
-    token.prevToken = this._tokens.at(-1);
-
     const prevToken = this._tokens.at(-1);
+
+    token.prevToken = prevToken;
+
     if (prevToken) {
       prevToken.nextToken = token;
     }

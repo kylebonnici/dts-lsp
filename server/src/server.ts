@@ -430,8 +430,16 @@ async function getDiagnostics(
         : "",
       source: "devie tree",
       data: {
-        firstToken: issue.astElement.firstToken,
-        lastToken: issue.astElement.lastToken,
+        firstToken: {
+          pos: issue.astElement.firstToken.pos,
+          tokens: issue.astElement.firstToken.tokens,
+          value: issue.astElement.firstToken.value,
+        },
+        lastToken: {
+          pos: issue.astElement.lastToken.pos,
+          tokens: issue.astElement.lastToken.tokens,
+          value: issue.astElement.lastToken.value,
+        },
         issues: issue.issues,
       } as CodeActionDiagnosticData,
     };
