@@ -194,6 +194,8 @@ export interface Position {
   len: number;
 }
 export interface Token {
+  prevToken?: Token;
+  nextToken?: Token;
   tokens: LexerToken[];
   pos: Position;
   value: string;
