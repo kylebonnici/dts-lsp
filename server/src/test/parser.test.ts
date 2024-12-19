@@ -350,6 +350,34 @@ describe("Parser", () => {
       expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(12);
     });
 
+    test("Label assign", async () => {
+      mockReadFileSync("/{l1   : node{};};");
+      const parser = new Parser("/folder/dts.dts", [], []);
+      await parser.stable;
+      expect(parser.issues.length).toEqual(1);
+      expect(parser.issues[0].issues).toEqual([SyntaxIssue.WHITE_SPACE]);
+      expect(
+        parser.issues[0].astElement.firstToken.pos.col +
+          parser.issues[0].astElement.firstToken.pos.len
+      ).toEqual(4);
+
+      expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(7);
+    });
+
+    test("Label ref", async () => {
+      mockReadFileSync("/{prop=&  l1;};");
+      const parser = new Parser("/folder/dts.dts", [], []);
+      await parser.stable;
+      expect(parser.issues.length).toEqual(1);
+      expect(parser.issues[0].issues).toEqual([SyntaxIssue.WHITE_SPACE]);
+      expect(
+        parser.issues[0].astElement.firstToken.pos.col +
+          parser.issues[0].astElement.firstToken.pos.len
+      ).toEqual(8);
+
+      expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(10);
+    });
+
     test("Ref Path end", async () => {
       mockReadFileSync("/{prop=<&{/node1/node2    }>;};");
       const parser = new Parser("/folder/dts.dts", [], []);

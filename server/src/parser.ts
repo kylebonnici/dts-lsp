@@ -510,6 +510,19 @@ export class Parser extends BaseParser {
         return;
       }
     } else {
+      const lastNameToken = valid.at(-1);
+      if (
+        lastNameToken &&
+        (token.pos.line !== node.firstToken.pos.line ||
+          token.pos.col !== lastNameToken.pos.col + lastNameToken.pos.len)
+      ) {
+        this.issues.push(
+          genIssue(
+            SyntaxIssue.WHITE_SPACE,
+            new ASTBase(createTokenIndex(lastNameToken, token))
+          )
+        );
+      }
       this.moveToNextToken;
     }
 
@@ -1314,8 +1327,8 @@ export class Parser extends BaseParser {
 
   private isLabelRef(slxBase?: ASTBase): LabelRef | undefined {
     this.enqueToStack();
-    const firstToken = this.currentToken;
-    if (!validToken(firstToken, LexerToken.AMPERSAND)) {
+    const ampersnadToken = this.currentToken;
+    if (!validToken(ampersnadToken, LexerToken.AMPERSAND)) {
       this.popStack();
       return;
     } else {
@@ -1326,13 +1339,27 @@ export class Parser extends BaseParser {
     if (!labelName) {
       const node = new LabelRef(null);
       this.issues.push(genIssue(SyntaxIssue.LABEL_NAME, slxBase ?? node));
-      node.firstToken = firstToken;
+      node.firstToken = ampersnadToken;
       this.mergeStack();
       return node;
     }
 
+    if (
+      ampersnadToken &&
+      (labelName.firstToken.pos.line !== ampersnadToken.pos.line ||
+        labelName.firstToken.pos.col !==
+          ampersnadToken.pos.col + ampersnadToken.pos.len)
+    ) {
+      this.issues.push(
+        genIssue(
+          SyntaxIssue.WHITE_SPACE,
+          new ASTBase(createTokenIndex(ampersnadToken, labelName.firstToken))
+        )
+      );
+    }
+
     const node = new LabelRef(labelName);
-    node.firstToken = firstToken;
+    node.firstToken = ampersnadToken;
     this.mergeStack();
     return node;
   }
