@@ -39,10 +39,14 @@ const removeNewLinesBetweenTokenAndPrev = (
   expectedNewLines = 1
 ): TextEdit | undefined => {
   if (token.prevToken) {
-    const linesToRemove =
-      token.pos.line - expectedNewLines - token.prevToken.pos.line;
+    const diffNumberOfLins = token.pos.line - token.prevToken.pos.line;
+    const linesToRemove = diffNumberOfLins - expectedNewLines;
 
-    if (linesToRemove) {
+    if (
+      linesToRemove &&
+      ((diffNumberOfLins !== 2 && expectedNewLines !== 0) ||
+        expectedNewLines === 0)
+    ) {
       return TextEdit.replace(
         Range.create(
           Position.create(
@@ -250,6 +254,12 @@ const formatValue = (
         formatLabledValue(documentFormattingParams, v, level, i)
       )
     );
+    const lastValue = value.values.at(-1);
+    if (lastValue?.lastToken) {
+      result.push(
+        ...fixedNumberOfSpaceBetweenTokensAndNext(lastValue.lastToken, 0)
+      );
+    }
   }
   return result;
 };
@@ -333,6 +343,21 @@ const formatDtcProperty = (
   );
 
   if (property.values) {
+    if (property.propertyName) {
+      result.push(
+        ...fixedNumberOfSpaceBetweenTokensAndNext(
+          property.propertyName?.lastToken,
+          0
+        )
+      );
+      if (property.propertyName?.lastToken.nextToken?.value === "=") {
+        result.push(
+          ...fixedNumberOfSpaceBetweenTokensAndNext(
+            property.propertyName?.lastToken.nextToken
+          )
+        );
+      }
+    }
     result.push(
       ...formatPropertyValues(documentFormattingParams, property.values, level)
     );
