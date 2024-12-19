@@ -269,6 +269,17 @@ export class Lexer {
     }
   }
 
+  private pushToken(token: Token) {
+    token.prevToken = this._tokens.at(-1);
+
+    const prevToken = this._tokens.at(-1);
+    if (prevToken) {
+      prevToken.nextToken = token;
+    }
+
+    this._tokens.push(token);
+  }
+
   private isLetters(word: string) {
     const match = word.match(/^[A-Za-z]+/);
     if (match?.[0]) {
