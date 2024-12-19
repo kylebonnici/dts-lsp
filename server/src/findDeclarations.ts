@@ -2,11 +2,11 @@ import { Location, TextDocumentPositionParams } from "vscode-languageserver";
 import { ContextAware } from "./runtimeEvaluator";
 import { SearchableResult } from "./types";
 import { Node } from "./context/node";
-import { DtcBaseNode, NodeName } from "./ast/dtc/node";
+import { NodeName } from "./ast/dtc/node";
 import { Label, LabelAssign } from "./ast/dtc/label";
 import { LabelRef } from "./ast/dtc/labelRef";
 import { nodeFinder, toRange } from "./helpers";
-import { DtcProperty, PropertyName } from "./ast/dtc/property";
+import { PropertyName } from "./ast/dtc/property";
 import { Property } from "./context/property";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
 import { ASTBase } from "./ast/base";
@@ -32,7 +32,10 @@ function getPropertyDeclaration(
   };
 
   const gentItem = (property: Property) => {
-    return Location.create(`file://${property.ast.uri}`, toRange(property.ast));
+    return Location.create(
+      `file://${property.ast.uri}`,
+      toRange(property.ast.propertyName ?? property.ast)
+    );
   };
 
   if (result.item instanceof Property && result.ast instanceof PropertyName) {

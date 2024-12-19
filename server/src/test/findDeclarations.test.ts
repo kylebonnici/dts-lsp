@@ -7,7 +7,6 @@ import fs from "fs";
 import { describe, test, jest, expect } from "@jest/globals";
 import { resetTokenizedDocmentProvider } from "../providers/tokenizedDocument";
 import { ContextAware } from "../runtimeEvaluator";
-import { ContextIssues } from "../types";
 import { getDeclaration } from "../findDeclarations";
 import {
   Position,
@@ -63,7 +62,7 @@ describe("Find Decleration", () => {
 
       const decleration = await getDeclaration(location, [context]);
       expect(decleration?.range.start.character).toEqual(2);
-      expect(decleration?.range.end.character).toEqual(8);
+      expect(decleration?.range.end.character).toEqual(7);
     });
 
     test("Duplicate propety name different level", async () => {
@@ -81,7 +80,7 @@ describe("Find Decleration", () => {
 
       let decleration = await getDeclaration(location1, [context]);
       expect(decleration?.range.start.character).toEqual(22);
-      expect(decleration?.range.end.character).toEqual(28);
+      expect(decleration?.range.end.character).toEqual(27);
 
       const location2: TextDocumentPositionParams = {
         textDocument,
@@ -90,7 +89,7 @@ describe("Find Decleration", () => {
 
       decleration = await getDeclaration(location2, [context]);
       expect(decleration?.range.start.character).toEqual(9);
-      expect(decleration?.range.end.character).toEqual(15);
+      expect(decleration?.range.end.character).toEqual(14);
     });
 
     test("with deleted node", async () => {
@@ -108,7 +107,7 @@ describe("Find Decleration", () => {
 
       const decleration = await getDeclaration(location, [context]);
       expect(decleration?.range.start.character).toEqual(79);
-      expect(decleration?.range.end.character).toEqual(85);
+      expect(decleration?.range.end.character).toEqual(84);
     });
 
     test("Delete property", async () => {
@@ -124,7 +123,7 @@ describe("Find Decleration", () => {
 
       const decleration = await getDeclaration(location, [context]);
       expect(decleration?.range.start.character).toEqual(2);
-      expect(decleration?.range.end.character).toEqual(8);
+      expect(decleration?.range.end.character).toEqual(7);
     });
   });
 
