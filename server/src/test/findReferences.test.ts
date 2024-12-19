@@ -7,7 +7,7 @@ import fs from "fs";
 import { describe, test, jest, expect } from "@jest/globals";
 import { resetTokenizedDocmentProvider } from "../providers/tokenizedDocument";
 import { ContextAware } from "../runtimeEvaluator";
-import { getDefinitions } from "../findDefinitons";
+import { getReferences } from "../findReferences";
 import {
   Position,
   TextDocumentIdentifier,
@@ -28,7 +28,7 @@ const mockReadFileSync = (content: string, path?: string) => {
     return content;
   });
 };
-describe("Find definitions", () => {
+describe("Find references", () => {
   beforeEach(() => {
     resetTokenizedDocmentProvider();
   });
@@ -44,8 +44,8 @@ describe("Find definitions", () => {
       position: Position.create(0, 24),
     };
 
-    const declerations = await getDefinitions(location, [context]);
-    expect(declerations).toEqual([]);
+    const references = await getReferences(location, [context]);
+    expect(references).toEqual([]);
   });
 
   describe("Properties", () => {
@@ -60,19 +60,19 @@ describe("Find definitions", () => {
         position: Position.create(0, 37),
       };
 
-      const declerations = await getDefinitions(location, [context]);
-      expect(declerations.length).toEqual(4);
-      expect(declerations[3].range.start.character).toEqual(2);
-      expect(declerations[3].range.end.character).toEqual(7);
+      const references = await getReferences(location, [context]);
+      expect(references.length).toEqual(4);
+      expect(references[3].range.start.character).toEqual(2);
+      expect(references[3].range.end.character).toEqual(7);
 
-      expect(declerations[2].range.start.character).toEqual(14);
-      expect(declerations[2].range.end.character).toEqual(19);
+      expect(references[2].range.start.character).toEqual(14);
+      expect(references[2].range.end.character).toEqual(19);
 
-      expect(declerations[1].range.start.character).toEqual(24);
-      expect(declerations[1].range.end.character).toEqual(29);
+      expect(references[1].range.start.character).toEqual(24);
+      expect(references[1].range.end.character).toEqual(29);
 
-      expect(declerations[0].range.start.character).toEqual(36);
-      expect(declerations[0].range.end.character).toEqual(41);
+      expect(references[0].range.start.character).toEqual(36);
+      expect(references[0].range.end.character).toEqual(41);
     });
 
     test("Duplicate propety name different level", async () => {
@@ -88,27 +88,27 @@ describe("Find definitions", () => {
         position: Position.create(0, 57),
       };
 
-      let declerations = await getDefinitions(location1, [context]);
-      expect(declerations.length).toEqual(2);
+      let references = await getReferences(location1, [context]);
+      expect(references.length).toEqual(2);
 
-      expect(declerations[1].range.start.character).toEqual(22);
-      expect(declerations[1].range.end.character).toEqual(27);
+      expect(references[1].range.start.character).toEqual(22);
+      expect(references[1].range.end.character).toEqual(27);
 
-      expect(declerations[0].range.start.character).toEqual(55);
-      expect(declerations[0].range.end.character).toEqual(60);
+      expect(references[0].range.start.character).toEqual(55);
+      expect(references[0].range.end.character).toEqual(60);
 
       const location2: TextDocumentPositionParams = {
         textDocument,
         position: Position.create(0, 45),
       };
 
-      declerations = await getDefinitions(location2, [context]);
-      expect(declerations.length).toEqual(2);
-      expect(declerations[1].range.start.character).toEqual(9);
-      expect(declerations[1].range.end.character).toEqual(14);
+      references = await getReferences(location2, [context]);
+      expect(references.length).toEqual(2);
+      expect(references[1].range.start.character).toEqual(9);
+      expect(references[1].range.end.character).toEqual(14);
 
-      expect(declerations[0].range.start.character).toEqual(42);
-      expect(declerations[0].range.end.character).toEqual(47);
+      expect(references[0].range.start.character).toEqual(42);
+      expect(references[0].range.end.character).toEqual(47);
     });
 
     test("with deleted node", async () => {
@@ -124,10 +124,10 @@ describe("Find definitions", () => {
         position: Position.create(0, 82),
       };
 
-      const declerations = await getDefinitions(location, [context]);
-      expect(declerations.length).toEqual(1);
-      expect(declerations[0].range.start.character).toEqual(79);
-      expect(declerations[0].range.end.character).toEqual(84);
+      const references = await getReferences(location, [context]);
+      expect(references.length).toEqual(1);
+      expect(references[0].range.start.character).toEqual(79);
+      expect(references[0].range.end.character).toEqual(84);
     });
 
     test("with in deleted node", async () => {
@@ -141,13 +141,13 @@ describe("Find definitions", () => {
         position: Position.create(0, 23),
       };
 
-      const declerations = await getDefinitions(location, [context]);
-      expect(declerations.length).toEqual(2);
-      expect(declerations[1].range.start.character).toEqual(13);
-      expect(declerations[1].range.end.character).toEqual(18);
+      const references = await getReferences(location, [context]);
+      expect(references.length).toEqual(2);
+      expect(references[1].range.start.character).toEqual(13);
+      expect(references[1].range.end.character).toEqual(18);
 
-      expect(declerations[0].range.start.character).toEqual(20);
-      expect(declerations[0].range.end.character).toEqual(25);
+      expect(references[0].range.start.character).toEqual(20);
+      expect(references[0].range.end.character).toEqual(25);
     });
 
     test("Delete property", async () => {
@@ -161,13 +161,16 @@ describe("Find definitions", () => {
         position: Position.create(0, 39),
       };
 
-      const declerations = await getDefinitions(location, [context]);
-      expect(declerations.length).toEqual(2);
-      expect(declerations[0].range.start.character).toEqual(12);
-      expect(declerations[0].range.end.character).toEqual(17);
+      const references = await getReferences(location, [context]);
+      expect(references.length).toEqual(3);
+      expect(references[0].range.start.character).toEqual(12);
+      expect(references[0].range.end.character).toEqual(17);
 
-      expect(declerations[1].range.start.character).toEqual(2);
-      expect(declerations[1].range.end.character).toEqual(7);
+      expect(references[1].range.start.character).toEqual(2);
+      expect(references[1].range.end.character).toEqual(7);
+
+      expect(references[2].range.start.character).toEqual(37);
+      expect(references[2].range.end.character).toEqual(42);
     });
   });
 
@@ -183,13 +186,13 @@ describe("Find definitions", () => {
         position: Position.create(0, 31),
       };
 
-      const declerations = await getDefinitions(location, [context]);
-      expect(declerations.length).toEqual(2);
-      expect(declerations[0].range.start.character).toEqual(10);
-      expect(declerations[0].range.end.character).toEqual(17);
+      const references = await getReferences(location, [context]);
+      expect(references.length).toEqual(2);
+      expect(references[0].range.start.character).toEqual(10);
+      expect(references[0].range.end.character).toEqual(15);
 
-      expect(declerations[1].range.start.character).toEqual(29);
-      expect(declerations[1].range.end.character).toEqual(37);
+      expect(references[1].range.start.character).toEqual(29);
+      expect(references[1].range.end.character).toEqual(34);
     });
 
     test("Duplicate node name different level", async () => {
@@ -203,26 +206,26 @@ describe("Find definitions", () => {
         position: Position.create(0, 32),
       };
 
-      let declerations = await getDefinitions(location1, [context]);
-      expect(declerations.length).toEqual(2);
-      expect(declerations[0].range.start.character).toEqual(9);
-      expect(declerations[0].range.end.character).toEqual(17);
+      let references = await getReferences(location1, [context]);
+      expect(references.length).toEqual(2);
+      expect(references[0].range.start.character).toEqual(9);
+      expect(references[0].range.end.character).toEqual(14);
 
-      expect(declerations[1].range.start.character).toEqual(30);
-      expect(declerations[1].range.end.character).toEqual(38);
+      expect(references[1].range.start.character).toEqual(30);
+      expect(references[1].range.end.character).toEqual(35);
 
       const location2: TextDocumentPositionParams = {
         textDocument,
         position: Position.create(0, 26),
       };
 
-      declerations = await getDefinitions(location2, [context]);
-      expect(declerations.length).toEqual(2);
-      expect(declerations[0].range.start.character).toEqual(3);
-      expect(declerations[0].range.end.character).toEqual(19);
+      references = await getReferences(location2, [context]);
+      expect(references.length).toEqual(2);
+      expect(references[0].range.start.character).toEqual(3);
+      expect(references[0].range.end.character).toEqual(8);
 
-      expect(declerations[1].range.start.character).toEqual(24);
-      expect(declerations[1].range.end.character).toEqual(40);
+      expect(references[1].range.start.character).toEqual(24);
+      expect(references[1].range.end.character).toEqual(29);
     });
 
     test("DTC child and ref node - 1", async () => {
@@ -236,13 +239,13 @@ describe("Find definitions", () => {
         position: Position.create(0, 9),
       };
 
-      const declerations = await getDefinitions(location, [context]);
-      expect(declerations.length).toEqual(2);
-      expect(declerations[0].range.start.character).toEqual(2);
-      expect(declerations[0].range.end.character).toEqual(14);
+      const references = await getReferences(location, [context]);
+      expect(references.length).toEqual(2);
+      expect(references[0].range.start.character).toEqual(17);
+      expect(references[0].range.end.character).toEqual(19);
 
-      expect(declerations[1].range.start.character).toEqual(16);
-      expect(declerations[1].range.end.character).toEqual(22);
+      expect(references[1].range.start.character).toEqual(6);
+      expect(references[1].range.end.character).toEqual(11);
     });
 
     test("DTC child and ref node - 2", async () => {
@@ -256,13 +259,13 @@ describe("Find definitions", () => {
         position: Position.create(0, 18),
       };
 
-      const declerations = await getDefinitions(location, [context]);
-      expect(declerations.length).toEqual(2);
-      expect(declerations[0].range.start.character).toEqual(2);
-      expect(declerations[0].range.end.character).toEqual(14);
+      const references = await getReferences(location, [context]);
+      expect(references.length).toEqual(2);
+      expect(references[0].range.start.character).toEqual(17);
+      expect(references[0].range.end.character).toEqual(19);
 
-      expect(declerations[1].range.start.character).toEqual(16);
-      expect(declerations[1].range.end.character).toEqual(22);
+      expect(references[1].range.start.character).toEqual(6);
+      expect(references[1].range.end.character).toEqual(11);
     });
 
     test("with deleted node", async () => {
@@ -278,10 +281,10 @@ describe("Find definitions", () => {
         position: Position.create(0, 57),
       };
 
-      const declerations = await getDefinitions(location, [context]);
-      expect(declerations.length).toEqual(1);
-      expect(declerations[0].range.start.character).toEqual(54);
-      expect(declerations[0].range.end.character).toEqual(62);
+      const references = await getReferences(location, [context]);
+      expect(references.length).toEqual(1);
+      expect(references[0].range.start.character).toEqual(54);
+      expect(references[0].range.end.character).toEqual(59);
     });
 
     test("in deleted node", async () => {
@@ -297,10 +300,10 @@ describe("Find definitions", () => {
         position: Position.create(0, 16),
       };
 
-      const declerations = await getDefinitions(location, [context]);
-      expect(declerations.length).toEqual(1);
-      expect(declerations[0].range.start.character).toEqual(13);
-      expect(declerations[0].range.end.character).toEqual(21);
+      const references = await getReferences(location, [context]);
+      expect(references.length).toEqual(1);
+      expect(references[0].range.start.character).toEqual(13);
+      expect(references[0].range.end.character).toEqual(18);
     });
 
     test("Delete node label", async () => {
@@ -316,10 +319,13 @@ describe("Find definitions", () => {
         position: Position.create(0, 42),
       };
 
-      const declerations = await getDefinitions(location, [context]);
-      expect(declerations.length).toEqual(1);
-      expect(declerations[0].range.start.character).toEqual(3);
-      expect(declerations[0].range.end.character).toEqual(23);
+      const references = await getReferences(location, [context]);
+      expect(references.length).toEqual(2);
+      expect(references[0].range.start.character).toEqual(41);
+      expect(references[0].range.end.character).toEqual(43);
+
+      expect(references[1].range.start.character).toEqual(7);
+      expect(references[1].range.end.character).toEqual(12);
     });
 
     test("Delete node name", async () => {
@@ -335,18 +341,21 @@ describe("Find definitions", () => {
         position: Position.create(0, 62),
       };
 
-      const declerations = await getDefinitions(location, [context]);
-      expect(declerations.length).toEqual(2);
-      expect(declerations[0].range.start.character).toEqual(3);
-      expect(declerations[0].range.end.character).toEqual(23);
+      const references = await getReferences(location, [context]);
+      expect(references.length).toEqual(3);
+      expect(references[0].range.start.character).toEqual(7);
+      expect(references[0].range.end.character).toEqual(12);
 
-      expect(declerations[1].range.start.character).toEqual(29);
-      expect(declerations[1].range.end.character).toEqual(45);
+      expect(references[1].range.start.character).toEqual(29);
+      expect(references[1].range.end.character).toEqual(34);
+
+      expect(references[2].range.start.character).toEqual(60);
+      expect(references[2].range.end.character).toEqual(65);
     });
 
     test("From property label", async () => {
       mockReadFileSync(
-        "/{ l1: node1{node1{};};}; /{ node1{node1{ prop1=&l1};};};"
+        "/{ l1: node1{node1{};};}; /{ node1{node1{ prop1=&l1;};};};"
       );
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
       const context = new ContextAware(textDocument.uri, [], []);
@@ -357,13 +366,16 @@ describe("Find definitions", () => {
         position: Position.create(0, 50),
       };
 
-      const declerations = await getDefinitions(location, [context]);
-      expect(declerations.length).toEqual(2);
-      expect(declerations[0].range.start.character).toEqual(3);
-      expect(declerations[0].range.end.character).toEqual(23);
+      const references = await getReferences(location, [context]);
+      expect(references.length).toEqual(3);
+      expect(references[0].range.start.character).toEqual(49);
+      expect(references[0].range.end.character).toEqual(51);
 
-      expect(declerations[1].range.start.character).toEqual(29);
-      expect(declerations[1].range.end.character).toEqual(55);
+      expect(references[1].range.start.character).toEqual(7);
+      expect(references[1].range.end.character).toEqual(12);
+
+      expect(references[2].range.start.character).toEqual(29);
+      expect(references[2].range.end.character).toEqual(34);
     });
 
     test("From property node path", async () => {
@@ -376,16 +388,19 @@ describe("Find definitions", () => {
 
       const location: TextDocumentPositionParams = {
         textDocument,
-        position: Position.create(0, 59),
+        position: Position.create(0, 53),
       };
 
-      const declerations = await getDefinitions(location, [context]);
-      expect(declerations.length).toEqual(2);
-      expect(declerations[0].range.start.character).toEqual(13);
-      expect(declerations[0].range.end.character).toEqual(21);
+      const references = await getReferences(location, [context]);
+      expect(references.length).toEqual(3);
+      expect(references[0].range.start.character).toEqual(51);
+      expect(references[0].range.end.character).toEqual(56);
 
-      expect(declerations[1].range.start.character).toEqual(35);
-      expect(declerations[1].range.end.character).toEqual(65);
+      expect(references[1].range.start.character).toEqual(7);
+      expect(references[1].range.end.character).toEqual(12);
+
+      expect(references[2].range.start.character).toEqual(29);
+      expect(references[2].range.end.character).toEqual(34);
     });
   });
 });
