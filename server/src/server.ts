@@ -343,28 +343,32 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
         case StandardTypeIssue.EXPECTED_ENUM:
           return `Only these value are allowed ${issue.templateStrings[0]}.`;
         case StandardTypeIssue.EXPECTED_EMPTY:
-          return `Property "${issue.templateStrings[0]}" should not be assigned any value.`;
+          return `INTRO should be empty`;
         case StandardTypeIssue.EXPECTED_ONE:
-          return `Property "${issue.templateStrings[0]}" can only be assigned one value`;
+          return `INTRO can only be assigned one value`;
         case StandardTypeIssue.EXPECTED_U32:
-          return `Property "${issue.templateStrings[0]}" should be assiged a U32`;
+          return `INTRO should be assiged a U32`;
         case StandardTypeIssue.EXPECTED_U64:
-          return `Property "${issue.templateStrings[0]}" should be assiged a U64`;
-        case StandardTypeIssue.EXPECTED_PHANDEL:
-          return `Property "${issue.templateStrings[0]}" should be assiged a phandel`;
+          return `INTRO should be assiged a U64`;
+        case StandardTypeIssue.EXPECTED_PROP_ENCODED_ARRAY:
+          return `INTRO should be assiged a 'property encoded array'`;
         case StandardTypeIssue.EXPECTED_STRING:
-          return `Property "${issue.templateStrings[0]}" should be assiged a string`;
+          return `INTRO should be assiged a string`;
         case StandardTypeIssue.EXPECTED_STRINGLIST:
-          return `Property "${issue.templateStrings[0]}" should be assiged a string list`;
+          return `INTRO should be assiged a string list`;
         case StandardTypeIssue.EXPECTED_COMPOSITE_LENGTH:
-          return `Property "${issue.templateStrings[0]}" expects ${issue.templateStrings[1]} values`;
+          return `INTRO expects ${issue.templateStrings[1]} values`;
         case StandardTypeIssue.REQUIRED:
-          return `Property "${issue.templateStrings[0]}" is requiered.`;
+          return `INTRO is requiered.`;
         case StandardTypeIssue.EXPECTED_U32_U64:
-          return `Property "${issue.templateStrings[0]}" value must be U32 or U64`;
+          return `INTRO value must be U32 or U64`;
+        case StandardTypeIssue.EXPECTED_TRIPLETS:
+          return `INTRO must have triplets`;
       }
     })
-    .join(" or ");
+    .join(" or ")
+    .replace("INTRO", `Property "${issue.templateStrings[0]}"`)
+    .replaceAll("INTRO ", "");
 };
 
 // // The content of a text document has changed. This event is emitted

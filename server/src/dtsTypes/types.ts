@@ -12,8 +12,10 @@ import { PropertyValue } from "../ast/dtc/values/value";
 import { StringValue } from "../ast/dtc/values/string";
 import { ASTBase } from "../ast/base";
 import { ArrayValues } from "../ast/dtc/values/arrayValue";
-import { NumberValue } from "../ast/dtc/values/number";
-import { DtcProperty } from "src/ast/dtc/property";
+import { DtcProperty } from "../ast/dtc/property";
+import { LabelRef } from "../ast/dtc/labelRef";
+import { NodePathRef } from "../ast/dtc/values/nodePath";
+import { PropertyValues } from "../ast/dtc/values/values";
 
 export enum PropetyType {
   EMPTY,
@@ -22,7 +24,6 @@ export enum PropetyType {
   U32_U64,
   STRING,
   PROP_ENCODED_ARRAY,
-  PHANDEL,
   STRINGLIST,
   BYTESTRING,
   UNKNOWN,
@@ -32,13 +33,17 @@ export interface Validate {
   validate: (runtime: Runtime, node: Node) => Issue<StandardTypeIssue>[];
 }
 
+export type TypeConfig = { types: PropetyType[] };
 export class PropertyNodeType<T = string | number> implements Validate {
   constructor(
     public readonly name: string,
-    public readonly type: PropetyType | PropetyType[],
+    public readonly type: TypeConfig[],
     public readonly required = false,
     public readonly def: T | undefined = undefined,
-    public readonly values: T[] = []
+    public readonly values: T[] = [],
+    public readonly additionalTypeCheck?: (
+      values: PropertyValues
+    ) => StandardTypeIssue[]
   ) {}
 
   validate(runtime: Runtime, node: Node): Issue<StandardTypeIssue>[] {
@@ -66,57 +71,69 @@ export class PropertyNodeType<T = string | number> implements Validate {
     const issues: Issue<StandardTypeIssue>[] = [];
 
     const checkType = (
-      expected: PropetyType,
+      expected: PropetyType[],
       type: PropetyType,
       ast: ASTBase | undefined | null
     ) => {
       ast ??= property.ast;
 
       const typeIsValid =
-        expected === type ||
-        (expected === PropetyType.U32_U64 &&
+        expected.some((tt) => tt == type) ||
+        (expected.some((tt) => tt == PropetyType.U32_U64) &&
+          (type === PropetyType.U32 || type === PropetyType.U64)) ||
+        (expected.some((tt) => tt == PropetyType.STRINGLIST) &&
+          (type === PropetyType.STRING || type === PropetyType.STRINGLIST)) ||
+        (expected.some((tt) => tt == PropetyType.PROP_ENCODED_ARRAY) &&
           (type === PropetyType.U32 || type === PropetyType.U64));
 
+      const issue: StandardTypeIssue[] = [];
+      if (typeIsValid && property.ast.values) {
+        issue.push(...(this.additionalTypeCheck?.(property.ast.values) ?? []));
+      }
+
       if (!typeIsValid) {
-        let issue: StandardTypeIssue | undefined;
-        switch (expected) {
-          case PropetyType.EMPTY:
-            issue = StandardTypeIssue.EXPECTED_EMPTY;
-            break;
-          case PropetyType.STRING:
-            issue = StandardTypeIssue.EXPECTED_STRING;
+        expected.forEach((tt) => {
+          switch (tt) {
+            case PropetyType.EMPTY:
+              issue.push(StandardTypeIssue.EXPECTED_EMPTY);
+              break;
+            case PropetyType.STRING:
+              issue.push(StandardTypeIssue.EXPECTED_STRING);
+              break;
+            case PropetyType.STRINGLIST:
+              issue.push(StandardTypeIssue.EXPECTED_STRINGLIST);
+              break;
+            case PropetyType.U32:
+              issue.push(StandardTypeIssue.EXPECTED_U32);
+              break;
+            case PropetyType.U64:
+              issue.push(StandardTypeIssue.EXPECTED_U64);
+              break;
+            case PropetyType.U32_U64:
+              issue.push(StandardTypeIssue.EXPECTED_U32_U64);
+              break;
+            case PropetyType.PROP_ENCODED_ARRAY:
+              issue.push(StandardTypeIssue.EXPECTED_PROP_ENCODED_ARRAY);
+              break;
+          }
+        });
+      }
 
-            break;
-          case PropetyType.U32:
-            issue = StandardTypeIssue.EXPECTED_U32;
-            break;
-          case PropetyType.U64:
-            issue = StandardTypeIssue.EXPECTED_U64;
-            break;
-          case PropetyType.U32_U64:
-            issue = StandardTypeIssue.EXPECTED_U32_U64;
-            break;
-          case PropetyType.PHANDEL:
-            issue = StandardTypeIssue.EXPECTED_PHANDEL;
-            break;
-        }
-
-        if (issue) {
-          issues.push(
-            genIssue(
-              issue,
-              ast,
-              DiagnosticSeverity.Error,
-              [],
-              [],
-              [property.name]
-            )
-          );
-        }
+      if (issue.length) {
+        issues.push(
+          genIssue(
+            issue,
+            ast,
+            DiagnosticSeverity.Error,
+            [],
+            [],
+            [property.name]
+          )
+        );
       }
     };
 
-    if (Array.isArray(this.type)) {
+    if (this.type.length > 1) {
       const type = this.type;
       if (this.type.length !== propTypes.length) {
         issues.push(
@@ -131,7 +148,8 @@ export class PropertyNodeType<T = string | number> implements Validate {
         );
       } else {
         propTypes.forEach((t, i) => {
-          if (type[i] !== t) {
+          if (type[0].types.every((tt) => tt !== t)) {
+            // TODO Check
             issues.push(
               genIssue(
                 StandardTypeIssue.EXPECTED_STRINGLIST,
@@ -142,15 +160,18 @@ export class PropertyNodeType<T = string | number> implements Validate {
         });
       }
     } else {
-      if (this.type === PropetyType.STRINGLIST) {
+      if (this.type[0].types.some((tt) => tt === PropetyType.STRINGLIST)) {
         propTypes.some((t) =>
           checkType(
-            PropetyType.STRING,
+            [PropetyType.STRINGLIST],
             t,
             property.ast.values?.values[0]?.value
           )
         );
-      } else if (propTypes.length > 1 && this.type !== PropetyType.EMPTY) {
+      } else if (
+        propTypes.length > 1 &&
+        this.type[0].types.some((tt) => tt !== PropetyType.EMPTY)
+      ) {
         issues.push(
           genIssue(
             StandardTypeIssue.EXPECTED_ONE,
@@ -163,7 +184,7 @@ export class PropertyNodeType<T = string | number> implements Validate {
         );
       } else if (propTypes.length === 1) {
         checkType(
-          this.type,
+          this.type[0].types,
           propTypes[0],
           property.ast.values?.values[0]?.value
         );
@@ -173,7 +194,7 @@ export class PropertyNodeType<T = string | number> implements Validate {
       if (
         issues.length === 0 &&
         this.values.length &&
-        this.type === PropetyType.STRING
+        this.type[0].types.some((tt) => tt === PropetyType.STRING)
       ) {
         const currentValue = property.ast.values?.values[0]
           ?.value as StringValue;
@@ -200,7 +221,7 @@ export class PropertyNodeType<T = string | number> implements Validate {
   }
 
   getPropertyCompletionItems(property: DtcProperty): CompletionItem[] {
-    if (this.type === PropetyType.STRING) {
+    if (this.type.at(0)?.types.some((tt) => tt === PropetyType.STRING)) {
       if (property.values?.values && property.values.values?.length > 1) {
         return [];
       }
@@ -232,12 +253,9 @@ const propertyValueToPropetyType = (
     return PropetyType.STRING;
   }
 
-  // TODO Aray may have multipl types .... number label ref etc....
   if (value.value instanceof ArrayValues) {
-    if (value.value.values.length === 0 || value.value.values.length === 1) {
-      return value.value.values[0] instanceof NumberValue
-        ? PropetyType.U32
-        : PropetyType.PHANDEL; // TODO is this a type?
+    if (value.value.values.length === 1) {
+      return PropetyType.U32;
     } else if (value.value.values.length === 2) {
       return PropetyType.U64;
     } else {
@@ -245,8 +263,10 @@ const propertyValueToPropetyType = (
     }
   }
 
-  // TODO are &{/node/...} or &l1 PHANDEL ?
-  // TODO properly
+  if (value.value instanceof LabelRef || value.value instanceof NodePathRef) {
+    return PropetyType.U32; // TODO Check this
+  }
+
   return PropetyType.BYTESTRING;
 };
 
