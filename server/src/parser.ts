@@ -728,7 +728,7 @@ export class Parser extends BaseParser {
         this.issues.push(genIssue(SyntaxIssue.NODE_NAME, labelRef));
       }
 
-      const nodeName = labelRef ? undefined : this.isNodeName();
+      const nodeName = nodePathRef || labelRef ? undefined : this.isNodeName();
       if (nodeName && allow === "Ref") {
         this.issues.push(genIssue(SyntaxIssue.NODE_REF, nodeName));
       }
@@ -845,7 +845,13 @@ export class Parser extends BaseParser {
     const nodePathRef = this.processNodePathRef();
     if (!nodePathRef) return;
 
-    const endLabels = this.processOptionalLablelAssign(true) ?? [];
+    let endLabels: LabelAssign[] = [];
+    if (
+      this.currentToken &&
+      this.currentToken.pos.line === this.currentToken.prevToken?.pos.line
+    )
+      endLabels = this.processOptionalLablelAssign(true);
+
     const node = new PropertyValue(nodePathRef, [...endLabels]);
     return node;
   }
@@ -937,7 +943,12 @@ export class Parser extends BaseParser {
       );
     }
 
-    const endLabels = this.processOptionalLablelAssign(true) ?? [];
+    let endLabels: LabelAssign[] = [];
+    if (
+      this.currentToken &&
+      this.currentToken.pos.line === this.currentToken.prevToken?.pos.line
+    )
+      endLabels = this.processOptionalLablelAssign(true);
 
     const node = new PropertyValue(propValue, endLabels);
     this.mergeStack();
@@ -967,7 +978,12 @@ export class Parser extends BaseParser {
       this.moveToNextToken;
     }
 
-    const endLabels2 = this.processOptionalLablelAssign(true) ?? [];
+    let endLabels2: LabelAssign[] = [];
+    if (
+      this.currentToken &&
+      this.currentToken.pos.line === this.currentToken.prevToken?.pos.line
+    )
+      endLabels2 = this.processOptionalLablelAssign(true);
 
     this.mergeStack();
 
@@ -1019,7 +1035,12 @@ export class Parser extends BaseParser {
       this.moveToNextToken;
     }
 
-    const endLabels2 = this.processOptionalLablelAssign(true) ?? [];
+    let endLabels2: LabelAssign[] = [];
+    if (
+      this.currentToken &&
+      this.currentToken.pos.line === this.currentToken.prevToken?.pos.line
+    )
+      endLabels2 = this.processOptionalLablelAssign(true);
 
     this.mergeStack();
     node.endLabels.push(...endLabels2);
@@ -1374,7 +1395,12 @@ export class Parser extends BaseParser {
       return;
     }
 
-    const endLabels = this.processOptionalLablelAssign(true);
+    let endLabels: LabelAssign[] = [];
+    if (
+      this.currentToken &&
+      this.currentToken.pos.line === this.currentToken.prevToken?.pos.line
+    )
+      endLabels = this.processOptionalLablelAssign(true);
 
     const node = new PropertyValue(labelRef, endLabels);
     this.mergeStack();

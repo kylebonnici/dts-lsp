@@ -1,9 +1,4 @@
-import {
-  DtcBaseNode,
-  DtcRefNode,
-  DtcRootNode,
-  NodeName,
-} from "../ast/dtc/node";
+import { DtcBaseNode, DtcRefNode, DtcRootNode } from "../ast/dtc/node";
 import {
   ContextIssues,
   Issue,
