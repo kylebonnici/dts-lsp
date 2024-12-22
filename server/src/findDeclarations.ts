@@ -5,12 +5,11 @@ import { Node } from "./context/node";
 import { NodeName } from "./ast/dtc/node";
 import { Label, LabelAssign } from "./ast/dtc/label";
 import { LabelRef } from "./ast/dtc/labelRef";
-import { nodeFinder, toRange } from "./helpers";
 import { PropertyName } from "./ast/dtc/property";
 import { Property } from "./context/property";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
-import { ASTBase } from "./ast/base";
-import { DeleteBase } from "./ast/dtc/delete";
+import { isDeleteChild } from "./ast/helpers";
+import { nodeFinder, toRange } from "./helpers";
 
 function getPropertyDeclaration(
   result: SearchableResult | undefined
@@ -71,14 +70,6 @@ function getNodeDeclaration(
     return declaration
       ? Location.create(`file://${declaration.uri}`, toRange(declaration))
       : undefined;
-  };
-
-  const isDeleteChild = (ast: ASTBase): boolean => {
-    if (ast instanceof DeleteBase) {
-      return true;
-    }
-
-    return ast.parentNode ? isDeleteChild(ast.parentNode) : false;
   };
 
   if (result.item instanceof Node && !isDeleteChild(result.ast)) {

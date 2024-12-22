@@ -277,47 +277,6 @@ describe("Find complitions", () => {
         const complitions = await getCompletions(location, [context]);
         expect(complitions.length).toEqual(0);
       });
-
-      describe("Typed", () => {
-        test("status first string", async () => {
-          mockReadFileSync("/{node{status= ;};};");
-          const textDocument: TextDocumentIdentifier = {
-            uri: "/folder/dts.dts",
-          };
-          const context = new ContextAware(textDocument.uri, [], []);
-          await context.parser.stable;
-
-          const location: TextDocumentPositionParams = {
-            textDocument,
-            position: Position.create(0, 15),
-          };
-
-          const complitions = await getCompletions(location, [context]);
-          expect(complitions.length).toEqual(5);
-          expect(complitions[0].label).toEqual('"okay"');
-          expect(complitions[1].label).toEqual('"disabled"');
-          expect(complitions[2].label).toEqual('"reserved"');
-          expect(complitions[3].label).toEqual('"fail"');
-          expect(complitions[4].label).toEqual('"fail-sss"');
-        });
-
-        test("status second string", async () => {
-          mockReadFileSync('/{node{status= "okay", ;};};');
-          const textDocument: TextDocumentIdentifier = {
-            uri: "/folder/dts.dts",
-          };
-          const context = new ContextAware(textDocument.uri, [], []);
-          await context.parser.stable;
-
-          const location: TextDocumentPositionParams = {
-            textDocument,
-            position: Position.create(0, 25),
-          };
-
-          const complitions = await getCompletions(location, [context]);
-          expect(complitions.length).toEqual(0);
-        });
-      });
     });
   });
 

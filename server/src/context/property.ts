@@ -1,4 +1,3 @@
-/* eslint-disable no-mixed-spaces-and-tabs */
 import { DtcProperty } from "../ast/dtc/property";
 import { ContextIssues, Issue, SearchableResult } from "../types";
 import {
@@ -8,11 +7,7 @@ import {
 } from "vscode-languageserver";
 import { getDeepestAstNodeInBetween } from "../helpers";
 import { LabelAssign } from "../ast/dtc/label";
-import { LabelRef } from "../ast/dtc/labelRef";
-import { AllValueType, LabelValue } from "../ast/dtc/types";
 import { type Node } from "./node";
-import { ArrayValues } from "../ast/dtc/values/arrayValue";
-import { NodePathRef } from "../ast/dtc/values/nodePath";
 
 export class Property {
   replaces?: Property;

@@ -15,10 +15,8 @@ import {
   Position,
 } from "vscode-languageserver";
 import { LabelAssign } from "../ast/dtc/label";
-import { LabelValue } from "../ast/dtc/types";
 import { ASTBase } from "../ast/base";
 import { getStandardType } from "../dtsTypes/standrdTypes";
-import { NodePathRef } from "../ast/dtc/values/nodePath";
 import { DeleteBase } from "../ast/dtc/delete";
 import { LabelRef } from "../ast/dtc/labelRef";
 

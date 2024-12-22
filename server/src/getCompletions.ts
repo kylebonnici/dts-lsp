@@ -8,9 +8,8 @@ import { ContextAware } from "./runtimeEvaluator";
 import { SearchableResult } from "./types";
 import { Node } from "./context/node";
 import { ASTBase } from "./ast/base";
-import { DeleteBase } from "./ast/dtc/delete";
 import { Keyword } from "./ast/keyword";
-import { DtcProperty, PropertyName } from "./ast/dtc/property";
+import { PropertyName } from "./ast/dtc/property";
 import {
   DtcChildNode,
   DtcRefNode,
@@ -24,6 +23,7 @@ import { Property } from "./context/property";
 import { LabelRef } from "./ast/dtc/labelRef";
 import { nodeFinder } from "./helpers";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
+import { isDeleteChild } from "./ast/helpers";
 
 const resolveNonDeletedScopedLabels = (
   node: Node,
@@ -50,24 +50,6 @@ const resolveNonDeletedLabels = (
     ...node.nodes.flatMap((n) => resolveNonDeletedLabels(n, inScope)),
   ];
 };
-
-function getPropertyAssignItems(
-  result: SearchableResult | undefined
-): CompletionItem[] {
-  if (
-    !result ||
-    !(result.item instanceof Property) ||
-    !(result.ast instanceof DtcProperty)
-  ) {
-    return [];
-  }
-
-  return (
-    result.item.parent.nodeType.properties
-      .find((p) => p.name === result.item?.name)
-      ?.getPropertyCompletionItems(result.ast) ?? []
-  );
-}
 
 function getRefLabelsItems(
   result: SearchableResult | undefined,
@@ -128,11 +110,6 @@ function getDeleteNodeRefItems(
   result: SearchableResult | undefined,
   inScope: (ast: ASTBase) => boolean
 ): CompletionItem[] {
-  const isNodeDeleteChild = (ast?: ASTBase): boolean => {
-    if (!ast) return false;
-    return ast instanceof DeleteNode ? true : isNodeDeleteChild(ast.parentNode);
-  };
-
   const isRefDeleteNode = (ast?: ASTBase): boolean => {
     if (!ast) return true;
     if (
@@ -148,7 +125,7 @@ function getDeleteNodeRefItems(
   if (
     !result ||
     result.item !== null ||
-    !isNodeDeleteChild(result.ast) ||
+    !isDeleteChild(result.ast) ||
     !isRefDeleteNode(result.ast)
   ) {
     return [];
@@ -166,6 +143,7 @@ function getDeleteNodeRefItems(
         {
           label: "/delete-node/",
           kind: CompletionItemKind.Keyword,
+          sortText: "~",
         },
       ];
     }
@@ -175,7 +153,7 @@ function getDeleteNodeRefItems(
         {
           label: "/delete-node/ &{}",
           insertText: `/delete-node/ &{/$1};`,
-          kind: CompletionItemKind.Value,
+          kind: CompletionItemKind.Keyword,
           insertTextFormat: InsertTextFormat.Snippet,
         },
       ];
@@ -214,20 +192,6 @@ function getDeleteNodeNameItems(
       .filter((n) => inScope(n));
   };
 
-  if (result.ast instanceof Keyword) {
-    if (getScopeItems(result.item).length) {
-      return [
-        {
-          label: "/delete-node/",
-          insertText: `/delete-node/$1;`,
-          kind: CompletionItemKind.Value,
-          insertTextFormat: InsertTextFormat.Snippet,
-        },
-      ];
-    }
-    return [];
-  }
-
   if (result.ast instanceof NodeName || result.ast instanceof DeleteNode) {
     return Array.from(
       new Set(getScopeItems(result.item).map((r) => r.name?.toString()))
@@ -237,6 +201,17 @@ function getDeleteNodeNameItems(
     }));
   }
 
+  if (getScopeItems(result.item).length) {
+    return [
+      {
+        label: "/delete-node/",
+        insertText: `/delete-node/$1;`,
+        kind: CompletionItemKind.Keyword,
+        insertTextFormat: InsertTextFormat.Snippet,
+        sortText: "~",
+      },
+    ];
+  }
   return [];
 }
 
@@ -244,14 +219,7 @@ function getDeletePropertyItems(
   result: SearchableResult | undefined,
   inScope: (ast: ASTBase) => boolean
 ): CompletionItem[] {
-  if (
-    !result ||
-    !(result.item instanceof Node) ||
-    !(
-      result.ast.parentNode instanceof DeleteBase ||
-      result.ast instanceof DeleteBase
-    )
-  ) {
+  if (!result || !(result.item instanceof Node)) {
     return [];
   }
 
@@ -266,20 +234,6 @@ function getDeletePropertyItems(
       .filter((p) => inScope(p.ast));
   };
 
-  if (result.ast instanceof Keyword) {
-    if (getSopeItems(result.item).length) {
-      return [
-        {
-          label: "/delete-property/",
-          insertText: `/delete-property/$1;`,
-          kind: CompletionItemKind.Value,
-          insertTextFormat: InsertTextFormat.Snippet,
-        },
-      ];
-    }
-    return [];
-  }
-
   if (
     result.ast instanceof PropertyName ||
     result.ast instanceof DeleteProperty
@@ -292,6 +246,17 @@ function getDeletePropertyItems(
     }));
   }
 
+  if (getSopeItems(result.item).length) {
+    return [
+      {
+        label: "/delete-property/",
+        insertText: `/delete-property/$1;`,
+        kind: CompletionItemKind.Keyword,
+        sortText: "~",
+        insertTextFormat: InsertTextFormat.Snippet,
+      },
+    ];
+  }
   return [];
 }
 
@@ -318,14 +283,6 @@ function getNodeRefPathsItems(
       ["/", ...nodePath],
       inScope
     );
-
-    const isDeleteChild = (ast: ASTBase): boolean => {
-      if (ast instanceof DeleteBase) {
-        return true;
-      }
-
-      return ast.parentNode ? isDeleteChild(ast.parentNode) : false;
-    };
 
     return (
       [
@@ -356,6 +313,5 @@ export async function getCompletions(
     ...getNodeRefPathsItems(locationMeta, inScope),
     ...getCreateNodeRefItems(locationMeta, inScope),
     ...getRefLabelsItems(locationMeta, inScope),
-    ...getPropertyAssignItems(locationMeta),
   ]);
 }

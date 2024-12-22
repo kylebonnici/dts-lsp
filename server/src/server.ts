@@ -38,6 +38,7 @@ import { getDefinitions } from "./findDefinitons";
 import { getDeclaration } from "./findDeclarations";
 import { getCodeActions } from "./getCodeActions";
 import { getDocumentFormating } from "./getDocumentFormating";
+import { getTypeCompletions } from "./getTypeCompletions";
 
 let contextAware: ContextAware[] = [];
 
@@ -359,11 +360,19 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
         case StandardTypeIssue.EXPECTED_COMPOSITE_LENGTH:
           return `INTRO expects ${issue.templateStrings[1]} values`;
         case StandardTypeIssue.REQUIRED:
-          return `INTRO is requiered.`;
-        case StandardTypeIssue.EXPECTED_U32_U64:
-          return `INTRO value must be U32 or U64`;
+          return `INTRO is required.`;
+        case StandardTypeIssue.OMITTED:
+          return `INTRO should be omitted`;
         case StandardTypeIssue.EXPECTED_TRIPLETS:
           return `INTRO must have triplets`;
+        case StandardTypeIssue.EXPECTED_PAIR:
+          return `INTRO must have pair`;
+        case StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_FIRST_VALUE:
+          return `INTRO first value must match node address`;
+        case StandardTypeIssue.EXPECTED_DEVICE_TYPE_CPU:
+          return `INTRO should be 'cpu'`;
+        case StandardTypeIssue.EXPECTED_DEVICE_TYPE_MEMORY:
+          return `INTRO should be 'memory'`;
       }
     })
     .join(" or ")
@@ -432,7 +441,7 @@ async function getDiagnostics(
       message: issue.issues
         ? issue.issues.map(syntaxIssueToMessage).join(" or ")
         : "",
-      source: "devie tree",
+      source: "device tree",
       data: {
         firstToken: {
           pos: issue.astElement.firstToken.pos,
@@ -458,7 +467,7 @@ async function getDiagnostics(
         severity: issue.severity,
         range: toRange(issue.astElement),
         message: contextIssuesToMessage(issue),
-        source: "devie tree",
+        source: "device tree",
         tags: issue.tags,
         relatedInformation: [
           ...issue.linkedTo.map((element) => ({
@@ -483,7 +492,7 @@ async function getDiagnostics(
         severity: issue.severity,
         range: toRange(issue.astElement),
         message: standardTypeIssueIssuesToMessage(issue),
-        source: "devie tree",
+        source: "device tree",
         tags: issue.tags,
       };
       diagnostics.push(diagnostic);
@@ -506,8 +515,10 @@ connection.onCompletion(
     // which code complete got requested. For the example we ignore this
     // info and always provide the same completion items.
     if (contextAware) {
-      const temp = await getCompletions(_textDocumentPosition, contextAware);
-      return temp;
+      return [
+        ...(await getCompletions(_textDocumentPosition, contextAware)),
+        ...(await getTypeCompletions(_textDocumentPosition, contextAware)),
+      ];
     }
 
     return [];

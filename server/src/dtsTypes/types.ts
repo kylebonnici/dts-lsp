@@ -21,7 +21,6 @@ export enum PropetyType {
   EMPTY,
   U32,
   U64,
-  U32_U64,
   STRING,
   PROP_ENCODED_ARRAY,
   STRINGLIST,
@@ -33,24 +32,45 @@ export interface Validate {
   validate: (runtime: Runtime, node: Node) => Issue<StandardTypeIssue>[];
 }
 
+export type RequirementStatus = "required" | "ommited" | "optional";
+
 export type TypeConfig = { types: PropetyType[] };
 export class PropertyNodeType<T = string | number> implements Validate {
+  public readonly required: (node: Node) => RequirementStatus;
+  public readonly values: (property: Property) => T[];
+
   constructor(
     public readonly name: string,
     public readonly type: TypeConfig[],
-    public readonly required = false,
+    required:
+      | RequirementStatus
+      | ((node: Node) => RequirementStatus) = "optional",
     public readonly def: T | undefined = undefined,
-    public readonly values: T[] = [],
+    values: T[] | ((property: Property) => T[]) = [],
     public readonly additionalTypeCheck?: (
-      values: PropertyValues
+      property: Property
     ) => StandardTypeIssue[]
-  ) {}
+  ) {
+    if (typeof required !== "function") {
+      this.required = () => required;
+    } else {
+      this.required = required;
+    }
+
+    if (typeof values !== "function") {
+      this.values = () =>
+        def && values.indexOf(def) === -1 ? [def, ...values] : values;
+    } else {
+      this.values = values;
+    }
+  }
 
   validate(runtime: Runtime, node: Node): Issue<StandardTypeIssue>[] {
     const property = node.getProperty(this.name);
 
+    const required = this.required(node);
     if (!property) {
-      if (this.required) {
+      if (required === "required") {
         const orderdTree = runtime.getOrderedNodeAst(node);
         return [
           genIssue<StandardTypeIssue>(
@@ -65,6 +85,17 @@ export class PropertyNodeType<T = string | number> implements Validate {
       }
 
       return [];
+    } else if (required === "ommited") {
+      return [
+        genIssue<StandardTypeIssue>(
+          StandardTypeIssue.OMITTED,
+          property.ast,
+          DiagnosticSeverity.Error,
+          undefined,
+          [],
+          [this.name]
+        ),
+      ];
     }
 
     const propTypes = propertyValuesToPropetyType(property);
@@ -79,16 +110,14 @@ export class PropertyNodeType<T = string | number> implements Validate {
 
       const typeIsValid =
         expected.some((tt) => tt == type) ||
-        (expected.some((tt) => tt == PropetyType.U32_U64) &&
-          (type === PropetyType.U32 || type === PropetyType.U64)) ||
         (expected.some((tt) => tt == PropetyType.STRINGLIST) &&
           (type === PropetyType.STRING || type === PropetyType.STRINGLIST)) ||
         (expected.some((tt) => tt == PropetyType.PROP_ENCODED_ARRAY) &&
           (type === PropetyType.U32 || type === PropetyType.U64));
 
       const issue: StandardTypeIssue[] = [];
-      if (typeIsValid && property.ast.values) {
-        issue.push(...(this.additionalTypeCheck?.(property.ast.values) ?? []));
+      if (typeIsValid) {
+        issue.push(...(this.additionalTypeCheck?.(property) ?? []));
       }
 
       if (!typeIsValid) {
@@ -108,9 +137,6 @@ export class PropertyNodeType<T = string | number> implements Validate {
               break;
             case PropetyType.U64:
               issue.push(StandardTypeIssue.EXPECTED_U64);
-              break;
-            case PropetyType.U32_U64:
-              issue.push(StandardTypeIssue.EXPECTED_U32_U64);
               break;
             case PropetyType.PROP_ENCODED_ARRAY:
               issue.push(StandardTypeIssue.EXPECTED_PROP_ENCODED_ARRAY);
@@ -193,13 +219,13 @@ export class PropertyNodeType<T = string | number> implements Validate {
       // we have the right type
       if (
         issues.length === 0 &&
-        this.values.length &&
+        this.values(property).length &&
         this.type[0].types.some((tt) => tt === PropetyType.STRING)
       ) {
         const currentValue = property.ast.values?.values[0]
           ?.value as StringValue;
         if (
-          !this.values.some(
+          !this.values(property).some(
             (v) => !!currentValue.value.match(new RegExp(`^["']${v}["']$`))
           )
         ) {
@@ -210,7 +236,11 @@ export class PropertyNodeType<T = string | number> implements Validate {
               DiagnosticSeverity.Error,
               [],
               [],
-              [this.values.map((v) => `'${v}'`).join(" or ")]
+              [
+                this.values(property)
+                  .map((v) => `'${v}'`)
+                  .join(" or "),
+              ]
             )
           );
         }
@@ -220,14 +250,30 @@ export class PropertyNodeType<T = string | number> implements Validate {
     return issues;
   }
 
-  getPropertyCompletionItems(property: DtcProperty): CompletionItem[] {
-    if (this.type.at(0)?.types.some((tt) => tt === PropetyType.STRING)) {
-      if (property.values?.values && property.values.values?.length > 1) {
+  getPropertyCompletionItems(property: Property): CompletionItem[] {
+    const currentValue = this.type.at(property.ast.values?.values.length ?? 0);
+    if (currentValue?.types.some((tt) => tt === PropetyType.STRING)) {
+      if (
+        property.ast.values?.values &&
+        property.ast.values.values?.length > 1
+      ) {
         return [];
       }
 
-      return this.values.map((v) => ({
+      return this.values(property).map((v) => ({
         label: `"${v}"`,
+        kind: CompletionItemKind.Variable,
+        sortText: v === this.def ? `A${v}` : `Z${v}`,
+      }));
+    }
+
+    if (
+      currentValue?.types.some(
+        (tt) => tt === PropetyType.U32 || tt === PropetyType.U64
+      )
+    ) {
+      return this.values(property).map((v) => ({
+        label: `<${v}>`,
         kind: CompletionItemKind.Variable,
         sortText: v === this.def ? `A${v}` : `Z${v}`,
       }));

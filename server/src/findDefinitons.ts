@@ -9,8 +9,7 @@ import { nodeFinder, toRange } from "./helpers";
 import { DtcProperty, PropertyName } from "./ast/dtc/property";
 import { Property } from "./context/property";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
-import { ASTBase } from "./ast/base";
-import { DeleteBase } from "./ast/dtc/delete";
+import { isDeleteChild } from "./ast/helpers";
 
 function getPropertyDefinition(
   result: SearchableResult | undefined
@@ -71,14 +70,6 @@ function getNodeDefinition(result: SearchableResult | undefined): Location[] {
   ) {
     return [];
   }
-
-  const isDeleteChild = (ast: ASTBase): boolean => {
-    if (ast instanceof DeleteBase) {
-      return true;
-    }
-
-    return ast.parentNode ? isDeleteChild(ast.parentNode) : false;
-  };
 
   const gentItem = (node: Node) => {
     return [...node.definitons, ...node.referancedBy]

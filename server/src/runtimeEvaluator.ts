@@ -1,4 +1,3 @@
-/* eslint-disable no-mixed-spaces-and-tabs */
 import { ASTBase } from "./ast/base";
 import {
   DtcBaseNode,
