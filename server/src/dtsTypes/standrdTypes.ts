@@ -1,10 +1,12 @@
 import { ArrayValues } from "../ast/dtc/values/arrayValue";
 import { type Node } from "../context/node";
 import { NodeType, PropertyNodeType, PropetyType, TypeConfig } from "./types";
-import { StandardTypeIssue } from "../types";
+import { Issue, StandardTypeIssue } from "../types";
 import { NumberValue } from "../ast/dtc/values/number";
 import { LabledValue } from "../ast/dtc/values/labledValue";
 import { StringValue } from "../ast/dtc/values/string";
+import { genIssue } from "../helpers";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 const generateOrTypeObj = (type: PropetyType | PropetyType[]): TypeConfig[] => {
   if (Array.isArray(type)) {
@@ -56,7 +58,7 @@ const regType = new PropertyNodeType(
   undefined,
   [],
   (property) => {
-    const issues: StandardTypeIssue[] = [];
+    const issues: Issue<StandardTypeIssue>[] = [];
     const value = property.ast.values?.values.at(0)?.value;
     if (!(value instanceof ArrayValues)) {
       return [];
@@ -80,7 +82,16 @@ const regType = new PropertyNodeType(
     }
 
     if (shouldHavePair && value.values.length % 2 !== 0)
-      issues.push(StandardTypeIssue.EXPECTED_PAIR);
+      issues.push(
+        genIssue(
+          StandardTypeIssue.EXPECTED_PAIR,
+          property.ast,
+          DiagnosticSeverity.Error,
+          [],
+          [],
+          [property.name]
+        )
+      );
 
     const numberValue = value.values.at(0);
     if (
@@ -88,7 +99,16 @@ const regType = new PropertyNodeType(
       numberValue.value instanceof NumberValue &&
       numberValue.value.value !== property.parent.address
     ) {
-      issues.push(StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_FIRST_VALUE);
+      issues.push(
+        genIssue(
+          StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_FIRST_VALUE,
+          property.ast,
+          DiagnosticSeverity.Error,
+          [],
+          [],
+          [property.name]
+        )
+      );
     }
 
     return issues;
@@ -112,7 +132,16 @@ const rangesType = new PropertyNodeType(
 
     return value.values.length % 3 === 0
       ? []
-      : [StandardTypeIssue.EXPECTED_TRIPLETS];
+      : [
+          genIssue(
+            StandardTypeIssue.EXPECTED_TRIPLETS,
+            property.ast,
+            DiagnosticSeverity.Error,
+            [],
+            [],
+            [property.name]
+          ),
+        ];
   }
 );
 
@@ -130,7 +159,16 @@ const dmaRangesType = new PropertyNodeType(
 
     return value.values.length % 3 === 0
       ? []
-      : [StandardTypeIssue.EXPECTED_TRIPLETS];
+      : [
+          genIssue(
+            StandardTypeIssue.EXPECTED_TRIPLETS,
+            property.ast,
+            DiagnosticSeverity.Error,
+            [],
+            [],
+            [property.name]
+          ),
+        ];
   }
 );
 
@@ -167,8 +205,26 @@ const deviceTypeType = new PropertyNodeType(
         value.value.slice(1, -1) !== property.parent.name
       ) {
         return property.parent.name === "cpu"
-          ? [StandardTypeIssue.EXPECTED_DEVICE_TYPE_CPU]
-          : [StandardTypeIssue.EXPECTED_DEVICE_TYPE_MEMORY];
+          ? [
+              genIssue(
+                StandardTypeIssue.EXPECTED_DEVICE_TYPE_CPU,
+                property.ast,
+                DiagnosticSeverity.Error,
+                [],
+                [],
+                [property.name]
+              ),
+            ]
+          : [
+              genIssue(
+                StandardTypeIssue.EXPECTED_DEVICE_TYPE_MEMORY,
+                property.ast,
+                DiagnosticSeverity.Error,
+                [],
+                [],
+                [property.name]
+              ),
+            ];
       }
     }
     return [];
@@ -177,8 +233,22 @@ const deviceTypeType = new PropertyNodeType(
 
 const nameType = new PropertyNodeType(
   "name",
-  generateOrTypeObj(PropetyType.STRING)
+  generateOrTypeObj(PropetyType.STRING),
+  "optional",
+  undefined,
+  [],
+  (property) => [
+    genIssue(
+      StandardTypeIssue.DEPRICATED,
+      property.ast,
+      DiagnosticSeverity.Warning,
+      [],
+      [],
+      [property.name]
+    ),
+  ]
 );
+nameType.hideAutoComplete = true;
 
 export function getStandardType(node: Node) {
   const standardType = new NodeType(node);

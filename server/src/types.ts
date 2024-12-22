@@ -31,6 +31,7 @@ export enum StandardTypeIssue {
   OMITTED,
   EXPECTED_DEVICE_TYPE_CPU,
   EXPECTED_DEVICE_TYPE_MEMORY,
+  DEPRICATED,
 }
 
 export enum SyntaxIssue {

@@ -611,7 +611,8 @@ describe("Type Issues", () => {
         await context.parser.stable;
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
-        expect(issues.length).toEqual(0);
+        expect(issues.length).toEqual(1);
+        expect(issues[0].issues).toEqual([StandardTypeIssue.DEPRICATED]);
       });
 
       test("valid type multiple string", async () => {

@@ -373,6 +373,8 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
           return `INTRO should be 'cpu'`;
         case StandardTypeIssue.EXPECTED_DEVICE_TYPE_MEMORY:
           return `INTRO should be 'memory'`;
+        case StandardTypeIssue.DEPRICATED:
+          return `INTRO is depricated and should not be used'`;
       }
     })
     .join(" or ")

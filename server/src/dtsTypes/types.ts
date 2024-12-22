@@ -38,6 +38,7 @@ export type TypeConfig = { types: PropetyType[] };
 export class PropertyNodeType<T = string | number> implements Validate {
   public readonly required: (node: Node) => RequirementStatus;
   public readonly values: (property: Property) => T[];
+  public hideAutoComplete = false;
 
   constructor(
     public readonly name: string,
@@ -49,7 +50,7 @@ export class PropertyNodeType<T = string | number> implements Validate {
     values: T[] | ((property: Property) => T[]) = [],
     public readonly additionalTypeCheck?: (
       property: Property
-    ) => StandardTypeIssue[]
+    ) => Issue<StandardTypeIssue>[]
   ) {
     if (typeof required !== "function") {
       this.required = () => required;
@@ -115,12 +116,10 @@ export class PropertyNodeType<T = string | number> implements Validate {
         (expected.some((tt) => tt == PropetyType.PROP_ENCODED_ARRAY) &&
           (type === PropetyType.U32 || type === PropetyType.U64));
 
-      const issue: StandardTypeIssue[] = [];
       if (typeIsValid) {
-        issue.push(...(this.additionalTypeCheck?.(property) ?? []));
-      }
-
-      if (!typeIsValid) {
+        issues.push(...(this.additionalTypeCheck?.(property) ?? []));
+      } else {
+        const issue: StandardTypeIssue[] = [];
         expected.forEach((tt) => {
           switch (tt) {
             case PropetyType.EMPTY:
@@ -143,19 +142,19 @@ export class PropertyNodeType<T = string | number> implements Validate {
               break;
           }
         });
-      }
 
-      if (issue.length) {
-        issues.push(
-          genIssue(
-            issue,
-            ast,
-            DiagnosticSeverity.Error,
-            [],
-            [],
-            [property.name]
-          )
-        );
+        if (issue.length) {
+          issues.push(
+            genIssue(
+              issue,
+              ast,
+              DiagnosticSeverity.Error,
+              [],
+              [],
+              [property.name]
+            )
+          );
+        }
       }
     };
 

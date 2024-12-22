@@ -9,7 +9,7 @@ import { Node } from "./context/node";
 import { DtcProperty, PropertyName } from "./ast/dtc/property";
 import { Property } from "./context/property";
 import { nodeFinder } from "./helpers";
-import { isDeleteChild, isPropertyChild } from "./ast/helpers";
+import { isDeleteChild } from "./ast/helpers";
 
 function getPropertyAssignItems(
   result: SearchableResult | undefined
@@ -35,18 +35,19 @@ function getPropertyNamesItems(
   if (
     !result ||
     !(
-      (result.item instanceof Property && result.ast instanceof PropertyName) ||
+      (result.item instanceof Property &&
+        result.ast instanceof PropertyName &&
+        result.item.ast.values === null) ||
       result.item instanceof Node
     ) ||
-    isDeleteChild(result.ast) ||
-    isPropertyChild(result.ast)
+    isDeleteChild(result.ast)
   ) {
     return [];
   }
 
   const getItems = (node: Node) => {
     return node.nodeType.properties
-      .filter((p) => p.required(node) !== "ommited")
+      .filter((p) => !p.hideAutoComplete && p.required(node) !== "ommited")
       .map((p) => {
         const required = node && p.required(node);
         const hasProperty = !!node.getProperty(p.name);
