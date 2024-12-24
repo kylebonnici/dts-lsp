@@ -21,6 +21,7 @@ import model from "./standardTypes/model";
 import name from "./standardTypes/name";
 import interruptMap from "./standardTypes/interruptMap";
 import interruptMapMask from "./standardTypes/interruptMapMask";
+import nexusSpecifierMap from "./standardTypes/nexusSpecifierMap";
 
 export function getStandardType(node: Node) {
   const standardType = new NodeType(node);
@@ -45,7 +46,8 @@ export function getStandardType(node: Node) {
     interruptCells(),
     interruptController(),
     interruptMap(),
-    interruptMapMask()
+    interruptMapMask(),
+    nexusSpecifierMap()
   );
   return standardType;
 }

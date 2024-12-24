@@ -5,10 +5,9 @@ import {
   getInterruptPhandelNode,
   getU32ValueFromProperty,
 } from "./helpers";
-import { createTokenIndex, genIssue } from "../../helpers";
+import { genIssue } from "../../helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { ArrayValues } from "../../ast/dtc/values/arrayValue";
-import { ASTBase } from "../../ast/base";
 
 export default () =>
   new PropertyNodeType(
@@ -247,7 +246,7 @@ export default () =>
                       ? expLen
                       : (values.value.values.length - entryEndIndex) % expLen
                   )
-                  .join(" ")} ....`,
+                  .join(" ")}`,
               ]
             )
           );
