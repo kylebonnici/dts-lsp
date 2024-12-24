@@ -367,7 +367,7 @@ export class Node {
 
   get fullName() {
     if (this.address) {
-      return `${this.name}@${this.address}`;
+      return `${this.name}@${this.address.toString(16)}`;
     }
 
     return this.name;

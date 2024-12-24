@@ -38,6 +38,7 @@ export enum StandardTypeIssue {
   INTERUPTS_PARENT_NODE_NOT_FOUND,
   EXPECTED_UNIQUE_PHANDEL,
   CELL_MISS_MATCH,
+  MAP_ENTRY_INCOMPLETE,
 }
 
 export enum SyntaxIssue {

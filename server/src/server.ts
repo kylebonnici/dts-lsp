@@ -387,6 +387,8 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
           return `Unable to resolve interupt parent node`;
         case StandardTypeIssue.INTERUPTS_VALUE_CELL_MISS_MATCH:
           return `INTRO expects ${issue.templateStrings[1]} interrupts cells`;
+        case StandardTypeIssue.MAP_ENTRY_INCOMPLETE:
+          return `INTRO should have format ${issue.templateStrings[1]}`;
       }
     })
     .join(" or ")

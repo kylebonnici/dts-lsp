@@ -25,10 +25,11 @@ export const getU32ValueFromProperty = (
 
 export const getInterruptPhandelNode = (
   value: PropertyValue | undefined | null,
-  root: Node
+  root: Node,
+  index = 0
 ) => {
   if (value?.value instanceof ArrayValues) {
-    const linked = value.value.values.at(0);
+    const linked = value.value.values.at(index);
     if (linked?.value instanceof NumberValue) {
       return root.getPhandel(linked.value.value);
     }
