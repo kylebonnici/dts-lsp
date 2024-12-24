@@ -20,6 +20,7 @@ import phandel from "./standardTypes/phandel";
 import model from "./standardTypes/model";
 import name from "./standardTypes/name";
 import interruptMap from "./standardTypes/interruptMap";
+import interruptMapMask from "./standardTypes/interruptMapMask";
 
 export function getStandardType(node: Node) {
   const standardType = new NodeType(node);
@@ -43,7 +44,8 @@ export function getStandardType(node: Node) {
     interruptsExtended(),
     interruptCells(),
     interruptController(),
-    interruptMap()
+    interruptMap(),
+    interruptMapMask()
   );
   return standardType;
 }
