@@ -12,10 +12,8 @@ import { PropertyValue } from "../ast/dtc/values/value";
 import { StringValue } from "../ast/dtc/values/string";
 import { ASTBase } from "../ast/base";
 import { ArrayValues } from "../ast/dtc/values/arrayValue";
-import { DtcProperty } from "../ast/dtc/property";
 import { LabelRef } from "../ast/dtc/labelRef";
 import { NodePathRef } from "../ast/dtc/values/nodePath";
-import { PropertyValues } from "../ast/dtc/values/values";
 
 export enum PropetyType {
   EMPTY,

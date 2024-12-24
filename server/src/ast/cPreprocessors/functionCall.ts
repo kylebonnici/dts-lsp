@@ -2,7 +2,7 @@ import { DocumentSymbol, SymbolKind } from "vscode-languageserver";
 import { CIdentifier } from "./cIdentifier";
 import { Expression } from "./expression";
 import { toRange } from "../../helpers";
-import { TokenIndexes } from "src/types";
+import { TokenIndexes } from "../../types";
 
 export class CMacroCallParam extends Expression {
   constructor(

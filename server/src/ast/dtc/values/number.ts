@@ -1,6 +1,6 @@
 import { SymbolKind } from "vscode-languageserver";
 import { Expression } from "../../cPreprocessors/expression";
-import { TokenIndexes } from "src/types";
+import { TokenIndexes } from "../../../types";
 
 export class NumberValue extends Expression {
   constructor(public readonly value: number, tokenIndexes: TokenIndexes) {
