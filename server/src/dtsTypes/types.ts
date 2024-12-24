@@ -40,7 +40,7 @@ export class PropertyNodeType<T = string | number> implements Validate {
   public list = false;
 
   constructor(
-    public readonly name: string,
+    public readonly name: string | RegExp,
     public readonly type: TypeConfig[],
     required:
       | RequirementStatus
@@ -65,9 +65,18 @@ export class PropertyNodeType<T = string | number> implements Validate {
     }
   }
 
-  validate(runtime: Runtime, node: Node): Issue<StandardTypeIssue>[] {
-    const property = node.getProperty(this.name);
+  getNameMatch(name: string): boolean {
+    return typeof this.name === "string"
+      ? this.name === name
+      : !!name.match(this.name);
+  }
 
+  private validateProperty(
+    runtime: Runtime,
+    node: Node,
+    propertyName: string,
+    property?: Property
+  ): Issue<StandardTypeIssue>[] {
     const required = this.required(node);
     if (!property) {
       if (required === "required") {
@@ -79,7 +88,7 @@ export class PropertyNodeType<T = string | number> implements Validate {
             DiagnosticSeverity.Error,
             orderdTree.slice(1),
             [],
-            [this.name]
+            [propertyName]
           ),
         ];
       }
@@ -93,7 +102,7 @@ export class PropertyNodeType<T = string | number> implements Validate {
           DiagnosticSeverity.Error,
           undefined,
           [],
-          [this.name]
+          [propertyName]
         ),
       ];
     }
@@ -165,7 +174,7 @@ export class PropertyNodeType<T = string | number> implements Validate {
             DiagnosticSeverity.Error,
             [],
             [],
-            [this.name, this.type.length.toString()]
+            [propertyName, this.type.length.toString()]
           )
         );
       } else {
@@ -254,6 +263,18 @@ export class PropertyNodeType<T = string | number> implements Validate {
     }
 
     return issues;
+  }
+
+  validate(runtime: Runtime, node: Node): Issue<StandardTypeIssue>[] {
+    if (typeof this.name === "string") {
+      const property = node.getProperty(this.name);
+      return this.validateProperty(runtime, node, this.name, property);
+    }
+
+    const properties = node.properties.filter((p) => this.getNameMatch(p.name));
+    return properties.flatMap((p) =>
+      this.validateProperty(runtime, node, p.name, p)
+    );
   }
 
   getPropertyCompletionItems(property: Property): CompletionItem[] {

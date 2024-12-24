@@ -50,7 +50,9 @@ function getPropertyNamesItems(
       .filter((p) => !p.hideAutoComplete && p.required(node) !== "ommited")
       .map((p) => {
         const required = node && p.required(node);
-        const hasProperty = !!node.getProperty(p.name);
+        const hasProperty = !!node.properties.some((pp) =>
+          p.getNameMatch(pp.name)
+        );
         let sortLetter = "a";
         if (required) {
           sortLetter = hasProperty ? "Y" : "A";
