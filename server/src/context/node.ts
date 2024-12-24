@@ -19,6 +19,8 @@ import { ASTBase } from "../ast/base";
 import { getStandardType } from "../dtsTypes/standrdTypes";
 import { DeleteBase } from "../ast/dtc/delete";
 import { LabelRef } from "../ast/dtc/labelRef";
+import { NumberValue } from "../ast/dtc/values/number";
+import { ArrayValues } from "../ast/dtc/values/arrayValue";
 
 export class Node {
   public referancedBy: DtcRefNode[] = [];
@@ -259,6 +261,38 @@ export class Node {
     });
 
     this._nodes.splice(index, 1);
+  }
+
+  get root(): Node {
+    return this.parent ? this.parent.root : this;
+  }
+
+  getAllPhandel(id: number): Node[] {
+    const phandleValue =
+      this.getProperty("phandle")?.ast.values?.values.at(0)?.value;
+
+    if (phandleValue instanceof ArrayValues) {
+      const value = phandleValue.values[0].value;
+      if (value instanceof NumberValue && value.value === id) {
+        return [this, ...this._nodes.flatMap((n) => n.getAllPhandel(id))];
+      }
+    }
+
+    return this._nodes.flatMap((n) => n.getAllPhandel(id));
+  }
+
+  getPhandel(id: number): Node | undefined {
+    const phandleValue =
+      this.getProperty("phandle")?.ast.values?.values.at(0)?.value;
+
+    if (phandleValue instanceof ArrayValues) {
+      const value = phandleValue.values[0].value;
+      if (value instanceof NumberValue && value.value === id) {
+        return this;
+      }
+    }
+
+    return this._nodes.flatMap((n) => n.getPhandel(id)).find((n) => !!n);
   }
 
   getNode(name: string, address?: number, strict = true) {

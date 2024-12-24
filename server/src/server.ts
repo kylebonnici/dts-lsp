@@ -138,14 +138,14 @@ interface ExampleSettings {
 // but could happen with other clients.
 const defaultSettings: ExampleSettings = {
   includePath: [
-    "/opt/nordic/ncs/v2.8.0/zephyr/dts",
-    "/opt/nordic/ncs/v2.8.0/zephyr/dts/arm",
-    "/opt/nordic/ncs/v2.8.0/zephyr/dts/arm64/",
-    "/opt/nordic/ncs/v2.8.0/zephyr/dts/riscv",
-    "/opt/nordic/ncs/v2.8.0/zephyr/dts/common",
-    "/opt/nordic/ncs/v2.8.0/zephyr/include",
+    "/opt/nordic/ncs/v2.9.0/zephyr/dts",
+    "/opt/nordic/ncs/v2.9.0/zephyr/dts/arm",
+    "/opt/nordic/ncs/v2.9.0/zephyr/dts/arm64/",
+    "/opt/nordic/ncs/v2.9.0/zephyr/dts/riscv",
+    "/opt/nordic/ncs/v2.9.0/zephyr/dts/common",
+    "/opt/nordic/ncs/v2.9.0/zephyr/include",
   ],
-  common: ["/opt/nordic/ncs/v2.8.0/zephyr/dts/common"],
+  common: ["/opt/nordic/ncs/v2.9.0/zephyr/dts/common"],
 };
 let globalSettings: ExampleSettings = defaultSettings;
 
@@ -375,11 +375,38 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
           return `INTRO should be 'memory'`;
         case StandardTypeIssue.DEPRICATED:
           return `INTRO is depricated and should not be used'`;
+        case StandardTypeIssue.IGNORED:
+          return `INTRO ${issue.templateStrings[1]}'`;
+        case StandardTypeIssue.EXPECTED_UNIQUE_PHANDEL:
+          return `INTRO value must be unique in the entire device tree`;
+        case StandardTypeIssue.REG_CELL_MISSMATCH:
+          return `INTRO should have value with ${issue.templateStrings[1]} address cells and ${issue.templateStrings[2]} size cells`;
+        case StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE:
+          return `INTRO requires property "${issue.templateStrings[1]}" in node path '${issue.templateStrings[2]}'`;
+        case StandardTypeIssue.INTERUPTS_PARENT_NODE_NOT_FOUND:
+          return `Unable to resolve interupt parent node`;
+        case StandardTypeIssue.INTERUPTS_VALUE_CELL_MISS_MATCH:
+          return `INTRO expects ${issue.templateStrings[1]} interrupts cells`;
       }
     })
     .join(" or ")
     .replace("INTRO", `Property "${issue.templateStrings[0]}"`)
     .replaceAll("INTRO ", "");
+};
+
+const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
+  switch (issue) {
+    case StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE:
+      return `Nodes`;
+    case StandardTypeIssue.INTERUPTS_VALUE_CELL_MISS_MATCH:
+      return "Property";
+    case StandardTypeIssue.IGNORED:
+      return "Ignored reason";
+    case StandardTypeIssue.EXPECTED_UNIQUE_PHANDEL:
+      return "Conflicting Properties";
+    default:
+      return `TODO`;
+  }
 };
 
 // // The content of a text document has changed. This event is emitted
@@ -494,6 +521,15 @@ async function getDiagnostics(
         severity: issue.severity,
         range: toRange(issue.astElement),
         message: standardTypeIssueIssuesToMessage(issue),
+        relatedInformation: [
+          ...issue.linkedTo.map((element) => ({
+            message: issue.issues.map(standardTypeToLinkedMessage).join(" or "),
+            location: {
+              uri: `file://${element.uri!}`,
+              range: toRange(element),
+            },
+          })),
+        ],
         source: "device tree",
         tags: issue.tags,
       };

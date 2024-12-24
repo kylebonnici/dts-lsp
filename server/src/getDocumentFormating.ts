@@ -163,7 +163,7 @@ const formatDtcNode = (
     if (node instanceof DtcChildNode) {
       const nodeNameAndOpenCurlySpacing =
         node.name && node.openScope
-          ? fixedNumberOfSpaceBetweenTokensAndNext(node.name.lastToken, 0)
+          ? fixedNumberOfSpaceBetweenTokensAndNext(node.name.lastToken)
           : [];
       result.push(...nodeNameAndOpenCurlySpacing);
     } else {
@@ -346,8 +346,7 @@ const formatDtcProperty = (
     if (property.propertyName) {
       result.push(
         ...fixedNumberOfSpaceBetweenTokensAndNext(
-          property.propertyName?.lastToken,
-          0
+          property.propertyName?.lastToken
         )
       );
       if (property.propertyName?.lastToken.nextToken?.value === "=") {

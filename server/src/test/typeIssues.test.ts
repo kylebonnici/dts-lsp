@@ -171,6 +171,23 @@ describe("Type Issues", () => {
         expect(issues.length).toEqual(1);
         expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
       });
+
+      test("not unique phande value", async () => {
+        mockReadFileSync("/{node1 {phandle= <1>;}; node2 {phandle= <1>;};};");
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].issues).toEqual([
+          StandardTypeIssue.EXPECTED_UNIQUE_PHANDEL,
+        ]);
+        expect(issues[0].linkedTo[0].firstToken.pos.col).toEqual(9);
+        expect(
+          issues[0].linkedTo[0].lastToken.pos.col +
+            issues[0].linkedTo[0].lastToken.pos.len
+        ).toEqual(22);
+      });
     });
 
     describe("address-cells", () => {
@@ -255,7 +272,9 @@ describe("Type Issues", () => {
 
     describe("reg", () => {
       test("requiered", async () => {
-        mockReadFileSync("/{node1{#size-cells=<1>; node2@200{};};};");
+        mockReadFileSync(
+          "/{node1{#address-cells=<1>;#size-cells=<1>; node2@200{};};};"
+        );
         const context = new ContextAware("/folder/dts.dts", [], []);
         await context.parser.stable;
         const runtime = await context.getRuntime();
@@ -276,7 +295,29 @@ describe("Type Issues", () => {
 
       test("length omited", async () => {
         mockReadFileSync(
-          "/{node1{#size-cells=<0>; node2@200{reg=<0x200>;};};};"
+          "/{node1{#address-cells=<1>;#size-cells=<0>; node2@200{reg=<0x200>;};};};"
+        );
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
+      });
+
+      test("Two address 3 length", async () => {
+        mockReadFileSync(
+          "/{node1{#address-cells=<2>;#size-cells=<3>; node2@200{reg=<0 0x200 0 0 0>;};};};"
+        );
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
+      });
+
+      test("One address 3 length", async () => {
+        mockReadFileSync(
+          "/{node1{#address-cells=<1>;#size-cells=<2>; node2@200{reg=<0x200 0 0>;};};};"
         );
         const context = new ContextAware("/folder/dts.dts", [], []);
         await context.parser.stable;
@@ -298,7 +339,7 @@ describe("Type Issues", () => {
       });
 
       test("valid type dec", async () => {
-        mockReadFileSync("/{node@200{reg= <512 20>;};};");
+        mockReadFileSync("/{node@200{reg= < 0 512 20>;};};");
         const context = new ContextAware("/folder/dts.dts", [], []);
         await context.parser.stable;
         const runtime = await context.getRuntime();
@@ -307,7 +348,7 @@ describe("Type Issues", () => {
       });
 
       test("valid type hex ", async () => {
-        mockReadFileSync("/{node@200{reg= <0x200 0x20>;};};");
+        mockReadFileSync("/{node@200{reg= <0 0x200 0x20>;};};");
         const context = new ContextAware("/folder/dts.dts", [], []);
         await context.parser.stable;
         const runtime = await context.getRuntime();
@@ -316,17 +357,33 @@ describe("Type Issues", () => {
       });
 
       test("single values", async () => {
-        mockReadFileSync("/{node@200{reg= <512>;};};");
+        mockReadFileSync("/{node@200{reg= < 0 512>;};};");
         const context = new ContextAware("/folder/dts.dts", [], []);
         await context.parser.stable;
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_PAIR]);
+        expect(issues[0].issues).toEqual([
+          StandardTypeIssue.REG_CELL_MISSMATCH,
+        ]);
       });
 
-      test("Address mismatch", async () => {
-        mockReadFileSync("/{node@200{reg= <0x300 0x20>;};};");
+      test("Address mismatch - 2 size", async () => {
+        mockReadFileSync("/{node@200{reg= <0 0x300 0x20>;};};");
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].issues).toEqual([
+          StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_FIRST_VALUE,
+        ]);
+      });
+
+      test("Address mismatch - 1 size", async () => {
+        mockReadFileSync(
+          "/{node1{#address-cells=<1>;#size-cells=<2>; node2@200{reg=<0x300 0 0>;};};};"
+        );
         const context = new ContextAware("/folder/dts.dts", [], []);
         await context.parser.stable;
         const runtime = await context.getRuntime();
@@ -623,6 +680,385 @@ describe("Type Issues", () => {
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
         expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_ONE]);
+      });
+    });
+
+    describe("interrupts", () => {
+      test("wrong type", async () => {
+        mockReadFileSync('/{interrupts= "hello";};');
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].issues).toEqual([
+          StandardTypeIssue.EXPECTED_PROP_ENCODED_ARRAY,
+        ]);
+      });
+
+      test("valid type single cell", async () => {
+        mockReadFileSync(
+          "/{interrupt-controller; #interrupt-cells = <1>; node2{interrupts= <10>;};};"
+        );
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
+      });
+
+      test("valid type two cells", async () => {
+        mockReadFileSync(
+          "/{interrupt-controller; #interrupt-cells = <2>; node2{interrupts= <10 20>;};};"
+        );
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
+      });
+
+      test("valid type invalid cell count ", async () => {
+        mockReadFileSync(
+          "/{#interrupt-cells = <3>; interrupt-controller; node2{interrupts= <10 20>;};};"
+        );
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].issues).toEqual([
+          StandardTypeIssue.INTERUPTS_VALUE_CELL_MISS_MATCH,
+        ]);
+        expect(issues[0].linkedTo[0].firstToken.pos.col).toEqual(2);
+        expect(
+          issues[0].linkedTo[0].lastToken.pos.col +
+            issues[0].linkedTo[0].lastToken.pos.len
+        ).toEqual(25);
+        expect(issues[0].templateStrings[1]).toEqual("3");
+      });
+
+      test("unable to resolve parent - 1", async () => {
+        mockReadFileSync("/{interrupts= <10 20>};");
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].issues).toEqual([
+          StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
+        ]);
+      });
+
+      test("unable to resolve parent - 2", async () => {
+        mockReadFileSync("/{interrupts= <10 20>; interrupt-parent=<10>};");
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].issues).toEqual([
+          StandardTypeIssue.INTERUPTS_PARENT_NODE_NOT_FOUND,
+        ]);
+      });
+
+      test("resolve parent - explicit", async () => {
+        mockReadFileSync(
+          "/{interrupts= <10 20 30>; interrupt-parent=<10>; node{interrupt-controller; #interrupt-cells = <3>; phandle=<10>};};"
+        );
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
+      });
+
+      test("missing cell size", async () => {
+        mockReadFileSync(
+          "/{interrupts= <10 20 30>; interrupt-parent=<10>; node{phandle=<10>};};"
+        );
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(2);
+        expect(issues[0].issues).toEqual([
+          StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
+        ]);
+        expect(issues[0].linkedTo[0].firstToken.pos.col).toEqual(49);
+        expect(
+          issues[0].linkedTo[0].lastToken.pos.col +
+            issues[0].linkedTo[0].lastToken.pos.len
+        ).toEqual(68);
+        expect(issues[0].templateStrings[1]).toEqual("interrupt-controller");
+
+        expect(issues[1].issues).toEqual([
+          StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
+        ]);
+        expect(issues[1].linkedTo[0].firstToken.pos.col).toEqual(49);
+        expect(
+          issues[1].linkedTo[0].lastToken.pos.col +
+            issues[1].linkedTo[0].lastToken.pos.len
+        ).toEqual(68);
+        expect(issues[1].templateStrings[1]).toEqual("#interrupt-cells");
+      });
+    });
+
+    describe("interrupt-parent", () => {
+      test("wrong type", async () => {
+        mockReadFileSync('/{interrupt-parent= "hello";};');
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
+      });
+
+      test("valid type dec", async () => {
+        mockReadFileSync(
+          "/{ phandle=<10>; interrupt-controller; #interrupt-cells= <1>; node{interrupts=<10>; interrupt-parent= <10>;};};"
+        );
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
+      });
+
+      test("valid type hex ", async () => {
+        mockReadFileSync(
+          "/{ phandle=<0x10>; interrupt-controller; #interrupt-cells= <1>; node{interrupts=<10>; interrupt-parent= <0x10>;};};"
+        );
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
+      });
+
+      test("multiple values", async () => {
+        mockReadFileSync(
+          "/{ phandle=<0x10>; interrupt-controller; #interrupt-cells= <1>; node{interrupts=<10>; interrupt-parent= <0x10 0x20>;};};"
+        );
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
+      });
+
+      test("ignored", async () => {
+        mockReadFileSync("/{node{ interrupt-parent= <0x10>;};};");
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].issues).toEqual([StandardTypeIssue.IGNORED]);
+      });
+    });
+
+    describe("interrupts-extended", () => {
+      test("wrong type", async () => {
+        mockReadFileSync('/{interrupts-extended= "hello";};');
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].issues).toEqual([
+          StandardTypeIssue.EXPECTED_PROP_ENCODED_ARRAY,
+        ]);
+      });
+
+      test("ignore interrupt", async () => {
+        mockReadFileSync(
+          "/{ node1: node1{#interrupt-cells = <1>; interrupt-controller; node2{interrupts = <10>; interrupts-extended= <&node1 10>;};};};"
+        );
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].issues).toEqual([StandardTypeIssue.IGNORED]);
+        expect(issues[0].astElement.firstToken.pos.col).toEqual(68);
+        expect(
+          issues[0].astElement.lastToken.pos.col +
+            issues[0].astElement.lastToken.pos.len
+        ).toEqual(86);
+        expect(issues[0].linkedTo[0].firstToken.pos.col).toEqual(87);
+        expect(
+          issues[0].linkedTo[0].lastToken.pos.col +
+            issues[0].linkedTo[0].lastToken.pos.len
+        ).toEqual(120);
+      });
+
+      test("ignore interrupt-parent", async () => {
+        mockReadFileSync(
+          "/{ node1: node1{interrupt-controller; #interrupt-cells = <1>; node2{interrupt-parent = <10>; interrupts-extended= <&node1 10>;};};};"
+        );
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(2);
+        expect(issues[1].issues).toEqual([StandardTypeIssue.IGNORED]);
+        expect(issues[1].astElement.firstToken.pos.col).toEqual(68);
+        expect(
+          issues[1].astElement.lastToken.pos.col +
+            issues[0].astElement.lastToken.pos.len
+        ).toEqual(92);
+        expect(issues[1].linkedTo[0].firstToken.pos.col).toEqual(93);
+        expect(
+          issues[1].linkedTo[0].lastToken.pos.col +
+            issues[1].linkedTo[0].lastToken.pos.len
+        ).toEqual(126);
+      });
+
+      test("valid type single cell - label ref", async () => {
+        mockReadFileSync(
+          "/{ node1: node1{interrupt-controller; #interrupt-cells = <1>;}; node2{interrupts-extended= <&node1 10>;};};"
+        );
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
+      });
+
+      test("valid type two cells  - label ref", async () => {
+        mockReadFileSync(
+          "/{ node1: node1{interrupt-controller; #interrupt-cells = <2>;}; node2{interrupts-extended= <&node1 10 20>;};};"
+        );
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
+      });
+
+      test("valid type single cell - node path ref", async () => {
+        mockReadFileSync(
+          "/{ node1{interrupt-controller; #interrupt-cells = <1>;}; node2{interrupts-extended= <&{/node1} 10>;};};"
+        );
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
+      });
+
+      test("valid type two cells  - node path ref", async () => {
+        mockReadFileSync(
+          "/{  node1{interrupt-controller; #interrupt-cells = <2>;}; node2{interrupts-extended= <&{/node1} 10 20>;};};"
+        );
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
+      });
+
+      test("valid type single cell - phandle", async () => {
+        mockReadFileSync(
+          "/{ node1{phandle= <1>; interrupt-controller; #interrupt-cells = <1>;}; node2{interrupts-extended= <1 10>;};};"
+        );
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
+      });
+
+      test("valid type two cells  - phandle", async () => {
+        mockReadFileSync(
+          "/{  node1{phandle= <1>; interrupt-controller; #interrupt-cells = <2>;}; node2{interrupts-extended= <1 10 20>;};};"
+        );
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
+      });
+
+      test("unable to find phandle", async () => {
+        mockReadFileSync("/{  node2{interrupts-extended= <1 10>;};};");
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].issues).toEqual([
+          StandardTypeIssue.INTERUPTS_PARENT_NODE_NOT_FOUND,
+        ]);
+        expect(issues[0].astElement.firstToken.pos.col).toEqual(32);
+        expect(
+          issues[0].astElement.lastToken.pos.col +
+            issues[0].astElement.lastToken.pos.len
+        ).toEqual(33);
+      });
+
+      test("valid type invalid cell count ", async () => {
+        mockReadFileSync(
+          "/{  node1{phandle= <1>; interrupt-controller; #interrupt-cells = <3>;}; node2{interrupts-extended= <1 10 20>;};};"
+        );
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].issues).toEqual([
+          StandardTypeIssue.INTERUPTS_VALUE_CELL_MISS_MATCH,
+        ]);
+        expect(issues[0].linkedTo[0].firstToken.pos.col).toEqual(46);
+        expect(
+          issues[0].linkedTo[0].lastToken.pos.col +
+            issues[0].linkedTo[0].lastToken.pos.len
+        ).toEqual(69);
+        expect(issues[0].templateStrings[1]).toEqual("3");
+      });
+
+      test("missing cell size", async () => {
+        mockReadFileSync(
+          "/{node1{phandle= <1>; }; node2{interrupts-extended= <1 10>;};};"
+        );
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(2);
+        expect(issues[0].issues).toEqual([
+          StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
+        ]);
+        expect(issues[0].linkedTo[0].firstToken.pos.col).toEqual(2);
+        expect(
+          issues[0].linkedTo[0].lastToken.pos.col +
+            issues[0].linkedTo[0].lastToken.pos.len
+        ).toEqual(24);
+        expect(issues[0].templateStrings[1]).toEqual("interrupt-controller");
+
+        expect(issues[1].issues).toEqual([
+          StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
+        ]);
+        expect(issues[1].linkedTo[0].firstToken.pos.col).toEqual(2);
+        expect(
+          issues[1].linkedTo[0].lastToken.pos.col +
+            issues[1].linkedTo[0].lastToken.pos.len
+        ).toEqual(24);
+        expect(issues[1].templateStrings[1]).toEqual("#interrupt-cells");
+      });
+
+      test("Multple interrupts", async () => {
+        mockReadFileSync(
+          "/{  node1{interrupt-controller; #interrupt-cells = <2>;};  node2{interrupt-controller; #interrupt-cells = <3>;}; node3{interrupts-extended= <&{/node1} 10 20>, <&{/node2} 10 20 30>;};};"
+        );
+        const context = new ContextAware("/folder/dts.dts", [], []);
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
       });
     });
   });

@@ -39,6 +39,7 @@ export class PropertyNodeType<T = string | number> implements Validate {
   public readonly required: (node: Node) => RequirementStatus;
   public readonly values: (property: Property) => T[];
   public hideAutoComplete = false;
+  public list = false;
 
   constructor(
     public readonly name: string,
@@ -116,9 +117,7 @@ export class PropertyNodeType<T = string | number> implements Validate {
         (expected.some((tt) => tt == PropetyType.PROP_ENCODED_ARRAY) &&
           (type === PropetyType.U32 || type === PropetyType.U64));
 
-      if (typeIsValid) {
-        issues.push(...(this.additionalTypeCheck?.(property) ?? []));
-      } else {
+      if (!typeIsValid) {
         const issue: StandardTypeIssue[] = [];
         expected.forEach((tt) => {
           switch (tt) {
@@ -160,7 +159,7 @@ export class PropertyNodeType<T = string | number> implements Validate {
 
     if (this.type.length > 1) {
       const type = this.type;
-      if (this.type.length !== propTypes.length) {
+      if (!this.list && this.type.length !== propTypes.length) {
         issues.push(
           genIssue(
             StandardTypeIssue.EXPECTED_COMPOSITE_LENGTH,
@@ -193,6 +192,14 @@ export class PropertyNodeType<T = string | number> implements Validate {
             property.ast.values?.values[0]?.value
           )
         );
+      } else if (this.list) {
+        propTypes.some((t) =>
+          checkType(
+            this.type[0].types,
+            t,
+            property.ast.values?.values[0]?.value
+          )
+        );
       } else if (
         propTypes.length > 1 &&
         this.type[0].types.some((tt) => tt !== PropetyType.EMPTY)
@@ -216,32 +223,34 @@ export class PropertyNodeType<T = string | number> implements Validate {
       }
 
       // we have the right type
-      if (
-        issues.length === 0 &&
-        this.values(property).length &&
-        this.type[0].types.some((tt) => tt === PropetyType.STRING)
-      ) {
-        const currentValue = property.ast.values?.values[0]
-          ?.value as StringValue;
+      if (issues.length === 0) {
+        issues.push(...(this.additionalTypeCheck?.(property) ?? []));
         if (
-          !this.values(property).some(
-            (v) => !!currentValue.value.match(new RegExp(`^["']${v}["']$`))
-          )
+          this.values(property).length &&
+          this.type[0].types.some((tt) => tt === PropetyType.STRING)
         ) {
-          issues.push(
-            genIssue(
-              StandardTypeIssue.EXPECTED_ENUM,
-              property.ast.values?.values[0]?.value ?? property.ast,
-              DiagnosticSeverity.Error,
-              [],
-              [],
-              [
-                this.values(property)
-                  .map((v) => `'${v}'`)
-                  .join(" or "),
-              ]
+          const currentValue = property.ast.values?.values[0]
+            ?.value as StringValue;
+          if (
+            !this.values(property).some(
+              (v) => !!currentValue.value.match(new RegExp(`^["']${v}["']$`))
             )
-          );
+          ) {
+            issues.push(
+              genIssue(
+                StandardTypeIssue.EXPECTED_ENUM,
+                property.ast.values?.values[0]?.value ?? property.ast,
+                DiagnosticSeverity.Error,
+                [],
+                [],
+                [
+                  this.values(property)
+                    .map((v) => `'${v}'`)
+                    .join(" or "),
+                ]
+              )
+            );
+          }
         }
       }
     }
