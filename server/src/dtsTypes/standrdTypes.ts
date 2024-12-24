@@ -168,12 +168,18 @@ const regType = new PropertyNodeType(
     if (value.values.length % (sizeCell + addressCell) !== 0) {
       issues.push(
         genIssue(
-          StandardTypeIssue.REG_CELL_MISSMATCH,
+          StandardTypeIssue.CELL_MISS_MATCH,
           value,
           DiagnosticSeverity.Error,
           [],
           [],
-          [property.name, addressCell.toString(), sizeCell.toString()]
+          [
+            property.name,
+            `<${[
+              ...Array.from({ length: addressCell }, () => "address"),
+              ...Array.from({ length: sizeCell }, () => "cell"),
+            ].join(" ")}>`,
+          ]
         )
       );
       return issues;

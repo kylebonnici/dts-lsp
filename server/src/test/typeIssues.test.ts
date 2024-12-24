@@ -363,9 +363,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([
-          StandardTypeIssue.REG_CELL_MISSMATCH,
-        ]);
+        expect(issues[0].issues).toEqual([StandardTypeIssue.CELL_MISS_MATCH]);
       });
 
       test("Address mismatch - 2 size", async () => {

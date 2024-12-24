@@ -379,8 +379,8 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
           return `INTRO ${issue.templateStrings[1]}'`;
         case StandardTypeIssue.EXPECTED_UNIQUE_PHANDEL:
           return `INTRO value must be unique in the entire device tree`;
-        case StandardTypeIssue.REG_CELL_MISSMATCH:
-          return `INTRO should have value with ${issue.templateStrings[1]} address cells and ${issue.templateStrings[2]} size cells`;
+        case StandardTypeIssue.CELL_MISS_MATCH:
+          return `INTRO should have format ${issue.templateStrings[1]}`;
         case StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE:
           return `INTRO requires property "${issue.templateStrings[1]}" in node path '${issue.templateStrings[2]}'`;
         case StandardTypeIssue.INTERUPTS_PARENT_NODE_NOT_FOUND:
