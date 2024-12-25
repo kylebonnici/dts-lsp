@@ -70,4 +70,8 @@ export class Property {
   get allReplaced(): Property[] {
     return this.replaces ? [this.replaces, ...this.replaces.allReplaced] : [];
   }
+
+  toString() {
+    return this.ast.toString();
+  }
 }

@@ -12,6 +12,8 @@ import { getDeepestAstNodeInBetween, positionInBetween } from "../helpers";
 import {
   DiagnosticSeverity,
   DiagnosticTag,
+  MarkupContent,
+  MarkupKind,
   Position,
 } from "vscode-languageserver";
 import { LabelAssign } from "../ast/dtc/label";
@@ -371,5 +373,32 @@ export class Node {
     }
 
     return this.name;
+  }
+
+  toString() {
+    return `${this.labels.map((l) => l.toString()).join(" ")} ${
+      this.fullName
+    } {${this.properties.length ? "\n\t" : ""}${this.properties
+      .map((p) => p.toString())
+      .join("\n\t")}${
+      this.nodes.length
+        ? `\n\t${this.nodes
+            .slice(0, 3)
+            .map((n) => `${n.fullName}{...};`)
+            .join("\n\t")}${
+            this.nodes.length > 3
+              ? `\n\t+${this.nodes.length - 3} child nodes`
+              : ""
+          }`
+        : ""
+    } 
+};`;
+  }
+
+  toMarkupContent(): MarkupContent {
+    return {
+      kind: MarkupKind.Markdown,
+      value: ["```devicetree", this.toString(), "```"].join("\n"),
+    };
   }
 }

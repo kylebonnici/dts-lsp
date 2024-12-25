@@ -12,6 +12,10 @@ export class LabelAssign extends ASTBase {
     this.semanticTokenType = "variable";
     this.semanticTokenModifiers = "declaration";
   }
+
+  toString() {
+    return `${this.label}:`;
+  }
 }
 
 export class Label extends ASTBase {

@@ -17,6 +17,7 @@ import {
   type DocumentDiagnosticReport,
   SemanticTokensBuilder,
   CodeActionKind,
+  MarkupKind,
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -39,6 +40,7 @@ import { getDeclaration } from "./findDeclarations";
 import { getCodeActions } from "./getCodeActions";
 import { getDocumentFormating } from "./getDocumentFormating";
 import { getTypeCompletions } from "./getTypeCompletions";
+import { getHover } from "./getHover";
 
 let contextAware: ContextAware[] = [];
 
@@ -100,6 +102,7 @@ connection.onInitialize((params: InitializeParams) => {
       declarationProvider: true,
       referencesProvider: true,
       documentFormattingProvider: true,
+      hoverProvider: true,
     },
   };
   if (hasWorkspaceFolderCapability) {
@@ -166,21 +169,6 @@ connection.onDidChangeConfiguration((change) => {
   // to the existing setting, but this is out of scope for this example.
   connection.languages.diagnostics.refresh();
 });
-
-function getDocumentSettings(resource: string): Thenable<ExampleSettings> {
-  if (!hasConfigurationCapability) {
-    return Promise.resolve(globalSettings);
-  }
-  let result = documentSettings.get(resource);
-  if (!result) {
-    result = connection.workspace.getConfiguration({
-      scopeUri: resource,
-      section: "languageServerExample",
-    });
-    documentSettings.set(resource, result);
-  }
-  return result;
-}
 
 // Only keep settings for open documents
 documents.onDidClose((e) => {
@@ -672,4 +660,8 @@ connection.onCodeAction((event) => {
 
 connection.onDocumentFormatting((event) => {
   return getDocumentFormating(event, contextAware);
+});
+
+connection.onHover(async (event) => {
+  return (await getHover(event, contextAware)).at(0);
 });

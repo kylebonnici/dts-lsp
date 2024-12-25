@@ -37,4 +37,8 @@ export class NodePathRef extends ASTBase {
     this.semanticTokenModifiers = "declaration";
     this.addChild(path);
   }
+
+  toString() {
+    return `&${this.path?.toString() ?? "NULL"}`;
+  }
 }

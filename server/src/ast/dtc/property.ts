@@ -10,6 +10,10 @@ export class PropertyName extends ASTBase {
     this.semanticTokenType = "property";
     this.semanticTokenModifiers = "declaration";
   }
+
+  toString() {
+    return this.name;
+  }
 }
 
 export class DtcProperty extends ASTBase {
@@ -36,5 +40,15 @@ export class DtcProperty extends ASTBase {
 
   get values() {
     return this._values;
+  }
+
+  toString() {
+    return `${this.propertyName?.toString() ?? "__UNSET__"}${
+      this._values?.values.length
+        ? ` = ${this._values.values
+            .map((v) => v?.toString() ?? "NULL")
+            .join(", ")}`
+        : ""
+    }`;
   }
 }
