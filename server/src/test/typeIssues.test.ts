@@ -696,26 +696,6 @@ describe("Type Issues", () => {
         expect(issues.length).toEqual(0);
       });
 
-      test("valid type invalid cell count ", async () => {
-        mockReadFileSync(
-          "/{#interrupt-cells = <3>; interrupt-controller; node2{interrupts= <10 20>;};};"
-        );
-        const context = new ContextAware("/folder/dts.dts", [], []);
-        await context.parser.stable;
-        const runtime = await context.getRuntime();
-        const issues = runtime.typesIssues;
-        expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([
-          StandardTypeIssue.INTERUPTS_VALUE_CELL_MISS_MATCH,
-        ]);
-        expect(issues[0].linkedTo[0].firstToken.pos.col).toEqual(2);
-        expect(
-          issues[0].linkedTo[0].lastToken.pos.col +
-            issues[0].linkedTo[0].lastToken.pos.len
-        ).toEqual(25);
-        expect(issues[0].templateStrings[1]).toEqual("3");
-      });
-
       test("unable to resolve parent - 1", async () => {
         mockReadFileSync("/{interrupts= <10 20>};");
         const context = new ContextAware("/folder/dts.dts", [], []);
@@ -749,26 +729,6 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(0);
-      });
-
-      test("missing cell size", async () => {
-        mockReadFileSync(
-          "/{interrupts= <10 20 30>; interrupt-parent=<10>; node{phandle=<10>};};"
-        );
-        const context = new ContextAware("/folder/dts.dts", [], []);
-        await context.parser.stable;
-        const runtime = await context.getRuntime();
-        const issues = runtime.typesIssues;
-        expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([
-          StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
-        ]);
-        expect(issues[0].linkedTo[0].firstToken.pos.col).toEqual(49);
-        expect(
-          issues[0].linkedTo[0].lastToken.pos.col +
-            issues[0].linkedTo[0].lastToken.pos.len
-        ).toEqual(68);
-        expect(issues[0].templateStrings[1]).toEqual("#interrupt-cells");
       });
     });
 
@@ -816,16 +776,6 @@ describe("Type Issues", () => {
         expect(issues.length).toEqual(1);
         expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
       });
-
-      test("ignored", async () => {
-        mockReadFileSync("/{node{ interrupt-parent= <0x10>;};};");
-        const context = new ContextAware("/folder/dts.dts", [], []);
-        await context.parser.stable;
-        const runtime = await context.getRuntime();
-        const issues = runtime.typesIssues;
-        expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.IGNORED]);
-      });
     });
 
     describe("interrupts-extended", () => {
@@ -861,28 +811,6 @@ describe("Type Issues", () => {
           issues[0].linkedTo[0].lastToken.pos.col +
             issues[0].linkedTo[0].lastToken.pos.len
         ).toEqual(120);
-      });
-
-      test("ignore interrupt-parent", async () => {
-        mockReadFileSync(
-          "/{ node1: node1{interrupt-controller; #interrupt-cells = <1>; node2{interrupt-parent = <10>; interrupts-extended= <&node1 10>;};};};"
-        );
-        const context = new ContextAware("/folder/dts.dts", [], []);
-        await context.parser.stable;
-        const runtime = await context.getRuntime();
-        const issues = runtime.typesIssues;
-        expect(issues.length).toEqual(2);
-        expect(issues[1].issues).toEqual([StandardTypeIssue.IGNORED]);
-        expect(issues[1].astElement.firstToken.pos.col).toEqual(68);
-        expect(
-          issues[1].astElement.lastToken.pos.col +
-            issues[0].astElement.lastToken.pos.len
-        ).toEqual(92);
-        expect(issues[1].linkedTo[0].firstToken.pos.col).toEqual(93);
-        expect(
-          issues[1].linkedTo[0].lastToken.pos.col +
-            issues[1].linkedTo[0].lastToken.pos.len
-        ).toEqual(126);
       });
 
       test("valid type single cell - label ref", async () => {

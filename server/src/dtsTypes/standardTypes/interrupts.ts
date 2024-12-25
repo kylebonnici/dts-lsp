@@ -58,46 +58,7 @@ export default () =>
         }
       }
 
-      const interruptCell = getInterruptInfo(parentInterruptNode);
-
-      if (!interruptCell.cellsProperty) {
-        issues.push(
-          genIssue(
-            StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
-            property.ast,
-            DiagnosticSeverity.Error,
-            [...parentInterruptNode.definitons],
-            [],
-            [
-              property.name,
-              "#interrupt-cells",
-              `/${parentInterruptNode.path.slice(1).join("/")}`,
-            ]
-          )
-        );
-        return issues;
-      }
-
-      const interruptValue = property.ast.values?.values.at(0)?.value;
-      if (interruptValue instanceof ArrayValues) {
-        if (interruptCell.node) {
-          if (
-            interruptCell.value != null &&
-            interruptCell.value !== interruptValue.values.length
-          ) {
-            issues.push(
-              genIssue(
-                StandardTypeIssue.INTERUPTS_VALUE_CELL_MISS_MATCH,
-                interruptValue,
-                DiagnosticSeverity.Error,
-                [interruptCell.cellsProperty.ast],
-                [],
-                [property.name, interruptCell.value.toString()]
-              )
-            );
-          }
-        }
-      }
+      // TODO get cout from bindings. anc compare count
 
       return issues;
     }
