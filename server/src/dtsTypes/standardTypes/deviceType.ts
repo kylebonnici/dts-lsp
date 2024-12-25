@@ -11,7 +11,7 @@ export default () =>
     generateOrTypeObj(PropetyType.STRING),
     (node) => {
       return node.name === "cpu" || node.name === "memory"
-        ? "required"
+        ? "optional"
         : "ommited";
     },
     undefined,

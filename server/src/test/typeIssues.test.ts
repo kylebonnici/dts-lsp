@@ -590,26 +590,6 @@ describe("Type Issues", () => {
         expect(issues[0].issues).toEqual([StandardTypeIssue.OMITTED]);
       });
 
-      test("required - cpu", async () => {
-        mockReadFileSync("/{cpu{};};");
-        const context = new ContextAware("/folder/dts.dts", [], []);
-        await context.parser.stable;
-        const runtime = await context.getRuntime();
-        const issues = runtime.typesIssues;
-        expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.REQUIRED]);
-      });
-
-      test("required - memory", async () => {
-        mockReadFileSync("/{memory{};};");
-        const context = new ContextAware("/folder/dts.dts", [], []);
-        await context.parser.stable;
-        const runtime = await context.getRuntime();
-        const issues = runtime.typesIssues;
-        expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.REQUIRED]);
-      });
-
       test("wrong type", async () => {
         mockReadFileSync("/{cpu{device_type= <10>;};};");
         const context = new ContextAware("/folder/dts.dts", [], []);
