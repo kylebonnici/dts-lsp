@@ -5,8 +5,8 @@ import { generateOrTypeObj, getU32ValueFromProperty } from "./helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { ArrayValues } from "../../ast/dtc/values/arrayValue";
 
-export default () =>
-  new PropertyNodeType(
+export default () => {
+  const prop = new PropertyNodeType(
     "reg",
     generateOrTypeObj(PropetyType.PROP_ENCODED_ARRAY),
     (node) => {
@@ -53,13 +53,22 @@ export default () =>
         return issues;
       }
 
-      const numberValues = value.values
+      const buffer = new ArrayBuffer(addressCell * 4);
+      const view = new DataView(buffer);
+
+      value.values
         .slice(0, addressCell)
         .map((_, i) => getU32ValueFromProperty(property, 0, i) ?? 0)
-        .reverse()
-        .reduce((p, c, i) => p + (c << (32 * i)), 0);
+        .forEach((c, i) => {
+          view.setUint32(i * 4, c);
+        });
 
-      if (numberValues !== property.parent.address) {
+      if (
+        property.parent.address &&
+        ((addressCell === 2 &&
+          view.getBigUint64(0) !== BigInt(property.parent.address)) ||
+          (addressCell === 1 && view.getUint32(0) !== property.parent.address))
+      ) {
         issues.push(
           genIssue(
             StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_FIRST_VALUE,
@@ -75,3 +84,6 @@ export default () =>
       return issues;
     }
   );
+  prop.list = true;
+  return prop;
+};
