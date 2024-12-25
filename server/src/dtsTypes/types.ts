@@ -40,7 +40,7 @@ export class PropertyNodeType<T = string | number> implements Validate {
   public list = false;
 
   constructor(
-    public readonly name: string | ((n: string, fullMatch: boolean) => boolean),
+    public readonly name: string | ((n: string) => boolean),
     public readonly type: TypeConfig[],
     required:
       | RequirementStatus
@@ -65,10 +65,8 @@ export class PropertyNodeType<T = string | number> implements Validate {
     }
   }
 
-  getNameMatch(name: string, fullMatch = true): boolean {
-    return typeof this.name === "string"
-      ? this.name === name
-      : this.name(name, fullMatch);
+  getNameMatch(name: string): boolean {
+    return typeof this.name === "string" ? this.name === name : this.name(name);
   }
 
   private validateProperty(

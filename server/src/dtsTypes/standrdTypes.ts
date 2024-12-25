@@ -22,6 +22,9 @@ import name from "./standardTypes/name";
 import interruptMap from "./standardTypes/interruptMap";
 import interruptMapMask from "./standardTypes/interruptMapMask";
 import nexusSpecifierMap from "./standardTypes/nexusSpecifierMap";
+import nexusSpecifierMapMask from "./standardTypes/nexusSpecifierMapMask";
+import nexusSpecifierMapPassThru from "./standardTypes/nexusSpecifierMapPassThru";
+import nexusSpecifierCells from "./standardTypes/nexusSpecifierCells";
 
 export function getStandardType(node: Node) {
   const standardType = new NodeType(node);
@@ -47,7 +50,10 @@ export function getStandardType(node: Node) {
     interruptController(),
     interruptMap(),
     interruptMapMask(),
-    nexusSpecifierMap()
+    nexusSpecifierMap(),
+    nexusSpecifierMapMask(),
+    nexusSpecifierMapPassThru(),
+    nexusSpecifierCells()
   );
   return standardType;
 }

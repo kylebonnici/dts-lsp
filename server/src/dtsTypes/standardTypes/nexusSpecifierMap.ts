@@ -11,16 +11,12 @@ import { ArrayValues } from "../../ast/dtc/values/arrayValue";
 
 export default () => {
   const prop = new PropertyNodeType(
-    (name, fullMatch) => {
+    (name) => {
       if (name.startsWith("interrupt-")) {
         return false;
       }
 
-      if (fullMatch) {
-        return !!name.match(/^[A-Z-a-z]+-map$/);
-      }
-
-      return !!name.match(/^[A-Z-a-z]+-(m(a(p)?)?)?$/);
+      return !!name.match(/^[A-Z-a-z]+-map$/);
     },
     generateOrTypeObj(PropetyType.PROP_ENCODED_ARRAY),
     "optional",
