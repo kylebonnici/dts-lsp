@@ -1,9 +1,9 @@
-import { PropertyNodeType, PropetyType } from "../types";
+import { PropertyNodeType, PropertyType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 
 export default () =>
   new PropertyNodeType(
     "interrupt-controller",
-    generateOrTypeObj(PropetyType.EMPTY),
+    generateOrTypeObj(PropertyType.EMPTY),
     "optional"
   );

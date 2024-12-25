@@ -18,11 +18,11 @@ import {
 import { DiagnosticSeverity, Position } from "vscode-languageserver";
 import { LabelAssign } from "../ast/dtc/label";
 import { Node } from "./node";
-import { getTokenizedDocmentProvider } from "../providers/tokenizedDocument";
+import { getTokenizedDocumentProvider } from "../providers/tokenizedDocument";
 
 export class Runtime implements Searchable {
   public roots: DtcRootNode[] = [];
-  public referances: DtcRefNode[] = [];
+  public references: DtcRefNode[] = [];
   public unlinkedDeletes: DeleteNode[] = [];
   public unlinkedRefNodes: DtcRefNode[] = [];
   public globalDeletes: DeleteNode[] = [];
@@ -30,7 +30,7 @@ export class Runtime implements Searchable {
 
   constructor(private readonly orderedFiles: string[]) {}
 
-  public lablesUsedCache = new Map<string, string[]>();
+  public labelsUsedCache = new Map<string, string[]>();
 
   getDeepestAstNode(
     previousFiles: string[],
@@ -39,7 +39,7 @@ export class Runtime implements Searchable {
   ): SearchableResult | undefined {
     const dtcNode = [
       ...this.roots,
-      ...this.referances,
+      ...this.references,
       ...this.unlinkedDeletes,
       ...this.unlinkedRefNodes,
       ...this.globalDeletes,
@@ -47,7 +47,7 @@ export class Runtime implements Searchable {
       (i) =>
         positionInBetween(i, file, position) ||
         isLastTokenOnLine(
-          getTokenizedDocmentProvider().requestTokens(file, false),
+          getTokenizedDocumentProvider().requestTokens(file, false),
           i,
           position
         )
@@ -92,7 +92,7 @@ export class Runtime implements Searchable {
       return path;
     }
 
-    const fromCache = this.lablesUsedCache.get(path[0].slice(1));
+    const fromCache = this.labelsUsedCache.get(path[0].slice(1));
     if (fromCache) {
       return fromCache;
     }
@@ -183,7 +183,7 @@ export class Runtime implements Searchable {
 
   getOrderedNodeAst(node: Node) {
     return sortAstForScope(
-      [...node.definitons, ...node.referancedBy],
+      [...node.definitions, ...node.referencedBy],
       this.orderedFiles
     );
   }

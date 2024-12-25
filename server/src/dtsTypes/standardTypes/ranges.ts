@@ -1,6 +1,6 @@
 import { genIssue } from "../../helpers";
 import { ArrayValues } from "../../ast/dtc/values/arrayValue";
-import { PropertyNodeType, PropetyType } from "../types";
+import { PropertyNodeType, PropertyType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 import { StandardTypeIssue } from "../..//types";
 import { DiagnosticSeverity } from "vscode-languageserver";
@@ -8,7 +8,7 @@ import { DiagnosticSeverity } from "vscode-languageserver";
 export default () =>
   new PropertyNodeType(
     "ranges",
-    generateOrTypeObj([PropetyType.EMPTY, PropetyType.PROP_ENCODED_ARRAY]),
+    generateOrTypeObj([PropertyType.EMPTY, PropertyType.PROP_ENCODED_ARRAY]),
     "optional",
     undefined,
     [],

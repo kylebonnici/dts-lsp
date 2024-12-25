@@ -1,8 +1,8 @@
 import { Issue, StandardTypeIssue } from "../../types";
-import { PropertyNodeType, PropetyType } from "../types";
+import { PropertyNodeType, PropertyType } from "../types";
 import {
   generateOrTypeObj,
-  getInterruptPhandelNode,
+  getInterruptPhandleNode,
   getU32ValueFromProperty,
 } from "./helpers";
 import { genIssue } from "../../helpers";
@@ -18,7 +18,7 @@ export default () => {
 
       return !!name.match(/^[A-Z-a-z]+-map$/);
     },
-    generateOrTypeObj(PropetyType.PROP_ENCODED_ARRAY),
+    generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY),
     "optional",
     undefined,
     [],
@@ -38,10 +38,10 @@ export default () => {
         if (!childSpecifierCells) {
           issues.push(
             genIssue(
-              StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
+              StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
               property.ast,
               DiagnosticSeverity.Error,
-              [...node.definitons],
+              [...node.definitions],
               [],
               [
                 property.name,
@@ -102,11 +102,11 @@ export default () => {
             );
             break;
           }
-          const specifierParent = getInterruptPhandelNode(values, root, i);
+          const specifierParent = getInterruptPhandleNode(values, root, i);
           if (!specifierParent) {
             issues.push(
               genIssue(
-                StandardTypeIssue.INTERUPTS_PARENT_NODE_NOT_FOUND,
+                StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
                 values.value.values[i],
                 DiagnosticSeverity.Error
               )
@@ -121,10 +121,10 @@ export default () => {
           if (!parentSpecifierAddress) {
             issues.push(
               genIssue(
-                StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
+                StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
                 values.value.values[i],
                 DiagnosticSeverity.Error,
-                [...specifierParent.definitons],
+                [...specifierParent.definitions],
                 [],
                 [
                   property.name,

@@ -1,9 +1,9 @@
 import { Issue, StandardTypeIssue } from "../../types";
-import { PropertyNodeType, PropetyType } from "../types";
+import { PropertyNodeType, PropertyType } from "../types";
 import {
   generateOrTypeObj,
   getInterruptInfo,
-  getInterruptPhandelNode,
+  getInterruptPhandleNode,
 } from "./helpers";
 import { genIssue } from "../../helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
@@ -12,7 +12,7 @@ import { ArrayValues } from "../../ast/dtc/values/arrayValue";
 export default () =>
   new PropertyNodeType(
     "interrupts",
-    generateOrTypeObj(PropetyType.PROP_ENCODED_ARRAY),
+    generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY),
     "optional",
     undefined,
     [],
@@ -23,7 +23,7 @@ export default () =>
       const interruptParent = node.getProperty("interrupt-parent");
       const root = node.root;
       const parentInterruptNode = interruptParent
-        ? getInterruptPhandelNode(
+        ? getInterruptPhandleNode(
             interruptParent?.ast.values?.values.at(0),
             root
           )
@@ -33,10 +33,10 @@ export default () =>
         if (!interruptParent) {
           issues.push(
             genIssue(
-              StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
+              StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
               property.ast,
               DiagnosticSeverity.Error,
-              [...property.parent.definitons],
+              [...property.parent.definitions],
               [],
               [
                 property.name,
@@ -49,7 +49,7 @@ export default () =>
         } else {
           issues.push(
             genIssue(
-              StandardTypeIssue.INTERUPTS_PARENT_NODE_NOT_FOUND,
+              StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
               interruptParent.ast.values?.values.at(0)?.value ??
                 interruptParent.ast
             )

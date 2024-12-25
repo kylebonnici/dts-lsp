@@ -13,7 +13,7 @@ import { existsSync } from "fs";
 import { resolve, dirname } from "path";
 import { BaseParser, Block } from "./baseParser";
 import { Parser } from "./parser";
-import { getTokenizedDocmentProvider } from "./providers/tokenizedDocument";
+import { getTokenizedDocumentProvider } from "./providers/tokenizedDocument";
 import { CommentsParser } from "./commentsParser";
 import { CMacro, CMacroContent } from "./ast/cPreprocessors/macro";
 import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
@@ -133,7 +133,7 @@ export class CPreprocessorParser extends BaseParser {
   };
 
   private async lineProcessor() {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     //must be firstToken
     if (
@@ -159,7 +159,7 @@ export class CPreprocessorParser extends BaseParser {
   }
 
   private processDefinitions() {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     const startIndex = this.peekIndex();
     const token = this.moveToNextToken;
@@ -220,7 +220,7 @@ export class CPreprocessorParser extends BaseParser {
   }
 
   private async processInclude(): Promise<boolean> {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     const startIndex = this.peekIndex();
     const start = this.moveToNextToken;
@@ -279,7 +279,7 @@ export class CPreprocessorParser extends BaseParser {
 
     const resolvedPath = this.resolveInclude(node);
     if (resolvedPath && !resolvedPath.endsWith(".h")) {
-      getTokenizedDocmentProvider().requestTokens(resolvedPath, true);
+      getTokenizedDocumentProvider().requestTokens(resolvedPath, true);
       const childParser = new Parser(
         resolvedPath,
         this.incudes,
@@ -300,7 +300,7 @@ export class CPreprocessorParser extends BaseParser {
   }
 
   protected isFuntionDefinition(): FunctionDefinition | undefined {
-    this.enqueToStack();
+    this.enqueueToStack();
     const identifier = this.processCIdentifier();
     if (!identifier) {
       this.popStack();
@@ -347,7 +347,7 @@ export class CPreprocessorParser extends BaseParser {
   }
 
   private processVariadic() {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     const valid = this.checkConcurrentTokens([
       validateToken(LexerToken.PERIOD),
@@ -448,7 +448,7 @@ export class CPreprocessorParser extends BaseParser {
       content: CPreprocessorContent
     ) => CIfDef | CIfNotDef
   ): IfDefineBlock {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     const ifDefKeyword = new Keyword(createTokenIndex(block.startToken));
     const endifKeyword = new Keyword(createTokenIndex(block.endToken));

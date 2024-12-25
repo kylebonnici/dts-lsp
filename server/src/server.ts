@@ -34,15 +34,15 @@ import { findContext, resolveContextFiles, toRange } from "./helpers";
 import { ContextAware } from "./runtimeEvaluator";
 import { getCompletions } from "./getCompletions";
 import { getReferences } from "./findReferences";
-import { getTokenizedDocmentProvider } from "./providers/tokenizedDocument";
+import { getTokenizedDocumentProvider } from "./providers/tokenizedDocument";
 import { getDefinitions } from "./findDefinitons";
 import { getDeclaration } from "./findDeclarations";
 import { getCodeActions } from "./getCodeActions";
-import { getDocumentFormating } from "./getDocumentFormating";
+import { getDocumentFormating as getDocumentFormatting } from "./getDocumentFormatting";
 import { getTypeCompletions } from "./getTypeCompletions";
 import { getHover } from "./getHover";
 
-let contextAware: ContextAware[] = [];
+const contextAware: ContextAware[] = [];
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -232,7 +232,7 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "Expected bytes string ";
     case SyntaxIssue.BYTESTRING_EVEN:
       return "Expected two digits in bytestring";
-    case SyntaxIssue.DUOUBE_QUOTE:
+    case SyntaxIssue.DOUBLE_QUOTE:
       return "Expected '\"'";
     case SyntaxIssue.SINGLE_QUOTE:
       return "Expected '\\''";
@@ -246,7 +246,7 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "Expected hex values are not allowed";
     case SyntaxIssue.MISSING_FORWARD_SLASH_END:
       return "Missing '/'";
-    case SyntaxIssue.NO_STAMENTE:
+    case SyntaxIssue.NO_STATEMENT:
       return "Found ';' without a statment";
     case SyntaxIssue.LABEL_ASSIGN_MISSING_COLON:
       return "Missing ':' for label assign";
@@ -267,16 +267,16 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
     case SyntaxIssue.MISSING_COMMA:
       return 'Missing ","';
     case SyntaxIssue.EXPECTED_IDENTIFIER:
-      return "Expected Macro Idenifier";
+      return "Expected Macro Identifier";
     case SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE:
-      return "Expected Macro Idenifier or Function like Macro";
+      return "Expected Macro Identifier or Function like Macro";
     case SyntaxIssue.WHITE_SPACE:
       return "White space is not allowed";
     case SyntaxIssue.EXPECTED_VALUE:
       return "Expected Value";
-    case SyntaxIssue.PROPETY_MUST_BE_IN_NODE:
+    case SyntaxIssue.PROPERTY_MUST_BE_IN_NODE:
       return "Properties can only be defined in a node.";
-    case SyntaxIssue.PROPETY_DELETE_MUST_BE_IN_NODE:
+    case SyntaxIssue.PROPERTY_DELETE_MUST_BE_IN_NODE:
       return "Properties can only be deleted inside a node.";
   }
 };
@@ -286,17 +286,17 @@ const contextIssuesToMessage = (issue: Issue<ContextIssues>) => {
     .map((_issue) => {
       switch (_issue) {
         case ContextIssues.DUPLICATE_PROPERTY_NAME:
-          return `Property "${issue.templateStrings[0]}" is replaced by a later definiton.`;
+          return `Property "${issue.templateStrings[0]}" is replaced by a later definition.`;
         case ContextIssues.PROPERTY_DOES_NOT_EXIST:
           return "Cannot delete a property before it has been defined";
         case ContextIssues.DUPLICATE_NODE_NAME:
           return "Node name already defined";
         case ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE:
-          return `No node with that referance "${issue.templateStrings[0]}" has been defined`;
+          return `No node with that reference "${issue.templateStrings[0]}" has been defined`;
         case ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH:
           return `No node with name "${issue.templateStrings[0]}" could be found in "/${issue.templateStrings[1]}".`;
         case ContextIssues.LABEL_ALREADY_IN_USE:
-          return `Label name "${issue.templateStrings[0]}" aready defined`;
+          return `Label name "${issue.templateStrings[0]}" already defined`;
         case ContextIssues.DELETE_PROPERTY:
           return `Property "${issue.templateStrings[0]}" was deleted.`;
         case ContextIssues.DELETE_NODE:
@@ -317,9 +317,9 @@ const contextIssuesToLinkedMessage = (issue: ContextIssues) => {
     case ContextIssues.DUPLICATE_NODE_NAME:
       return "Node name already defined";
     case ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE:
-      return "No node with that referance has been defined";
+      return "No node with that reference has been defined";
     case ContextIssues.LABEL_ALREADY_IN_USE:
-      return "Label aready defined here";
+      return "Label already defined here";
     case ContextIssues.NODE_DOES_NOT_EXIST:
       return "Cannot delete a node before it has been defined";
   }
@@ -336,15 +336,15 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
         case StandardTypeIssue.EXPECTED_ONE:
           return `INTRO can only be assigned one value`;
         case StandardTypeIssue.EXPECTED_U32:
-          return `INTRO should be assiged a U32`;
+          return `INTRO should be assigned a U32`;
         case StandardTypeIssue.EXPECTED_U64:
-          return `INTRO should be assiged a U64`;
+          return `INTRO should be assigned a U64`;
         case StandardTypeIssue.EXPECTED_PROP_ENCODED_ARRAY:
-          return `INTRO should be assiged a 'property encoded array'`;
+          return `INTRO should be assigned a 'property encoded array'`;
         case StandardTypeIssue.EXPECTED_STRING:
-          return `INTRO should be assiged a string`;
+          return `INTRO should be assigned a string`;
         case StandardTypeIssue.EXPECTED_STRINGLIST:
-          return `INTRO should be assiged a string list`;
+          return `INTRO should be assigned a string list`;
         case StandardTypeIssue.EXPECTED_COMPOSITE_LENGTH:
           return `INTRO expects ${issue.templateStrings[1]} values`;
         case StandardTypeIssue.REQUIRED:
@@ -361,19 +361,19 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
           return `INTRO should be 'cpu'`;
         case StandardTypeIssue.EXPECTED_DEVICE_TYPE_MEMORY:
           return `INTRO should be 'memory'`;
-        case StandardTypeIssue.DEPRICATED:
-          return `INTRO is depricated and should not be used'`;
+        case StandardTypeIssue.DEPRECATED:
+          return `INTRO is deprecated and should not be used'`;
         case StandardTypeIssue.IGNORED:
           return `INTRO ${issue.templateStrings[1]}'`;
-        case StandardTypeIssue.EXPECTED_UNIQUE_PHANDEL:
+        case StandardTypeIssue.EXPECTED_UNIQUE_PHANDLE:
           return `INTRO value must be unique in the entire device tree`;
         case StandardTypeIssue.CELL_MISS_MATCH:
           return `INTRO should have format ${issue.templateStrings[1]}`;
-        case StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE:
+        case StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE:
           return `INTRO requires property "${issue.templateStrings[1]}" in node path '${issue.templateStrings[2]}'`;
-        case StandardTypeIssue.INTERUPTS_PARENT_NODE_NOT_FOUND:
-          return `Unable to resolve interupt parent node`;
-        case StandardTypeIssue.INTERUPTS_VALUE_CELL_MISS_MATCH:
+        case StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND:
+          return `Unable to resolve interrupt parent node`;
+        case StandardTypeIssue.INTERRUPTS_VALUE_CELL_MISS_MATCH:
           return `INTRO expects ${issue.templateStrings[1]} interrupts cells`;
         case StandardTypeIssue.MAP_ENTRY_INCOMPLETE:
           return `INTRO should have format ${issue.templateStrings[1]}`;
@@ -386,20 +386,20 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
 
 const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
   switch (issue) {
-    case StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE:
+    case StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE:
       return `Nodes`;
-    case StandardTypeIssue.INTERUPTS_VALUE_CELL_MISS_MATCH:
+    case StandardTypeIssue.INTERRUPTS_VALUE_CELL_MISS_MATCH:
       return "Property";
     case StandardTypeIssue.IGNORED:
       return "Ignored reason";
-    case StandardTypeIssue.EXPECTED_UNIQUE_PHANDEL:
+    case StandardTypeIssue.EXPECTED_UNIQUE_PHANDLE:
       return "Conflicting Properties";
     default:
       return `TODO`;
   }
 };
 
-const debaunc = new WeakMap<
+const debounce = new WeakMap<
   ContextAware,
   { abort: AbortController; promise: Promise<void> }
 >();
@@ -408,7 +408,7 @@ const debaunc = new WeakMap<
 documents.onDidChangeContent(async (change) => {
   const uri = change.document.uri.replace("file://", "");
 
-  getTokenizedDocmentProvider().renewLexer(uri, change.document.getText());
+  getTokenizedDocumentProvider().renewLexer(uri, change.document.getText());
 
   const context = await findContext(contextAware, uri);
 
@@ -440,7 +440,7 @@ documents.onDidChangeContent(async (change) => {
     );
     contextAware.push(newContext);
   } else {
-    debaunc.get(context.context)?.abort.abort();
+    debounce.get(context.context)?.abort.abort();
     const abort = new AbortController();
     const promise = new Promise<void>((resolve) => {
       setTimeout(async () => {
@@ -455,7 +455,7 @@ documents.onDidChangeContent(async (change) => {
       });
     });
 
-    debaunc.set(context.context, { abort, promise });
+    debounce.set(context.context, { abort, promise });
   }
 });
 
@@ -467,7 +467,7 @@ async function getDiagnostics(
 
   const contextMeta = await findContext(contextAware, uri);
   if (contextMeta) {
-    const d = debaunc.get(contextMeta.context);
+    const d = debounce.get(contextMeta.context);
     if (d?.abort.signal.aborted) return [];
     await d?.promise;
   }
@@ -597,7 +597,7 @@ connection.onDocumentSymbol(async (h) => {
   const uri = h.textDocument.uri.replace("file://", "");
   const contextMeta = await findContext(contextAware, uri);
   if (contextMeta) {
-    const d = debaunc.get(contextMeta.context);
+    const d = debounce.get(contextMeta.context);
     if (d?.abort.signal.aborted) return [];
     await d?.promise;
   }
@@ -620,7 +620,7 @@ connection.languages.semanticTokens.on(async (h) => {
     return { data: [] };
   }
   if (contextMeta) {
-    const d = debaunc.get(contextMeta.context);
+    const d = debounce.get(contextMeta.context);
     if (d?.abort.signal.aborted) return { data: [] };
     await d?.promise;
   }
@@ -634,7 +634,7 @@ connection.onDocumentLinks(async (event) => {
   const uri = event.textDocument.uri.replace("file://", "");
   const contextMeta = await findContext(contextAware, uri);
   if (contextMeta) {
-    const d = debaunc.get(contextMeta.context);
+    const d = debounce.get(contextMeta.context);
     if (d?.abort.signal.aborted) return [];
     await d?.promise;
   }
@@ -659,7 +659,7 @@ connection.onCodeAction((event) => {
 });
 
 connection.onDocumentFormatting((event) => {
-  return getDocumentFormating(event, contextAware);
+  return getDocumentFormatting(event, contextAware);
 });
 
 connection.onHover(async (event) => {

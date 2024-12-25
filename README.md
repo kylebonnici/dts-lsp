@@ -1,37 +1,117 @@
-# LSP Example
+# DTS Language server
 
-Heavily documented sample code for https://code.visualstudio.com/api/language-extensions/language-server-extension-guide
+This LSP is intended to be use with DTS Devicetree Specification Release v0.4 (https://devicetree.org)
+
+## Usage
+
+How to configure... TODO
 
 ## Functionality
 
-This Language Server works for plain text file. It has the following language features:
-- Completions
-- Diagnostics regenerated on each file change or configuration change
+- Follows Devicetree Specification Release v0.4
 
-It also includes an End-to-End test.
+### Semantic Tokens
 
-## Structure
+- Every element in the document will have sematic tokens to help highlight and color code the items
 
-```
-.
-├── client // Language Client
-│   ├── src
-│   │   ├── test // End to End tests for Language Client / Server
-│   │   └── extension.ts // Language Client entry point
-├── package.json // The extension manifest.
-└── server // Language Server
-    └── src
-        └── server.ts // Language Server entry point
-```
+### Document Symbols
 
-## Running the Sample
+- Every element in the document will have document symbols to help navigate in the document in a tree format
 
-- Run `npm install` in this folder. This installs all necessary npm modules in both the client and server folder
-- Open VS Code on this folder.
-- Press Ctrl+Shift+B to start compiling the client and server in [watch mode](https://code.visualstudio.com/docs/editor/tasks#:~:text=The%20first%20entry%20executes,the%20HelloWorld.js%20file.).
-- Switch to the Run and Debug View in the Sidebar (Ctrl+Shift+D).
-- Select `Launch Client` from the drop down (if it is not already).
-- Press ▷ to run the launch config (F5).
-- In the [Extension Development Host](https://code.visualstudio.com/api/get-started/your-first-extension#:~:text=Then%2C%20inside%20the%20editor%2C%20press%20F5.%20This%20will%20compile%20and%20run%20the%20extension%20in%20a%20new%20Extension%20Development%20Host%20window.) instance of VSCode, open a document in 'plain text' language mode.
-  - Type `j` or `t` to see `Javascript` and `TypeScript` completion.
-  - Enter text content such as `AAA aaa BBB`. The extension will emit diagnostics for all words in all-uppercase.
+### Diagnostics
+
+#### Syntax
+
+- Show when property has been redefined and provides document link to where it has be redefined
+- Show when node has been deleted and provides document link to where it has be redefined
+- Show when property has been deleted and provides document link to where it has be redefined
+- Label Reuse conflicts.
+- Duplicate node name in the same node conflict warning
+- Delete node/property that does not exist
+- Generic syntax issues such as missing "," , "}" , "<" , ">" etc..
+- And more...
+
+#### Types
+
+- Supports standard types as defined in chapter 2 of Devicetree Specification Release v0.4
+  - Report property type mismatch errors
+  - Reports prop-encoded-values error when these need to follow some pattern e.g interrupts
+  - Compare the node address and ensure that it matches the reg property, and that the reg values uses ha the appropriate number of values as defined by other properties
+  - And more... (See Chapter 2 of Devicetree Specification Release v0.4)
+
+### Document Formatting
+
+- Fixes indentation
+- Single space between label names on assign
+- Single space between node name and '{'
+- Ensure New line between node/property, is there is one additional line this is keep any additional lines are cleaned up.
+- Ensure that composite values have single space between ',' and next value
+- Ensure that BytesString/Prop-Encoded-Array values have single space between each value
+- Ensure that no space exists between ';' and end of statement
+
+### Completions
+
+Completions are context aware of the document state on the line the action is requested.
+
+- Node path completion.
+- Label reference completion in property assign values.
+- Delete Node:
+  - Suggest appropriate type e.g. by reference or node name.
+  - Does not suggest keyword if no delete is possible.
+- Delete Property:
+  - Does not suggest keyword if no delete is possible.
+- Default values for standard types (e.g state)
+
+### Code Actions
+
+- Add missing syntax e.g. ';', '<', '>', ',' etc...;
+- Removes Addition Spaces:
+  - Between node name, '@' and address.
+  - Node Path reference.
+- Removes ';' when use without any statement.
+- Fixes incomplete /delete-node/ keywords
+- Fixes incomplete /delete-property/ keywords
+- Supports SourceFixAll/QuickFixes.
+
+### Find References
+
+- On node name/label reference; will list all the places where the node is used by name, label or in some path.
+- On name property name; will list all the places where the property referred to including /delete-property/.
+
+NOTE: That the references will stop at the definition hence if for example a node with name node1 has been create then deleted and then created again, depending on where the reference call is made in the file in one case one will get the ones before the delete up to the delete, and in the other case from the delete (excluded) onwards
+
+### Find Definition
+
+- On node name/label reference; will list all the places where the node is altered will be shown. /delete-node/ cases are not listed.
+- On name property name; will list all the places where the property is assigned a values. Note: defining a property name with no assign is equal to assign empty and is also shown.
+
+### Find Declarations
+
+- On node name/label reference; will list the first places where the node is created.
+- On name property name; will list the first places where the property is assigned a values for the first time. Note: defining a property name with no assign is equal to assign empty and will be shown.
+
+### Hover
+
+- Hover over Node name, Node Label will show the final state of that node
+
+### Limitations
+
+- Parsing will only look at the files the device tree uses. C Header files will not be parsed to keep parsing fast enough. Hence no check on if a Macro exists or not is made.
+- If a file is reused by multiple context it is not possible to manually change contexts
+
+### Road Map
+
+- Formatting
+  - Clean up trailing white space
+- Refactoring
+  - Node name
+  - Labels used on nodes
+  - Property names?
+  - Feedback would be welcomed :)
+- Syntax for Ternary operators
+- Support #IF #ELSEIF preprocessors
+- Device Node Requirements (chapter 3 - Devicetree Specification Release v0.4)
+- Device Bindings (chapter 4 - Devicetree Specification Release v0.4)
+  - See how one can implement one implementation that works for Zephyrs and Linux Kernel Developers
+- More unit tests
+- Let me know what you need :)

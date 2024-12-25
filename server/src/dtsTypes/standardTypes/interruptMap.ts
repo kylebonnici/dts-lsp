@@ -1,8 +1,8 @@
 import { Issue, StandardTypeIssue } from "../../types";
-import { PropertyNodeType, PropetyType } from "../types";
+import { PropertyNodeType, PropertyType as PropertyType } from "../types";
 import {
   generateOrTypeObj,
-  getInterruptPhandelNode,
+  getInterruptPhandleNode,
   getU32ValueFromProperty,
 } from "./helpers";
 import { genIssue } from "../../helpers";
@@ -12,7 +12,7 @@ import { ArrayValues } from "../../ast/dtc/values/arrayValue";
 export default () =>
   new PropertyNodeType(
     "interrupt-map",
-    generateOrTypeObj(PropetyType.PROP_ENCODED_ARRAY),
+    generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY),
     "optional",
     undefined,
     [],
@@ -21,7 +21,7 @@ export default () =>
       const node = property.parent;
       const root = property.parent.root;
       const childAddressCells = node.getProperty("#address-cells");
-      const childInteruptSpecifier = node.getProperty("#interrupt-cells");
+      const childInterruptSpecifier = node.getProperty("#interrupt-cells");
 
       const values = property.ast.values?.values.at(0);
 
@@ -32,10 +32,10 @@ export default () =>
       if (!childAddressCells) {
         issues.push(
           genIssue(
-            StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
+            StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
             property.ast,
             DiagnosticSeverity.Error,
-            [...node.definitons],
+            [...node.definitions],
             [],
             [
               property.name,
@@ -46,13 +46,13 @@ export default () =>
         );
       }
 
-      if (!childInteruptSpecifier) {
+      if (!childInterruptSpecifier) {
         issues.push(
           genIssue(
-            StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
+            StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
             property.ast,
             DiagnosticSeverity.Error,
-            [...node.definitons],
+            [...node.definitions],
             [],
             [
               property.name,
@@ -73,15 +73,15 @@ export default () =>
         0
       );
 
-      const childInteruptSpecifierValue = getU32ValueFromProperty(
-        childInteruptSpecifier!,
+      const childInterruptSpecifierValue = getU32ValueFromProperty(
+        childInterruptSpecifier!,
         0,
         0
       );
 
       if (
         childAddressCellsValue == null ||
-        childInteruptSpecifierValue == null
+        childInterruptSpecifierValue == null
       ) {
         return issues;
       }
@@ -95,11 +95,11 @@ export default () =>
       let i = 0;
       while (i < values.value.values.length) {
         entryStartIndex = i;
-        i += childAddressCellsValue + childInteruptSpecifierValue;
+        i += childAddressCellsValue + childInterruptSpecifierValue;
 
         if (values.value.values.length < i + 1) {
           const expLen =
-            childAddressCellsValue + childInteruptSpecifierValue + 1;
+            childAddressCellsValue + childInterruptSpecifierValue + 1;
           issues.push(
             genIssue(
               StandardTypeIssue.MAP_ENTRY_INCOMPLETE,
@@ -115,7 +115,7 @@ export default () =>
                     () => "ChildAddress"
                   ),
                   ...Array.from(
-                    { length: childInteruptSpecifierValue },
+                    { length: childInterruptSpecifierValue },
                     () => "ChildInterruptSpecifier"
                   ),
                   "InterruptParent ParentUnitAddress... ParentInterruptSpecifier...",
@@ -131,11 +131,11 @@ export default () =>
           );
           break;
         }
-        const interruptParent = getInterruptPhandelNode(values, root, i);
+        const interruptParent = getInterruptPhandleNode(values, root, i);
         if (!interruptParent) {
           issues.push(
             genIssue(
-              StandardTypeIssue.INTERUPTS_PARENT_NODE_NOT_FOUND,
+              StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
               values.value.values[i],
               DiagnosticSeverity.Error
             )
@@ -144,16 +144,16 @@ export default () =>
         }
 
         const parentUnitAddress = interruptParent.getProperty("#address-cells");
-        const parentInteruptSpecifier =
+        const parentInterruptSpecifier =
           interruptParent.getProperty("#interrupt-cells");
 
         if (!parentUnitAddress) {
           issues.push(
             genIssue(
-              StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
+              StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
               values.value.values[i],
               DiagnosticSeverity.Error,
-              [...interruptParent.definitons],
+              [...interruptParent.definitions],
               [],
               [
                 property.name,
@@ -164,13 +164,13 @@ export default () =>
           );
         }
 
-        if (!parentInteruptSpecifier) {
+        if (!parentInterruptSpecifier) {
           issues.push(
             genIssue(
-              StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
+              StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
               values.value.values[i],
               DiagnosticSeverity.Error,
-              [...interruptParent.definitons],
+              [...interruptParent.definitions],
               [],
               [
                 property.name,
@@ -192,27 +192,27 @@ export default () =>
           0,
           0
         );
-        const parentInteruptSpecifierValue = getU32ValueFromProperty(
-          parentInteruptSpecifier!,
+        const parentInterruptSpecifierValue = getU32ValueFromProperty(
+          parentInterruptSpecifier!,
           0,
           0
         );
 
         if (
           parentUnitAddressValue == null ||
-          parentInteruptSpecifierValue == null
+          parentInterruptSpecifierValue == null
         ) {
           break;
         }
 
-        i += parentUnitAddressValue + parentInteruptSpecifierValue;
+        i += parentUnitAddressValue + parentInterruptSpecifierValue;
         if (values.value.values.length < i) {
           const expLen =
             childAddressCellsValue +
-            childInteruptSpecifierValue +
+            childInterruptSpecifierValue +
             1 +
             parentUnitAddressValue +
-            parentInteruptSpecifierValue;
+            parentInterruptSpecifierValue;
           issues.push(
             genIssue(
               StandardTypeIssue.MAP_ENTRY_INCOMPLETE,
@@ -228,7 +228,7 @@ export default () =>
                     () => "ChildAddress"
                   ),
                   ...Array.from(
-                    { length: childInteruptSpecifierValue },
+                    { length: childInterruptSpecifierValue },
                     () => "ChildInterruptSpecifier"
                   ),
                   "InterruptParent",
@@ -237,7 +237,7 @@ export default () =>
                     () => "ParentUnitAddress"
                   ),
                   ...Array.from(
-                    { length: parentInteruptSpecifierValue },
+                    { length: parentInterruptSpecifierValue },
                     () => "ParentInterruptSpecifier"
                   ),
                 ]

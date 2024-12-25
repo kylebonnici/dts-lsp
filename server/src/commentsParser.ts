@@ -1,9 +1,9 @@
 import { LexerToken, Token } from "./types";
-import { adjesentTokens, createTokenIndex, validToken } from "./helpers";
+import { adjacentTokens, createTokenIndex, validToken } from "./helpers";
 import { Comment } from "./ast/dtc/comment";
 import { BaseParser } from "./baseParser";
 import { ASTBase } from "./ast/base";
-import { getTokenizedDocmentProvider } from "./providers/tokenizedDocument";
+import { getTokenizedDocumentProvider } from "./providers/tokenizedDocument";
 
 export class CommentsParser extends BaseParser {
   comments: Comment[] = [];
@@ -43,7 +43,7 @@ export class CommentsParser extends BaseParser {
   }
 
   protected async parse() {
-    this.tokens = getTokenizedDocmentProvider().requestTokens(this.uri, true);
+    this.tokens = getTokenizedDocumentProvider().requestTokens(this.uri, true);
     this.cleanUpComments();
   }
 
@@ -86,7 +86,7 @@ export class CommentsParser extends BaseParser {
 
       if (
         !validToken(currentToken(), LexerToken.FORWARD_SLASH) ||
-        !adjesentTokens(prevToken(), currentToken())
+        !adjacentTokens(prevToken(), currentToken())
       ) {
         return false;
       }

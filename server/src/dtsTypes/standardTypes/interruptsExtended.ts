@@ -1,9 +1,9 @@
 import { Issue, StandardTypeIssue } from "../../types";
-import { PropertyNodeType, PropetyType } from "../types";
+import { PropertyNodeType, PropertyType } from "../types";
 import {
   generateOrTypeObj,
   getInterruptInfo,
-  getInterruptPhandelNode,
+  getInterruptPhandleNode,
 } from "./helpers";
 import { genIssue } from "../../helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
@@ -12,7 +12,7 @@ import { ArrayValues } from "../../ast/dtc/values/arrayValue";
 export default () => {
   const prop = new PropertyNodeType(
     "interrupts-extended",
-    generateOrTypeObj(PropetyType.PROP_ENCODED_ARRAY),
+    generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY),
     "optional",
     undefined,
     [],
@@ -56,7 +56,7 @@ export default () => {
       const root = node.root;
       const phandleNodes =
         extendedValues?.values.map((value) =>
-          getInterruptPhandelNode(value, root)
+          getInterruptPhandleNode(value, root)
         ) ?? [];
 
       const interruptCells = phandleNodes.map((n) =>
@@ -72,7 +72,7 @@ export default () => {
         if (!data) {
           issues.push(
             genIssue(
-              StandardTypeIssue.INTERUPTS_PARENT_NODE_NOT_FOUND,
+              StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
               extendedValue.values.at(0) ?? extendedValue,
               DiagnosticSeverity.Error
             )
@@ -83,10 +83,10 @@ export default () => {
         if (!data.cellsProperty) {
           issues.push(
             genIssue(
-              StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
+              StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
               property.ast,
               DiagnosticSeverity.Error,
-              [...data.node.definitons],
+              [...data.node.definitions],
               [],
               [
                 property.name,
@@ -104,7 +104,7 @@ export default () => {
         ) {
           issues.push(
             genIssue(
-              StandardTypeIssue.INTERUPTS_VALUE_CELL_MISS_MATCH,
+              StandardTypeIssue.INTERRUPTS_VALUE_CELL_MISS_MATCH,
               extendedValue,
               DiagnosticSeverity.Error,
               [data.cellsProperty.ast],

@@ -1,7 +1,7 @@
 import { DocumentSymbol, SemanticTokensBuilder } from "vscode-languageserver";
 import { Issue, LexerToken, SyntaxIssue, Token, TokenIndexes } from "./types";
 import {
-  adjesentTokens,
+  adjacentTokens,
   createTokenIndex,
   validateToken,
   validToken,
@@ -59,7 +59,7 @@ export abstract class BaseParser {
     return token;
   }
 
-  protected enqueToStack() {
+  protected enqueueToStack() {
     this.positionStack.push(this.peekIndex());
   }
 
@@ -116,7 +116,7 @@ export abstract class BaseParser {
       index?: number
     ) => "yes" | "no" | "patrial")[]
   ) {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     const tokens: Token[] = [];
 
@@ -128,7 +128,7 @@ export abstract class BaseParser {
       if (result !== "no" && token) {
         tokens.push(token);
         this.moveToNextToken;
-        continueLoop = adjesentTokens(token, this.currentToken);
+        continueLoop = adjacentTokens(token, this.currentToken);
       }
       return result === "yes" && continueLoop;
     });
@@ -143,7 +143,7 @@ export abstract class BaseParser {
       index?: number
     ) => "yes" | "no" | "patrial")[]
   ) {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     const tokens: Token[] = [];
 
@@ -155,7 +155,7 @@ export abstract class BaseParser {
       tokens.push(this.currentToken!);
       token = this.currentToken;
       this.moveToNextToken;
-      continueLoop = adjesentTokens(token, this.currentToken);
+      continueLoop = adjacentTokens(token, this.currentToken);
     }
 
     this.mergeStack();
@@ -215,7 +215,7 @@ export abstract class BaseParser {
   }
 
   protected processCIdentifier(): CIdentifier | undefined {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     const valid = this.consumeAnyConcurrentTokens(
       [LexerToken.DIGIT, LexerToken.LETTERS, LexerToken.UNDERSCOURE].map(
@@ -245,7 +245,7 @@ export abstract class BaseParser {
   }
 
   protected isOperator(): Operator | undefined {
-    this.enqueToStack();
+    this.enqueueToStack();
     const start = this.moveToNextToken;
 
     if (!start) {
@@ -325,7 +325,7 @@ export abstract class BaseParser {
     isClose: (token?: Token) => boolean,
     isSplit?: (token?: Token) => boolean
   ): Block | undefined {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     const start = this.moveToNextToken;
     if (!start || !isOpen(start)) {

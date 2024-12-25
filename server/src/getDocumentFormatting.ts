@@ -15,7 +15,7 @@ import { PropertyValue } from "./ast/dtc/values/value";
 import { AllValueType } from "./ast/dtc/types";
 import { ArrayValues } from "./ast/dtc/values/arrayValue";
 import { ByteStringValue } from "./ast/dtc/values/byteString";
-import { LabledValue } from "./ast/dtc/values/labledValue";
+import { LabeledValue } from "./ast/dtc/values/labeledValue";
 
 export function getDocumentFormating(
   documentFormattingParams: DocumentFormattingParams,
@@ -212,7 +212,7 @@ const formatDtcNode = (
 
 const formatLabledValue = <T extends ASTBase>(
   documentFormattingParams: DocumentFormattingParams,
-  value: LabledValue<T>,
+  value: LabeledValue<T>,
   level: number,
   index: number
 ): TextEdit[] => {

@@ -1,6 +1,6 @@
 import { Issue, StandardTypeIssue } from "../../types";
 import { genIssue } from "../../helpers";
-import { PropertyNodeType, PropetyType } from "../types";
+import { PropertyNodeType, PropertyType } from "../types";
 import { generateOrTypeObj, getU32ValueFromProperty } from "./helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { ArrayValues } from "../../ast/dtc/values/arrayValue";
@@ -8,9 +8,9 @@ import { ArrayValues } from "../../ast/dtc/values/arrayValue";
 export default () => {
   const prop = new PropertyNodeType(
     "reg",
-    generateOrTypeObj(PropetyType.PROP_ENCODED_ARRAY),
+    generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY),
     (node) => {
-      return node.address !== undefined ? "required" : "ommited";
+      return node.address !== undefined ? "required" : "omitted";
     },
     undefined,
     [],

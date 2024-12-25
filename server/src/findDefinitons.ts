@@ -72,7 +72,7 @@ function getNodeDefinition(result: SearchableResult | undefined): Location[] {
   }
 
   const gentItem = (node: Node) => {
-    return [...node.definitons, ...node.referancedBy]
+    return [...node.definitions, ...node.referencedBy]
       .map((dtc) => {
         if (dtc instanceof DtcChildNode) {
           return Location.create(`file://${dtc.uri}`, toRange(dtc));

@@ -6,7 +6,7 @@
 import fs from "fs";
 import { describe, test, jest, expect } from "@jest/globals";
 import { StandardTypeIssue } from "../types";
-import { resetTokenizedDocmentProvider } from "../providers/tokenizedDocument";
+import { resetTokenizedDocumentProvider } from "../providers/tokenizedDocument";
 import { ContextAware } from "../runtimeEvaluator";
 
 jest.mock("fs", () => ({
@@ -39,7 +39,7 @@ const mockReadFilesSync = (content: { [path: string]: string }) => {
 
 describe("Type Issues", () => {
   beforeEach(() => {
-    resetTokenizedDocmentProvider();
+    resetTokenizedDocumentProvider();
   });
 
   describe("Standard Types", () => {
@@ -180,7 +180,7 @@ describe("Type Issues", () => {
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
         expect(issues[0].issues).toEqual([
-          StandardTypeIssue.EXPECTED_UNIQUE_PHANDEL,
+          StandardTypeIssue.EXPECTED_UNIQUE_PHANDLE,
         ]);
         expect(issues[0].linkedTo[0].firstToken.pos.col).toEqual(9);
         expect(
@@ -647,7 +647,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.DEPRICATED]);
+        expect(issues[0].issues).toEqual([StandardTypeIssue.DEPRECATED]);
       });
 
       test("valid type multiple string", async () => {
@@ -704,7 +704,7 @@ describe("Type Issues", () => {
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
         expect(issues[0].issues).toEqual([
-          StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
+          StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
         ]);
       });
 
@@ -716,7 +716,7 @@ describe("Type Issues", () => {
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
         expect(issues[0].issues).toEqual([
-          StandardTypeIssue.INTERUPTS_PARENT_NODE_NOT_FOUND,
+          StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
         ]);
       });
 
@@ -887,7 +887,7 @@ describe("Type Issues", () => {
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
         expect(issues[0].issues).toEqual([
-          StandardTypeIssue.INTERUPTS_PARENT_NODE_NOT_FOUND,
+          StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
         ]);
         expect(issues[0].astElement.firstToken.pos.col).toEqual(32);
         expect(
@@ -906,7 +906,7 @@ describe("Type Issues", () => {
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
         expect(issues[0].issues).toEqual([
-          StandardTypeIssue.INTERUPTS_VALUE_CELL_MISS_MATCH,
+          StandardTypeIssue.INTERRUPTS_VALUE_CELL_MISS_MATCH,
         ]);
         expect(issues[0].linkedTo[0].firstToken.pos.col).toEqual(46);
         expect(
@@ -926,7 +926,7 @@ describe("Type Issues", () => {
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
         expect(issues[0].issues).toEqual([
-          StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
+          StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
         ]);
         expect(issues[0].linkedTo[0].firstToken.pos.col).toEqual(2);
         expect(

@@ -197,7 +197,7 @@ export const sameLine = (tokenA?: Token, tokenB?: Token) => {
   return !!tokenA && !!tokenB && tokenA.pos.line === tokenB.pos.line;
 };
 
-export const adjesentTokens = (tokenA?: Token, tokenB?: Token) => {
+export const adjacentTokens = (tokenA?: Token, tokenB?: Token) => {
   return (
     !!tokenA &&
     !!tokenB &&

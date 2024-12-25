@@ -1,10 +1,9 @@
 import { Issue, LexerToken, SyntaxIssue, Token, TokenIndexes } from "./types";
 import {
-  adjesentTokens,
+  adjacentTokens,
   createTokenIndex,
   genIssue,
   sameLine,
-  toRange,
   validateToken,
   validateValue,
   validToken,
@@ -31,7 +30,7 @@ import { ByteStringValue } from "./ast/dtc/values/byteString";
 import { PropertyValues } from "./ast/dtc/values/values";
 import { DtsDocumentVersion } from "./ast/dtc/dtsDocVersion";
 import { ArrayValues } from "./ast/dtc/values/arrayValue";
-import { LabledValue } from "./ast/dtc/values/labledValue";
+import { LabeledValue } from "./ast/dtc/values/labeledValue";
 import { ComplexExpression, Expression } from "./ast/cPreprocessors/expression";
 import { CMacroCall, CMacroCallParam } from "./ast/cPreprocessors/functionCall";
 import { BaseParser } from "./baseParser";
@@ -47,7 +46,7 @@ export class Parser extends BaseParser {
   others: ASTBase[] = [];
   rootDocument = new DtcBaseNode();
   issues: Issue<SyntaxIssue>[] = [];
-  unhandledStaments = new DtcRootNode();
+  unhandledStatements = new DtcRootNode();
 
   constructor(
     public readonly uri: string,
@@ -71,7 +70,7 @@ export class Parser extends BaseParser {
     this.rootDocument = new DtcBaseNode();
     this.rootDocument.uri = this.uri;
     this.issues = [];
-    this.unhandledStaments = new DtcRootNode();
+    this.unhandledStatements = new DtcRootNode();
   }
 
   public async reparse(): Promise<void> {
@@ -108,8 +107,8 @@ export class Parser extends BaseParser {
             // Valid use case
             this.isChildNode(this.rootDocument, "Ref") ||
             // not valid syntax but we leave this for the next layer to proecess
-            this.isProperty(this.unhandledStaments) ||
-            this.isDeleteProperty(this.unhandledStaments)
+            this.isProperty(this.unhandledStatements) ||
+            this.isDeleteProperty(this.unhandledStatements)
           ) // TODO syntax issues
         )
       ) {
@@ -126,13 +125,13 @@ export class Parser extends BaseParser {
       process();
     }
 
-    this.unhandledStaments.properties.forEach((prop) => {
-      this.issues.push(genIssue(SyntaxIssue.PROPETY_MUST_BE_IN_NODE, prop));
+    this.unhandledStatements.properties.forEach((prop) => {
+      this.issues.push(genIssue(SyntaxIssue.PROPERTY_MUST_BE_IN_NODE, prop));
     });
 
-    this.unhandledStaments.deleteProperties.forEach((delProp) => {
+    this.unhandledStatements.deleteProperties.forEach((delProp) => {
       this.issues.push(
-        genIssue(SyntaxIssue.PROPETY_DELETE_MUST_BE_IN_NODE, delProp)
+        genIssue(SyntaxIssue.PROPERTY_DELETE_MUST_BE_IN_NODE, delProp)
       );
     });
 
@@ -143,7 +142,7 @@ export class Parser extends BaseParser {
   }
 
   private isRootNodeDefinition(parent: DtcBaseNode): boolean {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     const firstToken = this.moveToNextToken;
     let nextToken = firstToken;
@@ -222,7 +221,7 @@ export class Parser extends BaseParser {
       const token = this.moveToNextToken;
       if (token) {
         const node = new ASTBase(createTokenIndex(token));
-        this.issues.push(genIssue(SyntaxIssue.NO_STAMENTE, node));
+        this.issues.push(genIssue(SyntaxIssue.NO_STATEMENT, node));
       }
     }
   }
@@ -256,7 +255,7 @@ export class Parser extends BaseParser {
     return found;
   }
 
-  private processOptionalLablelAssign(acceptLabelName = false): LabelAssign[] {
+  private processOptionalLabelAssign(acceptLabelName = false): LabelAssign[] {
     const labels: LabelAssign[] = [];
 
     // Find all labels before node/property/value.....
@@ -270,14 +269,14 @@ export class Parser extends BaseParser {
   }
 
   private isChildNode(parentNode: DtcBaseNode, allow: AllowNodeRef): boolean {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     let omitIfNoRef: Keyword | undefined;
     if (allow === "Name") {
       omitIfNoRef = this.isOmitIfNoRefNode();
     }
 
-    const labels = this.processOptionalLablelAssign();
+    const labels = this.processOptionalLabelAssign();
 
     let name: NodeName | undefined;
     let ref: LabelRef | undefined;
@@ -357,7 +356,7 @@ export class Parser extends BaseParser {
   }
 
   private isNodeName(): NodeName | undefined {
-    this.enqueToStack();
+    this.enqueueToStack();
     const valid = this.consumeAnyConcurrentTokens(
       [
         LexerToken.DIGIT,
@@ -397,7 +396,7 @@ export class Parser extends BaseParser {
         address
       );
 
-      if (!adjesentTokens(valid.at(-1), atValid[0])) {
+      if (!adjacentTokens(valid.at(-1), atValid[0])) {
         const whiteSpace = new ASTBase(
           createTokenIndex(valid.at(-1)!, atValid[0])
         );
@@ -409,7 +408,7 @@ export class Parser extends BaseParser {
 
       if (
         !Number.isNaN(address) &&
-        !adjesentTokens(atValid.at(-1), addressValid[0])
+        !adjacentTokens(atValid.at(-1), addressValid[0])
       ) {
         const whiteSpace = new ASTBase(
           createTokenIndex(atValid[0], addressValid.at(0))
@@ -427,7 +426,7 @@ export class Parser extends BaseParser {
   }
 
   private isPropertyName(): PropertyName | undefined {
-    this.enqueToStack();
+    this.enqueueToStack();
     const valid = this.consumeAnyConcurrentTokens(
       [
         LexerToken.DIGIT,
@@ -455,7 +454,7 @@ export class Parser extends BaseParser {
   }
 
   private isLabelName(): Label | undefined {
-    this.enqueToStack();
+    this.enqueueToStack();
     const valid = this.consumeAnyConcurrentTokens(
       [LexerToken.DIGIT, LexerToken.LETTERS, LexerToken.UNDERSCOURE].map(
         validateToken
@@ -480,7 +479,7 @@ export class Parser extends BaseParser {
   }
 
   private isLabelAssign(acceptLabelName: boolean): LabelAssign | undefined {
-    this.enqueToStack();
+    this.enqueueToStack();
     const valid = this.consumeAnyConcurrentTokens(
       [LexerToken.DIGIT, LexerToken.LETTERS, LexerToken.UNDERSCOURE].map(
         validateToken
@@ -537,9 +536,9 @@ export class Parser extends BaseParser {
   }
 
   private isProperty(parent: DtcBaseNode): boolean {
-    this.enqueToStack();
+    this.enqueueToStack();
 
-    const labels = this.processOptionalLablelAssign();
+    const labels = this.processOptionalLabelAssign();
 
     const propertyName = this.isPropertyName();
 
@@ -582,7 +581,7 @@ export class Parser extends BaseParser {
   }
 
   private isDtsDocumentVersion(): boolean {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     const valid = this.checkConcurrentTokens([
       validateToken(LexerToken.FORWARD_SLASH),
@@ -636,7 +635,7 @@ export class Parser extends BaseParser {
   }
 
   private isOmitIfNoRefNode(): Keyword | undefined {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     const valid = this.checkConcurrentTokens([
       validateToken(LexerToken.FORWARD_SLASH),
@@ -661,7 +660,7 @@ export class Parser extends BaseParser {
   }
 
   private isDeleteNode(parent: DtcBaseNode, allow: AllowNodeRef): boolean {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     const valid = this.checkConcurrentTokens([
       validateToken(LexerToken.FORWARD_SLASH),
@@ -761,7 +760,7 @@ export class Parser extends BaseParser {
   }
 
   private isDeleteProperty(parent: DtcBaseNode): boolean {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     const valid = this.checkConcurrentTokens([
       validateToken(LexerToken.FORWARD_SLASH),
@@ -856,16 +855,16 @@ export class Parser extends BaseParser {
       this.currentToken &&
       this.currentToken.pos.line === this.currentToken.prevToken?.pos.line
     )
-      endLabels = this.processOptionalLablelAssign(true);
+      endLabels = this.processOptionalLabelAssign(true);
 
     const node = new PropertyValue(nodePathRef, [...endLabels]);
     return node;
   }
 
   private processValue(dtcProperty: DtcProperty): PropertyValues | undefined {
-    this.enqueToStack();
+    this.enqueueToStack();
 
-    const labels = this.processOptionalLablelAssign(true);
+    const labels = this.processOptionalLabelAssign(true);
 
     const getValues = (): (PropertyValue | null)[] => {
       const getValue = () => {
@@ -923,7 +922,7 @@ export class Parser extends BaseParser {
   }
 
   private processStringValue(): PropertyValue | undefined {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     const token = this.moveToNextToken;
     if (!validToken(token, LexerToken.STRING)) {
@@ -942,7 +941,7 @@ export class Parser extends BaseParser {
       this.issues.push(
         genIssue(
           token.value.startsWith('"')
-            ? SyntaxIssue.DUOUBE_QUOTE
+            ? SyntaxIssue.DOUBLE_QUOTE
             : SyntaxIssue.SINGLE_QUOTE,
           propValue
         )
@@ -954,7 +953,7 @@ export class Parser extends BaseParser {
       this.currentToken &&
       this.currentToken.pos.line === this.currentToken.prevToken?.pos.line
     )
-      endLabels = this.processOptionalLablelAssign(true);
+      endLabels = this.processOptionalLabelAssign(true);
 
     const node = new PropertyValue(propValue, endLabels);
     this.mergeStack();
@@ -962,7 +961,7 @@ export class Parser extends BaseParser {
   }
 
   private arrayValues(dtcProperty: DtcProperty): PropertyValue | undefined {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     const firstToken = this.currentToken;
     if (!validToken(firstToken, LexerToken.LT_SYM)) {
@@ -974,7 +973,7 @@ export class Parser extends BaseParser {
 
     const value = this.processArrayValues(dtcProperty) ?? null;
 
-    const endLabels1 = this.processOptionalLablelAssign(true) ?? [];
+    const endLabels1 = this.processOptionalLabelAssign(true) ?? [];
 
     const node = new PropertyValue(value, [...endLabels1]);
 
@@ -989,7 +988,7 @@ export class Parser extends BaseParser {
       this.currentToken &&
       this.currentToken.pos.line === this.currentToken.prevToken?.pos.line
     )
-      endLabels2 = this.processOptionalLablelAssign(true);
+      endLabels2 = this.processOptionalLabelAssign(true);
 
     this.mergeStack();
 
@@ -1003,7 +1002,7 @@ export class Parser extends BaseParser {
   }
 
   private processByteStringValue(): PropertyValue | undefined {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     const firstToken = this.moveToNextToken;
     const token = firstToken;
@@ -1014,7 +1013,7 @@ export class Parser extends BaseParser {
 
     const numberValues = this.processLabledValue(() => this.processHexString());
 
-    const endLabels1 = this.processOptionalLablelAssign(true) ?? [];
+    const endLabels1 = this.processOptionalLabelAssign(true) ?? [];
 
     numberValues.forEach((value) => {
       let len = 0;
@@ -1046,7 +1045,7 @@ export class Parser extends BaseParser {
       this.currentToken &&
       this.currentToken.pos.line === this.currentToken.prevToken?.pos.line
     )
-      endLabels2 = this.processOptionalLablelAssign(true);
+      endLabels2 = this.processOptionalLabelAssign(true);
 
     this.mergeStack();
     node.endLabels.push(...endLabels2);
@@ -1056,12 +1055,12 @@ export class Parser extends BaseParser {
   }
 
   private processLabledValue<T extends ASTBase>(
-    processValue: () => LabledValue<T> | undefined
-  ): LabledValue<T>[] {
-    this.enqueToStack();
+    processValue: () => LabeledValue<T> | undefined
+  ): LabeledValue<T>[] {
+    this.enqueueToStack();
 
     let value = processValue();
-    let result: LabledValue<T>[] = [];
+    let result: LabeledValue<T>[] = [];
 
     if (!value) {
       this.popStack();
@@ -1087,16 +1086,16 @@ export class Parser extends BaseParser {
   private processArrayValues(
     dtcProperty: DtcProperty
   ): ArrayValues | undefined {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     const result = this.processLabledValue(
       ():
-        | LabledValue<NumberValue | LabelRef | NodePathRef | Expression>
+        | LabeledValue<NumberValue | LabelRef | NodePathRef | Expression>
         | undefined =>
         this.processRefValue(false, dtcProperty) ||
-        this.processLabledHex(false) ||
+        this.processLabeledHex(false) ||
         this.processLabledDec(false) ||
-        this.processLabledExpression(true, false)
+        this.processLabeledExpression(true, false)
     );
 
     if (result.length === 0) {
@@ -1109,25 +1108,25 @@ export class Parser extends BaseParser {
     return node;
   }
 
-  private processLabledHex(
+  private processLabeledHex(
     acceptLabelName: boolean
-  ): LabledValue<NumberValue> | undefined {
-    this.enqueToStack();
+  ): LabeledValue<NumberValue> | undefined {
+    this.enqueueToStack();
 
-    const labels = this.processOptionalLablelAssign(acceptLabelName);
-    const numbeValue = this.processHex();
-    if (!numbeValue) {
+    const labels = this.processOptionalLabelAssign(acceptLabelName);
+    const numberValue = this.processHex();
+    if (!numberValue) {
       this.popStack();
       return;
     }
 
-    const node = new LabledValue(numbeValue, labels);
+    const node = new LabeledValue(numberValue, labels);
     this.mergeStack();
     return node;
   }
 
   private processHex(): NumberValue | undefined {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     const validStart = this.checkConcurrentTokens([
       validateValue("0"),
@@ -1149,19 +1148,19 @@ export class Parser extends BaseParser {
     }
 
     const num = Number.parseInt(validValue.map((v) => v.value).join(""), 16);
-    const numbeValue = new NumberValue(
+    const numberValue = new NumberValue(
       num,
       createTokenIndex(validStart[0], validValue.at(-1))
     );
 
     this.mergeStack();
-    return numbeValue;
+    return numberValue;
   }
 
-  private processHexString(): LabledValue<NumberValue> | undefined {
-    this.enqueToStack();
+  private processHexString(): LabeledValue<NumberValue> | undefined {
+    this.enqueueToStack();
 
-    const labels = this.processOptionalLablelAssign(false);
+    const labels = this.processOptionalLabelAssign(false);
     const valid = this.checkConcurrentTokens(
       [LexerToken.HEX, LexerToken.HEX].map(validateToken)
     );
@@ -1172,35 +1171,35 @@ export class Parser extends BaseParser {
     }
 
     const num = Number.parseInt(valid.map((v) => v.value).join(""), 16);
-    const numbeValue = new NumberValue(
+    const numberValue = new NumberValue(
       num,
       createTokenIndex(valid[0], valid.at(-1))
     );
 
-    const node = new LabledValue(numbeValue, labels);
+    const node = new LabeledValue(numberValue, labels);
     this.mergeStack();
     return node;
   }
 
   private processLabledDec(
     acceptLabelName: boolean
-  ): LabledValue<NumberValue> | undefined {
-    this.enqueToStack();
+  ): LabeledValue<NumberValue> | undefined {
+    this.enqueueToStack();
 
-    const labels = this.processOptionalLablelAssign(acceptLabelName);
+    const labels = this.processOptionalLabelAssign(acceptLabelName);
 
-    const numbeValue = this.processDec();
-    if (!numbeValue) {
+    const numberValue = this.processDec();
+    if (!numberValue) {
       this.popStack();
       return;
     }
-    const node = new LabledValue(numbeValue, labels);
+    const node = new LabeledValue(numberValue, labels);
     this.mergeStack();
     return node;
   }
 
   private processDec(): NumberValue | undefined {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     const valid = this.consumeAnyConcurrentTokens(
       [LexerToken.DIGIT].map(validateToken)
@@ -1212,24 +1211,24 @@ export class Parser extends BaseParser {
     }
 
     const num = Number.parseInt(valid.map((v) => v.value).join(""), 10);
-    const numbeValue = new NumberValue(
+    const numberValue = new NumberValue(
       num,
       createTokenIndex(valid[0], valid.at(-1))
     );
 
     this.mergeStack();
-    return numbeValue;
+    return numberValue;
   }
 
-  private processLabledExpression(
-    checkForLables = true,
-    acceptLabelName = checkForLables
-  ): LabledValue<Expression> | undefined {
-    this.enqueToStack();
+  private processLabeledExpression(
+    checkForLabels = true,
+    acceptLabelName = checkForLabels
+  ): LabeledValue<Expression> | undefined {
+    this.enqueueToStack();
 
     let labels: LabelAssign[] = [];
-    if (checkForLables) {
-      labels = this.processOptionalLablelAssign(acceptLabelName);
+    if (checkForLabels) {
+      labels = this.processOptionalLabelAssign(acceptLabelName);
     }
 
     const expression = this.processExpression();
@@ -1239,13 +1238,13 @@ export class Parser extends BaseParser {
       return;
     }
 
-    const node = new LabledValue(expression, labels);
+    const node = new LabeledValue(expression, labels);
     this.mergeStack();
     return node;
   }
 
-  private isFuntionCall(): CMacroCall | undefined {
-    this.enqueToStack();
+  private isFunctionCall(): CMacroCall | undefined {
+    this.enqueueToStack();
     const identifier = this.processCIdentifier();
     if (!identifier) {
       this.popStack();
@@ -1265,7 +1264,7 @@ export class Parser extends BaseParser {
   }
 
   private processExpression(): Expression | undefined {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     let complexExpression = false;
 
@@ -1278,7 +1277,7 @@ export class Parser extends BaseParser {
     }
 
     let expression: Expression | undefined =
-      this.isFuntionCall() ||
+      this.isFunctionCall() ||
       this.processCIdentifier() ||
       this.processHex() ||
       this.processDec();
@@ -1353,9 +1352,9 @@ export class Parser extends BaseParser {
   }
 
   private isLabelRef(slxBase?: ASTBase): LabelRef | undefined {
-    this.enqueToStack();
-    const ampersnadToken = this.currentToken;
-    if (!validToken(ampersnadToken, LexerToken.AMPERSAND)) {
+    this.enqueueToStack();
+    const ampersandToken = this.currentToken;
+    if (!validToken(ampersandToken, LexerToken.AMPERSAND)) {
       this.popStack();
       return;
     } else {
@@ -1366,33 +1365,33 @@ export class Parser extends BaseParser {
     if (!labelName) {
       const node = new LabelRef(null);
       this.issues.push(genIssue(SyntaxIssue.LABEL_NAME, slxBase ?? node));
-      node.firstToken = ampersnadToken;
+      node.firstToken = ampersandToken;
       this.mergeStack();
       return node;
     }
 
     if (
-      ampersnadToken &&
-      (labelName.firstToken.pos.line !== ampersnadToken.pos.line ||
+      ampersandToken &&
+      (labelName.firstToken.pos.line !== ampersandToken.pos.line ||
         labelName.firstToken.pos.col !==
-          ampersnadToken.pos.col + ampersnadToken.pos.len)
+          ampersandToken.pos.col + ampersandToken.pos.len)
     ) {
       this.issues.push(
         genIssue(
           SyntaxIssue.WHITE_SPACE,
-          new ASTBase(createTokenIndex(ampersnadToken, labelName.firstToken))
+          new ASTBase(createTokenIndex(ampersandToken, labelName.firstToken))
         )
       );
     }
 
     const node = new LabelRef(labelName);
-    node.firstToken = ampersnadToken;
+    node.firstToken = ampersandToken;
     this.mergeStack();
     return node;
   }
 
   private isLabelRefValue(dtcProperty: DtcProperty): PropertyValue | undefined {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     const labelRef = this.isLabelRef(dtcProperty);
 
@@ -1406,7 +1405,7 @@ export class Parser extends BaseParser {
       this.currentToken &&
       this.currentToken.pos.line === this.currentToken.prevToken?.pos.line
     )
-      endLabels = this.processOptionalLablelAssign(true);
+      endLabels = this.processOptionalLabelAssign(true);
 
     const node = new PropertyValue(labelRef, endLabels);
     this.mergeStack();
@@ -1416,9 +1415,9 @@ export class Parser extends BaseParser {
   private processRefValue(
     acceptLabelName: boolean,
     dtcProperty: DtcProperty
-  ): LabledValue<LabelRef | NodePathRef> | undefined {
-    this.enqueToStack();
-    const labels = this.processOptionalLablelAssign(acceptLabelName);
+  ): LabeledValue<LabelRef | NodePathRef> | undefined {
+    this.enqueueToStack();
+    const labels = this.processOptionalLabelAssign(acceptLabelName);
     const firstToken = this.currentToken;
     if (!validToken(this.currentToken, LexerToken.AMPERSAND)) {
       this.popStack();
@@ -1428,7 +1427,7 @@ export class Parser extends BaseParser {
     const nodePath = this.processNodePathRef();
 
     if (nodePath !== undefined) {
-      const node = new LabledValue(nodePath, labels);
+      const node = new LabeledValue(nodePath, labels);
       this.mergeStack();
       return node;
     }
@@ -1439,13 +1438,13 @@ export class Parser extends BaseParser {
         genIssue([SyntaxIssue.LABEL_NAME, SyntaxIssue.NODE_PATH], dtcProperty)
       );
 
-      const node = new LabledValue<LabelRef>(null, labels);
+      const node = new LabeledValue<LabelRef>(null, labels);
       node.firstToken = labels.at(0)?.firstToken ?? firstToken;
       this.mergeStack();
       return node;
     }
 
-    const node = new LabledValue(labelRef, labels);
+    const node = new LabeledValue(labelRef, labels);
     node.firstToken = labels.at(0)?.firstToken ?? firstToken;
     this.mergeStack();
     return node;
@@ -1455,7 +1454,7 @@ export class Parser extends BaseParser {
     first = true,
     nodePath = new NodePath()
   ): NodePath | undefined {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     let firstToken: Token | undefined;
 
@@ -1498,7 +1497,7 @@ export class Parser extends BaseParser {
   }
 
   private processNodePathRef(): NodePathRef | undefined {
-    this.enqueToStack();
+    this.enqueueToStack();
 
     const firstToken = this.moveToNextToken;
     let token = firstToken;
@@ -1507,8 +1506,8 @@ export class Parser extends BaseParser {
       return;
     }
 
-    const beforPath = this.moveToNextToken;
-    token = beforPath;
+    const beforePath = this.moveToNextToken;
+    token = beforePath;
     if (!validToken(token, LexerToken.CURLY_OPEN)) {
       // migh be a node ref such as &nodeLabel
       this.popStack();
@@ -1541,13 +1540,13 @@ export class Parser extends BaseParser {
       }
       if (
         i === 0 &&
-        beforPath &&
-        beforPath.pos.col + beforPath.pos.len !== p?.firstToken.pos.col
+        beforePath &&
+        beforePath.pos.col + beforePath.pos.len !== p?.firstToken.pos.col
       ) {
         this.issues.push(
           genIssue(
             SyntaxIssue.WHITE_SPACE,
-            new ASTBase(createTokenIndex(beforPath, p?.firstToken))
+            new ASTBase(createTokenIndex(beforePath, p?.firstToken))
           )
         );
         return;
@@ -1593,8 +1592,8 @@ export class Parser extends BaseParser {
       ...this.cPreprocessorParser.allAstItems,
       ...this.rootDocument.children,
       ...this.others,
-      ...this.unhandledStaments.properties,
-      ...this.unhandledStaments.deleteProperties,
+      ...this.unhandledStatements.properties,
+      ...this.unhandledStatements.deleteProperties,
     ];
   }
 }

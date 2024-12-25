@@ -2,9 +2,9 @@ import { readFileSync } from "fs";
 import { Token } from "../types";
 import { Lexer } from "../lexer";
 
-let tokenizedDocmentProvider: TokenizedDocmentProvider | undefined;
+let tokenizedDocumentProvider: TokenizedDocumentProvider | undefined;
 
-class TokenizedDocmentProvider {
+class TokenizedDocumentProvider {
   private fileMap = new Map<string, Lexer>();
 
   renewLexer(uri: string, text?: string): Token[] {
@@ -23,11 +23,11 @@ class TokenizedDocmentProvider {
   }
 }
 
-export function getTokenizedDocmentProvider(): TokenizedDocmentProvider {
-  tokenizedDocmentProvider ??= new TokenizedDocmentProvider();
-  return tokenizedDocmentProvider;
+export function getTokenizedDocumentProvider(): TokenizedDocumentProvider {
+  tokenizedDocumentProvider ??= new TokenizedDocumentProvider();
+  return tokenizedDocumentProvider;
 }
 
-export function resetTokenizedDocmentProvider() {
-  tokenizedDocmentProvider = new TokenizedDocmentProvider();
+export function resetTokenizedDocumentProvider() {
+  tokenizedDocumentProvider = new TokenizedDocumentProvider();
 }

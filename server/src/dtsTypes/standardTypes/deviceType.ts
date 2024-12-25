@@ -1,5 +1,5 @@
 import { StringValue } from "../../ast/dtc/values/string";
-import { PropertyNodeType, PropetyType } from "../types";
+import { PropertyNodeType, PropertyType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 import { StandardTypeIssue } from "../../types";
 import { genIssue } from "../../helpers";
@@ -8,11 +8,11 @@ import { DiagnosticSeverity } from "vscode-languageserver";
 export default () =>
   new PropertyNodeType(
     "device_type",
-    generateOrTypeObj(PropetyType.STRING),
+    generateOrTypeObj(PropertyType.STRING),
     (node) => {
       return node.name === "cpu" || node.name === "memory"
         ? "optional"
-        : "ommited";
+        : "omitted";
     },
     undefined,
     (property) => {

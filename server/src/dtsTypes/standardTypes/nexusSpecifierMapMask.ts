@@ -1,4 +1,4 @@
-import { PropertyNodeType, PropetyType } from "../types";
+import { PropertyNodeType, PropertyType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 
 export default () => {
@@ -8,7 +8,7 @@ export default () => {
     }
 
     return !!name.match(/^[A-Z-a-z]+-map-mask$/);
-  }, generateOrTypeObj(PropetyType.PROP_ENCODED_ARRAY));
+  }, generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY));
   prop.list = true;
   return prop;
 };

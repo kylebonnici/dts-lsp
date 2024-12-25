@@ -3,12 +3,12 @@ import { SymbolKind } from "vscode-languageserver";
 import { LabelRef } from "../labelRef";
 import { NodePathRef } from "./nodePath";
 import { NumberValue } from "./number";
-import { LabledValue } from "./labledValue";
+import { LabeledValue } from "./labeledValue";
 import { Expression } from "../../cPreprocessors/expression";
 
 export class ArrayValues extends ASTBase {
   constructor(
-    public readonly values: LabledValue<
+    public readonly values: LabeledValue<
       NumberValue | LabelRef | NodePathRef | Expression
     >[]
   ) {

@@ -66,7 +66,7 @@ function getNodeDeclaration(
   }
 
   const gentItem = (node: Node) => {
-    const declaration = node.definitons.at(0);
+    const declaration = node.definitions.at(0);
     return declaration
       ? Location.create(`file://${declaration.uri}`, toRange(declaration))
       : undefined;

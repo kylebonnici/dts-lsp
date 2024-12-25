@@ -1,6 +1,6 @@
 import { StandardTypeIssue } from "../../types";
 import { genIssue } from "../../helpers";
-import { PropertyNodeType, PropetyType } from "../types";
+import { PropertyNodeType, PropertyType } from "../types";
 import { generateOrTypeObj, getU32ValueFromProperty } from "./helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { ASTBase } from "../../ast/base";
@@ -8,18 +8,18 @@ import { ASTBase } from "../../ast/base";
 export default () =>
   new PropertyNodeType(
     "phandle",
-    generateOrTypeObj(PropetyType.U32),
+    generateOrTypeObj(PropertyType.U32),
     "optional",
     undefined,
     [],
     (property) => {
       const phandelValue = getU32ValueFromProperty(property, 0, 0);
       if (phandelValue) {
-        const nodes = property.parent.root.getAllPhandel(phandelValue);
+        const nodes = property.parent.root.getAllPhandle(phandelValue);
         if (nodes.length > 1 && nodes.at(-1) === property.parent) {
           return [
             genIssue(
-              StandardTypeIssue.EXPECTED_UNIQUE_PHANDEL,
+              StandardTypeIssue.EXPECTED_UNIQUE_PHANDLE,
               property.ast.values?.values.at(0) ?? property.ast,
               DiagnosticSeverity.Error,
               nodes

@@ -1,10 +1,10 @@
-import { PropertyNodeType, PropetyType } from "../types";
+import { PropertyNodeType, PropertyType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 
 export default () =>
   new PropertyNodeType(
     "#address-cells",
-    generateOrTypeObj(PropetyType.U32),
+    generateOrTypeObj(PropertyType.U32),
     "optional",
     2
   );

@@ -185,7 +185,7 @@ function getDeleteNodeNameItems(
     ]
       .flatMap(
         (n) =>
-          n.definitons.filter(
+          n.definitions.filter(
             (n) => n instanceof DtcChildNode
           ) as DtcChildNode[]
       )
@@ -287,7 +287,7 @@ function getNodeRefPathsItems(
     return (
       [
         ...(parentNode?.nodes.filter(
-          (n) => !isDeleteChild(result.ast) || n.definitons.some(inScope)
+          (n) => !isDeleteChild(result.ast) || n.definitions.some(inScope)
         ) ?? []),
         ...(parentNode?.deletedNodes
           .filter((n) => !inScope(n.by))

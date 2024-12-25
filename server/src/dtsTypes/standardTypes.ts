@@ -16,7 +16,7 @@ import reg from "./standardTypes/reg";
 import sizeCells from "./standardTypes/sizeCells";
 import addressCells from "./standardTypes/addressCells";
 import status from "./standardTypes/status";
-import phandel from "./standardTypes/phandel";
+import phandle from "./standardTypes/phandle";
 import model from "./standardTypes/model";
 import name from "./standardTypes/name";
 import interruptMap from "./standardTypes/interruptMap";
@@ -31,7 +31,7 @@ export function getStandardType(node: Node) {
   standardType.properties.push(
     compatible(),
     model(),
-    phandel(),
+    phandle(),
     status(),
     addressCells(),
     sizeCells(),

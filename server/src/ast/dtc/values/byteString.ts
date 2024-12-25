@@ -1,10 +1,10 @@
 import { ASTBase } from "../../base";
 import { SymbolKind } from "vscode-languageserver";
-import { LabledValue } from "./labledValue";
+import { LabeledValue } from "./labeledValue";
 import { NumberValue } from "./number";
 
 export class ByteStringValue extends ASTBase {
-  constructor(public readonly values: LabledValue<NumberValue>[]) {
+  constructor(public readonly values: LabeledValue<NumberValue>[]) {
     super();
     this.docSymbolsMeta = {
       name: "Byte String Value",

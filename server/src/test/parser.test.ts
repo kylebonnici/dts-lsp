@@ -14,7 +14,7 @@ import {
   NodeName,
 } from "../ast/dtc/node";
 import { DtcProperty } from "../ast/dtc/property";
-import { resetTokenizedDocmentProvider } from "../providers/tokenizedDocument";
+import { resetTokenizedDocumentProvider } from "../providers/tokenizedDocument";
 import { LabelRef } from "../ast/dtc/labelRef";
 import { PropertyValues } from "../ast/dtc/values/values";
 import { ArrayValues } from "../ast/dtc/values/arrayValue";
@@ -66,7 +66,7 @@ const mockReadFilesSync = (content: { [path: string]: string }) => {
 
 describe("Parser", () => {
   beforeEach(() => {
-    resetTokenizedDocmentProvider();
+    resetTokenizedDocumentProvider();
   });
 
   describe("Doc version", () => {
@@ -208,7 +208,7 @@ describe("Parser", () => {
       const parser = new Parser("/folder/dts.dts", [], []);
       await parser.stable;
       expect(parser.issues.length).toEqual(1);
-      expect(parser.issues[0].issues).toEqual([SyntaxIssue.NO_STAMENTE]);
+      expect(parser.issues[0].issues).toEqual([SyntaxIssue.NO_STATEMENT]);
       expect(parser.issues[0].astElement.lastToken.pos).toEqual({
         line: 0,
         col: 4,
@@ -445,7 +445,7 @@ describe("Parser", () => {
       await parser.stable;
       expect(parser.issues.length).toEqual(1);
       expect(parser.issues[0].issues).toEqual([
-        SyntaxIssue.PROPETY_MUST_BE_IN_NODE,
+        SyntaxIssue.PROPERTY_MUST_BE_IN_NODE,
       ]);
       expect(parser.issues[0].astElement.firstToken.pos.col).toEqual(0);
       expect(
@@ -1687,7 +1687,7 @@ describe("Parser", () => {
         await parser.stable;
         expect(parser.issues.length).toEqual(1);
         expect(parser.issues[0].issues).toEqual([
-          SyntaxIssue.PROPETY_DELETE_MUST_BE_IN_NODE,
+          SyntaxIssue.PROPERTY_DELETE_MUST_BE_IN_NODE,
         ]);
         expect(parser.issues[0].astElement.firstToken.pos.col).toEqual(0);
         expect(
@@ -1696,7 +1696,7 @@ describe("Parser", () => {
         ).toEqual(24);
       });
 
-      test("missing end forad slash", async () => {
+      test("missing end forward slash", async () => {
         mockReadFileSync("/{/delete-property propName;};");
         const parser = new Parser("/folder/dts.dts", [], []);
         await parser.stable;

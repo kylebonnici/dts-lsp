@@ -18,15 +18,15 @@ import {
 } from "vscode-languageserver";
 import { LabelAssign } from "../ast/dtc/label";
 import { ASTBase } from "../ast/base";
-import { getStandardType } from "../dtsTypes/standrdTypes";
+import { getStandardType } from "../dtsTypes/standardTypes";
 import { DeleteBase } from "../ast/dtc/delete";
 import { LabelRef } from "../ast/dtc/labelRef";
 import { NumberValue } from "../ast/dtc/values/number";
 import { ArrayValues } from "../ast/dtc/values/arrayValue";
 
 export class Node {
-  public referancedBy: DtcRefNode[] = [];
-  public definitons: (DtcChildNode | DtcRootNode)[] = [];
+  public referencedBy: DtcRefNode[] = [];
+  public definitions: (DtcChildNode | DtcRootNode)[] = [];
   private _properties: Property[] = [];
   private _deletedProperties: { property: Property; by: DeleteProperty }[] = [];
   private _deletedNodes: { node: Node; by: DeleteNode }[] = [];
@@ -46,7 +46,7 @@ export class Node {
   }
 
   public getReferenceBy(node: DtcRefNode): Node | undefined {
-    if (this.referancedBy.some((n) => n === node)) {
+    if (this.referencedBy.some((n) => n === node)) {
       return this;
     }
 
@@ -60,7 +60,7 @@ export class Node {
     file: string,
     position: Position
   ): Omit<SearchableResult, "runtime"> | undefined {
-    const inNode = [...this.definitons, ...this.referancedBy].find((i) =>
+    const inNode = [...this.definitions, ...this.referencedBy].find((i) =>
       positionInBetween(i, file, position)
     );
 
@@ -122,9 +122,9 @@ export class Node {
 
   get labels(): LabelAssign[] {
     return [
-      ...this.referancedBy.flatMap((r) => r.labels),
+      ...this.referencedBy.flatMap((r) => r.labels),
       ...(
-        this.definitons.filter(
+        this.definitions.filter(
           (def) => def instanceof DtcChildNode
         ) as DtcChildNode[]
       ).flatMap((def) => def.labels),
@@ -194,10 +194,10 @@ export class Node {
   get deletedNodesIssues(): Issue<ContextIssues>[] {
     return this._deletedNodes.flatMap((meta) => [
       ...[
-        ...(meta.node.definitons.filter(
+        ...(meta.node.definitions.filter(
           (node) => node instanceof DtcChildNode
         ) as DtcChildNode[]),
-        ...meta.node.referancedBy,
+        ...meta.node.referencedBy,
       ].flatMap((node) => ({
         issues: [ContextIssues.DELETE_NODE],
         severity: DiagnosticSeverity.Hint,
@@ -269,21 +269,21 @@ export class Node {
     return this.parent ? this.parent.root : this;
   }
 
-  getAllPhandel(id: number): Node[] {
+  getAllPhandle(id: number): Node[] {
     const phandleValue =
       this.getProperty("phandle")?.ast.values?.values.at(0)?.value;
 
     if (phandleValue instanceof ArrayValues) {
       const value = phandleValue.values[0].value;
       if (value instanceof NumberValue && value.value === id) {
-        return [this, ...this._nodes.flatMap((n) => n.getAllPhandel(id))];
+        return [this, ...this._nodes.flatMap((n) => n.getAllPhandle(id))];
       }
     }
 
-    return this._nodes.flatMap((n) => n.getAllPhandel(id));
+    return this._nodes.flatMap((n) => n.getAllPhandle(id));
   }
 
-  getPhandel(id: number): Node | undefined {
+  getPhandle(id: number): Node | undefined {
     const phandleValue =
       this.getProperty("phandle")?.ast.values?.values.at(0)?.value;
 
@@ -294,7 +294,7 @@ export class Node {
       }
     }
 
-    return this._nodes.flatMap((n) => n.getPhandel(id)).find((n) => !!n);
+    return this._nodes.flatMap((n) => n.getPhandle(id)).find((n) => !!n);
   }
 
   getNode(name: string, address?: number, strict = true) {

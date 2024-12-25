@@ -177,7 +177,7 @@ const syntaxIssueToCodeAction = (
           },
         },
       ];
-    case SyntaxIssue.NO_STAMENTE:
+    case SyntaxIssue.NO_STATEMENT:
       return [
         {
           title: "Remove ';'",
@@ -266,13 +266,6 @@ const syntaxIssueToCodeAction = (
           },
         },
       ];
-    case SyntaxIssue.LABEL_ASSIGN_MISSING_COLON:
-    case SyntaxIssue.MISSING_ROUND_CLOSE:
-    case SyntaxIssue.OPEN_SQUARE:
-    case SyntaxIssue.SQUARE_CLOSE:
-    case SyntaxIssue.LT_SYM:
-    case SyntaxIssue.DUOUBE_QUOTE:
-    case SyntaxIssue.SINGLE_QUOTE:
     default:
       return;
   }

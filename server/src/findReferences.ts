@@ -88,7 +88,7 @@ function getNodeReferances(result: SearchableResult | undefined): Location[] {
     return [
       ...node.linkedRefLabels,
       ...node.linkedNodeNamePaths,
-      ...node.definitons,
+      ...node.definitions,
     ]
       .map((dtc) => {
         if (dtc instanceof DtcChildNode) {

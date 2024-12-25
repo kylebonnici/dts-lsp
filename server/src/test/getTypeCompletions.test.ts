@@ -5,7 +5,7 @@
 
 import fs from "fs";
 import { describe, test, jest, expect } from "@jest/globals";
-import { resetTokenizedDocmentProvider } from "../providers/tokenizedDocument";
+import { resetTokenizedDocumentProvider } from "../providers/tokenizedDocument";
 import { ContextAware } from "../runtimeEvaluator";
 import { getTypeCompletions } from "../getTypeCompletions";
 import {
@@ -30,7 +30,7 @@ const mockReadFileSync = (content: string, path?: string) => {
 };
 describe("Find typed complitions", () => {
   beforeEach(() => {
-    resetTokenizedDocmentProvider();
+    resetTokenizedDocumentProvider();
   });
 
   describe("Properties", () => {

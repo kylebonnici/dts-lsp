@@ -5,7 +5,7 @@ import { NumberValue } from "../../ast/dtc/values/number";
 import { PropertyValue } from "../../ast/dtc/values/value";
 import { Node } from "../../context/node";
 import { Property } from "../../context/property";
-import { PropetyType, TypeConfig } from "../types";
+import { PropertyType, TypeConfig } from "../types";
 
 export const getU32ValueFromProperty = (
   property: Property,
@@ -23,7 +23,7 @@ export const getU32ValueFromProperty = (
   }
 };
 
-export const getInterruptPhandelNode = (
+export const getInterruptPhandleNode = (
   value: PropertyValue | undefined | null,
   root: Node,
   index = 0
@@ -31,7 +31,7 @@ export const getInterruptPhandelNode = (
   if (value?.value instanceof ArrayValues) {
     const linked = value.value.values.at(index);
     if (linked?.value instanceof NumberValue) {
-      return root.getPhandel(linked.value.value);
+      return root.getPhandle(linked.value.value);
     }
     if (linked?.value instanceof LabelRef) {
       return linked.value.linksTo;
@@ -68,7 +68,7 @@ export const getInterruptInfo = (
 };
 
 export const generateOrTypeObj = (
-  type: PropetyType | PropetyType[]
+  type: PropertyType | PropertyType[]
 ): TypeConfig[] => {
   if (Array.isArray(type)) {
     return [{ types: type }];

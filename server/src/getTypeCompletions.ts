@@ -47,7 +47,7 @@ function getPropertyNamesItems(
 
   const getItems = (node: Node) => {
     return node.nodeType.properties
-      .filter((p) => !p.hideAutoComplete && p.required(node) !== "ommited")
+      .filter((p) => !p.hideAutoComplete && p.required(node) !== "omitted")
       .map((p) => {
         const required = node && p.required(node);
         const hasProperty = !!node.properties.some((pp) =>

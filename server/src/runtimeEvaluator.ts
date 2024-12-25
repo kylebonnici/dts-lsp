@@ -238,7 +238,7 @@ export class ContextAware {
 
   private processDtcRootNode(element: DtcRootNode, runtime: Runtime) {
     runtime.roots.push(element);
-    runtime.rootNode.definitons.push(element);
+    runtime.rootNode.definitions.push(element);
     this.checkNodeUniqueNames(element, runtime.rootNode);
     [...element.children]
       .sort((a, b) => {
@@ -270,7 +270,7 @@ export class ContextAware {
       const child =
         runtimeNode ??
         new Node(element.name.name, element.name.address, runtimeNodeParent);
-      child.definitons.push(element);
+      child.definitions.push(element);
 
       runtimeNodeParent = child;
       this.checkNodeUniqueNames(element, child);
@@ -311,14 +311,14 @@ export class ContextAware {
         runtimeNode = runtime.rootNode.getChild(resolvedPath);
         element.labelReferance.linksTo = runtimeNode;
         runtimeNode?.linkedRefLabels.push(element.labelReferance);
-        runtimeNode?.referancedBy.push(element);
+        runtimeNode?.referencedBy.push(element);
 
         element.labels.forEach((label) => {
-          runtime.lablesUsedCache.set(label.label, resolvedPath);
+          runtime.labelsUsedCache.set(label.label, resolvedPath);
         });
 
         if (runtimeNode) {
-          runtime.referances.push(element);
+          runtime.references.push(element);
           this.checkNodeUniqueNames(element, runtimeNode);
         } else {
           runtime.unlinkedRefNodes.push(element);
@@ -386,7 +386,7 @@ export class ContextAware {
           );
 
           nodeToBeDeleted?.labels.forEach((label) => {
-            runtime.lablesUsedCache.delete(label.label);
+            runtime.labelsUsedCache.delete(label.label);
           });
         }
       }
@@ -417,7 +417,7 @@ export class ContextAware {
         element.nodeNameOrRef.linksTo = runtimeNode;
 
         runtimeNode?.labels.forEach((label) => {
-          runtime.lablesUsedCache.delete(label.label);
+          runtime.labelsUsedCache.delete(label.label);
         });
 
         runtimeNode?.linkedRefLabels.push(element.nodeNameOrRef);
@@ -496,7 +496,7 @@ export class ContextAware {
       runtimeNodeParent.deletes.push(element);
 
       runtimeNode?.labels.forEach((label) => {
-        runtime.lablesUsedCache.delete(label.label);
+        runtime.labelsUsedCache.delete(label.label);
       });
 
       runtimeNode?.parent?.deleteNode(

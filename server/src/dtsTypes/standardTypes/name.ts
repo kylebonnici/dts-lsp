@@ -1,5 +1,5 @@
 import { genIssue } from "../../helpers";
-import { PropertyNodeType, PropetyType } from "../types";
+import { PropertyNodeType, PropertyType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 import { StandardTypeIssue } from "../../types";
 import { DiagnosticSeverity } from "vscode-languageserver";
@@ -7,13 +7,13 @@ import { DiagnosticSeverity } from "vscode-languageserver";
 export default () => {
   const prop = new PropertyNodeType(
     "name",
-    generateOrTypeObj(PropetyType.STRING),
+    generateOrTypeObj(PropertyType.STRING),
     "optional",
     undefined,
     [],
     (property) => [
       genIssue(
-        StandardTypeIssue.DEPRICATED,
+        StandardTypeIssue.DEPRECATED,
         property.ast,
         DiagnosticSeverity.Warning,
         [],

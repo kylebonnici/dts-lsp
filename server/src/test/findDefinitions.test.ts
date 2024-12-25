@@ -5,7 +5,7 @@
 
 import fs from "fs";
 import { describe, test, jest, expect } from "@jest/globals";
-import { resetTokenizedDocmentProvider } from "../providers/tokenizedDocument";
+import { resetTokenizedDocumentProvider } from "../providers/tokenizedDocument";
 import { ContextAware } from "../runtimeEvaluator";
 import { getDefinitions } from "../findDefinitons";
 import {
@@ -30,7 +30,7 @@ const mockReadFileSync = (content: string, path?: string) => {
 };
 describe("Find definitions", () => {
   beforeEach(() => {
-    resetTokenizedDocmentProvider();
+    resetTokenizedDocumentProvider();
   });
 
   test("No definition to find", async () => {
