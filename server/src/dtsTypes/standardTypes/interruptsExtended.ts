@@ -80,23 +80,6 @@ export default () => {
           return issues;
         }
 
-        if (!data.interruptControllerProperty) {
-          issues.push(
-            genIssue(
-              StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
-              property.ast,
-              DiagnosticSeverity.Error,
-              [...data.node.definitons],
-              [],
-              [
-                property.name,
-                "interrupt-controller",
-                `/${data.node.path.slice(1).join("/")}`,
-              ]
-            )
-          );
-        }
-
         if (!data.cellsProperty) {
           issues.push(
             genIssue(

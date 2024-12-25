@@ -60,23 +60,6 @@ export default () =>
 
       const interruptCell = getInterruptInfo(parentInterruptNode);
 
-      if (!interruptCell.interruptControllerProperty) {
-        issues.push(
-          genIssue(
-            StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
-            property.ast,
-            DiagnosticSeverity.Error,
-            [...parentInterruptNode.definitons],
-            [],
-            [
-              property.name,
-              "interrupt-controller",
-              `/${parentInterruptNode.path.slice(1).join("/")}`,
-            ]
-          )
-        );
-      }
-
       if (!interruptCell.cellsProperty) {
         issues.push(
           genIssue(

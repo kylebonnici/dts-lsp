@@ -49,10 +49,8 @@ export const getInterruptInfo = (
   node: Node;
   value?: number;
   cellsProperty?: Property;
-  interruptControllerProperty?: Property;
 } => {
   const cellsProperty = node.getProperty("#interrupt-cells");
-  const interruptControllerProperty = node.getProperty("interrupt-controller");
   const cellsValue = cellsProperty?.ast.values?.values.at(0)?.value;
 
   if (cellsValue instanceof ArrayValues) {
@@ -62,7 +60,6 @@ export const getInterruptInfo = (
         cellsProperty,
         node,
         value: value.value,
-        interruptControllerProperty,
       };
     }
   }

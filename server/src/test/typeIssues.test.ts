@@ -779,7 +779,7 @@ describe("Type Issues", () => {
         await context.parser.stable;
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
-        expect(issues.length).toEqual(2);
+        expect(issues.length).toEqual(1);
         expect(issues[0].issues).toEqual([
           StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
         ]);
@@ -788,17 +788,7 @@ describe("Type Issues", () => {
           issues[0].linkedTo[0].lastToken.pos.col +
             issues[0].linkedTo[0].lastToken.pos.len
         ).toEqual(68);
-        expect(issues[0].templateStrings[1]).toEqual("interrupt-controller");
-
-        expect(issues[1].issues).toEqual([
-          StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
-        ]);
-        expect(issues[1].linkedTo[0].firstToken.pos.col).toEqual(49);
-        expect(
-          issues[1].linkedTo[0].lastToken.pos.col +
-            issues[1].linkedTo[0].lastToken.pos.len
-        ).toEqual(68);
-        expect(issues[1].templateStrings[1]).toEqual("#interrupt-cells");
+        expect(issues[0].templateStrings[1]).toEqual("#interrupt-cells");
       });
     });
 
@@ -1026,7 +1016,7 @@ describe("Type Issues", () => {
         await context.parser.stable;
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
-        expect(issues.length).toEqual(2);
+        expect(issues.length).toEqual(1);
         expect(issues[0].issues).toEqual([
           StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
         ]);
@@ -1035,17 +1025,7 @@ describe("Type Issues", () => {
           issues[0].linkedTo[0].lastToken.pos.col +
             issues[0].linkedTo[0].lastToken.pos.len
         ).toEqual(24);
-        expect(issues[0].templateStrings[1]).toEqual("interrupt-controller");
-
-        expect(issues[1].issues).toEqual([
-          StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPETY_IN_NODE,
-        ]);
-        expect(issues[1].linkedTo[0].firstToken.pos.col).toEqual(2);
-        expect(
-          issues[1].linkedTo[0].lastToken.pos.col +
-            issues[1].linkedTo[0].lastToken.pos.len
-        ).toEqual(24);
-        expect(issues[1].templateStrings[1]).toEqual("#interrupt-cells");
+        expect(issues[0].templateStrings[1]).toEqual("#interrupt-cells");
       });
 
       test("Multple interrupts", async () => {
