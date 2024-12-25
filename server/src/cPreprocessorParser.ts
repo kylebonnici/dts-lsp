@@ -82,9 +82,15 @@ export class CPreprocessorParser extends BaseParser {
   }
 
   public async reparse(): Promise<void> {
-    this.reset();
-    this.commentsParser.reparse();
-    this.parsing = this.parse();
+    const stable = this.stable;
+    this.parsing = new Promise<void>((resolve) => {
+      stable.then(() => {
+        this.reset();
+        this.commentsParser.reparse().then(() => {
+          this.parse().then(resolve);
+        });
+      });
+    });
     return this.parsing;
   }
 

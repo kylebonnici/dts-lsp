@@ -411,10 +411,13 @@ const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
   }
 };
 
+const debaunc = new WeakMap<
+  ContextAware,
+  { abort: AbortController; promise: Promise<void> }
+>();
 // // The content of a text document has changed. This event is emitted
 // // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(async (change) => {
-  console.time("revaluate");
   const uri = change.document.uri.replace("file://", "");
 
   getTokenizedDocmentProvider().renewLexer(uri, change.document.getText());
@@ -449,10 +452,23 @@ documents.onDidChangeContent(async (change) => {
     );
     contextAware.push(newContext);
   } else {
-    await context.context.revaluate(uri);
-  }
+    debaunc.get(context.context)?.abort.abort();
+    const abort = new AbortController();
+    const promise = new Promise<void>((resolve) => {
+      setTimeout(async () => {
+        if (abort.signal.aborted) {
+          resolve();
+          return;
+        }
+        const t = performance.now();
+        await context.context.revaluate(uri);
+        resolve();
+        console.log("revaluate", performance.now() - t);
+      });
+    });
 
-  console.timeEnd("revaluate");
+    debaunc.set(context.context, { abort, promise });
+  }
 });
 
 async function getDiagnostics(
@@ -462,7 +478,11 @@ async function getDiagnostics(
   const diagnostics: Diagnostic[] = [];
 
   const contextMeta = await findContext(contextAware, uri);
-  await contextMeta?.context.parser.stable;
+  if (contextMeta) {
+    const d = debaunc.get(contextMeta.context);
+    if (d?.abort.signal.aborted) return [];
+    await d?.promise;
+  }
 
   const parser = await contextMeta?.context.getParser(uri);
   parser?.issues.forEach((issue) => {
@@ -588,6 +608,11 @@ connection.listen();
 connection.onDocumentSymbol(async (h) => {
   const uri = h.textDocument.uri.replace("file://", "");
   const contextMeta = await findContext(contextAware, uri);
+  if (contextMeta) {
+    const d = debaunc.get(contextMeta.context);
+    if (d?.abort.signal.aborted) return [];
+    await d?.promise;
+  }
 
   const data = await contextMeta?.context.getParser(uri);
   if (!data) return [];
@@ -602,12 +627,16 @@ connection.languages.semanticTokens.on(async (h) => {
   const contextMeta = await findContext(contextAware, uri);
 
   const data = await contextMeta?.context.getParser(uri);
-  if (!data) {
-    console.log("no parser for uri found");
-  }
-  console.log("found semanticTokens", uri);
 
-  await data?.stable;
+  if (!data) {
+    return { data: [] };
+  }
+  if (contextMeta) {
+    const d = debaunc.get(contextMeta.context);
+    if (d?.abort.signal.aborted) return { data: [] };
+    await d?.promise;
+  }
+
   data?.buildSemanticTokens(tokensBuilder);
 
   return tokensBuilder.build();
@@ -616,6 +645,11 @@ connection.languages.semanticTokens.on(async (h) => {
 connection.onDocumentLinks(async (event) => {
   const uri = event.textDocument.uri.replace("file://", "");
   const contextMeta = await findContext(contextAware, uri);
+  if (contextMeta) {
+    const d = debaunc.get(contextMeta.context);
+    if (d?.abort.signal.aborted) return [];
+    await d?.promise;
+  }
 
   return contextMeta?.context.getDocumentLinks(uri);
 });
