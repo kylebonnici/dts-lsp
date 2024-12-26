@@ -14,6 +14,7 @@ import { ASTBase } from "../ast/base";
 import { ArrayValues } from "../ast/dtc/values/arrayValue";
 import { LabelRef } from "../ast/dtc/labelRef";
 import { NodePathRef } from "../ast/dtc/values/nodePath";
+import { getNodeNameOrNodeLabelRef } from "../ast/helpers";
 
 export enum PropertyType {
   EMPTY,
@@ -78,7 +79,9 @@ export class PropertyNodeType<T = string | number> implements Validate {
     const required = this.required(node);
     if (!property) {
       if (required === "required") {
-        const orderedTree = runtime.getOrderedNodeAst(node);
+        const childOrRefNode = runtime.getOrderedNodeAst(node);
+        const orderedTree = getNodeNameOrNodeLabelRef(childOrRefNode);
+
         return [
           genIssue<StandardTypeIssue>(
             StandardTypeIssue.REQUIRED,

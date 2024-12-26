@@ -1,6 +1,7 @@
 import { ASTBase } from "./base";
 import { DeleteBase } from "./dtc/delete";
-import { DtcBaseNode } from "./dtc/node";
+import { LabelRef } from "./dtc/labelRef";
+import { DtcBaseNode, DtcChildNode, DtcRefNode, NodeName } from "./dtc/node";
 import { DtcProperty } from "./dtc/property";
 
 export const isDeleteChild = (ast: ASTBase): boolean => {
@@ -25,4 +26,16 @@ export const isPropertyChild = (ast: ASTBase): boolean => {
   }
 
   return ast.parentNode ? isPropertyChild(ast.parentNode) : false;
+};
+
+export const getNodeNameOrNodeLabelRef = (nodes: DtcBaseNode[]) => {
+  const filteredNodes = nodes.filter(
+    (n) => n instanceof DtcChildNode || n instanceof DtcRefNode
+  ) as (DtcChildNode | DtcRefNode)[];
+
+  return [
+    ...filteredNodes.map((n) =>
+      n instanceof DtcChildNode ? n.name : n.labelReference
+    ),
+  ].filter((a) => !!a) as (NodeName | LabelRef)[];
 };

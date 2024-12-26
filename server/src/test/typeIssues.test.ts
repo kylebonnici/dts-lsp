@@ -932,7 +932,7 @@ describe("Type Issues", () => {
         expect(
           issues[0].linkedTo[0].lastToken.pos.col +
             issues[0].linkedTo[0].lastToken.pos.len
-        ).toEqual(24);
+        ).toEqual(7);
         expect(issues[0].templateStrings[1]).toEqual("#interrupt-cells");
       });
 
