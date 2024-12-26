@@ -186,8 +186,7 @@ const formatDtcNode = (
       const nodeNameAndOpenCurlySpacing =
         node.labelReference && node.openScope
           ? fixedNumberOfSpaceBetweenTokensAndNext(
-              node.labelReference.lastToken,
-              0
+              node.labelReference.lastToken
             )
           : [];
       result.push(...nodeNameAndOpenCurlySpacing);
