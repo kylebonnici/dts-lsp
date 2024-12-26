@@ -17,8 +17,8 @@
 import { genIssue } from "../../helpers";
 import { ArrayValues } from "../../ast/dtc/values/arrayValue";
 import { PropertyNodeType, PropertyType } from "../types";
-import { generateOrTypeObj } from "./helpers";
-import { StandardTypeIssue } from "../..//types";
+import { generateOrTypeObj, getU32ValueFromProperty } from "./helpers";
+import { Issue, StandardTypeIssue } from "../../types";
 import { DiagnosticSeverity } from "vscode-languageserver";
 
 export default () =>
@@ -29,22 +29,61 @@ export default () =>
     undefined,
     [],
     (property) => {
+      const issues: Issue<StandardTypeIssue>[] = [];
       const value = property.ast.values?.values.at(0)?.value;
       if (!(value instanceof ArrayValues)) {
         return [];
       }
 
-      return value.values.length % 3 === 0
-        ? []
-        : [
-            genIssue(
-              StandardTypeIssue.EXPECTED_TRIPLETS,
-              property.ast,
-              DiagnosticSeverity.Error,
-              [],
-              [],
-              [property.name]
-            ),
-          ];
+      const sizeCellProperty = property.parent?.getProperty("#size-cells");
+      const childBusAddress = property.parent?.getProperty("#address-cells");
+      const parentdBusAddress =
+        property.parent.parent?.getProperty("#address-cells");
+
+      const sizeCellValue = sizeCellProperty
+        ? getU32ValueFromProperty(sizeCellProperty, 0, 0) ?? 1
+        : 1;
+
+      const childBusAddressValue = childBusAddress
+        ? getU32ValueFromProperty(childBusAddress, 0, 0) ?? 2
+        : 2;
+      const parentdBusAddressValue = parentdBusAddress
+        ? getU32ValueFromProperty(parentdBusAddress, 0, 0) ?? 2
+        : 2;
+
+      if (
+        value.values.length %
+          (childBusAddressValue + parentdBusAddressValue + sizeCellValue) !==
+        0
+      ) {
+        issues.push(
+          genIssue(
+            StandardTypeIssue.CELL_MISS_MATCH,
+            value,
+            DiagnosticSeverity.Error,
+            [],
+            [],
+            [
+              property.name,
+              `<${[
+                ...Array.from(
+                  { length: childBusAddressValue },
+                  () => "child-bus-address"
+                ),
+                ...Array.from(
+                  { length: parentdBusAddressValue },
+                  () => "parent-bus-address"
+                ),
+                ...Array.from(
+                  { length: parentdBusAddressValue },
+                  () => "length"
+                ),
+              ].join(" ")}>`,
+            ]
+          )
+        );
+      }
+
+      return issues;
     }
   );

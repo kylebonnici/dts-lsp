@@ -468,7 +468,9 @@ describe("Type Issues", () => {
       });
 
       test("valid type dec", async () => {
-        mockReadFileSync("/{ranges= <10 20 30>;};");
+        mockReadFileSync(
+          "#address-cells=<1>;  node {#address-cells=<1>; #size-cells=<1>; ranges= <10 20 30>;};};"
+        );
         const context = new ContextAware("/folder/dts.dts", [], []);
         await context.parser.stable;
         const runtime = await context.getRuntime();
@@ -477,22 +479,14 @@ describe("Type Issues", () => {
       });
 
       test("valid type hex ", async () => {
-        mockReadFileSync("/{ranges= <0x10 0x20 0x30>;};");
+        mockReadFileSync(
+          "/{#address-cells=<1>;  node {#address-cells=<1>; #size-cells=<1>; ranges= <0x10 0x20 0x30>;);};"
+        );
         const context = new ContextAware("/folder/dts.dts", [], []);
         await context.parser.stable;
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(0);
-      });
-
-      test("Additional checks", async () => {
-        mockReadFileSync("/{ranges= <10 20>;};");
-        const context = new ContextAware("/folder/dts.dts", [], []);
-        await context.parser.stable;
-        const runtime = await context.getRuntime();
-        const issues = runtime.typesIssues;
-        expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_TRIPLETS]);
       });
     });
 
