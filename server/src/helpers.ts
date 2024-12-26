@@ -231,3 +231,11 @@ export const findContext = async (
     .sort((a) => (a.index === preferredContext ? -1 : 0))
     .find((c) => c.files.some((p) => p === uri));
 };
+
+export const findContexts = async (
+  contextAware: ContextAware[],
+  uri: string
+) => {
+  const contextFiles = await resolveContextFiles(contextAware);
+  return contextFiles.filter((c) => c.files.some((p) => p === uri));
+};

@@ -17,7 +17,7 @@ import {
   type DocumentDiagnosticReport,
   SemanticTokensBuilder,
   CodeActionKind,
-  DidChangeConfigurationRegistrationOptions,
+  WorkspaceDocumentDiagnosticReport,
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -30,7 +30,12 @@ import {
   tokenModifiers,
   tokenTypes,
 } from "./types";
-import { findContext, toRange } from "./helpers";
+import {
+  findContext,
+  findContexts,
+  resolveContextFiles,
+  toRange,
+} from "./helpers";
 import { ContextAware } from "./runtimeEvaluator";
 import { getCompletions } from "./getCompletions";
 import { getReferences } from "./findReferences";
@@ -43,6 +48,89 @@ import { getTypeCompletions } from "./getTypeCompletions";
 import { getHover } from "./getHover";
 
 let contextAware: ContextAware[] = [];
+let activeContext: Promise<ContextAware | undefined>;
+let activeFileUri: string | undefined;
+
+const getAdhocContexts = (settings: Settings) => {
+  return contextAware.filter((c) => {
+    const settingContext = settings.contexts.find(
+      (sc) => sc.dtsFile === c.parser.uri
+    );
+
+    return (
+      !settingContext ||
+      !settingContext.overlays.every((o) => c.overlays.some((oo) => oo === o))
+    );
+  });
+};
+
+const getConfiguredContexts = (settings: Settings) => {
+  return contextAware.filter((c) => {
+    const settingContext = settings.contexts.find(
+      (sc) => sc.dtsFile === c.parser.uri
+    );
+
+    return (
+      !!settingContext &&
+      settingContext.overlays.every((o) => c.overlays.some((oo) => oo === o))
+    );
+  });
+};
+
+const contextFullyOverlaps = async (a: ContextAware, b: ContextAware) => {
+  if (a === b) {
+    return true;
+  }
+
+  const contextAFiles = await a.getOrderedContextFiles();
+  const contextBFiles = await b.getOrderedContextFiles();
+
+  return contextAFiles.every((f) => contextBFiles.some((ff) => ff === f));
+};
+
+const cleanUpAdhocContext = async (context: ContextAware) => {
+  const adhocContexts = getAdhocContexts(globalSettings);
+  const configContexts = await getConfiguredContexts(globalSettings);
+  const adhocContextFiles = await resolveContextFiles(adhocContexts);
+  const contextFiles = await context.getOrderedContextFiles();
+
+  if (contextAware.indexOf(context) === -1) {
+    return;
+  }
+
+  const sameChart = await Promise.all(
+    adhocContextFiles.flatMap((ac) => {
+      return [
+        ...configContexts,
+        ...adhocContexts.filter((a) => a !== ac.context),
+      ].map(async (cc) => ({
+        context: ac.context,
+        same: await contextFullyOverlaps(ac.context, cc),
+      }));
+    })
+  );
+
+  const contextToClean = adhocContextFiles
+    .filter(
+      (o) =>
+        sameChart.some((r) => r.context === o.context && r.same) ||
+        (o.context !== context &&
+          o.context.parser.uri === context.parser.uri &&
+          contextFiles.some((f) => o.files.indexOf(f) !== -1))
+    )
+    .map((o) => o.context);
+
+  if (contextToClean.length) {
+    contextToClean.forEach((c) => {
+      console.log(
+        `cleaning up context with id ${contextAware.indexOf(c)} and uri ${
+          c.parser.uri
+        }`
+      );
+    });
+    contextAware = contextAware.filter((c) => contextToClean.indexOf(c) === -1);
+  }
+};
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -76,7 +164,7 @@ connection.onInitialize((params: InitializeParams) => {
       },
       diagnosticProvider: {
         interFileDependencies: true,
-        workspaceDiagnostics: false,
+        workspaceDiagnostics: true,
       },
       codeActionProvider: {
         codeActionKinds: [CodeActionKind.QuickFix, CodeActionKind.SourceFixAll],
@@ -111,12 +199,8 @@ connection.onInitialize((params: InitializeParams) => {
 
 connection.onInitialized(() => {
   if (hasConfigurationCapability) {
-    const a: DidChangeConfigurationRegistrationOptions = {};
     // Register for all configuration changes.
-    connection.client.register(
-      DidChangeConfigurationNotification.type,
-      undefined
-    );
+    connection.client.register(DidChangeConfigurationNotification.type, {});
   }
   if (hasWorkspaceFolderCapability) {
     connection.workspace.onDidChangeWorkspaceFolders((_event) => {
@@ -150,37 +234,47 @@ let globalSettings: Settings = defaultSettings;
 const documentSettings: Map<string, Thenable<Settings>> = new Map();
 
 connection.onDidChangeConfiguration((change) => {
+  console.log("onDidChangeConfiguration");
   if (hasConfigurationCapability) {
     // Reset all cached document settings
     documentSettings.clear();
   }
 
+  const oldSettngs = globalSettings;
+
   globalSettings = <Settings>{
     ...defaultSettings,
-    ...change.settings.deviceTree,
+    ...change.settings?.deviceTree,
   };
 
-  const adhocContext = contextAware.filter(
-    (c) =>
-      c.overlays.length === 0 &&
-      !globalSettings.contexts.some((cc) => cc.dtsFile === c.parser.uri)
-  );
+  let adhocContexts = getAdhocContexts(oldSettngs);
+
   contextAware = [];
-  globalSettings.contexts.forEach((context) => {
+  globalSettings.contexts.forEach((context, i) => {
     const newContext = new ContextAware(
       context.dtsFile,
       context.includePaths ?? globalSettings.defaultIncludePaths,
       context.overlays
     );
     contextAware.push(newContext);
+    console.log(`New context with id ${i} for ${context.dtsFile}`);
   });
 
   contextAware = [
     ...contextAware,
-    ...adhocContext.map(
-      (c) => new ContextAware(c.parser.uri, globalSettings.defaultIncludePaths)
-    ),
+    ...adhocContexts.map((c, i) => {
+      console.log(
+        `New context with id ${i + contextAware.length} for ${c.parser.uri}`
+      );
+      return new ContextAware(c.parser.uri, globalSettings.defaultIncludePaths);
+    }),
   ];
+
+  adhocContexts = getAdhocContexts(globalSettings);
+  adhocContexts.forEach(cleanUpAdhocContext);
+  if (activeFileUri) {
+    updateActiveContext(activeFileUri);
+  }
 
   connection.languages.diagnostics.refresh();
 });
@@ -191,9 +285,12 @@ documents.onDidClose((e) => {
 });
 
 connection.languages.diagnostics.on(async (params) => {
+  const uri = params.textDocument.uri.replace("file://", "");
+  const context = await activeContext;
+
   return {
     kind: DocumentDiagnosticReportKind.Full,
-    items: await getDiagnostics(params.textDocument.uri),
+    items: context ? await getDiagnostics(context, uri) : [],
   } satisfies DocumentDiagnosticReport;
 });
 
@@ -399,6 +496,8 @@ const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
       return "Ignored reason";
     case StandardTypeIssue.EXPECTED_UNIQUE_PHANDLE:
       return "Conflicting Properties";
+    case StandardTypeIssue.EXPECTED_ONE:
+      return "Additional value";
     default:
       return `TODO`;
   }
@@ -408,6 +507,7 @@ const debounce = new WeakMap<
   ContextAware,
   { abort: AbortController; promise: Promise<void> }
 >();
+
 // // The content of a text document has changed. This event is emitted
 // // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(async (change) => {
@@ -415,57 +515,104 @@ documents.onDidChangeContent(async (change) => {
 
   getTokenizedDocumentProvider().renewLexer(uri, change.document.getText());
 
-  const context = await findContext(
-    contextAware,
-    uri,
-    globalSettings.preferredContext
-  );
+  const contexts = await findContexts(contextAware, uri);
 
-  if (!context) {
-    console.log("new adhoc context");
+  if (!contexts.length) {
     const newContext = new ContextAware(
       uri,
       globalSettings.defaultIncludePaths
     );
+    console.log(`New adhoc context with id ${contextAware.length} for ${uri}`);
     contextAware.push(newContext);
     await newContext.parser.stable;
+    cleanUpAdhocContext(newContext);
+    updateActiveContext(uri);
   } else {
-    debounce.get(context.context)?.abort.abort();
-    const abort = new AbortController();
-    const promise = new Promise<void>((resolve) => {
-      setTimeout(async () => {
-        if (abort.signal.aborted) {
+    contexts.forEach((context) => {
+      debounce.get(context.context)?.abort.abort();
+      const abort = new AbortController();
+      const promise = new Promise<void>((resolve) => {
+        setTimeout(async () => {
+          if (abort.signal.aborted) {
+            resolve();
+            return;
+          }
+          const t = performance.now();
+          await context.context.revaluate(uri);
           resolve();
-          return;
-        }
-        const t = performance.now();
-        await context.context.revaluate(uri);
-        resolve();
-        console.log("revaluate", performance.now() - t);
+          console.log("revaluate", performance.now() - t);
+        });
       });
-    });
 
-    debounce.set(context.context, { abort, promise });
+      debounce.set(context.context, { abort, promise });
+    });
   }
 });
 
-async function getDiagnostics(uri: string): Promise<Diagnostic[]> {
-  uri = uri.replace("file://", "");
-  console.log("getDiagnostics", uri);
-  const diagnostics: Diagnostic[] = [];
+connection.languages.diagnostics.onWorkspace(async () => {
+  const context = await activeContext;
+  if (!context) {
+    return {
+      items: [],
+    };
+  }
 
-  const contextMeta = await findContext(
-    contextAware,
-    uri,
-    globalSettings.preferredContext
-  );
-  if (contextMeta) {
-    const d = debounce.get(contextMeta.context);
-    if (d?.abort.signal.aborted) return [];
+  if (context) {
+    const d = debounce.get(context);
+    if (d?.abort.signal.aborted)
+      return {
+        items: [],
+      };
     await d?.promise;
   }
 
-  const parser = await contextMeta?.context.getParser(uri);
+  const orderedParsers = await context.getOrderedParsers();
+  const activeContextItems = await Promise.all(
+    orderedParsers.map(async (parser) => {
+      const items = await getDiagnostics(context, parser.uri);
+      return {
+        uri: `file://${parser.uri}`,
+        kind: DocumentDiagnosticReportKind.Full,
+        items,
+        version: documents.get(`file://${parser.uri}`)?.version ?? null,
+      } satisfies WorkspaceDocumentDiagnosticReport;
+    })
+  );
+
+  const otherContextItems = await Promise.all(
+    contextAware
+      .filter((c) => c !== context)
+      .flatMap(async (c) => {
+        const orderedParsers = await c.getOrderedParsers();
+        return await Promise.all(
+          orderedParsers.flatMap(async (parser) => {
+            return {
+              uri: `file://${parser.uri}`,
+              kind: DocumentDiagnosticReportKind.Full,
+              items: [],
+              version: documents.get(`file://${parser.uri}`)?.version ?? null,
+            } satisfies WorkspaceDocumentDiagnosticReport;
+          })
+        );
+      })
+  );
+
+  return {
+    items: [...activeContextItems, ...otherContextItems.flat()],
+  };
+});
+
+async function getDiagnostics(
+  context: ContextAware,
+  uri: string
+): Promise<Diagnostic[]> {
+  const diagnostics: Diagnostic[] = [];
+
+  const d = debounce.get(context);
+  if (d?.abort.signal.aborted) return [];
+  await d?.promise;
+
+  const parser = await context.getParser(uri);
   parser?.issues.forEach((issue) => {
     const diagnostic: Diagnostic = {
       severity: issue.severity,
@@ -491,7 +638,7 @@ async function getDiagnostics(uri: string): Promise<Diagnostic[]> {
     diagnostics.push(diagnostic);
   });
 
-  const contextIssues = (await contextMeta?.context.getContextIssues()) ?? [];
+  const contextIssues = (await context.getContextIssues()) ?? [];
   contextIssues
     .filter((issue) => issue.astElement.uri === uri)
     .forEach((issue) => {
@@ -516,7 +663,7 @@ async function getDiagnostics(uri: string): Promise<Diagnostic[]> {
       diagnostics.push(diagnostic);
     });
 
-  const runtime = await contextMeta?.context.getRuntime();
+  const runtime = await context.getRuntime();
   runtime?.typesIssues
     .filter((issue) => issue.astElement.uri === uri)
     .forEach((issue) => {
@@ -594,20 +741,39 @@ documents.listen(connection);
 // Listen on the connection
 connection.listen();
 
-connection.onDocumentSymbol(async (h) => {
-  const uri = h.textDocument.uri.replace("file://", "");
-  const contextMeta = await findContext(
+const updateActiveContext = async (uri: string) => {
+  activeFileUri = uri;
+  const oldContext = await activeContext;
+  activeContext = findContext(
     contextAware,
     uri,
     globalSettings.preferredContext
-  );
-  if (contextMeta) {
-    const d = debounce.get(contextMeta.context);
+  ).then((r) => r?.context);
+
+  const context = await activeContext;
+  if (oldContext !== context) {
+    console.log(
+      `(id: ${context ? contextAware.indexOf(context) : -1}) activeContext:`,
+      context?.parser.uri
+    );
+    contextAware.forEach((c, i) => {
+      console.log(`Context with id ${i} for ${c.parser.uri}`);
+    });
+  }
+};
+
+connection.onDocumentSymbol(async (h) => {
+  const uri = h.textDocument.uri.replace("file://", "");
+  updateActiveContext(uri);
+
+  const context = await activeContext;
+  if (context) {
+    const d = debounce.get(context);
     if (d?.abort.signal.aborted) return [];
     await d?.promise;
   }
 
-  const data = await contextMeta?.context.getParser(uri);
+  const data = await context?.getParser(uri);
   if (!data) return [];
   return data.getDocumentSymbols();
 });
