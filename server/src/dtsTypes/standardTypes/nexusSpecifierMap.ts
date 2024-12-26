@@ -41,7 +41,7 @@ export default () => {
               StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
               property.ast,
               DiagnosticSeverity.Error,
-              [...node.definitions],
+              [...node.nodeNameOrLabelRef],
               [],
               [
                 property.name,
@@ -124,7 +124,7 @@ export default () => {
                 StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
                 values.value.values[i],
                 DiagnosticSeverity.Error,
-                [...specifierParent.definitions],
+                [...specifierParent.nodeNameOrLabelRef],
                 [],
                 [
                   property.name,

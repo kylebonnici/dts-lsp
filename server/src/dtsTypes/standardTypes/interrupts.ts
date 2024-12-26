@@ -36,7 +36,7 @@ export default () =>
               StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
               property.ast,
               DiagnosticSeverity.Error,
-              [...property.parent.definitions],
+              [...property.parent.nodeNameOrLabelRef],
               [],
               [
                 property.name,

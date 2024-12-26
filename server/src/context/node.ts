@@ -23,6 +23,7 @@ import { DeleteBase } from "../ast/dtc/delete";
 import { LabelRef } from "../ast/dtc/labelRef";
 import { NumberValue } from "../ast/dtc/values/number";
 import { ArrayValues } from "../ast/dtc/values/arrayValue";
+import { getNodeNameOrNodeLabelRef } from "src/ast/helpers";
 
 export class Node {
   public referencedBy: DtcRefNode[] = [];
@@ -53,6 +54,13 @@ export class Node {
     return [...this._nodes, ...this._deletedNodes.map((n) => n.node)]
       .map((n) => n.getReferenceBy(node))
       .find((n) => n);
+  }
+
+  get nodeNameOrLabelRef(): (NodeName | LabelRef)[] {
+    return getNodeNameOrNodeLabelRef([
+      ...this.definitions,
+      ...this.referencedBy,
+    ]);
   }
 
   getDeepestAstNode(
