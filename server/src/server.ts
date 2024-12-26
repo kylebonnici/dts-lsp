@@ -489,6 +489,8 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
           return `INTRO expects ${issue.templateStrings[1]} interrupts cells`;
         case StandardTypeIssue.MAP_ENTRY_INCOMPLETE:
           return `INTRO should have format ${issue.templateStrings[1]}`;
+        case StandardTypeIssue.NODE_DISABLED:
+          return "Node is diabled";
       }
     })
     .join(" or ")

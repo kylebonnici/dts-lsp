@@ -54,6 +54,7 @@ export enum StandardTypeIssue {
   EXPECTED_UNIQUE_PHANDLE,
   CELL_MISS_MATCH,
   MAP_ENTRY_INCOMPLETE,
+  NODE_DISABLED,
 }
 
 export enum SyntaxIssue {

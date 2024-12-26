@@ -23,6 +23,7 @@ import {
   CompletionItem,
   CompletionItemKind,
   DiagnosticSeverity,
+  DiagnosticTag,
 } from "vscode-languageserver";
 import { PropertyValue } from "../ast/dtc/values/value";
 import { StringValue } from "../ast/dtc/values/string";
@@ -376,6 +377,28 @@ export class NodeType {
   constructor(private node: Node) {}
 
   getIssue(runtime: Runtime) {
-    return this.properties.flatMap((p) => p.validate(runtime, this.node));
+    const issue: Issue<StandardTypeIssue>[] = [];
+    const value = this.node
+      .getProperty("status")
+      ?.ast.values?.values.at(0)?.value;
+    if (value instanceof StringValue) {
+      if (value.value.slice(1, -1) === "disabled") {
+        [...this.node.definitions, ...this.node.referencedBy].forEach((n) =>
+          issue.push(
+            genIssue(
+              StandardTypeIssue.NODE_DISABLED,
+              n,
+              DiagnosticSeverity.Hint,
+              [],
+              [DiagnosticTag.Unnecessary]
+            )
+          )
+        );
+      }
+    }
+    return [
+      ...issue,
+      ...this.properties.flatMap((p) => p.validate(runtime, this.node)),
+    ];
   }
 }
