@@ -109,7 +109,10 @@ export const genIssue = <T extends IssueTypes>(
   templateStrings,
 });
 
-export const sortAstForScope = (ast: ASTBase[], fileOrder: string[]) => {
+export const sortAstForScope = <T extends ASTBase>(
+  ast: T[],
+  fileOrder: string[]
+) => {
   const arrayCopy = [...ast];
   return arrayCopy.sort((a, b) => {
     const aFileIndex = fileOrder.findIndex((f) => a.uri);
