@@ -38,9 +38,13 @@ function getNode(result: SearchableResult | undefined): Hover | undefined {
 
 export function getHover(
   hoverParams: HoverParams,
-  context: ContextAware[]
+  context: ContextAware[],
+  preferredContext?: number
 ): Promise<(Hover | undefined)[]> {
-  return nodeFinder<Hover | undefined>(hoverParams, context, (locationMeta) => [
-    getNode(locationMeta),
-  ]);
+  return nodeFinder<Hover | undefined>(
+    hoverParams,
+    context,
+    (locationMeta) => [getNode(locationMeta)],
+    preferredContext
+  );
 }

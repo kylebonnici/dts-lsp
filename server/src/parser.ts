@@ -51,14 +51,12 @@ export class Parser extends BaseParser {
   constructor(
     public readonly uri: string,
     private incudes: string[],
-    private common: string[],
     macros: Map<string, CMacro> = new Map<string, CMacro>()
   ) {
     super();
     this.cPreprocessorParser = new CPreprocessorParser(
       this.uri,
       this.incudes,
-      this.common,
       macros
     );
     this.rootDocument.uri = uri;

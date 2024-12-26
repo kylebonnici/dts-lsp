@@ -77,10 +77,16 @@ function getPropertyNamesItems(
 
 export async function getTypeCompletions(
   location: TextDocumentPositionParams,
-  context: ContextAware[]
+  context: ContextAware[],
+  preferredContext?: number
 ): Promise<CompletionItem[]> {
-  return nodeFinder(location, context, (locationMeta) => [
-    ...getPropertyAssignItems(locationMeta),
-    ...getPropertyNamesItems(locationMeta),
-  ]);
+  return nodeFinder(
+    location,
+    context,
+    (locationMeta) => [
+      ...getPropertyAssignItems(locationMeta),
+      ...getPropertyNamesItems(locationMeta),
+    ],
+    preferredContext
+  );
 }

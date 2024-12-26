@@ -94,11 +94,18 @@ function getNodeDeclaration(
 
 export async function getDeclaration(
   location: TextDocumentPositionParams,
-  contexts: ContextAware[]
+  contexts: ContextAware[],
+  preferredContext?: number
 ): Promise<Location | undefined> {
   return (
-    await nodeFinder(location, contexts, (locationMeta) => [
-      getNodeDeclaration(locationMeta) || getPropertyDeclaration(locationMeta),
-    ])
+    await nodeFinder(
+      location,
+      contexts,
+      (locationMeta) => [
+        getNodeDeclaration(locationMeta) ||
+          getPropertyDeclaration(locationMeta),
+      ],
+      preferredContext
+    )
   ).at(0);
 }

@@ -18,6 +18,7 @@ import {
   SemanticTokensBuilder,
   CodeActionKind,
   MarkupKind,
+  DidChangeConfigurationRegistrationOptions,
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -30,7 +31,7 @@ import {
   tokenModifiers,
   tokenTypes,
 } from "./types";
-import { findContext, resolveContextFiles, toRange } from "./helpers";
+import { findContext, toRange } from "./helpers";
 import { ContextAware } from "./runtimeEvaluator";
 import { getCompletions } from "./getCompletions";
 import { getReferences } from "./findReferences";
@@ -38,11 +39,11 @@ import { getTokenizedDocumentProvider } from "./providers/tokenizedDocument";
 import { getDefinitions } from "./findDefinitons";
 import { getDeclaration } from "./findDeclarations";
 import { getCodeActions } from "./getCodeActions";
-import { getDocumentFormating as getDocumentFormatting } from "./getDocumentFormatting";
+import { getDocumentFormatting as getDocumentFormatting } from "./getDocumentFormatting";
 import { getTypeCompletions } from "./getTypeCompletions";
 import { getHover } from "./getHover";
 
-const contextAware: ContextAware[] = [];
+let contextAware: ContextAware[] = [];
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -51,9 +52,8 @@ const connection = createConnection(ProposedFeatures.all);
 // Create a simple text document manager.
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
-let hasConfigurationCapability = false;
+let hasConfigurationCapability = true;
 let hasWorkspaceFolderCapability = false;
-let hasDiagnosticRelatedInformationCapability = false;
 
 connection.onInitialize((params: InitializeParams) => {
   const capabilities = params.capabilities;
@@ -65,11 +65,6 @@ connection.onInitialize((params: InitializeParams) => {
   );
   hasWorkspaceFolderCapability = !!(
     capabilities.workspace && !!capabilities.workspace.workspaceFolders
-  );
-  hasDiagnosticRelatedInformationCapability = !!(
-    capabilities.textDocument &&
-    capabilities.textDocument.publishDiagnostics &&
-    capabilities.textDocument.publishDiagnostics.relatedInformation
   );
 
   const result: InitializeResult = {
@@ -117,6 +112,7 @@ connection.onInitialize((params: InitializeParams) => {
 
 connection.onInitialized(() => {
   if (hasConfigurationCapability) {
+    const a: DidChangeConfigurationRegistrationOptions = {};
     // Register for all configuration changes.
     connection.client.register(
       DidChangeConfigurationNotification.type,
@@ -130,43 +126,51 @@ connection.onInitialized(() => {
   }
 });
 
+interface Context {
+  includePaths?: string[];
+  dtsFile: string;
+  overlays: string[];
+}
 // The example settings
-interface ExampleSettings {
-  includePath: string[];
-  common: string[];
+interface Settings {
+  includePaths: string[];
+  contexts: Context[];
+  preferredContext?: number;
 }
 
 // The global settings, used when the `workspace/configuration` request is not supported by the client.
 // Please note that this is not the case when using this server with the client provided in this example
 // but could happen with other clients.
-const defaultSettings: ExampleSettings = {
-  includePath: [
-    "/opt/nordic/ncs/v2.9.0/zephyr/dts",
-    "/opt/nordic/ncs/v2.9.0/zephyr/dts/arm",
-    "/opt/nordic/ncs/v2.9.0/zephyr/dts/arm64/",
-    "/opt/nordic/ncs/v2.9.0/zephyr/dts/riscv",
-    "/opt/nordic/ncs/v2.9.0/zephyr/dts/common",
-    "/opt/nordic/ncs/v2.9.0/zephyr/include",
-  ],
-  common: ["/opt/nordic/ncs/v2.9.0/zephyr/dts/common"],
+const defaultSettings: Settings = {
+  includePaths: [],
+  contexts: [],
 };
-let globalSettings: ExampleSettings = defaultSettings;
+let globalSettings: Settings = defaultSettings;
 
 // Cache the settings of all open documents
-const documentSettings: Map<string, Thenable<ExampleSettings>> = new Map();
+const documentSettings: Map<string, Thenable<Settings>> = new Map();
 
 connection.onDidChangeConfiguration((change) => {
   if (hasConfigurationCapability) {
     // Reset all cached document settings
     documentSettings.clear();
-  } else {
-    globalSettings = <ExampleSettings>(
-      (change.settings.languageServerExample || defaultSettings)
-    );
   }
-  // Refresh the diagnostics since the `maxNumberOfProblems` could have changed.
-  // We could optimize things here and re-fetch the setting first can compare it
-  // to the existing setting, but this is out of scope for this example.
+
+  globalSettings = <Settings>{
+    ...defaultSettings,
+    ...change.settings.deviceTree,
+  };
+
+  contextAware = [];
+  globalSettings.contexts.forEach((context) => {
+    const newContext = new ContextAware(
+      context.dtsFile,
+      context.includePaths ?? change.settings.includePaths,
+      context.overlays
+    );
+    contextAware.push(newContext);
+  });
+
   connection.languages.diagnostics.refresh();
 });
 
@@ -410,35 +414,19 @@ documents.onDidChangeContent(async (change) => {
 
   getTokenizedDocumentProvider().renewLexer(uri, change.document.getText());
 
-  const context = await findContext(contextAware, uri);
+  const context = await findContext(
+    contextAware,
+    uri,
+    globalSettings.preferredContext
+  );
+
+  console.log(globalSettings);
 
   if (!context) {
-    console.log("new context");
-
-    const newContext = new ContextAware(
-      uri,
-      defaultSettings.includePath,
-      defaultSettings.common
-    );
+    console.log("new adhoc context");
+    const newContext = new ContextAware(uri, defaultSettings.includePaths);
     contextAware.push(newContext);
-
     await newContext.parser.stable;
-    const newContextFiles = await newContext.getOrderedContextFiles();
-    const contextFiles = await resolveContextFiles(contextAware);
-    const contextToClean = contextFiles
-      .filter(
-        (o) =>
-          o.context !== newContext &&
-          newContextFiles.some((f) => o.files.indexOf(f) !== -1)
-      )
-      .map((o) => o.context);
-    contextAware = contextAware.filter((c) => contextToClean.indexOf(c) === -1);
-    console.log(
-      "cleanin up contexts",
-      contextToClean.length,
-      contextAware.length
-    );
-    contextAware.push(newContext);
   } else {
     debounce.get(context.context)?.abort.abort();
     const abort = new AbortController();
@@ -465,7 +453,11 @@ async function getDiagnostics(
   const uri = textDocument.uri.replace("file://", "");
   const diagnostics: Diagnostic[] = [];
 
-  const contextMeta = await findContext(contextAware, uri);
+  const contextMeta = await findContext(
+    contextAware,
+    uri,
+    globalSettings.preferredContext
+  );
   if (contextMeta) {
     const d = debounce.get(contextMeta.context);
     if (d?.abort.signal.aborted) return [];
@@ -564,8 +556,16 @@ connection.onCompletion(
     // info and always provide the same completion items.
     if (contextAware) {
       return [
-        ...(await getCompletions(_textDocumentPosition, contextAware)),
-        ...(await getTypeCompletions(_textDocumentPosition, contextAware)),
+        ...(await getCompletions(
+          _textDocumentPosition,
+          contextAware,
+          globalSettings.preferredContext
+        )),
+        ...(await getTypeCompletions(
+          _textDocumentPosition,
+          contextAware,
+          globalSettings.preferredContext
+        )),
       ];
     }
 
@@ -595,7 +595,11 @@ connection.listen();
 
 connection.onDocumentSymbol(async (h) => {
   const uri = h.textDocument.uri.replace("file://", "");
-  const contextMeta = await findContext(contextAware, uri);
+  const contextMeta = await findContext(
+    contextAware,
+    uri,
+    globalSettings.preferredContext
+  );
   if (contextMeta) {
     const d = debounce.get(contextMeta.context);
     if (d?.abort.signal.aborted) return [];
@@ -612,7 +616,11 @@ connection.languages.semanticTokens.on(async (h) => {
 
   const tokensBuilder = new SemanticTokensBuilder();
 
-  const contextMeta = await findContext(contextAware, uri);
+  const contextMeta = await findContext(
+    contextAware,
+    uri,
+    globalSettings.preferredContext
+  );
 
   const data = await contextMeta?.context.getParser(uri);
 
@@ -632,7 +640,11 @@ connection.languages.semanticTokens.on(async (h) => {
 
 connection.onDocumentLinks(async (event) => {
   const uri = event.textDocument.uri.replace("file://", "");
-  const contextMeta = await findContext(contextAware, uri);
+  const contextMeta = await findContext(
+    contextAware,
+    uri,
+    globalSettings.preferredContext
+  );
   if (contextMeta) {
     const d = debounce.get(contextMeta.context);
     if (d?.abort.signal.aborted) return [];
@@ -643,15 +655,15 @@ connection.onDocumentLinks(async (event) => {
 });
 
 connection.onReferences(async (event) => {
-  return getReferences(event, contextAware);
+  return getReferences(event, contextAware, globalSettings.preferredContext);
 });
 
 connection.onDefinition(async (event) => {
-  return getDefinitions(event, contextAware);
+  return getDefinitions(event, contextAware, globalSettings.preferredContext);
 });
 
 connection.onDeclaration(async (event) => {
-  return getDeclaration(event, contextAware);
+  return getDeclaration(event, contextAware, globalSettings.preferredContext);
 });
 
 connection.onCodeAction((event) => {
@@ -663,5 +675,7 @@ connection.onDocumentFormatting((event) => {
 });
 
 connection.onHover(async (event) => {
-  return (await getHover(event, contextAware)).at(0);
+  return (
+    await getHover(event, contextAware, globalSettings.preferredContext)
+  ).at(0);
 });

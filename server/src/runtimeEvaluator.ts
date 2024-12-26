@@ -23,23 +23,33 @@ export class ContextAware {
   _issues: Issue<ContextIssues>[] = [];
   private _runtime?: Runtime;
   public parser: Parser;
+  private overlayParsers: Parser[];
 
-  constructor(uri: string, includePath: string[], common: string[]) {
-    this.parser = new Parser(uri, includePath, common);
+  constructor(uri: string, includePaths: string[], overlays?: string[]) {
+    this.parser = new Parser(uri, includePaths);
+    this.overlayParsers =
+      overlays?.map((overlay) => new Parser(overlay, includePaths)) ?? [];
   }
 
   async getContextIssues() {
     return [...(await this.getRuntime()).issues, ...this._issues];
   }
 
+  private async stable() {
+    await Promise.all([
+      this.parser.stable,
+      ...this.overlayParsers.map((p) => p.stable),
+    ]);
+  }
+
   async getRuntime(): Promise<Runtime> {
-    await this.parser.stable;
+    this.stable();
     return this._runtime ?? this.revaluate();
   }
 
   async getOrderedParsers(): Promise<Parser[]> {
-    await this.parser.stable;
-    return this.parser.orderedParsers;
+    await this.stable();
+    return [...this.parser.orderedParsers, ...this.overlayParsers.reverse()];
   }
 
   async getParser(uri: string): Promise<Parser | undefined> {
@@ -68,7 +78,7 @@ export class ContextAware {
     return (await this.getOrderedParsers()).map((f) => f.uri);
   }
 
-  private linkPropertiesLablesAndNodePaths(runtime: Runtime) {
+  private linkPropertiesLabelsAndNodePaths(runtime: Runtime) {
     const getAllProperties = (node: Node): Property[] => {
       return [...node.properties, ...node.nodes.flatMap(getAllProperties)];
     };
@@ -152,7 +162,7 @@ export class ContextAware {
     this._issues = [];
 
     parsers.forEach((parser) => this.processRoot(parser.rootDocument, runtime));
-    this.linkPropertiesLablesAndNodePaths(runtime);
+    this.linkPropertiesLabelsAndNodePaths(runtime);
 
     this._runtime = runtime;
     return runtime;

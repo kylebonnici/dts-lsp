@@ -36,11 +36,10 @@ export class CPreprocessorParser extends BaseParser {
   private nodes: ASTBase[] = [];
   private macroSnapShot: Map<string, CMacro> = new Map<string, CMacro>();
 
-  // tokens must be filtered out from commnets by now
+  // tokens must be filtered out from comments by now
   constructor(
     public readonly uri: string,
     private incudes: string[],
-    private common: string[],
     public macros: Map<string, CMacro> = new Map<string, CMacro>()
   ) {
     super();
@@ -64,7 +63,7 @@ export class CPreprocessorParser extends BaseParser {
     if (include.path.relative) {
       return [
         resolve(dirname(this.uri), include.path.path),
-        ...this.common.map((c) => resolve(c, include.path.path)),
+        ...this.incudes.map((c) => resolve(c, include.path.path)),
       ].find((p) => existsSync(p));
     } else {
       return this.incudes
@@ -170,7 +169,7 @@ export class CPreprocessorParser extends BaseParser {
 
     const keyword = new Keyword(createTokenIndex(token));
 
-    const definition = this.isFuntionDefinition() || this.processCIdentifier();
+    const definition = this.isFunctionDefinition() || this.processCIdentifier();
     if (!definition) {
       this.issues.push(
         genIssue(SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE, keyword)
@@ -179,12 +178,12 @@ export class CPreprocessorParser extends BaseParser {
       return true;
     }
 
-    const defninitionContent = this.consumeDefinitionContent();
+    const definitionContent = this.consumeDefinitionContent();
     let content: CMacroContent | undefined;
-    if (defninitionContent.length) {
+    if (definitionContent.length) {
       content = new CMacroContent(
-        createTokenIndex(defninitionContent[0], defninitionContent.at(-1)),
-        defninitionContent
+        createTokenIndex(definitionContent[0], definitionContent.at(-1)),
+        definitionContent
       );
     }
     const macro = new CMacro(keyword, definition, content);
@@ -280,12 +279,7 @@ export class CPreprocessorParser extends BaseParser {
     const resolvedPath = this.resolveInclude(node);
     if (resolvedPath && !resolvedPath.endsWith(".h")) {
       getTokenizedDocumentProvider().requestTokens(resolvedPath, true);
-      const childParser = new Parser(
-        resolvedPath,
-        this.incudes,
-        this.common,
-        this.macros
-      );
+      const childParser = new Parser(resolvedPath, this.incudes, this.macros);
       this.childParsers.push(childParser);
       await childParser.stable;
     }
@@ -299,7 +293,7 @@ export class CPreprocessorParser extends BaseParser {
     return true;
   }
 
-  protected isFuntionDefinition(): FunctionDefinition | undefined {
+  protected isFunctionDefinition(): FunctionDefinition | undefined {
     this.enqueueToStack();
     const identifier = this.processCIdentifier();
     if (!identifier) {

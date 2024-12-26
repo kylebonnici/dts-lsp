@@ -304,14 +304,20 @@ function getNodeRefPathsItems(
 
 export async function getCompletions(
   location: TextDocumentPositionParams,
-  context: ContextAware[]
+  context: ContextAware[],
+  preferredContext?: number
 ): Promise<CompletionItem[]> {
-  return nodeFinder(location, context, (locationMeta, inScope) => [
-    ...getDeletePropertyItems(locationMeta, inScope),
-    ...getDeleteNodeNameItems(locationMeta, inScope),
-    ...getDeleteNodeRefItems(locationMeta, inScope),
-    ...getNodeRefPathsItems(locationMeta, inScope),
-    ...getCreateNodeRefItems(locationMeta, inScope),
-    ...getRefLabelsItems(locationMeta, inScope),
-  ]);
+  return nodeFinder(
+    location,
+    context,
+    (locationMeta, inScope) => [
+      ...getDeletePropertyItems(locationMeta, inScope),
+      ...getDeleteNodeNameItems(locationMeta, inScope),
+      ...getDeleteNodeRefItems(locationMeta, inScope),
+      ...getNodeRefPathsItems(locationMeta, inScope),
+      ...getCreateNodeRefItems(locationMeta, inScope),
+      ...getRefLabelsItems(locationMeta, inScope),
+    ],
+    preferredContext
+  );
 }

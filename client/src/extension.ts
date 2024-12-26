@@ -36,7 +36,7 @@ export function activate(context: ExtensionContext) {
     // Register the server for plain text documents
     documentSelector: [{ scheme: "file", language: "devicetree" }],
     synchronize: {
-      configurationSection: "devicetree",
+      configurationSection: "deviceTree",
       fileEvents: [
         workspace.createFileSystemWatcher("**/*.dts"),
         workspace.createFileSystemWatcher("**/*.dtsi"),
@@ -47,7 +47,7 @@ export function activate(context: ExtensionContext) {
 
   // Create the language client and start the client.
   client = new LanguageClient(
-    "devicetree",
+    "deviceTree",
     "Device Tree",
     serverOptions,
     clientOptions

@@ -11,7 +11,7 @@ import { Property } from "./context/property";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
 import { isDeleteChild } from "./ast/helpers";
 
-function getPropertyReferances(
+function getPropertyReferences(
   result: SearchableResult | undefined
 ): Location[] {
   if (
@@ -74,7 +74,7 @@ function getPropertyReferances(
   return [];
 }
 
-function getNodeReferances(result: SearchableResult | undefined): Location[] {
+function getNodeReferences(result: SearchableResult | undefined): Location[] {
   if (
     !result ||
     (!(result.ast instanceof NodeName) &&
@@ -138,10 +138,16 @@ function getNodeReferances(result: SearchableResult | undefined): Location[] {
 
 export async function getReferences(
   location: TextDocumentPositionParams,
-  contexts: ContextAware[]
+  contexts: ContextAware[],
+  preferredContext?: number
 ): Promise<Location[]> {
-  return nodeFinder(location, contexts, (locationMeta) => [
-    ...getNodeReferances(locationMeta),
-    ...getPropertyReferances(locationMeta),
-  ]);
+  return nodeFinder(
+    location,
+    contexts,
+    (locationMeta) => [
+      ...getNodeReferences(locationMeta),
+      ...getPropertyReferences(locationMeta),
+    ],
+    preferredContext
+  );
 }

@@ -78,13 +78,13 @@ export class PropertyNodeType<T = string | number> implements Validate {
     const required = this.required(node);
     if (!property) {
       if (required === "required") {
-        const orderdTree = runtime.getOrderedNodeAst(node);
+        const orderedTree = runtime.getOrderedNodeAst(node);
         return [
           genIssue<StandardTypeIssue>(
             StandardTypeIssue.REQUIRED,
-            orderdTree[0],
+            orderedTree[0],
             DiagnosticSeverity.Error,
-            orderdTree.slice(1),
+            orderedTree.slice(1),
             [],
             [propertyName]
           ),

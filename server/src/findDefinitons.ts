@@ -107,10 +107,16 @@ function getNodeDefinition(result: SearchableResult | undefined): Location[] {
 
 export async function getDefinitions(
   location: TextDocumentPositionParams,
-  contexts: ContextAware[]
+  contexts: ContextAware[],
+  preferredContext?: number
 ): Promise<Location[]> {
-  return nodeFinder(location, contexts, (locationMeta) => [
-    ...getNodeDefinition(locationMeta),
-    ...getPropertyDefinition(locationMeta),
-  ]);
+  return nodeFinder(
+    location,
+    contexts,
+    (locationMeta) => [
+      ...getNodeDefinition(locationMeta),
+      ...getPropertyDefinition(locationMeta),
+    ],
+    preferredContext
+  );
 }

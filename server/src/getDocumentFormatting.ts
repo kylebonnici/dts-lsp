@@ -17,7 +17,7 @@ import { ArrayValues } from "./ast/dtc/values/arrayValue";
 import { ByteStringValue } from "./ast/dtc/values/byteString";
 import { LabeledValue } from "./ast/dtc/values/labeledValue";
 
-export function getDocumentFormating(
+export function getDocumentFormatting(
   documentFormattingParams: DocumentFormattingParams,
   contextAware: ContextAware[]
 ): TextEdit[] {
@@ -98,11 +98,11 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
 ): TextEdit[] => {
   if (!token.nextToken) return [];
   if (token.nextToken?.pos.line !== token.pos.line) {
-    const removenewLinesEdit = removeNewLinesBetweenTokenAndPrev(
+    const removeNewLinesEdit = removeNewLinesBetweenTokenAndPrev(
       token.nextToken,
       0
     );
-    if (!removenewLinesEdit) {
+    if (!removeNewLinesEdit) {
       throw new Error("removenewLinesEdit must be defined");
     }
     return [
@@ -110,7 +110,7 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
         Position.create(token.pos.line, token.pos.col + token.pos.len),
         "".padEnd(expectedSpaces, " ")
       ),
-      removenewLinesEdit,
+      removeNewLinesEdit,
     ];
   }
 

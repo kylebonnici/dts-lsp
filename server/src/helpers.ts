@@ -137,11 +137,12 @@ export async function nodeFinder<T>(
   action: (
     result: SearchableResult | undefined,
     inScope: (ast: ASTBase) => boolean
-  ) => T[]
+  ) => T[],
+  preferredContext?: number
 ): Promise<T[]> {
   const uri = location.textDocument.uri.replace("file://", "");
 
-  const contextMeta = await findContext(contexts, uri);
+  const contextMeta = await findContext(contexts, uri, preferredContext);
 
   if (!contextMeta) return [];
 
@@ -208,7 +209,8 @@ export const adjacentTokens = (tokenA?: Token, tokenB?: Token) => {
 
 export const resolveContextFiles = async (contextAware: ContextAware[]) => {
   return Promise.all(
-    contextAware.map(async (c) => ({
+    contextAware.map(async (c, index) => ({
+      index,
       context: c,
       files: await c.getOrderedContextFiles(),
     }))
@@ -217,9 +219,12 @@ export const resolveContextFiles = async (contextAware: ContextAware[]) => {
 
 export const findContext = async (
   contextAware: ContextAware[],
-  uri: string
+  uri: string,
+  preferredContext = 0
 ) => {
   const contextFiles = await resolveContextFiles(contextAware);
 
-  return contextFiles.find((c) => c.files.some((p) => p === uri));
+  return contextFiles
+    .sort((a) => (a.index === preferredContext ? -1 : 0))
+    .find((c) => c.files.some((p) => p === uri));
 };
