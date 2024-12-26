@@ -25,7 +25,11 @@ export class ContextAware {
   public parser: Parser;
   private overlayParsers: Parser[];
 
-  constructor(uri: string, includePaths: string[], overlays?: string[]) {
+  constructor(
+    uri: string,
+    includePaths: string[],
+    public readonly overlays: string[] = []
+  ) {
     this.parser = new Parser(uri, includePaths);
     this.overlayParsers =
       overlays?.map((overlay) => new Parser(overlay, includePaths)) ?? [];

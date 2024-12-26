@@ -8,7 +8,7 @@ This extension needs a client that supports for Configuration Capability. The fo
 
 ```typescript
 interface Settings {
-  includePaths: string[];
+  defaultIncludePaths: string[];
   contexts: Context[];
   preferredContext?: number;
 }
@@ -24,7 +24,7 @@ Sample configuration in VSCode `settings.json`
 
 ```json
 {
-  "deviceTree.includePaths": [
+  "deviceTree.defaultIncludePaths": [
     "/opt/nordic/ncs/v2.9.0/zephyr/dts",
     "/opt/nordic/ncs/v2.9.0/zephyr/dts/arm",
     "/opt/nordic/ncs/v2.9.0/zephyr/dts/arm64/",
@@ -72,10 +72,11 @@ Sample configuration in VSCode `settings.json`
 - Show when node has been deleted and provides document link to where it has be redefined
 - Show when property has been deleted and provides document link to where it has be redefined
 - Label Reuse conflicts.
-- Duplicate node name in the same node conflict warning
+- Duplicate node name in the same node conflict warning.
 - Delete node/property that does not exist
 - Generic syntax issues such as missing "," , "}" , "<" , ">" etc..
-- And more...
+- Report missing values for properties.
+- Report basic CPreprocessor issues such as missing macro name.
 
 #### Types
 
@@ -83,7 +84,7 @@ Sample configuration in VSCode `settings.json`
   - Report property type mismatch errors
   - Reports prop-encoded-values error when these need to follow some pattern e.g interrupts
   - Compare the node address and ensure that it matches the reg property, and that the reg values uses ha the appropriate number of values as defined by other properties
-  - And more... (See Chapter 2 of Devicetree Specification Release v0.4)
+  - And more... (See Chapter 2 of Devicetree Specification Release v0.4 https://devicetree.org)
 
 ### Document Formatting
 

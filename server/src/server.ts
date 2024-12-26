@@ -17,7 +17,6 @@ import {
   type DocumentDiagnosticReport,
   SemanticTokensBuilder,
   CodeActionKind,
-  MarkupKind,
   DidChangeConfigurationRegistrationOptions,
 } from "vscode-languageserver/node";
 
@@ -76,7 +75,7 @@ connection.onInitialize((params: InitializeParams) => {
         triggerCharacters: ["&", "=", " "],
       },
       diagnosticProvider: {
-        interFileDependencies: false,
+        interFileDependencies: true,
         workspaceDiagnostics: false,
       },
       codeActionProvider: {
@@ -133,7 +132,7 @@ interface Context {
 }
 
 interface Settings {
-  includePaths: string[];
+  defaultIncludePaths: string[];
   contexts: Context[];
   preferredContext?: number;
 }
@@ -142,7 +141,7 @@ interface Settings {
 // Please note that this is not the case when using this server with the client provided in this example
 // but could happen with other clients.
 const defaultSettings: Settings = {
-  includePaths: [],
+  defaultIncludePaths: [],
   contexts: [],
 };
 let globalSettings: Settings = defaultSettings;
@@ -161,15 +160,27 @@ connection.onDidChangeConfiguration((change) => {
     ...change.settings.deviceTree,
   };
 
+  const adhocContext = contextAware.filter(
+    (c) =>
+      c.overlays.length === 0 &&
+      !globalSettings.contexts.some((cc) => cc.dtsFile === c.parser.uri)
+  );
   contextAware = [];
   globalSettings.contexts.forEach((context) => {
     const newContext = new ContextAware(
       context.dtsFile,
-      context.includePaths ?? change.settings.includePaths,
+      context.includePaths ?? globalSettings.defaultIncludePaths,
       context.overlays
     );
     contextAware.push(newContext);
   });
+
+  contextAware = [
+    ...contextAware,
+    ...adhocContext.map(
+      (c) => new ContextAware(c.parser.uri, globalSettings.defaultIncludePaths)
+    ),
+  ];
 
   connection.languages.diagnostics.refresh();
 });
@@ -180,20 +191,10 @@ documents.onDidClose((e) => {
 });
 
 connection.languages.diagnostics.on(async (params) => {
-  const document = documents.get(params.textDocument.uri);
-  if (document !== undefined) {
-    return {
-      kind: DocumentDiagnosticReportKind.Full,
-      items: await getDiagnostics(document),
-    } satisfies DocumentDiagnosticReport;
-  } else {
-    // We don't know the document. We can either try to read it from disk
-    // or we don't report problems for it.
-    return {
-      kind: DocumentDiagnosticReportKind.Full,
-      items: [],
-    } satisfies DocumentDiagnosticReport;
-  }
+  return {
+    kind: DocumentDiagnosticReportKind.Full,
+    items: await getDiagnostics(params.textDocument.uri),
+  } satisfies DocumentDiagnosticReport;
 });
 
 const syntaxIssueToMessage = (issue: SyntaxIssue) => {
@@ -420,11 +421,12 @@ documents.onDidChangeContent(async (change) => {
     globalSettings.preferredContext
   );
 
-  console.log(globalSettings);
-
   if (!context) {
     console.log("new adhoc context");
-    const newContext = new ContextAware(uri, defaultSettings.includePaths);
+    const newContext = new ContextAware(
+      uri,
+      globalSettings.defaultIncludePaths
+    );
     contextAware.push(newContext);
     await newContext.parser.stable;
   } else {
@@ -447,10 +449,9 @@ documents.onDidChangeContent(async (change) => {
   }
 });
 
-async function getDiagnostics(
-  textDocument: TextDocument
-): Promise<Diagnostic[]> {
-  const uri = textDocument.uri.replace("file://", "");
+async function getDiagnostics(uri: string): Promise<Diagnostic[]> {
+  uri = uri.replace("file://", "");
+  console.log("getDiagnostics", uri);
   const diagnostics: Diagnostic[] = [];
 
   const contextMeta = await findContext(
