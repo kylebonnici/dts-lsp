@@ -465,8 +465,6 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
           return `INTRO is required.`;
         case StandardTypeIssue.OMITTED:
           return `INTRO should be omitted`;
-        case StandardTypeIssue.EXPECTED_TRIPLETS:
-          return `INTRO must have triplets`;
         case StandardTypeIssue.EXPECTED_PAIR:
           return `INTRO must have pair`;
         case StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_FIRST_VALUE:
