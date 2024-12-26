@@ -28,7 +28,7 @@ const mockReadFileSync = (content: string, path?: string) => {
     return content;
   });
 };
-describe("Find typed complitions", () => {
+describe("Find typed completions", () => {
   beforeEach(() => {
     resetTokenizedDocumentProvider();
   });
@@ -47,13 +47,13 @@ describe("Find typed complitions", () => {
         position: Position.create(0, 15),
       };
 
-      const complitions = await getTypeCompletions(location, [context]);
-      expect(complitions.length).toEqual(5);
-      expect(complitions[0].label).toEqual('"okay"');
-      expect(complitions[1].label).toEqual('"disabled"');
-      expect(complitions[2].label).toEqual('"reserved"');
-      expect(complitions[3].label).toEqual('"fail"');
-      expect(complitions[4].label).toEqual('"fail-sss"');
+      const completions = await getTypeCompletions(location, [context]);
+      expect(completions.length).toEqual(5);
+      expect(completions[0].label).toEqual('"okay"');
+      expect(completions[1].label).toEqual('"disabled"');
+      expect(completions[2].label).toEqual('"reserved"');
+      expect(completions[3].label).toEqual('"fail"');
+      expect(completions[4].label).toEqual('"fail-sss"');
     });
 
     test("status second string", async () => {
@@ -69,8 +69,8 @@ describe("Find typed complitions", () => {
         position: Position.create(0, 23),
       };
 
-      const complitions = await getTypeCompletions(location, [context]);
-      expect(complitions.length).toEqual(0);
+      const completions = await getTypeCompletions(location, [context]);
+      expect(completions.length).toEqual(0);
     });
 
     test("address-cells first value", async () => {
@@ -86,12 +86,12 @@ describe("Find typed complitions", () => {
         position: Position.create(0, 23),
       };
 
-      const complitions = await getTypeCompletions(location, [context]);
-      expect(complitions.length).toEqual(1);
-      expect(complitions[0].label).toEqual("<2>");
+      const completions = await getTypeCompletions(location, [context]);
+      expect(completions.length).toEqual(1);
+      expect(completions[0].label).toEqual("<2>");
     });
 
-    test("address-cells secnd value", async () => {
+    test("address-cells second value", async () => {
       mockReadFileSync("/{node{#address-cells= <10>,;};};");
       const textDocument: TextDocumentIdentifier = {
         uri: "/folder/dts.dts",
@@ -104,8 +104,8 @@ describe("Find typed complitions", () => {
         position: Position.create(0, 28),
       };
 
-      const complitions = await getTypeCompletions(location, [context]);
-      expect(complitions.length).toEqual(0);
+      const completions = await getTypeCompletions(location, [context]);
+      expect(completions.length).toEqual(0);
     });
 
     test("size-cells first value", async () => {
@@ -121,12 +121,12 @@ describe("Find typed complitions", () => {
         position: Position.create(0, 20),
       };
 
-      const complitions = await getTypeCompletions(location, [context]);
-      expect(complitions.length).toEqual(1);
-      expect(complitions[0].label).toEqual("<1>");
+      const completions = await getTypeCompletions(location, [context]);
+      expect(completions.length).toEqual(1);
+      expect(completions[0].label).toEqual("<1>");
     });
 
-    test("size-cells secnd value", async () => {
+    test("size-cells second value", async () => {
       mockReadFileSync("/{node{#size-cells= <10>,;};};");
       const textDocument: TextDocumentIdentifier = {
         uri: "/folder/dts.dts",
@@ -139,8 +139,8 @@ describe("Find typed complitions", () => {
         position: Position.create(0, 25),
       };
 
-      const complitions = await getTypeCompletions(location, [context]);
-      expect(complitions.length).toEqual(0);
+      const completions = await getTypeCompletions(location, [context]);
+      expect(completions.length).toEqual(0);
     });
 
     test("device_type - cpu", async () => {
@@ -156,9 +156,9 @@ describe("Find typed complitions", () => {
         position: Position.create(0, 19),
       };
 
-      const complitions = await getTypeCompletions(location, [context]);
-      expect(complitions.length).toEqual(1);
-      expect(complitions[0].label).toEqual('"cpu"');
+      const completions = await getTypeCompletions(location, [context]);
+      expect(completions.length).toEqual(1);
+      expect(completions[0].label).toEqual('"cpu"');
     });
 
     test("device_type - memory", async () => {
@@ -174,9 +174,9 @@ describe("Find typed complitions", () => {
         position: Position.create(0, 22),
       };
 
-      const complitions = await getTypeCompletions(location, [context]);
-      expect(complitions.length).toEqual(1);
-      expect(complitions[0].label).toEqual('"memory"');
+      const completions = await getTypeCompletions(location, [context]);
+      expect(completions.length).toEqual(1);
+      expect(completions[0].label).toEqual('"memory"');
     });
   });
 });

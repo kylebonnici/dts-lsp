@@ -172,7 +172,7 @@ describe("Type Issues", () => {
         expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
       });
 
-      test("not unique phande value", async () => {
+      test("not unique phandel value", async () => {
         mockReadFileSync("/{node1 {phandle= <1>;}; node2 {phandle= <1>;};};");
         const context = new ContextAware("/folder/dts.dts", [], []);
         await context.parser.stable;
@@ -271,7 +271,7 @@ describe("Type Issues", () => {
     });
 
     describe("reg", () => {
-      test("requiered", async () => {
+      test("required", async () => {
         mockReadFileSync(
           "/{node1{#address-cells=<1>;#size-cells=<1>; node2@200{};};};"
         );
@@ -293,7 +293,7 @@ describe("Type Issues", () => {
         expect(issues[0].issues).toEqual([StandardTypeIssue.OMITTED]);
       });
 
-      test("length omited", async () => {
+      test("length omitted", async () => {
         mockReadFileSync(
           "/{node1{#address-cells=<1>;#size-cells=<0>; node2@200{reg=<0x200>;};};};"
         );
@@ -580,7 +580,7 @@ describe("Type Issues", () => {
     });
 
     describe("device_type", () => {
-      test("omited", async () => {
+      test("omitted", async () => {
         mockReadFileSync('/{node{device_type= "node";};};');
         const context = new ContextAware("/folder/dts.dts", [], []);
         await context.parser.stable;
@@ -936,7 +936,7 @@ describe("Type Issues", () => {
         expect(issues[0].templateStrings[1]).toEqual("#interrupt-cells");
       });
 
-      test("Multple interrupts", async () => {
+      test("Multiple interrupts", async () => {
         mockReadFileSync(
           "/{  node1{interrupt-controller; #interrupt-cells = <2>;};  node2{interrupt-controller; #interrupt-cells = <3>;}; node3{interrupts-extended= <&{/node1} 10 20>, <&{/node2} 10 20 30>;};};"
         );

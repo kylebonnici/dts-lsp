@@ -28,7 +28,7 @@ describe("Context Issues", () => {
     resetTokenizedDocumentProvider();
   });
 
-  test("Duplicate propety name", async () => {
+  test("Duplicate property name", async () => {
     mockReadFileSync("/{prop1;prop1;};");
     const context = new ContextAware("/folder/dts.dts", [], []);
     await context.parser.stable;
@@ -48,7 +48,7 @@ describe("Context Issues", () => {
     ).toEqual(14);
   });
 
-  test("Delete non existing propety", async () => {
+  test("Delete non existing property", async () => {
     mockReadFileSync("/{/delete-property/ prop1;};");
     const context = new ContextAware("/folder/dts.dts", [], []);
     await context.parser.stable;
@@ -62,7 +62,7 @@ describe("Context Issues", () => {
     ).toEqual(25);
   });
 
-  test("Delete propety before create", async () => {
+  test("Delete property before create", async () => {
     mockReadFileSync("/{/delete-property/ prop1; prop1;};");
     const context = new ContextAware("/folder/dts.dts", [], []);
     await context.parser.stable;
@@ -355,7 +355,7 @@ describe("Context Issues", () => {
   });
 
   describe("Resolve node path", () => {
-    test("Delete node with path not existsing", async () => {
+    test("Delete node with path not existing", async () => {
       mockReadFileSync("/{node1{};};/delete-node/ &{/node1/node2};");
       const context = new ContextAware("/folder/dts.dts", [], []);
       await context.parser.stable;
@@ -408,7 +408,7 @@ describe("Context Issues", () => {
   });
 
   describe("Resolve label ref", () => {
-    test("Delete node with path not existsing", async () => {
+    test("Delete node with path not existing", async () => {
       mockReadFileSync("/{l1: node1{};};/delete-node/ &l2;");
       const context = new ContextAware("/folder/dts.dts", [], []);
       await context.parser.stable;

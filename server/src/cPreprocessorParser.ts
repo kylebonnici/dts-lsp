@@ -255,12 +255,12 @@ export class CPreprocessorParser extends BaseParser {
       }
     }
 
-    const incudePath = new IncludePath(
+    const includePath = new IncludePath(
       path,
       relative,
       createTokenIndex(pathStart, token)
     );
-    const node = new Include(keyword, incudePath);
+    const node = new Include(keyword, includePath);
     node.uri = this.uri;
     this.includes.push(node);
 
@@ -272,7 +272,7 @@ export class CPreprocessorParser extends BaseParser {
         this.issues.push(genIssue(SyntaxIssue.GT_SYM, node));
       } else {
         token = this.moveToNextToken;
-        incudePath.lastToken = token;
+        includePath.lastToken = token;
       }
     }
 

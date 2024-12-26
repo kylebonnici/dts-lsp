@@ -49,7 +49,7 @@ describe("Find Decleration", () => {
   });
 
   describe("Properties", () => {
-    test("Duplicate propety name samle level", async () => {
+    test("Duplicate property name samle level", async () => {
       mockReadFileSync("/{prop1;prop2;prop1;};/{prop1;prop2;prop1;};");
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
       const context = new ContextAware(textDocument.uri, [], []);
@@ -65,7 +65,7 @@ describe("Find Decleration", () => {
       expect(decleration?.range.end.character).toEqual(7);
     });
 
-    test("Duplicate propety name different level", async () => {
+    test("Duplicate property name different level", async () => {
       mockReadFileSync(
         "/{ node1{prop1; node1{prop1;}};};/{ node1{prop1; node1{prop1;}};};"
       );

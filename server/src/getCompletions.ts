@@ -223,7 +223,7 @@ function getDeletePropertyItems(
     return [];
   }
 
-  const getSopeItems = (node: Node) => {
+  const getScopeItems = (node: Node) => {
     return [
       ...node.properties,
       ...node.deletedProperties
@@ -239,14 +239,14 @@ function getDeletePropertyItems(
     result.ast instanceof DeleteProperty
   ) {
     return Array.from(
-      new Set(getSopeItems(result.item).map((p) => p.name))
+      new Set(getScopeItems(result.item).map((p) => p.name))
     ).map((p) => ({
       label: `${p}`,
       kind: CompletionItemKind.Variable,
     }));
   }
 
-  if (getSopeItems(result.item).length) {
+  if (getScopeItems(result.item).length) {
     return [
       {
         label: "/delete-property/",
@@ -278,7 +278,7 @@ function getNodeRefPathsItems(
 
   const nodePath = (nodePathTemp as NodeName[]).map((p) => p.toString());
 
-  const getSopeItems = () => {
+  const getScopeItems = () => {
     const parentNode = result.runtime.rootNode.getChildFromScope(
       ["/", ...nodePath],
       inScope
@@ -296,7 +296,7 @@ function getNodeRefPathsItems(
     );
   };
 
-  return getSopeItems().map((p) => ({
+  return getScopeItems().map((p) => ({
     label: `/${[...nodePath, p].join("/")}`,
     kind: CompletionItemKind.Variable,
   }));

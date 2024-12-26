@@ -114,7 +114,7 @@ export abstract class BaseParser {
     cmps: ((
       token: Token | undefined,
       index?: number
-    ) => "yes" | "no" | "patrial")[]
+    ) => "yes" | "no" | "partial")[]
   ) {
     this.enqueueToStack();
 
@@ -141,7 +141,7 @@ export abstract class BaseParser {
     cmps: ((
       token: Token | undefined,
       index?: number
-    ) => "yes" | "no" | "patrial")[]
+    ) => "yes" | "no" | "partial")[]
   ) {
     this.enqueueToStack();
 
@@ -218,7 +218,7 @@ export abstract class BaseParser {
     this.enqueueToStack();
 
     const valid = this.consumeAnyConcurrentTokens(
-      [LexerToken.DIGIT, LexerToken.LETTERS, LexerToken.UNDERSCOURE].map(
+      [LexerToken.DIGIT, LexerToken.LETTERS, LexerToken.UNDERSCORE].map(
         validateToken
       )
     );
@@ -235,13 +235,13 @@ export abstract class BaseParser {
       return;
     }
 
-    const idnetifier = new CIdentifier(
+    const identifier = new CIdentifier(
       name,
       createTokenIndex(valid[0], valid.at(-1))
     );
 
     this.mergeStack();
-    return idnetifier;
+    return identifier;
   }
 
   protected isOperator(): Operator | undefined {

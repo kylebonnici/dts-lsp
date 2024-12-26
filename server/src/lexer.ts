@@ -82,7 +82,7 @@ export class Lexer {
       ? null
       : this.lines[this.lineNumber].at(this.columnNumber);
   }
-  static isSytaxChar(char?: string | null) {
+  static isSyntaxChar(char?: string | null) {
     return (
       char === "^" ||
       char === "~" ||
@@ -118,11 +118,11 @@ export class Lexer {
     let word = "";
     while (
       !this.isWhiteSpace() &&
-      ((word.length && !Lexer.isSytaxChar(this.currentChar)) || !word.length)
+      ((word.length && !Lexer.isSyntaxChar(this.currentChar)) || !word.length)
     ) {
       word += this.currentChar ?? "";
 
-      if (word.length === 1 && Lexer.isSytaxChar(this.currentChar)) {
+      if (word.length === 1 && Lexer.isSyntaxChar(this.currentChar)) {
         this.move();
         break;
       }
@@ -235,14 +235,14 @@ export class Lexer {
       this.isMultiplicationOperator(word) ||
       this.isModulusOperator(word) ||
       this.isAmpersand(word) ||
-      this.isNegeteOperator(word) ||
+      this.isNegateOperator(word) ||
       this.isAddOperator(word) ||
       this.isQuestionMark(word) ||
       this.isPeriod(word) ||
       this.isHash(word) ||
       this.isUnderScore(word) ||
       this.isAt(word) ||
-      this.unkownToken(word);
+      this.unknownToken(word);
 
     if (!tokenFound) {
       throw new Error(
@@ -385,7 +385,7 @@ export class Lexer {
     return false;
   }
 
-  private unkownToken(word: string) {
+  private unknownToken(word: string) {
     this.pushToken({
       tokens: [LexerToken.UNKNOWN],
       pos: this.generatePos(word, " "),
@@ -565,7 +565,7 @@ export class Lexer {
   }
 
   private rewind(word: string) {
-    // word is alwase on the same line so if col < word len throw
+    // word is always on the same line so if col < word len throw
     if (this.columnNumber + 1 < word.length) {
       throw new Error("Error while rewinding");
     }
@@ -578,7 +578,7 @@ export class Lexer {
 
     const match = word.match(/^["']/);
     if (match?.[0]) {
-      // rewind to begining of string just after "
+      // rewind to beginning of string just after "
       this.rewind(word.slice(1));
       const line = this.lineNumber;
       const col = this.columnNumber;
@@ -663,7 +663,7 @@ export class Lexer {
     return false;
   }
 
-  private isNegeteOperator(word: string) {
+  private isNegateOperator(word: string) {
     const expected = "-";
     if (word === expected) {
       this.pushToken({
@@ -680,7 +680,7 @@ export class Lexer {
     const expected = "_";
     if (word === expected) {
       this.pushToken({
-        tokens: [LexerToken.UNDERSCOURE],
+        tokens: [LexerToken.UNDERSCORE],
         pos: this.generatePos(word, expected),
         value: expected,
       });

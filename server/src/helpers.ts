@@ -192,7 +192,7 @@ export const validateToken =
     token?.tokens.some((t) => t === expected) ? "yes" : "no";
 export const validateValueStartsWith =
   (expected: string) => (token: Token | undefined) =>
-    token?.value && expected.startsWith(token.value) ? "patrial" : "no";
+    token?.value && expected.startsWith(token.value) ? "partial" : "no";
 
 export const sameLine = (tokenA?: Token, tokenB?: Token) => {
   return !!tokenA && !!tokenB && tokenA.pos.line === tokenB.pos.line;

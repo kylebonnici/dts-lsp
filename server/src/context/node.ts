@@ -207,7 +207,7 @@ export class Node {
         templateStrings: [
           node instanceof DtcChildNode
             ? node.name!.toString()
-            : node.labelReferance!.label!.value,
+            : node.labelReference!.label!.value,
         ],
       })),
     ]);

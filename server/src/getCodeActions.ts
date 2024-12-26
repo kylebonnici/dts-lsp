@@ -17,7 +17,7 @@ const syntaxIssueToCodeAction = (
   uri: string
 ): CodeAction[] | undefined => {
   switch (issue) {
-    case SyntaxIssue.END_STATMENT:
+    case SyntaxIssue.END_STATEMENT:
       return [
         {
           title: "Add semicolon",

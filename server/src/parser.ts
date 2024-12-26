@@ -104,7 +104,7 @@ export class Parser extends BaseParser {
             this.isDeleteNode(this.rootDocument, "Ref") ||
             // Valid use case
             this.isChildNode(this.rootDocument, "Ref") ||
-            // not valid syntax but we leave this for the next layer to proecess
+            // not valid syntax but we leave this for the next layer to process
             this.isProperty(this.unhandledStatements) ||
             this.isDeleteProperty(this.unhandledStatements)
           ) // TODO syntax issues
@@ -114,7 +114,7 @@ export class Parser extends BaseParser {
         if (token) {
           const node = new ASTBase(createTokenIndex(token));
           this.issues.push(genIssue(SyntaxIssue.UNKNOWN, node));
-          this.reportExtraEndStaments();
+          this.reportExtraEndStatements();
         }
       }
     };
@@ -179,14 +179,14 @@ export class Parser extends BaseParser {
         this.issues.push(genIssue(SyntaxIssue.CURLY_CLOSE, node));
       }
 
-      return this.endStatment(false);
+      return this.endStatement(false);
     } else {
       this.moveToNextToken;
     }
 
     dtcNode.closeScope = this.prevToken;
 
-    return this.endStatment();
+    return this.endStatement();
   }
 
   private isNodeEnd() {
@@ -196,25 +196,25 @@ export class Parser extends BaseParser {
     );
   }
 
-  private endStatment(report = true) {
+  private endStatement(report = true) {
     const currentToken = this.currentToken;
     if (!validToken(currentToken, LexerToken.SEMICOLON)) {
       const token = this.prevToken;
       if (token && report) {
         const node = new ASTBase(createTokenIndex(this.prevToken));
-        this.issues.push(genIssue(SyntaxIssue.END_STATMENT, node));
+        this.issues.push(genIssue(SyntaxIssue.END_STATEMENT, node));
         return token;
       }
     }
 
     this.moveToNextToken;
 
-    this.reportExtraEndStaments();
+    this.reportExtraEndStatements();
 
     return currentToken;
   }
 
-  private reportExtraEndStaments() {
+  private reportExtraEndStatements() {
     while (validToken(this.currentToken, LexerToken.SEMICOLON)) {
       const token = this.moveToNextToken;
       if (token) {
@@ -241,7 +241,7 @@ export class Parser extends BaseParser {
         if (token) {
           const node = new ASTBase(createTokenIndex(token));
           this.issues.push(genIssue(SyntaxIssue.UNKNOWN, node));
-          this.reportExtraEndStaments();
+          this.reportExtraEndStatements();
         }
       } else {
         if (this.done) {
@@ -313,7 +313,7 @@ export class Parser extends BaseParser {
 
     let expectedNode = false;
     if (ref && child instanceof DtcRefNode) {
-      child.labelReferance = ref;
+      child.labelReference = ref;
       expectedNode = true;
     } else if (name && child instanceof DtcChildNode) {
       expectedNode = name.address !== undefined;
@@ -361,7 +361,7 @@ export class Parser extends BaseParser {
         LexerToken.LETTERS,
         LexerToken.COMMA,
         LexerToken.PERIOD,
-        LexerToken.UNDERSCOURE,
+        LexerToken.UNDERSCORE,
         LexerToken.ADD_OPERATOR,
         LexerToken.NEG_OPERATOR,
       ].map(validateToken)
@@ -431,7 +431,7 @@ export class Parser extends BaseParser {
         LexerToken.LETTERS,
         LexerToken.COMMA,
         LexerToken.PERIOD,
-        LexerToken.UNDERSCOURE,
+        LexerToken.UNDERSCORE,
         LexerToken.ADD_OPERATOR,
         LexerToken.NEG_OPERATOR,
         LexerToken.QUESTION_MARK,
@@ -454,7 +454,7 @@ export class Parser extends BaseParser {
   private isLabelName(): Label | undefined {
     this.enqueueToStack();
     const valid = this.consumeAnyConcurrentTokens(
-      [LexerToken.DIGIT, LexerToken.LETTERS, LexerToken.UNDERSCOURE].map(
+      [LexerToken.DIGIT, LexerToken.LETTERS, LexerToken.UNDERSCORE].map(
         validateToken
       )
     );
@@ -479,7 +479,7 @@ export class Parser extends BaseParser {
   private isLabelAssign(acceptLabelName: boolean): LabelAssign | undefined {
     this.enqueueToStack();
     const valid = this.consumeAnyConcurrentTokens(
-      [LexerToken.DIGIT, LexerToken.LETTERS, LexerToken.UNDERSCOURE].map(
+      [LexerToken.DIGIT, LexerToken.LETTERS, LexerToken.UNDERSCORE].map(
         validateToken
       )
     );
@@ -567,7 +567,7 @@ export class Parser extends BaseParser {
     }
 
     node.values = result ?? null;
-    const lastToken = this.endStatment();
+    const lastToken = this.endStatement();
 
     // create property object
     node.lastToken = lastToken;
@@ -627,7 +627,7 @@ export class Parser extends BaseParser {
 
     keyword.lastToken = token;
 
-    node.lastToken = this.endStatment();
+    node.lastToken = this.endStatement();
     this.mergeStack();
     return true;
   }
@@ -749,7 +749,7 @@ export class Parser extends BaseParser {
         this.issues.push(genIssue(SyntaxIssue.NODE_REF, keyword));
       }
     }
-    const lastToken = this.endStatment();
+    const lastToken = this.endStatement();
 
     node.lastToken = lastToken;
     parent.addNodeChild(node);
@@ -836,7 +836,7 @@ export class Parser extends BaseParser {
       this.issues.push(genIssue(SyntaxIssue.PROPERTY_NAME, keyword));
     }
 
-    const lastToken = this.endStatment();
+    const lastToken = this.endStatement();
     node.lastToken = lastToken;
     parent.addNodeChild(node);
 
@@ -1009,7 +1009,9 @@ export class Parser extends BaseParser {
       return;
     }
 
-    const numberValues = this.processLabledValue(() => this.processHexString());
+    const numberValues = this.processLabeledValue(() =>
+      this.processHexString()
+    );
 
     const endLabels1 = this.processOptionalLabelAssign(true) ?? [];
 
@@ -1052,7 +1054,7 @@ export class Parser extends BaseParser {
     return node;
   }
 
-  private processLabledValue<T extends ASTBase>(
+  private processLabeledValue<T extends ASTBase>(
     processValue: () => LabeledValue<T> | undefined
   ): LabeledValue<T>[] {
     this.enqueueToStack();
@@ -1086,13 +1088,13 @@ export class Parser extends BaseParser {
   ): ArrayValues | undefined {
     this.enqueueToStack();
 
-    const result = this.processLabledValue(
+    const result = this.processLabeledValue(
       ():
         | LabeledValue<NumberValue | LabelRef | NodePathRef | Expression>
         | undefined =>
         this.processRefValue(false, dtcProperty) ||
         this.processLabeledHex(false) ||
-        this.processLabledDec(false) ||
+        this.processLabeledDec(false) ||
         this.processLabeledExpression(true, false)
     );
 
@@ -1179,7 +1181,7 @@ export class Parser extends BaseParser {
     return node;
   }
 
-  private processLabledDec(
+  private processLabeledDec(
     acceptLabelName: boolean
   ): LabeledValue<NumberValue> | undefined {
     this.enqueueToStack();
@@ -1507,7 +1509,7 @@ export class Parser extends BaseParser {
     const beforePath = this.moveToNextToken;
     token = beforePath;
     if (!validToken(token, LexerToken.CURLY_OPEN)) {
-      // migh be a node ref such as &nodeLabel
+      // might be a node ref such as &nodeLabel
       this.popStack();
       return;
     }

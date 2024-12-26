@@ -298,7 +298,7 @@ export class ContextAware {
   private processDtcRefNode(element: DtcRefNode, runtime: Runtime) {
     let runtimeNode: Node | undefined;
 
-    if (element.labelReferance) {
+    if (element.labelReference) {
       const resolvedPath =
         element.resolveNodePath ??
         (element.pathName
@@ -308,19 +308,19 @@ export class ContextAware {
         this._issues.push(
           genIssue(
             ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
-            element.labelReferance,
+            element.labelReference,
             DiagnosticSeverity.Error,
             [],
             [],
-            [element.labelReferance.label?.value ?? ""]
+            [element.labelReference.label?.value ?? ""]
           )
         );
         runtime.unlinkedRefNodes.push(element);
       } else {
         element.resolveNodePath ??= [...resolvedPath];
         runtimeNode = runtime.rootNode.getChild(resolvedPath);
-        element.labelReferance.linksTo = runtimeNode;
-        runtimeNode?.linkedRefLabels.push(element.labelReferance);
+        element.labelReference.linksTo = runtimeNode;
+        runtimeNode?.linkedRefLabels.push(element.labelReference);
         runtimeNode?.referencedBy.push(element);
 
         element.labels.forEach((label) => {

@@ -75,7 +75,7 @@ export class DtcRootNode extends DtcBaseNode {
 }
 
 export class DtcRefNode extends DtcBaseNode {
-  private _labelReferance: LabelRef | null = null;
+  private _labelReference: LabelRef | null = null;
   public resolveNodePath?: string[];
 
   constructor(public readonly labels: LabelAssign[] = []) {
@@ -89,15 +89,15 @@ export class DtcRefNode extends DtcBaseNode {
     });
   }
 
-  set labelReferance(labelReferance: LabelRef | null) {
-    if (this._labelReferance)
-      throw new Error("Only on label referance is allowed");
-    this._labelReferance = labelReferance;
+  set labelReference(labelReference: LabelRef | null) {
+    if (this._labelReference)
+      throw new Error("Only on label reference is allowed");
+    this._labelReference = labelReference;
     this.docSymbolsMeta = {
-      name: this.labelReferance?.value ?? "DTC Name",
+      name: this.labelReference?.value ?? "DTC Name",
       kind: SymbolKind.Namespace,
     };
-    this.addChild(labelReferance);
+    this.addChild(labelReference);
   }
 
   get path(): string[] | undefined {
@@ -108,8 +108,8 @@ export class DtcRefNode extends DtcBaseNode {
     return super.path;
   }
 
-  get labelReferance() {
-    return this._labelReferance;
+  get labelReference() {
+    return this._labelReference;
   }
 
   get nodes() {
@@ -117,8 +117,8 @@ export class DtcRefNode extends DtcBaseNode {
   }
 
   get pathName() {
-    return this.labelReferance?.label
-      ? `&${this.labelReferance?.label?.value}`
+    return this.labelReference?.label
+      ? `&${this.labelReference?.label?.value}`
       : undefined;
   }
 
@@ -154,7 +154,7 @@ export class DtcChildNode extends DtcBaseNode {
   }
 
   set name(name: NodeName | null) {
-    if (this._name) throw new Error("Only on label referance is allowed");
+    if (this._name) throw new Error("Only on label reference is allowed");
     this._name = name;
     this.docSymbolsMeta = {
       name: this._name?.toString() ?? "DTC Name",

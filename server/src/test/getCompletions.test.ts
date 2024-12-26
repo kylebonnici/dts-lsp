@@ -28,12 +28,12 @@ const mockReadFileSync = (content: string, path?: string) => {
     return content;
   });
 };
-describe("Find complitions", () => {
+describe("Find completions", () => {
   beforeEach(() => {
     resetTokenizedDocumentProvider();
   });
 
-  test("No complitions to find", async () => {
+  test("No completions to find", async () => {
     mockReadFileSync("/{prop1;prop2;prop1;};    /{prop1;prop2;prop1;};");
     const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
     const context = new ContextAware(textDocument.uri, [], []);
@@ -44,8 +44,8 @@ describe("Find complitions", () => {
       position: Position.create(0, 24),
     };
 
-    const complitions = await getCompletions(location, [context]);
-    expect(complitions).toEqual([]);
+    const completions = await getCompletions(location, [context]);
+    expect(completions).toEqual([]);
   });
 
   describe("Properties", () => {
@@ -61,8 +61,8 @@ describe("Find complitions", () => {
           position: Position.create(0, 21),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions).toEqual([]);
+        const completions = await getCompletions(location, [context]);
+        expect(completions).toEqual([]);
       });
 
       test("Between props", async () => {
@@ -76,9 +76,9 @@ describe("Find complitions", () => {
           position: Position.create(0, 27),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(1);
-        expect(complitions[0].label).toEqual("prop1");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(1);
+        expect(completions[0].label).toEqual("prop1");
       });
 
       test("after props", async () => {
@@ -92,10 +92,10 @@ describe("Find complitions", () => {
           position: Position.create(0, 33),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(2);
-        expect(complitions[0].label).toEqual("prop1");
-        expect(complitions[1].label).toEqual("prop2");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(2);
+        expect(completions[0].label).toEqual("prop1");
+        expect(completions[1].label).toEqual("prop2");
       });
 
       test("after deleted props", async () => {
@@ -111,12 +111,12 @@ describe("Find complitions", () => {
           position: Position.create(0, 57),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(1);
-        expect(complitions[0].label).toEqual("prop2");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(1);
+        expect(completions[0].label).toEqual("prop2");
       });
 
-      test("Before delete statmente", async () => {
+      test("Before delete statement", async () => {
         mockReadFileSync(
           "/{prop1;prop2;/delete-property/ ;/delete-property/ prop1;};"
         );
@@ -129,10 +129,10 @@ describe("Find complitions", () => {
           position: Position.create(0, 32),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(2);
-        expect(complitions[0].label).toEqual("prop2");
-        expect(complitions[1].label).toEqual("prop1");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(2);
+        expect(completions[0].label).toEqual("prop2");
+        expect(completions[1].label).toEqual("prop1");
       });
 
       test("delete keyword", async () => {
@@ -146,9 +146,9 @@ describe("Find complitions", () => {
           position: Position.create(0, 15),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(1);
-        expect(complitions[0].label).toEqual("/delete-property/");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(1);
+        expect(completions[0].label).toEqual("/delete-property/");
       });
     });
 
@@ -164,8 +164,8 @@ describe("Find complitions", () => {
           position: Position.create(0, 9),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(0);
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(0);
       });
 
       test("Exists label ref", async () => {
@@ -179,9 +179,9 @@ describe("Find complitions", () => {
           position: Position.create(0, 20),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(1);
-        expect(complitions[0].label).toEqual("l1");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(1);
+        expect(completions[0].label).toEqual("l1");
       });
 
       test("Exists array value with label ref", async () => {
@@ -195,9 +195,9 @@ describe("Find complitions", () => {
           position: Position.create(0, 21),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(1);
-        expect(complitions[0].label).toEqual("l1");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(1);
+        expect(completions[0].label).toEqual("l1");
       });
 
       test("No node path ref", async () => {
@@ -211,8 +211,8 @@ describe("Find complitions", () => {
           position: Position.create(0, 11),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(0);
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(0);
       });
 
       test("Exists node path ref", async () => {
@@ -226,9 +226,9 @@ describe("Find complitions", () => {
           position: Position.create(0, 18),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(1);
-        expect(complitions[0].label).toEqual("/node");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(1);
+        expect(completions[0].label).toEqual("/node");
       });
 
       test("Exists array value with node path ref", async () => {
@@ -242,9 +242,9 @@ describe("Find complitions", () => {
           position: Position.create(0, 19),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(1);
-        expect(complitions[0].label).toEqual("/node");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(1);
+        expect(completions[0].label).toEqual("/node");
       });
 
       test("Before delete Exists array value with node path ref", async () => {
@@ -258,9 +258,9 @@ describe("Find complitions", () => {
           position: Position.create(0, 19),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(1);
-        expect(complitions[0].label).toEqual("/node");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(1);
+        expect(completions[0].label).toEqual("/node");
       });
 
       test("After delete Exists array value with node path ref", async () => {
@@ -274,8 +274,8 @@ describe("Find complitions", () => {
           position: Position.create(0, 39),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(0);
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(0);
       });
     });
   });
@@ -293,8 +293,8 @@ describe("Find complitions", () => {
           position: Position.create(0, 1),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions).toEqual([]);
+        const completions = await getCompletions(location, [context]);
+        expect(completions).toEqual([]);
       });
 
       test("Between nodes", async () => {
@@ -308,9 +308,9 @@ describe("Find complitions", () => {
           position: Position.create(0, 17),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(1);
-        expect(complitions[0].label).toEqual("l1");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(1);
+        expect(completions[0].label).toEqual("l1");
       });
 
       test("after props", async () => {
@@ -324,10 +324,10 @@ describe("Find complitions", () => {
           position: Position.create(0, 34),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(2);
-        expect(complitions[0].label).toEqual("l1");
-        expect(complitions[1].label).toEqual("l2");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(2);
+        expect(completions[0].label).toEqual("l1");
+        expect(completions[1].label).toEqual("l2");
       });
 
       test("after deleted props", async () => {
@@ -343,9 +343,9 @@ describe("Find complitions", () => {
           position: Position.create(0, 52),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(1);
-        expect(complitions[0].label).toEqual("node2");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(1);
+        expect(completions[0].label).toEqual("node2");
       });
 
       test("delete keyword", async () => {
@@ -359,9 +359,9 @@ describe("Find complitions", () => {
           position: Position.create(0, 19),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(1);
-        expect(complitions[0].label).toEqual("/delete-node/");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(1);
+        expect(completions[0].label).toEqual("/delete-node/");
       });
     });
     describe("Delete node name", () => {
@@ -376,8 +376,8 @@ describe("Find complitions", () => {
           position: Position.create(0, 16),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions).toEqual([]);
+        const completions = await getCompletions(location, [context]);
+        expect(completions).toEqual([]);
       });
 
       test("Between nodes", async () => {
@@ -391,9 +391,9 @@ describe("Find complitions", () => {
           position: Position.create(0, 24),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(1);
-        expect(complitions[0].label).toEqual("node1");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(1);
+        expect(completions[0].label).toEqual("node1");
       });
 
       test("after props", async () => {
@@ -407,10 +407,10 @@ describe("Find complitions", () => {
           position: Position.create(0, 32),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(2);
-        expect(complitions[0].label).toEqual("node1");
-        expect(complitions[1].label).toEqual("node2");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(2);
+        expect(completions[0].label).toEqual("node1");
+        expect(completions[1].label).toEqual("node2");
       });
 
       test("after deleted node", async () => {
@@ -426,9 +426,9 @@ describe("Find complitions", () => {
           position: Position.create(0, 52),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(1);
-        expect(complitions[0].label).toEqual("node2");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(1);
+        expect(completions[0].label).toEqual("node2");
       });
 
       test("delete keyword in node", async () => {
@@ -442,9 +442,9 @@ describe("Find complitions", () => {
           position: Position.create(0, 19),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(1);
-        expect(complitions[0].label).toEqual("/delete-node/");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(1);
+        expect(completions[0].label).toEqual("/delete-node/");
       });
 
       test("delete keyword in root doc no labels", async () => {
@@ -458,9 +458,9 @@ describe("Find complitions", () => {
           position: Position.create(0, 22),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(1);
-        expect(complitions[0].label).toEqual("/delete-node/ &{}");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(1);
+        expect(completions[0].label).toEqual("/delete-node/ &{}");
       });
 
       test("delete keyword in root doc with labels", async () => {
@@ -474,9 +474,9 @@ describe("Find complitions", () => {
           position: Position.create(0, 31),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(1);
-        expect(complitions[0].label).toEqual("/delete-node/");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(1);
+        expect(completions[0].label).toEqual("/delete-node/");
       });
 
       test("before deleted statement", async () => {
@@ -492,10 +492,10 @@ describe("Find complitions", () => {
           position: Position.create(0, 32),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(2);
-        expect(complitions[0].label).toEqual("node2");
-        expect(complitions[1].label).toEqual("node1");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(2);
+        expect(completions[0].label).toEqual("node2");
+        expect(completions[1].label).toEqual("node1");
       });
     });
 
@@ -511,8 +511,8 @@ describe("Find complitions", () => {
           position: Position.create(0, 17),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions).toEqual([]);
+        const completions = await getCompletions(location, [context]);
+        expect(completions).toEqual([]);
       });
 
       test("Between nodes", async () => {
@@ -526,9 +526,9 @@ describe("Find complitions", () => {
           position: Position.create(0, 30),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(1);
-        expect(complitions[0].label).toEqual("/node1");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(1);
+        expect(completions[0].label).toEqual("/node1");
       });
 
       test("after props", async () => {
@@ -542,10 +542,10 @@ describe("Find complitions", () => {
           position: Position.create(0, 44),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(2);
-        expect(complitions[0].label).toEqual("/node1");
-        expect(complitions[1].label).toEqual("/node2");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(2);
+        expect(completions[0].label).toEqual("/node1");
+        expect(completions[1].label).toEqual("/node2");
       });
 
       test("after deleted props", async () => {
@@ -561,9 +561,9 @@ describe("Find complitions", () => {
           position: Position.create(0, 52),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(1);
-        expect(complitions[0].label).toEqual("node2");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(1);
+        expect(completions[0].label).toEqual("node2");
       });
 
       test("delete keyword", async () => {
@@ -577,9 +577,9 @@ describe("Find complitions", () => {
           position: Position.create(0, 19),
         };
 
-        const complitions = await getCompletions(location, [context]);
-        expect(complitions.length).toEqual(1);
-        expect(complitions[0].label).toEqual("/delete-node/");
+        const completions = await getCompletions(location, [context]);
+        expect(completions.length).toEqual(1);
+        expect(completions[0].label).toEqual("/delete-node/");
       });
     });
   });

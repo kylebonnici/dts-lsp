@@ -43,7 +43,7 @@ export enum StandardTypeIssue {
 
 export enum SyntaxIssue {
   VALUE,
-  END_STATMENT,
+  END_STATEMENT,
   CURLY_OPEN,
   CURLY_CLOSE,
   OPEN_SQUARE,
@@ -121,7 +121,7 @@ export enum LexerToken {
   DIGIT,
   HEX,
   STRING,
-  DUOUBE_QUOTE,
+  DOUBLE_QUOTE,
   SINGLE_QUOTE,
   COMMA,
   // EOL,
@@ -153,7 +153,7 @@ export enum LexerToken {
   PERIOD,
   HASH,
   LETTERS,
-  UNDERSCOURE,
+  UNDERSCORE,
   AT,
   COLON,
 }

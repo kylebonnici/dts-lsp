@@ -105,7 +105,7 @@ export class PropertyNodeType<T = string | number> implements Validate {
       ];
     }
 
-    const propTypes = propertyValuesToPropetyType(property);
+    const propTypes = propertyValuesToPropertyType(property);
     const issues: Issue<StandardTypeIssue>[] = [];
 
     const checkType = (
@@ -308,13 +308,13 @@ export class PropertyNodeType<T = string | number> implements Validate {
   }
 }
 
-const propertyValuesToPropetyType = (property: Property): PropertyType[] => {
+const propertyValuesToPropertyType = (property: Property): PropertyType[] => {
   return property.ast.values
-    ? property.ast.values.values.map((v) => propertyValueToPropetyType(v))
+    ? property.ast.values.values.map((v) => propertyValueToPropertyType(v))
     : [PropertyType.EMPTY];
 };
 
-const propertyValueToPropetyType = (
+const propertyValueToPropertyType = (
   value: PropertyValue | null
 ): PropertyType => {
   if (!value) {

@@ -36,7 +36,7 @@ import { ContextAware } from "./runtimeEvaluator";
 import { getCompletions } from "./getCompletions";
 import { getReferences } from "./findReferences";
 import { getTokenizedDocumentProvider } from "./providers/tokenizedDocument";
-import { getDefinitions } from "./findDefinitons";
+import { getDefinitions } from "./findDefinitions";
 import { getDeclaration } from "./findDeclarations";
 import { getCodeActions } from "./getCodeActions";
 import { getDocumentFormatting as getDocumentFormatting } from "./getDocumentFormatting";
@@ -200,7 +200,7 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
   switch (issue) {
     case SyntaxIssue.VALUE:
       return "Expected Value";
-    case SyntaxIssue.END_STATMENT:
+    case SyntaxIssue.END_STATEMENT:
       return "Expected ';'";
     case SyntaxIssue.CURLY_OPEN:
       return "Expected '{'";
@@ -251,7 +251,7 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
     case SyntaxIssue.MISSING_FORWARD_SLASH_END:
       return "Missing '/'";
     case SyntaxIssue.NO_STATEMENT:
-      return "Found ';' without a statment";
+      return "Found ';' without a statement";
     case SyntaxIssue.LABEL_ASSIGN_MISSING_COLON:
       return "Missing ':' for label assign";
     case SyntaxIssue.DELETE_INCOMPLETE:

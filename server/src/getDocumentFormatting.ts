@@ -103,7 +103,7 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
       0
     );
     if (!removeNewLinesEdit) {
-      throw new Error("removenewLinesEdit must be defined");
+      throw new Error("remove new LinesEdit must be defined");
     }
     return [
       TextEdit.insert(
@@ -168,9 +168,9 @@ const formatDtcNode = (
       result.push(...nodeNameAndOpenCurlySpacing);
     } else {
       const nodeNameAndOpenCurlySpacing =
-        node.labelReferance && node.openScope
+        node.labelReference && node.openScope
           ? fixedNumberOfSpaceBetweenTokensAndNext(
-              node.labelReferance.lastToken,
+              node.labelReference.lastToken,
               0
             )
           : [];
@@ -200,17 +200,17 @@ const formatDtcNode = (
     }
   }
 
-  const endStatmentSpacing =
+  const endStatementSpacing =
     node.lastToken.value === ";" && node.lastToken.prevToken
       ? fixedNumberOfSpaceBetweenTokensAndNext(node.lastToken.prevToken, 0)
       : [];
 
-  result.push(...endStatmentSpacing);
+  result.push(...endStatementSpacing);
 
   return result;
 };
 
-const formatLabledValue = <T extends ASTBase>(
+const formatLabeledValue = <T extends ASTBase>(
   documentFormattingParams: DocumentFormattingParams,
   value: LabeledValue<T>,
   level: number,
@@ -251,7 +251,7 @@ const formatValue = (
   if (value instanceof ArrayValues || value instanceof ByteStringValue) {
     result.push(
       ...value.values.flatMap((v, i) =>
-        formatLabledValue(documentFormattingParams, v, level, i)
+        formatLabeledValue(documentFormattingParams, v, level, i)
       )
     );
     const lastValue = value.values.at(-1);
@@ -362,12 +362,12 @@ const formatDtcProperty = (
     );
   }
 
-  const endStatmentSpacing =
+  const endStatementSpacing =
     property.lastToken.value === ";" && property.lastToken.prevToken
       ? fixedNumberOfSpaceBetweenTokensAndNext(property.lastToken.prevToken, 0)
       : [];
 
-  result.push(...endStatmentSpacing);
+  result.push(...endStatementSpacing);
 
   return result;
 };
@@ -398,7 +398,7 @@ const formatDtcDelete = (
   );
   result.push(...keywordAndItemSpacing);
 
-  const endStatmentSpacing =
+  const endStatementSpacing =
     deleteItem.lastToken.value === ";" && deleteItem.lastToken.prevToken
       ? fixedNumberOfSpaceBetweenTokensAndNext(
           deleteItem.lastToken.prevToken,
@@ -406,7 +406,7 @@ const formatDtcDelete = (
         )
       : [];
 
-  result.push(...endStatmentSpacing);
+  result.push(...endStatementSpacing);
 
   return result;
 };
