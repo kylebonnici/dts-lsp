@@ -1,13 +1,8 @@
 import { Issue, StandardTypeIssue } from "../../types";
 import { PropertyNodeType, PropertyType } from "../types";
-import {
-  generateOrTypeObj,
-  getInterruptInfo,
-  getInterruptPhandleNode,
-} from "./helpers";
+import { generateOrTypeObj, getInterruptPhandleNode } from "./helpers";
 import { genIssue } from "../../helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
-import { ArrayValues } from "../../ast/dtc/values/arrayValue";
 
 export default () =>
   new PropertyNodeType(

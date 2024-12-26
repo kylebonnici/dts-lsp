@@ -9,6 +9,6 @@ export default () => {
 
     return !!name.match(/^[A-Z-a-z]+-map-mask$/);
   }, generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY));
-  prop.list = true;
+
   return prop;
 };

@@ -119,7 +119,6 @@ export default () => {
       return issues;
     }
   );
-  prop.list = true;
 
   return prop;
 };

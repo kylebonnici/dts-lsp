@@ -200,7 +200,13 @@ export class PropertyNodeType<T = string | number> implements Validate {
             property.ast.values?.values[0]?.value
           )
         );
-      } else if (this.list) {
+      } else if (
+        this.list ||
+        (this.type.length === 1 &&
+          this.type[0].types.every(
+            (tt) => tt === PropertyType.PROP_ENCODED_ARRAY
+          ))
+      ) {
         propTypes.some((t) =>
           checkType(
             this.type[0].types,
@@ -215,9 +221,11 @@ export class PropertyNodeType<T = string | number> implements Validate {
         issues.push(
           genIssue(
             StandardTypeIssue.EXPECTED_ONE,
-            property.ast.values ?? property.ast,
+            property.ast.propertyName ?? property.ast,
             DiagnosticSeverity.Error,
-            [],
+            (property.ast.values?.values.slice(1) ?? []).filter(
+              (v) => !!v
+            ) as PropertyValue[],
             [],
             [property.name]
           )
