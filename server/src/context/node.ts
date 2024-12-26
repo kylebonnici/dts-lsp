@@ -23,7 +23,7 @@ import { DeleteBase } from "../ast/dtc/delete";
 import { LabelRef } from "../ast/dtc/labelRef";
 import { NumberValue } from "../ast/dtc/values/number";
 import { ArrayValues } from "../ast/dtc/values/arrayValue";
-import { getNodeNameOrNodeLabelRef } from "src/ast/helpers";
+import { getNodeNameOrNodeLabelRef } from "../ast/helpers";
 
 export class Node {
   public referencedBy: DtcRefNode[] = [];
