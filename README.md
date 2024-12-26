@@ -4,7 +4,53 @@ This LSP is intended to be use with DTS Devicetree Specification Release v0.4 (h
 
 ## Usage
 
-How to configure... TODO
+This extension needs a client that supports for Configuration Capability. The format for the setting is of type `Settings` as shown below
+
+```typescript
+interface Settings {
+  includePaths: string[];
+  contexts: Context[];
+  preferredContext?: number;
+}
+
+interface Context {
+  includePaths?: string[];
+  dtsFile: string;
+  overlays: string[];
+}
+```
+
+Sample configuration in VSCode `settings.json`
+
+```json
+{
+  "deviceTree.includePaths": [
+    "/opt/nordic/ncs/v2.9.0/zephyr/dts",
+    "/opt/nordic/ncs/v2.9.0/zephyr/dts/arm",
+    "/opt/nordic/ncs/v2.9.0/zephyr/dts/arm64/",
+    "/opt/nordic/ncs/v2.9.0/zephyr/dts/riscv",
+    "/opt/nordic/ncs/v2.9.0/zephyr/dts/common",
+    "/opt/nordic/ncs/v2.9.0/zephyr/include"
+  ],
+  "deviceTree.contexts": [
+    {
+      "includePaths": [
+        "/opt/nordic/ncs/v2.9.0/zephyr/dts",
+        "/opt/nordic/ncs/v2.9.0/zephyr/dts/arm",
+        "/opt/nordic/ncs/v2.9.0/zephyr/dts/arm64/",
+        "/opt/nordic/ncs/v2.9.0/zephyr/dts/riscv",
+        "/opt/nordic/ncs/v2.9.0/zephyr/dts/common",
+        "/opt/nordic/ncs/v2.9.0/zephyr/include"
+      ],
+      "dtsFile": "/opt/nordic/ncs/v2.9.0/zephyr/boards/nordic/nrf52840dk/nrf52840dk_nrf52840.dts",
+      "overlays": [
+        "/Users/user/Workspace/vscode/samples/hello_world/myApp.overlay"
+      ]
+    }
+  ],
+  "deviceTree.preferredContext": 0
+}
+```
 
 ## Functionality
 
@@ -97,7 +143,6 @@ NOTE: That the references will stop at the definition hence if for example a nod
 ### Limitations
 
 - Parsing will only look at the files the device tree uses. C Header files will not be parsed to keep parsing fast enough. Hence no check on if a Macro exists or not is made.
-- If a file is reused by multiple context it is not possible to manually change contexts
 
 ### Road Map
 

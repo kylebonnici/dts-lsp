@@ -131,7 +131,7 @@ interface Context {
   dtsFile: string;
   overlays: string[];
 }
-// The example settings
+
 interface Settings {
   includePaths: string[];
   contexts: Context[];
