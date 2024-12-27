@@ -95,11 +95,11 @@ export class Parser extends BaseParser {
   public async reparse(): Promise<void> {
     const stable = this.stable;
     this.parsing = new Promise<void>((resolve) => {
-      stable.then(() => {
+      stable.then(async () => {
         this.reset();
-        this.cPreprocessorParser.reparse().then(() => {
-          this.parse().then(resolve);
-        });
+        await this.cPreprocessorParser.reparse();
+        await this.parse();
+        resolve();
       });
     });
     return this.parsing;
