@@ -262,7 +262,10 @@ let globalSettings: Settings = defaultSettings;
 const documentSettings: Map<string, Thenable<Settings>> = new Map();
 
 connection.onDidChangeConfiguration((change) => {
-  console.log("onDidChangeConfiguration");
+  if (!change.settings) {
+    return;
+  }
+  console.log("onDidChangeConfiguration", change);
   if (hasConfigurationCapability) {
     // Reset all cached document settings
     documentSettings.clear();
