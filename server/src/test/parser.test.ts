@@ -230,7 +230,7 @@ describe("Parser", () => {
 
   describe("Missing open curly", () => {
     test("Child node, with address", async () => {
-      mockReadFileSync("/{node1@20 };};");
+      mockReadFileSync("/{node1@20 };");
       const parser = new Parser("/folder/dts.dts", []);
       await parser.stable;
       expect(parser.issues.length).toEqual(1);
@@ -241,7 +241,7 @@ describe("Parser", () => {
     });
 
     test("Ref Node", async () => {
-      mockReadFileSync("&label };");
+      mockReadFileSync("&label ");
       const parser = new Parser("/folder/dts.dts", []);
       await parser.stable;
       expect(parser.issues.length).toEqual(1);
@@ -2025,7 +2025,7 @@ describe("Parser", () => {
           "/folder/dts.dts": '#include "some.dtsi"',
           "/folder/some.dtsi": "",
         });
-        const parser = new CPreprocessorParser("/folder/dts.dts", []);
+        const parser = new Parser("/folder/dts.dts", []);
         await parser.stable;
         expect(parser.issues.length).toEqual(0);
         expect(parser.includes.length).toEqual(1);
@@ -2039,9 +2039,7 @@ describe("Parser", () => {
           "/folder/dts.dts": "#include <my_includes/some.dtsi>",
           "/my/includes/my_includes/some.dtsi": "",
         });
-        const parser = new CPreprocessorParser("/folder/dts.dts", [
-          "/my/includes",
-        ]);
+        const parser = new Parser("/folder/dts.dts", ["/my/includes"]);
         await parser.stable;
         expect(parser.issues.length).toEqual(0);
         expect(parser.includes.length).toEqual(1);
@@ -2061,9 +2059,7 @@ describe("Parser", () => {
           "/folder/dts.dts": "#include <my_includes/some.dtsi",
           "/my/includes/my_includes/some.dtsi": "",
         });
-        const parser = new CPreprocessorParser("/folder/dts.dts", [
-          "/my/includes",
-        ]);
+        const parser = new Parser("/folder/dts.dts", ["/my/includes"]);
         await parser.stable;
         expect(parser.issues.length).toEqual(1);
         expect(parser.issues[0].issues).toEqual([SyntaxIssue.GT_SYM]);
