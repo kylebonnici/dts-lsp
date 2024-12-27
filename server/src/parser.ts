@@ -207,7 +207,9 @@ export class Parser extends BaseParser {
       this.moveToNextToken;
     }
 
-    dtcNode.closeScope = this.prevToken;
+    if (this.prevToken?.value === "}") {
+      dtcNode.closeScope = this.prevToken;
+    }
 
     return this.endStatement();
   }
@@ -355,23 +357,20 @@ export class Parser extends BaseParser {
       }
     } else {
       this.moveToNextToken;
+      child.openScope = this.prevToken;
+      // syntax must be a node ....
+
+      let hasChild: boolean = false;
+      do {
+        hasChild = this.processNode(child, "Name");
+      } while (hasChild);
+
+      const lastToken = this.nodeEnd(child);
+
+      child.lastToken = lastToken;
     }
 
-    child.openScope = this.prevToken;
-
-    // syntax must be a node ....
-
     parentNode.addNodeChild(child);
-
-    let hasChild: boolean = false;
-    do {
-      hasChild = this.processNode(child, "Name");
-    } while (hasChild);
-
-    const lastToken = this.nodeEnd(child);
-
-    child.lastToken = lastToken;
-
     this.mergeStack();
     return true;
   }

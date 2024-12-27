@@ -63,6 +63,16 @@ let contextAware: ContextAware[] = [];
 let activeContext: Promise<ContextAware | undefined>;
 let activeFileUri: string | undefined;
 
+const allStable = async () => {
+  await Promise.all(
+    contextAware.map((context) => {
+      const d = debounce.get(context);
+      if (d?.abort.signal.aborted) return;
+      return d?.promise;
+    })
+  );
+};
+
 const getAdhocContexts = (settings: Settings) => {
   return contextAware.filter((c) => {
     const settingContext = settings.contexts.find(
@@ -527,6 +537,7 @@ documents.onDidChangeContent(async (change) => {
 
   getTokenizedDocumentProvider().renewLexer(uri, change.document.getText());
 
+  await allStable();
   const contexts = await findContexts(contextAware, uri);
 
   if (!contexts.length) {
@@ -714,6 +725,9 @@ connection.onCompletion(
     // The pass parameter contains the position of the text document in
     // which code complete got requested. For the example we ignore this
     // info and always provide the same completion items.
+
+    await allStable();
+
     if (contextAware) {
       return [
         ...(await getCompletions(
@@ -819,6 +833,7 @@ connection.languages.semanticTokens.on(async (h) => {
 
 connection.onDocumentLinks(async (event) => {
   const uri = event.textDocument.uri.replace("file://", "");
+  await allStable();
   const contextMeta = await findContext(
     contextAware,
     uri,
@@ -834,14 +849,17 @@ connection.onDocumentLinks(async (event) => {
 });
 
 connection.onReferences(async (event) => {
+  await allStable();
   return getReferences(event, contextAware, globalSettings.preferredContext);
 });
 
 connection.onDefinition(async (event) => {
+  await allStable();
   return getDefinitions(event, contextAware, globalSettings.preferredContext);
 });
 
 connection.onDeclaration(async (event) => {
+  await allStable();
   return getDeclaration(event, contextAware, globalSettings.preferredContext);
 });
 
@@ -849,11 +867,13 @@ connection.onCodeAction((event) => {
   return getCodeActions(event);
 });
 
-connection.onDocumentFormatting((event) => {
+connection.onDocumentFormatting(async (event) => {
+  await allStable();
   return getDocumentFormatting(event, contextAware);
 });
 
 connection.onHover(async (event) => {
+  await allStable();
   return (
     await getHover(event, contextAware, globalSettings.preferredContext)
   ).at(0);

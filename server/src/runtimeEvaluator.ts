@@ -56,7 +56,7 @@ export class ContextAware {
     return [...(await this.getRuntime()).issues, ...this._issues];
   }
 
-  private async stable() {
+  async stable() {
     await Promise.all([
       this.parser.stable,
       ...this.overlayParsers.map((p) => p.stable),
