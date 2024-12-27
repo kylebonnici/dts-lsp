@@ -65,7 +65,7 @@ export class ContextAware {
 
   async getRuntime(): Promise<Runtime> {
     await this.stable();
-    this._runtime ??= this.revaluate();
+    this._runtime ??= this.evaluate();
     return this._runtime;
   }
 
@@ -172,12 +172,16 @@ export class ContextAware {
     );
   }
 
-  public async revaluate(uri?: string) {
-    if (uri) {
-      console.log("revaluate", uri);
-      const parser = await this.getParser(uri);
-      await parser?.reparse();
-    }
+  public async revaluate(uri: string) {
+    const parser = await this.getParser(uri);
+    await parser?.reparse();
+
+    this._runtime = this.evaluate();
+    return this._runtime;
+  }
+
+  public async evaluate() {
+    await this.parser.stable;
 
     const runtime = new Runtime();
     this._issues = [];
