@@ -149,6 +149,7 @@ const cleanUpAdhocContext = async (context: ContextAware) => {
 
   if (contextToClean.length) {
     contextToClean.forEach((c) => {
+      debounce.delete(c);
       console.log(
         `cleaning up context with id ${contextAware.indexOf(c)} and uri ${
           c.parser.uri
@@ -277,6 +278,12 @@ connection.onDidChangeConfiguration((change) => {
   let adhocContexts = getAdhocContexts(oldSettngs);
 
   contextAware = [];
+
+  debounce = new WeakMap<
+    ContextAware,
+    { abort: AbortController; promise: Promise<void> }
+  >();
+
   globalSettings.contexts.forEach((context, i) => {
     const newContext = new ContextAware(
       context.dtsFile,
