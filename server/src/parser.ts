@@ -106,6 +106,7 @@ export class Parser extends BaseParser {
   }
 
   async parse() {
+    const t = performance.now();
     await this.cPreprocessorParser.stable;
     this.tokens = this.cPreprocessorParser.tokens;
 
@@ -160,6 +161,7 @@ export class Parser extends BaseParser {
       /* istanbul ignore next */
       throw new Error("Incorrect final stack size");
     }
+    console.log("parse", this.uri, performance.now() - t);
   }
 
   private isRootNodeDefinition(parent: DtcBaseNode): boolean {
