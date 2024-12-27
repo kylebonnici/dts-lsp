@@ -63,6 +63,11 @@ let contextAware: ContextAware[] = [];
 let activeContext: Promise<ContextAware | undefined>;
 let activeFileUri: string | undefined;
 
+let debounce = new WeakMap<
+  ContextAware,
+  { abort: AbortController; promise: Promise<void> }
+>();
+
 const allStable = async () => {
   await Promise.all(
     contextAware.map((context) => {
@@ -524,11 +529,6 @@ const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
       return `TODO`;
   }
 };
-
-const debounce = new WeakMap<
-  ContextAware,
-  { abort: AbortController; promise: Promise<void> }
->();
 
 // // The content of a text document has changed. This event is emitted
 // // when the text document first opened or when its content has changed.
