@@ -48,7 +48,6 @@ import {
 export class CPreprocessorParser extends BaseParser {
   private commentsParser: CommentsParser;
   public tokens: Token[] = [];
-  includes: Include[] = [];
   private nodes: ASTBase[] = [];
   private macroSnapShot: Map<string, CMacro> = new Map<string, CMacro>();
 
@@ -63,34 +62,8 @@ export class CPreprocessorParser extends BaseParser {
     Array.from(macros).forEach(([k, m]) => this.macroSnapShot.set(k, m));
   }
 
-  includePaths() {
-    return this.includes
-      .filter(
-        (p) =>
-          p.path.path.endsWith(".dts") ||
-          p.path.path.endsWith(".dtsi") ||
-          p.path.path.endsWith(".h")
-      )
-      .map((include) => this.resolveInclude(include))
-      .filter((p) => p) as string[];
-  }
-
-  resolveInclude(include: Include) {
-    if (include.path.relative) {
-      return [
-        resolve(dirname(this.uri), include.path.path),
-        ...this.incudes.map((c) => resolve(c, include.path.path)),
-      ].find((p) => existsSync(p));
-    } else {
-      return this.incudes
-        .map((p) => resolve(p, include.path.path))
-        .find((p) => existsSync(p));
-    }
-  }
-
   protected reset() {
     super.reset();
-    this.includes = [];
     this.macros.clear();
     Array.from(this.macroSnapShot).forEach(([k, m]) => this.macros.set(k, m));
     this.nodes = [];
@@ -119,7 +92,7 @@ export class CPreprocessorParser extends BaseParser {
     }
 
     while (!this.done) {
-      await this.lineProcessor();
+      this.lineProcessor();
     }
 
     if (this.positionStack.length !== 1) {
@@ -128,26 +101,7 @@ export class CPreprocessorParser extends BaseParser {
     }
   }
 
-  protected moveEndOfLine = (line: number, report = true) => {
-    if (this.currentToken?.pos.line !== line) {
-      return;
-    }
-
-    const start = this.currentToken;
-    let end: Token | undefined = start;
-    while (this.currentToken?.pos.line === line) {
-      end = this.moveToNextToken;
-    }
-
-    if (report) {
-      const node = new ASTBase(createTokenIndex(start, end));
-      this.issues.push(genIssue(SyntaxIssue.UNKNOWN, node));
-    }
-
-    return end;
-  };
-
-  private async lineProcessor() {
+  private lineProcessor() {
     this.enqueueToStack();
 
     //must be firstToken
@@ -162,9 +116,8 @@ export class CPreprocessorParser extends BaseParser {
 
     const line = this.currentToken?.pos.line;
     const found =
-      (await this.processInclude()) ||
-      this.processDefinitions() ||
-      this.processIfDefBlocks();
+      // (await this.processInclude()) ||
+      this.processDefinitions() || this.processIfDefBlocks();
 
     if (line !== undefined) {
       this.moveEndOfLine(line, !!found);
@@ -232,81 +185,6 @@ export class CPreprocessorParser extends BaseParser {
     }
 
     return tokens;
-  }
-
-  private async processInclude(): Promise<boolean> {
-    this.enqueueToStack();
-
-    const startIndex = this.peekIndex();
-    const start = this.moveToNextToken;
-    let token = start;
-    if (!token || !validToken(token, LexerToken.C_INCLUDE)) {
-      this.popStack();
-      return false;
-    }
-
-    const line = start?.pos.line;
-    const keyword = new Keyword(createTokenIndex(token));
-
-    token = this.moveToNextToken;
-    const pathStart = token;
-    const relative = !!validToken(token, LexerToken.STRING);
-    if (!pathStart || (!relative && !validToken(token, LexerToken.LT_SYM))) {
-      if (line) this.moveEndOfLine(line);
-      this.mergeStack();
-      return true;
-    }
-
-    let path = "";
-
-    if (relative) {
-      path = token?.value ?? "";
-    } else {
-      while (
-        this.currentToken?.pos.line === line &&
-        !validToken(this.currentToken, LexerToken.GT_SYM)
-      ) {
-        path += this.currentToken?.value ?? "";
-        token = this.moveToNextToken;
-      }
-    }
-
-    const includePath = new IncludePath(
-      path,
-      relative,
-      createTokenIndex(pathStart, token)
-    );
-    const node = new Include(keyword, includePath);
-    node.uri = this.uri;
-    this.includes.push(node);
-
-    if (!relative) {
-      if (
-        this.currentToken?.pos.line !== line ||
-        !validToken(this.currentToken, LexerToken.GT_SYM)
-      ) {
-        this.issues.push(genIssue(SyntaxIssue.GT_SYM, node));
-      } else {
-        token = this.moveToNextToken;
-        includePath.lastToken = token;
-      }
-    }
-
-    const resolvedPath = this.resolveInclude(node);
-    if (resolvedPath && !resolvedPath.endsWith(".h")) {
-      getTokenizedDocumentProvider().requestTokens(resolvedPath, true);
-      const childParser = new Parser(resolvedPath, this.incudes, this.macros);
-      this.childParsers.push(childParser);
-      await childParser.stable;
-    }
-
-    this.mergeStack();
-
-    const endIndex = this.peekIndex();
-    this.tokens.splice(startIndex, endIndex - startIndex);
-
-    this.positionStack[this.positionStack.length - 1] = startIndex;
-    return true;
   }
 
   protected isFunctionDefinition(): FunctionDefinition | undefined {
@@ -499,10 +377,6 @@ export class CPreprocessorParser extends BaseParser {
   }
 
   get allAstItems(): ASTBase[] {
-    return [
-      ...this.includes,
-      ...this.nodes,
-      ...this.commentsParser.allAstItems,
-    ];
+    return [...this.nodes, ...this.commentsParser.allAstItems];
   }
 }

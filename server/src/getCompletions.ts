@@ -158,7 +158,9 @@ function getDeleteNodeRefItems(
       return [
         {
           label: "/delete-node/",
+          insertText: `/delete-node/ $1;`,
           kind: CompletionItemKind.Keyword,
+          insertTextFormat: InsertTextFormat.Snippet,
           sortText: "~",
         },
       ];
@@ -168,9 +170,10 @@ function getDeleteNodeRefItems(
       return [
         {
           label: "/delete-node/ &{}",
-          insertText: `/delete-node/ &{/$1};`,
+          insertText: `/delete-node/ {/$1};`,
           kind: CompletionItemKind.Keyword,
           insertTextFormat: InsertTextFormat.Snippet,
+          sortText: "~",
         },
       ];
     }
@@ -181,7 +184,7 @@ function getDeleteNodeRefItems(
   return Array.from(
     new Set(getScopeItems(result.runtime.rootNode).map((l) => l.label))
   ).map((l) => ({
-    label: result.ast instanceof DeleteNode ? `&${l};` : `${l};`,
+    label: `${l}`,
     kind: CompletionItemKind.Variable,
   }));
 }

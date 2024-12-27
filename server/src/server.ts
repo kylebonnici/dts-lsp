@@ -94,8 +94,8 @@ const contextFullyOverlaps = async (a: ContextAware, b: ContextAware) => {
     return true;
   }
 
-  const contextAFiles = await a.getOrderedContextFiles();
-  const contextBFiles = await b.getOrderedContextFiles();
+  const contextAFiles = (await a.getOrderedParsers()).map((p) => p.uri);
+  const contextBFiles = (await b.getOrderedParsers()).map((p) => p.uri);
 
   return contextAFiles.every((f) => contextBFiles.some((ff) => ff === f));
 };
@@ -104,7 +104,7 @@ const cleanUpAdhocContext = async (context: ContextAware) => {
   const adhocContexts = getAdhocContexts(globalSettings);
   const configContexts = await getConfiguredContexts(globalSettings);
   const adhocContextFiles = await resolveContextFiles(adhocContexts);
-  const contextFiles = await context.getOrderedContextFiles();
+  const contextFiles = (await context.getOrderedParsers()).map((p) => p.uri);
 
   if (contextAware.indexOf(context) === -1) {
     return;

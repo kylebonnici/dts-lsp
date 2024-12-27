@@ -259,7 +259,6 @@ export type SearchableResult = {
 
 export interface Searchable {
   getDeepestAstNode(
-    previousFiles: string[],
     file: string,
     position: vsCodePosition
   ): SearchableResult | undefined;

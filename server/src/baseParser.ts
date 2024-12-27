@@ -19,6 +19,7 @@ import { Issue, LexerToken, SyntaxIssue, Token, TokenIndexes } from "./types";
 import {
   adjacentTokens,
   createTokenIndex,
+  genIssue,
   validateToken,
   validToken,
 } from "./helpers";
@@ -53,10 +54,16 @@ export abstract class BaseParser {
     this.childParsers = [];
   }
 
+  get allParsers(): Parser[] {
+    return this instanceof Parser
+      ? [this, ...this.childParsers.flatMap((p) => p.orderedParsers)]
+      : this.childParsers.flatMap((p) => p.orderedParsers);
+  }
+
   get orderedParsers(): Parser[] {
     return (
       this instanceof Parser
-        ? [this, ...this.cPreprocessorParser.orderedParsers]
+        ? [this, ...this.childParsers.flatMap((p) => p.orderedParsers)]
         : this.childParsers.flatMap((p) => p.orderedParsers)
     ).reverse();
   }
@@ -390,6 +397,25 @@ export abstract class BaseParser {
     this.mergeStack();
     return block;
   }
+
+  protected moveEndOfLine = (line: number, report = true) => {
+    if (this.currentToken?.pos.line !== line) {
+      return;
+    }
+
+    const start = this.currentToken;
+    let end: Token | undefined = start;
+    while (this.currentToken?.pos.line === line) {
+      end = this.moveToNextToken;
+    }
+
+    if (report) {
+      const node = new ASTBase(createTokenIndex(start, end));
+      this.issues.push(genIssue(SyntaxIssue.UNKNOWN, node));
+    }
+
+    return end;
+  };
 
   getTokenIndex(token?: Token) {
     return token ? this.tokens.findIndex((item) => item === token) : -1;

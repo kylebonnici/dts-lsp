@@ -25,6 +25,7 @@ import { DeleteProperty } from "./deleteProperty";
 import { LabelRef } from "./labelRef";
 import { Node } from "../../context/node";
 import { Keyword } from "../keyword";
+import { Include } from "../cPreprocessors/include";
 
 export class DtcBaseNode extends ASTBase {
   public openScope?: Token;
@@ -57,9 +58,13 @@ export class DtcBaseNode extends ASTBase {
   }
 
   public addNodeChild(
-    child: DtcBaseNode | DeleteNode | DtcProperty | DeleteProperty
+    child: DtcBaseNode | DeleteNode | DtcProperty | DeleteProperty | Include
   ) {
     this.addChild(child);
+  }
+
+  public insertIncludeAt(child: Include, index: number) {
+    this.insertAt(child, index);
   }
 }
 

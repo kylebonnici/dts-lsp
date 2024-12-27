@@ -220,9 +220,9 @@ export class PropertyNodeType<T = string | number> implements Validate {
       } else if (
         this.list ||
         (this.type.length === 1 &&
-          this.type[0].types.every(
-            (tt) => tt === PropertyType.PROP_ENCODED_ARRAY
-          ))
+          this.type[0].types
+            .filter((t) => t !== PropertyType.EMPTY)
+            .every((tt) => tt === PropertyType.PROP_ENCODED_ARRAY))
       ) {
         propTypes.some((t) =>
           checkType(

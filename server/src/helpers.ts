@@ -34,6 +34,7 @@ import {
   LexerToken,
 } from "./types";
 import { ContextAware } from "./runtimeEvaluator";
+import { Include } from "./ast/cPreprocessors/include";
 
 export const toRange = (slxBase: ASTBase) => {
   return {
@@ -94,7 +95,6 @@ export const isLastTokenOnLine = (
 
 export const getDeepestAstNodeInBetween = (
   ast: ASTBase,
-  previousFiles: string[],
   file: string,
   position: Position
 ) => {
@@ -125,17 +125,15 @@ export const genIssue = <T extends IssueTypes>(
   templateStrings,
 });
 
-export const sortAstForScope = <T extends ASTBase>(
-  ast: T[],
-  fileOrder: string[]
-) => {
+export const sortAstForScope = <T extends ASTBase>(ast: T[]) => {
   const arrayCopy = [...ast];
   return arrayCopy.sort((a, b) => {
-    const aFileIndex = fileOrder.findIndex((f) => a.uri);
-    const bFileIndex = fileOrder.findIndex((f) => b.uri);
+    if (a.sortKey === undefined || b.sortKey === undefined) {
+      throw new Error("Sort keys must be set");
+    }
 
-    if (aFileIndex !== bFileIndex) {
-      return aFileIndex - bFileIndex;
+    if (a.sortKey !== b.sortKey) {
+      return a.sortKey - b.sortKey;
     }
 
     if (!a.tokenIndexes?.end || !b.tokenIndexes?.end) {
@@ -166,13 +164,9 @@ export async function nodeFinder<T>(
   if (!contextMeta) return [];
 
   console.time("search");
-  const orderedFiles = await contextMeta.context.getOrderedContextFiles();
   const runtime = await contextMeta.context.getRuntime();
-  const locationMeta = runtime.getDeepestAstNode(
-    orderedFiles.slice(0, orderedFiles.indexOf(uri)),
-    uri,
-    location.position
-  );
+  const locationMeta = runtime.getDeepestAstNode(uri, location.position);
+  const sortKey = locationMeta?.ast?.sortKey;
   console.timeEnd("search");
 
   const inScope = (ast: ASTBase) => {
@@ -187,9 +181,7 @@ export async function nodeFinder<T>(
       );
     }
 
-    const validFiles = orderedFiles.slice(0, orderedFiles.indexOf(uri) + 1);
-
-    return validFiles.some((uri) => uri === ast.uri);
+    return sortKey !== undefined && ast.sortKey <= sortKey;
   };
 
   return action(locationMeta, inScope);
@@ -231,7 +223,7 @@ export const resolveContextFiles = async (contextAware: ContextAware[]) => {
     contextAware.map(async (c, index) => ({
       index,
       context: c,
-      files: await c.getOrderedContextFiles(),
+      files: (await c.getOrderedParsers()).map((p) => p.uri),
     }))
   );
 };

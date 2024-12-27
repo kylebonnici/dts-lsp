@@ -21,6 +21,8 @@ import { basename } from "path";
 import { TokenIndexes } from "../../types";
 
 export class Include extends ASTBase {
+  public reolvedPath?: string;
+
   constructor(
     public readonly keyword: Keyword,
     public readonly path: IncludePath

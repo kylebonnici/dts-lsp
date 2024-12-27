@@ -31,6 +31,7 @@ export class ASTBase {
   public parentNode?: ASTBase;
   protected docSymbolsMeta?: { name: string; kind: SymbolKind };
   private _uri?: string;
+  private _sortKey?: number;
 
   private _lastToken?: Token;
   private _fisrtToken?: Token;
@@ -38,6 +39,14 @@ export class ASTBase {
   constructor(_tokenIndexes?: TokenIndexes) {
     this._fisrtToken = _tokenIndexes?.start;
     this._lastToken = _tokenIndexes?.end;
+  }
+
+  get sortKey() {
+    return this._sortKey ?? this.parentNode?.sortKey ?? -1;
+  }
+
+  set sortKey(value: number) {
+    this._sortKey ??= value;
   }
 
   get firstToken(): Token {
@@ -121,6 +130,14 @@ export class ASTBase {
       child.parentNode = this;
       child.uri = this.uri;
       this.children.push(child);
+    }
+  }
+
+  protected insertAt(child: ASTBase | null, index: number) {
+    if (child) {
+      child.parentNode = this;
+      child.uri = this.uri;
+      this.children.splice(index, 0, child);
     }
   }
 }

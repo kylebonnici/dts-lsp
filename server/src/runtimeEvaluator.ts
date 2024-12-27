@@ -34,6 +34,7 @@ import { genIssue, toRange } from "./helpers";
 import { Parser } from "./parser";
 import { DiagnosticSeverity, DocumentLink } from "vscode-languageserver";
 import { NodePath, NodePathRef } from "./ast/dtc/values/nodePath";
+import { Include } from "./ast/cPreprocessors/include";
 
 export class ContextAware {
   _issues: Issue<ContextIssues>[] = [];
@@ -73,15 +74,20 @@ export class ContextAware {
   }
 
   async getParser(uri: string): Promise<Parser | undefined> {
-    return (await this.getOrderedParsers()).find((p) => p.uri === uri);
+    return (await this.getAllParsers())?.find((p) => p.uri === uri);
+  }
+
+  async getAllParsers(): Promise<Parser[]> {
+    await this.stable();
+    return [...this.parser.allParsers, ...this.overlayParsers];
   }
 
   async getDocumentLinks(file: string): Promise<DocumentLink[]> {
     const parser = await this.getParser(file);
     return (
-      (parser?.cPreprocessorParser.includes
+      (parser?.includes
         .map((include) => {
-          const path = parser.cPreprocessorParser.resolveInclude(include);
+          const path = parser.resolveInclude(include);
           if (path) {
             const link: DocumentLink = {
               range: toRange(include.path),
@@ -92,10 +98,6 @@ export class ContextAware {
         })
         .filter((r) => r) as DocumentLink[]) ?? []
     );
-  }
-
-  public async getOrderedContextFiles() {
-    return (await this.getOrderedParsers()).map((f) => f.uri);
   }
 
   private linkPropertiesLabelsAndNodePaths(runtime: Runtime) {
@@ -175,23 +177,34 @@ export class ContextAware {
       await parser?.reparse();
     }
 
-    const files = await this.getOrderedContextFiles();
-    const parsers = await this.getOrderedParsers();
-
-    const runtime = new Runtime(files);
+    const runtime = new Runtime();
     this._issues = [];
 
-    parsers.forEach((parser) => this.processRoot(parser.rootDocument, runtime));
+    await this.processRoot(this.parser.rootDocument, runtime);
+    for (let i = 0; i < this.overlayParsers.length; i++) {
+      await this.processRoot(this.overlayParsers[i].rootDocument, runtime);
+    }
+
     this.linkPropertiesLabelsAndNodePaths(runtime);
 
     this._runtime = runtime;
     return runtime;
   }
 
-  private processRoot(element: DtcBaseNode, runtime: Runtime) {
-    element.children.forEach((child) => {
-      this.processChild(child, runtime.rootNode, runtime);
-    });
+  private async processRoot(element: DtcBaseNode, runtime: Runtime) {
+    for (let i = 0; i < element.children.length; i++) {
+      const child = element.children[i];
+      if (child instanceof Include) {
+        const p = child.reolvedPath
+          ? await this.getParser(child.reolvedPath)
+          : undefined;
+        if (p) {
+          await this.processRoot(p.rootDocument, runtime);
+        }
+      } else {
+        this.processChild(child, runtime.rootNode, runtime);
+      }
+    }
   }
 
   private processChild(

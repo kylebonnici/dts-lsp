@@ -80,7 +80,6 @@ export class Node {
   }
 
   getDeepestAstNode(
-    previousFiles: string[],
     file: string,
     position: Position
   ): Omit<SearchableResult, "runtime"> | undefined {
@@ -92,7 +91,7 @@ export class Node {
       const inDeletes = this.deletes
         .map((p) => ({
           item: this,
-          ast: getDeepestAstNodeInBetween(p, previousFiles, file, position),
+          ast: getDeepestAstNodeInBetween(p, file, position),
         }))
         .find((i) => positionInBetween(i.ast, file, position));
 
@@ -114,26 +113,21 @@ export class Node {
         .find((i) => positionInBetween(i.ast, file, position));
 
       if (inProperty) {
-        return inProperty.item.getDeepestAstNode(previousFiles, file, position);
+        return inProperty.item.getDeepestAstNode(file, position);
       }
 
       const inChildNode = [
         ...this._nodes,
         ...this._deletedNodes.map((d) => d.node),
       ]
-        .map((n) => n.getDeepestAstNode(previousFiles, file, position))
+        .map((n) => n.getDeepestAstNode(file, position))
         .find((i) => i);
 
       if (inChildNode) {
         return inChildNode;
       }
 
-      const deepestAstNode = getDeepestAstNodeInBetween(
-        inNode,
-        previousFiles,
-        file,
-        position
-      );
+      const deepestAstNode = getDeepestAstNodeInBetween(inNode, file, position);
 
       return {
         item: this,

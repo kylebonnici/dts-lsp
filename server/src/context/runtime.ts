@@ -44,12 +44,11 @@ export class Runtime implements Searchable {
   public globalDeletes: DeleteNode[] = [];
   public rootNode: Node = new Node("/");
 
-  constructor(private readonly orderedFiles: string[]) {}
+  constructor() {}
 
   public labelsUsedCache = new Map<string, string[]>();
 
   getDeepestAstNode(
-    previousFiles: string[],
     file: string,
     position: Position
   ): SearchableResult | undefined {
@@ -71,32 +70,24 @@ export class Runtime implements Searchable {
 
     if (dtcNode instanceof DtcRefNode) {
       const refByNode = this.rootNode.getReferenceBy(dtcNode);
-      const result = refByNode?.getDeepestAstNode(
-        previousFiles,
-        file,
-        position
-      );
+      const result = refByNode?.getDeepestAstNode(file, position);
       if (result) {
         return { ...result, runtime: this };
       }
       return {
         item: null,
         runtime: this,
-        ast: getDeepestAstNodeInBetween(dtcNode, previousFiles, file, position),
+        ast: getDeepestAstNodeInBetween(dtcNode, file, position),
       };
     } else if (dtcNode instanceof DtcRootNode && dtcNode.path) {
-      const result = this.rootNode.getDeepestAstNode(
-        previousFiles,
-        file,
-        position
-      );
+      const result = this.rootNode.getDeepestAstNode(file, position);
       return result ? { ...result, runtime: this } : undefined;
     } else if (dtcNode) {
       // unlinkedDeletes
       return {
         runtime: this,
         item: null,
-        ast: getDeepestAstNodeInBetween(dtcNode, previousFiles, file, position),
+        ast: getDeepestAstNodeInBetween(dtcNode, file, position),
       };
     }
 
@@ -198,9 +189,6 @@ export class Runtime implements Searchable {
   }
 
   getOrderedNodeAst(node: Node) {
-    return sortAstForScope(
-      [...node.definitions, ...node.referencedBy],
-      this.orderedFiles
-    );
+    return sortAstForScope([...node.definitions, ...node.referencedBy]);
   }
 }
