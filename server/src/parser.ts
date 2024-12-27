@@ -67,6 +67,7 @@ export class Parser extends BaseParser {
   rootDocument = new DtcBaseNode();
   issues: Issue<SyntaxIssue>[] = [];
   unhandledStatements = new DtcRootNode();
+  private originalSortKey: number;
 
   constructor(
     public readonly uri: string,
@@ -75,6 +76,7 @@ export class Parser extends BaseParser {
     private sortKey = -1
   ) {
     super();
+    this.originalSortKey = sortKey;
     this.cPreprocessorParser = new CPreprocessorParser(
       this.uri,
       this.incudes,
@@ -89,6 +91,7 @@ export class Parser extends BaseParser {
     this.rootDocument = new DtcBaseNode();
     this.rootDocument.uri = this.uri;
     this.issues = [];
+    this.sortKey = this.originalSortKey;
     this.unhandledStatements = new DtcRootNode();
   }
 
