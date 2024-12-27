@@ -537,7 +537,6 @@ documents.onDidChangeContent(async (change) => {
 
   getTokenizedDocumentProvider().renewLexer(uri, change.document.getText());
 
-  await allStable();
   const contexts = await findContexts(contextAware, uri);
 
   if (!contexts.length) {
