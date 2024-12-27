@@ -564,7 +564,7 @@ documents.onDidChangeContent(async (change) => {
           await context.context.revaluate(uri);
           resolve();
           console.log("revaluate", performance.now() - t);
-        });
+        }, 50);
       });
 
       debounce.set(context.context, { abort, promise });

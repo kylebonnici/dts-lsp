@@ -38,7 +38,7 @@ import { Include } from "./ast/cPreprocessors/include";
 
 export class ContextAware {
   _issues: Issue<ContextIssues>[] = [];
-  private _runtime?: Runtime;
+  private _runtime?: Promise<Runtime>;
   public parser: Parser;
   private overlayParsers: Parser[];
 
@@ -64,8 +64,9 @@ export class ContextAware {
   }
 
   async getRuntime(): Promise<Runtime> {
-    this.stable();
-    return this._runtime ?? this.revaluate();
+    await this.stable();
+    this._runtime ??= this.revaluate();
+    return this._runtime;
   }
 
   async getOrderedParsers(): Promise<Parser[]> {
@@ -173,6 +174,7 @@ export class ContextAware {
 
   public async revaluate(uri?: string) {
     if (uri) {
+      console.log("revaluate", uri);
       const parser = await this.getParser(uri);
       await parser?.reparse();
     }
@@ -187,7 +189,6 @@ export class ContextAware {
 
     this.linkPropertiesLabelsAndNodePaths(runtime);
 
-    this._runtime = runtime;
     return runtime;
   }
 
