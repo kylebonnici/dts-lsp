@@ -32,6 +32,13 @@
         "configuration": "syntax/devicetree-language.json"
       }
     ],
+    "grammars": [
+      {
+        "language": "devicetree",
+        "scopeName": "source.dts",
+        "path": "syntax/dts.tmLanguage.json"
+      }
+    ],
     "configuration": {
       "type": "object",
       "title": "Device Tree LSP Configuration",

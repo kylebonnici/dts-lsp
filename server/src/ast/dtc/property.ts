@@ -65,6 +65,6 @@ export class DtcProperty extends ASTBase {
             .map((v) => v?.toString() ?? "NULL")
             .join(", ")}`
         : ""
-    }`;
+    };`;
   }
 }

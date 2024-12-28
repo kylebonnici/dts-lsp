@@ -16,7 +16,9 @@
 
 import { SymbolKind } from "vscode-languageserver";
 import { ASTBase } from "../base";
-import { TokenIndexes } from "../../types";
+import { BuildSemanticTokensPush, TokenIndexes } from "../../types";
+import { LabelRef } from "./labelRef";
+import { getTokenModifiers, getTokenTypes } from "../../helpers";
 
 export class LabelAssign extends ASTBase {
   constructor(public readonly label: string, tokenIndex: TokenIndexes) {
@@ -43,5 +45,18 @@ export class Label extends ASTBase {
     };
     this.semanticTokenType = "variable";
     this.semanticTokenModifiers = "declaration";
+  }
+
+  buildSemanticTokens(push: BuildSemanticTokensPush): void {
+    const parent = this.parentNode;
+    if (!(parent instanceof LabelRef && parent.linksTo)) {
+      super.buildSemanticTokens(push);
+      return;
+    }
+
+    push(getTokenTypes("type"), getTokenModifiers("declaration"), {
+      start: this.firstToken,
+      end: this.lastToken,
+    });
   }
 }

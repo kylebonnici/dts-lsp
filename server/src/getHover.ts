@@ -21,7 +21,6 @@ import { ContextAware } from "./runtimeEvaluator";
 import { Node } from "./context/node";
 import { NodeName } from "./ast/dtc/node";
 import { LabelRef } from "./ast/dtc/labelRef";
-import { Label } from "./ast/dtc/label";
 
 function getNode(result: SearchableResult | undefined): Hover | undefined {
   if (result?.item instanceof Node) {

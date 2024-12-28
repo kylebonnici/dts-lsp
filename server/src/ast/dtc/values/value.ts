@@ -31,8 +31,9 @@ export class PropertyValue extends ASTBase {
   }
 
   toString() {
-    return `${this.value?.toString() ?? "NULL"} ${this.endLabels
-      .map((l) => l.toString())
-      .join(" ")}`;
+    return `${[
+      this.value?.toString() ?? "NULL",
+      ...this.endLabels.map((l) => l.toString()),
+    ].join(" ")}`;
   }
 }
