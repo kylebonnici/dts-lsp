@@ -155,5 +155,6 @@ NOTE: That the references will stop at the definition hence if for example a nod
 - Device Bindings (chapter 4 - Devicetree Specification Release v0.4)
   - See how one can implement one implementation that works for Zephyrs and Linux Kernel Developers
   - Consider to extend Rename to bindings types?
+- Hover on properties and get descriptions
 - More unit tests
 - Let me know what you should be added chnaged :)
