@@ -149,15 +149,11 @@ NOTE: That the references will stop at the definition hence if for example a nod
 
 - Formatting
   - Clean up trailing white space
-- Refactoring
-  - Node name
-  - Labels used on nodes
-  - Property names?
-  - Feedback would be welcomed :)
 - Syntax for Ternary operators
 - Support #IF #ELSEIF preprocessors
 - Device Node Requirements (chapter 3 - Devicetree Specification Release v0.4)
 - Device Bindings (chapter 4 - Devicetree Specification Release v0.4)
   - See how one can implement one implementation that works for Zephyrs and Linux Kernel Developers
+  - Consider to extend Rename to bindings types?
 - More unit tests
-- Let me know what you need :)
+- Let me know what you should be added chnaged :)

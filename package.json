@@ -60,6 +60,12 @@
           "default": [],
           "description": "Known contexts."
         },
+        "deviceTree.lockRenameEdits": {
+          "scope": "resource",
+          "type": "array",
+          "default": [],
+          "description": "Locations that Renaming should not be allowrd if any of the edits is a child node of that directory"
+        },
         "deviceTree.trace.server": {
           "scope": "window",
           "type": "string",

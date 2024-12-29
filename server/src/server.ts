@@ -52,6 +52,7 @@ import { ContextAware } from "./runtimeEvaluator";
 import { getCompletions } from "./getCompletions";
 import { getReferences } from "./findReferences";
 import { getTokenizedDocumentProvider } from "./providers/tokenizedDocument";
+import { getPrepareRenameRequest, getRenameRequest } from "./getRenameRequest";
 import { getDefinitions } from "./findDefinitions";
 import { getDeclaration } from "./findDeclarations";
 import { getCodeActions } from "./getCodeActions";
@@ -185,7 +186,9 @@ connection.onInitialize((params: InitializeParams) => {
   const result: InitializeResult = {
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Incremental,
-      // Tell the client that this server supports code completion.
+      renameProvider: {
+        prepareProvider: true,
+      },
       completionProvider: {
         resolveProvider: true,
         triggerCharacters: ["&", "=", " "],
@@ -247,6 +250,7 @@ interface Settings {
   defaultIncludePaths: string[];
   contexts: Context[];
   preferredContext?: number;
+  lockRenameEdits: string[];
 }
 
 // The global settings, used when the `workspace/configuration` request is not supported by the client.
@@ -255,6 +259,7 @@ interface Settings {
 const defaultSettings: Settings = {
   defaultIncludePaths: [],
   contexts: [],
+  lockRenameEdits: [],
 };
 let globalSettings: Settings = defaultSettings;
 
@@ -855,6 +860,21 @@ connection.onDocumentLinks(async (event) => {
   }
 
   return contextMeta?.context.getDocumentLinks(uri);
+});
+
+connection.onPrepareRename(async (event) => {
+  await allStable();
+  return getPrepareRenameRequest(
+    event,
+    contextAware,
+    globalSettings.lockRenameEdits,
+    globalSettings.preferredContext
+  );
+});
+
+connection.onRenameRequest(async (event) => {
+  await allStable();
+  return getRenameRequest(event, contextAware, globalSettings.preferredContext);
 });
 
 connection.onReferences(async (event) => {
