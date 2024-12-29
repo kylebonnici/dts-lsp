@@ -15,14 +15,17 @@
  */
 
 import { genIssue } from "../../helpers";
-import { ArrayValues } from "../../ast/dtc/values/arrayValue";
 import { PropertyNodeType, PropertyType } from "../types";
-import { generateOrTypeObj, getU32ValueFromProperty } from "./helpers";
+import {
+  flatNumberValues,
+  generateOrTypeObj,
+  getU32ValueFromProperty,
+} from "./helpers";
 import { Issue, StandardTypeIssue } from "../../types";
 import { DiagnosticSeverity } from "vscode-languageserver";
 
-export default () =>
-  new PropertyNodeType(
+export default () => {
+  const prop = new PropertyNodeType(
     "ranges",
     generateOrTypeObj([PropertyType.EMPTY, PropertyType.PROP_ENCODED_ARRAY]),
     "optional",
@@ -30,8 +33,9 @@ export default () =>
     [],
     (property) => {
       const issues: Issue<StandardTypeIssue>[] = [];
-      const value = property.ast.values?.values.at(0)?.value;
-      if (!(value instanceof ArrayValues)) {
+
+      const values = flatNumberValues(property.ast.values);
+      if (!values?.length) {
         return [];
       }
 
@@ -52,14 +56,20 @@ export default () =>
         : 2;
 
       if (
-        value.values.length %
+        values.length %
           (childBusAddressValue + parentdBusAddressValue + sizeCellValue) !==
         0
       ) {
         issues.push(
           genIssue(
             StandardTypeIssue.CELL_MISS_MATCH,
-            value,
+            values[
+              values.length -
+                (values.length %
+                  (childBusAddressValue +
+                    parentdBusAddressValue +
+                    sizeCellValue))
+            ],
             DiagnosticSeverity.Error,
             [],
             [],
@@ -87,3 +97,38 @@ export default () =>
       return issues;
     }
   );
+  prop.desctiption = [
+    `The ranges property provides a means of defining a mapping or translation between the address space of the bus (the child address space) and the address space of the bus node's parent (the parent address space).`,
+    "The format of the value of the ranges property is an arbitrary number of triplets of (child-bus-address, parent-bus-address, length)",
+    "- The child-bus-address is a physical address within the child bus' address space. The number of cells to represent the address is bus dependent and can be determined from the #address-cells of this node (the node in which the ranges property appears).",
+    "- The parent-bus-address is a physical address within the parent bus' address space. The number of cells to represent the parent address is bus dependent and can be determined from the #address-cells property of the node that defines the parent's address space.",
+    "- The length specifies the size of the range in the child's address space. The number of cells to represent the size can be determined from the #size-cells of this node (the node in which the ranges property appears).",
+    "If the property is defined with an < empty> value, it specifies that the parent and child address space is identical, and no address translation is required.",
+    "If the property is not present in a bus node, it is assumed that no mapping exists between children of the node and the parent address space.",
+  ];
+  prop.examples = [
+    "Address Translation Example:",
+    [
+      "```devicetree",
+      `soc {
+\tcompatible = "simple-bus";
+\t#address-cells = <1>;
+\t#size-cells = <1>;
+\tranges = <0x0 0xe0000000 0x00100000>;
+\t\tserial@4600 {
+\t\tdevice_type = "serial";
+\t\tcompatible = "ns16550";
+\t\treg = <0x4600 0x100>;
+\t\tclock-frequency = <0>;
+\t\tinterrupts = <0xA 0x8>;
+\t\tinterrupt-parent = <&ipic>;
+\t};
+};`,
+      "```",
+    ].join("\n"),
+    "The soc node specifies a ranges property of",
+    ["```devicetree", `<Ox0 Oxe0000000 0x00100000>;`, "```"].join("\n"),
+    "This property value specifies that for a 1024 KB range of address space, a child node addressed at physical OxO maps to a parent address of physical 0xe0000000. With this mapping, the serial device node can be addressed by a load or store at address 0xe0004600, an offset of 0x4600 (specified in reg) plus the 0xe0000000 mapping specified in ranges.",
+  ];
+  return prop;
+};

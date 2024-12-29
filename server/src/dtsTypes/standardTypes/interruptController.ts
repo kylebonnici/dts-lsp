@@ -17,9 +17,14 @@
 import { PropertyNodeType, PropertyType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 
-export default () =>
-  new PropertyNodeType(
+export default () => {
+  const prop = new PropertyNodeType(
     "interrupt-controller",
     generateOrTypeObj(PropertyType.EMPTY),
     "optional"
   );
+  prop.desctiption = [
+    "The presence of an interrupt-controller property defines a node as an interrupt controller node.",
+  ];
+  return prop;
+};

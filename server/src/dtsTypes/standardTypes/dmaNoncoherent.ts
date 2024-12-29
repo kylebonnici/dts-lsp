@@ -17,8 +17,13 @@
 import { PropertyNodeType, PropertyType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 
-export default () =>
-  new PropertyNodeType(
+export default () => {
+  const prop = new PropertyNodeType(
     "dma-noncoherent",
     generateOrTypeObj(PropertyType.EMPTY)
   );
+  prop.desctiption = [
+    "For architectures which are by default coherent for 1/O, the dma-noncoherent property is used to indicate a device is not capable of coherent DMA operations. Some architectures have non-coherent DMA by default and this property is not applicable.",
+  ];
+  return prop;
+};

@@ -17,5 +17,13 @@
 import { PropertyNodeType, PropertyType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 
-export default () =>
-  new PropertyNodeType("#interrupt-cells", generateOrTypeObj(PropertyType.U32));
+export default () => {
+  const prop = new PropertyNodeType(
+    "#interrupt-cells",
+    generateOrTypeObj(PropertyType.U32)
+  );
+  prop.desctiption = [
+    "The #interrupt-cells property defines the number of cells required to encode an interrupt specifier for an interrupt domain.",
+  ];
+  return prop;
+};

@@ -17,5 +17,13 @@
 import { PropertyNodeType, PropertyType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 
-export default () =>
-  new PropertyNodeType("virtual-reg", generateOrTypeObj(PropertyType.U32));
+export default () => {
+  const prop = new PropertyNodeType(
+    "virtual-reg",
+    generateOrTypeObj(PropertyType.U32)
+  );
+  prop.desctiption = [
+    `The virtual-res property specifies an effective address that maps to the first physical address specified in the reg property of the device node. This property enables boot programs to provide client programs with virtual-to-physical mappings that have been set up.`,
+  ];
+  return prop;
+};

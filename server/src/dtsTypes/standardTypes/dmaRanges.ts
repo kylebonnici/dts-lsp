@@ -14,15 +14,18 @@
  * limitations under the License.
  */
 
-import { ArrayValues } from "../../ast/dtc/values/arrayValue";
 import { PropertyNodeType, PropertyType } from "../types";
-import { generateOrTypeObj, getU32ValueFromProperty } from "./helpers";
+import {
+  flatNumberValues,
+  generateOrTypeObj,
+  getU32ValueFromProperty,
+} from "./helpers";
 import { genIssue } from "../../helpers";
 import { Issue, StandardTypeIssue } from "../../types";
 import { DiagnosticSeverity } from "vscode-languageserver";
 
-export default () =>
-  new PropertyNodeType(
+export default () => {
+  const prop = new PropertyNodeType(
     "dma-ranges",
     generateOrTypeObj([PropertyType.EMPTY, PropertyType.PROP_ENCODED_ARRAY]),
     "optional",
@@ -30,8 +33,9 @@ export default () =>
     [],
     (property) => {
       const issues: Issue<StandardTypeIssue>[] = [];
-      const value = property.ast.values?.values.at(0)?.value;
-      if (!(value instanceof ArrayValues)) {
+
+      const values = flatNumberValues(property.ast.values);
+      if (!values?.length) {
         return [];
       }
 
@@ -52,14 +56,20 @@ export default () =>
         : 2;
 
       if (
-        value.values.length %
+        values.length %
           (childBusAddressValue + parentdBusAddressValue + sizeCellValue) !==
         0
       ) {
         issues.push(
           genIssue(
             StandardTypeIssue.CELL_MISS_MATCH,
-            value,
+            values[
+              values.length -
+                (values.length %
+                  (childBusAddressValue +
+                    parentdBusAddressValue +
+                    sizeCellValue))
+            ],
             DiagnosticSeverity.Error,
             [],
             [],
@@ -87,3 +97,12 @@ export default () =>
       return issues;
     }
   );
+  prop.desctiption = [
+    `The dma-ranges property is used to describe the direct memory access (DMA) structure of a memory-mapped bus whose devicetree parent can be accessed from DMA operations originating from the bus. It provides a means of defining a mapping or translation between the physical address space of the bus and the physical address space of the parent of the bus.`,
+    "The format of the value of the dma-ranges property is an arbitrary number of triplets of (child-bus-address, parent-bus-address, length). Each triplet specified describes a contiguous DMA address range.",
+    "- The child-bus-address is a physical address within the child bus' address space. The number of cells to represent the address depends on the bus and can be determined from the #address-cells of this node (the node in which the dma-ranges property appears).",
+    "- The parent-bus-address is a physical address within the parent bus' address space. The number of cells to represent the parent address is bus dependent and can be determined from the #address-cells property of the node that defines the parent's address space.",
+    "- The length specifies the size of the range in the child's address space. The number of cells to represent the size can be determined from the #size-cells of this node (the node in which the dma-ranges property appears).",
+  ];
+  return prop;
+};

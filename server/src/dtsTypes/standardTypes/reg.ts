@@ -37,7 +37,7 @@ export default () => {
       const issues: Issue<StandardTypeIssue>[] = [];
 
       const values = flatNumberValues(property.ast.values);
-      if (!values.length) {
+      if (!values?.length) {
         return [];
       }
 

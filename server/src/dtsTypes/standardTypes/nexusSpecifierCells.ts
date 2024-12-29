@@ -30,5 +30,8 @@ export default () => {
     return !!name.match(/^#[A-Z-a-z]+-cells$/);
   }, generateOrTypeObj(PropertyType.U32));
   prop.list = true;
+  prop.desctiption = [
+    "The `#<specifier>-cells` propertydefines the number of cells required to encode a specifier for adomain.",
+  ];
   return prop;
 };

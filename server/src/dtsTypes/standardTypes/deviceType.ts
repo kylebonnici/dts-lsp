@@ -21,8 +21,8 @@ import { StandardTypeIssue } from "../../types";
 import { genIssue } from "../../helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
 
-export default () =>
-  new PropertyNodeType(
+export default () => {
+  const prop = new PropertyNodeType(
     "device_type",
     generateOrTypeObj(PropertyType.STRING),
     (node) => {
@@ -70,3 +70,8 @@ export default () =>
       return [];
     }
   );
+  prop.desctiption = [
+    "The device_type property was used in IEEE 1275 to describe the device's FCode programming model. Because DTSpec does not have FCode, new use of the property is deprecated, and it should be included only on cpu and memory nodes for compatibility with IEEE 1275-derived devicetrees.",
+  ];
+  return prop;
+};

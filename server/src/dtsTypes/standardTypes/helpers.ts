@@ -27,12 +27,14 @@ import { Expression } from "../../ast/cPreprocessors/expression";
 
 export const flatNumberValues = (value: PropertyValues | null) => {
   if (value?.values.some((v) => !(v?.value instanceof ArrayValues))) {
-    return [];
+    return undefined;
   }
 
-  return value?.values.flatMap((v) =>
-    (v!.value as ArrayValues).values.map((vv) => vv.value)
-  ) as (LabelRef | NodePathRef | NumberValue | Expression)[];
+  return (
+    (value?.values.flatMap((v) =>
+      (v!.value as ArrayValues).values.map((vv) => vv.value)
+    ) as (LabelRef | NodePathRef | NumberValue | Expression)[]) ?? []
+  );
 };
 
 export const getU32ValueFromProperty = (
@@ -52,21 +54,37 @@ export const getU32ValueFromProperty = (
 };
 
 export const getInterruptPhandleNode = (
-  value: PropertyValue | undefined | null,
+  value:
+    | (PropertyValue | (LabelRef | NodePathRef | NumberValue | Expression))
+    | undefined
+    | null,
   root: Node,
   index = 0
 ) => {
-  if (value?.value instanceof ArrayValues) {
-    const linked = value.value.values.at(index);
-    if (linked?.value instanceof NumberValue) {
-      return root.getPhandle(linked.value.value);
+  if (value instanceof PropertyValue) {
+    if (value?.value instanceof ArrayValues) {
+      const linked = value.value.values.at(index);
+      if (linked?.value instanceof NumberValue) {
+        return root.getPhandle(linked.value.value);
+      }
+      if (linked?.value instanceof LabelRef) {
+        return linked.value.linksTo;
+      }
+
+      if (linked?.value instanceof NodePathRef) {
+        return linked.value.path?.pathParts.at(-1)?.linksTo;
+      }
     }
-    if (linked?.value instanceof LabelRef) {
-      return linked.value.linksTo;
+  } else {
+    if (value instanceof NumberValue) {
+      return root.getPhandle(value.value);
+    }
+    if (value instanceof LabelRef) {
+      return value.linksTo;
     }
 
-    if (linked?.value instanceof NodePathRef) {
-      return linked.value.path?.pathParts.at(-1)?.linksTo;
+    if (value instanceof NodePathRef) {
+      return value.path?.pathParts.at(-1)?.linksTo;
     }
   }
 };
