@@ -156,5 +156,6 @@ NOTE: That the references will stop at the definition hence if for example a nod
   - See how one can implement one implementation that works for Zephyrs and Linux Kernel Developers
   - Consider to extend Rename to bindings types?
 - Hover on properties and get descriptions
+- Folding ranges in LSP.
 - More unit tests
 - Let me know what you should be added chnaged :)

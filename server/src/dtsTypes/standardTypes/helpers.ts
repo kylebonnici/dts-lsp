@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { PropertyValues } from "../../ast/dtc/values/values";
 import { LabelRef } from "../../ast/dtc/labelRef";
 import { ArrayValues } from "../../ast/dtc/values/arrayValue";
 import { NodePathRef } from "../../ast/dtc/values/nodePath";
@@ -22,6 +23,17 @@ import { PropertyValue } from "../../ast/dtc/values/value";
 import { Node } from "../../context/node";
 import { Property } from "../../context/property";
 import { PropertyType, TypeConfig } from "../types";
+import { Expression } from "../../ast/cPreprocessors/expression";
+
+export const flatNumberValues = (value: PropertyValues | null) => {
+  if (value?.values.some((v) => !(v?.value instanceof ArrayValues))) {
+    return [];
+  }
+
+  return value?.values.flatMap((v) =>
+    (v!.value as ArrayValues).values.map((vv) => vv.value)
+  ) as (LabelRef | NodePathRef | NumberValue | Expression)[];
+};
 
 export const getU32ValueFromProperty = (
   property: Property,
