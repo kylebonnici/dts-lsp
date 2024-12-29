@@ -24,6 +24,8 @@ import {
   CompletionItemKind,
   DiagnosticSeverity,
   DiagnosticTag,
+  MarkupContent,
+  MarkupKind,
 } from "vscode-languageserver";
 import { PropertyValue } from "../ast/dtc/values/value";
 import { StringValue } from "../ast/dtc/values/string";
@@ -56,6 +58,19 @@ export class PropertyNodeType<T = string | number> implements Validate {
   public readonly values: (property: Property) => T[];
   public hideAutoComplete = false;
   public list = false;
+  public desctiption?: string[];
+  public examples?: string[];
+  public onHover = (): MarkupContent => {
+    return {
+      kind: MarkupKind.Markdown,
+      value: [
+        ...(this.desctiption
+          ? ["### Desctiption", this.desctiption.join("\n\n")]
+          : []),
+        ...(this.examples ? ["### Example", this.examples.join("\n\n")] : []),
+      ].join("\n"),
+    };
+  };
 
   constructor(
     public readonly name: string | ((n: string) => boolean),
@@ -400,5 +415,10 @@ export class NodeType {
       ...issue,
       ...this.properties.flatMap((p) => p.validate(runtime, this.node)),
     ];
+  }
+
+  getOnPropertyHover(name: string) {
+    const typeFound = this.properties.find((p) => p.getNameMatch(name));
+    return typeFound?.onHover.bind(typeFound)();
   }
 }

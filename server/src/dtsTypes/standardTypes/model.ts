@@ -17,5 +17,15 @@
 import { PropertyNodeType, PropertyType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 
-export default () =>
-  new PropertyNodeType("model", generateOrTypeObj(PropertyType.STRING));
+export default () => {
+  const prop = new PropertyNodeType(
+    "model",
+    generateOrTypeObj(PropertyType.STRING)
+  );
+  prop.desctiption = [
+    `The model property value is a <string> that specifies the manufacturer's model number of the device.`,
+    `The recommended format is: "manufacturer, model" , where manufacturer is a string describing the name of the manufacturer (such as a stock ticker symbol), and model specifies the model number.`,
+  ];
+  prop.examples = ['```devicetree\nmodel = "{sl, MPC8349EMITX" ;\n```'];
+  return prop;
+};

@@ -21,6 +21,8 @@ import { ContextAware } from "./runtimeEvaluator";
 import { Node } from "./context/node";
 import { NodeName } from "./ast/dtc/node";
 import { LabelRef } from "./ast/dtc/labelRef";
+import { Property } from "./context/property";
+import { PropertyName } from "./ast/dtc/property";
 
 function getNode(result: SearchableResult | undefined): Hover | undefined {
   if (result?.item instanceof Node) {
@@ -51,6 +53,23 @@ function getNode(result: SearchableResult | undefined): Hover | undefined {
   }
 }
 
+function getPropertyName(
+  result: SearchableResult | undefined
+): Hover | undefined {
+  if (result?.item instanceof Property && result.ast instanceof PropertyName) {
+    const markup = result.item.parent.nodeType.getOnPropertyHover(
+      result.item.name
+    );
+
+    if (markup) {
+      return {
+        contents: markup,
+        range: toRange(result.ast),
+      };
+    }
+  }
+}
+
 export function getHover(
   hoverParams: HoverParams,
   context: ContextAware[],
@@ -59,7 +78,7 @@ export function getHover(
   return nodeFinder<Hover | undefined>(
     hoverParams,
     context,
-    (locationMeta) => [getNode(locationMeta)],
+    (locationMeta) => [getNode(locationMeta) || getPropertyName(locationMeta)],
     preferredContext
   );
 }

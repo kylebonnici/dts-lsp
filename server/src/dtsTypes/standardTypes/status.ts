@@ -17,11 +17,17 @@
 import { PropertyNodeType, PropertyType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 
-export default () =>
-  new PropertyNodeType(
+export default () => {
+  const prop = new PropertyNodeType(
     "status",
     generateOrTypeObj(PropertyType.STRING),
     "optional",
     "okay",
     ["okay", "disabled", "reserved", "fail", "fail-sss"]
   );
+  prop.desctiption = [
+    `The status property indicates the operational status of a device.
+   The lack of a status property should betreated as if the property existed with the value of "okay"`,
+  ];
+  return prop;
+};

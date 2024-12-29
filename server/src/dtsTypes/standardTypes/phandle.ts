@@ -21,8 +21,8 @@ import { generateOrTypeObj, getU32ValueFromProperty } from "./helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { ASTBase } from "../../ast/base";
 
-export default () =>
-  new PropertyNodeType(
+export default () => {
+  const prop = new PropertyNodeType(
     "phandle",
     generateOrTypeObj(PropertyType.U32),
     "optional",
@@ -51,3 +51,28 @@ export default () =>
       return [];
     }
   );
+  prop.desctiption = [
+    `The phandle property specifies a numerical identifier for a node that is unique within the devicetree. The phandle property value is used by other nodes that need to refer to the node associated with the property.`,
+  ];
+  prop.examples = [
+    "See the following devicetree excerpt:",
+    [
+      "```devicetree",
+      `pic@10000000 {
+\tphandle = <1>;
+\tinterrupt-controller;
+\treg = <0x10000000 0x100>;
+};`,
+      "```",
+    ].join("\n"),
+    "A phandle value of 1 is defined. Another device node could reference the pic node with a phandle value of 1:",
+    [
+      "```devicetree",
+      `another-device-node {
+\tinterrupt-parent = <1>;
+};`,
+      "```",
+    ].join("\n"),
+  ];
+  return prop;
+};
