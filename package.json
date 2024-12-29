@@ -1,8 +1,10 @@
 {
   "name": "dts-lsp",
-  "description": "A language server example",
+  "displayName": "Device Tree LSP",
+  "description": "Device tree Language Server",
   "author": "Microsoft Corporation",
   "license": "MIT",
+  "icon": "images/icon.png",
   "version": "0.0.1",
   "repository": {
     "type": "git",
