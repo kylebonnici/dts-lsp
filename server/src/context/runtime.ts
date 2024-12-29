@@ -108,7 +108,8 @@ export class Runtime implements Searchable {
 
     const label = allLabels.find(
       (l) =>
-        l.label === path?.[0].slice(1) && l.parentNode instanceof DtcBaseNode
+        l.label.value === path?.[0].slice(1) &&
+        l.parentNode instanceof DtcBaseNode
     )?.parentNode as DtcBaseNode | undefined;
 
     const newPath = label?.path;
@@ -137,10 +138,10 @@ export class Runtime implements Searchable {
     >();
 
     this.rootNode.allDescendantsLabelsMapped.forEach((item) => {
-      if (!lablesUsed.has(item.label.label)) {
-        lablesUsed.set(item.label.label, [item]);
+      if (!lablesUsed.has(item.label.label.value)) {
+        lablesUsed.set(item.label.label.value, [item]);
       } else {
-        lablesUsed.get(item.label.label)?.push(item);
+        lablesUsed.get(item.label.label.value)?.push(item);
       }
     });
 
@@ -167,7 +168,7 @@ export class Runtime implements Searchable {
               DiagnosticSeverity.Error,
               otherOwners.slice(1).map((o) => o.label),
               [],
-              [otherOwners.at(0)!.label.label]
+              [otherOwners.at(0)!.label.label.value]
             )
           );
         }

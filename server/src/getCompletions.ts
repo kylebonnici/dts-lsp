@@ -84,7 +84,7 @@ function getRefLabelsItems(
   };
 
   return Array.from(
-    new Set(getScopeItems(result.runtime.rootNode).map((l) => l.label))
+    new Set(getScopeItems(result.runtime.rootNode).map((l) => l.label.value))
   ).map((l) => ({
     label: `${l}`,
     kind: CompletionItemKind.Method,
@@ -112,7 +112,7 @@ function getCreateNodeRefItems(
 
   return [
     ...Array.from(
-      new Set(getScopeItems(result.runtime.rootNode).map((l) => l.label))
+      new Set(getScopeItems(result.runtime.rootNode).map((l) => l.label.value))
     ).map((l) => ({
       label: l,
       insertText: `${l} {\n$1\n};`,
@@ -182,7 +182,7 @@ function getDeleteNodeRefItems(
   }
 
   return Array.from(
-    new Set(getScopeItems(result.runtime.rootNode).map((l) => l.label))
+    new Set(getScopeItems(result.runtime.rootNode).map((l) => l.label.value))
   ).map((l) => ({
     label: `${l}`,
     kind: CompletionItemKind.Variable,

@@ -362,7 +362,7 @@ export class ContextAware {
         runtimeNode?.referencedBy.push(element);
 
         element.labels.forEach((label) => {
-          runtime.labelsUsedCache.set(label.label, resolvedPath);
+          runtime.labelsUsedCache.set(label.label.value, resolvedPath);
         });
 
         if (runtimeNode) {
@@ -434,7 +434,7 @@ export class ContextAware {
           );
 
           nodeToBeDeleted?.labels.forEach((label) => {
-            runtime.labelsUsedCache.delete(label.label);
+            runtime.labelsUsedCache.delete(label.label.value);
           });
         }
       }
@@ -465,7 +465,7 @@ export class ContextAware {
         element.nodeNameOrRef.linksTo = runtimeNode;
 
         runtimeNode?.labels.forEach((label) => {
-          runtime.labelsUsedCache.delete(label.label);
+          runtime.labelsUsedCache.delete(label.label.value);
         });
 
         runtimeNode?.linkedRefLabels.push(element.nodeNameOrRef);
@@ -544,7 +544,7 @@ export class ContextAware {
       runtimeNodeParent.deletes.push(element);
 
       runtimeNode?.labels.forEach((label) => {
-        runtime.labelsUsedCache.delete(label.label);
+        runtime.labelsUsedCache.delete(label.label.value);
       });
 
       runtimeNode?.parent?.deleteNode(

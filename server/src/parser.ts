@@ -526,7 +526,7 @@ export class Parser extends BaseParser {
     const token = this.currentToken;
     const hasColon = token && validToken(token, LexerToken.COLON);
     const node = new LabelAssign(
-      name,
+      new Label(name, createTokenIndex(valid[0], valid.at(-1))),
       createTokenIndex(valid[0], hasColon ? token : valid.at(-1))
     );
 

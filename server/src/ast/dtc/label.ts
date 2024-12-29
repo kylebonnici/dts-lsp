@@ -21,14 +21,15 @@ import { LabelRef } from "./labelRef";
 import { getTokenModifiers, getTokenTypes } from "../../helpers";
 
 export class LabelAssign extends ASTBase {
-  constructor(public readonly label: string, tokenIndex: TokenIndexes) {
+  constructor(public readonly label: Label, tokenIndex: TokenIndexes) {
     super(tokenIndex);
     this.docSymbolsMeta = {
-      name: this.label,
+      name: this.label.value,
       kind: SymbolKind.Constant,
     };
     this.semanticTokenType = "variable";
     this.semanticTokenModifiers = "declaration";
+    this.addChild(label);
   }
 
   toString() {

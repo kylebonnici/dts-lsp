@@ -1067,9 +1067,9 @@ describe("Parser", () => {
 
           expect(rootDts.properties.length).toEqual(1);
           expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
-          expect(rootDts.properties[0].labels.map((l) => l.label)).toEqual([
-            "l1",
-          ]);
+          expect(
+            rootDts.properties[0].labels.map((l) => l.label.value)
+          ).toEqual(["l1"]);
           expect(
             rootDts.properties[0].values instanceof PropertyValues
           ).toBeTruthy();
@@ -1085,19 +1085,19 @@ describe("Parser", () => {
           ).toEqual([10, 20, 30, 0xff, 0xaa]);
 
           expect(
-            rootDts.properties[0].values?.labels.map((l) => l.label)
+            rootDts.properties[0].values?.labels.map((l) => l.label.value)
           ).toEqual(["l2"]);
 
           expect(
             rootDts.properties[0].values?.values[0]?.endLabels.map(
-              (l) => l.label
+              (l) => l.label.value
             )
           ).toEqual(["l8", "l9"]);
 
           expect(
             (
               rootDts.properties[0].values?.values[0]?.value as ArrayValues
-            ).values.map((v) => v.labels.map((l) => l.label))
+            ).values.map((v) => v.labels.map((l) => l.label.value))
           ).toEqual([["l3"], ["l4"], ["l5"], ["l6"], ["l7"]]);
         });
 
@@ -1141,7 +1141,7 @@ describe("Parser", () => {
           ).toEqual([10]);
 
           expect(
-            rootDts.properties[0].values?.labels.map((l) => l.label)
+            rootDts.properties[0].values?.labels.map((l) => l.label.value)
           ).toEqual(["l1", "l2"]);
         });
       });
@@ -1403,8 +1403,8 @@ describe("Parser", () => {
       const refNode = parser.rootDocument.children[0] as DtcRefNode;
 
       expect(refNode.labels.length).toEqual(2);
-      expect(refNode.labels[0].label).toEqual("l1");
-      expect(refNode.labels[1].label).toEqual("l2");
+      expect(refNode.labels[0].label.value).toEqual("l1");
+      expect(refNode.labels[1].label.value).toEqual("l2");
       expect(refNode.labelReference?.value).toEqual("label");
     });
 
@@ -1457,8 +1457,8 @@ describe("Parser", () => {
       expect(node1.name?.address).toEqual(0x20);
 
       expect(node1.labels.length).toEqual(2);
-      expect(node1.labels[0].label).toEqual("l1");
-      expect(node1.labels[1].label).toEqual("l2");
+      expect(node1.labels[0].label.value).toEqual("l1");
+      expect(node1.labels[1].label.value).toEqual("l2");
     });
 
     test("Child node, missing address", async () => {
@@ -1527,7 +1527,7 @@ describe("Parser", () => {
 
       const rootDtc = parser.rootDocument.children[0];
       expect(rootDtc.children[0] instanceof DtcChildNode).toBeTruthy();
-      expect((rootDtc.children[0] as DtcChildNode).labels[0].label).toBe(
+      expect((rootDtc.children[0] as DtcChildNode).labels[0].label.value).toBe(
         "label"
       );
     });
