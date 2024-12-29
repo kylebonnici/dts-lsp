@@ -33,7 +33,7 @@ export class LabelAssign extends ASTBase {
   }
 
   toString() {
-    return `${this.label}:`;
+    return `${this.label.value}:`;
   }
 }
 
