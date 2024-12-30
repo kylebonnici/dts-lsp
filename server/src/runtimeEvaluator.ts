@@ -35,6 +35,7 @@ import { Parser } from "./parser";
 import { DiagnosticSeverity, DocumentLink } from "vscode-languageserver";
 import { NodePath, NodePathRef } from "./ast/dtc/values/nodePath";
 import { Include } from "./ast/cPreprocessors/include";
+import { BindingLoader } from "./dtsTypes/bindings/bindingLoader";
 
 export class ContextAware {
   _issues: Issue<ContextIssues>[] = [];
@@ -45,6 +46,7 @@ export class ContextAware {
   constructor(
     uri: string,
     includePaths: string[],
+    public readonly bindingLoader: BindingLoader,
     public readonly overlays: string[] = []
   ) {
     this.parser = new Parser(uri, includePaths);
@@ -183,7 +185,7 @@ export class ContextAware {
   public async evaluate() {
     await this.parser.stable;
 
-    const runtime = new Runtime();
+    const runtime = new Runtime(this.bindingLoader);
     this._issues = [];
 
     await this.processRoot(this.parser.rootDocument, runtime);
@@ -317,7 +319,12 @@ export class ContextAware {
 
       const child =
         runtimeNode ??
-        new Node(element.name.name, element.name.address, runtimeNodeParent);
+        new Node(
+          this.bindingLoader,
+          element.name.name,
+          element.name.address,
+          runtimeNodeParent
+        );
       child.definitions.push(element);
 
       runtimeNodeParent = child;
@@ -383,7 +390,11 @@ export class ContextAware {
         return 0;
       })
       .forEach((child) =>
-        this.processChild(child, runtimeNode ?? new Node(""), runtime)
+        this.processChild(
+          child,
+          runtimeNode ?? new Node(this.bindingLoader, ""),
+          runtime
+        )
       );
   }
 

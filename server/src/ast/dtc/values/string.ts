@@ -30,6 +30,6 @@ export class StringValue extends ASTBase {
   }
 
   toString() {
-    return this.value.toString();
+    return `"${this.value.toString()}"`;
   }
 }

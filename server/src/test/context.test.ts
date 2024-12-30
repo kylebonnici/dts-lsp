@@ -19,6 +19,9 @@ import { describe, test, jest, expect } from "@jest/globals";
 import { resetTokenizedDocumentProvider } from "../providers/tokenizedDocument";
 import { ContextAware } from "../runtimeEvaluator";
 import { ContextIssues } from "../types";
+import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
+import { getStandardType } from "../dtsTypes/standardTypes";
+import { Node } from "../context/node";
 
 jest.mock("fs", () => ({
   readFileSync: jest.fn().mockImplementation(() => {
@@ -34,6 +37,12 @@ const mockReadFileSync = (content: string, path?: string) => {
     return content;
   });
 };
+
+const getFakeBindingLoader = (): BindingLoader => ({
+  getNodeTypes: (node: Node) => {
+    return [getStandardType()];
+  },
+});
 describe("Context Issues", () => {
   beforeEach(() => {
     resetTokenizedDocumentProvider();
@@ -41,7 +50,12 @@ describe("Context Issues", () => {
 
   test("Duplicate property name", async () => {
     mockReadFileSync("/{prop1;prop1;};");
-    const context = new ContextAware("/folder/dts.dts", [], []);
+    const context = new ContextAware(
+      "/folder/dts.dts",
+      [],
+      getFakeBindingLoader(),
+      []
+    );
     await context.parser.stable;
     const issues = await context.getContextIssues();
     expect(issues.length).toEqual(1);
@@ -61,7 +75,12 @@ describe("Context Issues", () => {
 
   test("Delete non existing property", async () => {
     mockReadFileSync("/{/delete-property/ prop1;};");
-    const context = new ContextAware("/folder/dts.dts", [], []);
+    const context = new ContextAware(
+      "/folder/dts.dts",
+      [],
+      getFakeBindingLoader(),
+      []
+    );
     await context.parser.stable;
     const issues = await context.getContextIssues();
     expect(issues.length).toEqual(1);
@@ -75,7 +94,12 @@ describe("Context Issues", () => {
 
   test("Delete property before create", async () => {
     mockReadFileSync("/{/delete-property/ prop1; prop1;};");
-    const context = new ContextAware("/folder/dts.dts", [], []);
+    const context = new ContextAware(
+      "/folder/dts.dts",
+      [],
+      getFakeBindingLoader(),
+      []
+    );
     await context.parser.stable;
     const issues = await context.getContextIssues();
     expect(issues.length).toEqual(1);
@@ -89,7 +113,12 @@ describe("Context Issues", () => {
 
   test("Duplicate node name in node", async () => {
     mockReadFileSync("/{node{};node{}};");
-    const context = new ContextAware("/folder/dts.dts", [], []);
+    const context = new ContextAware(
+      "/folder/dts.dts",
+      [],
+      getFakeBindingLoader(),
+      []
+    );
     await context.parser.stable;
     const issues = await context.getContextIssues();
     expect(issues.length).toEqual(1);
@@ -104,7 +133,12 @@ describe("Context Issues", () => {
   describe("Unable to resolve node name", () => {
     test("prop with invalid ref", async () => {
       mockReadFileSync("/{prop1=&l1};");
-      const context = new ContextAware("/folder/dts.dts", [], []);
+      const context = new ContextAware(
+        "/folder/dts.dts",
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
       const issues = await context.getContextIssues();
       expect(issues.length).toEqual(1);
@@ -120,7 +154,12 @@ describe("Context Issues", () => {
     });
     test("Node Ref", async () => {
       mockReadFileSync("&nodeLabel{};");
-      const context = new ContextAware("/folder/dts.dts", [], []);
+      const context = new ContextAware(
+        "/folder/dts.dts",
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
       const issues = await context.getContextIssues();
       expect(issues.length).toEqual(1);
@@ -136,7 +175,12 @@ describe("Context Issues", () => {
 
     test("Reference deleted Node with ref", async () => {
       mockReadFileSync("/{l1: node1 {};}; /delete-node/ &l1; &l1{};");
-      const context = new ContextAware("/folder/dts.dts", [], []);
+      const context = new ContextAware(
+        "/folder/dts.dts",
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
       const issues = await context.getContextIssues();
       expect(issues.length).toEqual(2);
@@ -154,7 +198,12 @@ describe("Context Issues", () => {
 
     test("Reference deleted Node with name", async () => {
       mockReadFileSync("/{l1: node1{}; /delete-node/ node1;}; &l1{};");
-      const context = new ContextAware("/folder/dts.dts", [], []);
+      const context = new ContextAware(
+        "/folder/dts.dts",
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
       const issues = await context.getContextIssues();
       expect(issues.length).toEqual(2);
@@ -172,7 +221,12 @@ describe("Context Issues", () => {
 
     test("Delete Node with Ref", async () => {
       mockReadFileSync("/delete-node/ &nodeLabel;");
-      const context = new ContextAware("/folder/dts.dts", [], []);
+      const context = new ContextAware(
+        "/folder/dts.dts",
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
       const issues = await context.getContextIssues();
       expect(issues.length).toEqual(1);
@@ -189,7 +243,12 @@ describe("Context Issues", () => {
 
   test("Duplicate label use", async () => {
     mockReadFileSync("/{l1: node1{}; l1: node2{}};");
-    const context = new ContextAware("/folder/dts.dts", [], []);
+    const context = new ContextAware(
+      "/folder/dts.dts",
+      [],
+      getFakeBindingLoader(),
+      []
+    );
     await context.parser.stable;
     const issues = await context.getContextIssues();
     expect(issues.length).toEqual(1);
@@ -209,7 +268,12 @@ describe("Context Issues", () => {
 
   test("Delete non existing node", async () => {
     mockReadFileSync("/{/delete-node/ node;};");
-    const context = new ContextAware("/folder/dts.dts", [], []);
+    const context = new ContextAware(
+      "/folder/dts.dts",
+      [],
+      getFakeBindingLoader(),
+      []
+    );
     await context.parser.stable;
     const issues = await context.getContextIssues();
     expect(issues.length).toEqual(1);
@@ -223,7 +287,12 @@ describe("Context Issues", () => {
 
   test("Delete node before created node", async () => {
     mockReadFileSync("/{/delete-node/ node; node{};};");
-    const context = new ContextAware("/folder/dts.dts", [], []);
+    const context = new ContextAware(
+      "/folder/dts.dts",
+      [],
+      getFakeBindingLoader(),
+      []
+    );
     await context.parser.stable;
     const issues = await context.getContextIssues();
     expect(issues.length).toEqual(1);
@@ -238,7 +307,12 @@ describe("Context Issues", () => {
   describe("delete ui", () => {
     test("Delete property", async () => {
       mockReadFileSync("/{node {prop1; /delete-property/ prop1;}};");
-      const context = new ContextAware("/folder/dts.dts", [], []);
+      const context = new ContextAware(
+        "/folder/dts.dts",
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
       const issues = await context.getContextIssues();
       expect(issues.length).toEqual(1);
@@ -254,7 +328,12 @@ describe("Context Issues", () => {
       mockReadFileSync(
         "/{node {prop1;}};/{node {prop1; /delete-property/ prop1;}};"
       );
-      const context = new ContextAware("/folder/dts.dts", [], []);
+      const context = new ContextAware(
+        "/folder/dts.dts",
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
       const issues = await context.getContextIssues();
       expect(issues.length).toEqual(3);
@@ -282,7 +361,12 @@ describe("Context Issues", () => {
 
     test("Delete Node with name no address", async () => {
       mockReadFileSync("/{node {}; /delete-node/ node;};");
-      const context = new ContextAware("/folder/dts.dts", [], []);
+      const context = new ContextAware(
+        "/folder/dts.dts",
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
       const issues = await context.getContextIssues();
       expect(issues.length).toEqual(1);
@@ -302,7 +386,12 @@ describe("Context Issues", () => {
 
     test("Delete Node with name with address", async () => {
       mockReadFileSync("/{node@200 {}; node@300 {}; /delete-node/ node@300;};");
-      const context = new ContextAware("/folder/dts.dts", [], []);
+      const context = new ContextAware(
+        "/folder/dts.dts",
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
       const issues = await context.getContextIssues();
       expect(issues.length).toEqual(1);
@@ -316,7 +405,12 @@ describe("Context Issues", () => {
 
     test("Delete Node with label ref", async () => {
       mockReadFileSync("/{l1: node {};};  /delete-node/ &l1;");
-      const context = new ContextAware("/folder/dts.dts", [], []);
+      const context = new ContextAware(
+        "/folder/dts.dts",
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
       const issues = await context.getContextIssues();
       expect(issues.length).toEqual(1);
@@ -332,7 +426,12 @@ describe("Context Issues", () => {
       mockReadFileSync(
         "/{l1: node1 {node2 {};};};  /delete-node/ &{/node1/node2};"
       );
-      const context = new ContextAware("/folder/dts.dts", [], []);
+      const context = new ContextAware(
+        "/folder/dts.dts",
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
       const issues = await context.getContextIssues();
       expect(issues.length).toEqual(1);
@@ -346,7 +445,12 @@ describe("Context Issues", () => {
 
     test("Delete multiple Node", async () => {
       mockReadFileSync("/{node {};};/{node {}; /delete-node/ node};");
-      const context = new ContextAware("/folder/dts.dts", [], []);
+      const context = new ContextAware(
+        "/folder/dts.dts",
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
       const issues = await context.getContextIssues();
       expect(issues.length).toEqual(2);
@@ -368,7 +472,12 @@ describe("Context Issues", () => {
   describe("Resolve node path", () => {
     test("Delete node with path not existing", async () => {
       mockReadFileSync("/{node1{};};/delete-node/ &{/node1/node2};");
-      const context = new ContextAware("/folder/dts.dts", [], []);
+      const context = new ContextAware(
+        "/folder/dts.dts",
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
       const issues = await context.getContextIssues();
       expect(issues.length).toEqual(1);
@@ -385,7 +494,12 @@ describe("Context Issues", () => {
 
     test("property array node part ref values", async () => {
       mockReadFileSync("/{node1{};}; /{prop1=<&{/node1/node2}>;};");
-      const context = new ContextAware("/folder/dts.dts", [], []);
+      const context = new ContextAware(
+        "/folder/dts.dts",
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
       const issues = await context.getContextIssues();
       expect(issues.length).toEqual(1);
@@ -402,7 +516,12 @@ describe("Context Issues", () => {
 
     test("property node path ref", async () => {
       mockReadFileSync("/{node1{};}; /{prop1=&{/node1/node2};};");
-      const context = new ContextAware("/folder/dts.dts", [], []);
+      const context = new ContextAware(
+        "/folder/dts.dts",
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
       const issues = await context.getContextIssues();
       expect(issues.length).toEqual(1);
@@ -421,7 +540,12 @@ describe("Context Issues", () => {
   describe("Resolve label ref", () => {
     test("Delete node with path not existing", async () => {
       mockReadFileSync("/{l1: node1{};};/delete-node/ &l2;");
-      const context = new ContextAware("/folder/dts.dts", [], []);
+      const context = new ContextAware(
+        "/folder/dts.dts",
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
       const issues = await context.getContextIssues();
       expect(issues.length).toEqual(1);
@@ -438,7 +562,12 @@ describe("Context Issues", () => {
 
     test("property array label ref value", async () => {
       mockReadFileSync("/{l1: node1{};}; /{prop1=<&l2>;};");
-      const context = new ContextAware("/folder/dts.dts", [], []);
+      const context = new ContextAware(
+        "/folder/dts.dts",
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
       const issues = await context.getContextIssues();
       expect(issues.length).toEqual(1);
@@ -455,7 +584,12 @@ describe("Context Issues", () => {
 
     test("property node path ref", async () => {
       mockReadFileSync("/{l1: node1{};}; /{prop1=&l2;};");
-      const context = new ContextAware("/folder/dts.dts", [], []);
+      const context = new ContextAware(
+        "/folder/dts.dts",
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
       const issues = await context.getContextIssues();
       expect(issues.length).toEqual(1);

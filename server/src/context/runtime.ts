@@ -35,6 +35,7 @@ import { DiagnosticSeverity, Position } from "vscode-languageserver";
 import { LabelAssign } from "../ast/dtc/label";
 import { Node } from "./node";
 import { getTokenizedDocumentProvider } from "../providers/tokenizedDocument";
+import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
 
 export class Runtime implements Searchable {
   public roots: DtcRootNode[] = [];
@@ -42,9 +43,9 @@ export class Runtime implements Searchable {
   public unlinkedDeletes: DeleteNode[] = [];
   public unlinkedRefNodes: DtcRefNode[] = [];
   public globalDeletes: DeleteNode[] = [];
-  public rootNode: Node = new Node("/");
+  public rootNode: Node = new Node(this.bindingLoader, "/");
 
-  constructor() {}
+  constructor(public readonly bindingLoader: BindingLoader) {}
 
   public labelsUsedCache = new Map<string, string[]>();
 
@@ -179,9 +180,10 @@ export class Runtime implements Searchable {
   }
 
   get typesIssues() {
+    // TODO Deal with many compatible
     const getIssue = (node: Node): Issue<StandardTypeIssue>[] => {
       return [
-        ...node.nodeType.getIssue(this),
+        ...(node.nodeTypes.at(0)?.getIssue(this, node) ?? []),
         ...node.nodes.flatMap((n) => getIssue(n)),
       ];
     };

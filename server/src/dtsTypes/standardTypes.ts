@@ -42,8 +42,8 @@ import nexusSpecifierMapMask from "./standardTypes/nexusSpecifierMapMask";
 import nexusSpecifierMapPassThru from "./standardTypes/nexusSpecifierMapPassThru";
 import nexusSpecifierCells from "./standardTypes/nexusSpecifierCells";
 
-export function getStandardType(node: Node) {
-  const standardType = new NodeType(node);
+export function getStandardType() {
+  const standardType = new NodeType();
   standardType.properties.push(
     compatible(),
     model(),

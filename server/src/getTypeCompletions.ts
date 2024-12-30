@@ -39,7 +39,7 @@ function getPropertyAssignItems(
   }
 
   return (
-    result.item.parent.nodeType.properties
+    result.item.parent.nodeTypes[0].properties
       .find((p) => p.name === result.item?.name)
       ?.getPropertyCompletionItems(result.item) ?? []
   );
@@ -62,7 +62,7 @@ function getPropertyNamesItems(
   }
 
   const getItems = (node: Node) => {
-    return node.nodeType.properties
+    return node.nodeTypes[0].properties
       .filter(
         (p) =>
           !p.hideAutoComplete &&

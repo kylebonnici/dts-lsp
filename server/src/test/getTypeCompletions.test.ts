@@ -24,6 +24,15 @@ import {
   TextDocumentIdentifier,
   TextDocumentPositionParams,
 } from "vscode-languageserver";
+import { Node } from "../context/node";
+import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
+import { getStandardType } from "../dtsTypes/standardTypes";
+
+const getFakeBindingLoader = (): BindingLoader => ({
+  getNodeTypes: (node: Node) => {
+    return [getStandardType()];
+  },
+});
 
 jest.mock("fs", () => ({
   readFileSync: jest.fn().mockImplementation(() => {
@@ -50,7 +59,12 @@ describe("Find typed completions", () => {
       const textDocument: TextDocumentIdentifier = {
         uri: "/folder/dts.dts",
       };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location: TextDocumentPositionParams = {
@@ -72,7 +86,12 @@ describe("Find typed completions", () => {
       const textDocument: TextDocumentIdentifier = {
         uri: "/folder/dts.dts",
       };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location: TextDocumentPositionParams = {
@@ -89,7 +108,12 @@ describe("Find typed completions", () => {
       const textDocument: TextDocumentIdentifier = {
         uri: "/folder/dts.dts",
       };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location: TextDocumentPositionParams = {
@@ -107,7 +131,12 @@ describe("Find typed completions", () => {
       const textDocument: TextDocumentIdentifier = {
         uri: "/folder/dts.dts",
       };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location: TextDocumentPositionParams = {
@@ -124,7 +153,12 @@ describe("Find typed completions", () => {
       const textDocument: TextDocumentIdentifier = {
         uri: "/folder/dts.dts",
       };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location: TextDocumentPositionParams = {
@@ -142,7 +176,12 @@ describe("Find typed completions", () => {
       const textDocument: TextDocumentIdentifier = {
         uri: "/folder/dts.dts",
       };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location: TextDocumentPositionParams = {
@@ -159,7 +198,12 @@ describe("Find typed completions", () => {
       const textDocument: TextDocumentIdentifier = {
         uri: "/folder/dts.dts",
       };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location: TextDocumentPositionParams = {
@@ -177,7 +221,12 @@ describe("Find typed completions", () => {
       const textDocument: TextDocumentIdentifier = {
         uri: "/folder/dts.dts",
       };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location: TextDocumentPositionParams = {

@@ -19,7 +19,7 @@ import { PropertyNodeType, PropertyType } from "../types";
 import {
   flatNumberValues,
   generateOrTypeObj,
-  getInterruptPhandleNode,
+  resolvePhandleNode,
   getU32ValueFromProperty,
 } from "./helpers";
 import { genIssue } from "../../helpers";
@@ -114,7 +114,7 @@ export default () => {
           );
           break;
         }
-        const specifierParent = getInterruptPhandleNode(values[i], root);
+        const specifierParent = resolvePhandleNode(values[i], root);
         if (!specifierParent) {
           issues.push(
             genIssue(

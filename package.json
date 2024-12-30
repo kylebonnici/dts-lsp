@@ -56,6 +56,18 @@
           "default": [],
           "description": "Default includes to be used when a file is opened that is not defined in known context"
         },
+        "deviceTree.defaultBindingType": {
+          "scope": "resource",
+          "type": "string",
+          "default": "Zephyr",
+          "description": "Default binding loader"
+        },
+        "deviceTree.defaultZephyrBindings": {
+          "scope": "resource",
+          "type": "array",
+          "default": [],
+          "description": "Default Zephyr binding paths"
+        },
         "deviceTree.contexts": {
           "scope": "resource",
           "type": "array",

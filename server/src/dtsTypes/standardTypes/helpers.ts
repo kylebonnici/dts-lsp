@@ -53,7 +53,7 @@ export const getU32ValueFromProperty = (
   }
 };
 
-export const getInterruptPhandleNode = (
+export const resolvePhandleNode = (
   value:
     | (PropertyValue | (LabelRef | NodePathRef | NumberValue | Expression))
     | undefined

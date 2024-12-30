@@ -24,6 +24,15 @@ import {
   TextDocumentIdentifier,
   TextDocumentPositionParams,
 } from "vscode-languageserver";
+import { Node } from "../context/node";
+import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
+import { getStandardType } from "../dtsTypes/standardTypes";
+
+const getFakeBindingLoader = (): BindingLoader => ({
+  getNodeTypes: (node: Node) => {
+    return [getStandardType()];
+  },
+});
 
 jest.mock("fs", () => ({
   readFileSync: jest.fn().mockImplementation(() => {
@@ -47,7 +56,12 @@ describe("Find references", () => {
   test("No definition to find", async () => {
     mockReadFileSync("/{prop1;prop2;prop1;};    /{prop1;prop2;prop1;};");
     const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
-    const context = new ContextAware(textDocument.uri, [], []);
+    const context = new ContextAware(
+      textDocument.uri,
+      [],
+      getFakeBindingLoader(),
+      []
+    );
     await context.parser.stable;
 
     const location: TextDocumentPositionParams = {
@@ -63,7 +77,12 @@ describe("Find references", () => {
     test("Duplicate property name samle level", async () => {
       mockReadFileSync("/{prop1;prop2;prop1;};/{prop1;prop2;prop1;};");
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location: TextDocumentPositionParams = {
@@ -91,7 +110,12 @@ describe("Find references", () => {
         "/{ node1{prop1; node1{prop1;}};};/{ node1{prop1; node1{prop1;}};};"
       );
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location1: TextDocumentPositionParams = {
@@ -127,7 +151,12 @@ describe("Find references", () => {
         "/{ l1: node1{prop1; node1{prop1;}};}; /delete-node/ &l1; /{ node1{prop1; node1{prop1;}};};"
       );
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location: TextDocumentPositionParams = {
@@ -144,7 +173,12 @@ describe("Find references", () => {
     test("with in deleted node", async () => {
       mockReadFileSync("/{ l1: node1{prop1; prop1;};}; /delete-node/ &l1;");
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location: TextDocumentPositionParams = {
@@ -164,7 +198,12 @@ describe("Find references", () => {
     test("Delete property", async () => {
       mockReadFileSync("/{prop1;};/{prop1; /delete-property/ prop1;};");
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location: TextDocumentPositionParams = {
@@ -189,7 +228,12 @@ describe("Find references", () => {
     test("Duplicate node name samle level", async () => {
       mockReadFileSync("/{node1{};node2{}};/{node1{};node2{};};");
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location: TextDocumentPositionParams = {
@@ -209,7 +253,12 @@ describe("Find references", () => {
     test("Duplicate node name different level", async () => {
       mockReadFileSync("/{ node1{node1{};};};/{ node1{node1{};};};");
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location1: TextDocumentPositionParams = {
@@ -242,7 +291,12 @@ describe("Find references", () => {
     test("DTC child and ref node - 1", async () => {
       mockReadFileSync("/{l1: node1{};};&l1{};");
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location: TextDocumentPositionParams = {
@@ -262,7 +316,12 @@ describe("Find references", () => {
     test("DTC child and ref node - 2", async () => {
       mockReadFileSync("/{l1: node1{};};&l1{};");
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location: TextDocumentPositionParams = {
@@ -284,7 +343,12 @@ describe("Find references", () => {
         "/{ l1: node1{node1{};};}; /delete-node/ &l1; /{ node1{node1{};};};"
       );
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location: TextDocumentPositionParams = {
@@ -303,7 +367,12 @@ describe("Find references", () => {
         "/{ l1: node1{node1{};};}; /delete-node/ &l1; /{ node1{node1{};};};"
       );
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location: TextDocumentPositionParams = {
@@ -322,7 +391,12 @@ describe("Find references", () => {
         "/{ l1: node1{node1{};};}; /delete-node/ &l1; /{ node1{node1{};};};"
       );
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location: TextDocumentPositionParams = {
@@ -344,7 +418,12 @@ describe("Find references", () => {
         "/{ l1: node1{node1{};};}; /{ node1{node1{};}; /delete-node/ node1;};"
       );
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location: TextDocumentPositionParams = {
@@ -369,7 +448,12 @@ describe("Find references", () => {
         "/{ l1: node1{node1{};};}; /{ node1{node1{ prop1=&l1;};};};"
       );
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location: TextDocumentPositionParams = {
@@ -394,7 +478,12 @@ describe("Find references", () => {
         "/{ l1: node1{node1{};};}; /{ node1{node1{ prop1=&{/node1/node1}};};};"
       );
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
-      const context = new ContextAware(textDocument.uri, [], []);
+      const context = new ContextAware(
+        textDocument.uri,
+        [],
+        getFakeBindingLoader(),
+        []
+      );
       await context.parser.stable;
 
       const location: TextDocumentPositionParams = {

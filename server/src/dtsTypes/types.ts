@@ -44,6 +44,7 @@ export enum PropertyType {
   STRINGLIST,
   BYTESTRING,
   UNKNOWN,
+  ANY,
 }
 
 export interface Validate {
@@ -54,7 +55,7 @@ export type RequirementStatus = "required" | "omitted" | "optional";
 
 export type TypeConfig = { types: PropertyType[] };
 export class PropertyNodeType<T = string | number> implements Validate {
-  public readonly required: (node: Node) => RequirementStatus;
+  public required: (node: Node) => RequirementStatus;
   public readonly values: (property: Property) => T[];
   public hideAutoComplete = false;
   public list = false;
@@ -148,6 +149,10 @@ export class PropertyNodeType<T = string | number> implements Validate {
       type: PropertyType,
       ast: ASTBase | undefined | null
     ) => {
+      if (expected.some((e) => e === PropertyType.ANY)) {
+        return [];
+      }
+
       ast ??= property.ast;
 
       const typeIsValid =
@@ -279,11 +284,7 @@ export class PropertyNodeType<T = string | number> implements Validate {
         ) {
           const currentValue = property.ast.values?.values[0]
             ?.value as StringValue;
-          if (
-            !this.values(property).some(
-              (v) => !!currentValue.value.match(new RegExp(`^["']${v}["']$`))
-            )
-          ) {
+          if (!this.values(property).some((v) => currentValue.value === v)) {
             issues.push(
               genIssue(
                 StandardTypeIssue.EXPECTED_ENUM,
@@ -388,17 +389,15 @@ export class NodeType {
   compatible?: string;
   properties: PropertyNodeType[] = [];
   childNodeTypes: NodeType[] = [];
+  bindingsPath?: string;
+  description?: string;
 
-  constructor(private node: Node) {}
-
-  getIssue(runtime: Runtime) {
+  getIssue(runtime: Runtime, node: Node) {
     const issue: Issue<StandardTypeIssue>[] = [];
-    const value = this.node
-      .getProperty("status")
-      ?.ast.values?.values.at(0)?.value;
+    const value = node.getProperty("status")?.ast.values?.values.at(0)?.value;
     if (value instanceof StringValue) {
-      if (value.value.slice(1, -1) === "disabled") {
-        [...this.node.definitions, ...this.node.referencedBy].forEach((n) =>
+      if (value.value === "disabled") {
+        [...node.definitions, ...node.referencedBy].forEach((n) =>
           issue.push(
             genIssue(
               StandardTypeIssue.NODE_DISABLED,
@@ -409,11 +408,13 @@ export class NodeType {
             )
           )
         );
+        return issue;
       }
     }
+
     return [
       ...issue,
-      ...this.properties.flatMap((p) => p.validate(runtime, this.node)),
+      ...this.properties.flatMap((p) => p.validate(runtime, node)),
     ];
   }
 

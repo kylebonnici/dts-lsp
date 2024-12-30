@@ -673,7 +673,7 @@ describe("Parser", () => {
             (
               rootDts.properties[0].values?.values[0]?.value as StringValue
             ).toString()
-          ).toEqual("'He said \"Hi\".'");
+          ).toEqual('He said "Hi".');
         });
 
         test("String value double quotes and single quotes inside", async () => {
@@ -696,7 +696,7 @@ describe("Parser", () => {
           expect(
             (rootDts.properties[0].values?.values[0]?.value as StringValue)
               .value
-          ).toEqual("\"He said 'Hi'.\"");
+          ).toEqual("He said 'Hi'.");
         });
 
         test("String value double quotes and double quotes inside", async () => {
@@ -719,7 +719,7 @@ describe("Parser", () => {
           expect(
             (rootDts.properties[0].values?.values[0]?.value as StringValue)
               .value
-          ).toEqual('"He said \\"Hi\\"."');
+          ).toEqual('He said \\"Hi\\".');
         });
 
         test("String value Single quotes and Single quotes inside", async () => {
@@ -742,7 +742,7 @@ describe("Parser", () => {
           expect(
             (rootDts.properties[0].values?.values[0]?.value as StringValue)
               .value
-          ).toEqual("'He said \\'Hi\\'.'");
+          ).toEqual("He said \\'Hi\\'.");
         });
 
         test("Multi line String value", async () => {
@@ -765,7 +765,7 @@ describe("Parser", () => {
           expect(
             (rootDts.properties[0].values?.values[0]?.value as StringValue)
               .value
-          ).toEqual("'He said \n nice line breal\n right?'");
+          ).toEqual("He said \n nice line breal\n right?");
         });
       });
 
@@ -1180,12 +1180,12 @@ describe("Parser", () => {
 
           expect(values?.values[1]?.value instanceof StringValue).toBeTruthy();
           expect((values?.values[1]?.value as StringValue).value).toEqual(
-            "'Foo'"
+            "Foo"
           );
 
           expect(values?.values[2]?.value instanceof StringValue).toBeTruthy();
           expect((values?.values[2]?.value as StringValue).value).toEqual(
-            '"Bar"'
+            "Bar"
           );
 
           expect(

@@ -42,7 +42,7 @@ export default () => {
         const value = property.ast.values?.values.at(0)?.value;
         if (
           value instanceof StringValue &&
-          value.value.slice(1, -1) !== property.parent.name
+          value.value !== property.parent.name
         ) {
           return property.parent.name === "cpu"
             ? [

@@ -20,7 +20,7 @@ import {
   flatNumberValues,
   generateOrTypeObj,
   getInterruptInfo,
-  getInterruptPhandleNode,
+  resolvePhandleNode,
 } from "./helpers";
 import { genIssue } from "../../helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
@@ -77,7 +77,7 @@ export default () => {
 
       let i = 0;
       while (i < values.length) {
-        const phandleNode = getInterruptPhandleNode(values[i], root);
+        const phandleNode = resolvePhandleNode(values[i], root);
 
         if (!phandleNode) {
           issues.push(

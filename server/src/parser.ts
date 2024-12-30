@@ -164,7 +164,7 @@ export class Parser extends BaseParser {
       /* istanbul ignore next */
       throw new Error("Incorrect final stack size");
     }
-    console.log("parse", this.uri, performance.now() - t);
+    // console.log("parse", this.uri, performance.now() - t);
   }
 
   private isRootNodeDefinition(parent: DtcBaseNode): boolean {
@@ -960,7 +960,11 @@ export class Parser extends BaseParser {
       throw new Error("Token must have value");
     }
 
-    const propValue = new StringValue(token.value, createTokenIndex(token));
+    let trimedValue = token.value;
+    if (trimedValue.match(/["']$/)) {
+      trimedValue = trimedValue.slice(1, -1);
+    }
+    const propValue = new StringValue(trimedValue, createTokenIndex(token));
 
     if (!token.value.match(/["']$/)) {
       this.issues.push(

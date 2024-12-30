@@ -16,7 +16,7 @@
 
 import { Issue, StandardTypeIssue } from "../../types";
 import { PropertyNodeType, PropertyType } from "../types";
-import { generateOrTypeObj, getInterruptPhandleNode } from "./helpers";
+import { generateOrTypeObj, resolvePhandleNode } from "./helpers";
 import { genIssue } from "../../helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
 
@@ -34,10 +34,7 @@ export default () => {
       const interruptParent = node.getProperty("interrupt-parent");
       const root = node.root;
       const parentInterruptNode = interruptParent
-        ? getInterruptPhandleNode(
-            interruptParent?.ast.values?.values.at(0),
-            root
-          )
+        ? resolvePhandleNode(interruptParent?.ast.values?.values.at(0), root)
         : node.parent;
 
       if (!parentInterruptNode) {

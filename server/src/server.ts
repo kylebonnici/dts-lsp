@@ -59,6 +59,11 @@ import { getCodeActions } from "./getCodeActions";
 import { getDocumentFormatting as getDocumentFormatting } from "./getDocumentFormatting";
 import { getTypeCompletions } from "./getTypeCompletions";
 import { getHover } from "./getHover";
+import { Node } from "./context/node";
+import {
+  BindingType,
+  getBindingLoader,
+} from "./dtsTypes/bindings/bindingLoader";
 
 let contextAware: ContextAware[] = [];
 let activeContext: Promise<ContextAware | undefined>;
@@ -244,9 +249,13 @@ interface Context {
   includePaths?: string[];
   dtsFile: string;
   overlays: string[];
+  bindingType: BindingType;
+  zephyrBindings: string[];
 }
 
 interface Settings {
+  defaultBindingType: BindingType;
+  defaultZephyrBindings: string[];
   defaultIncludePaths: string[];
   contexts: Context[];
   preferredContext?: number;
@@ -257,6 +266,8 @@ interface Settings {
 // Please note that this is not the case when using this server with the client provided in this example
 // but could happen with other clients.
 const defaultSettings: Settings = {
+  defaultBindingType: "Zephyr",
+  defaultZephyrBindings: [],
   defaultIncludePaths: [],
   contexts: [],
   lockRenameEdits: [],
@@ -296,6 +307,10 @@ connection.onDidChangeConfiguration((change) => {
     const newContext = new ContextAware(
       context.dtsFile,
       context.includePaths ?? globalSettings.defaultIncludePaths,
+      getBindingLoader(
+        context.zephyrBindings ?? globalSettings.defaultZephyrBindings,
+        context.bindingType ?? globalSettings.defaultBindingType
+      ),
       context.overlays
     );
     contextAware.push(newContext);
@@ -308,7 +323,14 @@ connection.onDidChangeConfiguration((change) => {
       console.log(
         `New context with id ${i + contextAware.length} for ${c.parser.uri}`
       );
-      return new ContextAware(c.parser.uri, globalSettings.defaultIncludePaths);
+      return new ContextAware(
+        c.parser.uri,
+        globalSettings.defaultIncludePaths,
+        getBindingLoader(
+          globalSettings.defaultZephyrBindings,
+          globalSettings.defaultBindingType
+        )
+      );
     }),
   ];
 
@@ -512,7 +534,7 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
         case StandardTypeIssue.CELL_MISS_MATCH:
           return `INTRO should have format ${issue.templateStrings[1]}`;
         case StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE:
-          return `INTRO requires property "${issue.templateStrings[1]}" in node path '${issue.templateStrings[2]}'`;
+          return `INTRO requires property "${issue.templateStrings[1]}" in node path "${issue.templateStrings[2]}"`;
         case StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND:
           return `Unable to resolve interrupt parent node`;
         case StandardTypeIssue.INTERRUPTS_VALUE_CELL_MISS_MATCH:
@@ -521,6 +543,10 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
           return `INTRO should have format ${issue.templateStrings[1]}`;
         case StandardTypeIssue.NODE_DISABLED:
           return "Node is diabled";
+        case StandardTypeIssue.UNABLE_TO_RESOLVE_PHANDLE:
+          return `Unable to resolve handel`;
+        case StandardTypeIssue.UNABLE_TO_RESOLVE_PATH:
+          return `Unable to find "${issue.templateStrings[0]}" in ${issue.templateStrings[1]}`;
       }
     })
     .join(" or ")
@@ -540,6 +566,8 @@ const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
       return "Conflicting Properties";
     case StandardTypeIssue.EXPECTED_ONE:
       return "Additional value";
+    case StandardTypeIssue.REQUIRED:
+      return `Nodes`;
     default:
       return `TODO`;
   }
@@ -557,7 +585,11 @@ documents.onDidChangeContent(async (change) => {
   if (!contexts.length) {
     const newContext = new ContextAware(
       uri,
-      globalSettings.defaultIncludePaths
+      globalSettings.defaultIncludePaths,
+      getBindingLoader(
+        globalSettings.defaultZephyrBindings,
+        globalSettings.defaultBindingType
+      )
     );
     console.log(`New adhoc context with id ${contextAware.length} for ${uri}`);
     contextAware.push(newContext);
@@ -643,87 +675,94 @@ async function getDiagnostics(
   context: ContextAware,
   uri: string
 ): Promise<Diagnostic[]> {
-  const diagnostics: Diagnostic[] = [];
+  try {
+    const diagnostics: Diagnostic[] = [];
 
-  const d = debounce.get(context);
-  if (d?.abort.signal.aborted) return [];
-  await d?.promise;
+    const d = debounce.get(context);
+    if (d?.abort.signal.aborted) return [];
+    await d?.promise;
 
-  const parser = await context.getParser(uri);
-  parser?.issues.forEach((issue) => {
-    const diagnostic: Diagnostic = {
-      severity: issue.severity,
-      range: toRange(issue.astElement),
-      message: issue.issues
-        ? issue.issues.map(syntaxIssueToMessage).join(" or ")
-        : "",
-      source: "device tree",
-      data: {
-        firstToken: {
-          pos: issue.astElement.firstToken.pos,
-          tokens: issue.astElement.firstToken.tokens,
-          value: issue.astElement.firstToken.value,
-        },
-        lastToken: {
-          pos: issue.astElement.lastToken.pos,
-          tokens: issue.astElement.lastToken.tokens,
-          value: issue.astElement.lastToken.value,
-        },
-        issues: issue.issues,
-      } as CodeActionDiagnosticData,
-    };
-    diagnostics.push(diagnostic);
-  });
-
-  const contextIssues = (await context.getContextIssues()) ?? [];
-  contextIssues
-    .filter((issue) => issue.astElement.uri === uri)
-    .forEach((issue) => {
+    const parser = await context.getParser(uri);
+    parser?.issues.forEach((issue) => {
       const diagnostic: Diagnostic = {
         severity: issue.severity,
         range: toRange(issue.astElement),
-        message: contextIssuesToMessage(issue),
+        message: issue.issues
+          ? issue.issues.map(syntaxIssueToMessage).join(" or ")
+          : "",
         source: "device tree",
-        tags: issue.tags,
-        relatedInformation: [
-          ...issue.linkedTo.map((element) => ({
-            message: issue.issues
-              .map(contextIssuesToLinkedMessage)
-              .join(" or "),
-            location: {
-              uri: `file://${element.uri!}`,
-              range: toRange(element),
-            },
-          })),
-        ],
+        data: {
+          firstToken: {
+            pos: issue.astElement.firstToken.pos,
+            tokens: issue.astElement.firstToken.tokens,
+            value: issue.astElement.firstToken.value,
+          },
+          lastToken: {
+            pos: issue.astElement.lastToken.pos,
+            tokens: issue.astElement.lastToken.tokens,
+            value: issue.astElement.lastToken.value,
+          },
+          issues: issue.issues,
+        } as CodeActionDiagnosticData,
       };
       diagnostics.push(diagnostic);
     });
 
-  const runtime = await context.getRuntime();
-  runtime?.typesIssues
-    .filter((issue) => issue.astElement.uri === uri)
-    .forEach((issue) => {
-      const diagnostic: Diagnostic = {
-        severity: issue.severity,
-        range: toRange(issue.astElement),
-        message: standardTypeIssueIssuesToMessage(issue),
-        relatedInformation: [
-          ...issue.linkedTo.map((element) => ({
-            message: issue.issues.map(standardTypeToLinkedMessage).join(" or "),
-            location: {
-              uri: `file://${element.uri!}`,
-              range: toRange(element),
-            },
-          })),
-        ],
-        source: "device tree",
-        tags: issue.tags,
-      };
-      diagnostics.push(diagnostic);
-    });
+    const contextIssues = (await context.getContextIssues()) ?? [];
+    contextIssues
+      .filter((issue) => issue.astElement.uri === uri)
+      .forEach((issue) => {
+        const diagnostic: Diagnostic = {
+          severity: issue.severity,
+          range: toRange(issue.astElement),
+          message: contextIssuesToMessage(issue),
+          source: "device tree",
+          tags: issue.tags,
+          relatedInformation: [
+            ...issue.linkedTo.map((element) => ({
+              message: issue.issues
+                .map(contextIssuesToLinkedMessage)
+                .join(" or "),
+              location: {
+                uri: `file://${element.uri!}`,
+                range: toRange(element),
+              },
+            })),
+          ],
+        };
+        diagnostics.push(diagnostic);
+      });
 
-  return diagnostics;
+    const runtime = await context.getRuntime();
+    runtime?.typesIssues
+      .filter((issue) => issue.astElement.uri === uri)
+      .forEach((issue) => {
+        const diagnostic: Diagnostic = {
+          severity: issue.severity,
+          range: toRange(issue.astElement),
+          message: standardTypeIssueIssuesToMessage(issue),
+          relatedInformation: [
+            ...issue.linkedTo.map((element) => ({
+              message: issue.issues
+                .map(standardTypeToLinkedMessage)
+                .join(" or "),
+              location: {
+                uri: `file://${element.uri!}`,
+                range: toRange(element),
+              },
+            })),
+          ],
+          source: "device tree",
+          tags: issue.tags,
+        };
+        diagnostics.push(diagnostic);
+      });
+
+    return diagnostics;
+  } catch (e) {
+    console.error(e);
+    throw e;
+  }
 }
 
 connection.onDidChangeWatchedFiles((_change) => {

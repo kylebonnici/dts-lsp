@@ -34,12 +34,13 @@ import {
 } from "vscode-languageserver";
 import { LabelAssign } from "../ast/dtc/label";
 import { ASTBase } from "../ast/base";
-import { getStandardType } from "../dtsTypes/standardTypes";
 import { DeleteBase } from "../ast/dtc/delete";
 import { LabelRef } from "../ast/dtc/labelRef";
 import { NumberValue } from "../ast/dtc/values/number";
 import { ArrayValues } from "../ast/dtc/values/arrayValue";
 import { getNodeNameOrNodeLabelRef } from "../ast/helpers";
+import { getStandardType } from "../dtsTypes/standardTypes";
+import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
 
 export class Node {
   public referencedBy: DtcRefNode[] = [];
@@ -52,9 +53,10 @@ export class Node {
   linkedNodeNamePaths: NodeName[] = [];
   linkedRefLabels: LabelRef[] = [];
 
-  public nodeType = getStandardType(this);
+  public nodeTypes = [getStandardType()];
 
   constructor(
+    public readonly bindingLoader: BindingLoader,
     public readonly name: string,
     public readonly address?: number,
     public readonly parent: Node | null = null
@@ -355,6 +357,10 @@ export class Node {
       property.replaces = replaced;
       replaced.replacedBy = property;
     }
+
+    if (property.name === "compatible") {
+      this.nodeTypes = this.bindingLoader.getNodeTypes(this);
+    }
   }
 
   getChild(path: string[], strict = true): Node | undefined {
@@ -414,9 +420,18 @@ export class Node {
   }
 
   toMarkupContent(): MarkupContent {
+    // TODO Deal with many compatible
     return {
       kind: MarkupKind.Markdown,
-      value: ["```devicetree", this.toString(), "```"].join("\n"),
+      value: [
+        ...(this.nodeTypes[0].description
+          ? ["### Description", this.nodeTypes[0].description]
+          : []),
+        "### Current State",
+        "```devicetree",
+        this.toString(),
+        "```",
+      ].join("\n"),
     };
   }
 }

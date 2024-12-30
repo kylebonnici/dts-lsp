@@ -55,6 +55,8 @@ export enum StandardTypeIssue {
   CELL_MISS_MATCH,
   MAP_ENTRY_INCOMPLETE,
   NODE_DISABLED,
+  UNABLE_TO_RESOLVE_PHANDLE,
+  UNABLE_TO_RESOLVE_PATH,
 }
 
 export enum SyntaxIssue {
