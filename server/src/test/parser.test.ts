@@ -670,9 +670,8 @@ describe("Parser", () => {
               StringValue
           ).toBeTruthy();
           expect(
-            (
-              rootDts.properties[0].values?.values[0]?.value as StringValue
-            ).toString()
+            (rootDts.properties[0].values?.values[0]?.value as StringValue)
+              .value
           ).toEqual('He said "Hi".');
         });
 

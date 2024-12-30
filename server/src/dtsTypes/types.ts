@@ -391,8 +391,13 @@ export class NodeType {
   childNodeTypes: NodeType[] = [];
   bindingsPath?: string;
   description?: string;
+  issueCache?: Issue<StandardTypeIssue>[];
 
   getIssue(runtime: Runtime, node: Node) {
+    if (this.issueCache?.length) {
+      return this.issueCache;
+    }
+
     const issue: Issue<StandardTypeIssue>[] = [];
     const value = node.getProperty("status")?.ast.values?.values.at(0)?.value;
     if (value instanceof StringValue) {
@@ -412,10 +417,11 @@ export class NodeType {
       }
     }
 
-    return [
+    this.issueCache = [
       ...issue,
       ...this.properties.flatMap((p) => p.validate(runtime, node)),
     ];
+    return this.issueCache;
   }
 
   getOnPropertyHover(name: string) {

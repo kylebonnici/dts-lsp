@@ -89,7 +89,7 @@ export class ASTBase {
     const range = toRange(this);
     return [
       {
-        name: this.docSymbolsMeta.name,
+        name: this.docSymbolsMeta.name ? this.docSymbolsMeta.name : "__UNSET__",
         kind: this.docSymbolsMeta.kind,
         range: range,
         selectionRange: range,

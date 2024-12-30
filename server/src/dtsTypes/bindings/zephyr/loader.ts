@@ -45,7 +45,7 @@ interface ZephyrBindingYml {
       deprecated: false;
       default: (string | number)[];
       description: string;
-      enum: string[];
+      enum: (string | number)[];
       const: "string" | "int" | "array" | "uint8-array" | "string-array";
       "specifier-space"?: string;
     };
@@ -83,6 +83,41 @@ const ZephyrTypeToDTSType = (type: ZephyrPropertyType) => {
 
   return generateOrTypeObj(PropertyType.UNKNOWN);
 };
+
+// const ZephyrDefaultTypeDefault = (type: ZephyrPropertyType, def: any) => {
+//   switch (type) {
+//     case "string":
+//       return typeof def === "string" ? def : undefined;
+//     case "int":
+//       return typeof def === "number" ? def : undefined;
+//     case "boolean":
+//       return undefined;
+//     case "array":
+//       return Array.isArray(def) && def.every((v) => typeof v === "number")
+//         ? def
+//         : undefined;
+//     case "uint8-array":
+//       return Array.isArray(def) && def.every((v) => typeof v === "number")
+//         ? def
+//         : undefined;
+//     case "string-array":
+//       return Array.isArray(def) && def.every((v) => typeof v === "string")
+//         ? def
+//         : undefined;
+//     case "phandle":
+//       return undefined;
+//     case "phandles":
+//       return undefined;
+//     case "phandle-array":
+//       return undefined;
+//     case "path":
+//       return undefined;
+//     case "compound":
+//       return undefined;
+//   }
+
+//   return undefined;
+// };
 
 const resolveBinding = (
   bindings: ZephyrBindingYml[],
@@ -276,7 +311,6 @@ const convertBindingToType = (bindings: ZephyrBindingYml[]) => {
     if (cellsValues.length > 1) {
       console.log(cellsValues);
     }
-
     if (binding.properties) {
       Object.keys(binding.properties).forEach((name) => {
         const property = binding.properties![name];
@@ -388,6 +422,25 @@ const convertBindingToType = (bindings: ZephyrBindingYml[]) => {
                     const sizeCellProperty = phandelValue.getProperty(
                       `#${parentName}-cells`
                     );
+
+                    if (!sizeCellProperty) {
+                      issues.push(
+                        genIssue(
+                          StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+                          p.ast,
+                          DiagnosticSeverity.Error,
+                          [...phandelValue.nodeNameOrLabelRef],
+                          [],
+                          [
+                            p.name,
+                            `#${parentName}-cells`,
+                            `/${phandelValue.path.slice(1).join("/")}`,
+                          ]
+                        )
+                      );
+                      break;
+                    }
+
                     const sizeCellValue = sizeCellProperty
                       ? getU32ValueFromProperty(sizeCellProperty, 0, 0) ?? 0
                       : 0;

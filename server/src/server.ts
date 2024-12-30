@@ -59,7 +59,6 @@ import { getCodeActions } from "./getCodeActions";
 import { getDocumentFormatting as getDocumentFormatting } from "./getDocumentFormatting";
 import { getTypeCompletions } from "./getTypeCompletions";
 import { getHover } from "./getHover";
-import { Node } from "./context/node";
 import {
   BindingType,
   getBindingLoader,
