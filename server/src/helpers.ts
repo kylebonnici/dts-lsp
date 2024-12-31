@@ -77,6 +77,23 @@ export const positionInBetween = (
   );
 };
 
+export const positionSameLineAndNotAfter = (
+  ast: ASTBase,
+  file: string,
+  position: Position
+): boolean => {
+  return !!(
+    ast.uri === file &&
+    ast.lastToken.value !== ";" &&
+    ast.tokenIndexes?.start &&
+    ast.tokenIndexes?.end &&
+    (ast.tokenIndexes.start.pos.line === position.line ||
+      ast.tokenIndexes.end.pos.line === position.line) &&
+    position.character >=
+      ast.tokenIndexes.end.pos.col + ast.tokenIndexes.end.pos.len
+  );
+};
+
 export const isLastTokenOnLine = (
   tokens: Token[] | undefined,
   ast: ASTBase,
@@ -90,6 +107,21 @@ export const isLastTokenOnLine = (
   if (lastLineToken && lastLineToken.pos.col >= position.character)
     return false; // we should have matched positionInBetween
   return ast.tokenIndexes?.end === lastLineToken;
+};
+
+export const getAstOnLine = (
+  ast: ASTBase,
+  file: string,
+  position: Position
+) => {
+  const children = ast.children;
+  let deepestAstNode: ASTBase | undefined = ast;
+
+  deepestAstNode = children.find((c) =>
+    positionSameLineAndNotAfter(ast, file, position)
+  );
+
+  return deepestAstNode;
 };
 
 export const getDeepestAstNodeInBetween = (

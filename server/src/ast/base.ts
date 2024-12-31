@@ -125,7 +125,7 @@ export class ASTBase {
     ];
   }
 
-  protected addChild(child: ASTBase | null) {
+  protected addChild(child: ASTBase | null | undefined) {
     if (child) {
       child.parentNode = this;
       child.uri = this.uri;

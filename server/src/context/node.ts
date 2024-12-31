@@ -24,7 +24,11 @@ import { ContextIssues, Issue, SearchableResult } from "../types";
 import { Property } from "./property";
 import { DeleteProperty } from "../ast/dtc/deleteProperty";
 import { DeleteNode } from "../ast/dtc/deleteNode";
-import { getDeepestAstNodeInBetween, positionInBetween } from "../helpers";
+import {
+  getDeepestAstNodeInBetween,
+  positionInBetween,
+  positionSameLineAndNotAfter,
+} from "../helpers";
 import {
   DiagnosticSeverity,
   DiagnosticTag,
@@ -42,7 +46,6 @@ import { getNodeNameOrNodeLabelRef } from "../ast/helpers";
 import { getStandardType } from "../dtsTypes/standardTypes";
 import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
 import { NodeType } from "../dtsTypes/types";
-import { DtcProperty } from "src/ast/dtc/property";
 
 export class Node {
   public referencedBy: DtcRefNode[] = [];
@@ -130,7 +133,11 @@ export class Node {
           item: p,
           ast: p.ast,
         }))
-        .find((i) => positionInBetween(i.ast, file, position));
+        .find((i) =>
+          i.ast.lastToken.value === ";"
+            ? positionInBetween(i.ast, file, position)
+            : positionSameLineAndNotAfter(i.ast, file, position)
+        );
 
       if (inProperty) {
         return inProperty.item.getDeepestAstNode(file, position);

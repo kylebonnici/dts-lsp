@@ -33,7 +33,10 @@ function getPropertyAssignItems(
   if (
     !result ||
     !(result.item instanceof Property) ||
-    !(result.ast instanceof DtcProperty)
+    !(
+      result.ast instanceof DtcProperty &&
+      (result.ast.values || result.ast.values === null)
+    )
   ) {
     return [];
   }

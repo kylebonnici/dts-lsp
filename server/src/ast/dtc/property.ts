@@ -37,7 +37,7 @@ export class PropertyName extends ASTBase {
 }
 
 export class DtcProperty extends ASTBase {
-  private _values: PropertyValues | null = null;
+  private _values: PropertyValues | null | undefined = undefined;
 
   constructor(
     public readonly propertyName: PropertyName | null,
@@ -52,8 +52,8 @@ export class DtcProperty extends ASTBase {
     this.addChild(propertyName);
   }
 
-  set values(values: PropertyValues | null) {
-    if (this._values) throw new Error("Only on property name is allowed");
+  set values(values: PropertyValues | null | undefined) {
+    if (this._values) throw new Error("Only one property name is allowed");
     this._values = values;
     this.addChild(values);
   }

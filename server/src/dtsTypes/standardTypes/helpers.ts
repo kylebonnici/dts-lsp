@@ -25,7 +25,7 @@ import { Property } from "../../context/property";
 import { PropertyType, TypeConfig } from "../types";
 import { Expression } from "../../ast/cPreprocessors/expression";
 
-export const flatNumberValues = (value: PropertyValues | null) => {
+export const flatNumberValues = (value: PropertyValues | null | undefined) => {
   if (value?.values.some((v) => !(v?.value instanceof ArrayValues))) {
     return undefined;
   }

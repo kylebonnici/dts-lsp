@@ -295,7 +295,7 @@ describe("Find Decleration", () => {
 
     test("From property label", async () => {
       mockReadFileSync(
-        "/{ l1: node1{node1{};};}; /{ node1{node1{ prop1=&l1};};};"
+        "/{ l1: node1{node1{};};}; /{ node1{node1{ prop1=&l1;};};};"
       );
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
       const context = new ContextAware(
@@ -318,7 +318,7 @@ describe("Find Decleration", () => {
 
     test("From property node path", async () => {
       mockReadFileSync(
-        "/{ l1: node1{node1{};};}; /{ node1{node1{ prop1=&{/node1/node1}};};};"
+        "/{ l1: node1{node1{};};}; /{ node1{node1{ prop1=&{/node1/node1};};};};"
       );
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
       const context = new ContextAware(

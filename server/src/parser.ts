@@ -100,12 +100,10 @@ export class Parser extends BaseParser {
     const stable = this.stable;
     this.parsing = new Promise<void>((resolve) => {
       stable.then(async () => {
-        console.log("stable", performance.now() - t);
         this.reset();
         await this.cPreprocessorParser.reparse();
-        console.log("cPreprocessorParser", performance.now() - t);
         await this.parse();
-        console.log("parse done", performance.now() - t);
+        console.log("parsing", performance.now() - t);
         resolve();
       });
     });
@@ -595,9 +593,11 @@ export class Parser extends BaseParser {
       if (!result?.values.filter((v) => !!v).length) {
         this.issues.push(genIssue(SyntaxIssue.VALUE, node));
       }
+      node.values = result ?? null;
+    } else {
+      node.values = undefined;
     }
 
-    node.values = result ?? null;
     const lastToken = this.endStatement();
 
     // create property object

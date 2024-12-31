@@ -80,6 +80,7 @@ const isStable = (context: ContextAware) => {
 };
 
 const allStable = async () => {
+  await initialSettingsProvided;
   await Promise.all(contextAware.map(isStable));
 };
 

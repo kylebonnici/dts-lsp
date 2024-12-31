@@ -475,7 +475,7 @@ describe("Find references", () => {
 
     test("From property node path", async () => {
       mockReadFileSync(
-        "/{ l1: node1{node1{};};}; /{ node1{node1{ prop1=&{/node1/node1}};};};"
+        "/{ l1: node1{node1{};};}; /{ node1{node1{ prop1=&{/node1/node1};};};};"
       );
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
       const context = new ContextAware(

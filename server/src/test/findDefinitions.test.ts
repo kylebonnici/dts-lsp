@@ -436,7 +436,7 @@ describe("Find definitions", () => {
 
     test("From property label", async () => {
       mockReadFileSync(
-        "/{ l1: node1{node1{};};}; /{ node1{node1{ prop1=&l1};};};"
+        "/{ l1: node1{node1{};};}; /{ node1{node1{ prop1=&l1;};};};"
       );
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
       const context = new ContextAware(
@@ -458,12 +458,12 @@ describe("Find definitions", () => {
       expect(declarations[0].range.end.character).toEqual(23);
 
       expect(declarations[1].range.start.character).toEqual(29);
-      expect(declarations[1].range.end.character).toEqual(55);
+      expect(declarations[1].range.end.character).toEqual(56);
     });
 
     test("From property node path", async () => {
       mockReadFileSync(
-        "/{ l1: node1{node1{};};}; /{ node1{node1{ prop1=&{/node1/node1}};};};"
+        "/{ l1: node1{node1{};};}; /{ node1{node1{ prop1=&{/node1/node1};};};};"
       );
       const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
       const context = new ContextAware(
@@ -485,7 +485,7 @@ describe("Find definitions", () => {
       expect(declarations[0].range.end.character).toEqual(21);
 
       expect(declarations[1].range.start.character).toEqual(35);
-      expect(declarations[1].range.end.character).toEqual(65);
+      expect(declarations[1].range.end.character).toEqual(66);
     });
   });
 });

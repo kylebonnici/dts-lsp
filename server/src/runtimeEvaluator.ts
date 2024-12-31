@@ -206,10 +206,8 @@ export class ContextAware {
   }
 
   public async revaluate(uri: string) {
-    const t = performance.now();
     const parser = await this.getParser(uri);
     await parser?.reparse();
-    console.log("revaluate - reparse", performance.now() - t);
 
     this._runtime = this.evaluate();
     return this._runtime;
@@ -227,10 +225,6 @@ export class ContextAware {
       await this.processRoot(this.overlayParsers[i].rootDocument, runtime);
     }
 
-    console.log(
-      "before linkPropertiesLabelsAndNodePaths",
-      performance.now() - t
-    );
     this.linkPropertiesLabelsAndNodePaths(runtime);
 
     console.log("evaluate", performance.now() - t);
