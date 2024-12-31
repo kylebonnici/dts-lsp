@@ -95,7 +95,7 @@ export class Runtime implements Searchable {
     return;
   }
 
-  resolvePath(path: string[]): string[] | undefined {
+  resolvePath(path: string[], allLabels?: LabelAssign[]): string[] | undefined {
     if (!path?.[0].startsWith("&")) {
       return path;
     }
@@ -105,7 +105,7 @@ export class Runtime implements Searchable {
       return fromCache;
     }
 
-    const allLabels = this.rootNode.allDescendantsLabels;
+    allLabels ??= this.rootNode.allDescendantsLabels;
 
     const label = allLabels.find(
       (l) =>

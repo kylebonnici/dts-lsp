@@ -39,7 +39,7 @@ function getPropertyAssignItems(
   }
 
   return (
-    result.item.parent.nodeTypes[0].properties
+    result.item.parent.nodeType?.properties
       .find((p) => p.name === result.item?.name)
       ?.getPropertyCompletionItems(result.item) ?? []
   );
@@ -62,31 +62,33 @@ function getPropertyNamesItems(
   }
 
   const getItems = (node: Node) => {
-    return node.nodeTypes[0].properties
-      .filter(
-        (p) =>
-          !p.hideAutoComplete &&
-          p.required(node) !== "omitted" &&
-          typeof p.name === "string"
-      )
-      .map((p) => {
-        const required = node && p.required(node);
-        const hasProperty = !!node.properties.some((pp) =>
-          p.getNameMatch(pp.name)
-        );
-        let sortLetter = "a";
-        if (required) {
-          sortLetter = hasProperty ? "Y" : "A";
-        } else {
-          sortLetter = hasProperty ? "Z" : "B";
-        }
+    return (
+      node.nodeType?.properties
+        .filter(
+          (p) =>
+            !p.hideAutoComplete &&
+            p.required(node) !== "omitted" &&
+            typeof p.name === "string"
+        )
+        .map((p) => {
+          const required = node && p.required(node);
+          const hasProperty = !!node.properties.some((pp) =>
+            p.getNameMatch(pp.name)
+          );
+          let sortLetter = "a";
+          if (required) {
+            sortLetter = hasProperty ? "Y" : "A";
+          } else {
+            sortLetter = hasProperty ? "Z" : "B";
+          }
 
-        return {
-          label: `${p.name}`,
-          kind: CompletionItemKind.Property,
-          sortText: `${sortLetter}${p.name}`,
-        };
-      });
+          return {
+            label: `${p.name}`,
+            kind: CompletionItemKind.Property,
+            sortText: `${sortLetter}${p.name}`,
+          };
+        }) ?? []
+    );
   };
 
   if (result.item instanceof Property) {

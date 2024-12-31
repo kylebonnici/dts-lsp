@@ -73,14 +73,14 @@ let debounce = new WeakMap<
   { abort: AbortController; promise: Promise<void> }
 >();
 
+const isStable = (context: ContextAware) => {
+  const d = debounce.get(context);
+  if (d?.abort.signal.aborted) return;
+  return d?.promise;
+};
+
 const allStable = async () => {
-  await Promise.all(
-    contextAware.map((context) => {
-      const d = debounce.get(context);
-      if (d?.abort.signal.aborted) return;
-      return d?.promise;
-    })
-  );
+  await Promise.all(contextAware.map(isStable));
 };
 
 const getAdhocContexts = (settings: Settings) => {
@@ -276,7 +276,17 @@ let globalSettings: Settings = defaultSettings;
 // Cache the settings of all open documents
 const documentSettings: Map<string, Thenable<Settings>> = new Map();
 
+let init = false;
+const initialSettingsProvided: Promise<void> = new Promise((resolve) => {
+  const t = setInterval(() => {
+    if (init) {
+      resolve();
+      clearInterval(t);
+    }
+  }, 100);
+});
 connection.onDidChangeConfiguration((change) => {
+  init = true;
   if (!change.settings) {
     return;
   }
@@ -349,6 +359,7 @@ documents.onDidClose((e) => {
 
 connection.languages.diagnostics.on(async (params) => {
   const uri = params.textDocument.uri.replace("file://", "");
+  await allStable();
   const context = await activeContext;
 
   return {
@@ -575,9 +586,12 @@ const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
 // // The content of a text document has changed. This event is emitted
 // // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(async (change) => {
+  console.log("onDidChangeContent");
   const uri = change.document.uri.replace("file://", "");
 
   getTokenizedDocumentProvider().renewLexer(uri, change.document.getText());
+
+  await initialSettingsProvided;
 
   const contexts = await findContexts(contextAware, uri);
 
@@ -590,7 +604,7 @@ documents.onDidChangeContent(async (change) => {
         globalSettings.defaultBindingType
       )
     );
-    console.log(`New adhoc context with id ${contextAware.length} for ${uri}`);
+    console.log(`New adhoc context with id ${newContext.id} for ${uri}`);
     contextAware.push(newContext);
     await newContext.parser.stable;
     cleanUpAdhocContext(newContext);
@@ -606,6 +620,7 @@ documents.onDidChangeContent(async (change) => {
             return;
           }
           const t = performance.now();
+          issueCache.delete(context.context);
           await context.context.revaluate(uri);
           resolve();
           console.log("revaluate", performance.now() - t);
@@ -618,20 +633,12 @@ documents.onDidChangeContent(async (change) => {
 });
 
 connection.languages.diagnostics.onWorkspace(async () => {
+  await allStable();
   const context = await activeContext;
   if (!context) {
     return {
       items: [],
     };
-  }
-
-  if (context) {
-    const d = debounce.get(context);
-    if (d?.abort.signal.aborted)
-      return {
-        items: [],
-      };
-    await d?.promise;
   }
 
   const orderedParsers = await context.getOrderedParsers();
@@ -670,10 +677,24 @@ connection.languages.diagnostics.onWorkspace(async () => {
   };
 });
 
+const issueCache = new WeakMap<ContextAware, Map<string, Diagnostic[]>>();
+
 async function getDiagnostics(
   context: ContextAware,
   uri: string
 ): Promise<Diagnostic[]> {
+  const t = performance.now();
+
+  const contextIssue = issueCache.get(context);
+  if (contextIssue) {
+    const uriIssues = contextIssue.get(uri);
+    if (uriIssues) {
+      return uriIssues;
+    }
+  } else {
+    issueCache.set(context, new Map());
+  }
+
   try {
     const diagnostics: Diagnostic[] = [];
 
@@ -757,6 +778,8 @@ async function getDiagnostics(
         diagnostics.push(diagnostic);
       });
 
+    console.log("diagnostics", uri, performance.now() - t);
+    issueCache.get(context)?.set(uri, diagnostics);
     return diagnostics;
   } catch (e) {
     console.error(e);
@@ -821,6 +844,7 @@ connection.listen();
 
 const updateActiveContext = async (uri: string) => {
   activeFileUri = uri;
+  await allStable();
   const oldContext = await activeContext;
   activeContext = findContext(
     contextAware,
@@ -831,11 +855,11 @@ const updateActiveContext = async (uri: string) => {
   const context = await activeContext;
   if (oldContext !== context) {
     console.log(
-      `(id: ${context ? contextAware.indexOf(context) : -1}) activeContext:`,
+      `(id: ${context?.id ?? -1}) activeContext:`,
       context?.parser.uri
     );
     contextAware.forEach((c, i) => {
-      console.log(`Context with id ${i} for ${c.parser.uri}`);
+      console.log(`Context with id ${c.id} for ${c.parser.uri}`);
     });
   }
 };

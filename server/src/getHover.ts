@@ -58,7 +58,7 @@ function getPropertyName(
 ): Hover | undefined {
   if (result?.item instanceof Property && result.ast instanceof PropertyName) {
     // TODO Deal with many compatible
-    const markup = result.item.parent.nodeTypes[0].getOnPropertyHover(
+    const markup = result.item.parent.nodeType?.getOnPropertyHover(
       result.item.name
     );
 

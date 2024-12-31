@@ -388,16 +388,17 @@ const propertyValueToPropertyType = (
 export class NodeType {
   compatible?: string;
   properties: PropertyNodeType[] = [];
-  childNodeTypes: NodeType[] = [];
+  cellsValues?: {
+    specifier: string;
+    values: string[];
+  }[];
+  _childNodeType?: NodeType;
   bindingsPath?: string;
   description?: string;
-  issueCache?: Issue<StandardTypeIssue>[];
+  onBus?: string;
+  bus?: string[];
 
   getIssue(runtime: Runtime, node: Node) {
-    if (this.issueCache?.length) {
-      return this.issueCache;
-    }
-
     const issue: Issue<StandardTypeIssue>[] = [];
     const value = node.getProperty("status")?.ast.values?.values.at(0)?.value;
     if (value instanceof StringValue) {
@@ -417,11 +418,23 @@ export class NodeType {
       }
     }
 
-    this.issueCache = [
+    return [
       ...issue,
       ...this.properties.flatMap((p) => p.validate(runtime, node)),
     ];
-    return this.issueCache;
+  }
+
+  get childNodeType() {
+    return this._childNodeType;
+  }
+
+  set childNodeType(nodeType: NodeType | undefined) {
+    if (!nodeType) {
+      return;
+    }
+
+    nodeType.bindingsPath = this.bindingsPath;
+    this._childNodeType = nodeType;
   }
 
   getOnPropertyHover(name: string) {

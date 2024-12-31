@@ -41,6 +41,8 @@ import { ArrayValues } from "../ast/dtc/values/arrayValue";
 import { getNodeNameOrNodeLabelRef } from "../ast/helpers";
 import { getStandardType } from "../dtsTypes/standardTypes";
 import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
+import { NodeType } from "../dtsTypes/types";
+import { DtcProperty } from "src/ast/dtc/property";
 
 export class Node {
   public referencedBy: DtcRefNode[] = [];
@@ -53,7 +55,7 @@ export class Node {
   linkedNodeNamePaths: NodeName[] = [];
   linkedRefLabels: LabelRef[] = [];
 
-  public nodeTypes = [getStandardType()];
+  private _nodeTypes: NodeType[] = [getStandardType()];
 
   constructor(
     public readonly bindingLoader: BindingLoader,
@@ -62,6 +64,22 @@ export class Node {
     public readonly parent: Node | null = null
   ) {
     parent?.addNode(this);
+  }
+
+  get nodeTypes(): NodeType[] {
+    const childType = this.parent?.nodeTypes.at(0)?.childNodeType;
+
+    if (childType) {
+      return [childType];
+    }
+
+    return this._nodeTypes ?? [getStandardType()];
+  }
+
+  get nodeType(): NodeType | undefined {
+    return this.nodeTypes.find(
+      (t) => !t.onBus || this.parent?.nodeType?.bus?.some((b) => b === t.onBus)
+    );
   }
 
   public getReferenceBy(node: DtcRefNode): Node | undefined {
@@ -158,6 +176,13 @@ export class Node {
     }));
   }
 
+  get allBindingsProperties(): Property[] {
+    return [
+      ...this.properties.filter((p) => p.name === "compatible"),
+      ...this._nodes.flatMap((n) => n.allBindingsProperties),
+    ];
+  }
+
   get allDescendantsLabels(): LabelAssign[] {
     return [
       ...this.labels,
@@ -175,6 +200,10 @@ export class Node {
       ...this.properties.flatMap((p) => p.labelsMapped),
       ...this._nodes.flatMap((n) => n.allDescendantsLabelsMapped),
     ];
+  }
+
+  get allDescendantsNodes(): Node[] {
+    return [this, ...this._nodes.flatMap((n) => n.allDescendantsNodes)];
   }
 
   get issues(): Issue<ContextIssues>[] {
@@ -359,7 +388,7 @@ export class Node {
     }
 
     if (property.name === "compatible") {
-      this.nodeTypes = this.bindingLoader.getNodeTypes(this);
+      this._nodeTypes = this.bindingLoader.getNodeTypes(this);
     }
   }
 
@@ -407,13 +436,8 @@ export class Node {
       .join("\n\t")}${
       this.nodes.length
         ? `\n\t${this.nodes
-            .slice(0, 3)
-            .map((n) => `${n.fullName}{...};`)
-            .join("\n\t")}${
-            this.nodes.length > 3
-              ? `\n\t+${this.nodes.length - 3} child nodes`
-              : ""
-          }`
+            .map((n) => `${n.fullName}{ /* ... */ };`)
+            .join("\n\t")}`
         : ""
     } 
 };`;
@@ -424,8 +448,8 @@ export class Node {
     return {
       kind: MarkupKind.Markdown,
       value: [
-        ...(this.nodeTypes[0].description
-          ? ["### Description", this.nodeTypes[0].description]
+        ...(this.nodeType?.description
+          ? ["### Description", this.nodeType?.description]
           : []),
         "### Current State",
         "```devicetree",

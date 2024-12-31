@@ -36,12 +36,15 @@ import { DiagnosticSeverity, DocumentLink } from "vscode-languageserver";
 import { NodePath, NodePathRef } from "./ast/dtc/values/nodePath";
 import { Include } from "./ast/cPreprocessors/include";
 import { BindingLoader } from "./dtsTypes/bindings/bindingLoader";
+import { StringValue } from "./ast/dtc/values/string";
 
+let id = 0;
 export class ContextAware {
   _issues: Issue<ContextIssues>[] = [];
   private _runtime?: Promise<Runtime>;
   public parser: Parser;
   private overlayParsers: Parser[];
+  public readonly id = ++id;
 
   constructor(
     uri: string,
@@ -87,8 +90,31 @@ export class ContextAware {
 
   async getDocumentLinks(file: string): Promise<DocumentLink[]> {
     const parser = await this.getParser(file);
-    return (
-      (parser?.includes
+    const runtime = await this.getRuntime();
+
+    const bindingLinks =
+      (runtime.rootNode.allBindingsProperties
+        .filter((p) => p.ast.uri === file)
+        .flatMap((p) =>
+          p.ast.values?.values.flatMap((v) => {
+            const node = p.parent;
+            const nodeType = node?.nodeTypes.find(
+              (t) =>
+                v?.value instanceof StringValue &&
+                t.compatible === v.value.value
+            );
+            return nodeType
+              ? {
+                  range: toRange(v!.value!),
+                  target: `file://${nodeType.bindingsPath}`,
+                }
+              : undefined;
+          })
+        )
+        .filter((v) => v) as DocumentLink[]) ?? [];
+
+    return [
+      ...((parser?.includes
         .map((include) => {
           const path = parser.resolveInclude(include);
           if (path) {
@@ -99,8 +125,9 @@ export class ContextAware {
             return link;
           }
         })
-        .filter((r) => r) as DocumentLink[]) ?? []
-    );
+        .filter((r) => r) as DocumentLink[]) ?? []),
+      ...bindingLinks,
+    ];
   }
 
   private linkPropertiesLabelsAndNodePaths(runtime: Runtime) {
@@ -108,11 +135,15 @@ export class ContextAware {
       return [...node.properties, ...node.nodes.flatMap(getAllProperties)];
     };
     const allProperties = getAllProperties(runtime.rootNode);
+    const allLabels = runtime.rootNode.allDescendantsLabels;
 
     allProperties.forEach((p) =>
       p.ast.allDescendants.forEach((c) => {
         if (c instanceof LabelRef) {
-          const resolvesTo = runtime.resolvePath([`&${c.label?.value}`]);
+          const resolvesTo = runtime.resolvePath(
+            [`&${c.label?.value}`],
+            allLabels
+          );
           if (resolvesTo) {
             const node = runtime.rootNode.getChild(resolvesTo);
             c.linksTo = node;
@@ -175,14 +206,17 @@ export class ContextAware {
   }
 
   public async revaluate(uri: string) {
+    const t = performance.now();
     const parser = await this.getParser(uri);
     await parser?.reparse();
+    console.log("revaluate - reparse", performance.now() - t);
 
     this._runtime = this.evaluate();
     return this._runtime;
   }
 
   public async evaluate() {
+    const t = performance.now();
     await this.parser.stable;
 
     const runtime = new Runtime(this.bindingLoader);
@@ -193,8 +227,13 @@ export class ContextAware {
       await this.processRoot(this.overlayParsers[i].rootDocument, runtime);
     }
 
+    console.log(
+      "before linkPropertiesLabelsAndNodePaths",
+      performance.now() - t
+    );
     this.linkPropertiesLabelsAndNodePaths(runtime);
 
+    console.log("evaluate", performance.now() - t);
     return runtime;
   }
 

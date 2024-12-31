@@ -35,9 +35,12 @@ type ZephyrPropertyType =
 
 interface ZephyrBindingYml {
   filePath: string;
-  include: string[];
+  include: { name: string; "property-blocklist"?: string[] }[];
   description?: string;
   compatible?: string;
+  "child-binding"?: ZephyrBindingYml;
+  bus: string | string[];
+  "on-bus": string;
   properties?: {
     [key: string]: {
       required: boolean;
@@ -122,16 +125,27 @@ const ZephyrTypeToDTSType = (type: ZephyrPropertyType) => {
 const resolveBinding = (
   bindings: ZephyrBindingYml[],
   binding: ZephyrBindingYml
-) => {
+): ZephyrBindingYml | undefined => {
   binding = binding.include.reduce((p, c) => {
-    const toMergeIn = bindings.find((b) => basename(b.filePath) === c);
+    const toMergeIn = bindings.find((b) => basename(b.filePath) === c.name);
     if (toMergeIn) {
+      const propertiesToExclude = c["property-blocklist"];
       p.include = p.include.filter((i) => i !== c);
-      return mergeAintoB(bindings, toMergeIn, p) ?? p;
+      return mergeAintoB(bindings, toMergeIn, p, propertiesToExclude) ?? p;
     }
     console.warn(`Unable to find ${c}`);
     return p;
   }, binding);
+
+  if (binding["child-binding"]) {
+    binding["child-binding"].include = simplifiyInclude(
+      binding["child-binding"].include
+    );
+    binding["child-binding"] = resolveBinding(
+      bindings,
+      binding["child-binding"]
+    );
+  }
 
   if (!binding.include.length) {
     return binding;
@@ -141,7 +155,8 @@ const resolveBinding = (
 const mergeAintoB = (
   bindings: ZephyrBindingYml[],
   a: ZephyrBindingYml,
-  b: ZephyrBindingYml
+  b: ZephyrBindingYml,
+  propertiesToExclude: string[] = []
 ): ZephyrBindingYml | undefined => {
   const resolvedA = resolveBinding(bindings, a);
   const resolvedB = resolveBinding(bindings, b);
@@ -161,14 +176,16 @@ const mergeAintoB = (
 
   let newProperties = {};
   Array.from(allPropertiesNames).forEach((name) => {
-    const propertyFromA = resolvedA.properties?.[name] ?? {};
+    const propertyFromA = propertiesToExclude?.some((n) => n === name)
+      ? {}
+      : resolvedA.properties?.[name] ?? {};
     const propertyFromB = resolvedB.properties?.[name] ?? {};
 
     newProperties = {
       ...newProperties,
       [name]: {
-        ...(propertyFromA ?? {}),
-        ...(propertyFromB ?? {}),
+        ...propertyFromA,
+        ...propertyFromB,
       },
     };
   });
@@ -199,16 +216,19 @@ const mergeAintoB = (
 };
 
 const simplifiyInclude = (
-  include: string | string[] | { name: string }[] | undefined
-): string[] => {
+  include:
+    | string
+    | (string | { name: string; "property-blocklist"?: string[] })[]
+    | undefined
+): { name: string; "property-blocklist"?: string[] }[] => {
   if (!include) {
     return [];
   }
   if (typeof include === "string") {
-    return [include];
+    return [{ name: include }];
   }
 
-  return include.map((i) => (typeof i === "string" ? i : i.name));
+  return include.map((i) => (typeof i !== "string" ? i : { name: i }));
 };
 
 export class ZephyrBindingsLoader {
@@ -282,7 +302,7 @@ export class ZephyrBindingsLoader {
       const resolvedBindings = bindings
         .map((b) => resolveBinding(bindings, b))
         .filter((b) => !!b && !b.include.length) as ZephyrBindingYml[];
-      this.typeCache.push(...convertBindingToType(resolvedBindings));
+      this.typeCache.push(...convertBindingsToType(resolvedBindings));
     });
   }
 }
@@ -293,194 +313,204 @@ export const getZephyrBindingsLoader = () => {
   return zephyrBindingsLoader;
 };
 
-const convertBindingToType = (bindings: ZephyrBindingYml[]) => {
-  return bindings.map((binding) => {
-    const nodeType = getStandardType();
-    nodeType.compatible =
-      binding.compatible ?? basename(binding.filePath, "yaml");
-    nodeType.description = binding.description;
-    nodeType.bindingsPath = binding.filePath;
+const convertBindingsToType = (bindings: ZephyrBindingYml[]) => {
+  return bindings.map(convertBindingToType);
+};
 
-    const cellsKeys = Object.keys(binding).filter((key) =>
-      key.endsWith("-cells")
-    );
-    const cellsValues = cellsKeys.map((k) => ({
-      specifier: k.replace(/-cells$/, ""),
-      values: binding![k as CellSpecifier],
-    }));
-    if (cellsValues.length > 1) {
-      console.log(cellsValues);
-    }
-    if (binding.properties) {
-      Object.keys(binding.properties).forEach((name) => {
-        const property = binding.properties![name];
+const convertBindingToType = (binding: ZephyrBindingYml) => {
+  const nodeType = getStandardType();
+  nodeType.compatible =
+    binding.compatible ??
+    (binding.filePath ? basename(binding.filePath, "yaml") : undefined);
+  nodeType.description = binding.description;
+  nodeType.bindingsPath = binding.filePath;
+  nodeType.bus = typeof binding.bus === "string" ? [binding.bus] : binding.bus;
+  nodeType.onBus = binding["on-bus"];
 
-        const existingProperty = nodeType.properties.find((p) =>
-          p.getNameMatch(name)
-        );
-        if (existingProperty) {
-          // TODO More..... and make this the way for all?
-          existingProperty.required = () =>
-            property.required ? "required" : "optional";
-        } else {
-          const prop =
-            nodeType.properties.find((p) => p.getNameMatch(name)) ??
-            new PropertyNodeType(
-              name,
-              ZephyrTypeToDTSType(property.type),
-              property.required ? "required" : "optional",
-              undefined, // TODO property.default,
-              [], // TODO property.enum ?? []
-              (p) => {
-                const root = p.parent.root;
-                const issues: Issue<StandardTypeIssue>[] = [];
+  const cellsKeys = Object.keys(binding).filter((key) =>
+    key.endsWith("-cells")
+  );
+  const cellsValues = cellsKeys.map((k) => ({
+    specifier: k.replace(/-cells$/, ""),
+    values: binding![k as CellSpecifier],
+  }));
 
-                if (property.deprecated) {
-                  issues.push(
-                    genIssue(
-                      StandardTypeIssue.DEPRECATED,
-                      p.ast,
-                      DiagnosticSeverity.Warning,
-                      [],
-                      [DiagnosticTag.Deprecated],
-                      [p.name]
-                    )
-                  );
-                }
+  if (binding.properties) {
+    Object.keys(binding.properties).forEach((name) => {
+      const property = binding.properties![name];
 
-                if (
-                  property.type === "phandle" ||
-                  property.type === "phandles" ||
-                  property.type === "path"
-                ) {
-                  const values = flatNumberValues(p.ast.values);
-                  values?.forEach((v) => {
-                    const phandelValue = resolvePhandleNode(v, root);
-                    if (!phandelValue) {
-                      issues.push(
-                        genIssue(
-                          StandardTypeIssue.UNABLE_TO_RESOLVE_PHANDLE,
-                          v,
-                          DiagnosticSeverity.Error
-                        )
-                      );
-                    }
-                  });
-                }
+      const existingProperty = nodeType.properties.find((p) =>
+        p.getNameMatch(name)
+      );
+      if (existingProperty) {
+        // TODO More..... and make this the way for all?
+        existingProperty.required = () =>
+          property.required ? "required" : "optional";
+      } else {
+        const prop =
+          nodeType.properties.find((p) => p.getNameMatch(name)) ??
+          new PropertyNodeType(
+            name,
+            ZephyrTypeToDTSType(property.type),
+            property.required ? "required" : "optional",
+            undefined, // TODO property.default,
+            property.enum, // TODO property.enum ?? []
+            (p) => {
+              const root = p.parent.root;
+              const issues: Issue<StandardTypeIssue>[] = [];
 
-                if (
-                  property.type === "path" &&
-                  p.ast.values?.values.at(0)?.value instanceof StringValue
-                ) {
-                  const path = p.ast.values?.values.at(0)?.value as StringValue;
-
-                  const resolved: string[] = [];
-                  path.value.split("/").every((p) => {
-                    const node = root.getNode(p);
-                    if (!node) {
-                      issues.push(
-                        genIssue(
-                          StandardTypeIssue.UNABLE_TO_RESOLVE_PATH,
-                          path,
-                          DiagnosticSeverity.Error,
-                          [],
-                          [],
-                          [p, `/${resolved.join("/")}`]
-                        )
-                      );
-                    } else {
-                      resolved.push(p);
-                    }
-                    return !node;
-                  });
-                }
-
-                if (property.type === "phandle-array") {
-                  const values = flatNumberValues(p.ast.values);
-                  let i = 0;
-                  while (values && i < values.length) {
-                    const v = values[i];
-                    const phandelValue = resolvePhandleNode(v, root);
-                    if (!phandelValue) {
-                      issues.push(
-                        genIssue(
-                          StandardTypeIssue.UNABLE_TO_RESOLVE_PHANDLE,
-                          v,
-                          DiagnosticSeverity.Error
-                        )
-                      );
-                      break;
-                    }
-                    let parentName = name.endsWith("es")
-                      ? name.slice(0, -2)
-                      : name.slice(0, -1);
-
-                    if (parentName.endsWith("-gpio")) {
-                      parentName = "gpio";
-                    }
-
-                    const sizeCellProperty = phandelValue.getProperty(
-                      `#${parentName}-cells`
-                    );
-
-                    if (!sizeCellProperty) {
-                      issues.push(
-                        genIssue(
-                          StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
-                          p.ast,
-                          DiagnosticSeverity.Error,
-                          [...phandelValue.nodeNameOrLabelRef],
-                          [],
-                          [
-                            p.name,
-                            `#${parentName}-cells`,
-                            `/${phandelValue.path.slice(1).join("/")}`,
-                          ]
-                        )
-                      );
-                      break;
-                    }
-
-                    const sizeCellValue = sizeCellProperty
-                      ? getU32ValueFromProperty(sizeCellProperty, 0, 0) ?? 0
-                      : 0;
-
-                    if (1 + sizeCellValue > values.length - i) {
-                      issues.push(
-                        genIssue(
-                          StandardTypeIssue.CELL_MISS_MATCH,
-                          values[values.length - i - 1],
-                          DiagnosticSeverity.Error,
-                          [],
-                          [],
-                          [
-                            p.name,
-                            `<${[
-                              "phandel",
-                              ...Array.from(
-                                { length: sizeCellValue },
-                                () => "size"
-                              ),
-                            ].join(" ")}>`,
-                          ]
-                        )
-                      );
-                    }
-                    i += 1 + sizeCellValue;
-                  }
-                }
-
-                return issues;
+              if (property.deprecated) {
+                issues.push(
+                  genIssue(
+                    StandardTypeIssue.DEPRECATED,
+                    p.ast,
+                    DiagnosticSeverity.Warning,
+                    [],
+                    [DiagnosticTag.Deprecated],
+                    [p.name]
+                  )
+                );
               }
-            );
-          prop.desctiption = property.description
-            ? [property.description]
-            : undefined;
 
-          nodeType.properties.push(prop);
-        }
-      });
-    }
-    return nodeType;
-  });
+              if (
+                property.type === "phandle" ||
+                property.type === "phandles" ||
+                property.type === "path"
+              ) {
+                const values = flatNumberValues(p.ast.values);
+                values?.forEach((v) => {
+                  const phandelValue = resolvePhandleNode(v, root);
+                  if (!phandelValue) {
+                    issues.push(
+                      genIssue(
+                        StandardTypeIssue.UNABLE_TO_RESOLVE_PHANDLE,
+                        v,
+                        DiagnosticSeverity.Error
+                      )
+                    );
+                  }
+                });
+              }
+
+              if (
+                property.type === "path" &&
+                p.ast.values?.values.at(0)?.value instanceof StringValue
+              ) {
+                const path = p.ast.values?.values.at(0)?.value as StringValue;
+
+                const resolved: string[] = [];
+                path.value.split("/").every((p) => {
+                  const node = root.getNode(p);
+                  if (!node) {
+                    issues.push(
+                      genIssue(
+                        StandardTypeIssue.UNABLE_TO_RESOLVE_PATH,
+                        path,
+                        DiagnosticSeverity.Error,
+                        [],
+                        [],
+                        [p, `/${resolved.join("/")}`]
+                      )
+                    );
+                  } else {
+                    resolved.push(p);
+                  }
+                  return !node;
+                });
+              }
+
+              if (property.type === "phandle-array") {
+                const values = flatNumberValues(p.ast.values);
+                let i = 0;
+                while (values && i < values.length) {
+                  const v = values[i];
+                  const phandelValue = resolvePhandleNode(v, root);
+                  if (!phandelValue) {
+                    issues.push(
+                      genIssue(
+                        StandardTypeIssue.UNABLE_TO_RESOLVE_PHANDLE,
+                        v,
+                        DiagnosticSeverity.Error
+                      )
+                    );
+                    break;
+                  }
+                  let parentName = name.endsWith("es")
+                    ? name.slice(0, -2)
+                    : name.slice(0, -1);
+
+                  if (parentName.endsWith("-gpio")) {
+                    parentName = "gpio";
+                  }
+
+                  const sizeCellProperty = phandelValue.getProperty(
+                    `#${parentName}-cells`
+                  );
+
+                  if (!sizeCellProperty) {
+                    issues.push(
+                      genIssue(
+                        StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+                        p.ast,
+                        DiagnosticSeverity.Error,
+                        [...phandelValue.nodeNameOrLabelRef],
+                        [],
+                        [
+                          p.name,
+                          `#${parentName}-cells`,
+                          `/${phandelValue.path.slice(1).join("/")}`,
+                        ]
+                      )
+                    );
+                    break;
+                  }
+
+                  const sizeCellValue = sizeCellProperty
+                    ? getU32ValueFromProperty(sizeCellProperty, 0, 0) ?? 0
+                    : 0;
+
+                  if (1 + sizeCellValue > values.length - i) {
+                    // TODO add cell names
+                    issues.push(
+                      genIssue(
+                        StandardTypeIssue.CELL_MISS_MATCH,
+                        v,
+                        DiagnosticSeverity.Error,
+                        [],
+                        [],
+                        [
+                          p.name,
+                          `<${[
+                            "phandel",
+                            ...(phandelValue.nodeType?.cellsValues?.find(
+                              (i) => i.specifier === parentName
+                            )?.values ?? []),
+                          ].join(" ")}>`,
+                        ]
+                      )
+                    );
+                    break;
+                  }
+                  i += 1 + sizeCellValue;
+                }
+              }
+
+              return issues;
+            }
+          );
+        prop.desctiption = property.description
+          ? [property.description]
+          : undefined;
+
+        nodeType.cellsValues = cellsValues;
+        nodeType.properties.push(prop);
+      }
+    });
+  }
+
+  if (binding["child-binding"]) {
+    nodeType.childNodeType = convertBindingToType(binding["child-binding"]);
+  }
+
+  return nodeType;
 };
