@@ -19,6 +19,10 @@ import { ASTBase } from "../base";
 import { SymbolKind } from "vscode-languageserver";
 import { LabelAssign } from "./label";
 import { PropertyValues } from "./values/values";
+import { StringValue } from "./values/string";
+import { ArrayValues } from "./values/arrayValue";
+import { NumberValue } from "./values/number";
+import { ByteStringValue } from "./values/byteString";
 
 export class PropertyName extends ASTBase {
   constructor(public readonly name: string, tokenIndex: TokenIndexes) {
@@ -56,6 +60,29 @@ export class DtcProperty extends ASTBase {
 
   get values() {
     return this._values;
+  }
+
+  get quickValues() {
+    return this.values?.values.map((v) => {
+      if (!v) {
+        return null;
+      }
+      if (v.value instanceof StringValue) {
+        return v.value.value;
+      }
+
+      if (v.value instanceof ArrayValues) {
+        return v.value.values.map((v) =>
+          v.value instanceof NumberValue ? v.value.value : NaN
+        );
+      }
+
+      if (v.value instanceof ByteStringValue) {
+        return v.value.values.map((v) => v.value?.value ?? NaN);
+      }
+
+      return NaN;
+    });
   }
 
   toString() {

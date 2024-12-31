@@ -57,6 +57,7 @@ export enum StandardTypeIssue {
   NODE_DISABLED,
   UNABLE_TO_RESOLVE_PHANDLE,
   UNABLE_TO_RESOLVE_PATH,
+  EXPECTED_VALUE,
 }
 
 export enum SyntaxIssue {

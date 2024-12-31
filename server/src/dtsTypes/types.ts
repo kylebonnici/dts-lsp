@@ -56,11 +56,12 @@ export type RequirementStatus = "required" | "omitted" | "optional";
 export type TypeConfig = { types: PropertyType[] };
 export class PropertyNodeType<T = string | number> implements Validate {
   public required: (node: Node) => RequirementStatus;
-  public readonly values: (property: Property) => T[];
+  public values: (property: Property) => T[];
   public hideAutoComplete = false;
   public list = false;
   public desctiption?: string[];
   public examples?: string[];
+  public constValue?: number | string | number[] | string[];
   public onHover = (): MarkupContent => {
     return {
       kind: MarkupKind.Markdown,
@@ -81,7 +82,7 @@ export class PropertyNodeType<T = string | number> implements Validate {
       | ((node: Node) => RequirementStatus) = "optional",
     public readonly def: T | undefined = undefined,
     values: T[] | ((property: Property) => T[]) = [],
-    public readonly additionalTypeCheck?: (
+    public additionalTypeCheck?: (
       property: Property
     ) => Issue<StandardTypeIssue>[]
   ) {
@@ -387,7 +388,7 @@ const propertyValueToPropertyType = (
 
 export class NodeType {
   compatible?: string;
-  properties: PropertyNodeType[] = [];
+  private _properties: PropertyNodeType[] = [];
   cellsValues?: {
     specifier: string;
     values: string[];
@@ -422,6 +423,21 @@ export class NodeType {
       ...issue,
       ...this.properties.flatMap((p) => p.validate(runtime, node)),
     ];
+  }
+
+  get properties() {
+    return this._properties;
+  }
+
+  addProperty(property: PropertyNodeType | PropertyNodeType[]) {
+    if (Array.isArray(property)) {
+      property.forEach((p) => this._properties.push(p));
+    } else {
+      this._properties.push(property);
+    }
+    this._properties.sort((a) => {
+      return typeof a.name === "string" ? 1 : 0;
+    });
   }
 
   get childNodeType() {

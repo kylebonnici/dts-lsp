@@ -96,7 +96,7 @@ export class Runtime implements Searchable {
   }
 
   resolvePath(path: string[], allLabels?: LabelAssign[]): string[] | undefined {
-    if (!path?.[0].startsWith("&")) {
+    if (!path.at(0)?.startsWith("&")) {
       return path;
     }
 
@@ -109,17 +109,11 @@ export class Runtime implements Searchable {
 
     const label = allLabels.find(
       (l) =>
-        l.label.value === path?.[0].slice(1) &&
+        l.label.value === path.at(0)?.slice(1) &&
         l.parentNode instanceof DtcBaseNode
-    )?.parentNode as DtcBaseNode | undefined;
+    );
 
-    const newPath = label?.path;
-
-    if (newPath) {
-      return this.resolvePath(newPath);
-    }
-
-    return;
+    return label?.lastLinkedTo?.path;
   }
 
   get issues(): Issue<ContextIssues>[] {

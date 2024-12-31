@@ -19,8 +19,11 @@ import { ASTBase } from "../base";
 import { BuildSemanticTokensPush, TokenIndexes } from "../../types";
 import { LabelRef } from "./labelRef";
 import { getTokenModifiers, getTokenTypes } from "../../helpers";
+import { Node } from "../../context/node";
 
 export class LabelAssign extends ASTBase {
+  public lastLinkedTo?: Node;
+
   constructor(public readonly label: Label, tokenIndex: TokenIndexes) {
     super(tokenIndex);
     this.docSymbolsMeta = {

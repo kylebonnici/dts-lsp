@@ -44,7 +44,7 @@ import nexusSpecifierCells from "./standardTypes/nexusSpecifierCells";
 
 export function getStandardType() {
   const standardType = new NodeType();
-  standardType.properties.push(
+  standardType.addProperty([
     compatible(),
     model(),
     phandle(),
@@ -69,7 +69,7 @@ export function getStandardType() {
     nexusSpecifierMap(),
     nexusSpecifierMapMask(),
     nexusSpecifierMapPassThru(),
-    nexusSpecifierCells()
-  );
+    nexusSpecifierCells(),
+  ]);
   return standardType;
 }

@@ -186,7 +186,6 @@ export class Node {
   get allDescendantsLabels(): LabelAssign[] {
     return [
       ...this.labels,
-      ...this.properties.flatMap((p) => p.labels),
       ...this._nodes.flatMap((n) => n.allDescendantsLabels),
     ];
   }
@@ -200,10 +199,6 @@ export class Node {
       ...this.properties.flatMap((p) => p.labelsMapped),
       ...this._nodes.flatMap((n) => n.allDescendantsLabelsMapped),
     ];
-  }
-
-  get allDescendantsNodes(): Node[] {
-    return [this, ...this._nodes.flatMap((n) => n.allDescendantsNodes)];
   }
 
   get issues(): Issue<ContextIssues>[] {
@@ -421,7 +416,7 @@ export class Node {
   }
 
   get fullName() {
-    if (this.address) {
+    if (this.address !== undefined) {
       return `${this.name}@${this.address.toString(16)}`;
     }
 

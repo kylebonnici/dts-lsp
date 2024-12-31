@@ -365,6 +365,7 @@ export class ContextAware {
           runtimeNodeParent
         );
       child.definitions.push(element);
+      element.labels.forEach((l) => (l.lastLinkedTo = child));
 
       runtimeNodeParent = child;
       this.checkNodeUniqueNames(element, child);
@@ -404,6 +405,7 @@ export class ContextAware {
         element.resolveNodePath ??= [...resolvedPath];
         runtimeNode = runtime.rootNode.getChild(resolvedPath);
         element.labelReference.linksTo = runtimeNode;
+        element.labels.forEach((l) => (l.lastLinkedTo = runtimeNode));
         runtimeNode?.linkedRefLabels.push(element.labelReference);
         runtimeNode?.referencedBy.push(element);
 

@@ -557,6 +557,8 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
           return `Unable to resolve handel`;
         case StandardTypeIssue.UNABLE_TO_RESOLVE_PATH:
           return `Unable to find "${issue.templateStrings[0]}" in ${issue.templateStrings[1]}`;
+        case StandardTypeIssue.EXPECTED_VALUE:
+          return issue.templateStrings[0];
       }
     })
     .join(" or ")
@@ -885,6 +887,7 @@ connection.languages.semanticTokens.on(async (h) => {
 
   const tokensBuilder = new SemanticTokensBuilder();
 
+  await allStable();
   const contextMeta = await findContext(
     contextAware,
     uri,
