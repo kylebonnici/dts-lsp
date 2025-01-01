@@ -59,15 +59,15 @@ Sample configuration in VSCode `settings.json`
 
 ## Functionality
 
-- Follows Devicetree Specification Release v0.4
+Follows Devicetree Specification Release v0.4
 
 ### Semantic Tokens
 
-- Every element in the document will have semantic tokens to help highlight and color code the items.
+Every element in the document will have semantic tokens to help highlight and color code the items.
 
 ### Document Symbols
 
-- Every element in the document will have document symbols to help navigate the document in a tree format.
+Every element in the document will have document symbols to help navigate the document in a tree format.
 
 ### Diagnostics
 
@@ -153,11 +153,21 @@ NOTE: The references will stop at the definition, hence, if for example a node w
 
 ### Limitations
 
-- Parsing will only look at the files the devicetree uses. C header files will not be parsed to keep parsing fast enough. Hence there is no check on whether a macro exists and therefore there is no type checking.
+Parsing will only look at the files the devicetree uses. C header files will not be parsed to keep parsing fast enough. Hence there is no check on whether a macro exists and therefore there is no type checking.
 
 ## Bindings
 
 At the moment, this LSP only supports bindings for the Zephyr project. Feel free to contribute to this project or reach out to request other formats.
+
+## Refactoring
+
+Refactoring is possible on the following elements:
+
+- Node names
+- Node labels
+- Propery names
+
+Given that in some cases the files included in a devicetree might come from an SDK which should not be edited, one can configure "lockRenameEdits" in the settings to lock refactoring from being permitted on any elements which would otherwise effect edits to the files listed in "lockRenameEdits".
 
 ### Road Map
 
