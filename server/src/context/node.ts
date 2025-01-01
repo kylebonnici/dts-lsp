@@ -449,13 +449,13 @@ export class Node {
     return {
       kind: MarkupKind.Markdown,
       value: [
-        ...(this.nodeType?.description
-          ? ["### Description", this.nodeType?.description]
-          : []),
         "### Current State",
         "```devicetree",
         this.toString(),
         "```",
+        ...(this.nodeType?.description
+          ? ["### Description", this.nodeType?.description]
+          : []),
       ].join("\n"),
     };
   }

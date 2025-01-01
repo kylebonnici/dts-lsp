@@ -12,3 +12,4 @@ jest.config.js
 client
 server
 scripts
+bindings-schema.yaml

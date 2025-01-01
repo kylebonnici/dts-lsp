@@ -274,7 +274,9 @@ export class ZephyrBindingsLoader {
     return out.length ? out : [getStandardType()];
   }
 
-  private loadTypeAndCache(folders: string[]) {
+  private loadTypeAndCache(folders: string | string[]) {
+    folders = Array.isArray(folders) ? folders : [folders];
+
     folders.forEach((f) => {
       if (this.readFolders.indexOf(f) !== -1) {
         return;

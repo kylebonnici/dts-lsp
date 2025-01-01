@@ -150,10 +150,6 @@ export class PropertyNodeType<T = string | number> implements Validate {
       type: PropertyType,
       ast: ASTBase | undefined | null
     ) => {
-      if (expected.some((e) => e === PropertyType.ANY)) {
-        return [];
-      }
-
       ast ??= property.ast;
 
       const typeIsValid =
@@ -202,6 +198,10 @@ export class PropertyNodeType<T = string | number> implements Validate {
         }
       }
     };
+
+    if (this.type[0].types.some((e) => e === PropertyType.ANY)) {
+      return [];
+    }
 
     if (this.type.length > 1) {
       const type = this.type;

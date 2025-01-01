@@ -209,5 +209,6 @@ export default () => {
     "Lookups are performed on the mapping table by matching a specifier against the child specifier in the map. Because some fields in the specifier may not be relevant or need to be modified, a mask is applied before the lookup is done. This mask is defined in the `<specifier>-map-mask` property",
     "Similarly, when the specifier is mapped, some fields in the unit specifier may need to be kept unmodified and passed through from the child node to the parent node. In this case, a `<specifier>-map-pass-thru` property may be specified to apply a mask to the child specifier and copy any bits that match to the parent unit specifier.",
   ];
+  prop.list = true;
   return prop;
 };

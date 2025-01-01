@@ -37,6 +37,7 @@ import { NodePath, NodePathRef } from "./ast/dtc/values/nodePath";
 import { Include } from "./ast/cPreprocessors/include";
 import { BindingLoader } from "./dtsTypes/bindings/bindingLoader";
 import { StringValue } from "./ast/dtc/values/string";
+import { existsSync } from "fs";
 
 let id = 0;
 export class ContextAware {
@@ -45,16 +46,20 @@ export class ContextAware {
   public parser: Parser;
   private overlayParsers: Parser[];
   public readonly id = ++id;
+  public overlays: string[] = [];
 
   constructor(
     uri: string,
     includePaths: string[],
     public readonly bindingLoader: BindingLoader,
-    public readonly overlays: string[] = []
+    overlays: string | string[] = []
   ) {
+    this.overlays = Array.isArray(overlays) ? overlays : [overlays];
+    this.overlays.filter(existsSync);
+
     this.parser = new Parser(uri, includePaths);
     this.overlayParsers =
-      overlays?.map((overlay) => new Parser(overlay, includePaths)) ?? [];
+      this.overlays?.map((overlay) => new Parser(overlay, includePaths)) ?? [];
   }
 
   async getContextIssues() {

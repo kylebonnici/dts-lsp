@@ -7,16 +7,21 @@ This LSP is intended to be use with DTS Devicetree Specification Release v0.4 (h
 This extension needs a client that supports for Configuration Capability. The format for the setting is of type `Settings` as shown below
 
 ```typescript
-interface Settings {
-  defaultIncludePaths: string[];
-  contexts: Context[];
-  preferredContext?: number;
-}
-
 interface Context {
   includePaths?: string[];
   dtsFile: string;
   overlays: string[];
+  bindingType: BindingType;
+  zephyrBindings: string[];
+}
+
+interface Settings {
+  defaultBindingType: BindingType;
+  defaultZephyrBindings: string[];
+  defaultIncludePaths: string[];
+  contexts: Context[];
+  preferredContext?: number;
+  lockRenameEdits: string[];
 }
 ```
 
@@ -34,6 +39,8 @@ Sample configuration in VSCode `settings.json`
   ],
   "deviceTree.contexts": [
     {
+      "bindingType": "Zephyr",
+      "zephyrBindings": ["/opt/nordic/ncs/v2.9.0/zephyr/dts/bindings"],
       "includePaths": [
         "/opt/nordic/ncs/v2.9.0/zephyr/dts",
         "/opt/nordic/ncs/v2.9.0/zephyr/dts/arm",
@@ -43,9 +50,7 @@ Sample configuration in VSCode `settings.json`
         "/opt/nordic/ncs/v2.9.0/zephyr/include"
       ],
       "dtsFile": "/opt/nordic/ncs/v2.9.0/zephyr/boards/nordic/nrf52840dk/nrf52840dk_nrf52840.dts",
-      "overlays": [
-        "/Users/user/Workspace/vscode/samples/hello_world/myApp.overlay"
-      ]
+      "overlays": []
     }
   ],
   "deviceTree.preferredContext": 0
@@ -152,9 +157,6 @@ NOTE: That the references will stop at the definition hence if for example a nod
 - Syntax for Ternary operators
 - Support #IF #ELSEIF preprocessors
 - Device Node Requirements (chapter 3 - Devicetree Specification Release v0.4)
-- Device Bindings (chapter 4 - Devicetree Specification Release v0.4)
-  - See how one can implement one implementation that works for Zephyrs and Linux Kernel Developers
-  - Consider to extend Rename to bindings types?
 - Folding ranges in LSP.
 - More unit tests
 - Let me know what you should be added chnaged :)
