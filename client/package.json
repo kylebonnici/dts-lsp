@@ -1,13 +1,13 @@
 {
   "name": "dts-lsp-client",
-  "description": "VSCode part of a language server",
+  "description": "Device tree Language Server",
   "author": "Microsoft Corporation",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "version": "0.0.1",
   "publisher": "vscode",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Microsoft/vscode-extension-samples"
+    "url": "https://github.com/kylebonnici/dts-lsp"
   },
   "engines": {
     "vscode": "^1.75.0"
