@@ -62,7 +62,7 @@ export default () => {
             [],
             [
               interruptParent.name,
-              "is ignored when 'interrupts-extended' is used ",
+              "is ignored when 'interrupts-extended' is used",
             ]
           )
         );

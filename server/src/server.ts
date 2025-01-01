@@ -121,7 +121,7 @@ const contextFullyOverlaps = async (a: ContextAware, b: ContextAware) => {
   return contextAFiles.every((f) => contextBFiles.some((ff) => ff === f));
 };
 
-const cleanUpAdhocContext = async (context: ContextAware) => {
+const cleanUpAdHocContext = async (context: ContextAware) => {
   const adhocContexts = getAdhocContexts(globalSettings);
   const configContexts = await getConfiguredContexts(globalSettings);
   const adhocContextFiles = await resolveContextFiles(adhocContexts);
@@ -157,7 +157,7 @@ const cleanUpAdhocContext = async (context: ContextAware) => {
     contextToClean.forEach((c) => {
       debounce.delete(c);
       console.log(
-        `cleaning up context with id ${contextAware.indexOf(c)} and uri ${
+        `cleaning up context with ID ${contextAware.indexOf(c)} and uri ${
           c.parser.uri
         }`
       );
@@ -240,7 +240,7 @@ connection.onInitialized(() => {
   }
   if (hasWorkspaceFolderCapability) {
     connection.workspace.onDidChangeWorkspaceFolders((_event) => {
-      connection.console.log("Workspace folder change event received.");
+      connection.console.log("Workspace folder change event received");
     });
   }
 });
@@ -291,7 +291,7 @@ connection.onDidChangeConfiguration((change) => {
   if (!change.settings) {
     return;
   }
-  console.log("onDidChangeConfiguration", change);
+  console.log("Configuration changed", change);
   if (hasConfigurationCapability) {
     // Reset all cached document settings
     documentSettings.clear();
@@ -301,7 +301,7 @@ connection.onDidChangeConfiguration((change) => {
 
   globalSettings = <Settings>{
     ...defaultSettings,
-    ...change.settings?.deviceTree,
+    ...change.settings?.devicetree,
   };
 
   let adhocContexts = getAdhocContexts(oldSettngs);
@@ -324,14 +324,14 @@ connection.onDidChangeConfiguration((change) => {
       context.overlays
     );
     contextAware.push(newContext);
-    console.log(`New context with id ${i} for ${context.dtsFile}`);
+    console.log(`New context with ID ${i} for ${context.dtsFile}`);
   });
 
   contextAware = [
     ...contextAware,
     ...adhocContexts.map((c, i) => {
       console.log(
-        `New context with id ${i + contextAware.length} for ${c.parser.uri}`
+        `New context with ID ${i + contextAware.length} for ${c.parser.uri}`
       );
       return new ContextAware(
         c.parser.uri,
@@ -345,7 +345,7 @@ connection.onDidChangeConfiguration((change) => {
   ];
 
   adhocContexts = getAdhocContexts(globalSettings);
-  adhocContexts.forEach(cleanUpAdhocContext);
+  adhocContexts.forEach(cleanUpAdHocContext);
   if (activeFileUri) {
     updateActiveContext(activeFileUri);
   }
@@ -372,7 +372,7 @@ connection.languages.diagnostics.on(async (params) => {
 const syntaxIssueToMessage = (issue: SyntaxIssue) => {
   switch (issue) {
     case SyntaxIssue.VALUE:
-      return "Expected Value";
+      return "Expected value";
     case SyntaxIssue.END_STATEMENT:
       return "Expected ';'";
     case SyntaxIssue.CURLY_OPEN:
@@ -383,78 +383,68 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "Expected '['";
     case SyntaxIssue.SQUARE_CLOSE:
       return "Expected ']'";
+    case SyntaxIssue.GT_SYM:
+      return "Expected '>'";
+    case SyntaxIssue.LT_SYM:
+      return "Expected '<'";
+    case SyntaxIssue.DOUBLE_QUOTE:
+      return "Expected '\"'";
+    case SyntaxIssue.SINGLE_QUOTE:
+      return 'Expected "\'"\\';
+    case SyntaxIssue.LABEL_ASSIGN_MISSING_COLON:
+      return "Missing ':'";
+    case SyntaxIssue.MISSING_FORWARD_SLASH_END:
+      return "Missing '/'";
+    case SyntaxIssue.MISSING_ROUND_CLOSE:
+      return 'Expected ")"';
+    case SyntaxIssue.MISSING_COMMA:
+      return 'Missing ","';
     case SyntaxIssue.PROPERTY_NAME:
       return "Expected property name";
     case SyntaxIssue.NODE_NAME:
       return "Expected node name";
     case SyntaxIssue.NODE_ADDRESS:
       return "Expected node address";
-    case SyntaxIssue.NODE_DEFINITION:
-      return "Expected node definition";
-    case SyntaxIssue.PROPERTY_DEFINITION:
-      return "Expected property definition";
-    case SyntaxIssue.NUMERIC_VALUE:
-      return "Expected numerical value";
     case SyntaxIssue.NODE_PATH:
       return "Expected node path";
     case SyntaxIssue.NODE_REF:
-      return "Expected node ref";
+      return "Expected node reference";
     case SyntaxIssue.ROOT_NODE_NAME:
       return "Expected root node name";
-    case SyntaxIssue.GT_SYM:
-      return "Expected '>'";
-    case SyntaxIssue.LT_SYM:
-      return "Expected '<'";
     case SyntaxIssue.BYTESTRING:
-      return "Expected bytes string ";
+      return "Expected bytestring";
     case SyntaxIssue.BYTESTRING_EVEN:
-      return "Expected two digits in bytestring";
-    case SyntaxIssue.DOUBLE_QUOTE:
-      return "Expected '\"'";
-    case SyntaxIssue.SINGLE_QUOTE:
-      return "Expected '\\''";
-    case SyntaxIssue.VALID_NODE_PATH:
-      return "Expected valid node path";
-    case SyntaxIssue.LABEL_NAME:
-      return "Expected Label name";
-    case SyntaxIssue.FORWARD_SLASH_START_PATH:
-      return "Expected '/' in the state of a node path";
+      return "Expected two digits for each byte in bytestring";
     case SyntaxIssue.BYTESTRING_HEX:
-      return "Expected hex values are not allowed";
-    case SyntaxIssue.MISSING_FORWARD_SLASH_END:
-      return "Missing '/'";
+      return "Hex values are not allowed";
+    case SyntaxIssue.LABEL_NAME:
+      return "Expected label name";
+    case SyntaxIssue.FORWARD_SLASH_START_PATH:
+      return "Expected '/' at the start of a node path";
     case SyntaxIssue.NO_STATEMENT:
       return "Found ';' without a statement";
-    case SyntaxIssue.LABEL_ASSIGN_MISSING_COLON:
-      return "Missing ':' for label assign";
     case SyntaxIssue.DELETE_INCOMPLETE:
-      return "Did you mean /delete-node/ or /delete-property/";
+      return "Did you mean /delete-node/ or /delete-property/?";
     case SyntaxIssue.DELETE_NODE_INCOMPLETE:
-      return "Did you mean /delete-node/";
+      return "Did you mean /delete-node/?";
     case SyntaxIssue.DELETE_PROPERTY_INCOMPLETE:
-      return "Did you mean /delete-property/";
+      return "Did you mean /delete-property/?";
     case SyntaxIssue.UNKNOWN:
       return "Unknown syntax";
     case SyntaxIssue.EXPECTED_EXPRESSION:
       return "Expected expression";
-    case SyntaxIssue.MISSING_ROUND_CLOSE:
-      return 'Expected "("';
-    case SyntaxIssue.INVALID_INCLUDE_SYNTAX:
-      return "Invalid include Syntax";
-    case SyntaxIssue.MISSING_COMMA:
-      return 'Missing ","';
     case SyntaxIssue.EXPECTED_IDENTIFIER:
-      return "Expected Macro Identifier";
+      return "Expected macro identifier";
     case SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE:
-      return "Expected Macro Identifier or Function like Macro";
+      return "Expected macro identifier or function like macro";
     case SyntaxIssue.WHITE_SPACE:
       return "White space is not allowed";
     case SyntaxIssue.EXPECTED_VALUE:
-      return "Expected Value";
+      return "Expected value";
     case SyntaxIssue.PROPERTY_MUST_BE_IN_NODE:
-      return "Properties can only be defined in a node.";
+      return "Properties can only be defined in a node";
     case SyntaxIssue.PROPERTY_DELETE_MUST_BE_IN_NODE:
-      return "Properties can only be deleted inside a node.";
+      return "Properties can only be deleted inside a node";
   }
 };
 
@@ -463,11 +453,13 @@ const contextIssuesToMessage = (issue: Issue<ContextIssues>) => {
     .map((_issue) => {
       switch (_issue) {
         case ContextIssues.DUPLICATE_PROPERTY_NAME:
-          return `Property "${issue.templateStrings[0]}" is replaced by a later definition.`;
+          return `Property "${issue.templateStrings[0]}" is replaced by a later definition`;
         case ContextIssues.PROPERTY_DOES_NOT_EXIST:
           return "Cannot delete a property before it has been defined";
         case ContextIssues.DUPLICATE_NODE_NAME:
           return "Node name already defined";
+        case ContextIssues.NODE_DOES_NOT_EXIST:
+          return "Cannot delete a node before it has been defined";
         case ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE:
           return `No node with that reference "${issue.templateStrings[0]}" has been defined`;
         case ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH:
@@ -475,11 +467,9 @@ const contextIssuesToMessage = (issue: Issue<ContextIssues>) => {
         case ContextIssues.LABEL_ALREADY_IN_USE:
           return `Label name "${issue.templateStrings[0]}" already defined`;
         case ContextIssues.DELETE_PROPERTY:
-          return `Property "${issue.templateStrings[0]}" was deleted.`;
+          return `Property "${issue.templateStrings[0]}" was deleted`;
         case ContextIssues.DELETE_NODE:
-          return `Node "${issue.templateStrings[0]}" was deleted.`;
-        case ContextIssues.NODE_DOES_NOT_EXIST:
-          return "Cannot delete a node before it has been defined";
+          return `Node "${issue.templateStrings[0]}" was deleted`;
       }
     })
     .join(" or ");
@@ -489,16 +479,12 @@ const contextIssuesToLinkedMessage = (issue: ContextIssues) => {
   switch (issue) {
     case ContextIssues.DUPLICATE_PROPERTY_NAME:
       return "Property name already defined.";
-    case ContextIssues.PROPERTY_DOES_NOT_EXIST:
-      return "Cannot delete a property before it has been defined";
     case ContextIssues.DUPLICATE_NODE_NAME:
-      return "Node name already defined";
-    case ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE:
-      return "No node with that reference has been defined";
+      return "Defined here";
     case ContextIssues.LABEL_ALREADY_IN_USE:
-      return "Label already defined here";
-    case ContextIssues.NODE_DOES_NOT_EXIST:
-      return "Cannot delete a node before it has been defined";
+      return "Defined here";
+    default:
+      return "TODO";
   }
 };
 
@@ -507,7 +493,7 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
     .map((_issue) => {
       switch (_issue) {
         case StandardTypeIssue.EXPECTED_ENUM:
-          return `Only these value are allowed ${issue.templateStrings[0]}.`;
+          return `Only these value are allowed ${issue.templateStrings[0]}`;
         case StandardTypeIssue.EXPECTED_EMPTY:
           return `INTRO should be empty`;
         case StandardTypeIssue.EXPECTED_ONE:
@@ -525,11 +511,9 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
         case StandardTypeIssue.EXPECTED_COMPOSITE_LENGTH:
           return `INTRO expects ${issue.templateStrings[1]} values`;
         case StandardTypeIssue.REQUIRED:
-          return `INTRO is required.`;
+          return `INTRO is required`;
         case StandardTypeIssue.OMITTED:
           return `INTRO should be omitted`;
-        case StandardTypeIssue.EXPECTED_PAIR:
-          return `INTRO must have pair`;
         case StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_FIRST_VALUE:
           return `INTRO first value must match node address`;
         case StandardTypeIssue.EXPECTED_DEVICE_TYPE_CPU:
@@ -541,7 +525,7 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
         case StandardTypeIssue.IGNORED:
           return `INTRO ${issue.templateStrings[1]}'`;
         case StandardTypeIssue.EXPECTED_UNIQUE_PHANDLE:
-          return `INTRO value must be unique in the entire device tree`;
+          return `INTRO value must be unique in the entire Devicetree`;
         case StandardTypeIssue.CELL_MISS_MATCH:
           return `INTRO should have format ${issue.templateStrings[1]}`;
         case StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE:
@@ -549,13 +533,13 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
         case StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND:
           return `Unable to resolve interrupt parent node`;
         case StandardTypeIssue.INTERRUPTS_VALUE_CELL_MISS_MATCH:
-          return `INTRO expects ${issue.templateStrings[1]} interrupts cells`;
+          return `INTRO expects ${issue.templateStrings[1]} interrupt cells`;
         case StandardTypeIssue.MAP_ENTRY_INCOMPLETE:
           return `INTRO should have format ${issue.templateStrings[1]}`;
         case StandardTypeIssue.NODE_DISABLED:
-          return "Node is diabled";
+          return "Node is disabled";
         case StandardTypeIssue.UNABLE_TO_RESOLVE_PHANDLE:
-          return `Unable to resolve handel`;
+          return `Unable to resolve handle`;
         case StandardTypeIssue.UNABLE_TO_RESOLVE_PATH:
           return `Unable to find "${issue.templateStrings[0]}" in ${issue.templateStrings[1]}`;
         case StandardTypeIssue.EXPECTED_VALUE:
@@ -570,17 +554,16 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
 const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
   switch (issue) {
     case StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE:
-      return `Nodes`;
+    case StandardTypeIssue.REQUIRED:
+      return `Node`;
     case StandardTypeIssue.INTERRUPTS_VALUE_CELL_MISS_MATCH:
       return "Property";
     case StandardTypeIssue.IGNORED:
       return "Ignored reason";
     case StandardTypeIssue.EXPECTED_UNIQUE_PHANDLE:
-      return "Conflicting Properties";
+      return "Conflicting properties";
     case StandardTypeIssue.EXPECTED_ONE:
       return "Additional value";
-    case StandardTypeIssue.REQUIRED:
-      return `Nodes`;
     case StandardTypeIssue.NODE_DISABLED:
       return "Disabled by";
     default:
@@ -591,7 +574,7 @@ const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
 // // The content of a text document has changed. This event is emitted
 // // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(async (change) => {
-  console.log("onDidChangeContent");
+  console.log("Content changed");
   const uri = change.document.uri.replace("file://", "");
 
   getTokenizedDocumentProvider().renewLexer(uri, change.document.getText());
@@ -609,10 +592,10 @@ documents.onDidChangeContent(async (change) => {
         globalSettings.defaultBindingType
       )
     );
-    console.log(`New adhoc context with id ${newContext.id} for ${uri}`);
+    console.log(`New ad hoc context with ID ${newContext.id} for ${uri}`);
     contextAware.push(newContext);
     await newContext.parser.stable;
-    cleanUpAdhocContext(newContext);
+    cleanUpAdHocContext(newContext);
     updateActiveContext(uri);
   } else {
     contexts.forEach((context) => {
@@ -626,9 +609,9 @@ documents.onDidChangeContent(async (change) => {
           }
           const t = performance.now();
           issueCache.delete(context.context);
-          await context.context.revaluate(uri);
+          await context.context.reevaluate(uri);
           resolve();
-          console.log("revaluate", performance.now() - t);
+          console.log("reevaluate", performance.now() - t);
         }, 50);
       });
 
@@ -715,7 +698,7 @@ async function getDiagnostics(
         message: issue.issues
           ? issue.issues.map(syntaxIssueToMessage).join(" or ")
           : "",
-        source: "device tree",
+        source: "devicetree",
         data: {
           firstToken: {
             pos: issue.astElement.firstToken.pos,
@@ -741,7 +724,7 @@ async function getDiagnostics(
           severity: issue.severity,
           range: toRange(issue.astElement),
           message: contextIssuesToMessage(issue),
-          source: "device tree",
+          source: "devicetree",
           tags: issue.tags,
           relatedInformation: [
             ...issue.linkedTo.map((element) => ({
@@ -777,7 +760,7 @@ async function getDiagnostics(
               },
             })),
           ],
-          source: "device tree",
+          source: "devicetree",
           tags: issue.tags,
         };
         diagnostics.push(diagnostic);
@@ -860,11 +843,11 @@ const updateActiveContext = async (uri: string) => {
   const context = await activeContext;
   if (oldContext !== context) {
     console.log(
-      `(id: ${context?.id ?? -1}) activeContext:`,
+      `(ID: ${context?.id ?? -1}) activeContext:`,
       context?.parser.uri
     );
     contextAware.forEach((c, i) => {
-      console.log(`Context with id ${c.id} for ${c.parser.uri}`);
+      console.log(`Context with ID ${c.id} for ${c.parser.uri}`);
     });
   }
 };

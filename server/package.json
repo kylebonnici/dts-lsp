@@ -1,7 +1,7 @@
 {
   "name": "dts-lsp-server",
-  "description": "Device tree Language Server",
-  "author": "Microsoft Corporation",
+  "description": "Devicetree Language Server",
+  "author": "Kyle Micallef Bonnici",
   "license": "Apache-2.0",
   "engines": {
     "node": "*"

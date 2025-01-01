@@ -210,7 +210,7 @@ export class ContextAware {
     );
   }
 
-  public async revaluate(uri: string) {
+  public async reevaluate(uri: string) {
     const parser = await this.getParser(uri);
     await parser?.reparse();
 

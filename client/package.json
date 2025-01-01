@@ -1,7 +1,7 @@
 {
   "name": "dts-lsp-client",
-  "description": "Device tree Language Server",
-  "author": "Microsoft Corporation",
+  "description": "Devicetree Language Server",
+  "author": "Kyle Micallef Bonnici",
   "license": "Apache-2.0",
   "version": "0.0.1",
   "publisher": "vscode",

@@ -1,7 +1,7 @@
 {
   "name": "dts-lsp",
-  "displayName": "Device Tree LSP",
-  "description": "Device tree Language Server",
+  "displayName": "Devicetree LSP",
+  "description": "Devicetree Language Server",
   "author": "Microsoft Corporation",
   "license": "Apache-2.0",
   "icon": "images/icon.png",
@@ -23,9 +23,6 @@
     "languages": [
       {
         "id": "devicetree",
-        "aliases": [
-          "Device Tree"
-        ],
         "extensions": [
           ".dts",
           ".dtsi",
@@ -43,44 +40,44 @@
     ],
     "configuration": {
       "type": "object",
-      "title": "Device Tree LSP Configuration",
+      "title": "Devicetree LSP Configuration",
       "properties": {
-        "deviceTree.preferredContext": {
+        "devicetree.preferredContext": {
           "scope": "resource",
           "type": "number",
           "description": "Index of the context to be used when files is used by multiple context."
         },
-        "deviceTree.defaultIncludePaths": {
+        "devicetree.defaultIncludePaths": {
           "scope": "resource",
           "type": "array",
           "default": [],
           "description": "Default includes to be used when a file is opened that is not defined in known context"
         },
-        "deviceTree.defaultBindingType": {
+        "devicetree.defaultBindingType": {
           "scope": "resource",
           "type": "string",
           "default": "Zephyr",
           "description": "Default binding loader"
         },
-        "deviceTree.defaultZephyrBindings": {
+        "devicetree.defaultZephyrBindings": {
           "scope": "resource",
           "type": "array",
           "default": [],
           "description": "Default Zephyr binding paths"
         },
-        "deviceTree.contexts": {
+        "devicetree.contexts": {
           "scope": "resource",
           "type": "array",
           "default": [],
           "description": "Known contexts."
         },
-        "deviceTree.lockRenameEdits": {
+        "devicetree.lockRenameEdits": {
           "scope": "resource",
           "type": "array",
           "default": [],
           "description": "Locations that Renaming should not be allowrd if any of the edits is a child node of that directory"
         },
-        "deviceTree.trace.server": {
+        "devicetree.trace.server": {
           "scope": "window",
           "type": "string",
           "enum": [

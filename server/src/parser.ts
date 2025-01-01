@@ -166,7 +166,6 @@ export class Parser extends BaseParser {
       /* istanbul ignore next */
       throw new Error("Incorrect final stack size");
     }
-    // console.log("parse", this.uri, performance.now() - t);
   }
 
   private isRootNodeDefinition(parent: DtcBaseNode): boolean {
