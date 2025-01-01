@@ -10,7 +10,7 @@
     "type": "git",
     "url": "https://github.com/kylebonnici/dts-lsp"
   },
-  "publisher": "Kyle Micallef Bonnici",
+  "publisher": "KyleMicallefBonnici",
   "categories": [],
   "keywords": [
     "multi-root ready"
@@ -18,7 +18,7 @@
   "engines": {
     "vscode": "^1.75.0"
   },
-  "main": "./client/out/extension",
+  "main": "./dist/extension",
   "contributes": {
     "languages": [
       {
@@ -95,18 +95,26 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -b",
-    "watch": "tsc -b -w",
-    "lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
-    "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
-    "test": "sh ./scripts/e2e.sh"
+    "compile": "npm run compile:server && npm run compile:client",
+    "compile:prod": "npm run compile:server:prod && npm run compile:client:prod",
+    "compile:server": "node ./server/esbuild.js",
+    "compile:client": "node ./client/esbuild.js",
+    "compile:server:prod": "node ./server/esbuild.js --production",
+    "compile:client:prod": "node ./client/esbuild.js --production",
+    "check-types": "tsc --noEmit",
+    "watch": "npm-run-all -p watch:*",
+    "watch:server:esbuild": "node ./server/esbuild.js --watch",
+    "watch:client:esbuild": "node ./client/esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "vscode:prepublish": "npm run package",
+    "package": "npm run check-types && npm run compile:prod"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
     "@types/node": "^18.14.6",
     "@typescript-eslint/eslint-plugin": "^7.1.0",
     "@typescript-eslint/parser": "^7.1.0",
+    "esbuild": "^0.24.2",
     "eslint": "^8.57.0",
     "mocha": "^10.3.0",
     "typescript": "^5.3.3"
