@@ -581,6 +581,8 @@ const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
       return "Additional value";
     case StandardTypeIssue.REQUIRED:
       return `Nodes`;
+    case StandardTypeIssue.NODE_DISABLED:
+      return "Disabled by";
     default:
       return `TODO`;
   }

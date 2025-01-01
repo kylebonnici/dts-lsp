@@ -446,7 +446,6 @@ export class Node {
   }
 
   toMarkupContent(): MarkupContent {
-    // TODO Deal with many compatible
     return {
       kind: MarkupKind.Markdown,
       value: [

@@ -174,7 +174,6 @@ export class Runtime implements Searchable {
   }
 
   get typesIssues() {
-    // TODO Deal with many compatible
     const getIssue = (node: Node): Issue<StandardTypeIssue>[] => {
       return [
         ...(node.nodeTypes.at(0)?.getIssue(this, node) ?? []),

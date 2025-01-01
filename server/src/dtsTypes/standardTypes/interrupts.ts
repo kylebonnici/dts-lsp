@@ -66,8 +66,6 @@ export default () => {
         }
       }
 
-      // TODO get count from bindings and compare?
-
       return issues;
     }
   );

@@ -212,8 +212,6 @@ const mergeAintoB = (
     resolvedB[name as CellSpecifier] = Array.from([...fromA, ...fromB]);
   });
 
-  // TODO Merge childrens and more
-
   return resolvedB;
 };
 

@@ -219,7 +219,6 @@ export class PropertyNodeType<T = string | number> implements Validate {
       } else {
         propTypes.forEach((t, i) => {
           if (type[0].types.every((tt) => tt !== t)) {
-            // TODO Check
             issues.push(
               genIssue(
                 StandardTypeIssue.EXPECTED_STRINGLIST,
@@ -380,7 +379,7 @@ const propertyValueToPropertyType = (
   }
 
   if (value.value instanceof LabelRef || value.value instanceof NodePathRef) {
-    return PropertyType.U32; // TODO Check this
+    return PropertyType.U32;
   }
 
   return PropertyType.BYTESTRING;
@@ -401,7 +400,8 @@ export class NodeType {
 
   getIssue(runtime: Runtime, node: Node) {
     const issue: Issue<StandardTypeIssue>[] = [];
-    const value = node.getProperty("status")?.ast.values?.values.at(0)?.value;
+    const statusProperty = node.getProperty("status");
+    const value = statusProperty?.ast.values?.values.at(0)?.value;
     if (value instanceof StringValue) {
       if (value.value === "disabled") {
         [...node.definitions, ...node.referencedBy].forEach((n) =>
@@ -410,7 +410,11 @@ export class NodeType {
               StandardTypeIssue.NODE_DISABLED,
               n,
               DiagnosticSeverity.Hint,
-              [],
+              [
+                ...(statusProperty?.ast.parentNode
+                  ? [statusProperty?.ast.parentNode]
+                  : []),
+              ],
               [DiagnosticTag.Unnecessary]
             )
           )
