@@ -511,12 +511,12 @@ const generateZephyrTypeCheck = (
           );
           break;
         }
-        let parentName = name.endsWith("es")
-          ? name.slice(0, -2)
-          : name.slice(0, -1);
 
-        if (parentName.endsWith("-gpio")) {
+        let parentName = "";
+        if (name.endsWith("-gpios")) {
           parentName = "gpio";
+        } else {
+          parentName = myProperty["specifier-space"] ?? name.slice(0, -1);
         }
 
         const sizeCellProperty = phandelValue.getProperty(
