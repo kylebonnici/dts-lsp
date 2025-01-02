@@ -597,9 +597,9 @@ documents.onDidChangeContent(async (change) => {
     );
     console.log(`New ad hoc context with ID ${newContext.id} for ${uri}`);
     contextAware.push(newContext);
+    updateActiveContext(uri);
     await newContext.parser.stable;
     cleanUpAdHocContext(newContext);
-    updateActiveContext(uri);
   } else {
     contexts.forEach((context) => {
       debounce.get(context.context)?.abort.abort();
@@ -849,15 +849,11 @@ const updateActiveContext = async (uri: string) => {
 };
 
 connection.onDocumentSymbol(async (h) => {
+  await allStable();
   const uri = h.textDocument.uri.replace("file://", "");
   updateActiveContext(uri);
 
   const context = await activeContext;
-  if (context) {
-    const d = debounce.get(context);
-    if (d?.abort.signal.aborted) return [];
-    await d?.promise;
-  }
 
   const data = await context?.getParser(uri);
   if (!data) return [];
