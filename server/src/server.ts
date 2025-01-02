@@ -483,6 +483,9 @@ const contextIssuesToLinkedMessage = (issue: ContextIssues) => {
       return "Defined here";
     case ContextIssues.LABEL_ALREADY_IN_USE:
       return "Defined here";
+    case ContextIssues.DELETE_NODE:
+    case ContextIssues.DELETE_PROPERTY:
+      return "Deleted here";
     default:
       return "TODO";
   }
