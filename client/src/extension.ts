@@ -26,7 +26,16 @@ import {
 
 let client: LanguageClient;
 
-export function activate(context: ExtensionContext) {
+class API {
+  public get client(): LanguageClient {
+    return client;
+  }
+  getContexts() {
+    return client.sendRequest("devicetree/getContexts");
+  }
+}
+
+export async function activate(context: ExtensionContext) {
   // The server is implemented in node
   const serverModule = context.asAbsolutePath(path.join("dist", "server.js"));
 
@@ -63,7 +72,9 @@ export function activate(context: ExtensionContext) {
   );
 
   // Start the client. This will also launch the server
-  client.start();
+  await client.start();
+
+  return new API();
 }
 
 export function deactivate(): Thenable<void> | undefined {

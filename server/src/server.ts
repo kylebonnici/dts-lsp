@@ -950,3 +950,8 @@ connection.onHover(async (event) => {
     await getHover(event, contextAware, globalSettings.preferredContext)
   ).at(0);
 });
+
+connection.onRequest("devicetree/contexts", async () => {
+  await allStable();
+  return contextAware.map((c) => c.parser.uri);
+});
