@@ -69,6 +69,7 @@ import {
   getBindingLoader,
 } from "./dtsTypes/bindings/bindingLoader";
 import { getFoldingRanges } from "./foldingRanges";
+import { typeDefinition } from "./typeDefinition";
 
 let contextAware: ContextAware[] = [];
 let activeContext: Promise<ContextAware | undefined>;
@@ -196,6 +197,7 @@ connection.onInitialize((params: InitializeParams) => {
 
   const result: InitializeResult = {
     capabilities: {
+      typeDefinitionProvider: true,
       workspaceSymbolProvider: true,
       textDocumentSync: TextDocumentSyncKind.Incremental,
       renameProvider: {
@@ -1009,4 +1011,9 @@ connection.onFoldingRanges(async (event) => {
   if (!parser) return [];
   const result = getFoldingRanges(parser);
   return result;
+});
+
+connection.onTypeDefinition(async (event) => {
+  await allStable();
+  return typeDefinition(event, contextAware);
 });
