@@ -103,7 +103,7 @@ export class DtcRefNode extends DtcBaseNode {
     super();
     this.docSymbolsMeta = {
       name: "DTC Name",
-      kind: SymbolKind.Namespace,
+      kind: SymbolKind.Class,
     };
     labels.forEach((label) => {
       super.addChild(label);
@@ -116,7 +116,7 @@ export class DtcRefNode extends DtcBaseNode {
     this._labelReference = labelReference;
     this.docSymbolsMeta = {
       name: this.labelReference?.value ?? "DTC Name",
-      kind: SymbolKind.Namespace,
+      kind: SymbolKind.Class,
     };
     this.addChild(labelReference);
   }
@@ -162,7 +162,7 @@ export class DtcChildNode extends DtcBaseNode {
     super();
     this.docSymbolsMeta = {
       name: "DTC Name",
-      kind: SymbolKind.Constructor,
+      kind: SymbolKind.Class,
     };
 
     if (omitIfNoRef) {
@@ -179,7 +179,7 @@ export class DtcChildNode extends DtcBaseNode {
     this._name = name;
     this.docSymbolsMeta = {
       name: this._name?.toString() ?? "DTC Name",
-      kind: SymbolKind.Constructor,
+      kind: SymbolKind.Class,
     };
     this.addChild(name);
   }
