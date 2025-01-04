@@ -63,6 +63,7 @@ import {
   BindingType,
   getBindingLoader,
 } from "./dtsTypes/bindings/bindingLoader";
+import { getFoldingRanges } from "./foldingRanges";
 
 let contextAware: ContextAware[] = [];
 let activeContext: Promise<ContextAware | undefined>;
@@ -216,6 +217,7 @@ connection.onInitialize((params: InitializeParams) => {
       documentLinkProvider: {
         resolveProvider: false,
       },
+      foldingRangeProvider: true,
       definitionProvider: true,
       declarationProvider: true,
       referencesProvider: true,
@@ -954,4 +956,17 @@ connection.onHover(async (event) => {
 connection.onRequest("devicetree/contexts", async () => {
   await allStable();
   return contextAware.map((c) => c.parser.uri);
+});
+
+connection.onFoldingRanges(async (event) => {
+  await allStable();
+  const uri = event.textDocument.uri.replace("file://", "");
+  updateActiveContext(uri);
+
+  const context = await activeContext;
+
+  const parser = await context?.getParser(uri);
+  if (!parser) return [];
+  const result = getFoldingRanges(parser);
+  return result;
 });
