@@ -30,6 +30,11 @@ import {
   SemanticTokensBuilder,
   CodeActionKind,
   WorkspaceDocumentDiagnosticReport,
+  SymbolInformation,
+  WorkspaceSymbol,
+  Location,
+  DocumentSymbol,
+  SymbolKind,
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -191,6 +196,7 @@ connection.onInitialize((params: InitializeParams) => {
 
   const result: InitializeResult = {
     capabilities: {
+      workspaceSymbolProvider: true,
       textDocumentSync: TextDocumentSyncKind.Incremental,
       renameProvider: {
         prepareProvider: true,
@@ -860,6 +866,40 @@ connection.onDocumentSymbol(async (h) => {
   const data = await context?.getParser(uri);
   if (!data) return [];
   return data.getDocumentSymbols();
+});
+
+connection.onWorkspaceSymbol(async () => {
+  await allStable();
+  const context = await activeContext;
+  if (!context) return [];
+
+  const documentSymbolToWorkspaceSymbol = (
+    uri: string,
+    documentSymbol: DocumentSymbol
+  ): WorkspaceSymbol[] => {
+    if (
+      documentSymbol.kind !== SymbolKind.Class &&
+      documentSymbol.kind !== SymbolKind.Namespace &&
+      documentSymbol.kind !== SymbolKind.File
+    ) {
+      return [];
+    }
+    return [
+      {
+        location: Location.create(`file://${uri}`, documentSymbol.range),
+        ...documentSymbol,
+      },
+      ...(documentSymbol.children ?? []).flatMap((ds) =>
+        documentSymbolToWorkspaceSymbol(uri, ds)
+      ),
+    ];
+  };
+
+  return (await context.getAllParsers()).flatMap((p) =>
+    p
+      .getDocumentSymbols()
+      .flatMap((ds) => documentSymbolToWorkspaceSymbol(p.uri, ds))
+  ) satisfies WorkspaceSymbol[];
 });
 
 connection.languages.semanticTokens.on(async (h) => {
