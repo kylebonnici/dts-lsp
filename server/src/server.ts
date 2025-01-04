@@ -83,7 +83,7 @@ let debounce = new WeakMap<
 const isStable = (context: ContextAware) => {
   const d = debounce.get(context);
   if (d?.abort.signal.aborted) return;
-  return d?.promise;
+  return Promise.all([d?.promise, context.getRuntime()]);
 };
 
 const allStable = async () => {
@@ -905,11 +905,12 @@ connection.onWorkspaceSymbol(async () => {
 });
 
 connection.languages.semanticTokens.on(async (h) => {
+  await allStable();
   const uri = h.textDocument.uri.replace("file://", "");
+  updateActiveContext(uri);
 
   const tokensBuilder = new SemanticTokensBuilder();
 
-  await allStable();
   const contextMeta = await findContext(
     contextAware,
     uri,
@@ -917,14 +918,8 @@ connection.languages.semanticTokens.on(async (h) => {
   );
 
   const data = await contextMeta?.context.getParser(uri);
-
   if (!data) {
     return { data: [] };
-  }
-  if (contextMeta) {
-    const d = debounce.get(contextMeta.context);
-    if (d?.abort.signal.aborted) return { data: [] };
-    await d?.promise;
   }
 
   data?.buildSemanticTokens(tokensBuilder);
