@@ -33,18 +33,17 @@ import { ArrayValues } from "./ast/dtc/values/arrayValue";
 import { ByteStringValue } from "./ast/dtc/values/byteString";
 import { LabeledValue } from "./ast/dtc/values/labeledValue";
 
-export function getDocumentFormatting(
+export async function getDocumentFormatting(
   documentFormattingParams: DocumentFormattingParams,
-  contextAware: ContextAware[]
-): TextEdit[] {
-  const parser = contextAware.find(
-    (c) =>
-      c.parser.uri ===
-      documentFormattingParams.textDocument.uri.replace("file://", "")
+  contextAware: ContextAware
+): Promise<TextEdit[]> {
+  const parser = (await contextAware.getAllParsers()).find(
+    (p) =>
+      p.uri === documentFormattingParams.textDocument.uri.replace("file://", "")
   );
 
   return parser
-    ? parser.parser.allAstItems.flatMap((base) =>
+    ? parser.allAstItems.flatMap((base) =>
         getTextEdit(documentFormattingParams, base)
       )
     : [];

@@ -30,7 +30,6 @@ import {
   SemanticTokensBuilder,
   CodeActionKind,
   WorkspaceDocumentDiagnosticReport,
-  SymbolInformation,
   WorkspaceSymbol,
   Location,
   DocumentSymbol,
@@ -935,11 +934,6 @@ connection.onDocumentLinks(async (event) => {
     uri,
     globalSettings.preferredContext
   );
-  if (contextMeta) {
-    const d = debounce.get(contextMeta.context);
-    if (d?.abort.signal.aborted) return [];
-    await d?.promise;
-  }
 
   return contextMeta?.context.getDocumentLinks(uri);
 });
@@ -979,8 +973,17 @@ connection.onCodeAction((event) => {
 });
 
 connection.onDocumentFormatting(async (event) => {
+  const uri = event.textDocument.uri.replace("file://", "");
   await allStable();
-  return getDocumentFormatting(event, contextAware);
+  const contextMeta = await findContext(
+    contextAware,
+    uri,
+    globalSettings.preferredContext
+  );
+  if (!contextMeta) {
+    return [];
+  }
+  return getDocumentFormatting(event, contextMeta.context);
 });
 
 connection.onHover(async (event) => {
