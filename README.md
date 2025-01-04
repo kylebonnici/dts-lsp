@@ -176,6 +176,5 @@ Given that in some cases the files included in a devicetree might come from an S
 - Implement syntax for Ternary operator
 - Implement support #IF and #ELSEIF preprocessors
 - Implement "Device Node Requirements" (chapter 3 - Devicetree Specification Release v0.4)
-- Implement folding ranges in LSP
 - Write more unit tests
 - Let me know what you should be added or changed
