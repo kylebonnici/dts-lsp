@@ -23,7 +23,7 @@ export default () => {
       return false;
     }
 
-    return !!name.match(/^[A-Z-a-z]+-map-mask$/);
+    return !!name.endsWith("-map-mask");
   }, generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY));
 
   prop.desctiption = [

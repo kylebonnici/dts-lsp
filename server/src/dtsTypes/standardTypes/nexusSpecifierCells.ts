@@ -27,7 +27,7 @@ export default () => {
       return false;
     }
 
-    return !!name.match(/^#[A-Z-a-z]+-cells$/);
+    return name.startsWith("#") && !!name.endsWith("-cells");
   }, generateOrTypeObj(PropertyType.U32));
   prop.list = true;
   prop.desctiption = [

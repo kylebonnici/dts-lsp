@@ -24,7 +24,6 @@ import {
 } from "./helpers";
 import { genIssue } from "../../helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
-import { ArrayValues } from "../../ast/dtc/values/arrayValue";
 
 export default () => {
   const prop = new PropertyNodeType(
@@ -33,7 +32,7 @@ export default () => {
         return false;
       }
 
-      return !!name.match(/^[A-Z-a-z]+-map$/);
+      return !!name.endsWith("-map");
     },
     generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY),
     "optional",
