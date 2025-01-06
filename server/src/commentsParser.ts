@@ -144,7 +144,8 @@ export class CommentsParser extends BaseParser {
     if (
       !validToken(tokens[index], LexerToken.FORWARD_SLASH) ||
       tokens.length === index + 1 ||
-      !validToken(tokens[index + 1], LexerToken.FORWARD_SLASH)
+      !validToken(tokens[index + 1], LexerToken.FORWARD_SLASH) ||
+      !adjacentTokens(tokens[index], tokens[index + 1])
     ) {
       return;
     }
