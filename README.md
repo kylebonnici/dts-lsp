@@ -1,4 +1,4 @@
-![Build Status](https://github.com/kylebonnici/dts-lsp/actions/workflows/node.js.yml/badge.svg)
+![Build Status](https://github.com/kylebonnici/dts-lsp/actions/workflows/node.js.yml/badge.svg?branch=${GH_BRANCH})
 
 # DTS Language Server
 
