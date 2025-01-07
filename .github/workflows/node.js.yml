@@ -31,4 +31,4 @@ jobs:
       - run: npm run compile
       - run: npm run --prefix server test:coverage
       - name: Publish Test Summary Results
-        run: npx github-actions-ctrf server/coverage/coverage-final.json
+        run: npx github-actions-ctrf ./server/coverage/coverage-final.json
