@@ -1,3 +1,5 @@
+![Build Status](https://github.com/kylebonnici/dts-lsp/actions/workflows/node.js.yml/badge.svg)
+
 # DTS Language Server
 
 This LSP is intended to be used with DTS Devicetree Specification Release v0.4 (https://devicetree.org)
