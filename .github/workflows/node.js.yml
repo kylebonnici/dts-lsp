@@ -41,4 +41,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: VSCode Package
-          path: dts-lsp-0.0.1.vsix
+          path: dts-lsp-*.vsix
