@@ -114,7 +114,14 @@ export class ASTBase {
         name: this.docSymbolsMeta.name ? this.docSymbolsMeta.name : "__UNSET__",
         kind: this.docSymbolsMeta.kind,
       },
-      ...this.children.flatMap((child) => child.getWorkspaceSymbols() ?? []),
+      ...this.children
+        .flatMap((child) => child.getWorkspaceSymbols() ?? [])
+        .filter(
+          (ds) =>
+            ds.kind === SymbolKind.File ||
+            ds.kind === SymbolKind.Class ||
+            ds.kind === SymbolKind.Namespace
+        ),
     ];
   }
 
