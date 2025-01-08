@@ -61,7 +61,7 @@ export class Node {
   private _nodeTypes: NodeType[] = [getStandardType()];
 
   constructor(
-    public readonly bindingLoader: BindingLoader,
+    public readonly bindingLoader: BindingLoader | undefined,
     public readonly name: string,
     public readonly address?: number,
     public readonly parent: Node | null = null
@@ -390,7 +390,9 @@ export class Node {
     }
 
     if (property.name === "compatible") {
-      this._nodeTypes = this.bindingLoader.getNodeTypes(this);
+      this._nodeTypes = this.bindingLoader?.getNodeTypes(this) ?? [
+        getStandardType(),
+      ];
     }
   }
 

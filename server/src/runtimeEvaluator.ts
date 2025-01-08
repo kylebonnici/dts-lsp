@@ -51,7 +51,7 @@ export class ContextAware {
   constructor(
     uri: string,
     includePaths: string[],
-    public readonly bindingLoader: BindingLoader,
+    public readonly bindingLoader?: BindingLoader,
     overlays: string | string[] = []
   ) {
     this.overlays = Array.isArray(overlays) ? overlays : [overlays];

@@ -45,7 +45,7 @@ export class Runtime implements Searchable {
   public globalDeletes: DeleteNode[] = [];
   public rootNode: Node = new Node(this.bindingLoader, "/");
 
-  constructor(public readonly bindingLoader: BindingLoader) {}
+  constructor(public readonly bindingLoader?: BindingLoader) {}
 
   public labelsUsedCache = new Map<string, string[]>();
 

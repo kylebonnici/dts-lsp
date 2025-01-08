@@ -92,26 +92,26 @@ const allStable = async () => {
 
 const getAdhocContexts = (settings: Settings) => {
   return contextAware.filter((c) => {
-    const settingContext = settings.contexts.find(
+    const settingContext = settings.contexts?.find(
       (sc) => sc.dtsFile === c.parser.uri
     );
 
     return (
       !settingContext ||
-      !settingContext.overlays.every((o) => c.overlays.some((oo) => oo === o))
+      !settingContext.overlays?.every((o) => c.overlays.some((oo) => oo === o))
     );
   });
 };
 
 const getConfiguredContexts = (settings: Settings) => {
   return contextAware.filter((c) => {
-    const settingContext = settings.contexts.find(
+    const settingContext = settings.contexts?.find(
       (sc) => sc.dtsFile === c.parser.uri
     );
 
     return (
       !!settingContext &&
-      settingContext.overlays.every((o) => c.overlays.some((oo) => oo === o))
+      settingContext.overlays?.every((o) => c.overlays.some((oo) => oo === o))
     );
   });
 };
@@ -171,6 +171,10 @@ const cleanUpAdHocContext = async (context: ContextAware) => {
     contextAware = contextAware.filter((c) => contextToClean.indexOf(c) === -1);
   }
 };
+
+// TODO scd in settings
+// TODO allow empty properties in settings
+// context add name
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -257,18 +261,18 @@ connection.onInitialized(() => {
 interface Context {
   includePaths?: string[];
   dtsFile: string;
-  overlays: string[];
-  bindingType: BindingType;
-  zephyrBindings: string[];
+  overlays?: string[];
+  bindingType?: BindingType;
+  zephyrBindings?: string[];
 }
 
 interface Settings {
-  defaultBindingType: BindingType;
-  defaultZephyrBindings: string[];
-  defaultIncludePaths: string[];
-  contexts: Context[];
+  defaultBindingType?: BindingType;
+  defaultZephyrBindings?: string[];
+  defaultIncludePaths?: string[];
+  contexts?: Context[];
   preferredContext?: number;
-  lockRenameEdits: string[];
+  lockRenameEdits?: string[];
 }
 
 // The global settings, used when the `workspace/configuration` request is not supported by the client.
@@ -322,14 +326,20 @@ connection.onDidChangeConfiguration((change) => {
     { abort: AbortController; promise: Promise<void> }
   >();
 
-  globalSettings.contexts.forEach((context, i) => {
+  globalSettings.contexts?.forEach((context, i) => {
+    const bindingType =
+      context.bindingType ?? globalSettings.defaultBindingType;
     const newContext = new ContextAware(
       context.dtsFile,
-      context.includePaths ?? globalSettings.defaultIncludePaths,
-      getBindingLoader(
-        context.zephyrBindings ?? globalSettings.defaultZephyrBindings,
-        context.bindingType ?? globalSettings.defaultBindingType
-      ),
+      context.includePaths ?? globalSettings.defaultIncludePaths ?? [],
+      bindingType
+        ? getBindingLoader(
+            context.zephyrBindings ??
+              globalSettings.defaultZephyrBindings ??
+              [],
+            bindingType
+          )
+        : undefined,
       context.overlays
     );
     contextAware.push(newContext);
@@ -342,13 +352,16 @@ connection.onDidChangeConfiguration((change) => {
       console.log(
         `New context with ID ${i + contextAware.length} for ${c.parser.uri}`
       );
+      const bindingType = globalSettings.defaultBindingType;
       return new ContextAware(
         c.parser.uri,
-        globalSettings.defaultIncludePaths,
-        getBindingLoader(
-          globalSettings.defaultZephyrBindings,
-          globalSettings.defaultBindingType
-        )
+        globalSettings.defaultIncludePaths ?? [],
+        bindingType
+          ? getBindingLoader(
+              globalSettings.defaultZephyrBindings ?? [],
+              bindingType
+            )
+          : undefined
       );
     }),
   ];
@@ -596,13 +609,16 @@ documents.onDidChangeContent(async (change) => {
   const contexts = await findContexts(contextAware, uri);
 
   if (!contexts.length) {
+    const bindingType = globalSettings.defaultBindingType;
     const newContext = new ContextAware(
       uri,
-      globalSettings.defaultIncludePaths,
-      getBindingLoader(
-        globalSettings.defaultZephyrBindings,
-        globalSettings.defaultBindingType
-      )
+      globalSettings.defaultIncludePaths ?? [],
+      bindingType
+        ? getBindingLoader(
+            globalSettings.defaultZephyrBindings ?? [],
+            bindingType
+          )
+        : undefined
     );
     console.log(`New ad hoc context with ID ${newContext.id} for ${uri}`);
     contextAware.push(newContext);
@@ -943,7 +959,7 @@ connection.onPrepareRename(async (event) => {
   return getPrepareRenameRequest(
     event,
     contextAware,
-    globalSettings.lockRenameEdits,
+    globalSettings.lockRenameEdits ?? [],
     globalSettings.preferredContext
   );
 });
