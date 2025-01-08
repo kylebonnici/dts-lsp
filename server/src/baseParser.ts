@@ -14,7 +14,11 @@
  * limitations under the License.
  */
 
-import { DocumentSymbol, SemanticTokensBuilder } from "vscode-languageserver";
+import {
+  DocumentSymbol,
+  SemanticTokensBuilder,
+  WorkspaceSymbol,
+} from "vscode-languageserver";
 import { Issue, LexerToken, SyntaxIssue, Token, TokenIndexes } from "./types";
 import {
   adjacentTokens,
@@ -171,8 +175,12 @@ export abstract class BaseParser {
 
   abstract get allAstItems(): ASTBase[];
 
-  getDocumentSymbols(): DocumentSymbol[] {
-    return this.allAstItems.flatMap((o) => o.getDocumentSymbols());
+  getDocumentSymbols(uri: string): DocumentSymbol[] {
+    return this.allAstItems.flatMap((o) => o.getDocumentSymbols(uri));
+  }
+
+  getWorkspaceSymbols(): WorkspaceSymbol[] {
+    return this.allAstItems.flatMap((o) => o.getWorkspaceSymbols());
   }
 
   buildSemanticTokens(tokensBuilder: SemanticTokensBuilder, uri: string) {

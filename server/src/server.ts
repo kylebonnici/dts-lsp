@@ -980,7 +980,7 @@ connection.onDocumentSymbol(async (h) => {
 
   const data = await context?.parser;
   if (!data) return [];
-  return data.getDocumentSymbols();
+  return data.getDocumentSymbols(uri);
 });
 
 connection.onWorkspaceSymbol(async () => {
@@ -988,32 +988,8 @@ connection.onWorkspaceSymbol(async () => {
   const context = await activeContext;
   if (!context) return [];
 
-  const documentSymbolToWorkspaceSymbol = (
-    uri: string,
-    documentSymbol: DocumentSymbol
-  ): WorkspaceSymbol[] => {
-    if (
-      documentSymbol.kind !== SymbolKind.Class &&
-      documentSymbol.kind !== SymbolKind.Namespace &&
-      documentSymbol.kind !== SymbolKind.File
-    ) {
-      return [];
-    }
-    return [
-      {
-        location: Location.create(`file://${uri}`, documentSymbol.range),
-        ...documentSymbol,
-      },
-      ...(documentSymbol.children ?? []).flatMap((ds) =>
-        documentSymbolToWorkspaceSymbol(uri, ds)
-      ),
-    ];
-  };
-
   return (await context.getAllParsers()).flatMap((p) =>
-    p
-      .getDocumentSymbols()
-      .flatMap((ds) => documentSymbolToWorkspaceSymbol(p.uri, ds))
+    p.getWorkspaceSymbols()
   ) satisfies WorkspaceSymbol[];
 });
 

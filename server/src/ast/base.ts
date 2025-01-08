@@ -22,7 +22,12 @@ import type {
   Token,
   TokenIndexes,
 } from "../types";
-import { DocumentSymbol, SymbolKind } from "vscode-languageserver";
+import {
+  DocumentSymbol,
+  Location,
+  SymbolKind,
+  WorkspaceSymbol,
+} from "vscode-languageserver";
 
 export class ASTBase {
   protected semanticTokenType?: SemanticTokenType;
@@ -72,9 +77,13 @@ export class ASTBase {
     };
   }
 
-  getDocumentSymbols(): DocumentSymbol[] {
+  getDocumentSymbols(uri: string): DocumentSymbol[] {
     if (!this.docSymbolsMeta)
-      return this.children.flatMap((child) => child.getDocumentSymbols() ?? []);
+      return this.children.flatMap(
+        (child) => child.getDocumentSymbols(uri) ?? []
+      );
+
+    if (this.uri !== uri) return [];
 
     const range = toRange(this);
     return [
@@ -84,9 +93,28 @@ export class ASTBase {
         range: range,
         selectionRange: range,
         children: [
-          ...this.children.flatMap((child) => child.getDocumentSymbols() ?? []),
+          ...this.children.flatMap(
+            (child) => child.getDocumentSymbols(uri) ?? []
+          ),
         ],
       },
+    ];
+  }
+
+  getWorkspaceSymbols(): WorkspaceSymbol[] {
+    if (!this.docSymbolsMeta)
+      return this.children.flatMap(
+        (child) => child.getWorkspaceSymbols() ?? []
+      );
+
+    const range = toRange(this);
+    return [
+      {
+        location: Location.create(`file://${this.uri}`, range),
+        name: this.docSymbolsMeta.name ? this.docSymbolsMeta.name : "__UNSET__",
+        kind: this.docSymbolsMeta.kind,
+      },
+      ...this.children.flatMap((child) => child.getWorkspaceSymbols() ?? []),
     ];
   }
 
