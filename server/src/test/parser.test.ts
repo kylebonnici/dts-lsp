@@ -1025,7 +1025,7 @@ describe("Parser", () => {
             ).value
           ).toEqual(20);
 
-          rootDts.getDocumentSymbols();
+          rootDts.getDocumentSymbols("/folder/dts.dts");
         });
 
         describe("Node Ref Path", () => {

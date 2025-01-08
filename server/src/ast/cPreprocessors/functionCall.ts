@@ -46,14 +46,17 @@ export class CMacroCall extends Expression {
     this.params.forEach((p) => this.addChild(p));
   }
 
-  getDocumentSymbols(): DocumentSymbol[] {
+  getDocumentSymbols(uri: string): DocumentSymbol[] {
+    if (this.uri !== uri) {
+      return [];
+    }
     return [
       {
         name: this.functionName.name,
         kind: SymbolKind.Function,
         range: toRange(this),
         selectionRange: toRange(this),
-        children: this.params.flatMap((p) => p.getDocumentSymbols()),
+        children: this.params.flatMap((p) => p.getDocumentSymbols(uri)),
       },
     ];
   }
