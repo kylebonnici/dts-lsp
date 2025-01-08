@@ -39,7 +39,7 @@ jest.mock("fs", () => ({
     throw new Error("readFileSync - Not mocked");
   }),
   existsSync: jest.fn().mockImplementation(() => {
-    throw new Error("existsSync - Not mocked");
+    return true;
   }),
 }));
 

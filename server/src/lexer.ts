@@ -29,7 +29,7 @@ export class Lexer {
     return this._tokens;
   }
 
-  constructor(private text: string) {
+  constructor(private text: string, private uri: string) {
     this.lines = this.text
       .replace("\r\n", "\n")
       .split(/\n/)
@@ -285,16 +285,17 @@ export class Lexer {
     }
   }
 
-  private pushToken(token: Token) {
+  private pushToken(token: Omit<Token, "uri">) {
+    const fullToken = { ...token, uri: this.uri };
     const prevToken = this._tokens.at(-1);
 
-    token.prevToken = prevToken;
+    fullToken.prevToken = prevToken;
 
     if (prevToken) {
-      prevToken.nextToken = token;
+      prevToken.nextToken = fullToken;
     }
 
-    this._tokens.push(token);
+    this._tokens.push(fullToken);
   }
 
   private isLetters(word: string) {

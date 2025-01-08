@@ -31,7 +31,6 @@ import { Operator, OperatorType } from "./ast/cPreprocessors/operator";
 export abstract class BaseParser {
   positionStack: number[] = [];
   issues: Issue<SyntaxIssue>[] = [];
-  childParsers: Parser[] = [];
 
   protected parsing: Promise<void>;
 
@@ -51,21 +50,6 @@ export abstract class BaseParser {
   protected reset() {
     this.positionStack = [];
     this.issues = [];
-    this.childParsers = [];
-  }
-
-  get allParsers(): Parser[] {
-    return this instanceof Parser
-      ? [this, ...this.childParsers.flatMap((p) => p.orderedParsers)]
-      : this.childParsers.flatMap((p) => p.orderedParsers);
-  }
-
-  get orderedParsers(): Parser[] {
-    return (
-      this instanceof Parser
-        ? [this, ...this.childParsers.flatMap((p) => p.orderedParsers)]
-        : this.childParsers.flatMap((p) => p.orderedParsers)
-    ).reverse();
   }
 
   get stable() {
@@ -191,7 +175,7 @@ export abstract class BaseParser {
     return this.allAstItems.flatMap((o) => o.getDocumentSymbols());
   }
 
-  buildSemanticTokens(tokensBuilder: SemanticTokensBuilder) {
+  buildSemanticTokens(tokensBuilder: SemanticTokensBuilder, uri: string) {
     const result: {
       line: number;
       char: number;
@@ -222,7 +206,9 @@ export abstract class BaseParser {
       });
     };
 
-    this.allAstItems.forEach((a) => a.buildSemanticTokens(push));
+    this.allAstItems.forEach((a) => {
+      if (a.uri === uri) a.buildSemanticTokens(push);
+    });
 
     result
       .sort((a, b) => (a.line === b.line ? a.char - b.char : a.line - b.line))

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Issue, LexerToken, SyntaxIssue, Token, TokenIndexes } from "./types";
+import { Issue, LexerToken, SyntaxIssue, Token } from "./types";
 import {
   adjacentTokens,
   createTokenIndex,
@@ -52,10 +52,7 @@ import { CMacroCall, CMacroCallParam } from "./ast/cPreprocessors/functionCall";
 import { BaseParser } from "./baseParser";
 import { CPreprocessorParser } from "./cPreprocessorParser";
 import { CMacro } from "./ast/cPreprocessors/macro";
-import { getTokenizedDocumentProvider } from "./providers/tokenizedDocument";
-import { Include, IncludePath } from "./ast/cPreprocessors/include";
-import { existsSync } from "fs";
-import { resolve, dirname } from "path";
+import { Include } from "./ast/cPreprocessors/include";
 
 type AllowNodeRef = "Ref" | "Name";
 
@@ -67,31 +64,27 @@ export class Parser extends BaseParser {
   rootDocument = new DtcBaseNode();
   issues: Issue<SyntaxIssue>[] = [];
   unhandledStatements = new DtcRootNode();
-  private originalSortKey: number;
 
   constructor(
     public readonly uri: string,
     private incudes: string[],
-    macros: Map<string, CMacro> = new Map<string, CMacro>(),
-    private sortKey = -1
+    macros: Map<string, CMacro> = new Map<string, CMacro>()
   ) {
     super();
-    this.originalSortKey = sortKey;
     this.cPreprocessorParser = new CPreprocessorParser(
       this.uri,
       this.incudes,
       macros
     );
-    this.rootDocument.uri = uri;
+    // this.rootDocument.uri = uri;
   }
 
   protected reset() {
     super.reset();
     this.others = [];
     this.rootDocument = new DtcBaseNode();
-    this.rootDocument.uri = this.uri;
+    // this.rootDocument.uri = this.uri;
     this.issues = [];
-    this.sortKey = this.originalSortKey;
     this.unhandledStatements = new DtcRootNode();
   }
 
@@ -128,7 +121,6 @@ export class Parser extends BaseParser {
           this.isDtsDocumentVersion() ||
           this.isRootNodeDefinition(this.rootDocument) ||
           this.isDeleteNode(this.rootDocument, "Ref") ||
-          (await this.processInclude(this.rootDocument)) ||
           // Valid use case
           this.isChildNode(this.rootDocument, "Ref") ||
           // not valid syntax but we leave this for the next layer to process
@@ -148,9 +140,6 @@ export class Parser extends BaseParser {
     while (!this.done) {
       await process();
     }
-
-    this.allParsers;
-    this.allAstItems.forEach((i) => (i.sortKey = this.sortKey));
 
     this.unhandledStatements.properties.forEach((prop) => {
       this.issues.push(genIssue(SyntaxIssue.PROPERTY_MUST_BE_IN_NODE, prop));
@@ -1623,103 +1612,6 @@ export class Parser extends BaseParser {
 
   get includes() {
     return this.allAstItems.filter((i) => i instanceof Include) as Include[];
-  }
-
-  resolveInclude(include: Include) {
-    if (include.path.relative) {
-      return [
-        resolve(dirname(this.uri), include.path.path),
-        ...this.incudes.map((c) => resolve(c, include.path.path)),
-      ].find((p) => existsSync(p));
-    } else {
-      return this.incudes
-        .map((p) => resolve(p, include.path.path))
-        .find((p) => existsSync(p));
-    }
-  }
-
-  private async processInclude(parent: DtcBaseNode): Promise<boolean> {
-    this.enqueueToStack();
-
-    const startIndex = this.peekIndex();
-    const start = this.moveToNextToken;
-    let token = start;
-    if (!token || !validToken(token, LexerToken.C_INCLUDE)) {
-      this.popStack();
-      return false;
-    }
-
-    const line = start?.pos.line;
-    const keyword = new Keyword(createTokenIndex(token));
-
-    token = this.moveToNextToken;
-    const pathStart = token;
-    const relative = !!validToken(token, LexerToken.STRING);
-    if (!pathStart || (!relative && !validToken(token, LexerToken.LT_SYM))) {
-      if (line) this.moveEndOfLine(line);
-      this.mergeStack();
-      return true;
-    }
-
-    let path = "";
-
-    if (relative) {
-      path = token?.value ?? "";
-    } else {
-      while (
-        this.currentToken?.pos.line === line &&
-        !validToken(this.currentToken, LexerToken.GT_SYM)
-      ) {
-        path += this.currentToken?.value ?? "";
-        token = this.moveToNextToken;
-      }
-    }
-
-    const includePath = new IncludePath(
-      path,
-      relative,
-      createTokenIndex(pathStart, token)
-    );
-    const node = new Include(keyword, includePath);
-    node.uri = this.uri;
-    parent.addNodeChild(node);
-    node.sortKey = this.sortKey + 1;
-
-    if (!relative) {
-      if (
-        this.currentToken?.pos.line !== line ||
-        !validToken(this.currentToken, LexerToken.GT_SYM)
-      ) {
-        this.issues.push(genIssue(SyntaxIssue.GT_SYM, node));
-      } else {
-        token = this.moveToNextToken;
-        includePath.lastToken = token;
-      }
-    }
-
-    const resolvedPath = this.resolveInclude(node);
-    node.reolvedPath = resolvedPath;
-    if (resolvedPath && !resolvedPath.endsWith(".h")) {
-      this.allAstItems.forEach((i) => (i.sortKey = this.sortKey));
-      getTokenizedDocumentProvider().requestTokens(resolvedPath, true);
-      const childParser = new Parser(
-        resolvedPath,
-        this.incudes,
-        this.cPreprocessorParser.macros,
-        ++this.sortKey
-      );
-      this.sortKey++;
-      this.childParsers.push(childParser);
-      await childParser.stable;
-    }
-
-    this.mergeStack();
-
-    const endIndex = this.peekIndex();
-    this.tokens.splice(startIndex, endIndex - startIndex);
-
-    this.positionStack[this.positionStack.length - 1] = startIndex;
-    return true;
   }
 
   get allAstItems(): ASTBase[] {

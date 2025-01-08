@@ -122,7 +122,7 @@ function getNodeDefinition(result: SearchableResult | undefined): Location[] {
 export async function getDefinitions(
   location: TextDocumentPositionParams,
   contexts: ContextAware[],
-  preferredContext?: number
+  preferredContext?: string | number
 ): Promise<Location[]> {
   return nodeFinder(
     location,

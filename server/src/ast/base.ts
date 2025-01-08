@@ -30,8 +30,6 @@ export class ASTBase {
   protected _children: ASTBase[] = [];
   public parentNode?: ASTBase;
   protected docSymbolsMeta?: { name: string; kind: SymbolKind };
-  private _uri?: string;
-  private _sortKey?: number;
 
   private _lastToken?: Token;
   private _fisrtToken?: Token;
@@ -41,12 +39,8 @@ export class ASTBase {
     this._lastToken = _tokenIndexes?.end;
   }
 
-  get sortKey() {
-    return this._sortKey ?? this.parentNode?.sortKey ?? -1;
-  }
-
-  set sortKey(value: number) {
-    this._sortKey ??= value;
+  get sortKey(): number {
+    return this.firstToken.sortKey ?? this.parentNode?.sortKey ?? -1;
   }
 
   get firstToken(): Token {
@@ -67,12 +61,8 @@ export class ASTBase {
     this._lastToken = token;
   }
 
-  get uri(): string | undefined {
-    return this._uri ?? this.parentNode?.uri;
-  }
-
-  set uri(uri: string | undefined) {
-    this._uri = uri;
+  get uri(): string {
+    return this.firstToken.uri;
   }
 
   get tokenIndexes(): TokenIndexes {
@@ -128,16 +118,7 @@ export class ASTBase {
   protected addChild(child: ASTBase | null | undefined) {
     if (child) {
       child.parentNode = this;
-      child.uri = this.uri;
       this.children.push(child);
-    }
-  }
-
-  protected insertAt(child: ASTBase | null, index: number) {
-    if (child) {
-      child.parentNode = this;
-      child.uri = this.uri;
-      this.children.splice(index, 0, child);
     }
   }
 }

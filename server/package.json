@@ -17,7 +17,7 @@
     "yaml": "^2.6.1"
   },
   "scripts": {
-    "test": "jest",
+    "test": "jest --silent",
     "test:coverage": "jest --coverage --silent"
   },
   "devDependencies": {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { Token } from "../types";
 import { Lexer } from "../lexer";
 
@@ -23,11 +23,24 @@ let tokenizedDocumentProvider: TokenizedDocumentProvider | undefined;
 class TokenizedDocumentProvider {
   private fileMap = new Map<string, Lexer>();
 
+  static clone(tokens: Token[]) {
+    const newList = tokens.map((t) => ({ ...t }));
+    newList.forEach((t, i) => {
+      t.prevToken = newList[i - 1];
+      t.nextToken = newList[i + 1];
+    });
+    return newList;
+  }
+
   renewLexer(uri: string, text?: string): Token[] {
+    if (!uri || !existsSync(uri)) {
+      return [];
+    }
+
     text ??= readFileSync(uri).toString();
-    const lexer = new Lexer(text);
+    const lexer = new Lexer(text, uri);
     this.fileMap.set(uri, lexer);
-    return [...lexer.tokens];
+    return TokenizedDocumentProvider.clone(lexer.tokens);
   }
 
   requestTokens(uri: string, renewIfNotFound: boolean): Token[] {
@@ -35,7 +48,7 @@ class TokenizedDocumentProvider {
     if (!tokens && renewIfNotFound) {
       return [...this.renewLexer(uri)];
     }
-    return [...(tokens ?? [])];
+    return TokenizedDocumentProvider.clone(tokens ?? []);
   }
 }
 

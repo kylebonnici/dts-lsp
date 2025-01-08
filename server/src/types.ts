@@ -222,9 +222,11 @@ export interface Position {
 export interface Token {
   prevToken?: Token;
   nextToken?: Token;
-  tokens: LexerToken[];
+  tokens: readonly LexerToken[];
   pos: Position;
   value: string;
+  uri: string;
+  sortKey?: number;
 }
 
 export interface TokenIndexes {

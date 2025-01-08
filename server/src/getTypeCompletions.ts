@@ -104,7 +104,7 @@ function getPropertyNamesItems(
 export async function getTypeCompletions(
   location: TextDocumentPositionParams,
   context: ContextAware[],
-  preferredContext?: number
+  preferredContext?: string | number
 ): Promise<CompletionItem[]> {
   return nodeFinder(
     location,

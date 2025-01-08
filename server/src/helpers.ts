@@ -186,7 +186,7 @@ export async function nodeFinder<T>(
     result: SearchableResult | undefined,
     inScope: (ast: ASTBase) => boolean
   ) => T[],
-  preferredContext?: number
+  preferredContext?: string | number
 ): Promise<T[]> {
   const uri = location.textDocument.uri.replace("file://", "");
 
@@ -197,7 +197,7 @@ export async function nodeFinder<T>(
   console.time("search");
   const runtime = await contextMeta.context.getRuntime();
   const locationMeta = runtime.getDeepestAstNode(uri, location.position);
-  const sortKey = locationMeta?.ast?.sortKey;
+  const sortKey = locationMeta?.ast?.firstToken.sortKey;
   console.timeEnd("search");
 
   const inScope = (ast: ASTBase) => {
@@ -237,7 +237,12 @@ export const validateValueStartsWith =
     token?.value && expected.startsWith(token.value) ? "partial" : "no";
 
 export const sameLine = (tokenA?: Token, tokenB?: Token) => {
-  return !!tokenA && !!tokenB && tokenA.pos.line === tokenB.pos.line;
+  return (
+    !!tokenA &&
+    !!tokenB &&
+    tokenA.pos.line === tokenB.pos.line &&
+    tokenA.uri === tokenB.uri
+  );
 };
 
 export const adjacentTokens = (tokenA?: Token, tokenB?: Token) => {
@@ -254,7 +259,7 @@ export const resolveContextFiles = async (contextAware: ContextAware[]) => {
     contextAware.map(async (c, index) => ({
       index,
       context: c,
-      files: (await c.getOrderedParsers()).map((p) => p.uri),
+      files: c.getContextFiles(),
     }))
   );
 };
@@ -262,12 +267,12 @@ export const resolveContextFiles = async (contextAware: ContextAware[]) => {
 export const findContext = async (
   contextAware: ContextAware[],
   uri: string,
-  preferredContext = 0
+  preferredContext?: string | number
 ) => {
   const contextFiles = await resolveContextFiles(contextAware);
 
   return contextFiles
-    .sort((a) => (a.index === preferredContext ? -1 : 0))
+    .sort((a) => (a.context.name === preferredContext ? -1 : 0))
     .find((c) => c.files.some((p) => p === uri));
 };
 

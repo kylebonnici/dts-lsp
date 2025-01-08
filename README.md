@@ -10,20 +10,25 @@ This extension needs a client that supports Configuration Capability. The format
 
 ```typescript
 interface Context {
+  ctxName: string | number;
+  cwd?: string;
   includePaths?: string[];
   dtsFile: string;
-  overlays: string[];
-  bindingType: BindingType;
-  zephyrBindings: string[];
+  overlays?: string[];
+  bindingType?: BindingType;
+  zephyrBindings?: string[];
 }
 
 interface Settings {
-  defaultBindingType: BindingType;
-  defaultZephyrBindings: string[];
-  defaultIncludePaths: string[];
-  contexts: Context[];
-  preferredContext?: number;
-  lockRenameEdits: string[];
+  cwd?: string;
+  defaultBindingType?: BindingType;
+  defaultZephyrBindings?: string[];
+  defaultIncludePaths?: string[];
+  contexts?: Context[];
+  preferredContext?: string | number;
+  lockRenameEdits?: string[];
+  autoChangeContext?: boolean;
+  allowAdhocContexts?: boolean;
 }
 ```
 

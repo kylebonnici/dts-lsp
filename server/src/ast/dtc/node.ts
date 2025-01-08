@@ -62,10 +62,6 @@ export class DtcBaseNode extends ASTBase {
   ) {
     this.addChild(child);
   }
-
-  public insertIncludeAt(child: Include, index: number) {
-    this.insertAt(child, index);
-  }
 }
 
 export class DtcRootNode extends DtcBaseNode {
