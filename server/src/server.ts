@@ -762,8 +762,6 @@ connection.languages.diagnostics.onWorkspace(async () => {
       } satisfies WorkspaceDocumentDiagnosticReport;
     });
 
-  console.log("cleaning", otherContextItems.length);
-
   workspacePaths = [];
 
   if (!context) {
