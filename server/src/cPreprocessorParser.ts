@@ -385,7 +385,7 @@ export class CPreprocessorParser extends BaseParser {
     }
     if (include.path.relative) {
       return [
-        resolve(dirname(this.uri), include.path.path),
+        resolve(dirname(include.uri), include.path.path),
         ...this.incudes.map((c) => resolve(c, include.path.path)),
       ].find((p) => existsSync(p));
     } else {
