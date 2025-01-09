@@ -356,6 +356,7 @@ connection.onDidChangeConfiguration((change) => {
         resolve(cwd, i)
       );
       context.includePaths = context.includePaths?.map((i) => resolve(cwd, i));
+      context.dtsFile = resolve(cwd, context.dtsFile);
     }
   });
 
