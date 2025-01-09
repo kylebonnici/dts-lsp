@@ -33,20 +33,67 @@ import { ArrayValues } from "./ast/dtc/values/arrayValue";
 import { ByteStringValue } from "./ast/dtc/values/byteString";
 import { LabeledValue } from "./ast/dtc/values/labeledValue";
 import { Include } from "./ast/cPreprocessors/include";
+import { nodeFinder } from "./helpers";
+import { Property } from "./context/property";
+import { Node } from "./context/node";
+
+const getAstItemLevel =
+  (context: ContextAware, uri: string) => async (astNode: ASTBase) => {
+    return astNode.firstToken.prevToken
+      ? (
+          await nodeFinder(
+            {
+              textDocument: { uri },
+              position: Position.create(
+                astNode.firstToken.prevToken.pos.line,
+                astNode.firstToken.prevToken.pos.col
+              ),
+            },
+            [context],
+            (result) => {
+              const node =
+                result?.item instanceof Property
+                  ? result.item.parent
+                  : result?.item;
+
+              if (!node) return [0];
+
+              const countParent = (node: Node, count = 0): number => {
+                return node.parent
+                  ? countParent(node.parent, count + 1)
+                  : count + 1;
+              };
+
+              return [countParent(node)];
+            }
+          )
+        ).at(0) ?? 0
+      : 0;
+  };
 
 export async function getDocumentFormatting(
   documentFormattingParams: DocumentFormattingParams,
   contextAware: ContextAware
 ): Promise<TextEdit[]> {
   const uri = documentFormattingParams.textDocument.uri.replace("file://", "");
-  const parser = (await contextAware.getAllParsers()).find(
-    (p) => p.uri === uri
+  const parser = (await contextAware.getAllParsers()).find((p) =>
+    p.getFiles().some((u) => uri === u)
   );
 
   return parser
-    ? parser.allAstItems.flatMap((base) =>
-        getTextEdit(documentFormattingParams, base, uri)
-      )
+    ? (
+        await Promise.all(
+          parser.allAstItems.flatMap(
+            async (base) =>
+              await getTextEdit(
+                documentFormattingParams,
+                base,
+                uri,
+                getAstItemLevel(contextAware, uri)
+              )
+          )
+        )
+      ).flat()
     : [];
 }
 
@@ -147,13 +194,14 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
   ];
 };
 
-const formatDtcNode = (
+const formatDtcNode = async (
   documentFormattingParams: DocumentFormattingParams,
   node: DtcBaseNode,
   uri: string,
   level: number,
-  indentString: string
-): TextEdit[] => {
+  indentString: string,
+  computeLevel: (astNode: ASTBase) => Promise<number>
+): Promise<TextEdit[]> => {
   if (node.uri !== uri) return [];
 
   const result: TextEdit[] = [];
@@ -197,9 +245,13 @@ const formatDtcNode = (
   }
 
   result.push(
-    ...node.children.flatMap((c) =>
-      getTextEdit(documentFormattingParams, c, uri, level + 1)
-    )
+    ...(
+      await Promise.all(
+        node.children.flatMap((c) =>
+          getTextEdit(documentFormattingParams, c, uri, computeLevel, level + 1)
+        )
+      )
+    ).flat()
   );
 
   if (node.closeScope) {
@@ -454,7 +506,6 @@ const formatDtcDelete = (
 };
 
 const formatDtcInclude = (
-  documentFormattingParams: DocumentFormattingParams,
   includeItem: Include,
   uri: string,
   level: number,
@@ -484,12 +535,13 @@ const formatDtcInclude = (
   return result;
 };
 
-const getTextEdit = (
+const getTextEdit = async (
   documentFormattingParams: DocumentFormattingParams,
   astNode: ASTBase,
   uri: string,
+  computeLevel: (astNode: ASTBase) => Promise<number>,
   level = 0
-): TextEdit[] => {
+): Promise<TextEdit[]> => {
   const delta = documentFormattingParams.options.tabSize;
   const insertSpaces = documentFormattingParams.options.insertSpaces;
   const singleIndent = insertSpaces ? "".padStart(delta, " ") : "\t";
@@ -500,7 +552,8 @@ const getTextEdit = (
       astNode,
       uri,
       level,
-      singleIndent
+      singleIndent,
+      computeLevel
     );
   } else if (astNode instanceof DtcProperty) {
     return formatDtcProperty(
@@ -518,26 +571,14 @@ const getTextEdit = (
       level,
       singleIndent
     );
+  } else if (astNode instanceof Include) {
+    return formatDtcInclude(
+      astNode,
+      uri,
+      await computeLevel(astNode),
+      singleIndent
+    );
   }
-
-  // TODO Format includes and comments
-  // } else if (astNode instanceof Include) {
-  //   const countLevel = (token: Token, level = 0): number => {
-  //     if (!token.prevToken) {
-  //       return level;
-  //     }
-  //     return countLevel(
-  //       token.prevToken,
-  //       token.prevToken.value === "{" ? level + 1 : level
-  //     );
-  //   };
-  //   return formatDtcInclude(
-  //     documentFormattingParams,
-  //     astNode,
-  //     uri,
-  //     countLevel(astNode.firstToken)
-  //   );
-  // }
 
   return [];
 };
