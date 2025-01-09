@@ -1,0 +1,45 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## 0.0.2 - 2025-01-10
+
+### Added
+
+- Support for `devicetree.cwd` in the setting. This can be used to allow relative paths in:
+  - `devicetree.defaultIncludePaths`
+  - `devicetree.defaultZephyrBindings`
+- Support for `cwd` in each context. If this is missing `devicetree.cwd` will be used as falback. This can be used to allow relative paths in:
+  - `includePaths`
+  - `zephyrBindings`
+  - `dtsFile`
+- Added `ctxName` to the context settings. This can be a string or a number.
+- Extended `preferredContext` to support linking to `ctxName`. This can be a string or a number.
+- Added `devicetree.autoChangeContext`. If true the LSP will auto change the active context for actions. Defaults to true.
+- Added `devicetree.allowAdhocContexts` If true the LSP will create ad hoc context for when `.dts` file is opned and not in any `devicetree.contexts`. Defaults to true. If not context is avalable for a devicetree file a warning.
+
+### Fixed
+
+- Parsing files with `include` that is not in the root of the document e.g.
+
+```devicetree
+/dts-v1/;
+#include "nrf5340_cpuapp_common.dtsi" // -> OK
+
+/ {
+	model = "Nordic NRF5340 DK NRF5340 Application";
+	compatible = "nordic,nrf5340-dk-nrf5340-cpuapp";
+
+	chosen {
+		#include "nrf5340_cpuapp_common.dtsi" // -> ISSUE Fixed
+	};
+};
+```
+
+## 0.0.1 - 2025-01-07
+
+### Added
+
+- inital release
