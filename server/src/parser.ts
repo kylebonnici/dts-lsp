@@ -79,6 +79,15 @@ export class Parser extends BaseParser {
     // this.rootDocument.uri = uri;
   }
 
+  getFiles() {
+    return [
+      this.uri,
+      ...(this.cPreprocessorParser.dtsIncludes
+        .flatMap((include) => include.reolvedPath)
+        .filter((f) => !!f) as string[]),
+    ];
+  }
+
   protected reset() {
     super.reset();
     this.others = [];

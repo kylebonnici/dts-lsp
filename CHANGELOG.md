@@ -15,10 +15,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `includePaths`
   - `zephyrBindings`
   - `dtsFile`
-- Added `ctxName` to the context settings. This can be a string or a number.
+- `ctxName` to the context settings. This can be a string or a number.
 - Extended `preferredContext` to support linking to `ctxName`. This can be a string or a number.
-- Added `devicetree.autoChangeContext`. If true the LSP will auto change the active context for actions. Defaults to true.
-- Added `devicetree.allowAdhocContexts` If true the LSP will create ad hoc context for when `.dts` file is opned and not in any `devicetree.contexts`. Defaults to true. If not context is avalable for a devicetree file a warning.
+- `devicetree.autoChangeContext`. If true the LSP will auto change the active context for actions. Defaults to true.
+- `devicetree.allowAdhocContexts` If true the LSP will create ad hoc context for when `.dts` file is opned and not in any `devicetree.contexts`. Defaults to true. If not context is avalable for a devicetree file a warning.
+- Formating `include` in document
+- Formating now support confiuration of tab vs spaces and spaces size
 
 ### Fixed
 
@@ -42,4 +44,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- inital release
+- First release

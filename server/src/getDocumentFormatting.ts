@@ -33,20 +33,67 @@ import { ArrayValues } from "./ast/dtc/values/arrayValue";
 import { ByteStringValue } from "./ast/dtc/values/byteString";
 import { LabeledValue } from "./ast/dtc/values/labeledValue";
 import { Include } from "./ast/cPreprocessors/include";
+import { nodeFinder } from "./helpers";
+import { Property } from "./context/property";
+import { Node } from "./context/node";
+
+const getAstItemLevel =
+  (context: ContextAware, uri: string) => async (astNode: ASTBase) => {
+    return astNode.firstToken.prevToken
+      ? (
+          await nodeFinder(
+            {
+              textDocument: { uri },
+              position: Position.create(
+                astNode.firstToken.prevToken.pos.line,
+                astNode.firstToken.prevToken.pos.col
+              ),
+            },
+            [context],
+            (result) => {
+              const node =
+                result?.item instanceof Property
+                  ? result.item.parent
+                  : result?.item;
+
+              if (!node) return [0];
+
+              const countParent = (node: Node, count = 0): number => {
+                return node.parent
+                  ? countParent(node.parent, count + 1)
+                  : count + 1;
+              };
+
+              return [countParent(node)];
+            }
+          )
+        ).at(0) ?? 0
+      : 0;
+  };
 
 export async function getDocumentFormatting(
   documentFormattingParams: DocumentFormattingParams,
   contextAware: ContextAware
 ): Promise<TextEdit[]> {
   const uri = documentFormattingParams.textDocument.uri.replace("file://", "");
-  const parser = (await contextAware.getAllParsers()).find(
-    (p) => p.uri === uri
+  const parser = (await contextAware.getAllParsers()).find((p) =>
+    p.getFiles().some((u) => uri === u)
   );
 
   return parser
-    ? parser.allAstItems.flatMap((base) =>
-        getTextEdit(documentFormattingParams, base, uri)
-      )
+    ? (
+        await Promise.all(
+          parser.allAstItems.flatMap(
+            async (base) =>
+              await getTextEdit(
+                documentFormattingParams,
+                base,
+                uri,
+                getAstItemLevel(contextAware, uri)
+              )
+          )
+        )
+      ).flat()
     : [];
 }
 
@@ -78,13 +125,10 @@ const removeNewLinesBetweenTokenAndPrev = (
 };
 
 const pushItemToNewLine = (
-  documentFormattingParams: DocumentFormattingParams,
   token: Token,
-  level: number
+  level: number,
+  indentString: string
 ): TextEdit | undefined => {
-  const delta = documentFormattingParams.options.tabSize;
-  const expectedIndent = level * delta;
-
   const newLine = token.pos.line === token.prevToken?.pos.line;
 
   if (newLine) {
@@ -93,18 +137,22 @@ const pushItemToNewLine = (
         Position.create(token.pos.line, token.pos.col),
         Position.create(token.pos.line, token.pos.col)
       ),
-      `\n${"".padStart(expectedIndent, " ")}`
+      `\n${"".padStart(level * indentString.length, indentString)}`
     );
   }
 };
 
-const createIndentEdit = (token: Token, expectedIndent: number): TextEdit => {
+const createIndentEdit = (
+  token: Token,
+  level: number,
+  indentString: string
+): TextEdit => {
   return TextEdit.replace(
     Range.create(
       Position.create(token.pos.line, 0),
       Position.create(token.pos.line, token.pos.col)
     ),
-    "".padStart(expectedIndent, " ")
+    "".padStart(level * indentString.length, indentString)
   );
 };
 
@@ -146,28 +194,28 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
   ];
 };
 
-const formatDtcNode = (
+const formatDtcNode = async (
   documentFormattingParams: DocumentFormattingParams,
   node: DtcBaseNode,
   uri: string,
-  level: number
-): TextEdit[] => {
+  level: number,
+  indentString: string,
+  computeLevel: (astNode: ASTBase) => Promise<number>
+): Promise<TextEdit[]> => {
   if (node.uri !== uri) return [];
 
   const result: TextEdit[] = [];
-  const delta = documentFormattingParams.options.tabSize;
-  const expectedIndent = level * delta;
 
   const editToMoveToNewLine = pushItemToNewLine(
-    documentFormattingParams,
     node.firstToken,
-    level
+    level,
+    indentString
   );
 
   if (editToMoveToNewLine) {
     result.push(editToMoveToNewLine);
   } else {
-    result.push(createIndentEdit(node.firstToken, expectedIndent));
+    result.push(createIndentEdit(node.firstToken, level, indentString));
     const edit = removeNewLinesBetweenTokenAndPrev(node.firstToken);
     if (edit) result.push(edit);
   }
@@ -197,22 +245,26 @@ const formatDtcNode = (
   }
 
   result.push(
-    ...node.children.flatMap((c) =>
-      getTextEdit(documentFormattingParams, c, uri, level + 1)
-    )
+    ...(
+      await Promise.all(
+        node.children.flatMap((c) =>
+          getTextEdit(documentFormattingParams, c, uri, computeLevel, level + 1)
+        )
+      )
+    ).flat()
   );
 
   if (node.closeScope) {
     const editToMoveToNewLine = pushItemToNewLine(
-      documentFormattingParams,
       node.closeScope,
-      level
+      level,
+      indentString
     );
 
     if (editToMoveToNewLine) {
       result.push(editToMoveToNewLine);
     } else {
-      result.push(createIndentEdit(node.closeScope, expectedIndent));
+      result.push(createIndentEdit(node.closeScope, level, indentString));
       const edit = removeNewLinesBetweenTokenAndPrev(node.closeScope);
       if (edit) result.push(edit);
     }
@@ -232,7 +284,8 @@ const formatLabeledValue = <T extends ASTBase>(
   documentFormattingParams: DocumentFormattingParams,
   value: LabeledValue<T>,
   level: number,
-  index: number
+  index: number,
+  indentString: string
 ): TextEdit[] => {
   const result: TextEdit[] = [];
   const delta = documentFormattingParams.options.tabSize;
@@ -252,7 +305,7 @@ const formatLabeledValue = <T extends ASTBase>(
   ) {
     const edit = removeNewLinesBetweenTokenAndPrev(value.firstToken);
     if (edit) result.push(edit);
-    result.push(createIndentEdit(value.firstToken, (level + 1) * delta));
+    result.push(createIndentEdit(value.firstToken, level + 1, indentString));
   }
   value.value;
 
@@ -262,14 +315,15 @@ const formatLabeledValue = <T extends ASTBase>(
 const formatValue = (
   documentFormattingParams: DocumentFormattingParams,
   value: AllValueType,
-  level: number
+  level: number,
+  indentString: string
 ): TextEdit[] => {
   const result: TextEdit[] = [];
 
   if (value instanceof ArrayValues || value instanceof ByteStringValue) {
     result.push(
       ...value.values.flatMap((v, i) =>
-        formatLabeledValue(documentFormattingParams, v, level, i)
+        formatLabeledValue(documentFormattingParams, v, level, i, indentString)
       )
     );
     const lastValue = value.values.at(-1);
@@ -285,7 +339,8 @@ const formatValue = (
 const formatPropertyValue = (
   documentFormattingParams: DocumentFormattingParams,
   value: PropertyValue,
-  level: number
+  level: number,
+  indentString: string
 ): TextEdit[] => {
   const delta = documentFormattingParams.options.tabSize;
 
@@ -298,7 +353,7 @@ const formatPropertyValue = (
     } else {
       const edit = removeNewLinesBetweenTokenAndPrev(value.firstToken);
       if (edit) result.push(edit);
-      result.push(createIndentEdit(value.firstToken, (level + 1) * delta));
+      result.push(createIndentEdit(value.firstToken, level + 1, indentString));
     }
   }
 
@@ -306,7 +361,9 @@ const formatPropertyValue = (
     result.push(...fixedNumberOfSpaceBetweenTokensAndNext(value.lastToken, 0));
   }
 
-  result.push(...formatValue(documentFormattingParams, value.value, level));
+  result.push(
+    ...formatValue(documentFormattingParams, value.value, level, indentString)
+  );
 
   result.push(
     ...value.endLabels.flatMap((label) =>
@@ -319,14 +376,22 @@ const formatPropertyValue = (
 const formatPropertyValues = (
   documentFormattingParams: DocumentFormattingParams,
   values: PropertyValues,
-  level: number
+  level: number,
+  indentString: string
 ): TextEdit[] => {
   return [
     ...values.labels.flatMap((label) =>
       fixedNumberOfSpaceBetweenTokensAndNext(label.lastToken)
     ),
     ...values.values.flatMap((value) =>
-      value ? formatPropertyValue(documentFormattingParams, value, level) : []
+      value
+        ? formatPropertyValue(
+            documentFormattingParams,
+            value,
+            level,
+            indentString
+          )
+        : []
     ),
   ];
 };
@@ -335,7 +400,8 @@ const formatDtcProperty = (
   documentFormattingParams: DocumentFormattingParams,
   property: DtcProperty,
   uri: string,
-  level: number
+  level: number,
+  indentString: string
 ): TextEdit[] => {
   if (property.uri !== uri) return [];
 
@@ -344,15 +410,15 @@ const formatDtcProperty = (
   const expectedIndent = level * delta;
 
   const editToMoveToNewLine = pushItemToNewLine(
-    documentFormattingParams,
     property.firstToken,
-    level
+    level,
+    indentString
   );
 
   if (editToMoveToNewLine) {
     result.push(editToMoveToNewLine);
   } else {
-    result.push(createIndentEdit(property.firstToken, expectedIndent));
+    result.push(createIndentEdit(property.firstToken, level, indentString));
     const edit = removeNewLinesBetweenTokenAndPrev(property.firstToken);
     if (edit) result.push(edit);
   }
@@ -379,7 +445,12 @@ const formatDtcProperty = (
       }
     }
     result.push(
-      ...formatPropertyValues(documentFormattingParams, property.values, level)
+      ...formatPropertyValues(
+        documentFormattingParams,
+        property.values,
+        level,
+        indentString
+      )
     );
   }
 
@@ -397,24 +468,23 @@ const formatDtcDelete = (
   documentFormattingParams: DocumentFormattingParams,
   deleteItem: DeleteBase,
   uri: string,
-  level: number
+  level: number,
+  indentString: string
 ): TextEdit[] => {
   if (deleteItem.uri !== uri) return [];
 
   const result: TextEdit[] = [];
-  const delta = documentFormattingParams.options.tabSize;
-  const expectedIndent = level * delta;
 
   const editToMoveToNewLine = pushItemToNewLine(
-    documentFormattingParams,
     deleteItem.firstToken,
-    level
+    level,
+    indentString
   );
 
   if (editToMoveToNewLine) {
     result.push(editToMoveToNewLine);
   } else {
-    result.push(createIndentEdit(deleteItem.firstToken, expectedIndent));
+    result.push(createIndentEdit(deleteItem.firstToken, level, indentString));
   }
 
   const keywordAndItemSpacing = fixedNumberOfSpaceBetweenTokensAndNext(
@@ -436,27 +506,25 @@ const formatDtcDelete = (
 };
 
 const formatDtcInclude = (
-  documentFormattingParams: DocumentFormattingParams,
   includeItem: Include,
   uri: string,
-  level: number
+  level: number,
+  indentString: string
 ): TextEdit[] => {
   if (includeItem.uri !== uri) return [];
 
   const result: TextEdit[] = [];
-  const delta = documentFormattingParams.options.tabSize;
-  const expectedIndent = level * delta;
 
   const editToMoveToNewLine = pushItemToNewLine(
-    documentFormattingParams,
     includeItem.firstToken,
-    level
+    level,
+    indentString
   );
 
   if (editToMoveToNewLine) {
     result.push(editToMoveToNewLine);
   } else {
-    result.push(createIndentEdit(includeItem.firstToken, expectedIndent));
+    result.push(createIndentEdit(includeItem.firstToken, level, indentString));
   }
 
   const keywordAndItemSpacing = fixedNumberOfSpaceBetweenTokensAndNext(
@@ -467,38 +535,50 @@ const formatDtcInclude = (
   return result;
 };
 
-const getTextEdit = (
+const getTextEdit = async (
   documentFormattingParams: DocumentFormattingParams,
   astNode: ASTBase,
   uri: string,
+  computeLevel: (astNode: ASTBase) => Promise<number>,
   level = 0
-): TextEdit[] => {
-  if (astNode instanceof DtcBaseNode) {
-    return formatDtcNode(documentFormattingParams, astNode, uri, level);
-  } else if (astNode instanceof DtcProperty) {
-    return formatDtcProperty(documentFormattingParams, astNode, uri, level);
-  } else if (astNode instanceof DeleteBase) {
-    return formatDtcDelete(documentFormattingParams, astNode, uri, level);
-  }
+): Promise<TextEdit[]> => {
+  const delta = documentFormattingParams.options.tabSize;
+  const insertSpaces = documentFormattingParams.options.insertSpaces;
+  const singleIndent = insertSpaces ? "".padStart(delta, " ") : "\t";
 
-  // TODO Format includes and comments
-  // } else if (astNode instanceof Include) {
-  //   const countLevel = (token: Token, level = 0): number => {
-  //     if (!token.prevToken) {
-  //       return level;
-  //     }
-  //     return countLevel(
-  //       token.prevToken,
-  //       token.prevToken.value === "{" ? level + 1 : level
-  //     );
-  //   };
-  //   return formatDtcInclude(
-  //     documentFormattingParams,
-  //     astNode,
-  //     uri,
-  //     countLevel(astNode.firstToken)
-  //   );
-  // }
+  if (astNode instanceof DtcBaseNode) {
+    return formatDtcNode(
+      documentFormattingParams,
+      astNode,
+      uri,
+      level,
+      singleIndent,
+      computeLevel
+    );
+  } else if (astNode instanceof DtcProperty) {
+    return formatDtcProperty(
+      documentFormattingParams,
+      astNode,
+      uri,
+      level,
+      singleIndent
+    );
+  } else if (astNode instanceof DeleteBase) {
+    return formatDtcDelete(
+      documentFormattingParams,
+      astNode,
+      uri,
+      level,
+      singleIndent
+    );
+  } else if (astNode instanceof Include) {
+    return formatDtcInclude(
+      astNode,
+      uri,
+      await computeLevel(astNode),
+      singleIndent
+    );
+  }
 
   return [];
 };
