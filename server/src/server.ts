@@ -31,9 +31,6 @@ import {
   CodeActionKind,
   WorkspaceDocumentDiagnosticReport,
   WorkspaceSymbol,
-  Location,
-  DocumentSymbol,
-  SymbolKind,
   DiagnosticSeverity,
   Range,
   Position,
@@ -814,30 +811,32 @@ async function getDiagnostics(
       return [];
     }
 
-    context.parser.issues.forEach((issue) => {
-      const diagnostic: Diagnostic = {
-        severity: issue.severity,
-        range: toRange(issue.astElement),
-        message: issue.issues
-          ? issue.issues.map(syntaxIssueToMessage).join(" or ")
-          : "",
-        source: "devicetree",
-        data: {
-          firstToken: {
-            pos: issue.astElement.firstToken.pos,
-            tokens: issue.astElement.firstToken.tokens,
-            value: issue.astElement.firstToken.value,
-          },
-          lastToken: {
-            pos: issue.astElement.lastToken.pos,
-            tokens: issue.astElement.lastToken.tokens,
-            value: issue.astElement.lastToken.value,
-          },
-          issues: issue.issues,
-        } as CodeActionDiagnosticData,
-      };
-      diagnostics.push(diagnostic);
-    });
+    context.parser.issues
+      .filter((issue) => issue.astElement.uri === uri)
+      .forEach((issue) => {
+        const diagnostic: Diagnostic = {
+          severity: issue.severity,
+          range: toRange(issue.astElement),
+          message: issue.issues
+            ? issue.issues.map(syntaxIssueToMessage).join(" or ")
+            : "",
+          source: "devicetree",
+          data: {
+            firstToken: {
+              pos: issue.astElement.firstToken.pos,
+              tokens: issue.astElement.firstToken.tokens,
+              value: issue.astElement.firstToken.value,
+            },
+            lastToken: {
+              pos: issue.astElement.lastToken.pos,
+              tokens: issue.astElement.lastToken.tokens,
+              value: issue.astElement.lastToken.value,
+            },
+            issues: issue.issues,
+          } as CodeActionDiagnosticData,
+        };
+        diagnostics.push(diagnostic);
+      });
 
     const contextIssues = (await context.getContextIssues()) ?? [];
     contextIssues
@@ -1059,7 +1058,8 @@ connection.onDeclaration(async (event) => {
   return getDeclaration(event, contextAware, globalSettings.preferredContext);
 });
 
-connection.onCodeAction((event) => {
+connection.onCodeAction(async (event) => {
+  await allStable();
   return getCodeActions(event);
 });
 

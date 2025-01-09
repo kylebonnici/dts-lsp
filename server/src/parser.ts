@@ -76,7 +76,6 @@ export class Parser extends BaseParser {
       this.incudes,
       macros
     );
-    // this.rootDocument.uri = uri;
   }
 
   getFiles() {
@@ -92,7 +91,6 @@ export class Parser extends BaseParser {
     super.reset();
     this.others = [];
     this.rootDocument = new DtcBaseNode();
-    // this.rootDocument.uri = this.uri;
     this.issues = [];
     this.unhandledStatements = new DtcRootNode();
   }
