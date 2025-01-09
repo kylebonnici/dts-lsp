@@ -196,7 +196,13 @@ export abstract class BaseParser {
       tokenModifiers: number,
       tokenIndexes?: TokenIndexes
     ) => {
-      if (!tokenIndexes?.start || !tokenIndexes?.end) return;
+      if (
+        !tokenIndexes?.start ||
+        !tokenIndexes?.end ||
+        tokenIndexes.start.uri !== uri ||
+        tokenIndexes.end.uri !== uri
+      )
+        return;
 
       const lengthEnd =
         tokenIndexes.end.pos.col -
@@ -215,7 +221,7 @@ export abstract class BaseParser {
     };
 
     this.allAstItems.forEach((a) => {
-      if (a.uri === uri) a.buildSemanticTokens(push);
+      a.buildSemanticTokens(push);
     });
 
     result
