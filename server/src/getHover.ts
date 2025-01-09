@@ -73,7 +73,7 @@ function getPropertyName(
 export function getHover(
   hoverParams: HoverParams,
   context: ContextAware[],
-  preferredContext?: number
+  preferredContext?: string | number
 ): Promise<(Hover | undefined)[]> {
   return nodeFinder<Hover | undefined>(
     hoverParams,

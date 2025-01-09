@@ -38,26 +38,28 @@ import { Include } from "./ast/cPreprocessors/include";
 import { BindingLoader } from "./dtsTypes/bindings/bindingLoader";
 import { StringValue } from "./ast/dtc/values/string";
 import { existsSync } from "fs";
+import { basename } from "path";
 
-let id = 0;
 export class ContextAware {
   _issues: Issue<ContextIssues>[] = [];
   private _runtime?: Promise<Runtime>;
   public parser: Parser;
-  private overlayParsers: Parser[];
-  public readonly id = ++id;
+  public overlayParsers: Parser[];
   public overlays: string[] = [];
+  public readonly name: string | number;
 
   constructor(
     uri: string,
     includePaths: string[],
     public readonly bindingLoader?: BindingLoader,
-    overlays: string | string[] = []
+    overlays: string | string[] = [],
+    name?: string | number
   ) {
     this.overlays = Array.isArray(overlays) ? overlays : [overlays];
     this.overlays.filter(existsSync);
 
     this.parser = new Parser(uri, includePaths);
+    this.name = name ?? basename(uri);
     this.overlayParsers =
       this.overlays?.map((overlay) => new Parser(overlay, includePaths)) ?? [];
   }
@@ -79,22 +81,29 @@ export class ContextAware {
     return this._runtime;
   }
 
-  async getOrderedParsers(): Promise<Parser[]> {
-    await this.stable();
-    return [...this.parser.orderedParsers, ...this.overlayParsers.reverse()];
+  getContextFiles() {
+    return [
+      ...this.overlayParsers.map((c) => c.uri),
+      this.parser.uri,
+      ...(this.parser.cPreprocessorParser.dtsIncludes
+        .flatMap((include) => include.reolvedPath)
+        .filter((f) => !!f) as string[]),
+    ];
   }
 
-  async getParser(uri: string): Promise<Parser | undefined> {
-    return (await this.getAllParsers())?.find((p) => p.uri === uri);
+  isInContext(uri: string): boolean {
+    return this.getContextFiles().some((file) => file === uri);
   }
 
   async getAllParsers(): Promise<Parser[]> {
     await this.stable();
-    return [...this.parser.allParsers, ...this.overlayParsers];
+    return [this.parser, ...this.overlayParsers];
   }
 
   async getDocumentLinks(file: string): Promise<DocumentLink[]> {
-    const parser = await this.getParser(file);
+    if (!this.isInContext(file)) {
+      return [];
+    }
     const runtime = await this.getRuntime();
 
     const bindingLinks =
@@ -119,9 +128,10 @@ export class ContextAware {
         .filter((v) => v) as DocumentLink[]) ?? [];
 
     return [
-      ...((parser?.includes
+      ...((this.parser.cPreprocessorParser.dtsIncludes
+        .filter((include) => include.uri === file)
         .map((include) => {
-          const path = parser.resolveInclude(include);
+          const path = this.parser.cPreprocessorParser.resolveInclude(include);
           if (path) {
             const link: DocumentLink = {
               range: toRange(include.path),
@@ -211,8 +221,12 @@ export class ContextAware {
   }
 
   public async reevaluate(uri: string) {
-    const parser = await this.getParser(uri);
-    await parser?.reparse();
+    if (!this.isInContext(uri)) {
+      return this._runtime;
+    }
+
+    const parser = this.parser;
+    await parser.reparse();
 
     this._runtime = this.evaluate();
     return this._runtime;
@@ -220,15 +234,19 @@ export class ContextAware {
 
   public async evaluate() {
     const t = performance.now();
-    await this.parser.stable;
+    await this.stable();
 
     const runtime = new Runtime(this.bindingLoader);
     this._issues = [];
 
-    await this.processRoot(this.parser.rootDocument, runtime);
+    this.processRoot(this.parser.rootDocument, runtime);
     for (let i = 0; i < this.overlayParsers.length; i++) {
-      await this.processRoot(this.overlayParsers[i].rootDocument, runtime);
+      this.processRoot(this.overlayParsers[i].rootDocument, runtime);
     }
+
+    (await this.getAllParsers())
+      .flatMap((p) => p.tokens)
+      .forEach((t, i) => (t.sortKey = i));
 
     this.linkPropertiesLabelsAndNodePaths(runtime);
 
@@ -236,19 +254,10 @@ export class ContextAware {
     return runtime;
   }
 
-  private async processRoot(element: DtcBaseNode, runtime: Runtime) {
+  private processRoot(element: DtcBaseNode, runtime: Runtime) {
     for (let i = 0; i < element.children.length; i++) {
       const child = element.children[i];
-      if (child instanceof Include) {
-        const p = child.reolvedPath
-          ? await this.getParser(child.reolvedPath)
-          : undefined;
-        if (p) {
-          await this.processRoot(p.rootDocument, runtime);
-        }
-      } else {
-        this.processChild(child, runtime.rootNode, runtime);
-      }
+      this.processChild(child, runtime.rootNode, runtime);
     }
   }
 

@@ -14,7 +14,11 @@
  * limitations under the License.
  */
 
-import { DocumentSymbol, SemanticTokensBuilder } from "vscode-languageserver";
+import {
+  DocumentSymbol,
+  SemanticTokensBuilder,
+  WorkspaceSymbol,
+} from "vscode-languageserver";
 import { Issue, LexerToken, SyntaxIssue, Token, TokenIndexes } from "./types";
 import {
   adjacentTokens,
@@ -31,7 +35,6 @@ import { Operator, OperatorType } from "./ast/cPreprocessors/operator";
 export abstract class BaseParser {
   positionStack: number[] = [];
   issues: Issue<SyntaxIssue>[] = [];
-  childParsers: Parser[] = [];
 
   protected parsing: Promise<void>;
 
@@ -51,21 +54,6 @@ export abstract class BaseParser {
   protected reset() {
     this.positionStack = [];
     this.issues = [];
-    this.childParsers = [];
-  }
-
-  get allParsers(): Parser[] {
-    return this instanceof Parser
-      ? [this, ...this.childParsers.flatMap((p) => p.orderedParsers)]
-      : this.childParsers.flatMap((p) => p.orderedParsers);
-  }
-
-  get orderedParsers(): Parser[] {
-    return (
-      this instanceof Parser
-        ? [this, ...this.childParsers.flatMap((p) => p.orderedParsers)]
-        : this.childParsers.flatMap((p) => p.orderedParsers)
-    ).reverse();
   }
 
   get stable() {
@@ -187,11 +175,15 @@ export abstract class BaseParser {
 
   abstract get allAstItems(): ASTBase[];
 
-  getDocumentSymbols(): DocumentSymbol[] {
-    return this.allAstItems.flatMap((o) => o.getDocumentSymbols());
+  getDocumentSymbols(uri: string): DocumentSymbol[] {
+    return this.allAstItems.flatMap((o) => o.getDocumentSymbols(uri));
   }
 
-  buildSemanticTokens(tokensBuilder: SemanticTokensBuilder) {
+  getWorkspaceSymbols(): WorkspaceSymbol[] {
+    return this.allAstItems.flatMap((o) => o.getWorkspaceSymbols());
+  }
+
+  buildSemanticTokens(tokensBuilder: SemanticTokensBuilder, uri: string) {
     const result: {
       line: number;
       char: number;
@@ -204,7 +196,13 @@ export abstract class BaseParser {
       tokenModifiers: number,
       tokenIndexes?: TokenIndexes
     ) => {
-      if (!tokenIndexes?.start || !tokenIndexes?.end) return;
+      if (
+        !tokenIndexes?.start ||
+        !tokenIndexes?.end ||
+        tokenIndexes.start.uri !== uri ||
+        tokenIndexes.end.uri !== uri
+      )
+        return;
 
       const lengthEnd =
         tokenIndexes.end.pos.col -
@@ -222,7 +220,9 @@ export abstract class BaseParser {
       });
     };
 
-    this.allAstItems.forEach((a) => a.buildSemanticTokens(push));
+    this.allAstItems.forEach((a) => {
+      a.buildSemanticTokens(push);
+    });
 
     result
       .sort((a, b) => (a.line === b.line ? a.char - b.char : a.line - b.line))

@@ -192,7 +192,7 @@ function getNodeNameRename(result: SearchableResult | undefined): Location[] {
 export async function getRenameRequest(
   location: RenameParams,
   contexts: ContextAware[],
-  preferredContext?: number
+  preferredContext?: string | number
 ): Promise<WorkspaceEdit> {
   const changes: { [uri: string]: TextEdit[] } = {};
 
@@ -223,7 +223,7 @@ export async function getPrepareRenameRequest(
   location: PrepareRenameParams,
   contexts: ContextAware[],
   lockRenameEdits: string[],
-  preferredContext?: number
+  preferredContext?: string | number
 ): Promise<{
   defaultBehavior: boolean;
 }> {

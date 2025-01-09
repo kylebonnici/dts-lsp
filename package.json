@@ -5,7 +5,7 @@
   "author": "Microsoft Corporation",
   "license": "Apache-2.0",
   "icon": "images/icon.png",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/kylebonnici/dts-lsp"
@@ -65,6 +65,11 @@
           "default": [],
           "description": "Default Zephyr binding paths"
         },
+        "devicetree.cwd": {
+          "scope": "resource",
+          "type": "string",
+          "description": "Working directorys"
+        },
         "devicetree.contexts": {
           "scope": "resource",
           "type": "array",
@@ -76,6 +81,18 @@
           "type": "array",
           "default": [],
           "description": "Locations that Renaming should not be allowrd if any of the edits is a child node of that directory"
+        },
+        "devicetree.autoChangeContext": {
+          "scope": "resource",
+          "type": "boolean",
+          "default": true,
+          "description": "Auto chnage active context on file change"
+        },
+        "devicetree.allowAdhocContexts": {
+          "scope": "resource",
+          "type": "boolean",
+          "default": true,
+          "description": "Allow LSP to create new context on the file for dts files opened that are not in the context settings"
         },
         "devicetree.trace.server": {
           "scope": "window",

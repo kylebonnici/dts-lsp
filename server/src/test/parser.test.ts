@@ -52,7 +52,7 @@ jest.mock("fs", () => ({
     throw new Error("readFileSync - Not mocked");
   }),
   existsSync: jest.fn().mockImplementation(() => {
-    throw new Error("existsSync - Not mocked");
+    return true;
   }),
 }));
 
@@ -1025,7 +1025,7 @@ describe("Parser", () => {
             ).value
           ).toEqual(20);
 
-          rootDts.getDocumentSymbols();
+          rootDts.getDocumentSymbols("/folder/dts.dts");
         });
 
         describe("Node Ref Path", () => {
@@ -2023,11 +2023,11 @@ describe("Parser", () => {
           "/folder/dts.dts": '#include "some.dtsi"',
           "/folder/some.dtsi": "",
         });
-        const parser = new Parser("/folder/dts.dts", []);
+        const parser = new CPreprocessorParser("/folder/dts.dts", []);
         await parser.stable;
         expect(parser.issues.length).toEqual(0);
-        expect(parser.includes.length).toEqual(1);
-        expect(parser.includes[0].path.path).toEqual("some.dtsi");
+        expect(parser.dtsIncludes.length).toEqual(1);
+        expect(parser.dtsIncludes[0].path.path).toEqual("some.dtsi");
 
         expect(fs.existsSync).toBeCalledWith("/folder/some.dtsi");
         expect(fs.readFileSync).nthCalledWith(2, "/folder/some.dtsi");
@@ -2037,11 +2037,15 @@ describe("Parser", () => {
           "/folder/dts.dts": "#include <my_includes/some.dtsi>",
           "/my/includes/my_includes/some.dtsi": "",
         });
-        const parser = new Parser("/folder/dts.dts", ["/my/includes"]);
+        const parser = new CPreprocessorParser("/folder/dts.dts", [
+          "/my/includes",
+        ]);
         await parser.stable;
         expect(parser.issues.length).toEqual(0);
-        expect(parser.includes.length).toEqual(1);
-        expect(parser.includes[0].path.path).toEqual("my_includes/some.dtsi");
+        expect(parser.dtsIncludes.length).toEqual(1);
+        expect(parser.dtsIncludes[0].path.path).toEqual(
+          "my_includes/some.dtsi"
+        );
 
         expect(fs.existsSync).toBeCalledWith(
           "/my/includes/my_includes/some.dtsi"
@@ -2057,7 +2061,9 @@ describe("Parser", () => {
           "/folder/dts.dts": "#include <my_includes/some.dtsi",
           "/my/includes/my_includes/some.dtsi": "",
         });
-        const parser = new Parser("/folder/dts.dts", ["/my/includes"]);
+        const parser = new CPreprocessorParser("/folder/dts.dts", [
+          "/my/includes",
+        ]);
         await parser.stable;
         expect(parser.issues.length).toEqual(1);
         expect(parser.issues[0].issues).toEqual([SyntaxIssue.GT_SYM]);

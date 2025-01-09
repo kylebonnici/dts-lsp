@@ -324,7 +324,7 @@ function getNodeRefPathsItems(
 export async function getCompletions(
   location: TextDocumentPositionParams,
   context: ContextAware[],
-  preferredContext?: number
+  preferredContext?: string | number
 ): Promise<CompletionItem[]> {
   return nodeFinder(
     location,

@@ -109,7 +109,7 @@ function getNodeDeclaration(
 export async function getDeclaration(
   location: TextDocumentPositionParams,
   contexts: ContextAware[],
-  preferredContext?: number
+  preferredContext?: string | number
 ): Promise<Location | undefined> {
   return (
     await nodeFinder(

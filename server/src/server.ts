@@ -34,6 +34,9 @@ import {
   Location,
   DocumentSymbol,
   SymbolKind,
+  DiagnosticSeverity,
+  Range,
+  Position,
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -69,6 +72,7 @@ import {
 } from "./dtsTypes/bindings/bindingLoader";
 import { getFoldingRanges } from "./foldingRanges";
 import { typeDefinition } from "./typeDefinition";
+import { resolve } from "path";
 
 let contextAware: ContextAware[] = [];
 let activeContext: Promise<ContextAware | undefined>;
@@ -91,16 +95,8 @@ const allStable = async () => {
 };
 
 const getAdhocContexts = (settings: Settings) => {
-  return contextAware.filter((c) => {
-    const settingContext = settings.contexts?.find(
-      (sc) => sc.dtsFile === c.parser.uri
-    );
-
-    return (
-      !settingContext ||
-      !settingContext.overlays?.every((o) => c.overlays.some((oo) => oo === o))
-    );
-  });
+  const configuredContexts = getConfiguredContexts(settings);
+  return contextAware.filter((c) => !configuredContexts.some((cc) => cc === c));
 };
 
 const getConfiguredContexts = (settings: Settings) => {
@@ -121,17 +117,41 @@ const contextFullyOverlaps = async (a: ContextAware, b: ContextAware) => {
     return true;
   }
 
-  const contextAFiles = (await a.getOrderedParsers()).map((p) => p.uri);
-  const contextBFiles = (await b.getOrderedParsers()).map((p) => p.uri);
+  const contextAIncludes = (await a.getAllParsers()).flatMap(
+    (p) => p.cPreprocessorParser.dtsIncludes
+  );
+  const contextBIncludes = (await b.getAllParsers()).flatMap(
+    (p) => p.cPreprocessorParser.dtsIncludes
+  );
 
-  return contextAFiles.every((f) => contextBFiles.some((ff) => ff === f));
+  return contextAIncludes.every((f) =>
+    contextBIncludes.some(
+      (ff) =>
+        ff.reolvedPath === f.reolvedPath &&
+        ff.firstToken.pos.col === f.firstToken.pos.col &&
+        ff.firstToken.pos.len === f.firstToken.pos.len &&
+        ff.firstToken.pos.line === f.firstToken.pos.line &&
+        ff.lastToken.pos.col === f.lastToken.pos.col &&
+        ff.lastToken.pos.len === f.lastToken.pos.len &&
+        ff.lastToken.pos.line === f.lastToken.pos.line
+    )
+  );
 };
 
 const cleanUpAdHocContext = async (context: ContextAware) => {
   const adhocContexts = getAdhocContexts(globalSettings);
   const configContexts = await getConfiguredContexts(globalSettings);
   const adhocContextFiles = await resolveContextFiles(adhocContexts);
-  const contextFiles = (await context.getOrderedParsers()).map((p) => p.uri);
+
+  if (contextAware.indexOf(context) === -1) {
+    return;
+  }
+
+  const contextFiles = [
+    ...context.overlayParsers.map((p) => p.uri),
+    context.parser.uri,
+    ...context.parser.includes.map((p) => p.reolvedPath),
+  ];
 
   if (contextAware.indexOf(context) === -1) {
     return;
@@ -155,7 +175,7 @@ const cleanUpAdHocContext = async (context: ContextAware) => {
         sameChart.some((r) => r.context === o.context && r.same) ||
         (o.context !== context &&
           o.context.parser.uri === context.parser.uri &&
-          contextFiles.some((f) => o.files.indexOf(f) !== -1))
+          contextFiles.some((f) => f && o.files.indexOf(f) !== -1))
     )
     .map((o) => o.context);
 
@@ -163,18 +183,12 @@ const cleanUpAdHocContext = async (context: ContextAware) => {
     contextToClean.forEach((c) => {
       debounce.delete(c);
       console.log(
-        `cleaning up context with ID ${contextAware.indexOf(c)} and uri ${
-          c.parser.uri
-        }`
+        `cleaning up context with ID ${c.name} and uri ${c.parser.uri}`
       );
     });
     contextAware = contextAware.filter((c) => contextToClean.indexOf(c) === -1);
   }
 };
-
-// TODO scd in settings
-// TODO allow empty properties in settings
-// context add name
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -259,6 +273,8 @@ connection.onInitialized(() => {
 });
 
 interface Context {
+  ctxName: string | number;
+  cwd?: string;
   includePaths?: string[];
   dtsFile: string;
   overlays?: string[];
@@ -267,12 +283,15 @@ interface Context {
 }
 
 interface Settings {
+  cwd?: string;
   defaultBindingType?: BindingType;
   defaultZephyrBindings?: string[];
   defaultIncludePaths?: string[];
   contexts?: Context[];
-  preferredContext?: number;
+  preferredContext?: string | number;
   lockRenameEdits?: string[];
+  autoChangeContext?: boolean;
+  allowAdhocContexts?: boolean;
 }
 
 // The global settings, used when the `workspace/configuration` request is not supported by the client.
@@ -284,6 +303,8 @@ const defaultSettings: Settings = {
   defaultIncludePaths: [],
   contexts: [],
   lockRenameEdits: [],
+  allowAdhocContexts: true,
+  autoChangeContext: true,
 };
 let globalSettings: Settings = defaultSettings;
 
@@ -317,6 +338,28 @@ connection.onDidChangeConfiguration((change) => {
     ...change.settings?.devicetree,
   };
 
+  // resolve context paths defaults
+  globalSettings.contexts?.forEach((context, i) => {
+    if (context.cwd || globalSettings.cwd) {
+      const cwd = (context.cwd ?? globalSettings.cwd) as string;
+      context.includePaths ??= globalSettings.defaultIncludePaths;
+      context.zephyrBindings ??= globalSettings.defaultIncludePaths;
+      context.bindingType ??= globalSettings.defaultBindingType;
+
+      if (
+        context.bindingType === "Zephyr" &&
+        (!context.zephyrBindings || context.zephyrBindings.length === 0)
+      ) {
+        context.zephyrBindings = ["zephyr/dts/bindings"];
+      }
+      context.zephyrBindings = context.zephyrBindings?.map((i) =>
+        resolve(cwd, i)
+      );
+      context.includePaths = context.includePaths?.map((i) => resolve(cwd, i));
+      context.dtsFile = resolve(cwd, context.dtsFile);
+    }
+  });
+
   let adhocContexts = getAdhocContexts(oldSettngs);
 
   contextAware = [];
@@ -327,53 +370,94 @@ connection.onDidChangeConfiguration((change) => {
   >();
 
   globalSettings.contexts?.forEach((context, i) => {
-    const bindingType =
-      context.bindingType ?? globalSettings.defaultBindingType;
+    const bindingType = context.bindingType;
+
     const newContext = new ContextAware(
       context.dtsFile,
-      context.includePaths ?? globalSettings.defaultIncludePaths ?? [],
+      context.includePaths ?? [],
       bindingType
-        ? getBindingLoader(
-            context.zephyrBindings ??
-              globalSettings.defaultZephyrBindings ??
-              [],
-            bindingType
-          )
+        ? getBindingLoader(context.zephyrBindings ?? [], bindingType)
         : undefined,
-      context.overlays
+      context.overlays,
+      context.ctxName
     );
     contextAware.push(newContext);
-    console.log(`New context with ID ${i} for ${context.dtsFile}`);
+    console.log(
+      `New context with ID ${newContext.name} for ${context.dtsFile}`
+    );
   });
+
+  // resolve global with cwd
+  const resolvedGLobal = resolveGlobal();
 
   contextAware = [
     ...contextAware,
-    ...adhocContexts.map((c, i) => {
-      console.log(
-        `New context with ID ${i + contextAware.length} for ${c.parser.uri}`
-      );
+    ...adhocContexts.map((c) => {
       const bindingType = globalSettings.defaultBindingType;
-      return new ContextAware(
+      const context = new ContextAware(
         c.parser.uri,
-        globalSettings.defaultIncludePaths ?? [],
+        resolvedGLobal.defaultIncludePaths,
         bindingType
-          ? getBindingLoader(
-              globalSettings.defaultZephyrBindings ?? [],
-              bindingType
-            )
+          ? getBindingLoader(resolvedGLobal.defaultZephyrBindings, bindingType)
           : undefined
       );
+      console.log(`New context with ID ${context.name} for ${c.parser.uri}`);
+      return context;
     }),
   ];
 
   adhocContexts = getAdhocContexts(globalSettings);
   adhocContexts.forEach(cleanUpAdHocContext);
   if (activeFileUri) {
-    updateActiveContext(activeFileUri);
+    updateActiveContext(activeFileUri, true);
   }
 
   connection.languages.diagnostics.refresh();
 });
+
+const resolveGlobal = () => {
+  // resolve global with cwd
+  const defaultIncludePaths = (globalSettings.defaultIncludePaths ?? []).map(
+    (i) => {
+      if (globalSettings.cwd) {
+        return resolve(globalSettings.cwd, i);
+      }
+
+      return i;
+    }
+  );
+
+  if (
+    globalSettings.cwd &&
+    globalSettings.defaultBindingType === "Zephyr" &&
+    !globalSettings.defaultZephyrBindings
+  ) {
+    globalSettings.defaultZephyrBindings = ["zephyr/dts/bindings"];
+  }
+
+  const defaultZephyrBindings = (
+    globalSettings.defaultZephyrBindings ?? []
+  ).map((i) => {
+    if (globalSettings.cwd) {
+      return resolve(globalSettings.cwd, i);
+    }
+
+    return i;
+  });
+
+  const lockRenameEdits = (globalSettings.lockRenameEdits ?? []).map((i) => {
+    if (globalSettings.cwd) {
+      return resolve(globalSettings.cwd, i);
+    }
+
+    return i;
+  });
+
+  return {
+    defaultIncludePaths,
+    defaultZephyrBindings,
+  };
+};
 
 // Only keep settings for open documents
 documents.onDidClose((e) => {
@@ -381,13 +465,22 @@ documents.onDidClose((e) => {
 });
 
 connection.languages.diagnostics.on(async (params) => {
-  const uri = params.textDocument.uri.replace("file://", "");
   await allStable();
+  const uri = params.textDocument.uri.replace("file://", "");
   const context = await activeContext;
 
   return {
     kind: DocumentDiagnosticReportKind.Full,
-    items: context ? await getDiagnostics(context, uri) : [],
+    items: context
+      ? await getDiagnostics(context, uri)
+      : [
+          {
+            severity: DiagnosticSeverity.Warning,
+            range: Range.create(Position.create(0, 0), Position.create(0, 0)),
+            message: "File has no context",
+            source: "devicetree",
+          },
+        ],
   } satisfies DocumentDiagnosticReport;
 });
 
@@ -609,18 +702,23 @@ documents.onDidChangeContent(async (change) => {
   const contexts = await findContexts(contextAware, uri);
 
   if (!contexts.length) {
+    if (globalSettings.allowAdhocContexts === false) {
+      return;
+    }
+
+    if (!uri.endsWith(".dts")) {
+      return;
+    }
     const bindingType = globalSettings.defaultBindingType;
+    const resolvedGlobal = resolveGlobal();
     const newContext = new ContextAware(
       uri,
-      globalSettings.defaultIncludePaths ?? [],
+      resolvedGlobal.defaultIncludePaths,
       bindingType
-        ? getBindingLoader(
-            globalSettings.defaultZephyrBindings ?? [],
-            bindingType
-          )
+        ? getBindingLoader(resolvedGlobal.defaultZephyrBindings, bindingType)
         : undefined
     );
-    console.log(`New ad hoc context with ID ${newContext.id} for ${uri}`);
+    console.log(`New ad hoc context with ID ${newContext.name} for ${uri}`);
     contextAware.push(newContext);
     updateActiveContext(uri);
     await newContext.parser.stable;
@@ -648,44 +746,42 @@ documents.onDidChangeContent(async (change) => {
   }
 });
 
+let workspacePaths: string[] = [];
 connection.languages.diagnostics.onWorkspace(async () => {
   await allStable();
   const context = await activeContext;
+
+  // clear old issues of other contexts
+  const otherContextItems = workspacePaths
+    .filter((file) => !context?.getContextFiles().some((f) => f === file))
+    .map((file) => {
+      return {
+        uri: `file://${file}`,
+        kind: DocumentDiagnosticReportKind.Full,
+        items: [],
+        version: documents.get(`file://${file}`)?.version ?? null,
+      } satisfies WorkspaceDocumentDiagnosticReport;
+    });
+
+  workspacePaths = [];
+
   if (!context) {
     return {
-      items: [],
+      items: otherContextItems,
     };
   }
 
-  const orderedParsers = await context.getOrderedParsers();
   const activeContextItems = await Promise.all(
-    orderedParsers.map(async (parser) => {
-      const items = await getDiagnostics(context, parser.uri);
+    context.getContextFiles().map(async (file) => {
+      const items = await getDiagnostics(context, file);
+      workspacePaths.push(file);
       return {
-        uri: `file://${parser.uri}`,
+        uri: `file://${file}`,
         kind: DocumentDiagnosticReportKind.Full,
         items,
-        version: documents.get(`file://${parser.uri}`)?.version ?? null,
+        version: documents.get(`file://${file}`)?.version ?? null,
       } satisfies WorkspaceDocumentDiagnosticReport;
     })
-  );
-
-  const otherContextItems = await Promise.all(
-    contextAware
-      .filter((c) => c !== context)
-      .flatMap(async (c) => {
-        const orderedParsers = await c.getOrderedParsers();
-        return await Promise.all(
-          orderedParsers.flatMap(async (parser) => {
-            return {
-              uri: `file://${parser.uri}`,
-              kind: DocumentDiagnosticReportKind.Full,
-              items: [],
-              version: documents.get(`file://${parser.uri}`)?.version ?? null,
-            } satisfies WorkspaceDocumentDiagnosticReport;
-          })
-        );
-      })
   );
 
   return {
@@ -714,12 +810,11 @@ async function getDiagnostics(
   try {
     const diagnostics: Diagnostic[] = [];
 
-    const d = debounce.get(context);
-    if (d?.abort.signal.aborted) return [];
-    await d?.promise;
+    if (!context.isInContext(uri)) {
+      return [];
+    }
 
-    const parser = await context.getParser(uri);
-    parser?.issues.forEach((issue) => {
+    context.parser.issues.forEach((issue) => {
       const diagnostic: Diagnostic = {
         severity: issue.severity,
         range: toRange(issue.astElement),
@@ -851,7 +946,11 @@ documents.listen(connection);
 // Listen on the connection
 connection.listen();
 
-const updateActiveContext = async (uri: string) => {
+const updateActiveContext = async (uri: string, force = false) => {
+  if (!force && globalSettings.autoChangeContext === false) {
+    return;
+  }
+
   activeFileUri = uri;
   await allStable();
   const oldContext = await activeContext;
@@ -864,11 +963,11 @@ const updateActiveContext = async (uri: string) => {
   const context = await activeContext;
   if (oldContext !== context) {
     console.log(
-      `(ID: ${context?.id ?? -1}) activeContext:`,
+      `(ID: ${context?.name ?? -1}) activeContext:`,
       context?.parser.uri
     );
     contextAware.forEach((c, i) => {
-      console.log(`Context with ID ${c.id} for ${c.parser.uri}`);
+      console.log(`Context with ID ${c.name} for ${c.parser.uri}`);
     });
   }
 };
@@ -880,9 +979,9 @@ connection.onDocumentSymbol(async (h) => {
 
   const context = await activeContext;
 
-  const data = await context?.getParser(uri);
+  const data = await context?.parser;
   if (!data) return [];
-  return data.getDocumentSymbols();
+  return data.getDocumentSymbols(uri);
 });
 
 connection.onWorkspaceSymbol(async () => {
@@ -890,32 +989,8 @@ connection.onWorkspaceSymbol(async () => {
   const context = await activeContext;
   if (!context) return [];
 
-  const documentSymbolToWorkspaceSymbol = (
-    uri: string,
-    documentSymbol: DocumentSymbol
-  ): WorkspaceSymbol[] => {
-    if (
-      documentSymbol.kind !== SymbolKind.Class &&
-      documentSymbol.kind !== SymbolKind.Namespace &&
-      documentSymbol.kind !== SymbolKind.File
-    ) {
-      return [];
-    }
-    return [
-      {
-        location: Location.create(`file://${uri}`, documentSymbol.range),
-        ...documentSymbol,
-      },
-      ...(documentSymbol.children ?? []).flatMap((ds) =>
-        documentSymbolToWorkspaceSymbol(uri, ds)
-      ),
-    ];
-  };
-
   return (await context.getAllParsers()).flatMap((p) =>
-    p
-      .getDocumentSymbols()
-      .flatMap((ds) => documentSymbolToWorkspaceSymbol(p.uri, ds))
+    p.getWorkspaceSymbols()
   ) satisfies WorkspaceSymbol[];
 });
 
@@ -932,12 +1007,12 @@ connection.languages.semanticTokens.on(async (h) => {
     globalSettings.preferredContext
   );
 
-  const data = await contextMeta?.context.getParser(uri);
-  if (!data) {
+  const isInContext = contextMeta?.context.isInContext(uri);
+  if (!contextMeta || !isInContext) {
     return { data: [] };
   }
 
-  data?.buildSemanticTokens(tokensBuilder);
+  contextMeta.context.parser.buildSemanticTokens(tokensBuilder, uri);
 
   return tokensBuilder.build();
 });
@@ -1021,9 +1096,12 @@ connection.onFoldingRanges(async (event) => {
 
   const context = await activeContext;
 
-  const parser = await context?.getParser(uri);
-  if (!parser) return [];
-  const result = getFoldingRanges(parser);
+  const isInContext = context?.isInContext(uri);
+  if (!context || !isInContext) {
+    return [];
+  }
+
+  const result = getFoldingRanges(context.parser);
   return result;
 });
 

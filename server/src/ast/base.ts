@@ -22,7 +22,12 @@ import type {
   Token,
   TokenIndexes,
 } from "../types";
-import { DocumentSymbol, SymbolKind } from "vscode-languageserver";
+import {
+  DocumentSymbol,
+  Location,
+  SymbolKind,
+  WorkspaceSymbol,
+} from "vscode-languageserver";
 
 export class ASTBase {
   protected semanticTokenType?: SemanticTokenType;
@@ -30,8 +35,6 @@ export class ASTBase {
   protected _children: ASTBase[] = [];
   public parentNode?: ASTBase;
   protected docSymbolsMeta?: { name: string; kind: SymbolKind };
-  private _uri?: string;
-  private _sortKey?: number;
 
   private _lastToken?: Token;
   private _fisrtToken?: Token;
@@ -41,12 +44,8 @@ export class ASTBase {
     this._lastToken = _tokenIndexes?.end;
   }
 
-  get sortKey() {
-    return this._sortKey ?? this.parentNode?.sortKey ?? -1;
-  }
-
-  set sortKey(value: number) {
-    this._sortKey ??= value;
+  get sortKey(): number {
+    return this.firstToken.sortKey ?? this.parentNode?.sortKey ?? -1;
   }
 
   get firstToken(): Token {
@@ -67,12 +66,8 @@ export class ASTBase {
     this._lastToken = token;
   }
 
-  get uri(): string | undefined {
-    return this._uri ?? this.parentNode?.uri;
-  }
-
-  set uri(uri: string | undefined) {
-    this._uri = uri;
+  get uri(): string {
+    return this.firstToken.uri;
   }
 
   get tokenIndexes(): TokenIndexes {
@@ -82,9 +77,13 @@ export class ASTBase {
     };
   }
 
-  getDocumentSymbols(): DocumentSymbol[] {
+  getDocumentSymbols(uri: string): DocumentSymbol[] {
     if (!this.docSymbolsMeta)
-      return this.children.flatMap((child) => child.getDocumentSymbols() ?? []);
+      return this.children.flatMap(
+        (child) => child.getDocumentSymbols(uri) ?? []
+      );
+
+    if (this.uri !== uri) return [];
 
     const range = toRange(this);
     return [
@@ -94,9 +93,35 @@ export class ASTBase {
         range: range,
         selectionRange: range,
         children: [
-          ...this.children.flatMap((child) => child.getDocumentSymbols() ?? []),
+          ...this.children.flatMap(
+            (child) => child.getDocumentSymbols(uri) ?? []
+          ),
         ],
       },
+    ];
+  }
+
+  getWorkspaceSymbols(): WorkspaceSymbol[] {
+    if (!this.docSymbolsMeta)
+      return this.children.flatMap(
+        (child) => child.getWorkspaceSymbols() ?? []
+      );
+
+    const range = toRange(this);
+    return [
+      {
+        location: Location.create(`file://${this.uri}`, range),
+        name: this.docSymbolsMeta.name ? this.docSymbolsMeta.name : "__UNSET__",
+        kind: this.docSymbolsMeta.kind,
+      },
+      ...this.children
+        .flatMap((child) => child.getWorkspaceSymbols() ?? [])
+        .filter(
+          (ds) =>
+            ds.kind === SymbolKind.File ||
+            ds.kind === SymbolKind.Class ||
+            ds.kind === SymbolKind.Namespace
+        ),
     ];
   }
 
@@ -128,16 +153,7 @@ export class ASTBase {
   protected addChild(child: ASTBase | null | undefined) {
     if (child) {
       child.parentNode = this;
-      child.uri = this.uri;
       this.children.push(child);
-    }
-  }
-
-  protected insertAt(child: ASTBase | null, index: number) {
-    if (child) {
-      child.parentNode = this;
-      child.uri = this.uri;
-      this.children.splice(index, 0, child);
     }
   }
 }
