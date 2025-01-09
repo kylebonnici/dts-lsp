@@ -18,7 +18,7 @@ import { SymbolKind } from "vscode-languageserver";
 import { ASTBase } from "../base";
 import { Keyword } from "../keyword";
 import { basename } from "path";
-import { BuildSemanticTokensPush, TokenIndexes } from "../../types";
+import { TokenIndexes } from "../../types";
 
 export class Include extends ASTBase {
   private _reolvedPath?: string;
