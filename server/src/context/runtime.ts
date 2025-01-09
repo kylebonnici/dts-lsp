@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
-import { DtcBaseNode, DtcRefNode, DtcRootNode } from "../ast/dtc/node";
+import {
+  DtcBaseNode,
+  DtcChildNode,
+  DtcRefNode,
+  DtcRootNode,
+} from "../ast/dtc/node";
 import {
   ContextIssues,
   Issue,
@@ -36,6 +41,7 @@ import { LabelAssign } from "../ast/dtc/label";
 import { Node } from "./node";
 import { getTokenizedDocumentProvider } from "../providers/tokenizedDocument";
 import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
+import { ASTBase } from "src/ast/base";
 
 export class Runtime implements Searchable {
   public roots: DtcRootNode[] = [];
@@ -53,13 +59,21 @@ export class Runtime implements Searchable {
     file: string,
     position: Position
   ): SearchableResult | undefined {
-    const dtcNode = [
+    const getFileTopMostAst = (astNode: ASTBase): ASTBase[] => {
+      return astNode.uri === file
+        ? [astNode]
+        : astNode.children.flatMap(getFileTopMostAst);
+    };
+
+    const fileAsts = [
       ...this.roots,
       ...this.references,
       ...this.unlinkedDeletes,
       ...this.unlinkedRefNodes,
       ...this.globalDeletes,
-    ].find(
+    ].flatMap(getFileTopMostAst);
+
+    const dtcNode = fileAsts.find(
       (i) =>
         positionInBetween(i, file, position) ||
         isLastTokenOnLine(
@@ -83,6 +97,12 @@ export class Runtime implements Searchable {
     } else if (dtcNode instanceof DtcRootNode && dtcNode.path) {
       const result = this.rootNode.getDeepestAstNode(file, position);
       return result ? { ...result, runtime: this } : undefined;
+    } else if (dtcNode instanceof DtcChildNode && dtcNode.path) {
+      const result = Runtime.getNodeFromPath(
+        dtcNode.path.slice(1),
+        this.rootNode
+      )?.getDeepestAstNode(file, position);
+      return result ? { ...result, runtime: this } : undefined;
     } else if (dtcNode) {
       // unlinkedDeletes
       return {
@@ -93,6 +113,20 @@ export class Runtime implements Searchable {
     }
 
     return;
+  }
+
+  static getNodeFromPath(path: string[], node: Node): Node | undefined {
+    if (path.length === 0) return node;
+
+    const nodeName = path[0].split("@");
+    const name = nodeName[0];
+    const addressStr = nodeName.at(1);
+    const address = addressStr ? Number.parseInt(addressStr, 16) : undefined;
+    const remainingPath = path.slice(1);
+    const childNode = node.getNode(name, address);
+    return childNode
+      ? Runtime.getNodeFromPath(remainingPath, childNode)
+      : undefined;
   }
 
   resolvePath(path: string[], allLabels?: LabelAssign[]): string[] | undefined {
