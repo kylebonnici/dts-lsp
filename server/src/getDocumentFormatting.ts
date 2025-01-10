@@ -37,38 +37,46 @@ import { nodeFinder } from "./helpers";
 import { Property } from "./context/property";
 import { Node } from "./context/node";
 
+const closestNode = async (
+  token: Token,
+  context: ContextAware,
+  uri: string
+) => {
+  return (
+    await nodeFinder(
+      {
+        textDocument: { uri },
+        position: Position.create(token.pos.line, token.pos.col),
+      },
+      [context],
+      (result) => {
+        const node =
+          result?.item instanceof Property ? result.item.parent : result?.item;
+
+        return node ? [node] : [];
+      }
+    )
+  ).at(0);
+};
 const getAstItemLevel =
   (context: ContextAware, uri: string) => async (astNode: ASTBase) => {
-    return astNode.firstToken.prevToken
-      ? (
-          await nodeFinder(
-            {
-              textDocument: { uri },
-              position: Position.create(
-                astNode.firstToken.prevToken.pos.line,
-                astNode.firstToken.prevToken.pos.col
-              ),
-            },
-            [context],
-            (result) => {
-              const node =
-                result?.item instanceof Property
-                  ? result.item.parent
-                  : result?.item;
+    const prevClosestNode = astNode.firstToken.prevToken
+      ? await closestNode(astNode.firstToken.prevToken, context, uri)
+      : undefined;
+    const nextClosestNode = astNode.lastToken.nextToken
+      ? await closestNode(astNode.lastToken.nextToken, context, uri)
+      : undefined;
 
-              if (!node) return [0];
+    const countParent = (node: Node, count = 0): number => {
+      return node.parent ? countParent(node.parent, count + 1) : count + 1;
+    };
 
-              const countParent = (node: Node, count = 0): number => {
-                return node.parent
-                  ? countParent(node.parent, count + 1)
-                  : count + 1;
-              };
+    if (prevClosestNode && prevClosestNode === nextClosestNode) {
+      const count = countParent(prevClosestNode);
+      return count;
+    }
 
-              return [countParent(node)];
-            }
-          )
-        ).at(0) ?? 0
-      : 0;
+    return 0;
   };
 
 export async function getDocumentFormatting(
