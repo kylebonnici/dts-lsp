@@ -39,6 +39,7 @@ import { BindingLoader } from "./dtsTypes/bindings/bindingLoader";
 import { StringValue } from "./ast/dtc/values/string";
 import { existsSync } from "fs";
 import { basename } from "path";
+import { Comment } from "./ast/dtc/comment";
 
 export class ContextAware {
   _issues: Issue<ContextIssues>[] = [];
@@ -243,6 +244,11 @@ export class ContextAware {
     for (let i = 0; i < this.overlayParsers.length; i++) {
       this.processRoot(this.overlayParsers[i].rootDocument, runtime);
     }
+
+    runtime.includes = this.parser.includes;
+    runtime.comments = this.parser.cPreprocessorParser.allAstItems.filter(
+      (a) => a instanceof Comment
+    );
 
     (await this.getAllParsers())
       .flatMap((p) => p.tokens)

@@ -60,7 +60,7 @@ import { getPrepareRenameRequest, getRenameRequest } from "./getRenameRequest";
 import { getDefinitions } from "./findDefinitions";
 import { getDeclaration } from "./findDeclarations";
 import { getCodeActions } from "./getCodeActions";
-import { getDocumentFormatting as getDocumentFormatting } from "./getDocumentFormatting";
+import { getDocumentFormatting } from "./getDocumentFormatting";
 import { getTypeCompletions } from "./getTypeCompletions";
 import { getHover } from "./getHover";
 import {
@@ -1074,6 +1074,7 @@ connection.onDocumentFormatting(async (event) => {
   if (!contextMeta) {
     return [];
   }
+
   return getDocumentFormatting(event, contextMeta.context);
 });
 
