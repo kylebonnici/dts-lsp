@@ -551,8 +551,6 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "Expected macro identifier or function like macro";
     case SyntaxIssue.WHITE_SPACE:
       return "White space is not allowed";
-    case SyntaxIssue.EXPECTED_VALUE:
-      return "Expected value";
     case SyntaxIssue.PROPERTY_MUST_BE_IN_NODE:
       return "Properties can only be defined in a node";
     case SyntaxIssue.PROPERTY_DELETE_MUST_BE_IN_NODE:
@@ -832,8 +830,12 @@ async function getDiagnostics(
               tokens: issue.astElement.lastToken.tokens,
               value: issue.astElement.lastToken.value,
             },
-            issues: issue.issues,
-          } as CodeActionDiagnosticData,
+            issues: {
+              type: "SyntaxIssue",
+              items: issue.issues,
+              edit: issue.edit,
+            },
+          } satisfies CodeActionDiagnosticData,
         };
         diagnostics.push(diagnostic);
       });
@@ -884,6 +886,23 @@ async function getDiagnostics(
           ],
           source: "devicetree",
           tags: issue.tags,
+          data: {
+            firstToken: {
+              pos: issue.astElement.firstToken.pos,
+              tokens: issue.astElement.firstToken.tokens,
+              value: issue.astElement.firstToken.value,
+            },
+            lastToken: {
+              pos: issue.astElement.lastToken.pos,
+              tokens: issue.astElement.lastToken.tokens,
+              value: issue.astElement.lastToken.value,
+            },
+            issues: {
+              type: "StandardTypeIssue",
+              items: issue.issues,
+              edit: issue.edit,
+            },
+          } satisfies CodeActionDiagnosticData,
         };
         diagnostics.push(diagnostic);
       });
@@ -907,10 +926,6 @@ connection.onCompletion(
   async (
     _textDocumentPosition: TextDocumentPositionParams
   ): Promise<CompletionItem[]> => {
-    // The pass parameter contains the position of the text document in
-    // which code complete got requested. For the example we ignore this
-    // info and always provide the same completion items.
-
     await allStable();
 
     if (contextAware) {
@@ -1059,7 +1074,6 @@ connection.onDeclaration(async (event) => {
 });
 
 connection.onCodeAction(async (event) => {
-  await allStable();
   return getCodeActions(event);
 });
 

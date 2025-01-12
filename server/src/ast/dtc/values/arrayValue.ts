@@ -21,8 +21,12 @@ import { NodePathRef } from "./nodePath";
 import { NumberValue } from "./number";
 import { LabeledValue } from "./labeledValue";
 import { Expression } from "../../cPreprocessors/expression";
+import { Token } from "src/types";
 
 export class ArrayValues extends ASTBase {
+  public openBracket?: Token;
+  public closeBracket?: Token;
+
   constructor(
     public readonly values: LabeledValue<
       NumberValue | LabelRef | NodePathRef | Expression

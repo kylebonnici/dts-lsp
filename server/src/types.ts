@@ -17,6 +17,7 @@
 import {
   DiagnosticSeverity,
   DiagnosticTag,
+  TextEdit,
   Position as vsCodePosition,
 } from "vscode-languageserver";
 import { ASTBase } from "./ast/base";
@@ -25,9 +26,12 @@ import { Property } from "./context/property";
 import { Runtime } from "./context/runtime";
 
 export type CodeActionDiagnosticData = {
-  issues: SyntaxIssue[];
-  firstToken: Omit<Token, "prevToken" | "nextToken">;
-  lastToken: Omit<Token, "prevToken" | "nextToken">;
+  issues: { edit?: TextEdit } & (
+    | { type: "SyntaxIssue"; items: SyntaxIssue[] }
+    | { type: "StandardTypeIssue"; items: StandardTypeIssue[] }
+  );
+  firstToken: Omit<Token, "prevToken" | "nextToken" | "uri">;
+  lastToken: Omit<Token, "prevToken" | "nextToken" | "uri">;
 };
 
 export enum StandardTypeIssue {
@@ -92,7 +96,6 @@ export enum SyntaxIssue {
   WHITE_SPACE,
   EXPECTED_IDENTIFIER_FUNCTION_LIKE,
   EXPECTED_IDENTIFIER,
-  EXPECTED_VALUE,
   PROPERTY_MUST_BE_IN_NODE,
   PROPERTY_DELETE_MUST_BE_IN_NODE,
   DELETE_NODE_INCOMPLETE,
@@ -248,6 +251,7 @@ export interface Issue<T extends IssueTypes> {
   tags?: DiagnosticTag[];
   linkedTo: ASTBase[];
   templateStrings: string[];
+  edit?: TextEdit;
 }
 
 export type SearchableResult = {

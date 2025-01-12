@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { genIssue } from "../helpers";
+import { genIssue, getIndentString } from "../helpers";
 import { type Node } from "../context/node";
 import { Property } from "../context/property";
 import { Issue, StandardTypeIssue } from "../types";
@@ -26,6 +26,8 @@ import {
   DiagnosticTag,
   MarkupContent,
   MarkupKind,
+  Position,
+  TextEdit,
 } from "vscode-languageserver";
 import { PropertyValue } from "../ast/dtc/values/value";
 import { StringValue } from "../ast/dtc/values/string";
@@ -34,6 +36,7 @@ import { ArrayValues } from "../ast/dtc/values/arrayValue";
 import { LabelRef } from "../ast/dtc/labelRef";
 import { NodePathRef } from "../ast/dtc/values/nodePath";
 import { getNodeNameOrNodeLabelRef } from "../ast/helpers";
+import { countParent } from "../getDocumentFormatting";
 
 export enum PropertyType {
   EMPTY,
@@ -116,15 +119,45 @@ export class PropertyNodeType<T = string | number> implements Validate {
         const childOrRefNode = runtime.getOrderedNodeAst(node);
         const orderedTree = getNodeNameOrNodeLabelRef(childOrRefNode);
 
+        let assignTest = "";
+        if (this.type.length === 1 && this.type[0].types.length === 1) {
+          switch (this.type[0].types[0]) {
+            case PropertyType.U32:
+            case PropertyType.U64:
+            case PropertyType.PROP_ENCODED_ARRAY:
+              assignTest = " = <>";
+              break;
+            case PropertyType.STRING:
+            case PropertyType.STRINGLIST:
+              assignTest = ' = ""';
+              break;
+            case PropertyType.BYTESTRING:
+              assignTest = " = []";
+              break;
+          }
+        }
+
         return [
-          genIssue<StandardTypeIssue>(
-            StandardTypeIssue.REQUIRED,
-            orderedTree[0],
-            DiagnosticSeverity.Error,
-            orderedTree.slice(1),
-            [],
-            [propertyName]
-          ),
+          ...childOrRefNode.map((node, i) => {
+            const token = node.openScope ?? orderedTree[i].lastToken;
+
+            return genIssue<StandardTypeIssue>(
+              StandardTypeIssue.REQUIRED,
+              orderedTree[i],
+              DiagnosticSeverity.Error,
+              [],
+              [],
+              [propertyName],
+              TextEdit.insert(
+                Position.create(token.pos.line, token.pos.col + 1),
+                `\n${"".padEnd(
+                  countParent(orderedTree[i].uri, node) *
+                    getIndentString().length,
+                  getIndentString()
+                )}${propertyName}${assignTest};`
+              )
+            );
+          }),
         ];
       }
 
@@ -314,6 +347,13 @@ export class PropertyNodeType<T = string | number> implements Validate {
     }
 
     const properties = node.properties.filter((p) => this.getNameMatch(p.name));
+
+    const ddd = node.nodeType?.properties.filter((t) => t !== this) ?? [];
+
+    if (properties.filter((p) => ddd.some((d) => d.getNameMatch(p.name)))) {
+      return [];
+    }
+
     return properties.flatMap((p) =>
       this.validateProperty(runtime, node, p.name, p)
     );

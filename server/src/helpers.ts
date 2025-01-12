@@ -19,6 +19,7 @@ import {
   DiagnosticTag,
   Position,
   TextDocumentPositionParams,
+  TextEdit,
 } from "vscode-languageserver";
 import type { ASTBase } from "./ast/base";
 import {
@@ -48,6 +49,16 @@ export const toRange = (slxBase: ASTBase) => {
         (slxBase.tokenIndexes?.end?.pos.len ?? 0),
     },
   };
+};
+
+let indentString = "\t";
+
+export const setIndentString = (indent: string) => {
+  indentString = indent;
+};
+
+export const getIndentString = () => {
+  return indentString;
 };
 
 export const getTokenTypes = (type: SemanticTokenType) => {
@@ -146,7 +157,8 @@ export const genIssue = <T extends IssueTypes>(
   severity: DiagnosticSeverity = DiagnosticSeverity.Error,
   linkedTo: ASTBase[] = [],
   tags: DiagnosticTag[] | undefined = undefined,
-  templateStrings: string[] = []
+  templateStrings: string[] = [],
+  edit?: TextEdit
 ): Issue<T> => ({
   issues: Array.isArray(issue) ? issue : [issue],
   astElement: slxBase,
@@ -154,6 +166,7 @@ export const genIssue = <T extends IssueTypes>(
   linkedTo,
   tags,
   templateStrings,
+  edit,
 });
 
 export const sortAstForScope = <T extends ASTBase>(ast: T[]) => {
