@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { genIssue } from "../helpers";
+import { genIssue, getIndentString } from "../helpers";
 import { type Node } from "../context/node";
 import { Property } from "../context/property";
 import { Issue, StandardTypeIssue } from "../types";
@@ -36,6 +36,7 @@ import { ArrayValues } from "../ast/dtc/values/arrayValue";
 import { LabelRef } from "../ast/dtc/labelRef";
 import { NodePathRef } from "../ast/dtc/values/nodePath";
 import { getNodeNameOrNodeLabelRef } from "../ast/helpers";
+import { countParent } from "../getDocumentFormatting";
 
 export enum PropertyType {
   EMPTY,
@@ -120,10 +121,7 @@ export class PropertyNodeType<T = string | number> implements Validate {
 
         return [
           ...childOrRefNode.map((node, i) => {
-            const token =
-              node.openScope?.nextToken ??
-              orderedTree[i].lastToken.nextToken ??
-              orderedTree[i].lastToken;
+            const token = node.openScope ?? orderedTree[i].lastToken;
 
             return genIssue<StandardTypeIssue>(
               StandardTypeIssue.REQUIRED,
@@ -133,8 +131,12 @@ export class PropertyNodeType<T = string | number> implements Validate {
               [],
               [propertyName],
               TextEdit.insert(
-                Position.create(token.pos.line, token.pos.col),
-                `${propertyName};\n`
+                Position.create(token.pos.line, token.pos.col + 1),
+                `\n${"".padEnd(
+                  countParent(orderedTree[i].uri, node) *
+                    getIndentString().length,
+                  getIndentString()
+                )}${propertyName};`
               )
             );
           }),

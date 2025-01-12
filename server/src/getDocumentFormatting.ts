@@ -33,7 +33,11 @@ import { ArrayValues } from "./ast/dtc/values/arrayValue";
 import { ByteStringValue } from "./ast/dtc/values/byteString";
 import { LabeledValue } from "./ast/dtc/values/labeledValue";
 import { Include } from "./ast/cPreprocessors/include";
-import { getDeepestAstNodeInBetween, positionInBetween } from "./helpers";
+import {
+  getDeepestAstNodeInBetween,
+  positionInBetween,
+  setIndentString,
+} from "./helpers";
 import { Comment } from "./ast/dtc/comment";
 
 const findAst = async (token: Token, uri: string, fileRootAsts: ASTBase[]) => {
@@ -52,6 +56,16 @@ const getClosestAstNode = (ast?: ASTBase): DtcBaseNode | undefined => {
   return ast instanceof DtcBaseNode ? ast : getClosestAstNode(ast?.parentNode);
 };
 
+export const countParent = (
+  uri: string,
+  node?: DtcBaseNode,
+  count = 0
+): number => {
+  if (!node || node.uri !== uri) return count;
+
+  return countParent(uri, getClosestAstNode(node.parentNode), count + 1);
+};
+
 const getAstItemLevel =
   (fileRootAsts: ASTBase[], uri: string) => async (astNode: ASTBase) => {
     const parentAst = await findAst(astNode.firstToken, uri, fileRootAsts);
@@ -65,16 +79,10 @@ const getAstItemLevel =
     }
 
     if (!(parentAst instanceof DtcBaseNode)) {
-      return; // todo undefined
+      return;
     }
 
-    const countParent = (node?: DtcBaseNode, count = 0): number => {
-      if (!node || node.uri !== uri) return count;
-
-      return countParent(getClosestAstNode(node.parentNode), count + 1);
-    };
-
-    const count = countParent(getClosestAstNode(parentAst));
+    const count = countParent(uri, getClosestAstNode(parentAst));
     return count;
   };
 
@@ -641,6 +649,8 @@ const getTextEdit = async (
   const delta = documentFormattingParams.options.tabSize;
   const insertSpaces = documentFormattingParams.options.insertSpaces;
   const singleIndent = insertSpaces ? "".padStart(delta, " ") : "\t";
+
+  setIndentString(singleIndent);
 
   if (astNode instanceof DtcBaseNode) {
     return formatDtcNode(

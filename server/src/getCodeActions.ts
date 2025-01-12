@@ -306,7 +306,10 @@ const standardTypeIssueToCodeAction = (
     case StandardTypeIssue.REQUIRED:
       return [
         {
-          title: `Add Property "${edit.newText.replace(";", "")}"`,
+          title: `Add Property "${edit.newText
+            .split("=", 1)[0]
+            .replace(";", "")
+            .trim()}"`,
           diagnostics: [diagnostic],
           kind: CodeActionKind.QuickFix,
           isPreferred: true,
