@@ -832,8 +832,12 @@ async function getDiagnostics(
               tokens: issue.astElement.lastToken.tokens,
               value: issue.astElement.lastToken.value,
             },
-            issues: issue.issues,
-          } as CodeActionDiagnosticData,
+            issues: {
+              type: "SyntaxIssue",
+              items: issue.issues,
+              edit: issue.edit,
+            },
+          } satisfies CodeActionDiagnosticData,
         };
         diagnostics.push(diagnostic);
       });
@@ -884,11 +888,28 @@ async function getDiagnostics(
           ],
           source: "devicetree",
           tags: issue.tags,
+          data: {
+            firstToken: {
+              pos: issue.astElement.firstToken.pos,
+              tokens: issue.astElement.firstToken.tokens,
+              value: issue.astElement.firstToken.value,
+            },
+            lastToken: {
+              pos: issue.astElement.lastToken.pos,
+              tokens: issue.astElement.lastToken.tokens,
+              value: issue.astElement.lastToken.value,
+            },
+            issues: {
+              type: "StandardTypeIssue",
+              items: issue.issues,
+              edit: issue.edit,
+            },
+          } satisfies CodeActionDiagnosticData,
         };
         diagnostics.push(diagnostic);
       });
 
-    console.log("diagnostics", uri, performance.now() - t);
+      console.log("diagnostics", uri, performance.now() - t);
     issueCache.get(context)?.set(uri, diagnostics);
     return diagnostics;
   } catch (e) {
@@ -907,10 +928,6 @@ connection.onCompletion(
   async (
     _textDocumentPosition: TextDocumentPositionParams
   ): Promise<CompletionItem[]> => {
-    // The pass parameter contains the position of the text document in
-    // which code complete got requested. For the example we ignore this
-    // info and always provide the same completion items.
-
     await allStable();
 
     if (contextAware) {
@@ -1059,7 +1076,6 @@ connection.onDeclaration(async (event) => {
 });
 
 connection.onCodeAction(async (event) => {
-  await allStable();
   return getCodeActions(event);
 });
 

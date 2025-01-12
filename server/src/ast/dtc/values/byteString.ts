@@ -18,8 +18,12 @@ import { ASTBase } from "../../base";
 import { SymbolKind } from "vscode-languageserver";
 import { LabeledValue } from "./labeledValue";
 import { NumberValue } from "./number";
+import { Token } from "src/types";
 
 export class ByteStringValue extends ASTBase {
+  public openBracket?: Token;
+  public closeBracket?: Token;
+  
   constructor(public readonly values: LabeledValue<NumberValue>[]) {
     super();
     this.docSymbolsMeta = {

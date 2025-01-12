@@ -23,11 +23,16 @@ import {
   Range,
   TextEdit,
 } from "vscode-languageserver";
-import { CodeActionDiagnosticData, SyntaxIssue, Token } from "./types";
+import {
+  CodeActionDiagnosticData,
+  StandardTypeIssue,
+  SyntaxIssue,
+  Token,
+} from "./types";
 
 const syntaxIssueToCodeAction = (
-  firstToken: Token,
-  lastToken: Token,
+  firstToken: Omit<Token, "prevToken" | "nextToken" | "uri">,
+  lastToken: Omit<Token, "prevToken" | "nextToken" | "uri">,
   issue: SyntaxIssue,
   diagnostic: Diagnostic,
   uri: string
@@ -287,31 +292,92 @@ const syntaxIssueToCodeAction = (
   }
 };
 
+const standardTypeIssueToCodeAction = (
+  firstToken: Omit<Token, "prevToken" | "nextToken" | "uri">,
+  lastToken: Omit<Token, "prevToken" | "nextToken" | "uri">,
+  issue: StandardTypeIssue,
+  diagnostic: Diagnostic,
+  uri: string,
+  edit?: TextEdit
+): CodeAction[] | undefined => {
+  if (!edit) return [];
+
+  switch (issue) {
+    case StandardTypeIssue.REQUIRED:
+      return [
+        {
+          title: `Add Property "${edit.newText.replace(";", "")}"`,
+          diagnostics: [diagnostic],
+          kind: CodeActionKind.QuickFix,
+          isPreferred: true,
+          edit: {
+            changes: {
+              [uri]: [edit],
+            },
+          },
+        },
+      ];
+    default:
+      return;
+  }
+};
+
 export function getCodeActions(
   codeActionParams: CodeActionParams
 ): CodeAction[] {
   const results = codeActionParams.context.diagnostics
     .flatMap((diagnostic) => {
       const tmp = diagnostic.data as CodeActionDiagnosticData | undefined;
-      return tmp?.issues.flatMap((issue) =>
-        syntaxIssueToCodeAction(
-          tmp.firstToken,
-          tmp.lastToken,
-          issue,
-          diagnostic,
-          codeActionParams.textDocument.uri
-        )
-      );
+
+      switch (tmp?.issues.type) {
+        case "SyntaxIssue":
+          return tmp?.issues.items.flatMap((issue) =>
+            syntaxIssueToCodeAction(
+              tmp.firstToken,
+              tmp.lastToken,
+              issue,
+              diagnostic,
+              codeActionParams.textDocument.uri
+            )
+          );
+        case "StandardTypeIssue":
+          return tmp?.issues.items.flatMap((issue) =>
+            standardTypeIssueToCodeAction(
+              tmp.firstToken,
+              tmp.lastToken,
+              issue,
+              diagnostic,
+              codeActionParams.textDocument.uri,
+              tmp.issues.edit
+            )
+          );
+      }
     })
     .filter((c) => !!c) as CodeAction[];
 
   const onSaveAuto = results.filter(
     (r) => r.kind === CodeActionKind.SourceFixAll
   );
+
+  const required = results.filter((r) => r.title.startsWith("Add Property"));
+
   const others = results.filter((r) => r.kind !== CodeActionKind.SourceFixAll);
+
   const combinedEdits = onSaveAuto.flatMap(
     (p) => p.edit?.changes?.[codeActionParams.textDocument.uri] ?? []
   );
+
+  const combinedRequiredEdits = new Map<string, TextEdit[]>();
+  required.forEach((p) => {
+    const edit = p.edit!.changes![codeActionParams.textDocument.uri][0];
+    const line = edit.range.start.line;
+    const character = edit.range.start.character;
+    if (!combinedRequiredEdits.has(`${line}:${character}`)) {
+      combinedRequiredEdits.set(`${line}:${character}`, []);
+    }
+
+    combinedRequiredEdits.get(`${line}:${character}`)?.push(edit);
+  });
 
   return [
     ...others,
@@ -330,5 +396,19 @@ export function getCodeActions(
           },
         ]
       : []),
+    ...Array.from(combinedRequiredEdits.values()).flatMap((edits) =>
+      edits.length > 1
+        ? {
+            title: "Add All Missing Properties",
+            kind: CodeActionKind.QuickFix,
+            isPreferred: true,
+            edit: {
+              changes: {
+                [codeActionParams.textDocument.uri]: edits,
+              },
+            },
+          }
+        : []
+    ),
   ];
 }

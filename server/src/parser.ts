@@ -991,8 +991,8 @@ export class Parser extends BaseParser {
   private arrayValues(dtcProperty: DtcProperty): PropertyValue | undefined {
     this.enqueueToStack();
 
-    const firstToken = this.currentToken;
-    if (!validToken(firstToken, LexerToken.LT_SYM)) {
+    const openBraket = this.currentToken;
+    if (!validToken(openBraket, LexerToken.LT_SYM)) {
       this.popStack();
       return;
     } else {
@@ -1000,6 +1000,9 @@ export class Parser extends BaseParser {
     }
 
     const value = this.processArrayValues(dtcProperty) ?? null;
+    if (value) {
+      value.openBracket = openBraket;
+    }
 
     const endLabels1 = this.processOptionalLabelAssign(true) ?? [];
 
@@ -1008,6 +1011,9 @@ export class Parser extends BaseParser {
     if (!validToken(this.currentToken, LexerToken.GT_SYM)) {
       this.issues.push(genIssue(SyntaxIssue.GT_SYM, node));
     } else {
+      if (value) {
+        value.closeBracket = this.currentToken;
+      }
       this.moveToNextToken;
     }
 
@@ -1024,7 +1030,7 @@ export class Parser extends BaseParser {
     if (!value) {
       this.issues.push(genIssue(SyntaxIssue.EXPECTED_VALUE, node));
     }
-    node.firstToken = firstToken;
+    node.firstToken = openBraket;
     node.lastToken = this.prevToken;
     return node;
   }
@@ -1033,8 +1039,8 @@ export class Parser extends BaseParser {
     this.enqueueToStack();
 
     const firstToken = this.moveToNextToken;
-    const token = firstToken;
-    if (!validToken(token, LexerToken.SQUARE_OPEN)) {
+    const openBracket = firstToken;
+    if (!validToken(openBracket, LexerToken.SQUARE_OPEN)) {
       this.popStack();
       return;
     }
@@ -1057,6 +1063,7 @@ export class Parser extends BaseParser {
     });
 
     const byteString = new ByteStringValue(numberValues ?? []);
+    byteString.openBracket = openBracket;
     if (byteString.values.length === 0) {
       byteString.firstToken = firstToken;
       this.issues.push(genIssue(SyntaxIssue.BYTESTRING, byteString));
@@ -1067,7 +1074,7 @@ export class Parser extends BaseParser {
     if (!validToken(this.currentToken, LexerToken.SQUARE_CLOSE)) {
       this.issues.push(genIssue(SyntaxIssue.SQUARE_CLOSE, node));
     } else {
-      this.moveToNextToken;
+      byteString.openBracket = this.moveToNextToken;
     }
 
     let endLabels2: LabelAssign[] = [];

@@ -26,6 +26,8 @@ import {
   DiagnosticTag,
   MarkupContent,
   MarkupKind,
+  Position,
+  TextEdit,
 } from "vscode-languageserver";
 import { PropertyValue } from "../ast/dtc/values/value";
 import { StringValue } from "../ast/dtc/values/string";
@@ -117,14 +119,25 @@ export class PropertyNodeType<T = string | number> implements Validate {
         const orderedTree = getNodeNameOrNodeLabelRef(childOrRefNode);
 
         return [
-          genIssue<StandardTypeIssue>(
-            StandardTypeIssue.REQUIRED,
-            orderedTree[0],
-            DiagnosticSeverity.Error,
-            orderedTree.slice(1),
-            [],
-            [propertyName]
-          ),
+          ...childOrRefNode.map((node, i) => {
+            const token =
+              node.openScope?.nextToken ??
+              orderedTree[i].lastToken.nextToken ??
+              orderedTree[i].lastToken;
+
+            return genIssue<StandardTypeIssue>(
+              StandardTypeIssue.REQUIRED,
+              orderedTree[i],
+              DiagnosticSeverity.Error,
+              [],
+              [],
+              [propertyName],
+              TextEdit.insert(
+                Position.create(token.pos.line, token.pos.col),
+                `${propertyName};\n`
+              )
+            );
+          }),
         ];
       }
 
