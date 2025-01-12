@@ -42,8 +42,12 @@ import { Node } from "./node";
 import { getTokenizedDocumentProvider } from "../providers/tokenizedDocument";
 import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
 import { ASTBase } from "src/ast/base";
+import { Include } from "src/ast/cPreprocessors/include";
+import { Comment } from "src/ast/dtc/comment";
 
 export class Runtime implements Searchable {
+  public comments: Comment[] = [];
+  public includes: Include[] = [];
   public roots: DtcRootNode[] = [];
   public references: DtcRefNode[] = [];
   public unlinkedDeletes: DeleteNode[] = [];
@@ -55,23 +59,29 @@ export class Runtime implements Searchable {
 
   public labelsUsedCache = new Map<string, string[]>();
 
-  getDeepestAstNode(
-    file: string,
-    position: Position
-  ): SearchableResult | undefined {
-    const getFileTopMostAst = (astNode: ASTBase): ASTBase[] => {
-      return astNode.uri === file
-        ? [astNode]
-        : astNode.children.flatMap(getFileTopMostAst);
-    };
+  static getFileTopMostAst = (astNode: ASTBase, file: string): ASTBase[] => {
+    return astNode.uri === file
+      ? [astNode]
+      : astNode.children.flatMap((c) => Runtime.getFileTopMostAst(c, file));
+  };
 
-    const fileAsts = [
+  fileTopMostAst(file: string) {
+    return [
       ...this.roots,
       ...this.references,
       ...this.unlinkedDeletes,
       ...this.unlinkedRefNodes,
       ...this.globalDeletes,
-    ].flatMap(getFileTopMostAst);
+      ...this.includes,
+      ...this.comments,
+    ].flatMap((c) => Runtime.getFileTopMostAst(c, file));
+  }
+
+  getDeepestAstNode(
+    file: string,
+    position: Position
+  ): SearchableResult | undefined {
+    const fileAsts = this.fileTopMostAst(file);
 
     const dtcNode = fileAsts.find(
       (i) =>
