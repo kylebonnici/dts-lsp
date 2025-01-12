@@ -33,9 +33,6 @@ jobs:
         with:
           name: VSCode Package
           path: dts-lsp-*.vsix
-      # - name: version
-      #   run: echo "::set-output name=version::$(node -p \"require('./package.json').version\")"
-      #   id: version
       - name: release
         uses: actions/create-release@v1
         id: create_release
