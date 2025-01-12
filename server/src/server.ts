@@ -344,10 +344,11 @@ connection.onDidChangeConfiguration((change) => {
       context.bindingType ??= globalSettings.defaultBindingType;
 
       if (
+        cwd &&
         context.bindingType === "Zephyr" &&
         (!context.zephyrBindings || context.zephyrBindings.length === 0)
       ) {
-        context.zephyrBindings = ["zephyr/dts/bindings"];
+        context.zephyrBindings = ["./zephyr/dts/bindings"];
       }
       context.zephyrBindings = context.zephyrBindings?.map((i) =>
         resolve(cwd, i)
@@ -429,20 +430,12 @@ const resolveGlobal = () => {
     globalSettings.defaultBindingType === "Zephyr" &&
     !globalSettings.defaultZephyrBindings
   ) {
-    globalSettings.defaultZephyrBindings = ["zephyr/dts/bindings"];
+    globalSettings.defaultZephyrBindings = ["./zephyr/dts/bindings"];
   }
 
   const defaultZephyrBindings = (
     globalSettings.defaultZephyrBindings ?? []
   ).map((i) => {
-    if (globalSettings.cwd) {
-      return resolve(globalSettings.cwd, i);
-    }
-
-    return i;
-  });
-
-  const lockRenameEdits = (globalSettings.lockRenameEdits ?? []).map((i) => {
     if (globalSettings.cwd) {
       return resolve(globalSettings.cwd, i);
     }
