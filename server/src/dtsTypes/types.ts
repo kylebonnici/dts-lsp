@@ -119,6 +119,24 @@ export class PropertyNodeType<T = string | number> implements Validate {
         const childOrRefNode = runtime.getOrderedNodeAst(node);
         const orderedTree = getNodeNameOrNodeLabelRef(childOrRefNode);
 
+        let assignTest = "";
+        if (this.type.length === 1 && this.type[0].types.length === 1) {
+          switch (this.type[0].types[0]) {
+            case PropertyType.U32:
+            case PropertyType.U64:
+            case PropertyType.PROP_ENCODED_ARRAY:
+              assignTest = " = <>";
+              break;
+            case PropertyType.STRING:
+            case PropertyType.STRINGLIST:
+              assignTest = ' = ""';
+              break;
+            case PropertyType.BYTESTRING:
+              assignTest = " = []";
+              break;
+          }
+        }
+
         return [
           ...childOrRefNode.map((node, i) => {
             const token = node.openScope ?? orderedTree[i].lastToken;
@@ -136,7 +154,7 @@ export class PropertyNodeType<T = string | number> implements Validate {
                   countParent(orderedTree[i].uri, node) *
                     getIndentString().length,
                   getIndentString()
-                )}${propertyName};`
+                )}${propertyName}${assignTest};`
               )
             );
           }),
@@ -329,6 +347,13 @@ export class PropertyNodeType<T = string | number> implements Validate {
     }
 
     const properties = node.properties.filter((p) => this.getNameMatch(p.name));
+
+    const ddd = node.nodeType?.properties.filter((t) => t !== this) ?? [];
+
+    if (properties.filter((p) => ddd.some((d) => d.getNameMatch(p.name)))) {
+      return [];
+    }
+
     return properties.flatMap((p) =>
       this.validateProperty(runtime, node, p.name, p)
     );

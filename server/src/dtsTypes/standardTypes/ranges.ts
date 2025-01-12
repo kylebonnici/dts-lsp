@@ -56,20 +56,21 @@ export default () => {
         : 2;
 
       if (
+        values.length === 0 ||
         values.length %
           (childBusAddressValue + parentdBusAddressValue + sizeCellValue) !==
-        0
+          0
       ) {
         issues.push(
           genIssue(
             StandardTypeIssue.CELL_MISS_MATCH,
-            values[
+            values.at(
               values.length -
                 (values.length %
                   (childBusAddressValue +
                     parentdBusAddressValue +
                     sizeCellValue))
-            ],
+            ) ?? property.ast,
             DiagnosticSeverity.Error,
             [],
             [],

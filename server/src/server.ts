@@ -551,8 +551,6 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "Expected macro identifier or function like macro";
     case SyntaxIssue.WHITE_SPACE:
       return "White space is not allowed";
-    case SyntaxIssue.EXPECTED_VALUE:
-      return "Expected value";
     case SyntaxIssue.PROPERTY_MUST_BE_IN_NODE:
       return "Properties can only be defined in a node";
     case SyntaxIssue.PROPERTY_DELETE_MUST_BE_IN_NODE:
@@ -909,7 +907,7 @@ async function getDiagnostics(
         diagnostics.push(diagnostic);
       });
 
-      console.log("diagnostics", uri, performance.now() - t);
+    console.log("diagnostics", uri, performance.now() - t);
     issueCache.get(context)?.set(uri, diagnostics);
     return diagnostics;
   } catch (e) {

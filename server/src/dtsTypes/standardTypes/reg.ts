@@ -37,7 +37,7 @@ export default () => {
       const issues: Issue<StandardTypeIssue>[] = [];
 
       const values = flatNumberValues(property.ast.values);
-      if (!values?.length) {
+      if (!values) {
         return [];
       }
 
@@ -53,11 +53,16 @@ export default () => {
         ? getU32ValueFromProperty(addressCellProperty, 0, 0) ?? 2
         : 2;
 
-      if (values.length % (sizeCell + addressCell) !== 0) {
+      if (
+        values.length === 0 ||
+        values.length % (sizeCell + addressCell) !== 0
+      ) {
         issues.push(
           genIssue(
             StandardTypeIssue.CELL_MISS_MATCH,
-            values[values.length - (values.length % (sizeCell + addressCell))],
+            values.at(
+              values.length - (values.length % (sizeCell + addressCell))
+            ) ?? property.ast,
             DiagnosticSeverity.Error,
             [],
             [],

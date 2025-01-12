@@ -85,8 +85,6 @@ const ZephyrTypeToDTSType = (type: ZephyrPropertyType) => {
     case "compound":
       return generateOrTypeObj(PropertyType.ANY);
   }
-
-  return generateOrTypeObj(PropertyType.UNKNOWN);
 };
 
 const ZephyrDefaultTypeDefault = (type: ZephyrPropertyType, def: any) => {
@@ -120,8 +118,6 @@ const ZephyrDefaultTypeDefault = (type: ZephyrPropertyType, def: any) => {
     case "compound":
       return undefined;
   }
-
-  return undefined;
 };
 
 const resolveBinding = (
@@ -500,13 +496,13 @@ const generateZephyrTypeCheck = (
       const values = flatNumberValues(p.ast.values);
       let i = 0;
       while (values && i < values.length) {
-        const v = values[i];
+        const v = values.at(i);
         const phandelValue = resolvePhandleNode(v, root);
         if (!phandelValue) {
           issues.push(
             genIssue(
               StandardTypeIssue.UNABLE_TO_RESOLVE_PHANDLE,
-              v,
+              v ?? p.ast,
               DiagnosticSeverity.Error
             )
           );
@@ -553,7 +549,7 @@ const generateZephyrTypeCheck = (
           issues.push(
             genIssue(
               StandardTypeIssue.CELL_MISS_MATCH,
-              v,
+              v ?? p.ast,
               DiagnosticSeverity.Error,
               [],
               [],

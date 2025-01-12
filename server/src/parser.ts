@@ -1000,9 +1000,7 @@ export class Parser extends BaseParser {
     }
 
     const value = this.processArrayValues(dtcProperty) ?? null;
-    if (value) {
-      value.openBracket = openBraket;
-    }
+    value.openBracket = openBraket;
 
     const endLabels1 = this.processOptionalLabelAssign(true) ?? [];
 
@@ -1027,9 +1025,7 @@ export class Parser extends BaseParser {
     this.mergeStack();
 
     node.endLabels.push(...endLabels2);
-    if (!value) {
-      this.issues.push(genIssue(SyntaxIssue.EXPECTED_VALUE, node));
-    }
+
     node.firstToken = openBraket;
     node.lastToken = this.prevToken;
     return node;
@@ -1120,9 +1116,7 @@ export class Parser extends BaseParser {
     return result;
   }
 
-  private processArrayValues(
-    dtcProperty: DtcProperty
-  ): ArrayValues | undefined {
+  private processArrayValues(dtcProperty: DtcProperty): ArrayValues {
     this.enqueueToStack();
 
     const result = this.processLabeledValue(
@@ -1135,12 +1129,11 @@ export class Parser extends BaseParser {
         this.processLabeledExpression(true, false)
     );
 
+    const node = new ArrayValues(result);
     if (result.length === 0) {
-      this.popStack();
-      return;
+      node.firstToken = this.currentToken;
     }
 
-    const node = new ArrayValues(result);
     this.mergeStack();
     return node;
   }
