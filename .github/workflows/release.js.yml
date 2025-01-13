@@ -41,7 +41,7 @@ jobs:
         id: create_release
         with:
           draft: true
-          prerelease: true
+          prerelease: false
           release_name: v${{ steps.version.outputs.version }}
           tag_name: v${{ steps.version.outputs.version }}
           body_path: CHANGELOG.md
