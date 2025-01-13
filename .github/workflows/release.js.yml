@@ -1,0 +1,67 @@
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
+
+name: Preapre Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js '20.x'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+      - run: npm ci
+      - run: npm --prefix server ci
+      - run: npm --prefix client ci
+      - run: npm install -g @vscode/vsce
+      - run: vsce package
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: genericLSP
+          path: |
+            dist/server.js
+      - name: VSCode Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: VSCode Package
+          path: dts-lsp-*.vsix
+      - name: version
+        run: echo "version=$(node -p "require('./package.json').version")" >>$GITHUB_OUTPUT
+        id: version
+      - name: release
+        uses: actions/create-release@v1
+        id: create_release
+        with:
+          draft: true
+          prerelease: true
+          release_name: ${{ steps.version.outputs.version }}
+          tag_name: ${{ steps.version.outputs.version }}
+          body_path: CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: upload VSCode artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dts-lsp-${{ steps.version.outputs.version }}.vsix
+          asset_name: dts-lsp-${{ steps.version.outputs.version }}.vsix
+          asset_content_type: application/gzip
+      - name: upload generic artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist/server.js
+          asset_name: server-${{ steps.version.outputs.version }}.js
+          asset_content_type: application/gzip
