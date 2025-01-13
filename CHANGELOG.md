@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 0.0.4 - UNRELEASED
+
+### Fixed
+
+- On Hover rendered Macro calls parametes as `[object object]` instead of the actual string value e.g
+
+```devicetree
+reg = <536870912 DT_SIZE_K([object object])>;  -> issue
+reg = <536870912 DT_SIZE_K(448)>; -> fix
+```
+
 ## 0.0.3 - 2025-01-13
 
 ### Added

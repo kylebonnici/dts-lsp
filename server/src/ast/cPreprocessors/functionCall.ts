@@ -34,6 +34,9 @@ export class CMacroCallParam extends Expression {
     this.semanticTokenType = "variable";
     this.semanticTokenModifiers = "declaration";
   }
+  toString() {
+    return this.value;
+  }
 }
 
 export class CMacroCall extends Expression {
