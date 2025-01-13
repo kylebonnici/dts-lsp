@@ -43,10 +43,28 @@ jobs:
         uses: actions/create-release@v1
         id: create_release
         with:
-          draft: false
-          prerelease: false
+          draft: true
+          prerelease: true
           release_name: ${{ steps.version.outputs.version }}
           tag_name: ${{ steps.version.outputs.version }}
           body_path: CHANGELOG.md
         env:
           GITHUB_TOKEN: ${{ github.token }}
+      - name: upload VSCode artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dts-lsp-*.vsix
+          asset_name: dts-lsp-${{ steps.version.outputs.version }}.vsix
+          asset_content_type: application/gzip
+      - name: upload generic artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist/server.js
+          asset_name: server-${{ steps.version.outputs.version }}.js
+          asset_content_type: application/gzip
