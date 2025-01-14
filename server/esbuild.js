@@ -12,7 +12,7 @@ async function main() {
     sourcemap: !production,
     sourcesContent: !production,
     platform: 'node',
-    outfile: 'dist/server.js',
+    outfile: 'server/dist/server.js',
     external: [],
     logLevel: 'silent',
     plugins: [

@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /*
  * Copyright 2024 Kyle Micallef Bonnici
  *
