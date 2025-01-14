@@ -1,5 +1,5 @@
 {
-  "name": "dts-lsp-server",
+  "name": "devicetree-language-server",
   "description": "Devicetree Language Server",
   "author": "Kyle Micallef Bonnici",
   "package-name": "devicetree-language-server",
