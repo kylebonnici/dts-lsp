@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+# 0.0.5 - 2025-01-15
+
+### Added
+
+- Support in parser to consider assigning macro to property as valid syntax
+
+```devicetree
+prop = FOO(10)
+```
+
+### Fixed
+
+- Parsing error when macro function like calls have zero parameters e.g.
+
+```devicetree
+prop = FOO()
+```
+
+- Parsing error when macro function like calls have missing parameters after comma e.g.
+
+```devicetree
+prop = FOO(10,)
+```
+
 ## 0.0.4 - 2025-01-14
 
 ### Fixed

@@ -20,10 +20,14 @@ import { LabelAssign } from "../label";
 
 export class PropertyValue extends ASTBase {
   constructor(
+    public readonly startLabels: LabelAssign[],
     public readonly value: AllValueType,
     public readonly endLabels: LabelAssign[]
   ) {
     super();
+    this.startLabels.forEach((label) => {
+      this.addChild(label);
+    });
     this.addChild(value);
     this.endLabels.forEach((label) => {
       this.addChild(label);

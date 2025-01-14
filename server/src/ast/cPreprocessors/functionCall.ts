@@ -42,7 +42,7 @@ export class CMacroCallParam extends Expression {
 export class CMacroCall extends Expression {
   constructor(
     public readonly functionName: CIdentifier,
-    public readonly params: CMacroCallParam[]
+    public readonly params: (CMacroCallParam | null)[]
   ) {
     super();
     this.addChild(functionName);
@@ -59,14 +59,14 @@ export class CMacroCall extends Expression {
         kind: SymbolKind.Function,
         range: toRange(this),
         selectionRange: toRange(this),
-        children: this.params.flatMap((p) => p.getDocumentSymbols(uri)),
+        children: this.params.flatMap((p) => p?.getDocumentSymbols(uri) ?? []),
       },
     ];
   }
 
   toString() {
     return `${this.functionName.toString()}(${this.params
-      .map((p) => p.toString())
+      .map((p) => p?.toString() ?? "<NULL>")
       .join(",")})`;
   }
 }

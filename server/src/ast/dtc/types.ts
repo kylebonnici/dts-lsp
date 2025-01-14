@@ -19,6 +19,7 @@ import { StringValue } from "./values/string";
 import { LabelRef } from "./labelRef";
 import { ArrayValues } from "./values/arrayValue";
 import { NodePathRef } from "./values/nodePath";
+import { Expression } from "../cPreprocessors/expression";
 
 export type AllValueType =
   | StringValue
@@ -26,6 +27,7 @@ export type AllValueType =
   | ArrayValues
   | LabelRef
   | NodePathRef
+  | Expression
   | null;
 
 export type LabelValue = { ast: LabelRef; label: string };

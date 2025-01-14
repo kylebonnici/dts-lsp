@@ -376,6 +376,14 @@ const formatPropertyValue = (
   const result: TextEdit[] = [];
 
   result.push(
+    ...value.startLabels.flatMap((label, i) =>
+      i + 1 === value.startLabels.length
+        ? []
+        : fixedNumberOfSpaceBetweenTokensAndNext(label.lastToken)
+    )
+  );
+
+  result.push(
     ...formatValue(
       value.value,
       level,
@@ -436,9 +444,6 @@ const formatPropertyValues = (
 
   return [
     ...result,
-    ...values.labels.flatMap((label) =>
-      fixedNumberOfSpaceBetweenTokensAndNext(label.lastToken)
-    ),
     ...values.values.flatMap((value, i) =>
       value
         ? formatPropertyValue(
