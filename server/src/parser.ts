@@ -888,7 +888,7 @@ export class Parser extends BaseParser {
   private processValue(dtcProperty: DtcProperty): PropertyValues | undefined {
     this.enqueueToStack();
 
-    const labels = this.processOptionalLabelAssign(true);
+    const labels = this.processOptionalLabelAssign(false);
 
     const getValues = (): (PropertyValue | null)[] => {
       const getValue = () => {
@@ -897,7 +897,8 @@ export class Parser extends BaseParser {
             this.isNodePathRef() ||
             this.isLabelRefValue(dtcProperty) ||
             this.arrayValues(dtcProperty) ||
-            this.processByteStringValue()) ??
+            this.processByteStringValue() ||
+            this.isExpressionValue()) ??
           null
         );
       };
@@ -1293,6 +1294,18 @@ export class Parser extends BaseParser {
     return node;
   }
 
+  private isExpressionValue(): PropertyValue | undefined {
+    const expression = this.processExpression();
+
+    if (!expression) {
+      return;
+    }
+
+    const node = new PropertyValue(expression, []);
+
+    return node;
+  }
+
   private processExpression(): Expression | undefined {
     this.enqueueToStack();
 
@@ -1352,7 +1365,7 @@ export class Parser extends BaseParser {
     return expression;
   }
 
-  private processMacroCallParams(): CMacroCallParam[] | undefined {
+  private processMacroCallParams(): (CMacroCallParam | null)[] | undefined {
     if (!validToken(this.currentToken, LexerToken.ROUND_OPEN)) {
       return;
     }
@@ -1363,7 +1376,8 @@ export class Parser extends BaseParser {
       (token?: Token) => !!validToken(token, LexerToken.COMMA)
     );
 
-    return block?.splitTokens.map((param, i) => {
+    const result = block?.splitTokens.map((param, i) => {
+      if (param.length <= 1) return null;
       const tokens = i ? param.slice(1) : param;
       return new CMacroCallParam(
         tokens
@@ -1379,6 +1393,8 @@ export class Parser extends BaseParser {
         i
       );
     });
+
+    return result;
   }
 
   private isLabelRef(slxBase?: ASTBase): LabelRef | undefined {
