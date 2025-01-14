@@ -2,6 +2,19 @@
   "name": "dts-lsp-server",
   "description": "Devicetree Language Server",
   "author": "Kyle Micallef Bonnici",
+  "package-name": "dts-lsp",
+  "main": "dist/server.js",
+  "version": "0.0.4",
+  "keywords": [
+    "dts",
+    "devicetree",
+    "lsp"
+  ],
+  "files": [
+    "dist/server.js"
+  ],
+  "bin": "dist/server.js",
+  "git repository": "https://github.com/kylebonnici/dts-lsp",
   "license": "Apache-2.0",
   "engines": {
     "node": ">=16"
