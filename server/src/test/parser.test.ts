@@ -39,7 +39,10 @@ import { IfDefineBlock } from "../ast/cPreprocessors/ifDefine";
 import { CPreprocessorParser } from "../cPreprocessorParser";
 import { DtsDocumentVersion } from "../ast/dtc/dtsDocVersion";
 import { CMacroCall } from "../ast/cPreprocessors/functionCall";
-import { ComplexExpression } from "../ast/cPreprocessors/expression";
+import {
+  ComplexExpression,
+  Expression,
+} from "../ast/cPreprocessors/expression";
 import { CIdentifier } from "../ast/cPreprocessors/cIdentifier";
 import { CMacro } from "../ast/cPreprocessors/macro";
 import {
@@ -466,6 +469,83 @@ describe("Parser", () => {
     });
 
     describe("Values", () => {
+      describe("Macro calls", () => {
+        test("At root", async () => {
+          mockReadFileSync("/{prop=FOO(10);};");
+          const parser = new Parser("/folder/dts.dts", []);
+          await parser.stable;
+          expect(parser.issues.length).toEqual(0);
+          const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+          expect(rootDts.properties.length).toEqual(1);
+          expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+          expect(
+            rootDts.properties[0].values instanceof PropertyValues
+          ).toBeTruthy();
+          expect(rootDts.properties[0].values?.values.length).toEqual(1);
+          expect(
+            rootDts.properties[0].values?.values[0]?.value instanceof CMacroCall
+          ).toBeTruthy();
+
+          const macro = rootDts.properties[0].values?.values[0]
+            ?.value as CMacroCall as CMacroCall;
+
+          expect(macro.functionName.name).toEqual("FOO");
+          expect(macro.params.map((p) => p?.value)).toEqual(["10"]);
+        });
+
+        test("No Parameters", async () => {
+          mockReadFileSync("/{prop=FOO();};");
+          const parser = new Parser("/folder/dts.dts", []);
+          await parser.stable;
+          expect(parser.issues.length).toEqual(0);
+          const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+          expect(rootDts.properties.length).toEqual(1);
+          expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+          expect(
+            rootDts.properties[0].values instanceof PropertyValues
+          ).toBeTruthy();
+          expect(rootDts.properties[0].values?.values.length).toEqual(1);
+          expect(
+            rootDts.properties[0].values?.values[0]?.value instanceof CMacroCall
+          ).toBeTruthy();
+
+          const macro = rootDts.properties[0].values?.values[0]
+            ?.value as CMacroCall as CMacroCall;
+
+          expect(macro.functionName.name).toEqual("FOO");
+          expect(macro.params.map((p) => p?.value)).toEqual([]);
+        });
+
+        test("No Missing Parameter", async () => {
+          mockReadFileSync("/{prop=FOO(10,,20);};");
+          const parser = new Parser("/folder/dts.dts", []);
+          await parser.stable;
+          expect(parser.issues.length).toEqual(0);
+          const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+          expect(rootDts.properties.length).toEqual(1);
+          expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+          expect(
+            rootDts.properties[0].values instanceof PropertyValues
+          ).toBeTruthy();
+          expect(rootDts.properties[0].values?.values.length).toEqual(1);
+          expect(
+            rootDts.properties[0].values?.values[0]?.value instanceof CMacroCall
+          ).toBeTruthy();
+
+          const macro = rootDts.properties[0].values?.values[0]
+            ?.value as CMacroCall as CMacroCall;
+
+          expect(macro.functionName.name).toEqual("FOO");
+          expect(macro.params.map((p) => p?.value)).toEqual([
+            "10",
+            undefined,
+            "20",
+          ]);
+        });
+      });
       describe("Bytestring value", () => {
         test("With spaces ", async () => {
           mockReadFileSync("/{prop=[00 11 22 33];};");
@@ -827,7 +907,7 @@ describe("Parser", () => {
             ).values[0].value as CMacroCall;
 
             expect(macro.functionName.name).toEqual("ADD");
-            expect(macro.params.map((p) => p.value)).toEqual(["1", "2"]);
+            expect(macro.params.map((p) => p?.value)).toEqual(["1", "2"]);
           });
 
           test("C Macro expression missing coma", async () => {
@@ -857,7 +937,7 @@ describe("Parser", () => {
             ).values[0].value as CMacroCall;
 
             expect(macro.functionName.name).toEqual("ADD");
-            expect(macro.params.map((p) => p.value)).toEqual(["1 2"]);
+            expect(macro.params.map((p) => p?.value)).toEqual(["1 2"]);
           });
 
           test("Nested call", async () => {
@@ -887,7 +967,7 @@ describe("Parser", () => {
             ).values[0].value as CMacroCall;
 
             expect(macro.functionName.name).toEqual("ADD");
-            expect(macro.params.map((p) => p.value)).toEqual([
+            expect(macro.params.map((p) => p?.value)).toEqual([
               "1",
               "MULT(2, 5)",
             ]);
@@ -920,7 +1000,7 @@ describe("Parser", () => {
             ).values[0].value as CMacroCall;
 
             expect(macro.functionName.name).toEqual("ADD");
-            expect(macro.params.map((p) => p.value)).toEqual([
+            expect(macro.params.map((p) => p?.value)).toEqual([
               "1",
               "(2 + 5) * (50 + 1)",
             ]);
@@ -1084,7 +1164,9 @@ describe("Parser", () => {
           ).toEqual([10, 20, 30, 0xff, 0xaa]);
 
           expect(
-            rootDts.properties[0].values?.labels.map((l) => l.label.value)
+            rootDts.properties[0].values?.values[0]?.startLabels.map(
+              (l) => l.label.value
+            )
           ).toEqual(["l2"]);
 
           expect(
@@ -1140,7 +1222,9 @@ describe("Parser", () => {
           ).toEqual([10]);
 
           expect(
-            rootDts.properties[0].values?.labels.map((l) => l.label.value)
+            rootDts.properties[0].values?.values[0]?.startLabels.map(
+              (l) => l.label.value
+            )
           ).toEqual(["l1", "l2"]);
         });
       });

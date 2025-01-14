@@ -871,24 +871,29 @@ export class Parser extends BaseParser {
   }
 
   private isNodePathRef(): PropertyValue | undefined {
-    const nodePathRef = this.processNodePathRef();
-    if (!nodePathRef) return;
+    this.enqueueToStack();
+    const startLabels = this.processOptionalLabelAssign(true);
 
-    let endLabels: LabelAssign[] = [];
+    const nodePathRef = this.processNodePathRef();
+    if (!nodePathRef) {
+      this.popStack();
+      return;
+    }
+
+    const endLabels: LabelAssign[] = [];
     if (
       this.currentToken &&
       this.currentToken.pos.line === this.currentToken.prevToken?.pos.line
     )
-      endLabels = this.processOptionalLabelAssign(true);
+      endLabels.push(...this.processOptionalLabelAssign(true));
 
-    const node = new PropertyValue(nodePathRef, [...endLabels]);
+    const node = new PropertyValue(startLabels, nodePathRef, endLabels);
+    this.mergeStack();
     return node;
   }
 
   private processValue(dtcProperty: DtcProperty): PropertyValues | undefined {
     this.enqueueToStack();
-
-    const labels = this.processOptionalLabelAssign(false);
 
     const getValues = (): (PropertyValue | null)[] => {
       const getValue = () => {
@@ -942,12 +947,14 @@ export class Parser extends BaseParser {
     }
 
     this.mergeStack();
-    const node = new PropertyValues(values, labels);
+    const node = new PropertyValues(values);
     return node;
   }
 
   private processStringValue(): PropertyValue | undefined {
     this.enqueueToStack();
+
+    const startLabels = this.processOptionalLabelAssign(true);
 
     const token = this.moveToNextToken;
     if (!validToken(token, LexerToken.STRING)) {
@@ -984,13 +991,15 @@ export class Parser extends BaseParser {
     )
       endLabels = this.processOptionalLabelAssign(true);
 
-    const node = new PropertyValue(propValue, endLabels);
+    const node = new PropertyValue(startLabels, propValue, endLabels);
     this.mergeStack();
     return node;
   }
 
   private arrayValues(dtcProperty: DtcProperty): PropertyValue | undefined {
     this.enqueueToStack();
+
+    const startLabels = this.processOptionalLabelAssign(true);
 
     const openBraket = this.currentToken;
     if (!validToken(openBraket, LexerToken.LT_SYM)) {
@@ -1005,7 +1014,7 @@ export class Parser extends BaseParser {
 
     const endLabels1 = this.processOptionalLabelAssign(true) ?? [];
 
-    const node = new PropertyValue(value, [...endLabels1]);
+    const node = new PropertyValue(startLabels, value, endLabels1);
 
     if (!validToken(this.currentToken, LexerToken.GT_SYM)) {
       this.issues.push(genIssue(SyntaxIssue.GT_SYM, node));
@@ -1035,6 +1044,8 @@ export class Parser extends BaseParser {
   private processByteStringValue(): PropertyValue | undefined {
     this.enqueueToStack();
 
+    const startLabels = this.processOptionalLabelAssign(true);
+
     const firstToken = this.moveToNextToken;
     const openBracket = firstToken;
     if (!validToken(openBracket, LexerToken.SQUARE_OPEN)) {
@@ -1046,7 +1057,7 @@ export class Parser extends BaseParser {
       this.processHexString()
     );
 
-    const endLabels1 = this.processOptionalLabelAssign(true) ?? [];
+    const endLabels = this.processOptionalLabelAssign(true) ?? [];
 
     numberValues.forEach((value) => {
       let len = 0;
@@ -1066,7 +1077,7 @@ export class Parser extends BaseParser {
       this.issues.push(genIssue(SyntaxIssue.BYTESTRING, byteString));
     }
 
-    const node = new PropertyValue(byteString, [...endLabels1]);
+    const node = new PropertyValue(startLabels, byteString, endLabels);
 
     if (!validToken(this.currentToken, LexerToken.SQUARE_CLOSE)) {
       this.issues.push(genIssue(SyntaxIssue.SQUARE_CLOSE, node));
@@ -1295,14 +1306,21 @@ export class Parser extends BaseParser {
   }
 
   private isExpressionValue(): PropertyValue | undefined {
+    this.enqueueToStack();
+    const startLabels = this.processOptionalLabelAssign(false);
+
     const expression = this.processExpression();
 
     if (!expression) {
+      this.popStack();
       return;
     }
 
-    const node = new PropertyValue(expression, []);
+    const endLabels = this.processOptionalLabelAssign(true);
 
+    const node = new PropertyValue(startLabels, expression, endLabels);
+
+    this.mergeStack();
     return node;
   }
 
@@ -1377,7 +1395,11 @@ export class Parser extends BaseParser {
     );
 
     const result = block?.splitTokens.map((param, i) => {
-      if (param.length <= 1) return null;
+      if (
+        param.length === 0 ||
+        (validToken(param[0], LexerToken.COMMA) && param.length === 1)
+      )
+        return null;
       const tokens = i ? param.slice(1) : param;
       return new CMacroCallParam(
         tokens
@@ -1439,6 +1461,8 @@ export class Parser extends BaseParser {
   private isLabelRefValue(dtcProperty: DtcProperty): PropertyValue | undefined {
     this.enqueueToStack();
 
+    const startLabels = this.processOptionalLabelAssign(true);
+
     const labelRef = this.isLabelRef(dtcProperty);
 
     if (!labelRef) {
@@ -1453,7 +1477,7 @@ export class Parser extends BaseParser {
     )
       endLabels = this.processOptionalLabelAssign(true);
 
-    const node = new PropertyValue(labelRef, endLabels);
+    const node = new PropertyValue(startLabels, labelRef, endLabels);
     this.mergeStack();
     return node;
   }
