@@ -52,6 +52,7 @@ export abstract class BaseParser {
   }
 
   protected reset() {
+    this.issueLengthPositionStack = [];
     this.positionStack = [];
     this.issues = [];
   }
@@ -70,18 +71,26 @@ export abstract class BaseParser {
     return token;
   }
 
+  private issueLengthPositionStack: number[] = [];
+
   protected enqueueToStack() {
+    this.issueLengthPositionStack.push(this.issues.length);
     this.positionStack.push(this.peekIndex());
   }
 
   protected popStack() {
+    const prevLength = this.issueLengthPositionStack.pop() ?? 0;
+    if (prevLength !== this.issues.length) {
+      this.issues.splice(prevLength);
+    }
     this.positionStack.pop();
   }
 
   protected mergeStack() {
+    const length = this.issueLengthPositionStack.pop();
     const value = this.positionStack.pop();
 
-    if (value === undefined) {
+    if (value === undefined || length === undefined) {
       /* istanbul ignore next */
       throw new Error("Index out of bounds");
     }
