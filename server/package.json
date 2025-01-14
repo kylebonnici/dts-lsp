@@ -4,7 +4,7 @@
   "author": "Kyle Micallef Bonnici",
   "license": "Apache-2.0",
   "engines": {
-    "node": "*"
+    "node": ">=16"
   },
   "repository": {
     "type": "git",

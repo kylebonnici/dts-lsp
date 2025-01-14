@@ -13,12 +13,14 @@
   "publisher": "KyleMicallefBonnici",
   "categories": [],
   "keywords": [
-    "multi-root ready"
+    "dts",
+    "devicetree",
+    "lsp"
   ],
   "engines": {
     "vscode": "^1.75.0"
   },
-  "main": "./dist/extension",
+  "main": "./client/dist/extension",
   "contributes": {
     "languages": [
       {
