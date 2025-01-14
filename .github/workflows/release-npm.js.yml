@@ -24,7 +24,7 @@ jobs:
           cache: "npm"
       - run: npm ci
       - run: npm --prefix server ci
-      - run: npm compile:server:prod
+      - run: npm run compile:server:prod
       - run: npm --prefix publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
