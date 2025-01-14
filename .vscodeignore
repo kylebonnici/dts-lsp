@@ -10,6 +10,8 @@ server/coverage/**
 .eslintignore
 jest.config.js
 client
+!client/dist
 server
+!server/dist
 scripts
 bindings-schema.yaml
