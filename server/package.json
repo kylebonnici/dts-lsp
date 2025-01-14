@@ -2,7 +2,7 @@
   "name": "dts-lsp-server",
   "description": "Devicetree Language Server",
   "author": "Kyle Micallef Bonnici",
-  "package-name": "dts-lsp",
+  "package-name": "devicetree-language-server",
   "main": "dist/server.js",
   "version": "0.0.5",
   "keywords": [
