@@ -35,6 +35,7 @@ import {
   DiagnosticSeverity,
   Range,
   Position,
+  PublishDiagnosticsParams,
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -122,18 +123,20 @@ const contextFullyOverlaps = async (a: ContextAware, b: ContextAware) => {
     (p) => p.cPreprocessorParser.dtsIncludes
   );
 
-  return contextAIncludes.every((f) =>
-    contextBIncludes.some(
-      (ff) =>
-        ff.reolvedPath === f.reolvedPath &&
-        ff.firstToken.pos.col === f.firstToken.pos.col &&
-        ff.firstToken.pos.len === f.firstToken.pos.len &&
-        ff.firstToken.pos.line === f.firstToken.pos.line &&
-        ff.lastToken.pos.col === f.lastToken.pos.col &&
-        ff.lastToken.pos.len === f.lastToken.pos.len &&
-        ff.lastToken.pos.line === f.lastToken.pos.line
-    )
-  );
+  return contextAIncludes.length
+    ? contextAIncludes.every((f) =>
+        contextBIncludes.some(
+          (ff) =>
+            ff.reolvedPath === f.reolvedPath &&
+            ff.firstToken.pos.col === f.firstToken.pos.col &&
+            ff.firstToken.pos.len === f.firstToken.pos.len &&
+            ff.firstToken.pos.line === f.firstToken.pos.line &&
+            ff.lastToken.pos.col === f.lastToken.pos.col &&
+            ff.lastToken.pos.len === f.lastToken.pos.len &&
+            ff.lastToken.pos.line === f.lastToken.pos.line
+        )
+      )
+    : b.getContextFiles().some((ff) => ff === a.parser.uri);
 };
 
 const cleanUpAdHocContext = async (context: ContextAware) => {
@@ -179,6 +182,7 @@ const cleanUpAdHocContext = async (context: ContextAware) => {
 
   if (contextToClean.length) {
     contextToClean.forEach((c) => {
+      clearWorkspaceDiagnostics(c);
       debounce.delete(c);
       console.log(
         `cleaning up context with ID ${c.name} and uri ${c.parser.uri}`
@@ -221,10 +225,6 @@ connection.onInitialize((params: InitializeParams) => {
       completionProvider: {
         resolveProvider: true,
         triggerCharacters: ["&", "=", " "],
-      },
-      diagnosticProvider: {
-        interFileDependencies: true,
-        workspaceDiagnostics: true,
       },
       codeActionProvider: {
         codeActionKinds: [CodeActionKind.QuickFix, CodeActionKind.SourceFixAll],
@@ -452,12 +452,25 @@ const resolveGlobal = () => {
 
 // Only keep settings for open documents
 documents.onDidClose((e) => {
+  connection.sendDiagnostics({
+    uri: e.document.uri,
+    version: documents.get(e.document.uri)?.version,
+    diagnostics: [],
+  });
   documentSettings.delete(e.document.uri);
 });
 
-connection.languages.diagnostics.on(async (params) => {
+documents.onDidOpen(async (e) => {
+  connection.sendDiagnostics({
+    uri: e.document.uri,
+    version: documents.get(e.document.uri)?.version,
+    diagnostics: (await documentDiagnostics(e.document.uri)).items ?? [],
+  });
+});
+
+const documentDiagnostics = async (uri: string) => {
+  uri = uri.replace("file://", "");
   await allStable();
-  const uri = params.textDocument.uri.replace("file://", "");
   const context = await activeContext;
 
   return {
@@ -473,7 +486,7 @@ connection.languages.diagnostics.on(async (params) => {
           },
         ],
   } satisfies DocumentDiagnosticReport;
-});
+};
 
 const syntaxIssueToMessage = (issue: SyntaxIssue) => {
   switch (issue) {
@@ -695,9 +708,6 @@ documents.onDidChangeContent(async (change) => {
       return;
     }
 
-    if (!uri.endsWith(".dts")) {
-      return;
-    }
     const bindingType = globalSettings.defaultBindingType;
     const resolvedGlobal = resolveGlobal();
     const newContext = new ContextAware(
@@ -725,6 +735,20 @@ documents.onDidChangeContent(async (change) => {
           const t = performance.now();
           issueCache.delete(context.context);
           await context.context.reevaluate(uri);
+          reportWorkspaceDiagnostics(context.context).then((d) => {
+            d.items
+              .map(
+                (i) =>
+                  ({
+                    uri: i.uri,
+                    version: i.version ?? undefined,
+                    diagnostics: i.items,
+                  } satisfies PublishDiagnosticsParams)
+              )
+              .forEach((ii) => {
+                connection.sendDiagnostics(ii);
+              });
+          });
           resolve();
           console.log("reevaluate", performance.now() - t);
         }, 50);
@@ -735,35 +759,20 @@ documents.onDidChangeContent(async (change) => {
   }
 });
 
-let workspacePaths: string[] = [];
-connection.languages.diagnostics.onWorkspace(async () => {
-  await allStable();
-  const context = await activeContext;
+const clearWorkspaceDiagnostics = async (context: ContextAware) => {
+  context.getContextFiles().forEach((uri) => {
+    connection.sendDiagnostics({
+      uri,
+      version: documents.get(`file://${uri}`)?.version,
+      diagnostics: [],
+    } satisfies PublishDiagnosticsParams);
+  });
+};
 
-  // clear old issues of other contexts
-  const otherContextItems = workspacePaths
-    .filter((file) => !context?.getContextFiles().some((f) => f === file))
-    .map((file) => {
-      return {
-        uri: `file://${file}`,
-        kind: DocumentDiagnosticReportKind.Full,
-        items: [],
-        version: documents.get(`file://${file}`)?.version ?? null,
-      } satisfies WorkspaceDocumentDiagnosticReport;
-    });
-
-  workspacePaths = [];
-
-  if (!context) {
-    return {
-      items: otherContextItems,
-    };
-  }
-
+const reportWorkspaceDiagnostics = async (context: ContextAware) => {
   const activeContextItems = await Promise.all(
     context.getContextFiles().map(async (file) => {
       const items = await getDiagnostics(context, file);
-      workspacePaths.push(file);
       return {
         uri: `file://${file}`,
         kind: DocumentDiagnosticReportKind.Full,
@@ -774,8 +783,21 @@ connection.languages.diagnostics.onWorkspace(async () => {
   );
 
   return {
-    items: [...activeContextItems, ...otherContextItems.flat()],
+    items: [...activeContextItems],
   };
+};
+
+connection.languages.diagnostics.onWorkspace(async () => {
+  await allStable();
+  const context = await activeContext;
+
+  if (!context) {
+    return {
+      items: [],
+    };
+  }
+
+  return reportWorkspaceDiagnostics(context);
 });
 
 const issueCache = new WeakMap<ContextAware, Map<string, Diagnostic[]>>();
@@ -800,7 +822,14 @@ async function getDiagnostics(
     const diagnostics: Diagnostic[] = [];
 
     if (!context.isInContext(uri)) {
-      return [];
+      return [
+        {
+          severity: DiagnosticSeverity.Warning,
+          range: Range.create(Position.create(0, 0), Position.create(0, 0)),
+          message: "File not in use by the active context",
+          source: "devicetree",
+        },
+      ];
     }
 
     context.parser.issues
@@ -970,6 +999,25 @@ const updateActiveContext = async (uri: string, force = false) => {
 
   const context = await activeContext;
   if (oldContext !== context) {
+    if (oldContext) {
+      clearWorkspaceDiagnostics(oldContext);
+    }
+    if (context) {
+      reportWorkspaceDiagnostics(context).then((d) => {
+        d.items
+          .map(
+            (i) =>
+              ({
+                uri: i.uri,
+                version: i.version ?? undefined,
+                diagnostics: i.items,
+              } satisfies PublishDiagnosticsParams)
+          )
+          .forEach((ii) => {
+            connection.sendDiagnostics(ii);
+          });
+      });
+    }
     console.log(
       `(ID: ${context?.name ?? -1}) activeContext:`,
       context?.parser.uri

@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+# 0.0.6 - 2025-01-18
+
+### Changed
+
+- If enabled, ad hoc context can now be created for devicetree files such as 'dtsi' and 'overlay' files that
+
+### Fixed
+
+- 'File not in context' were not clearing in some cases
+
 # 0.0.5 - 2025-01-15
 
 ### Added
