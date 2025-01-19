@@ -760,10 +760,10 @@ documents.onDidChangeContent(async (change) => {
 });
 
 const clearWorkspaceDiagnostics = async (context: ContextAware) => {
-  context.getContextFiles().forEach((uri) => {
+  context.getContextFiles().forEach((file) => {
     connection.sendDiagnostics({
-      uri,
-      version: documents.get(`file://${uri}`)?.version,
+      uri: `file://${file}`,
+      version: documents.get(`file://${file}`)?.version,
       diagnostics: [],
     } satisfies PublishDiagnosticsParams);
   });
