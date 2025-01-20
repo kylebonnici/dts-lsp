@@ -28,7 +28,6 @@ import { Include, IncludePath } from "./ast/cPreprocessors/include";
 import { existsSync } from "fs";
 import { resolve, dirname } from "path";
 import { BaseParser, Block } from "./baseParser";
-import { Parser } from "./parser";
 import { getTokenizedDocumentProvider } from "./providers/tokenizedDocument";
 import { CommentsParser } from "./commentsParser";
 import { CMacro, CMacroContent } from "./ast/cPreprocessors/macro";
@@ -44,6 +43,7 @@ import {
   CPreprocessorContent,
   IfDefineBlock,
 } from "./ast/cPreprocessors/ifDefine";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 export class CPreprocessorParser extends BaseParser {
   public tokens: Token[] = [];
@@ -141,7 +141,7 @@ export class CPreprocessorParser extends BaseParser {
 
     const definition = this.isFunctionDefinition() || this.processCIdentifier();
     if (!definition) {
-      this.issues.push(
+      this._issues.push(
         genIssue(SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE, keyword)
       );
       this.mergeStack();
@@ -210,7 +210,7 @@ export class CPreprocessorParser extends BaseParser {
         !validToken(this.currentToken, LexerToken.COMMA) &&
         !validToken(this.currentToken, LexerToken.ROUND_CLOSE)
       ) {
-        this.issues.push(genIssue(SyntaxIssue.MISSING_COMMA, param));
+        this._issues.push(genIssue(SyntaxIssue.MISSING_COMMA, param));
       } else if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
         token = this.moveToNextToken;
       }
@@ -221,7 +221,7 @@ export class CPreprocessorParser extends BaseParser {
 
     if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
       node.lastToken = this.prevToken;
-      this.issues.push(
+      this._issues.push(
         genIssue(SyntaxIssue.MISSING_ROUND_CLOSE, params.at(-1) ?? node)
       );
     } else {
@@ -345,7 +345,9 @@ export class CPreprocessorParser extends BaseParser {
       this.getTokenIndex(block.startToken) + 1;
     const identifier = this.processCIdentifier();
     if (!identifier) {
-      this.issues.push(genIssue(SyntaxIssue.EXPECTED_IDENTIFIER, ifDefKeyword));
+      this._issues.push(
+        genIssue(SyntaxIssue.EXPECTED_IDENTIFIER, ifDefKeyword)
+      );
     }
 
     const mainBlockEndIndex = this.getTokenIndex(block.splitTokens[0].at(-1));
@@ -445,7 +447,7 @@ export class CPreprocessorParser extends BaseParser {
         this.currentToken?.pos.line !== line ||
         !validToken(this.currentToken, LexerToken.GT_SYM)
       ) {
-        this.issues.push(genIssue(SyntaxIssue.GT_SYM, node));
+        this._issues.push(genIssue(SyntaxIssue.GT_SYM, node));
       } else {
         token = this.moveToNextToken;
         includePath.lastToken = token;
@@ -458,6 +460,16 @@ export class CPreprocessorParser extends BaseParser {
 
     const resolvedPath = this.resolveInclude(node);
     node.reolvedPath = resolvedPath;
+    if (!resolvedPath) {
+      this._issues.push(
+        genIssue(
+          SyntaxIssue.UNABLE_TO_RESOLVE_INCLUDE,
+          node.path,
+          DiagnosticSeverity.Warning
+        )
+      );
+    }
+
     if (resolvedPath && !resolvedPath.endsWith(".h")) {
       getTokenizedDocumentProvider().requestTokens(resolvedPath, true);
 

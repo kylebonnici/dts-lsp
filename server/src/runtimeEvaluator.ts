@@ -34,7 +34,6 @@ import { genIssue, toRange } from "./helpers";
 import { Parser } from "./parser";
 import { DiagnosticSeverity, DocumentLink } from "vscode-languageserver";
 import { NodePath, NodePathRef } from "./ast/dtc/values/nodePath";
-import { Include } from "./ast/cPreprocessors/include";
 import { BindingLoader } from "./dtsTypes/bindings/bindingLoader";
 import { StringValue } from "./ast/dtc/values/string";
 import { existsSync } from "fs";
@@ -51,7 +50,7 @@ export class ContextAware {
 
   constructor(
     uri: string,
-    includePaths: string[],
+    public readonly includePaths: string[],
     public readonly bindingLoader?: BindingLoader,
     overlays: string | string[] = [],
     name?: string | number
@@ -237,7 +236,7 @@ export class ContextAware {
     const t = performance.now();
     await this.stable();
 
-    const runtime = new Runtime(this.bindingLoader);
+    const runtime = new Runtime(this);
     this._issues = [];
 
     this.processRoot(this.parser.rootDocument, runtime);

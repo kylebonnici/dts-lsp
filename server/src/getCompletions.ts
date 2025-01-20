@@ -40,6 +40,41 @@ import { LabelRef } from "./ast/dtc/labelRef";
 import { nodeFinder } from "./helpers";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
 import { isDeleteChild } from "./ast/helpers";
+import { IncludePath } from "./ast/cPreprocessors/include";
+import { readdirSync } from "fs";
+import { dirname, join, relative } from "path";
+
+function getIncudePathItems(
+  result: SearchableResult | undefined
+): CompletionItem[] {
+  if (!result || !(result.ast instanceof IncludePath)) {
+    return [];
+  }
+
+  const getItems = (paths: string[]) => {
+    return paths.flatMap((p) =>
+      readdirSync(p, { withFileTypes: true, recursive: true })
+        .filter((f) => {
+          return (
+            f.name.toLowerCase().endsWith(".dtsi") ||
+            f.name.toLowerCase().endsWith(".h")
+          );
+        })
+        .map((f) => ({
+          label: `${join(relative(p, f.parentPath), f.name)}`,
+          kind: CompletionItemKind.File,
+        }))
+    );
+  };
+
+  if (result.ast.relative) {
+    return getItems([dirname(result.ast.uri)]);
+  }
+
+  const includePaths = result.runtime.context.includePaths;
+
+  return getItems(includePaths);
+}
 
 const resolveNonDeletedScopedLabels = (
   node: Node,
@@ -336,6 +371,7 @@ export async function getCompletions(
       ...getNodeRefPathsItems(locationMeta, inScope),
       ...getCreateNodeRefItems(locationMeta, inScope),
       ...getRefLabelsItems(locationMeta, inScope),
+      ...getIncudePathItems(locationMeta),
     ],
     preferredContext
   );

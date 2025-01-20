@@ -34,7 +34,7 @@ import { Operator, OperatorType } from "./ast/cPreprocessors/operator";
 
 export abstract class BaseParser {
   positionStack: number[] = [];
-  issues: Issue<SyntaxIssue>[] = [];
+  protected _issues: Issue<SyntaxIssue>[] = [];
 
   protected parsing: Promise<void>;
 
@@ -54,7 +54,11 @@ export abstract class BaseParser {
   protected reset() {
     this.issueLengthPositionStack = [];
     this.positionStack = [];
-    this.issues = [];
+    this._issues = [];
+  }
+
+  get issues(): Issue<SyntaxIssue>[] {
+    return this._issues;
   }
 
   get stable() {
@@ -74,14 +78,14 @@ export abstract class BaseParser {
   private issueLengthPositionStack: number[] = [];
 
   protected enqueueToStack() {
-    this.issueLengthPositionStack.push(this.issues.length);
+    this.issueLengthPositionStack.push(this._issues.length);
     this.positionStack.push(this.peekIndex());
   }
 
   protected popStack() {
     const prevLength = this.issueLengthPositionStack.pop() ?? 0;
-    if (prevLength !== this.issues.length) {
-      this.issues.splice(prevLength);
+    if (prevLength !== this._issues.length) {
+      this._issues.splice(prevLength);
     }
     this.positionStack.pop();
   }
@@ -420,7 +424,7 @@ export abstract class BaseParser {
 
     if (report) {
       const node = new ASTBase(createTokenIndex(start, end));
-      this.issues.push(genIssue(SyntaxIssue.UNKNOWN, node));
+      this._issues.push(genIssue(SyntaxIssue.UNKNOWN, node));
     }
 
     return end;
