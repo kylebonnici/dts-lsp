@@ -44,6 +44,7 @@ import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
 import { ASTBase } from "src/ast/base";
 import { Include } from "src/ast/cPreprocessors/include";
 import { Comment } from "src/ast/dtc/comment";
+import { ContextAware } from "src/runtimeEvaluator";
 
 export class Runtime implements Searchable {
   public comments: Comment[] = [];
@@ -53,9 +54,9 @@ export class Runtime implements Searchable {
   public unlinkedDeletes: DeleteNode[] = [];
   public unlinkedRefNodes: DtcRefNode[] = [];
   public globalDeletes: DeleteNode[] = [];
-  public rootNode: Node = new Node(this.bindingLoader, "/");
+  public rootNode: Node = new Node(this.context.bindingLoader, "/");
 
-  constructor(public readonly bindingLoader?: BindingLoader) {}
+  constructor(public context: ContextAware) {}
 
   public labelsUsedCache = new Map<string, string[]>();
 

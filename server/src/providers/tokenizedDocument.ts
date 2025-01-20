@@ -37,10 +37,16 @@ class TokenizedDocumentProvider {
       return [];
     }
 
-    text ??= readFileSync(uri).toString();
-    const lexer = new Lexer(text, uri);
-    this.fileMap.set(uri, lexer);
-    return TokenizedDocumentProvider.clone(lexer.tokens);
+    try {
+      text ??= readFileSync(uri).toString();
+      const lexer = new Lexer(text, uri);
+      this.fileMap.set(uri, lexer);
+      return TokenizedDocumentProvider.clone(lexer.tokens);
+    } catch {
+      //
+    }
+
+    return [];
   }
 
   requestTokens(uri: string, renewIfNotFound: boolean): Token[] {

@@ -214,7 +214,8 @@ connection.onInitialize((params: InitializeParams) => {
   hasWorkspaceFolderCapability = !!(
     capabilities.workspace && !!capabilities.workspace.workspaceFolders
   );
-  hasDiagnosticRefreshCapability = !!(capabilities.workspace?.diagnostics?.refreshSupport)
+  hasDiagnosticRefreshCapability =
+    !!capabilities.workspace?.diagnostics?.refreshSupport;
 
   const result: InitializeResult = {
     capabilities: {
@@ -414,7 +415,7 @@ connection.onDidChangeConfiguration((change) => {
   }
 
   if (hasDiagnosticRefreshCapability) {
-    connection.languages.diagnostics.refresh()
+    connection.languages.diagnostics.refresh();
   }
 });
 
@@ -566,6 +567,8 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "Properties can only be defined in a node";
     case SyntaxIssue.PROPERTY_DELETE_MUST_BE_IN_NODE:
       return "Properties can only be deleted inside a node";
+    case SyntaxIssue.UNABLE_TO_RESOLVE_INCLUDE:
+      return "Unable to resolve include";
   }
 };
 
@@ -738,6 +741,7 @@ documents.onDidChangeContent(async (change) => {
           }
           const t = performance.now();
           issueCache.delete(context.context);
+          clearWorkspaceDiagnostics(context.context);
           await context.context.reevaluate(uri);
           reportWorkspaceDiagnostics(context.context).then((d) => {
             d.items
