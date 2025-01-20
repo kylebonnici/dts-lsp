@@ -201,6 +201,7 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
 let hasConfigurationCapability = true;
 let hasWorkspaceFolderCapability = false;
+let hasDiagnosticRefreshCapability = false;
 
 connection.onInitialize((params: InitializeParams) => {
   const capabilities = params.capabilities;
@@ -213,6 +214,7 @@ connection.onInitialize((params: InitializeParams) => {
   hasWorkspaceFolderCapability = !!(
     capabilities.workspace && !!capabilities.workspace.workspaceFolders
   );
+  hasDiagnosticRefreshCapability = !!(capabilities.workspace?.diagnostics?.refreshSupport)
 
   const result: InitializeResult = {
     capabilities: {
@@ -411,7 +413,9 @@ connection.onDidChangeConfiguration((change) => {
     updateActiveContext(activeFileUri, true);
   }
 
-  connection.languages.diagnostics.refresh();
+  if (hasDiagnosticRefreshCapability) {
+    connection.languages.diagnostics.refresh()
+  }
 });
 
 const resolveGlobal = () => {
@@ -760,10 +764,10 @@ documents.onDidChangeContent(async (change) => {
 });
 
 const clearWorkspaceDiagnostics = async (context: ContextAware) => {
-  context.getContextFiles().forEach((uri) => {
+  context.getContextFiles().forEach((file) => {
     connection.sendDiagnostics({
-      uri,
-      version: documents.get(`file://${uri}`)?.version,
+      uri: `file://${file}`,
+      version: documents.get(`file://${file}`)?.version,
       diagnostics: [],
     } satisfies PublishDiagnosticsParams);
   });
