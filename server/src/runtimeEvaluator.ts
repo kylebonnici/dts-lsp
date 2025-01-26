@@ -30,9 +30,13 @@ import { LabelRef } from "./ast/dtc/labelRef";
 import { Node } from "./context/node";
 import { Property } from "./context/property";
 import { Runtime } from "./context/runtime";
-import { genIssue, toRange } from "./helpers";
+import { genIssue, positionInBetween, toRange } from "./helpers";
 import { Parser } from "./parser";
-import { DiagnosticSeverity, DocumentLink } from "vscode-languageserver";
+import {
+  DiagnosticSeverity,
+  DocumentLink,
+  Position,
+} from "vscode-languageserver";
 import { NodePath, NodePathRef } from "./ast/dtc/values/nodePath";
 import { BindingLoader } from "./dtsTypes/bindings/bindingLoader";
 import { StringValue } from "./ast/dtc/values/string";
@@ -100,7 +104,10 @@ export class ContextAware {
     return [this.parser, ...this.overlayParsers];
   }
 
-  async getDocumentLinks(file: string): Promise<DocumentLink[]> {
+  async getDocumentLinks(
+    file: string,
+    position?: Position
+  ): Promise<DocumentLink[]> {
     if (!this.isInContext(file)) {
       return [];
     }
@@ -108,7 +115,11 @@ export class ContextAware {
 
     const bindingLinks =
       (runtime.rootNode.allBindingsProperties
-        .filter((p) => p.ast.uri === file)
+        .filter(
+          (p) =>
+            p.ast.uri === file &&
+            (!position || positionInBetween(p.ast, file, position))
+        )
         .flatMap((p) =>
           p.ast.values?.values.flatMap((v) => {
             const node = p.parent;
@@ -129,7 +140,11 @@ export class ContextAware {
 
     return [
       ...((this.parser.cPreprocessorParser.dtsIncludes
-        .filter((include) => include.uri === file)
+        .filter(
+          (include) =>
+            include.uri === file &&
+            (!position || positionInBetween(include, file, position))
+        )
         .map((include) => {
           const path = this.parser.cPreprocessorParser.resolveInclude(include);
           if (path) {
