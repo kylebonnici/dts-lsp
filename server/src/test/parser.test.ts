@@ -2102,59 +2102,118 @@ describe("Parser", () => {
     });
 
     describe("Includes", () => {
-      test("Include relative", async () => {
-        mockReadFilesSync({
-          "/folder/dts.dts": '#include "some.dtsi"',
-          "/folder/some.dtsi": "",
-        });
-        const parser = new CPreprocessorParser("/folder/dts.dts", []);
-        await parser.stable;
-        expect(parser.issues.length).toEqual(0);
-        expect(parser.dtsIncludes.length).toEqual(1);
-        expect(parser.dtsIncludes[0].path.path).toEqual("some.dtsi");
+      describe("#include", () => {
+        test("Include relative", async () => {
+          mockReadFilesSync({
+            "/folder/dts.dts": '#include "some.dtsi"',
+            "/folder/some.dtsi": "",
+          });
+          const parser = new CPreprocessorParser("/folder/dts.dts", []);
+          await parser.stable;
+          expect(parser.issues.length).toEqual(0);
+          expect(parser.dtsIncludes.length).toEqual(1);
+          expect(parser.dtsIncludes[0].path.path).toEqual("some.dtsi");
 
-        expect(fs.existsSync).toBeCalledWith("/folder/some.dtsi");
-        expect(fs.readFileSync).nthCalledWith(2, "/folder/some.dtsi");
+          expect(fs.existsSync).toBeCalledWith("/folder/some.dtsi");
+          expect(fs.readFileSync).nthCalledWith(2, "/folder/some.dtsi");
+        });
+        test("Include absolute", async () => {
+          mockReadFilesSync({
+            "/folder/dts.dts": "#include <my_includes/some.dtsi>",
+            "/my/includes/my_includes/some.dtsi": "",
+          });
+          const parser = new CPreprocessorParser("/folder/dts.dts", [
+            "/my/includes",
+          ]);
+          await parser.stable;
+          expect(parser.issues.length).toEqual(0);
+          expect(parser.dtsIncludes.length).toEqual(1);
+          expect(parser.dtsIncludes[0].path.path).toEqual(
+            "my_includes/some.dtsi"
+          );
+
+          expect(fs.existsSync).toBeCalledWith(
+            "/my/includes/my_includes/some.dtsi"
+          );
+          expect(fs.readFileSync).nthCalledWith(
+            2,
+            "/my/includes/my_includes/some.dtsi"
+          );
+        });
+
+        test("Include absolute", async () => {
+          mockReadFilesSync({
+            "/folder/dts.dts": "#include <my_includes/some.dtsi",
+            "/my/includes/my_includes/some.dtsi": "",
+          });
+          const parser = new CPreprocessorParser("/folder/dts.dts", [
+            "/my/includes",
+          ]);
+          await parser.stable;
+          expect(parser.issues.length).toEqual(1);
+          expect(parser.issues[0].issues).toEqual([SyntaxIssue.GT_SYM]);
+          expect(
+            parser.issues[0].astElement.lastToken.pos.col +
+              parser.issues[0].astElement.lastToken.pos.len
+          ).toEqual(31);
+        });
       });
-      test("Include absolute", async () => {
-        mockReadFilesSync({
-          "/folder/dts.dts": "#include <my_includes/some.dtsi>",
-          "/my/includes/my_includes/some.dtsi": "",
-        });
-        const parser = new CPreprocessorParser("/folder/dts.dts", [
-          "/my/includes",
-        ]);
-        await parser.stable;
-        expect(parser.issues.length).toEqual(0);
-        expect(parser.dtsIncludes.length).toEqual(1);
-        expect(parser.dtsIncludes[0].path.path).toEqual(
-          "my_includes/some.dtsi"
-        );
 
-        expect(fs.existsSync).toBeCalledWith(
-          "/my/includes/my_includes/some.dtsi"
-        );
-        expect(fs.readFileSync).nthCalledWith(
-          2,
-          "/my/includes/my_includes/some.dtsi"
-        );
-      });
+      describe("/include/", () => {
+        test("Include relative", async () => {
+          mockReadFilesSync({
+            "/folder/dts.dts": '/include/ "some.dtsi"',
+            "/folder/some.dtsi": "",
+          });
+          const parser = new CPreprocessorParser("/folder/dts.dts", []);
+          await parser.stable;
+          expect(parser.issues.length).toEqual(0);
+          expect(parser.dtsIncludes.length).toEqual(1);
+          expect(parser.dtsIncludes[0].path.path).toEqual("some.dtsi");
 
-      test("Include absolute", async () => {
-        mockReadFilesSync({
-          "/folder/dts.dts": "#include <my_includes/some.dtsi",
-          "/my/includes/my_includes/some.dtsi": "",
+          expect(fs.existsSync).toBeCalledWith("/folder/some.dtsi");
+          expect(fs.readFileSync).nthCalledWith(2, "/folder/some.dtsi");
         });
-        const parser = new CPreprocessorParser("/folder/dts.dts", [
-          "/my/includes",
-        ]);
-        await parser.stable;
-        expect(parser.issues.length).toEqual(1);
-        expect(parser.issues[0].issues).toEqual([SyntaxIssue.GT_SYM]);
-        expect(
-          parser.issues[0].astElement.lastToken.pos.col +
-            parser.issues[0].astElement.lastToken.pos.len
-        ).toEqual(31);
+        test("Include absolute", async () => {
+          mockReadFilesSync({
+            "/folder/dts.dts": "/include/ <my_includes/some.dtsi>",
+            "/my/includes/my_includes/some.dtsi": "",
+          });
+          const parser = new CPreprocessorParser("/folder/dts.dts", [
+            "/my/includes",
+          ]);
+          await parser.stable;
+          expect(parser.issues.length).toEqual(0);
+          expect(parser.dtsIncludes.length).toEqual(1);
+          expect(parser.dtsIncludes[0].path.path).toEqual(
+            "my_includes/some.dtsi"
+          );
+
+          expect(fs.existsSync).toBeCalledWith(
+            "/my/includes/my_includes/some.dtsi"
+          );
+          expect(fs.readFileSync).nthCalledWith(
+            2,
+            "/my/includes/my_includes/some.dtsi"
+          );
+        });
+
+        test("Include absolute", async () => {
+          mockReadFilesSync({
+            "/folder/dts.dts": "/include/ <my_includes/some.dtsi",
+            "/my/includes/my_includes/some.dtsi": "",
+          });
+          const parser = new CPreprocessorParser("/folder/dts.dts", [
+            "/my/includes",
+          ]);
+          await parser.stable;
+          expect(parser.issues.length).toEqual(1);
+          expect(parser.issues[0].issues).toEqual([SyntaxIssue.GT_SYM]);
+          expect(
+            parser.issues[0].astElement.lastToken.pos.col +
+              parser.issues[0].astElement.lastToken.pos.len
+          ).toEqual(32);
+        });
       });
     });
 

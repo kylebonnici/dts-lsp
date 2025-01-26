@@ -20,6 +20,7 @@ import {
   genIssue,
   sameLine,
   validateToken,
+  validateValue,
   validToken,
 } from "./helpers";
 import { ASTBase } from "./ast/base";
@@ -401,15 +402,35 @@ export class CPreprocessorParser extends BaseParser {
     this.enqueueToStack();
 
     const startIndex = this.peekIndex();
-    const start = this.moveToNextToken;
-    let token = start;
-    if (!token || !validToken(token, LexerToken.C_INCLUDE)) {
+    let token = this.currentToken;
+
+    if (!token) {
       this.popStack();
       return false;
     }
 
-    const line = start?.pos.line;
-    const keyword = new Keyword(createTokenIndex(token));
+    let keywordStart = token;
+    let keywordEnd: Token | undefined = token;
+    if (!validToken(token, LexerToken.C_INCLUDE)) {
+      const valid = this.checkConcurrentTokens([
+        validateToken(LexerToken.FORWARD_SLASH),
+        validateValue("include"),
+        validateToken(LexerToken.FORWARD_SLASH),
+      ]);
+
+      if (valid.length !== 3) {
+        this.popStack();
+        return false;
+      }
+
+      keywordStart = valid[0];
+      keywordEnd = valid.at(-1);
+    } else {
+      this.moveToNextToken;
+    }
+
+    const line = keywordStart?.pos.line;
+    const keyword = new Keyword(createTokenIndex(keywordStart, keywordEnd));
 
     token = this.moveToNextToken;
     const pathStart = token;
