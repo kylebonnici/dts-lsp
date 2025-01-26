@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Go to definition on document links to proide alternative to LSP clients with no DocumentLink support [User Feedback]
 
+### Fixed
+
+- Diagnosting cleared on each `onDidChangeContent` event before new diagnostics are generated.
+
 # 0.0.7 - 2025-01-21
 
 ### Added
