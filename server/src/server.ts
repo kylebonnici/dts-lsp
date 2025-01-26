@@ -36,6 +36,7 @@ import {
   Range,
   Position,
   PublishDiagnosticsParams,
+  Location,
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -51,6 +52,7 @@ import {
 import {
   findContext,
   findContexts,
+  positionInBetween,
   resolveContextFiles,
   toRange,
 } from "./helpers";
@@ -1114,7 +1116,22 @@ connection.onReferences(async (event) => {
 });
 
 connection.onDefinition(async (event) => {
+  const uri = event.textDocument.uri.replace("file://", "");
   await allStable();
+
+  const contextMeta = await findContext(
+    contextAware,
+    uri,
+    globalSettings.preferredContext
+  );
+
+  const documentLinkDefinition =
+    (await contextMeta?.context.getDocumentLinks(uri, event.position))
+      ?.filter((docLink) => docLink.target)
+      .map((docLink) => Location.create(docLink.target!, docLink.range)) ?? [];
+
+  if (documentLinkDefinition.length) return documentLinkDefinition;
+
   return getDefinitions(event, contextAware, globalSettings.preferredContext);
 });
 
