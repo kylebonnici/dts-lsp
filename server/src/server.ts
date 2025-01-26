@@ -743,8 +743,11 @@ documents.onDidChangeContent(async (change) => {
           }
           const t = performance.now();
           issueCache.delete(context.context);
-          clearWorkspaceDiagnostics(context.context);
+          const itemsToClear = generateClearWorkspaceDiagnostics(
+            context.context
+          );
           await context.context.reevaluate(uri);
+          clearWorkspaceDiagnostics(context.context, itemsToClear);
           reportWorkspaceDiagnostics(context.context).then((d) => {
             d.items
               .map(
@@ -769,8 +772,21 @@ documents.onDidChangeContent(async (change) => {
   }
 });
 
-const clearWorkspaceDiagnostics = async (context: ContextAware) => {
-  context.getContextFiles().forEach((file) => {
+const generateClearWorkspaceDiagnostics = (context: ContextAware) =>
+  context.getContextFiles().map(
+    (file) =>
+      ({
+        uri: `file://${file}`,
+        version: documents.get(`file://${file}`)?.version,
+        diagnostics: [],
+      } satisfies PublishDiagnosticsParams)
+  );
+
+const clearWorkspaceDiagnostics = (
+  context: ContextAware,
+  items: PublishDiagnosticsParams[] = generateClearWorkspaceDiagnostics(context)
+) => {
+  items.forEach((file) => {
     connection.sendDiagnostics({
       uri: `file://${file}`,
       version: documents.get(`file://${file}`)?.version,
