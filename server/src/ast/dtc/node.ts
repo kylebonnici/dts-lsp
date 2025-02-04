@@ -202,13 +202,25 @@ export class DtcChildNode extends DtcBaseNode {
   }
 }
 
+export class NodeAddress extends ASTBase {
+  constructor(public readonly address: number, tokenIndex: TokenIndexes) {
+    super(tokenIndex);
+    this.semanticTokenType = "variable";
+    this.semanticTokenModifiers = "declaration";
+  }
+
+  toString() {
+    return this.address.toString(16);
+  }
+}
+
 export class NodeName extends ASTBase {
   public linksTo?: Node;
 
   constructor(
     public readonly name: string,
     tokenIndex: TokenIndexes,
-    public readonly address?: number
+    private _address?: NodeAddress[]
   ) {
     super(tokenIndex);
     this.semanticTokenType = "variable";
@@ -219,15 +231,30 @@ export class NodeName extends ASTBase {
     return this.name;
   }
 
+  get address() {
+    return this._address;
+  }
+
+  set address(nodeAddress: NodeAddress[] | undefined) {
+    if (this._address) {
+      throw new Error("Address can only be set once");
+    }
+
+    if (nodeAddress) {
+      this.lastToken = undefined;
+      this._address = nodeAddress;
+      nodeAddress.forEach((a) => this.addChild(a));
+    }
+  }
+
   toString() {
-    return this.address !== undefined
-      ? `${this.name}@${this.address.toString(16)}`
+    return this._address !== undefined
+      ? `${this.name}@${this._address.map((v) => v.toString()).join(",")}`
       : this.name;
   }
 
   buildSemanticTokens(push: BuildSemanticTokensPush): void {
     if (!this.tokenIndexes?.start || !this.tokenIndexes.start.value) return;
-
     const nameNewStart = {
       ...this.tokenIndexes.start,
       pos: {
@@ -239,33 +266,14 @@ export class NodeName extends ASTBase {
       start: nameNewStart,
       end: nameNewStart,
     });
+
     if (this.address !== undefined) {
-      const addressNewStart = {
-        ...this.tokenIndexes.start,
-        pos: {
-          line: this.tokenIndexes.start.pos.line,
-          col: this.tokenIndexes.start.pos.col + this.name.length + 1,
-          len: this.tokenIndexes.start.pos.len - this.name.length - 1,
-        },
-      };
-
-      const atSymbolNewStart = {
-        ...this.tokenIndexes.start,
-        pos: {
-          line: this.tokenIndexes.start.pos.line,
-          col: this.name.length + 2,
-          len: 1,
-        },
-      };
-
-      push(getTokenTypes("decorator"), getTokenModifiers("declaration"), {
-        start: atSymbolNewStart,
-        end: atSymbolNewStart,
-      });
-
-      push(getTokenTypes("number"), getTokenModifiers("declaration"), {
-        start: addressNewStart,
-        end: addressNewStart,
+      this.address.forEach((a) => {
+        push(getTokenTypes("decorator"), getTokenModifiers("declaration"), {
+          start: a.lastToken.prevToken!,
+          end: a.lastToken.prevToken!,
+        });
+        a.buildSemanticTokens(push);
       });
     }
   }

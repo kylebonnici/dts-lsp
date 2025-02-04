@@ -30,6 +30,7 @@ import {
   DtcRootNode,
   DtcRefNode,
   NodeName,
+  NodeAddress,
 } from "./ast/dtc/node";
 import { ASTBase } from "./ast/base";
 import { Label, LabelAssign } from "./ast/dtc/label";
@@ -380,6 +381,80 @@ export class Parser extends BaseParser {
     return true;
   }
 
+  private processNodeAddress(): NodeAddress {
+    const prevToken = this.prevToken;
+    const addressValid = this.consumeAnyConcurrentTokens(
+      [LexerToken.DIGIT, LexerToken.HEX].map(validateToken)
+    );
+
+    const address = addressValid.length
+      ? Number.parseInt(addressValid.map((v) => v.value).join(""), 16)
+      : NaN;
+
+    if (prevToken) {
+      if (Number.isNaN(address)) {
+        const astNode = new ASTBase(createTokenIndex(prevToken));
+        this._issues.push(genIssue(SyntaxIssue.NODE_ADDRESS, astNode));
+      } else if (
+        !Number.isNaN(address) &&
+        !adjacentTokens(prevToken, addressValid[0])
+      ) {
+        const whiteSpace = new ASTBase(
+          createTokenIndex(prevToken, addressValid.at(0))
+        );
+        this._issues.push(genIssue(SyntaxIssue.WHITE_SPACE, whiteSpace));
+      }
+    }
+
+    const nodeAddress = new NodeAddress(
+      address,
+      createTokenIndex(addressValid[0] ?? this.prevToken, addressValid.at(-1))
+    );
+
+    return nodeAddress;
+  }
+
+  private processNodeAddresse(nodeName: NodeName): NodeAddress[] | undefined {
+    this.enqueueToStack();
+
+    const atValid = this.checkConcurrentTokens([validateToken(LexerToken.AT)]);
+    if (atValid.length) {
+      if (!adjacentTokens(nodeName.lastToken, atValid[0])) {
+        const whiteSpace = new ASTBase(
+          createTokenIndex(nodeName.lastToken!, atValid[0])
+        );
+        this._issues.push(genIssue(SyntaxIssue.WHITE_SPACE, whiteSpace));
+      }
+
+      const addresses: NodeAddress[] = [];
+      const consumeAllAddresses = () => {
+        addresses.push(this.processNodeAddress());
+
+        if (validToken(this.currentToken, LexerToken.COMMA)) {
+          if (
+            this.prevToken &&
+            !adjacentTokens(this.prevToken, this.currentToken)
+          ) {
+            const whiteSpace = new ASTBase(
+              createTokenIndex(this.prevToken, this.currentToken)
+            );
+            this._issues.push(genIssue(SyntaxIssue.WHITE_SPACE, whiteSpace));
+          }
+          this.moveToNextToken;
+          consumeAllAddresses();
+        }
+      };
+
+      consumeAllAddresses();
+
+      this.mergeStack();
+      return addresses;
+    }
+
+    this.popStack();
+    return;
+  }
+
   private isNodeName(): NodeName | undefined {
     this.enqueueToStack();
     const valid = this.consumeAnyConcurrentTokens(
@@ -406,46 +481,10 @@ export class Parser extends BaseParser {
       return;
     }
 
-    const atValid = this.checkConcurrentTokens([validateToken(LexerToken.AT)]);
-    if (atValid.length) {
-      const addressValid = this.consumeAnyConcurrentTokens(
-        [LexerToken.DIGIT, LexerToken.HEX].map(validateToken)
-      );
-
-      const address = addressValid.length
-        ? Number.parseInt(addressValid.map((v) => v.value).join(""), 16)
-        : NaN;
-      const node = new NodeName(
-        name,
-        createTokenIndex(valid[0], addressValid.at(-1) ?? valid.at(-1)),
-        address
-      );
-
-      if (!adjacentTokens(valid.at(-1), atValid[0])) {
-        const whiteSpace = new ASTBase(
-          createTokenIndex(valid.at(-1)!, atValid[0])
-        );
-        this._issues.push(genIssue(SyntaxIssue.WHITE_SPACE, whiteSpace));
-      }
-      if (Number.isNaN(address)) {
-        this._issues.push(genIssue(SyntaxIssue.NODE_ADDRESS, node));
-      }
-
-      if (
-        !Number.isNaN(address) &&
-        !adjacentTokens(atValid.at(-1), addressValid[0])
-      ) {
-        const whiteSpace = new ASTBase(
-          createTokenIndex(atValid[0], addressValid.at(0))
-        );
-        this._issues.push(genIssue(SyntaxIssue.WHITE_SPACE, whiteSpace));
-      }
-
-      this.mergeStack();
-      return node;
-    }
-
     const node = new NodeName(name, createTokenIndex(valid[0], valid.at(-1)));
+    const addresses = this.processNodeAddresse(node);
+    node.address = addresses;
+
     this.mergeStack();
     return node;
   }
@@ -1603,7 +1642,7 @@ export class Parser extends BaseParser {
         i === nodePath?.children.length - 1 &&
         p &&
         afterPath &&
-        p.lastToken.pos.col + p.lastToken.pos.len !== afterPath.pos.col
+        !adjacentTokens(p.lastToken, afterPath)
       ) {
         this._issues.push(
           genIssue(
@@ -1613,11 +1652,7 @@ export class Parser extends BaseParser {
         );
         return;
       }
-      if (
-        i === 0 &&
-        beforePath &&
-        beforePath.pos.col + beforePath.pos.len !== p?.firstToken.pos.col
-      ) {
+      if (i === 0 && beforePath && !adjacentTokens(beforePath, p?.firstToken)) {
         this._issues.push(
           genIssue(
             SyntaxIssue.WHITE_SPACE,
@@ -1627,12 +1662,7 @@ export class Parser extends BaseParser {
         return;
       }
       const nextPart = nodePath?.children[i + 1];
-      if (
-        p &&
-        nextPart &&
-        p.lastToken.pos.col + p.lastToken.pos.len !==
-          nextPart?.firstToken.pos.col
-      ) {
+      if (p && nextPart && !adjacentTokens(p.lastToken, nextPart.firstToken)) {
         this._issues.push(
           genIssue(
             SyntaxIssue.WHITE_SPACE,
