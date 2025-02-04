@@ -89,6 +89,8 @@ export default () => {
             view.setUint32(i * 4, c);
           });
 
+        // TODO consider addinc check and warn if property.parent.address?.length > 1 && property.parent.address?.length !== addressCell
+
         if (property.parent.address && property.parent.address?.length > 1) {
           property.parent.address?.forEach((a, i) => {
             if (view.getUint32(i * 4) !== a) {
