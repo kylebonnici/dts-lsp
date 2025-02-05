@@ -22,6 +22,7 @@ import { ContextAware } from "../runtimeEvaluator";
 import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
 import { getStandardType } from "../dtsTypes/standardTypes";
 import { Node } from "../context/node";
+import { DiagnosticTag } from "vscode-languageserver";
 
 jest.mock("fs", () => ({
   readFileSync: jest.fn().mockImplementation(() => {
@@ -827,7 +828,8 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.OMITTED]);
+        expect(issues[0].tags).toEqual([DiagnosticTag.Deprecated]);
+        expect(issues[0].issues).toEqual([StandardTypeIssue.DEPRECATED]);
       });
 
       test("wrong type", async () => {
@@ -856,7 +858,8 @@ describe("Type Issues", () => {
         await context.parser.stable;
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
-        expect(issues.length).toEqual(0);
+        expect(issues[0].tags).toEqual([DiagnosticTag.Deprecated]);
+        expect(issues[0].issues).toEqual([StandardTypeIssue.DEPRECATED]);
       });
 
       test("valid type single string - memory", async () => {
@@ -870,7 +873,9 @@ describe("Type Issues", () => {
         await context.parser.stable;
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
-        expect(issues.length).toEqual(0);
+        expect(issues.length).toEqual(1);
+        expect(issues[0].tags).toEqual([DiagnosticTag.Deprecated]);
+        expect(issues[0].issues).toEqual([StandardTypeIssue.DEPRECATED]);
       });
 
       test("valid type multiple string", async () => {

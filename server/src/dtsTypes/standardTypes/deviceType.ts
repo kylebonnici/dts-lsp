@@ -19,17 +19,13 @@ import { PropertyNodeType, PropertyType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 import { StandardTypeIssue } from "../../types";
 import { genIssue } from "../../helpers";
-import { DiagnosticSeverity } from "vscode-languageserver";
+import { DiagnosticSeverity, DiagnosticTag } from "vscode-languageserver";
 
 export default () => {
   const prop = new PropertyNodeType(
     "device_type",
     generateOrTypeObj(PropertyType.STRING),
-    (node) => {
-      return node.name === "cpu" || node.name === "memory"
-        ? "optional"
-        : "omitted";
-    },
+    undefined,
     undefined,
     (property) => {
       if (property.parent.name === "cpu" || property.parent.name === "memory") {
@@ -67,7 +63,16 @@ export default () => {
               ];
         }
       }
-      return [];
+      return [
+        genIssue(
+          StandardTypeIssue.DEPRECATED,
+          property.ast,
+          DiagnosticSeverity.Hint,
+          [],
+          [DiagnosticTag.Deprecated],
+          [property.name]
+        ),
+      ];
     }
   );
   prop.desctiption = [
