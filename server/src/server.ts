@@ -283,12 +283,16 @@ interface Context {
   overlays?: string[];
   bindingType?: BindingType;
   zephyrBindings?: string[];
+  deviceOrgTreeBindings?: string[];
+  deviceOrgBindingsMetaSchema?: string[];
 }
 
 interface Settings {
   cwd?: string;
   defaultBindingType?: BindingType;
   defaultZephyrBindings?: string[];
+  defaultDeviceOrgTreeBindings?: string[];
+  defaultDeviceOrgBindingsMetaSchema?: string[];
   defaultIncludePaths?: string[];
   contexts?: Context[];
   preferredContext?: string | number;
@@ -348,6 +352,10 @@ connection.onDidChangeConfiguration((change) => {
       context.includePaths ??= globalSettings.defaultIncludePaths;
       context.zephyrBindings ??= globalSettings.defaultIncludePaths;
       context.bindingType ??= globalSettings.defaultBindingType;
+      context.deviceOrgTreeBindings ??=
+        globalSettings.defaultDeviceOrgTreeBindings;
+      context.deviceOrgBindingsMetaSchema ??=
+        globalSettings.defaultDeviceOrgBindingsMetaSchema;
 
       if (
         cwd &&
@@ -356,9 +364,15 @@ connection.onDidChangeConfiguration((change) => {
       ) {
         context.zephyrBindings = ["./zephyr/dts/bindings"];
       }
+
       context.zephyrBindings = context.zephyrBindings?.map((i) =>
         resolve(cwd, i)
       );
+      context.deviceOrgTreeBindings = context.deviceOrgTreeBindings?.map((i) =>
+        resolve(cwd, i)
+      );
+      context.deviceOrgBindingsMetaSchema =
+        context.deviceOrgBindingsMetaSchema?.map((i) => resolve(cwd, i));
       context.includePaths = context.includePaths?.map((i) => resolve(cwd, i));
       context.dtsFile = resolve(cwd, context.dtsFile);
     }
@@ -380,7 +394,15 @@ connection.onDidChangeConfiguration((change) => {
       context.dtsFile,
       context.includePaths ?? [],
       bindingType
-        ? getBindingLoader(context.zephyrBindings ?? [], bindingType)
+        ? getBindingLoader(
+            {
+              zephyrBindings: context.zephyrBindings ?? [],
+              deviceOrgBindingsMetaSchema:
+                context.deviceOrgBindingsMetaSchema ?? [],
+              deviceOrgTreeBindings: context.deviceOrgTreeBindings ?? [],
+            },
+            bindingType
+          )
         : undefined,
       context.overlays,
       context.ctxName
@@ -392,7 +414,7 @@ connection.onDidChangeConfiguration((change) => {
   });
 
   // resolve global with cwd
-  const resolvedGLobal = resolveGlobal();
+  const resolvedGlobal = resolveGlobal();
 
   contextAware = [
     ...contextAware,
@@ -400,9 +422,18 @@ connection.onDidChangeConfiguration((change) => {
       const bindingType = globalSettings.defaultBindingType;
       const context = new ContextAware(
         c.parser.uri,
-        resolvedGLobal.defaultIncludePaths,
+        resolvedGlobal.defaultIncludePaths,
         bindingType
-          ? getBindingLoader(resolvedGLobal.defaultZephyrBindings, bindingType)
+          ? getBindingLoader(
+              {
+                zephyrBindings: resolvedGlobal.defaultZephyrBindings,
+                deviceOrgBindingsMetaSchema:
+                  resolvedGlobal.defaultDeviceOrgBindingsMetaSchema,
+                deviceOrgTreeBindings:
+                  resolvedGlobal.defaultDeviceOrgTreeBindings,
+              },
+              bindingType
+            )
           : undefined
       );
       console.log(`New context with ID ${context.name} for ${c.parser.uri}`);
@@ -451,9 +482,31 @@ const resolveGlobal = () => {
     return i;
   });
 
+  const defaultDeviceOrgBindingsMetaSchema = (
+    globalSettings.defaultDeviceOrgBindingsMetaSchema ?? []
+  ).map((i) => {
+    if (globalSettings.cwd) {
+      return resolve(globalSettings.cwd, i);
+    }
+
+    return i;
+  });
+
+  const defaultDeviceOrgTreeBindings = (
+    globalSettings.defaultDeviceOrgTreeBindings ?? []
+  ).map((i) => {
+    if (globalSettings.cwd) {
+      return resolve(globalSettings.cwd, i);
+    }
+
+    return i;
+  });
+
   return {
     defaultIncludePaths,
     defaultZephyrBindings,
+    defaultDeviceOrgBindingsMetaSchema,
+    defaultDeviceOrgTreeBindings,
   };
 };
 
@@ -682,6 +735,8 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
           return `Unable to find "${issue.templateStrings[0]}" in ${issue.templateStrings[1]}`;
         case StandardTypeIssue.EXPECTED_VALUE:
           return issue.templateStrings[0];
+        case StandardTypeIssue.DEVICETREE_ORG_BINDINGS:
+          return issue.templateStrings[0];
       }
     })
     .join(" or ")
@@ -732,7 +787,16 @@ documents.onDidChangeContent(async (change) => {
       uri,
       resolvedGlobal.defaultIncludePaths,
       bindingType
-        ? getBindingLoader(resolvedGlobal.defaultZephyrBindings, bindingType)
+        ? getBindingLoader(
+            {
+              zephyrBindings: resolvedGlobal.defaultZephyrBindings,
+              deviceOrgBindingsMetaSchema:
+                resolvedGlobal.defaultDeviceOrgBindingsMetaSchema,
+              deviceOrgTreeBindings:
+                resolvedGlobal.defaultDeviceOrgTreeBindings,
+            },
+            bindingType
+          )
         : undefined
     );
     console.log(`New ad hoc context with ID ${newContext.name} for ${uri}`);

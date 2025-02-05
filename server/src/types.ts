@@ -61,6 +61,7 @@ export enum StandardTypeIssue {
   UNABLE_TO_RESOLVE_PHANDLE,
   UNABLE_TO_RESOLVE_PATH,
   EXPECTED_VALUE,
+  DEVICETREE_ORG_BINDINGS,
 }
 
 export enum SyntaxIssue {

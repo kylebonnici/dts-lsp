@@ -67,6 +67,18 @@
           "default": [],
           "description": "Default Zephyr binding paths"
         },
+        "devicetree.defaultDeviceOrgTreeBindings": {
+          "scope": "resource",
+          "type": "array",
+          "default": [],
+          "description": "Default devicetree-org binding paths"
+        },
+        "devicetree.defaultDeviceOrgBindingsMetaSchema": {
+          "scope": "resource",
+          "type": "array",
+          "default": [],
+          "description": "Default devicetree-org MetaSchema binding paths"
+        },
         "devicetree.cwd": {
           "scope": "resource",
           "type": "string",

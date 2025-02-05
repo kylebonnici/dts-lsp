@@ -50,14 +50,10 @@ export enum PropertyType {
   ANY,
 }
 
-export interface Validate {
-  validate: (runtime: Runtime, node: Node) => Issue<StandardTypeIssue>[];
-}
-
 export type RequirementStatus = "required" | "omitted" | "optional";
 
 export type TypeConfig = { types: PropertyType[] };
-export class PropertyNodeType<T = string | number> implements Validate {
+export class PropertyNodeType<T = string | number> {
   public required: (node: Node) => RequirementStatus;
   public values: (property: Property) => T[];
   public hideAutoComplete = false;
@@ -107,7 +103,7 @@ export class PropertyNodeType<T = string | number> implements Validate {
     return typeof this.name === "string" ? this.name === name : this.name(name);
   }
 
-  private validateProperty(
+  validateProperty(
     runtime: Runtime,
     node: Node,
     propertyName: string,
@@ -340,25 +336,6 @@ export class PropertyNodeType<T = string | number> implements Validate {
     return issues;
   }
 
-  validate(runtime: Runtime, node: Node): Issue<StandardTypeIssue>[] {
-    if (typeof this.name === "string") {
-      const property = node.getProperty(this.name);
-      return this.validateProperty(runtime, node, this.name, property);
-    }
-
-    const properties = node.properties.filter((p) => this.getNameMatch(p.name));
-
-    const ddd = node.nodeType?.properties.filter((t) => t !== this) ?? [];
-
-    if (properties.filter((p) => ddd.some((d) => d.getNameMatch(p.name)))) {
-      return [];
-    }
-
-    return properties.flatMap((p) =>
-      this.validateProperty(runtime, node, p.name, p)
-    );
-  }
-
   getPropertyCompletionItems(property: Property): CompletionItem[] {
     const currentValue = this.type.at(property.ast.values?.values.length ?? 0);
     if (currentValue?.types.some((tt) => tt === PropertyType.STRING)) {
@@ -425,18 +402,26 @@ const propertyValueToPropertyType = (
   return PropertyType.BYTESTRING;
 };
 
-export class NodeType {
-  compatible?: string;
-  private _properties: PropertyNodeType[] = [];
+export abstract class INodeType {
+  abstract getIssue(runtime: Runtime, node: Node): Issue<StandardTypeIssue>[];
+  abstract getOnPropertyHover(name: string): MarkupContent | undefined;
+  abstract childNodeType: INodeType | undefined;
+  onBus?: string;
+  bus?: string[];
+  description?: string;
+  maintainers?: string[];
+  examples?: string[];
   cellsValues?: {
     specifier: string;
     values: string[];
   }[];
-  _childNodeType?: NodeType;
   bindingsPath?: string;
-  description?: string;
-  onBus?: string;
-  bus?: string[];
+  compatible?: string;
+}
+
+export class NodeType extends INodeType {
+  private _properties: PropertyNodeType[] = [];
+  _childNodeType?: NodeType;
 
   getIssue(runtime: Runtime, node: Node) {
     const issue: Issue<StandardTypeIssue>[] = [];
@@ -463,10 +448,33 @@ export class NodeType {
       }
     }
 
-    return [
-      ...issue,
-      ...this.properties.flatMap((p) => p.validate(runtime, node)),
-    ];
+    const propIssues = this.properties.flatMap((propType) => {
+      if (typeof propType.name === "string") {
+        const property = node.getProperty(propType.name);
+        return propType.validateProperty(
+          runtime,
+          node,
+          propType.name,
+          property
+        );
+      }
+
+      const properties = node.properties.filter((p) =>
+        propType.getNameMatch(p.name)
+      );
+
+      const ddd = this.properties.filter((t) => t !== propType) ?? [];
+
+      if (properties.filter((p) => ddd.some((d) => d.getNameMatch(p.name)))) {
+        return [];
+      }
+
+      return properties.flatMap((p) =>
+        propType.validateProperty(runtime, node, p.name, p)
+      );
+    });
+
+    return [...issue, ...propIssues];
   }
 
   get properties() {
