@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 # 0.0.10 - UNRELEASED
 
+### Added
+
+- Experimental Support for devicetree-org json schema bindings
+
 ### Changed
 
 - `device_type`
