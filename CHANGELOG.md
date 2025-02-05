@@ -4,7 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-# 0.0.10 - 2025-01-26
+# 0.0.10 - UNRELEASED
+
+### Changed
+
+- `device_type`
+  - diagnostics now always show depricated warning.
+  - no loger how should be ommited diagnostic
 
 ### Fixed
 
