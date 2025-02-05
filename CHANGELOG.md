@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Clean up diagnostics from inactive context
 - Support for node names with comma separated addresses e.g.
 
 ```devicetree
