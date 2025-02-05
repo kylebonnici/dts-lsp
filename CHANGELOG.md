@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Parser support for `prop = /bits/ 8 <10>;`
   - This syntax will be marked with a warning given it is not part of the v0.4 devicetree spec.
 - Parser support for `/memreserve/ 0x0000a800 0x000f5800;`
+- Experimental Support for devicetree-org json schema bindings
 
 ### Changed
 
