@@ -1057,7 +1057,7 @@ const updateActiveContext = async (uri: string, force = false) => {
 connection.onDocumentSymbol(async (h) => {
   await allStable();
   const uri = h.textDocument.uri.replace("file://", "");
-  updateActiveContext(uri);
+  await updateActiveContext(uri);
 
   const context = await activeContext;
 
@@ -1079,7 +1079,7 @@ connection.onWorkspaceSymbol(async () => {
 connection.languages.semanticTokens.on(async (h) => {
   await allStable();
   const uri = h.textDocument.uri.replace("file://", "");
-  updateActiveContext(uri);
+  await updateActiveContext(uri);
 
   const tokensBuilder = new SemanticTokensBuilder();
 
@@ -1190,7 +1190,7 @@ connection.onRequest("devicetree/contexts", async () => {
 connection.onFoldingRanges(async (event) => {
   await allStable();
   const uri = event.textDocument.uri.replace("file://", "");
-  updateActiveContext(uri);
+  await updateActiveContext(uri);
 
   const context = await activeContext;
 

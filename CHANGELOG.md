@@ -14,6 +14,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Issue with providing document symbol on startup
+- Issue with providing semantic tokens on startup
+- Issue with providing folding ranges on startup
 - Clean up diagnostics from inactive context
 - Support for node names with comma separated addresses e.g.
 
