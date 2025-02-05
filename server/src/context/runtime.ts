@@ -132,7 +132,8 @@ export class Runtime implements Searchable {
     const nodeName = path[0].split("@");
     const name = nodeName[0];
     const addressStr = nodeName.at(1);
-    const address = addressStr ? Number.parseInt(addressStr, 16) : undefined;
+    const address = addressStr?.split(",").map((v) => Number.parseInt(v, 16));
+
     const remainingPath = path.slice(1);
     const childNode = node.getNode(name, address);
     return childNode

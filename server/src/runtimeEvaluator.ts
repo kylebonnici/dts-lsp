@@ -200,7 +200,7 @@ export class ContextAware {
             if (nodePath) {
               const child: Node | undefined = node?.getNode(
                 nodePath.name,
-                nodePath.address,
+                nodePath.address?.map((a) => a.address),
                 false
               );
               nodePath.linksTo = child;
@@ -299,7 +299,7 @@ export class ContextAware {
 
   private checkNodeUniqueNames(element: DtcBaseNode, runtimeNodeParent: Node) {
     const checkMatch = (
-      values: (NodeName | { name: string; address?: number })[],
+      values: { name: string; address?: number[] }[],
       nodeName: NodeName
     ) => {
       return values.some(
@@ -307,10 +307,10 @@ export class ContextAware {
           i.name === nodeName.name &&
           (i.address === undefined ||
             nodeName.address === undefined ||
-            i.address === nodeName.address)
+            i.address.every((a, i) => nodeName.address?.at(i)?.address === a))
       );
     };
-    const fullNames: { name: string; address?: number }[] =
+    const fullNames: { name: string; address?: number[] }[] =
       runtimeNodeParent.nodes.map((n) => ({
         name: n.name,
         address: n.address,
@@ -320,7 +320,15 @@ export class ContextAware {
 
     element.children.forEach((child) => {
       if (child instanceof DtcChildNode && child.name) {
-        if (checkMatch(names, child.name)) {
+        if (
+          checkMatch(
+            names.map((n) => ({
+              name: n.name,
+              address: n.address?.map((add) => add.address),
+            })),
+            child.name
+          )
+        ) {
           this._issues.push(
             genIssue(ContextIssues.DUPLICATE_NODE_NAME, child.name)
           );
@@ -333,7 +341,10 @@ export class ContextAware {
       ) {
         const nodeName = child.nodeNameOrRef;
         if (checkMatch(fullNames, nodeName)) {
-          names = names.filter((i) => checkMatch(names, i));
+          names = names.filter((i) => checkMatch(names.map((n) => ({
+            name: n.name,
+            address: n.address?.map((add) => add.address),
+          })), i));
         }
       }
     });
@@ -389,7 +400,7 @@ export class ContextAware {
         new Node(
           this.bindingLoader,
           element.name.name,
-          element.name.address,
+          element.name.address?.map((a) => a.address),
           runtimeNodeParent
         );
       child.definitions.push(element);
@@ -494,7 +505,7 @@ export class ContextAware {
         if (
           !runtimeNodeParent.hasNode(
             element.nodeNameOrRef.name,
-            element.nodeNameOrRef.address
+            element.nodeNameOrRef.address?.map((a) => a.address)
           )
         ) {
           this._issues.push(
@@ -504,13 +515,13 @@ export class ContextAware {
           runtimeNodeParent.deletes.push(element);
           const nodeToBeDeleted = runtimeNodeParent.getNode(
             element.nodeNameOrRef.name,
-            element.nodeNameOrRef.address
+            element.nodeNameOrRef.address?.map((a) => a.address)
           );
           element.nodeNameOrRef.linksTo = nodeToBeDeleted;
           runtimeNodeParent.deleteNode(
             element.nodeNameOrRef.name,
             element,
-            element.nodeNameOrRef.address
+            element.nodeNameOrRef.address?.map((a) => a.address)
           );
 
           nodeToBeDeleted?.labels.forEach((label) => {
@@ -582,7 +593,7 @@ export class ContextAware {
         if (nodePath) {
           const child: Node | undefined = node?.getNode(
             nodePath.name,
-            nodePath.address,
+            nodePath.address?.map((a) => a.address),
             false
           );
           nodePath.linksTo = child;

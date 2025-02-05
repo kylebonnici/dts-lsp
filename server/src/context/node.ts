@@ -63,7 +63,7 @@ export class Node {
   constructor(
     public readonly bindingLoader: BindingLoader | undefined,
     public readonly name: string,
-    public readonly address?: number,
+    public readonly address?: number[],
     public readonly parent: Node | null = null
   ) {
     parent?.addNode(this);
@@ -288,9 +288,12 @@ export class Node {
     return this._properties.map((property) => property.name);
   }
 
-  hasNode(name: string, address?: number) {
+  hasNode(name: string, address?: number[]) {
     return this._nodes.some(
-      (node) => node.name === name && node.address === address
+      (node) =>
+        node.name === name &&
+        (node.address === address ||
+          node.address?.every((a, i) => address?.at(i) === a))
     );
   }
 
@@ -302,9 +305,12 @@ export class Node {
     return this._properties.find((property) => property.name === name);
   }
 
-  deleteNode(name: string, by: DeleteNode, address?: number) {
+  deleteNode(name: string, by: DeleteNode, address?: number[]) {
     const index = this._nodes.findIndex(
-      (node) => node.name === name && address === node.address
+      (node) =>
+        node.name === name &&
+        (node.address === address ||
+          address?.every((a, i) => node.address?.at(i) === a))
     );
     if (index === -1) return;
 
@@ -348,12 +354,15 @@ export class Node {
     return this._nodes.flatMap((n) => n.getPhandle(id)).find((n) => !!n);
   }
 
-  getNode(name: string, address?: number, strict = true) {
+  getNode(name: string, address?: number[], strict = true) {
     const isAddressNeeded =
       strict || this._nodes.filter((node) => node.name === name).length > 1;
     const index = this._nodes.findIndex(
       (node) =>
-        node.name === name && (!isAddressNeeded || node.address === address)
+        node.name === name &&
+        (!isAddressNeeded ||
+          node.address === address ||
+          node.address?.every((a, i) => address?.at(i) === a))
     );
     if (index === -1) return;
 
@@ -402,7 +411,9 @@ export class Node {
     const split = copy[0].split("@");
     const name = split[0];
     const address =
-      split[1] !== undefined ? Number.parseInt(split[1], 16) : undefined;
+      split[1] !== undefined
+        ? split[1].split(",").map((v) => Number.parseInt(v, 16))
+        : undefined;
     const myChild = this.getNode(name, address, strict);
     if (copy.length === 1 || !myChild) return myChild;
 
@@ -426,7 +437,9 @@ export class Node {
 
   get fullName() {
     if (this.address !== undefined) {
-      return `${this.name}@${this.address.toString(16)}`;
+      return `${this.name}@${this.address
+        .map((v) => v.toString(16))
+        .join(",")}`;
     }
 
     return this.name;

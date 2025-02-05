@@ -111,7 +111,7 @@ describe("Context Issues", () => {
     ).toEqual(25);
   });
 
-  test("Duplicate node name in node", async () => {
+  test("Duplicate node name no address in node", async () => {
     mockReadFileSync("/{node{};node{}};");
     const context = new ContextAware(
       "/folder/dts.dts",
@@ -128,6 +128,44 @@ describe("Context Issues", () => {
       issues[0].astElement.lastToken.pos.col +
         issues[0].astElement.lastToken.pos.len
     ).toEqual(13);
+  });
+
+  test("Duplicate node name with address in node", async () => {
+    mockReadFileSync("/{node@20{};node@20{}};");
+    const context = new ContextAware(
+      "/folder/dts.dts",
+      [],
+      getFakeBindingLoader(),
+      []
+    );
+    await context.parser.stable;
+    const issues = await context.getContextIssues();
+    expect(issues.length).toEqual(1);
+    expect(issues[0].issues).toEqual([ContextIssues.DUPLICATE_NODE_NAME]);
+    expect(issues[0].astElement.firstToken.pos.col).toEqual(12);
+    expect(
+      issues[0].astElement.lastToken.pos.col +
+        issues[0].astElement.lastToken.pos.len
+    ).toEqual(19);
+  });
+
+  test("Duplicate node name with address coma separated in node", async () => {
+    mockReadFileSync("/{node@20,30{};node@20,30{}};");
+    const context = new ContextAware(
+      "/folder/dts.dts",
+      [],
+      getFakeBindingLoader(),
+      []
+    );
+    await context.parser.stable;
+    const issues = await context.getContextIssues();
+    expect(issues.length).toEqual(1);
+    expect(issues[0].issues).toEqual([ContextIssues.DUPLICATE_NODE_NAME]);
+    expect(issues[0].astElement.firstToken.pos.col).toEqual(15);
+    expect(
+      issues[0].astElement.lastToken.pos.col +
+        issues[0].astElement.lastToken.pos.len
+    ).toEqual(25);
   });
 
   describe("Unable to resolve node name", () => {
