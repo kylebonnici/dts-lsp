@@ -63,7 +63,7 @@ export class Node {
   constructor(
     public readonly bindingLoader: BindingLoader | undefined,
     public readonly name: string,
-    public readonly address?: number,
+    public readonly address?: number[],
     public readonly parent: Node | null = null
   ) {
     parent?.addNode(this);
