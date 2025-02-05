@@ -786,10 +786,10 @@ const clearWorkspaceDiagnostics = (
   context: ContextAware,
   items: PublishDiagnosticsParams[] = generateClearWorkspaceDiagnostics(context)
 ) => {
-  items.forEach((file) => {
+  items.forEach((item) => {
     connection.sendDiagnostics({
-      uri: `file://${file}`,
-      version: documents.get(`file://${file}`)?.version,
+      uri: item.uri,
+      version: documents.get(item.uri)?.version,
       diagnostics: [],
     } satisfies PublishDiagnosticsParams);
   });
