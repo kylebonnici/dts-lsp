@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Parser issue where `unknown syntax` diagnostic is reported for no apparent reason
 - Issue with providing document symbol on startup
 - Issue with providing semantic tokens on startup
 - Issue with providing folding ranges on startup

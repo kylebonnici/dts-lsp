@@ -411,8 +411,9 @@ export abstract class BaseParser {
     return block;
   }
 
-  protected moveEndOfLine = (line: number, report = true) => {
-    if (this.currentToken?.pos.line !== line) {
+  protected moveEndOfLine = (token: Token, report = true) => {
+    const line = token.pos.line;
+    if (this.currentToken?.pos.line !== line|| this.currentToken?.uri !== token.uri ) {
       return;
     }
 

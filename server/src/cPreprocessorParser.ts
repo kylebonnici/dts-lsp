@@ -110,19 +110,20 @@ export class CPreprocessorParser extends BaseParser {
       this.prevToken &&
       this.prevToken.pos.line === this.currentToken?.pos.line
     ) {
-      this.moveEndOfLine(this.prevToken.pos.line, false);
+      this.moveEndOfLine(this.prevToken, false);
       this.mergeStack();
       return;
     }
 
-    const line = this.currentToken?.pos.line;
+    const token = this.currentToken;
+    const uri = this.currentToken?.uri;
     const found =
       (await this.processInclude()) ||
       this.processDefinitions() ||
       this.processIfDefBlocks();
 
-    if (line !== undefined) {
-      this.moveEndOfLine(line, !!found);
+    if (token) {
+      this.moveEndOfLine(token, !!found);
     }
 
     this.mergeStack();
@@ -429,14 +430,14 @@ export class CPreprocessorParser extends BaseParser {
       this.moveToNextToken;
     }
 
-    const line = keywordStart?.pos.line;
+    const t = keywordStart;
     const keyword = new Keyword(createTokenIndex(keywordStart, keywordEnd));
 
     token = this.moveToNextToken;
     const pathStart = token;
     const relative = !!validToken(token, LexerToken.STRING);
     if (!pathStart || (!relative && !validToken(token, LexerToken.LT_SYM))) {
-      if (line) this.moveEndOfLine(line);
+      if (t) this.moveEndOfLine(t);
       this.mergeStack();
       return true;
     }
@@ -447,7 +448,7 @@ export class CPreprocessorParser extends BaseParser {
       path = token?.value ?? "";
     } else {
       while (
-        this.currentToken?.pos.line === line &&
+        this.currentToken?.pos.line === t.pos.line &&
         !validToken(this.currentToken, LexerToken.GT_SYM)
       ) {
         path += this.currentToken?.value ?? "";
@@ -465,7 +466,7 @@ export class CPreprocessorParser extends BaseParser {
 
     if (!relative) {
       if (
-        this.currentToken?.pos.line !== line ||
+        this.currentToken?.pos.line !== t.pos.line ||
         !validToken(this.currentToken, LexerToken.GT_SYM)
       ) {
         this._issues.push(genIssue(SyntaxIssue.GT_SYM, node));
