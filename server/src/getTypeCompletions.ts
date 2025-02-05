@@ -26,6 +26,7 @@ import { DtcProperty, PropertyName } from "./ast/dtc/property";
 import { Property } from "./context/property";
 import { nodeFinder } from "./helpers";
 import { isDeleteChild } from "./ast/helpers";
+import { NodeType } from "./dtsTypes/types";
 
 function getPropertyAssignItems(
   result: SearchableResult | undefined
@@ -41,11 +42,17 @@ function getPropertyAssignItems(
     return [];
   }
 
-  return (
-    result.item.parent.nodeType?.properties
-      .find((p) => p.name === result.item?.name)
-      ?.getPropertyCompletionItems(result.item) ?? []
-  );
+  const nodeType = result.item.parent.nodeType;
+  if (nodeType instanceof NodeType) {
+    return (
+      nodeType.properties
+        .find((p) => p.name === result.item?.name)
+        ?.getPropertyCompletionItems(result.item) ?? []
+    );
+  }
+
+  // TODO linux
+  return [];
 }
 
 function getPropertyNamesItems(
@@ -64,9 +71,9 @@ function getPropertyNamesItems(
     return [];
   }
 
-  const getItems = (node: Node) => {
+  const getItems = (node: Node, nodeType?: NodeType) => {
     return (
-      node.nodeType?.properties
+      nodeType?.properties
         .filter(
           (p) =>
             !p.hideAutoComplete &&

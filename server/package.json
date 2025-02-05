@@ -11,7 +11,8 @@
     "lsp"
   ],
   "files": [
-    "dist/server.js"
+    "dist/server.js",
+    "meta-schemas/**"
   ],
   "bin": "dist/server.js",
   "git repository": "https://github.com/kylebonnici/dts-lsp",
@@ -24,6 +25,9 @@
     "url": "https://github.com/kylebonnici/dts-lsp"
   },
   "dependencies": {
+    "@hyperjump/browser": "^1.2.0",
+    "@hyperjump/json-schema": "^1.10.1",
+    "ajv": "^8.17.1",
     "glob": "^11.0.0",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.11",

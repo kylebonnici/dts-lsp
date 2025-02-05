@@ -126,7 +126,11 @@ export class Runtime implements Searchable {
     return;
   }
 
-  static getNodeFromPath(path: string[], node: Node): Node | undefined {
+  static getNodeFromPath(
+    path: string[],
+    node: Node,
+    strict = true
+  ): Node | undefined {
     if (path.length === 0) return node;
 
     const nodeName = path[0].split("@");
@@ -135,9 +139,9 @@ export class Runtime implements Searchable {
     const address = addressStr?.split(",").map((v) => Number.parseInt(v, 16));
 
     const remainingPath = path.slice(1);
-    const childNode = node.getNode(name, address);
+    const childNode = node.getNode(name, address, strict);
     return childNode
-      ? Runtime.getNodeFromPath(remainingPath, childNode)
+      ? Runtime.getNodeFromPath(remainingPath, childNode, strict)
       : undefined;
   }
 

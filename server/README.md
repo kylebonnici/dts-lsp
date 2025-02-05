@@ -26,12 +26,16 @@ interface Context {
   overlays?: string[];
   bindingType?: BindingType;
   zephyrBindings?: string[];
+  deviceOrgTreeBindings?: string[];
+  deviceOrgBindingsMetaSchema?: string[];
 }
 
 interface Settings {
   cwd?: string;
   defaultBindingType?: BindingType;
   defaultZephyrBindings?: string[];
+  defaultDeviceOrgTreeBindings?: string[];
+  defaultDeviceOrgBindingsMetaSchema?: string[];
   defaultIncludePaths?: string[];
   contexts?: Context[];
   preferredContext?: string | number;
