@@ -100,20 +100,51 @@ const convertToError = (
   error: ErrorObject<string, Record<string, any>, unknown>,
   node: Node
 ): Issue<StandardTypeIssue>[] => {
-  const intanceNode = error.instancePath
-    ? Runtime.getNodeFromPath(
-        error.instancePath.split("/").filter((v) => v),
-        node,
-        false
-      )
-    : node;
+  if (error.keyword === "type") {
+    // TODO JSON is not valid as is to check types.....
+    const childPath = error.instancePath
+      .split("/")
+      .filter((v) => v)
+      .slice(1);
+    const intanceNode = childPath.length
+      ? Runtime.getNodeFromPath(childPath, node, false)
+      : node;
 
-  if (!intanceNode) {
-    console.warn("unable to find node intance", error);
-    return [];
-  }
+    if (!intanceNode) {
+      console.warn("unable to find node intance", error);
+      return [];
+    }
 
-  if (error.keyword === "required") {
+    const prop = intanceNode.getProperty(error.instancePath.split("/")[1]);
+
+    if (!prop) {
+      console.warn("unable to find property in node", error);
+      return [];
+    }
+
+    return [
+      genIssue<StandardTypeIssue>(
+        StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
+        prop.ast,
+        DiagnosticSeverity.Error,
+        [],
+        [],
+        [`${prop.name} ${error.message ?? "NO MESSAGE"}`]
+      ),
+    ];
+  } else if (error.keyword === "required") {
+    const intanceNode = error.instancePath
+      ? Runtime.getNodeFromPath(
+          error.instancePath.split("/").filter((v) => v),
+          node,
+          false
+        )
+      : node;
+
+    if (!intanceNode) {
+      console.warn("unable to find node intance", error);
+      return [];
+    }
     const propertyName = error.params.missingProperty;
 
     const p = intanceNode.getProperty(propertyName);
