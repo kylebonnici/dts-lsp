@@ -61,8 +61,8 @@ export class DevicetreeOrgBindingsLoader {
         const readData = yaml.parse(readFileSync(bindingFile, "utf-8"));
         ajv.addSchema(readData);
         this.schemaIdValidators.set(readData["$id"], bindingFile);
-      } catch (e) {
-        // console.warn(bindingFile, e);
+      } catch (e: any) {
+        console.warn(bindingFile, e.message);
       }
     });
   }
