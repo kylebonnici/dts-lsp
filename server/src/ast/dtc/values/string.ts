@@ -32,4 +32,8 @@ export class StringValue extends ASTBase {
   toString() {
     return `"${this.value.toString()}"`;
   }
+
+  toJson() {
+    return this.value;
+  }
 }

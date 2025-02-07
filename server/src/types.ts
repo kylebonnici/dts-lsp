@@ -26,7 +26,7 @@ import { Property } from "./context/property";
 import { Runtime } from "./context/runtime";
 
 export type CodeActionDiagnosticData = {
-  issues: { edit?: TextEdit } & (
+  issues: { edit?: TextEdit; codeActionTitle?: string } & (
     | { type: "SyntaxIssue"; items: SyntaxIssue[] }
     | { type: "StandardTypeIssue"; items: StandardTypeIssue[] }
   );
@@ -259,6 +259,7 @@ export interface Issue<T extends IssueTypes> {
   linkedTo: ASTBase[];
   templateStrings: string[];
   edit?: TextEdit;
+  codeActionTitle?: string;
 }
 
 export type SearchableResult = {

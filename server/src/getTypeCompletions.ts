@@ -82,7 +82,7 @@ function getPropertyNamesItems(
         )
         .map((p) => {
           const required = node && p.required(node);
-          const hasProperty = !!node.properties.some((pp) =>
+          const hasProperty = !!node.property.some((pp) =>
             p.getNameMatch(pp.name)
           );
           let sortLetter = "a";

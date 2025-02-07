@@ -43,4 +43,12 @@ export class ArrayValues extends ASTBase {
   toString() {
     return `<${this.values.map((v) => v.toString()).join(" ")}>`;
   }
+
+  toJson() {
+    if (this.values.length === 1) {
+      return this.values[0].value?.toJson();
+    }
+
+    return this.values.map((v) => v.value?.toJson() ?? NaN);
+  }
 }

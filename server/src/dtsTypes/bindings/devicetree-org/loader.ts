@@ -92,24 +92,29 @@ export class DevicetreeOrgBindingsLoader {
     const types =
       (compatible
         ?.map((c) => {
-          const bestMatchKey = Array.from(this.schemaIdValidators.keys()).find(
-            (s) => s.endsWith(`${c}.yaml#`)
-          );
+          try {
+            const bestMatchKey = Array.from(
+              this.schemaIdValidators.keys()
+            ).find((s) => s.endsWith(`/${c}.yaml#`));
 
-          if (!bestMatchKey) {
-            return;
+            if (!bestMatchKey) {
+              return;
+            }
+
+            const nodeType = new DevicetreeOrgNodeType(ajv, bestMatchKey);
+            nodeType.bindingsPath = this.schemaIdValidators.get(bestMatchKey);
+            nodeType.compatible = c;
+            const validate = ajv.getSchema(bestMatchKey);
+            nodeType.description = (validate?.schema as any)
+              .description as string;
+            nodeType.examples = (validate?.schema as any).examples as string[];
+            nodeType.maintainers = (validate?.schema as any)
+              .maintainers as string[];
+
+            return nodeType;
+          } catch (e: any) {
+            console.warn(e.message);
           }
-
-          const nodeType = new DevicetreeOrgNodeType(ajv, bestMatchKey);
-          nodeType.bindingsPath = this.schemaIdValidators.get(bestMatchKey);
-          nodeType.compatible = c;
-          const validate = ajv.getSchema(bestMatchKey);
-          nodeType.description = (validate?.schema as any)
-            .description as string;
-          nodeType.maintainers = (validate?.schema as any)
-            .maintainers as string[];
-
-          return nodeType;
         })
         .filter((d) => d) as DevicetreeOrgNodeType[]) ?? [];
 

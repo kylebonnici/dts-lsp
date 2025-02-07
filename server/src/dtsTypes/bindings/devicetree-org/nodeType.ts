@@ -19,7 +19,11 @@ import { StringValue } from "../../../ast/dtc/values/string";
 import { Node } from "../../../context/node";
 import { Runtime } from "../../../context/runtime";
 import { INodeType } from "../../../dtsTypes/types";
-import { genIssue, getIndentString } from "../../../helpers";
+import {
+  genIssue,
+  getIndentString,
+  toRangeWithTokenIndex,
+} from "../../../helpers";
 import { Issue, StandardTypeIssue } from "../../../types";
 import {
   DiagnosticSeverity,
@@ -30,6 +34,8 @@ import {
 } from "vscode-languageserver";
 import { getNodeNameOrNodeLabelRef } from "../../../ast/helpers";
 import { countParent } from "../../../getDocumentFormatting";
+import { DtcRootNode } from "../../../ast/dtc/node";
+import { Property } from "../../../context/property";
 
 export class DevicetreeOrgNodeType extends INodeType {
   constructor(private ajv: Ajv, private schemaKey: string) {
@@ -100,21 +106,36 @@ const convertToError = (
   error: ErrorObject<string, Record<string, any>, unknown>,
   node: Node
 ): Issue<StandardTypeIssue>[] => {
-  if (error.keyword === "type") {
-    // TODO JSON is not valid as is to check types.....
-    const childPath = error.instancePath
-      .split("/")
-      .filter((v) => v)
-      .slice(1);
-    const intanceNode = childPath.length
-      ? Runtime.getNodeFromPath(childPath, node, false)
-      : node;
+  const meta = getMeta(node, error.instancePath);
 
-    if (!intanceNode) {
-      console.warn("unable to find node intance", error);
+  const intanceNode = meta.node;
+
+  if (error.keyword === "additionalProperties") {
+    const property = intanceNode.getProperty(error.params.additionalProperty);
+
+    if (!property) {
       return [];
     }
-
+    return [
+      genIssue<StandardTypeIssue>(
+        StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
+        property.ast,
+        DiagnosticSeverity.Error,
+        [],
+        [],
+        [`Node "${intanceNode.name}" ${error.message}: ${property.name}`],
+        TextEdit.del(
+          toRangeWithTokenIndex(
+            property.ast.firstToken.prevToken,
+            property.ast.lastToken,
+            false
+          )
+        ),
+        "Remove property"
+      ),
+    ];
+  } else if (error.keyword === "type") {
+    // TODO JSON is not valid as is to check types.....
     const prop = intanceNode.getProperty(error.instancePath.split("/")[1]);
 
     if (!prop) {
@@ -129,37 +150,12 @@ const convertToError = (
         DiagnosticSeverity.Error,
         [],
         [],
-        [`${prop.name} ${error.message ?? "NO MESSAGE"}`]
+        [`"${prop.name}" ${error.message ?? "NO MESSAGE"}`]
       ),
     ];
   } else if (error.keyword === "required") {
-    const intanceNode = error.instancePath
-      ? Runtime.getNodeFromPath(
-          error.instancePath.split("/").filter((v) => v),
-          node,
-          false
-        )
-      : node;
-
-    if (!intanceNode) {
-      console.warn("unable to find node intance", error);
-      return [];
-    }
     const propertyName = error.params.missingProperty;
 
-    const p = intanceNode.getProperty(propertyName);
-    if (p) {
-      return [
-        genIssue<StandardTypeIssue>(
-          StandardTypeIssue.EXPECTED_VALUE,
-          p.ast,
-          DiagnosticSeverity.Error,
-          [],
-          [],
-          [`Binding expects property to have a value`]
-        ),
-      ];
-    }
     const childOrRefNode = runtime.getOrderedNodeAst(intanceNode);
     const orderedTree = getNodeNameOrNodeLabelRef(childOrRefNode);
 
@@ -182,16 +178,116 @@ const convertToError = (
         )
       );
     });
-  }
+  } else if (error.keyword === "const") {
+    const property = meta.property;
+    if (!property) {
+      return [];
+    }
 
+    return [
+      genIssue<StandardTypeIssue>(
+        StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
+        property.ast,
+        DiagnosticSeverity.Error,
+        [],
+        [],
+        [
+          `Property "${property.name}" ${error.message}: ${error.params.allowedValue}`,
+        ]
+      ),
+    ];
+  } else if (error.keyword === "enum") {
+    const property = meta.property;
+    if (!property) {
+      return [];
+    }
+
+    return [
+      genIssue<StandardTypeIssue>(
+        StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
+        property.ast,
+        DiagnosticSeverity.Error,
+        [],
+        [],
+        [
+          `Property "${property.name}" ${error.message}: \n${(
+            error.params.allowedValues as string[]
+          ).join("\n")}`,
+        ]
+      ),
+    ];
+  } else if (error.keyword === "maxItems" || error.keyword === "minItems") {
+    const property = intanceNode.getProperty(
+      error.instancePath.split("/").at(-1) ?? ""
+    );
+
+    if (!property) {
+      return [];
+    }
+
+    return [
+      genIssue<StandardTypeIssue>(
+        StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
+        property.ast,
+        DiagnosticSeverity.Error,
+        [],
+        [],
+        [`Property "${property.name}" ${error.message}`]
+      ),
+    ];
+  }
+  // fallback
   return [
     genIssue(
       StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
-      node.definitions[0],
+      node.definitions[0] instanceof DtcRootNode
+        ? node.definitions[0]
+        : node.definitions[0].name ?? node.definitions[0],
       undefined,
       undefined,
       undefined,
-      [error.message ?? "NO MESSAGE"]
+      [
+        `TODO: Node "${intanceNode.name} ${
+          error.message ?? "NO MESSAGE"
+        }: \n${JSON.stringify(error)}`,
+      ]
     ),
   ];
+};
+
+const getMeta = (node: Node, instancePath: string) => {
+  return traveseNodeWithInstancePath(
+    node,
+    instancePath.split("/").filter((v) => v)
+  );
+};
+
+const traveseNodeWithInstancePath = (
+  node: Node,
+  instancePath: string[]
+): {
+  node: Node;
+  property?: Property;
+  remainingInstancePath: string;
+} => {
+  if (instancePath.length === 0) {
+    return {
+      node: node,
+      remainingInstancePath: "",
+    };
+  }
+
+  const split = instancePath[0].split("@");
+  const name = split[0];
+  const address = split[1].split(",").map((v) => Number.parseInt(v, 16));
+  const childNode = node.getNode(name, address);
+  if (!childNode) {
+    return {
+      node,
+      property: node.getProperty(instancePath[0]),
+      remainingInstancePath: instancePath.slice(1).join("/"),
+    };
+  }
+
+  return traveseNodeWithInstancePath(childNode, instancePath.slice(1));
 };

@@ -956,6 +956,7 @@ async function getDiagnostics(
               type: "SyntaxIssue",
               items: issue.issues,
               edit: issue.edit,
+              codeActionTitle: issue.codeActionTitle,
             },
           } satisfies CodeActionDiagnosticData,
         };
@@ -1023,6 +1024,7 @@ async function getDiagnostics(
               type: "StandardTypeIssue",
               items: issue.issues,
               edit: issue.edit,
+              codeActionTitle: issue.codeActionTitle,
             },
           } satisfies CodeActionDiagnosticData,
         };

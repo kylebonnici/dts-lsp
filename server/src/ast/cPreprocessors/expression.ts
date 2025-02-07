@@ -17,7 +17,11 @@
 import { ASTBase } from "../base";
 import { Operator } from "./operator";
 
-export abstract class Expression extends ASTBase {}
+export abstract class Expression extends ASTBase {
+  toJson() {
+    return -1;
+  }
+}
 
 export class ComplexExpression extends Expression {
   constructor(

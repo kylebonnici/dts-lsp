@@ -298,7 +298,8 @@ const standardTypeIssueToCodeAction = (
   issue: StandardTypeIssue,
   diagnostic: Diagnostic,
   uri: string,
-  edit?: TextEdit
+  edit?: TextEdit,
+  codeActionTitle?: string
 ): CodeAction[] | undefined => {
   if (!edit) return [];
 
@@ -306,10 +307,12 @@ const standardTypeIssueToCodeAction = (
     case StandardTypeIssue.REQUIRED:
       return [
         {
-          title: `Add Property "${edit.newText
-            .split("=", 1)[0]
-            .replace(";", "")
-            .trim()}"`,
+          title:
+            codeActionTitle ??
+            `Add Property "${edit.newText
+              .split("=", 1)[0]
+              .replace(";", "")
+              .trim()}"`,
           diagnostics: [diagnostic],
           kind: CodeActionKind.QuickFix,
           isPreferred: true,
@@ -320,6 +323,20 @@ const standardTypeIssueToCodeAction = (
           },
         },
       ];
+    case StandardTypeIssue.DEVICETREE_ORG_BINDINGS:
+      return edit ? [
+        {
+          title: codeActionTitle ?? `TODO`,
+          diagnostics: [diagnostic],
+          kind: CodeActionKind.QuickFix,
+          isPreferred: true,
+          edit: {
+            changes: {
+              [uri]: [edit],
+            },
+          },
+        },
+      ] : [];
     default:
       return;
   }
@@ -351,7 +368,8 @@ export function getCodeActions(
               issue,
               diagnostic,
               codeActionParams.textDocument.uri,
-              tmp.issues.edit
+              tmp.issues.edit,
+              tmp.issues.codeActionTitle
             )
           );
       }

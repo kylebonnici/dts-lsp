@@ -162,7 +162,7 @@ export class ContextAware {
 
   private linkPropertiesLabelsAndNodePaths(runtime: Runtime) {
     const getAllProperties = (node: Node): Property[] => {
-      return [...node.properties, ...node.nodes.flatMap(getAllProperties)];
+      return [...node.property, ...node.nodes.flatMap(getAllProperties)];
     };
     const allProperties = getAllProperties(runtime.rootNode);
     const allLabels = runtime.rootNode.allDescendantsLabels;
@@ -341,10 +341,15 @@ export class ContextAware {
       ) {
         const nodeName = child.nodeNameOrRef;
         if (checkMatch(fullNames, nodeName)) {
-          names = names.filter((i) => checkMatch(names.map((n) => ({
-            name: n.name,
-            address: n.address?.map((add) => add.address),
-          })), i));
+          names = names.filter((i) =>
+            checkMatch(
+              names.map((n) => ({
+                name: n.name,
+                address: n.address?.map((add) => add.address),
+              })),
+              i
+            )
+          );
         }
       }
     });

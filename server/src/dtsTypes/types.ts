@@ -459,7 +459,7 @@ export class NodeType extends INodeType {
         );
       }
 
-      const properties = node.properties.filter((p) =>
+      const properties = node.property.filter((p) =>
         propType.getNameMatch(p.name)
       );
 
