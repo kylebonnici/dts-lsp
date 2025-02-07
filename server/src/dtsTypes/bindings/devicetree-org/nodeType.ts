@@ -26,6 +26,7 @@ import {
 } from "../../../helpers";
 import { Issue, StandardTypeIssue } from "../../../types";
 import {
+  CompletionItemKind,
   DiagnosticSeverity,
   DiagnosticTag,
   MarkupContent,
@@ -121,6 +122,29 @@ export class DevicetreeOrgNodeType extends INodeType {
     }
 
     return;
+  }
+
+  getPropertyListCompletionItems(node: Node) {
+    const propNames = Object.keys((this.validate?.schema as any).properties);
+    const requiredProps = (this.validate?.schema as any).required as string[];
+    return (
+      propNames.map((p) => {
+        const required = node && requiredProps.some((v) => v === p);
+        const hasProperty = !!node.property.some((pp) => p === pp.name);
+        let sortLetter = "a";
+        if (required) {
+          sortLetter = hasProperty ? "Y" : "A";
+        } else {
+          sortLetter = hasProperty ? "Z" : "B";
+        }
+
+        return {
+          label: `${p}`,
+          kind: CompletionItemKind.Property,
+          sortText: `${sortLetter}${p}`,
+        };
+      }) ?? []
+    );
   }
 }
 

@@ -417,6 +417,7 @@ export abstract class INodeType {
   }[];
   bindingsPath?: string;
   compatible?: string;
+  abstract getPropertyListCompletionItems(node: Node): CompletionItem[];
 }
 
 export class NodeType extends INodeType {
@@ -508,5 +509,35 @@ export class NodeType extends INodeType {
   getOnPropertyHover(name: string) {
     const typeFound = this.properties.find((p) => p.getNameMatch(name));
     return typeFound?.onHover.bind(typeFound)();
+  }
+
+  getPropertyListCompletionItems(node: Node) {
+    return (
+      this.properties
+        .filter(
+          (p) =>
+            !p.hideAutoComplete &&
+            p.required(node) !== "omitted" &&
+            typeof p.name === "string"
+        )
+        .map((p) => {
+          const required = node && p.required(node);
+          const hasProperty = !!node.property.some((pp) =>
+            p.getNameMatch(pp.name)
+          );
+          let sortLetter = "a";
+          if (required) {
+            sortLetter = hasProperty ? "Y" : "A";
+          } else {
+            sortLetter = hasProperty ? "Z" : "B";
+          }
+
+          return {
+            label: `${p.name}`,
+            kind: CompletionItemKind.Property,
+            sortText: `${sortLetter}${p.name}`,
+          };
+        }) ?? []
+    );
   }
 }

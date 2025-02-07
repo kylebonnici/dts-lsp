@@ -51,7 +51,6 @@ function getPropertyAssignItems(
     );
   }
 
-  // TODO linux
   return [];
 }
 
@@ -63,7 +62,7 @@ function getPropertyNamesItems(
     !(
       (result.item instanceof Property &&
         result.ast instanceof PropertyName &&
-        result.item.ast.values === null) ||
+        result.item.ast.values == null) ||
       result.item instanceof Node
     ) ||
     isDeleteChild(result.ast)
@@ -71,35 +70,8 @@ function getPropertyNamesItems(
     return [];
   }
 
-  const getItems = (node: Node, nodeType?: NodeType) => {
-    return (
-      nodeType?.properties
-        .filter(
-          (p) =>
-            !p.hideAutoComplete &&
-            p.required(node) !== "omitted" &&
-            typeof p.name === "string"
-        )
-        .map((p) => {
-          const required = node && p.required(node);
-          const hasProperty = !!node.property.some((pp) =>
-            p.getNameMatch(pp.name)
-          );
-          let sortLetter = "a";
-          if (required) {
-            sortLetter = hasProperty ? "Y" : "A";
-          } else {
-            sortLetter = hasProperty ? "Z" : "B";
-          }
-
-          return {
-            label: `${p.name}`,
-            kind: CompletionItemKind.Property,
-            sortText: `${sortLetter}${p.name}`,
-          };
-        }) ?? []
-    );
-  };
+  const getItems = (node: Node) =>
+    node.nodeType?.getPropertyListCompletionItems(node) ?? [];
 
   if (result.item instanceof Property) {
     return getItems(result.item.parent);
