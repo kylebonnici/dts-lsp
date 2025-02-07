@@ -303,7 +303,10 @@ const traveseNodeWithInstancePath = (
 
   const split = instancePath[0].split("@");
   const name = split[0];
-  const address = split[1].split(",").map((v) => Number.parseInt(v, 16));
+  const address = split
+    .at(1)
+    ?.split(",")
+    .map((v) => Number.parseInt(v, 16));
   const childNode = node.getNode(name, address);
   if (!childNode) {
     return {
