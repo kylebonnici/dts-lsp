@@ -36,10 +36,13 @@ import { getNodeNameOrNodeLabelRef } from "../../../ast/helpers";
 import { countParent } from "../../../getDocumentFormatting";
 import { DtcRootNode } from "../../../ast/dtc/node";
 import { Property } from "../../../context/property";
+import { AnyValidateFunction } from "ajv/dist/core";
 
 export class DevicetreeOrgNodeType extends INodeType {
+  private validate: AnyValidateFunction<unknown> | undefined;
   constructor(private ajv: Ajv, private schemaKey: string) {
     super();
+    this.validate = this.ajv.getSchema(this.schemaKey);
   }
 
   childNodeType: INodeType | undefined;
@@ -71,11 +74,10 @@ export class DevicetreeOrgNodeType extends INodeType {
     }
 
     const nodeJson = Node.toJson(node);
-    const validate = this.ajv.getSchema(this.schemaKey);
     try {
-      if (!validate) {
+      if (!this.validate) {
         console.log("no validate");
-      } else if (validate(nodeJson)) {
+      } else if (this.validate(nodeJson)) {
         console.log(
           this.schemaKey,
           `${node.path.join("/")}`,
@@ -83,10 +85,14 @@ export class DevicetreeOrgNodeType extends INodeType {
           nodeJson
         );
       } else {
-        validate.errors?.forEach((e) =>
-          issue.push(...convertToError(runtime, e, node))
+        this.validate.errors?.forEach((e) =>
+          issue.push(...convertToError(runtime, e, node, this.schemaKey))
         );
-        console.log(this.schemaKey, `${node.path.join("/")}`, validate.errors);
+        console.log(
+          this.schemaKey,
+          `${node.path.join("/")}`,
+          this.validate.errors
+        );
       }
     } catch (ee) {
       console.log(this.schemaKey, `${node.path.join("/")}`, this.schemaKey, ee);
