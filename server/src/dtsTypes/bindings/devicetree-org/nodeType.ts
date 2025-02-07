@@ -294,9 +294,9 @@ const convertToError = (
         undefined,
         undefined,
         [
-          `TODO: Node "${intanceNode.name} ${
-            error.message ?? "NO MESSAGE"
-          }: \n${JSON.stringify(error)}\n${schemaKey}`,
+          `${error.message ?? "NO MESSAGE"}: \n${JSON.stringify(
+            error
+          )}\n${schemaKey}`,
         ]
       ),
     ];
@@ -312,9 +312,9 @@ const convertToError = (
       undefined,
       undefined,
       [
-        `TODO: Node "${intanceNode.name} ${
-          error.message ?? "NO MESSAGE"
-        }: \n${JSON.stringify(error)}\n${schemaKey}`,
+        `${error.message ?? "NO MESSAGE"}: \n${JSON.stringify(
+          error
+        )}\n${schemaKey}`,
       ]
     ),
   ];
