@@ -110,7 +110,8 @@ export class DevicetreeOrgNodeType extends INodeType {
 const convertToError = (
   runtime: Runtime,
   error: ErrorObject<string, Record<string, any>, unknown>,
-  node: Node
+  node: Node,
+  schemaKey: string
 ): Issue<StandardTypeIssue>[] => {
   const meta = getMeta(node, error.instancePath);
 
@@ -218,7 +219,7 @@ const convertToError = (
         [
           `Property "${property.name}" ${error.message}: \n${(
             error.params.allowedValues as string[]
-          ).join("\n")}`,
+          ).join("\n")}\n${schemaKey}`,
         ]
       ),
     ];
@@ -243,19 +244,36 @@ const convertToError = (
     ];
   }
   // fallback
+  if (meta.property) {
+    return [
+      genIssue(
+        StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
+        meta.property.ast,
+        undefined,
+        undefined,
+        undefined,
+        [
+          `TODO: Node "${intanceNode.name} ${
+            error.message ?? "NO MESSAGE"
+          }: \n${JSON.stringify(error)}\n${schemaKey}`,
+        ]
+      ),
+    ];
+  }
+
   return [
     genIssue(
       StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
-      node.definitions[0] instanceof DtcRootNode
-        ? node.definitions[0]
-        : node.definitions[0].name ?? node.definitions[0],
+      meta.node.definitions[0] instanceof DtcRootNode
+        ? meta.node.definitions[0]
+        : meta.node.definitions[0].name ?? meta.node.definitions[0],
       undefined,
       undefined,
       undefined,
       [
         `TODO: Node "${intanceNode.name} ${
           error.message ?? "NO MESSAGE"
-        }: \n${JSON.stringify(error)}`,
+        }: \n${JSON.stringify(error)}\n${schemaKey}`,
       ]
     ),
   ];
