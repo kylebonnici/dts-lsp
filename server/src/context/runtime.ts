@@ -232,7 +232,7 @@ export class Runtime implements Searchable {
 
     const getIssue = (node: Node): Issue<StandardTypeIssue>[] => {
       return [
-        ...(node.nodeTypes.at(0)?.getIssue(this, node) ?? []),
+        ...(node.nodeType?.getIssue(this, node) ?? []),
         ...node.nodes.flatMap((n) => getIssue(n)),
       ];
     };

@@ -80,7 +80,7 @@ export class Node {
   }
 
   get nodeTypes(): INodeType[] {
-    const childType = this.parent?.nodeTypes.at(0)?.childNodeType;
+    const childType = this.parent?.nodeType?.childNodeType;
 
     if (childType) {
       return [childType];
