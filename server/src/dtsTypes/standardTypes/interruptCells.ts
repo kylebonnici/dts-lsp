@@ -22,7 +22,7 @@ export default () => {
     "#interrupt-cells",
     generateOrTypeObj(PropertyType.U32)
   );
-  prop.desctiption = [
+  prop.description = [
     "The #interrupt-cells property defines the number of cells required to encode an interrupt specifier for an interrupt domain.",
   ];
   return prop;

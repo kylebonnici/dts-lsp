@@ -58,15 +58,15 @@ export class PropertyNodeType<T = string | number> {
   public values: (property: Property) => T[];
   public hideAutoComplete = false;
   public list = false;
-  public desctiption?: string[];
+  public description?: string[];
   public examples?: string[];
   public constValue?: number | string | number[] | string[];
   public onHover = (): MarkupContent => {
     return {
       kind: MarkupKind.Markdown,
       value: [
-        ...(this.desctiption
-          ? ["### Desctiption", this.desctiption.join("\n\n")]
+        ...(this.description
+          ? ["### Description", this.description.join("\n\n")]
           : []),
         ...(this.examples ? ["### Example", this.examples.join("\n\n")] : []),
       ].join("\n"),

@@ -51,7 +51,7 @@ export default () => {
       return [];
     }
   );
-  prop.desctiption = [
+  prop.description = [
     `The phandle property specifies a numerical identifier for a node that is unique within the devicetree. The phandle property value is used by other nodes that need to refer to the node associated with the property.`,
   ];
   prop.examples = [

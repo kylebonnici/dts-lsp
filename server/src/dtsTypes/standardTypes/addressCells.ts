@@ -25,7 +25,7 @@ export default () => {
     2
   );
 
-  prop.desctiption = [
+  prop.description = [
     `The #address-cells and #size-cells properties may be used in any device node that has children in the devicetree hierarchy and describes how child device nodes should be addressed. The #address-cells property defines the number of <u32> cells used to encode the address field in a child node's reg property. The #size-cells property defines the number of <u32 > cells used to encode the size field in a child node's reg property.`,
     `The #address-cells and #size-cells properties are not inherited from ancestors in the devicetree. They shall be explicitly defined.`,
     `A DTSpec-compliant boot program shall supply #address-cells and #size-cells on all nodes that have children.`,

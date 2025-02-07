@@ -22,7 +22,7 @@ export default () => {
     "interrupt-parent",
     generateOrTypeObj(PropertyType.U32)
   );
-  prop.desctiption = [
+  prop.description = [
     "Because the hierarchy of the nodes in the interrupt tree might not match the devicetree, the interrupt-parent property is available to make the definition of an interrupt parent explicit. The value is the phandle to the interrupt parent. If this property is missing from a device, its interrupt parent is assumed to be its devicetree parent.",
   ];
   return prop;

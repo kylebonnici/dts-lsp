@@ -199,7 +199,7 @@ export default () => {
       return issues;
     }
   );
-  prop.desctiption = [
+  prop.description = [
     "A `‹specifier>-map` is a property in a nexus node that bridges one specifier domain with a set of parent specifier domains and describes how specifiers in the child domain are mapped to their respective parent domains.",
     "The map is a table where each row is a mapping entry consisting of three components: child specifier, specifier parent, and parent specifier.",
     "- child specifier The specifier of the child node being mapped. The number of 32-bit cells required to specify this component is described by the `#<specifier>-cells` property of this node-the nexus node containing the ‹specifier>-map property.",

@@ -266,7 +266,7 @@ export default () => {
       return issues;
     }
   );
-  prop.desctiption = [
+  prop.description = [
     "An interrupt-map is a property on a nexus node that bridges one interrupt domain with a set of parent interrupt domains and specifies how interrupt specifiers in the child domain are mapped to their respective parent domains.",
     "The interrupt map is a table where each row is a mapping entry consisting of five components: child unit address, child interrupt specifier, interrupt-parent, parent unit address, parent interrupt specifier.",
     "- child unit address: The unit address of the child node being mapped. The number of 32-bit cells required to specify this is described by the #address-cells property of the bus node on which the child is located.",

@@ -22,7 +22,7 @@ export default () => {
     "dma-coherent",
     generateOrTypeObj(PropertyType.EMPTY)
   );
-  prop.desctiption = [
+  prop.description = [
     "For architectures which are by default non-coherent for I/O, the dma-coherent property is used to indicate a device is capable of coherent DMA operations. Some architectures have coherent DMA by default and this property is not applicable.",
   ];
   return prop;
