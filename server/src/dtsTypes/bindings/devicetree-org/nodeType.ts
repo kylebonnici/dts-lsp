@@ -29,6 +29,7 @@ import {
   DiagnosticSeverity,
   DiagnosticTag,
   MarkupContent,
+  MarkupKind,
   Position,
   TextEdit,
 } from "vscode-languageserver";
@@ -102,7 +103,23 @@ export class DevicetreeOrgNodeType extends INodeType {
   }
 
   getOnPropertyHover(name: string): MarkupContent | undefined {
-    // TODO
+    const prop = (this.validate?.schema as any).properties?.[name];
+    if (prop && "description" in prop) {
+      return {
+        kind: MarkupKind.Markdown,
+        value: [
+          ...(prop.description
+            ? [
+                "### Description",
+                Array.isArray(prop.description)
+                  ? prop.description.join("\n\n")
+                  : prop.description,
+              ]
+            : []),
+        ].join("\n"),
+      };
+    }
+
     return;
   }
 }
