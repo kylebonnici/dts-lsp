@@ -12,26 +12,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - This syntax will be marked with a warning given it is not part of the v0.4 devicetree spec.
 - Parser support for `/memreserve/ 0x0000a800 0x000f5800;`
 - Experimental Support for devicetree-org json schema bindings
-
-### Changed
-
-- `device_type`
-  - diagnostics now always show depricated warning.
-  - no loger how should be ommited diagnostic
-
-### Fixed
-
-- Standard type `interrup-map` no longer reports error if `#address-cells` is omitter and instead defaults to 2
-- Parser issue where `unknown syntax` diagnostic is reported for no apparent reason
-- Issue with providing document symbol on startup
-- Issue with providing semantic tokens on startup
-- Issue with providing folding ranges on startup
-- Clean up diagnostics from inactive context
 - Support for node names with comma separated addresses e.g.
 
 ```devicetree
 node1@1,0 {}
 ```
+
+### Changed
+
+- `device_type`
+  - diagnostics now always show depricated warning.
+  - no longer show `should be ommited` diagnostic
+
+### Fixed
+
+- Standard type `interrup-map` no longer reports error if `#address-cells` is omitted and instead it will now default to 2
+- Parser issue where `unknown syntax` diagnostic is reported for no apparent reason
+- Issue with providing document symbol on startup
+- Issue with providing semantic tokens on startup
+- Issue with providing folding ranges on startup
+- Clean up diagnostics from inactive context
 
 # 0.0.9 - 2025-01-26
 
