@@ -54,6 +54,7 @@ import { BaseParser } from "./baseParser";
 import { CPreprocessorParser } from "./cPreprocessorParser";
 import { CMacro } from "./ast/cPreprocessors/macro";
 import { Include } from "./ast/cPreprocessors/include";
+import { DtsMemreserveNode } from "./ast/dtc/memreserveNode";
 
 type AllowNodeRef = "Ref" | "Name";
 
@@ -130,6 +131,7 @@ export class Parser extends BaseParser {
       if (
         !(
           this.isDtsDocumentVersion() ||
+          this.isMemreserve() ||
           this.isRootNodeDefinition(this.rootDocument) ||
           this.isDeleteNode(this.rootDocument, "Ref") ||
           // Valid use case
@@ -658,26 +660,13 @@ export class Parser extends BaseParser {
       validateValue("1"),
     ]);
 
-    if (!valid.length) {
+    if (valid.length !== 6) {
       this.popStack();
       return false;
     }
 
     const firstToken = valid[0];
     let token: Token | undefined = firstToken;
-
-    if (
-      valid.length === 1 &&
-      !validToken(this.currentToken, LexerToken.CURLY_OPEN)
-    ) {
-      this.popStack();
-      return false;
-    }
-
-    if (valid.length !== 6) {
-      this.popStack();
-      return false;
-    }
 
     const keyword = new Keyword();
     keyword.firstToken = firstToken;
@@ -694,6 +683,63 @@ export class Parser extends BaseParser {
     }
 
     keyword.lastToken = token;
+
+    node.lastToken = this.endStatement();
+    this.mergeStack();
+    return true;
+  }
+
+  private isMemreserve(): boolean {
+    this.enqueueToStack();
+
+    const valid = this.checkConcurrentTokens([
+      validateToken(LexerToken.FORWARD_SLASH),
+      validateValue("memreserve"),
+    ]);
+
+    if (valid.length !== 2) {
+      this.popStack();
+      return false;
+    }
+
+    const keyword = new Keyword();
+    keyword.firstToken = valid[0];
+
+    const missingBackSlash = !validToken(
+      this.currentToken,
+      LexerToken.FORWARD_SLASH
+    );
+
+    const firstToken = valid[0];
+    let token: Token | undefined = firstToken;
+
+    if (validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
+      token = this.moveToNextToken;
+      keyword.lastToken = token;
+    } else {
+      keyword.lastToken = valid.at(-1);
+      this._issues.push(
+        genIssue(SyntaxIssue.MISSING_FORWARD_SLASH_END, keyword)
+      );
+    }
+
+    const startValue: NumberValue | undefined =
+      this.processHex() || this.processDec();
+    const endValue: NumberValue | undefined =
+      startValue && (this.processHex() || this.processDec());
+
+    const node = new DtsMemreserveNode(keyword, startValue, endValue);
+    this.others.push(node);
+
+    if (!startValue) {
+      this._issues.push(genIssue(SyntaxIssue.EXPECTED_START_ADDRESS, keyword));
+    }
+
+    if (!endValue) {
+      this._issues.push(
+        genIssue(SyntaxIssue.EXPECTED_END_ADDRESS, startValue ?? keyword)
+      );
+    }
 
     node.lastToken = this.endStatement();
     this.mergeStack();

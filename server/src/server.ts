@@ -571,6 +571,10 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "Properties can only be deleted inside a node";
     case SyntaxIssue.UNABLE_TO_RESOLVE_INCLUDE:
       return "Unable to resolve include";
+    case SyntaxIssue.EXPECTED_START_ADDRESS:
+      return "Expedted start address";
+    case SyntaxIssue.EXPECTED_END_ADDRESS:
+      return "Expected end address";
   }
 };
 

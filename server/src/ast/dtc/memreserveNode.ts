@@ -1,0 +1,43 @@
+/*
+ * Copyright 2024 Kyle Micallef Bonnici
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { ASTBase } from "../base";
+import { Keyword } from "../keyword";
+import { SymbolKind } from "vscode-languageserver";
+import { NumberValue } from "./values/number";
+
+export class DtsMemreserveNode extends ASTBase {
+  constructor(
+    public readonly keyword: Keyword,
+    public readonly startAddress?: NumberValue,
+    public readonly endAddress?: NumberValue
+  ) {
+    super();
+    this.addChild(keyword);
+    this.docSymbolsMeta = {
+      name: "Memreserve",
+      kind: SymbolKind.Function,
+    };
+    this.addChild(startAddress);
+    this.addChild(endAddress);
+  }
+
+  toString() {
+    return `/memreserve/ 0x${this.startAddress?.value?.toString(
+      16
+    )} 0x${this.endAddress?.value?.toString(16)}`;
+  }
+}
