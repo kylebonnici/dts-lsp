@@ -17,17 +17,20 @@
 import { ASTBase } from "../../base";
 import { AllValueType } from "../types";
 import { LabelAssign } from "../label";
+import { DtsBitsNode } from "../bitsNode";
 
 export class PropertyValue extends ASTBase {
   constructor(
     public readonly startLabels: LabelAssign[],
     public readonly value: AllValueType,
-    public readonly endLabels: LabelAssign[]
+    public readonly endLabels: LabelAssign[],
+    public readonly bits?: DtsBitsNode
   ) {
     super();
     this.startLabels.forEach((label) => {
       this.addChild(label);
     });
+    this.addChild(bits);
     this.addChild(value);
     this.endLabels.forEach((label) => {
       this.addChild(label);

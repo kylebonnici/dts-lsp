@@ -575,6 +575,11 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "Expedted start address";
     case SyntaxIssue.EXPECTED_END_ADDRESS:
       return "Expected end address";
+    case SyntaxIssue.EXPECTED_BITS_SIZE:
+    case SyntaxIssue.INVALID_BITS_SIZE:
+      return "Expected 8|16|32|64";
+    case SyntaxIssue.BITS_NON_OFFICIAL_SYNATX:
+      return "This syntax is not officially part of the DTS V0.4 standard";
   }
 };
 

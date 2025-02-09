@@ -55,6 +55,8 @@ import { CPreprocessorParser } from "./cPreprocessorParser";
 import { CMacro } from "./ast/cPreprocessors/macro";
 import { Include } from "./ast/cPreprocessors/include";
 import { DtsMemreserveNode } from "./ast/dtc/memreserveNode";
+import { DtsBitsNode } from "./ast/dtc/bitsNode";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 type AllowNodeRef = "Ref" | "Name";
 
@@ -705,11 +707,6 @@ export class Parser extends BaseParser {
     const keyword = new Keyword();
     keyword.firstToken = valid[0];
 
-    const missingBackSlash = !validToken(
-      this.currentToken,
-      LexerToken.FORWARD_SLASH
-    );
-
     const firstToken = valid[0];
     let token: Token | undefined = firstToken;
 
@@ -744,6 +741,64 @@ export class Parser extends BaseParser {
     node.lastToken = this.endStatement();
     this.mergeStack();
     return true;
+  }
+
+  private processBits(): DtsBitsNode | undefined {
+    this.enqueueToStack();
+
+    const valid = this.checkConcurrentTokens([
+      validateToken(LexerToken.FORWARD_SLASH),
+      validateValue("b"),
+      validateValue("its"),
+    ]);
+
+    if (valid.length !== 3) {
+      this.popStack();
+      return;
+    }
+
+    const keyword = new Keyword();
+    keyword.firstToken = valid[0];
+
+    const firstToken = valid[0];
+    let token: Token | undefined = firstToken;
+
+    if (validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
+      token = this.moveToNextToken;
+      keyword.lastToken = token;
+    } else {
+      keyword.lastToken = valid.at(-1);
+      this._issues.push(
+        genIssue(SyntaxIssue.MISSING_FORWARD_SLASH_END, keyword)
+      );
+    }
+
+    const bitsSize: NumberValue | undefined = this.processDec();
+
+    const node = new DtsBitsNode(keyword, bitsSize);
+    this.others.push(node);
+
+    if (!bitsSize) {
+      this._issues.push(genIssue(SyntaxIssue.EXPECTED_BITS_SIZE, keyword));
+    } else if (
+      bitsSize.value !== 8 &&
+      bitsSize.value !== 16 &&
+      bitsSize.value !== 32 &&
+      bitsSize.value !== 64
+    ) {
+      this._issues.push(genIssue(SyntaxIssue.INVALID_BITS_SIZE, bitsSize));
+    }
+
+    this._issues.push(
+      genIssue(
+        SyntaxIssue.BITS_NON_OFFICIAL_SYNATX,
+        node,
+        DiagnosticSeverity.Warning
+      )
+    );
+
+    this.mergeStack();
+    return node;
   }
 
   private isOmitIfNoRefNode(): Keyword | undefined {
@@ -1088,6 +1143,7 @@ export class Parser extends BaseParser {
     this.enqueueToStack();
 
     const startLabels = this.processOptionalLabelAssign(true);
+    const bits = this.processBits();
 
     const openBraket = this.currentToken;
     if (!validToken(openBraket, LexerToken.LT_SYM)) {
@@ -1102,7 +1158,7 @@ export class Parser extends BaseParser {
 
     const endLabels1 = this.processOptionalLabelAssign(true) ?? [];
 
-    const node = new PropertyValue(startLabels, value, endLabels1);
+    const node = new PropertyValue(startLabels, value, endLabels1, bits);
 
     if (!validToken(this.currentToken, LexerToken.GT_SYM)) {
       this._issues.push(genIssue(SyntaxIssue.GT_SYM, node));
