@@ -46,6 +46,7 @@ import {
   FunctionDefinition,
   Variadic,
 } from "../ast/cPreprocessors/functionDefinition";
+import { DtsMemreserveNode } from "../ast/dtc/memreserveNode";
 
 jest.mock("fs", () => ({
   readFileSync: jest.fn().mockImplementation(() => {
@@ -103,6 +104,97 @@ describe("Parser", () => {
         parser.issues[0].astElement.lastToken.pos.col +
           parser.issues[0].astElement.lastToken.pos.len
       ).toEqual(7);
+    });
+  });
+
+  describe("Memreserve", () => {
+    test("Valid", async () => {
+      mockReadFileSync("/memreserve/ 0x123 0x345;");
+      const parser = new Parser("/folder/dts.dts", []);
+      await parser.stable;
+      expect(parser.issues.length).toEqual(0);
+
+      expect(parser.others.length).toEqual(1);
+      expect(parser.others[0] instanceof DtsMemreserveNode).toBeTruthy();
+      expect(
+        (parser.others[0] as DtsMemreserveNode).startAddress?.value
+      ).toEqual(0x123);
+      expect((parser.others[0] as DtsMemreserveNode).endAddress?.value).toEqual(
+        0x345
+      );
+    });
+
+    test("Missing end slash", async () => {
+      mockReadFileSync("/memreserve 0x123 0x345;");
+      const parser = new Parser("/folder/dts.dts", []);
+      await parser.stable;
+      expect(parser.issues.length).toEqual(1);
+      expect(parser.issues[0].issues).toEqual([
+        SyntaxIssue.MISSING_FORWARD_SLASH_END,
+      ]);
+      expect(
+        parser.issues[0].astElement.lastToken.pos.col +
+          parser.issues[0].astElement.lastToken.pos.len
+      ).toEqual(11);
+
+      expect(parser.others[0] instanceof DtsMemreserveNode).toBeTruthy();
+      expect(
+        (parser.others[0] as DtsMemreserveNode).startAddress?.value
+      ).toEqual(0x123);
+      expect((parser.others[0] as DtsMemreserveNode).endAddress?.value).toEqual(
+        0x345
+      );
+    });
+
+    test("Missing end address slash", async () => {
+      mockReadFileSync("/memreserve/ 0x123;");
+      const parser = new Parser("/folder/dts.dts", []);
+      await parser.stable;
+      expect(parser.issues.length).toEqual(1);
+      expect(parser.issues[0].issues).toEqual([
+        SyntaxIssue.EXPECTED_END_ADDRESS,
+      ]);
+      expect(
+        parser.issues[0].astElement.lastToken.pos.col +
+          parser.issues[0].astElement.lastToken.pos.len
+      ).toEqual(18);
+
+      expect(parser.others[0] instanceof DtsMemreserveNode).toBeTruthy();
+      expect(
+        (parser.others[0] as DtsMemreserveNode).startAddress?.value
+      ).toEqual(0x123);
+      expect(
+        (parser.others[0] as DtsMemreserveNode).endAddress?.value
+      ).toBeUndefined();
+    });
+
+    test("Missing start and end address slash", async () => {
+      mockReadFileSync("/memreserve/;");
+      const parser = new Parser("/folder/dts.dts", []);
+      await parser.stable;
+      expect(parser.issues.length).toEqual(2);
+      expect(parser.issues[0].issues).toEqual([
+        SyntaxIssue.EXPECTED_START_ADDRESS,
+      ]);
+      expect(parser.issues[1].issues).toEqual([
+        SyntaxIssue.EXPECTED_END_ADDRESS,
+      ]);
+      expect(
+        parser.issues[0].astElement.lastToken.pos.col +
+          parser.issues[0].astElement.lastToken.pos.len
+      ).toEqual(12);
+      expect(
+        parser.issues[1].astElement.lastToken.pos.col +
+          parser.issues[1].astElement.lastToken.pos.len
+      ).toEqual(12);
+
+      expect(parser.others[0] instanceof DtsMemreserveNode).toBeTruthy();
+      expect(
+        (parser.others[0] as DtsMemreserveNode).startAddress?.value
+      ).toBeUndefined();
+      expect(
+        (parser.others[0] as DtsMemreserveNode).endAddress?.value
+      ).toBeUndefined();
     });
   });
 

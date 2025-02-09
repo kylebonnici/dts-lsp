@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 # 0.0.10 - UNRELEASED
 
+### Added
+
+- Parser support for `/memreserve/ 0x0000a800 0x000f5800;`
+
 ### Changed
 
 - `device_type`
