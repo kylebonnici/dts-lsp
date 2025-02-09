@@ -106,11 +106,12 @@ export class CPreprocessorParser extends BaseParser {
     this.enqueueToStack();
 
     //must be firstToken
-    if (
-      this.prevToken &&
-      this.prevToken.pos.line === this.currentToken?.pos.line
-    ) {
-      this.moveEndOfLine(this.prevToken, false);
+    const isFisrtTokenOnLine =
+      !this.prevToken ||
+      this.prevToken.pos.line !== this.currentToken?.pos.line ||
+      this.prevToken.uri !== this.currentToken?.uri;
+    if (!isFisrtTokenOnLine) {
+      this.moveEndOfLine(this.prevToken!, false);
       this.mergeStack();
       return;
     }
