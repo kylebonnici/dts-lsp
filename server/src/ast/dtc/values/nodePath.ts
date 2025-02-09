@@ -57,4 +57,8 @@ export class NodePathRef extends ASTBase {
   toString() {
     return `&${this.path?.toString() ?? "NULL"}`;
   }
+
+  toJson() {
+    return -1;
+  }
 }

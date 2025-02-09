@@ -75,7 +75,7 @@ export default () => {
       ];
     }
   );
-  prop.desctiption = [
+  prop.description = [
     "The device_type property was used in IEEE 1275 to describe the device's FCode programming model. Because DTSpec does not have FCode, new use of the property is deprecated, and it should be included only on cpu and memory nodes for compatibility with IEEE 1275-derived devicetrees.",
   ];
   return prop;

@@ -36,19 +36,33 @@ import {
 } from "./types";
 import { ContextAware } from "./runtimeEvaluator";
 
-export const toRange = (slxBase: ASTBase) => {
+export const toRangeWithTokenIndex = (
+  start?: Token,
+  end?: Token,
+  incusiveStart = true,
+  incusiveEnd = true
+) => {
   return {
     start: {
-      line: slxBase.tokenIndexes?.start?.pos.line ?? 0,
-      character: slxBase.tokenIndexes?.start?.pos.col ?? 0,
+      line: start?.pos.line ?? 0,
+      character: incusiveStart
+        ? start?.pos.col ?? 0
+        : (start?.pos.col ?? 0) + (start?.pos.len ?? 0),
     },
     end: {
-      line: slxBase.tokenIndexes?.end?.pos.line ?? 0,
-      character:
-        (slxBase.tokenIndexes?.end?.pos.col ?? 0) +
-        (slxBase.tokenIndexes?.end?.pos.len ?? 0),
+      line: end?.pos.line ?? 0,
+      character: incusiveEnd
+        ? (end?.pos.col ?? 0) + (end?.pos.len ?? 0)
+        : end?.pos.col ?? 0,
     },
   };
+};
+
+export const toRange = (slxBase: ASTBase) => {
+  return toRangeWithTokenIndex(
+    slxBase.tokenIndexes.start,
+    slxBase.tokenIndexes.end
+  );
 };
 
 let indentString = "\t";
@@ -158,7 +172,8 @@ export const genIssue = <T extends IssueTypes>(
   linkedTo: ASTBase[] = [],
   tags: DiagnosticTag[] | undefined = undefined,
   templateStrings: string[] = [],
-  edit?: TextEdit
+  edit?: TextEdit,
+  codeActionTitle?: string
 ): Issue<T> => ({
   issues: Array.isArray(issue) ? issue : [issue],
   astElement: slxBase,
@@ -167,6 +182,7 @@ export const genIssue = <T extends IssueTypes>(
   tags,
   templateStrings,
   edit,
+  codeActionTitle,
 });
 
 export const sortAstForScope = <T extends ASTBase>(ast: T[]) => {

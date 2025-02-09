@@ -38,4 +38,8 @@ export class LabelRef extends ASTBase {
   toString() {
     return `&${this.label?.value ?? "NULL"}`;
   }
+
+  toJson() {
+    return -1;
+  }
 }

@@ -381,7 +381,7 @@ const addToNodeType = (
       property.enum,
       generateZephyrTypeCheck(property, name)
     );
-    prop.desctiption = property.description
+    prop.description = property.description
       ? [property.description]
       : undefined;
 

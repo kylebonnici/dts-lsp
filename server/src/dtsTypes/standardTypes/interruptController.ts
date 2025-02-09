@@ -23,7 +23,7 @@ export default () => {
     generateOrTypeObj(PropertyType.EMPTY),
     "optional"
   );
-  prop.desctiption = [
+  prop.description = [
     "The presence of an interrupt-controller property defines a node as an interrupt controller node.",
   ];
   return prop;

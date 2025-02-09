@@ -22,7 +22,7 @@ export default () => {
     "compatible",
     generateOrTypeObj(PropertyType.STRINGLIST)
   );
-  prop.desctiption = [
+  prop.description = [
     `The compatible property value consists of one or more strings that define the specific programming model for the device. This list of strings should be used by a client program for device driver selection. The property value consists of a concatenated list of null terminated strings, from most specific to most general. They allow a device to express its compatibility with a family of similar devices, potentially allowing a single device driver to match against several devices.`,
     `The recommended format is "manufacturer, model", where manufacturer is a string describing the name of the manufacturer (such as a stock ticker symbol), and model specifies the model number.`,
     `The compatible string should consist only of lowercase letters, digits and dashes, and should start with a letter. A single comma is typically only used following a vendor prefix. Underscores should not be used.`,

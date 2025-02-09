@@ -23,7 +23,7 @@ import { Token } from "src/types";
 export class ByteStringValue extends ASTBase {
   public openBracket?: Token;
   public closeBracket?: Token;
-  
+
   constructor(public readonly values: LabeledValue<NumberValue>[]) {
     super();
     this.docSymbolsMeta = {
@@ -35,5 +35,9 @@ export class ByteStringValue extends ASTBase {
 
   toString() {
     return `[${this.values.map((v) => v.toString()).join(" ")}]`;
+  }
+
+  toJson() {
+    return this.values.map((v) => v.value?.toJson() ?? NaN);
   }
 }

@@ -98,7 +98,7 @@ export default () => {
       return issues;
     }
   );
-  prop.desctiption = [
+  prop.description = [
     `The ranges property provides a means of defining a mapping or translation between the address space of the bus (the child address space) and the address space of the bus node's parent (the parent address space).`,
     "The format of the value of the ranges property is an arbitrary number of triplets of (child-bus-address, parent-bus-address, length)",
     "- The child-bus-address is a physical address within the child bus' address space. The number of cells to represent the address is bus dependent and can be determined from the #address-cells of this node (the node in which the ranges property appears).",

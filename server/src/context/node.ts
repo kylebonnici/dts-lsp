@@ -45,7 +45,7 @@ import { ArrayValues } from "../ast/dtc/values/arrayValue";
 import { getNodeNameOrNodeLabelRef } from "../ast/helpers";
 import { getStandardType } from "../dtsTypes/standardTypes";
 import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
-import { NodeType } from "../dtsTypes/types";
+import { INodeType } from "../dtsTypes/types";
 
 export class Node {
   public referencedBy: DtcRefNode[] = [];
@@ -58,7 +58,17 @@ export class Node {
   linkedNodeNamePaths: NodeName[] = [];
   linkedRefLabels: LabelRef[] = [];
 
-  private _nodeTypes: NodeType[] = [getStandardType()];
+  private _nodeTypes: INodeType[] = [getStandardType()];
+
+  static toJson(node: Node) {
+    const obj: any = {};
+    node.property.forEach(
+      (p) => (obj[p.name] = p.ast.values?.toJson() ?? true)
+    );
+    node.nodes.forEach((n) => (obj[n.fullName] = Node.toJson(n)));
+
+    return obj;
+  }
 
   constructor(
     public readonly bindingLoader: BindingLoader | undefined,
@@ -69,8 +79,8 @@ export class Node {
     parent?.addNode(this);
   }
 
-  get nodeTypes(): NodeType[] {
-    const childType = this.parent?.nodeTypes.at(0)?.childNodeType;
+  get nodeTypes(): INodeType[] {
+    const childType = this.parent?.nodeType?.childNodeType;
 
     if (childType) {
       return [childType];
@@ -79,7 +89,7 @@ export class Node {
     return this._nodeTypes ?? [getStandardType()];
   }
 
-  get nodeType(): NodeType | undefined {
+  get nodeType(): INodeType | undefined {
     return this.nodeTypes.find(
       (t) => !t.onBus || this.parent?.nodeType?.bus?.some((b) => b === t.onBus)
     );
@@ -185,7 +195,7 @@ export class Node {
 
   get allBindingsProperties(): Property[] {
     return [
-      ...this.properties.filter((p) => p.name === "compatible"),
+      ...this.property.filter((p) => p.name === "compatible"),
       ...this._nodes.flatMap((n) => n.allBindingsProperties),
     ];
   }
@@ -203,14 +213,14 @@ export class Node {
   }[] {
     return [
       ...this.labelsMapped,
-      ...this.properties.flatMap((p) => p.labelsMapped),
+      ...this.property.flatMap((p) => p.labelsMapped),
       ...this._nodes.flatMap((n) => n.allDescendantsLabelsMapped),
     ];
   }
 
   get issues(): Issue<ContextIssues>[] {
     return [
-      ...this.properties.flatMap((p) => p.issues),
+      ...this.property.flatMap((p) => p.issues),
       ...this._nodes.flatMap((n) => n.issues),
       ...this._deletedNodes.flatMap((n) => n.node.issues),
       ...this.deletedPropertiesIssues,
@@ -268,7 +278,7 @@ export class Node {
     return this.parent ? [...this.parent.path, this.fullName] : [this.fullName];
   }
 
-  get properties() {
+  get property() {
     return this._properties;
   }
 
@@ -399,9 +409,13 @@ export class Node {
     }
 
     if (property.name === "compatible") {
-      this._nodeTypes = this.bindingLoader?.getNodeTypes(this) ?? [
-        getStandardType(),
-      ];
+      if (this.bindingLoader) {
+        this.bindingLoader
+          .getNodeTypes(this)
+          .then((t) => (this._nodeTypes = t));
+      } else {
+        this._nodeTypes = [getStandardType()];
+      }
     }
   }
 
@@ -448,7 +462,7 @@ export class Node {
   toString() {
     return `${this.labels.map((l) => l.toString()).join(" ")} ${
       this.fullName
-    } {${this.properties.length ? "\n\t" : ""}${this.properties
+    } {${this.property.length ? "\n\t" : ""}${this.property
       .map((p) => p.toString())
       .join("\n\t")}${
       this.nodes.length
@@ -468,8 +482,19 @@ export class Node {
         "```devicetree",
         this.toString(),
         "```",
+        ...(this.nodeType?.maintainers
+          ? ["### Maintainers", ...(this.nodeType?.maintainers ?? [])]
+          : []),
         ...(this.nodeType?.description
           ? ["### Description", this.nodeType?.description]
+          : []),
+        ...(this.nodeType?.examples
+          ? [
+              "### Examples",
+              "```devicetree",
+              ...(this.nodeType?.examples ?? []),
+              "```",
+            ]
           : []),
       ].join("\n"),
     };

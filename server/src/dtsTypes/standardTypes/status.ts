@@ -25,7 +25,7 @@ export default () => {
     "okay",
     ["okay", "disabled", "reserved", "fail", "fail-sss"]
   );
-  prop.desctiption = [
+  prop.description = [
     `The status property indicates the operational status of a device.
    The lack of a status property should betreated as if the property existed with the value of "okay"`,
   ];

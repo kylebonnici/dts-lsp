@@ -27,4 +27,16 @@ export class PropertyValues extends ASTBase {
     };
     this.values.forEach((value) => this.addChild(value));
   }
+
+  toString() {
+    return this.values.map((v) => v?.toString()).join(",");
+  }
+
+  toJson() {
+    if (this.values.length === 1) {
+      return this.values[0]?.toJson();
+    }
+
+    return this.values.map((v) => v?.toJson());
+  }
 }

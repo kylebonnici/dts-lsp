@@ -43,4 +43,8 @@ export class PropertyValue extends ASTBase {
       ...this.endLabels.map((l) => l.toString()),
     ].join(" ")}`;
   }
+
+  toJson() {
+    return this.value?.toJson();
+  }
 }

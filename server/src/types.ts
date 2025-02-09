@@ -26,7 +26,7 @@ import { Property } from "./context/property";
 import { Runtime } from "./context/runtime";
 
 export type CodeActionDiagnosticData = {
-  issues: { edit?: TextEdit } & (
+  issues: { edit?: TextEdit; codeActionTitle?: string } & (
     | { type: "SyntaxIssue"; items: SyntaxIssue[] }
     | { type: "StandardTypeIssue"; items: StandardTypeIssue[] }
   );
@@ -61,6 +61,7 @@ export enum StandardTypeIssue {
   UNABLE_TO_RESOLVE_PHANDLE,
   UNABLE_TO_RESOLVE_PATH,
   EXPECTED_VALUE,
+  DEVICETREE_ORG_BINDINGS,
 }
 
 export enum SyntaxIssue {
@@ -258,6 +259,7 @@ export interface Issue<T extends IssueTypes> {
   linkedTo: ASTBase[];
   templateStrings: string[];
   edit?: TextEdit;
+  codeActionTitle?: string;
 }
 
 export type SearchableResult = {

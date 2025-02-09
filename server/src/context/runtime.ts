@@ -126,7 +126,11 @@ export class Runtime implements Searchable {
     return;
   }
 
-  static getNodeFromPath(path: string[], node: Node): Node | undefined {
+  static getNodeFromPath(
+    path: string[],
+    node: Node,
+    strict = true
+  ): Node | undefined {
     if (path.length === 0) return node;
 
     const nodeName = path[0].split("@");
@@ -135,9 +139,9 @@ export class Runtime implements Searchable {
     const address = addressStr?.split(",").map((v) => Number.parseInt(v, 16));
 
     const remainingPath = path.slice(1);
-    const childNode = node.getNode(name, address);
+    const childNode = node.getNode(name, address, strict);
     return childNode
-      ? Runtime.getNodeFromPath(remainingPath, childNode)
+      ? Runtime.getNodeFromPath(remainingPath, childNode, strict)
       : undefined;
   }
 
@@ -219,22 +223,15 @@ export class Runtime implements Searchable {
     return issues;
   }
 
-  private typeIssueCache: Issue<StandardTypeIssue>[] | undefined;
-
   get typesIssues() {
-    if (this.typeIssueCache) {
-      return this.typeIssueCache;
-    }
-
     const getIssue = (node: Node): Issue<StandardTypeIssue>[] => {
       return [
-        ...(node.nodeTypes.at(0)?.getIssue(this, node) ?? []),
+        ...(node.nodeType?.getIssue(this, node) ?? []),
         ...node.nodes.flatMap((n) => getIssue(n)),
       ];
     };
 
-    this.typeIssueCache = getIssue(this.rootNode);
-    return this.typeIssueCache;
+    return getIssue(this.rootNode);
   }
 
   getOrderedNodeAst(node: Node) {

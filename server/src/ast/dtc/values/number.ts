@@ -32,4 +32,8 @@ export class NumberValue extends Expression {
   toString() {
     return this.value.toString();
   }
+
+  toJson() {
+    return this.value;
+  }
 }

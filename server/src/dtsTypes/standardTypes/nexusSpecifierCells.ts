@@ -30,7 +30,7 @@ export default () => {
     return name.startsWith("#") && !!name.endsWith("-cells");
   }, generateOrTypeObj(PropertyType.U32));
   prop.list = true;
-  prop.desctiption = [
+  prop.description = [
     "The `#<specifier>-cells` propertydefines the number of cells required to encode a specifier for adomain.",
   ];
   return prop;

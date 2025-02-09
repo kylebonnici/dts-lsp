@@ -22,7 +22,7 @@ export default () => {
     "interrupt-map-mask",
     generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY)
   );
-  prop.desctiption = [
+  prop.description = [
     "An interrupt-map-mask property is specified for a nexus node in the interrupt tree. This property specifies a mask that is ANDed with the incoming unit interrupt specifier being looked up in the table specified in the interrupt-mapproperty.",
   ];
 

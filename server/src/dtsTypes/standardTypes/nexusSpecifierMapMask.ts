@@ -26,7 +26,7 @@ export default () => {
     return !!name.endsWith("-map-mask");
   }, generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY));
 
-  prop.desctiption = [
+  prop.description = [
     "A `<specifier>-map-mask` property may be specified for a nexus node. This property specifies a mask that is ANDed with the child unit specifier being looked up in the table specified in the `<specifier>-map` property. If this propertyis notspecified, the maskis assumedto be a mask with all bits set.",
   ];
   return prop;

@@ -283,12 +283,16 @@ interface Context {
   overlays?: string[];
   bindingType?: BindingType;
   zephyrBindings?: string[];
+  deviceOrgTreeBindings?: string[];
+  deviceOrgBindingsMetaSchema?: string[];
 }
 
 interface Settings {
   cwd?: string;
   defaultBindingType?: BindingType;
   defaultZephyrBindings?: string[];
+  defaultDeviceOrgTreeBindings?: string[];
+  defaultDeviceOrgBindingsMetaSchema?: string[];
   defaultIncludePaths?: string[];
   contexts?: Context[];
   preferredContext?: string | number;
@@ -348,6 +352,10 @@ connection.onDidChangeConfiguration((change) => {
       context.includePaths ??= globalSettings.defaultIncludePaths;
       context.zephyrBindings ??= globalSettings.defaultIncludePaths;
       context.bindingType ??= globalSettings.defaultBindingType;
+      context.deviceOrgTreeBindings ??=
+        globalSettings.defaultDeviceOrgTreeBindings;
+      context.deviceOrgBindingsMetaSchema ??=
+        globalSettings.defaultDeviceOrgBindingsMetaSchema;
 
       if (
         cwd &&
@@ -356,9 +364,15 @@ connection.onDidChangeConfiguration((change) => {
       ) {
         context.zephyrBindings = ["./zephyr/dts/bindings"];
       }
+
       context.zephyrBindings = context.zephyrBindings?.map((i) =>
         resolve(cwd, i)
       );
+      context.deviceOrgTreeBindings = context.deviceOrgTreeBindings?.map((i) =>
+        resolve(cwd, i)
+      );
+      context.deviceOrgBindingsMetaSchema =
+        context.deviceOrgBindingsMetaSchema?.map((i) => resolve(cwd, i));
       context.includePaths = context.includePaths?.map((i) => resolve(cwd, i));
       context.dtsFile = resolve(cwd, context.dtsFile);
     }
@@ -380,7 +394,15 @@ connection.onDidChangeConfiguration((change) => {
       context.dtsFile,
       context.includePaths ?? [],
       bindingType
-        ? getBindingLoader(context.zephyrBindings ?? [], bindingType)
+        ? getBindingLoader(
+            {
+              zephyrBindings: context.zephyrBindings ?? [],
+              deviceOrgBindingsMetaSchema:
+                context.deviceOrgBindingsMetaSchema ?? [],
+              deviceOrgTreeBindings: context.deviceOrgTreeBindings ?? [],
+            },
+            bindingType
+          )
         : undefined,
       context.overlays,
       context.ctxName
@@ -392,7 +414,7 @@ connection.onDidChangeConfiguration((change) => {
   });
 
   // resolve global with cwd
-  const resolvedGLobal = resolveGlobal();
+  const resolvedGlobal = resolveGlobal();
 
   contextAware = [
     ...contextAware,
@@ -400,9 +422,18 @@ connection.onDidChangeConfiguration((change) => {
       const bindingType = globalSettings.defaultBindingType;
       const context = new ContextAware(
         c.parser.uri,
-        resolvedGLobal.defaultIncludePaths,
+        resolvedGlobal.defaultIncludePaths,
         bindingType
-          ? getBindingLoader(resolvedGLobal.defaultZephyrBindings, bindingType)
+          ? getBindingLoader(
+              {
+                zephyrBindings: resolvedGlobal.defaultZephyrBindings,
+                deviceOrgBindingsMetaSchema:
+                  resolvedGlobal.defaultDeviceOrgBindingsMetaSchema,
+                deviceOrgTreeBindings:
+                  resolvedGlobal.defaultDeviceOrgTreeBindings,
+              },
+              bindingType
+            )
           : undefined
       );
       console.log(`New context with ID ${context.name} for ${c.parser.uri}`);
@@ -451,49 +482,70 @@ const resolveGlobal = () => {
     return i;
   });
 
+  const defaultDeviceOrgBindingsMetaSchema = (
+    globalSettings.defaultDeviceOrgBindingsMetaSchema ?? []
+  ).map((i) => {
+    if (globalSettings.cwd) {
+      return resolve(globalSettings.cwd, i);
+    }
+
+    return i;
+  });
+
+  const defaultDeviceOrgTreeBindings = (
+    globalSettings.defaultDeviceOrgTreeBindings ?? []
+  ).map((i) => {
+    if (globalSettings.cwd) {
+      return resolve(globalSettings.cwd, i);
+    }
+
+    return i;
+  });
+
   return {
     defaultIncludePaths,
     defaultZephyrBindings,
+    defaultDeviceOrgBindingsMetaSchema,
+    defaultDeviceOrgTreeBindings,
   };
 };
 
 // Only keep settings for open documents
-documents.onDidClose((e) => {
-  connection.sendDiagnostics({
-    uri: e.document.uri,
-    version: documents.get(e.document.uri)?.version,
-    diagnostics: [],
-  });
+documents.onDidClose(async (e) => {
+  const uri = e.document.uri.replace("file://", "");
+  const context = await activeContext;
+  const fileInActiveContext =
+    context && context.getContextFiles().some((f) => f === uri);
+  if (!fileInActiveContext) {
+    connection.sendDiagnostics({
+      uri: e.document.uri,
+      version: documents.get(e.document.uri)?.version,
+      diagnostics: [],
+    });
+  }
+
   documentSettings.delete(e.document.uri);
 });
 
 documents.onDidOpen(async (e) => {
-  connection.sendDiagnostics({
-    uri: e.document.uri,
-    version: documents.get(e.document.uri)?.version,
-    diagnostics: (await documentDiagnostics(e.document.uri)).items ?? [],
-  });
-});
-
-const documentDiagnostics = async (uri: string) => {
-  uri = uri.replace("file://", "");
   await allStable();
   const context = await activeContext;
 
-  return {
-    kind: DocumentDiagnosticReportKind.Full,
-    items: context
-      ? await getDiagnostics(context, uri)
-      : [
-          {
-            severity: DiagnosticSeverity.Warning,
-            range: Range.create(Position.create(0, 0), Position.create(0, 0)),
-            message: "File has no context",
-            source: "devicetree",
-          },
-        ],
-  } satisfies DocumentDiagnosticReport;
-};
+  if (!context) {
+    connection.sendDiagnostics({
+      uri: e.document.uri,
+      version: documents.get(e.document.uri)?.version,
+      diagnostics: [
+        {
+          severity: DiagnosticSeverity.Warning,
+          range: Range.create(Position.create(0, 0), Position.create(0, 0)),
+          message: "File has no context",
+          source: "devicetree",
+        },
+      ],
+    });
+  }
+});
 
 const syntaxIssueToMessage = (issue: SyntaxIssue) => {
   switch (issue) {
@@ -682,6 +734,8 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
           return `Unable to find "${issue.templateStrings[0]}" in ${issue.templateStrings[1]}`;
         case StandardTypeIssue.EXPECTED_VALUE:
           return issue.templateStrings[0];
+        case StandardTypeIssue.DEVICETREE_ORG_BINDINGS:
+          return issue.templateStrings[0];
       }
     })
     .join(" or ")
@@ -732,7 +786,16 @@ documents.onDidChangeContent(async (change) => {
       uri,
       resolvedGlobal.defaultIncludePaths,
       bindingType
-        ? getBindingLoader(resolvedGlobal.defaultZephyrBindings, bindingType)
+        ? getBindingLoader(
+            {
+              zephyrBindings: resolvedGlobal.defaultZephyrBindings,
+              deviceOrgBindingsMetaSchema:
+                resolvedGlobal.defaultDeviceOrgBindingsMetaSchema,
+              deviceOrgTreeBindings:
+                resolvedGlobal.defaultDeviceOrgTreeBindings,
+            },
+            bindingType
+          )
         : undefined
     );
     console.log(`New ad hoc context with ID ${newContext.name} for ${uri}`);
@@ -751,7 +814,6 @@ documents.onDidChangeContent(async (change) => {
             return;
           }
           const t = performance.now();
-          issueCache.delete(context.context);
           const itemsToClear = generateClearWorkspaceDiagnostics(
             context.context
           );
@@ -805,6 +867,7 @@ const clearWorkspaceDiagnostics = (
 };
 
 const reportWorkspaceDiagnostics = async (context: ContextAware) => {
+  await context.stable();
   const activeContextItems = await Promise.all(
     context.getContextFiles().map(async (file) => {
       const items = await getDiagnostics(context, file);
@@ -835,23 +898,11 @@ connection.languages.diagnostics.onWorkspace(async () => {
   return reportWorkspaceDiagnostics(context);
 });
 
-const issueCache = new WeakMap<ContextAware, Map<string, Diagnostic[]>>();
-
 async function getDiagnostics(
   context: ContextAware,
   uri: string
 ): Promise<Diagnostic[]> {
   const t = performance.now();
-
-  const contextIssue = issueCache.get(context);
-  if (contextIssue) {
-    const uriIssues = contextIssue.get(uri);
-    if (uriIssues) {
-      return uriIssues;
-    }
-  } else {
-    issueCache.set(context, new Map());
-  }
 
   try {
     const diagnostics: Diagnostic[] = [];
@@ -892,6 +943,7 @@ async function getDiagnostics(
               type: "SyntaxIssue",
               items: issue.issues,
               edit: issue.edit,
+              codeActionTitle: issue.codeActionTitle,
             },
           } satisfies CodeActionDiagnosticData,
         };
@@ -959,6 +1011,7 @@ async function getDiagnostics(
               type: "StandardTypeIssue",
               items: issue.issues,
               edit: issue.edit,
+              codeActionTitle: issue.codeActionTitle,
             },
           } satisfies CodeActionDiagnosticData,
         };
@@ -966,7 +1019,6 @@ async function getDiagnostics(
       });
 
     console.log("diagnostics", uri, performance.now() - t);
-    issueCache.get(context)?.set(uri, diagnostics);
     return diagnostics;
   } catch (e) {
     console.error(e);

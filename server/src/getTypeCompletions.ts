@@ -26,6 +26,7 @@ import { DtcProperty, PropertyName } from "./ast/dtc/property";
 import { Property } from "./context/property";
 import { nodeFinder } from "./helpers";
 import { isDeleteChild } from "./ast/helpers";
+import { NodeType } from "./dtsTypes/types";
 
 function getPropertyAssignItems(
   result: SearchableResult | undefined
@@ -41,11 +42,16 @@ function getPropertyAssignItems(
     return [];
   }
 
-  return (
-    result.item.parent.nodeType?.properties
-      .find((p) => p.name === result.item?.name)
-      ?.getPropertyCompletionItems(result.item) ?? []
-  );
+  const nodeType = result.item.parent.nodeType;
+  if (nodeType instanceof NodeType) {
+    return (
+      nodeType.properties
+        .find((p) => p.name === result.item?.name)
+        ?.getPropertyCompletionItems(result.item) ?? []
+    );
+  }
+
+  return [];
 }
 
 function getPropertyNamesItems(
@@ -56,7 +62,7 @@ function getPropertyNamesItems(
     !(
       (result.item instanceof Property &&
         result.ast instanceof PropertyName &&
-        result.item.ast.values === null) ||
+        result.item.ast.values == null) ||
       result.item instanceof Node
     ) ||
     isDeleteChild(result.ast)
@@ -64,35 +70,8 @@ function getPropertyNamesItems(
     return [];
   }
 
-  const getItems = (node: Node) => {
-    return (
-      node.nodeType?.properties
-        .filter(
-          (p) =>
-            !p.hideAutoComplete &&
-            p.required(node) !== "omitted" &&
-            typeof p.name === "string"
-        )
-        .map((p) => {
-          const required = node && p.required(node);
-          const hasProperty = !!node.properties.some((pp) =>
-            p.getNameMatch(pp.name)
-          );
-          let sortLetter = "a";
-          if (required) {
-            sortLetter = hasProperty ? "Y" : "A";
-          } else {
-            sortLetter = hasProperty ? "Z" : "B";
-          }
-
-          return {
-            label: `${p.name}`,
-            kind: CompletionItemKind.Property,
-            sortText: `${sortLetter}${p.name}`,
-          };
-        }) ?? []
-    );
-  };
+  const getItems = (node: Node) =>
+    node.nodeType?.getPropertyListCompletionItems(node) ?? [];
 
   if (result.item instanceof Property) {
     return getItems(result.item.parent);
