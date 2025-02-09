@@ -34,7 +34,6 @@ interface Settings {
   autoChangeContext?: boolean;
   allowAdhocContexts?: boolean;
 }
-
 ```
 
 Sample configuration in VSCode `settings.json`
@@ -66,6 +65,23 @@ Sample configuration in VSCode `settings.json`
     }
   ],
   "devicetree.preferredContext": 0
+}
+```
+
+## Using Devicetree-Org bindings example
+
+```json
+{
+  "devicetree.cwd": "/Users/user/Workspace/linux/",
+  "devicetree.defaultIncludePaths": ["include"],
+  "devicetree.defaultBindingType": "DevicetreeOrg",
+  "devicetree.defaultDeviceOrgBindingsMetaSchema": [
+    "/Users/user/Workspace/linuxBindings/dt-schema/dtschema/meta-schemas" // https://github.com/devicetree-org/dt-schema/tree/main/dtschema/meta-schemas
+  ],
+  "devicetree.defaultDeviceOrgTreeBindings": [
+    "/Users/user/Workspace/linuxBindings/dt-schema/dtschema/schemas", // https://github.com/devicetree-org/dt-schema/tree/main/dtschema/schemas
+    "/Users/user/Workspace/linux/Documentation/devicetree/bindings" // https://github.com/torvalds/linux/tree/master/Documentation/devicetree/bindings
+  ]
 }
 ```
 
@@ -188,6 +204,5 @@ Given that in some cases the files included in a devicetree might come from an S
 - Implement syntax for Ternary operator
 - Implement support #IF and #ELSEIF preprocessors
 - Implement "Device Node Requirements" (chapter 3 - Devicetree Specification Release v0.4)
-- Implement formating on commetent nodes
 - Write more unit tests
 - Let me know what you should be added or changed
