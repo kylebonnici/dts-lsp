@@ -511,42 +511,41 @@ const resolveGlobal = () => {
 };
 
 // Only keep settings for open documents
-documents.onDidClose((e) => {
-  connection.sendDiagnostics({
-    uri: e.document.uri,
-    version: documents.get(e.document.uri)?.version,
-    diagnostics: [],
-  });
+documents.onDidClose(async (e) => {
+  const uri = e.document.uri.replace("file://", "");
+  const context = await activeContext;
+  const fileInActiveContext =
+    context && context.getContextFiles().some((f) => f === uri);
+  if (!fileInActiveContext) {
+    connection.sendDiagnostics({
+      uri: e.document.uri,
+      version: documents.get(e.document.uri)?.version,
+      diagnostics: [],
+    });
+  }
+
   documentSettings.delete(e.document.uri);
 });
 
 documents.onDidOpen(async (e) => {
-  connection.sendDiagnostics({
-    uri: e.document.uri,
-    version: documents.get(e.document.uri)?.version,
-    diagnostics: (await documentDiagnostics(e.document.uri)).items ?? [],
-  });
-});
-
-const documentDiagnostics = async (uri: string) => {
-  uri = uri.replace("file://", "");
   await allStable();
   const context = await activeContext;
 
-  return {
-    kind: DocumentDiagnosticReportKind.Full,
-    items: context
-      ? await getDiagnostics(context, uri)
-      : [
-          {
-            severity: DiagnosticSeverity.Warning,
-            range: Range.create(Position.create(0, 0), Position.create(0, 0)),
-            message: "File has no context",
-            source: "devicetree",
-          },
-        ],
-  } satisfies DocumentDiagnosticReport;
-};
+  if (!context) {
+    connection.sendDiagnostics({
+      uri: e.document.uri,
+      version: documents.get(e.document.uri)?.version,
+      diagnostics: [
+        {
+          severity: DiagnosticSeverity.Warning,
+          range: Range.create(Position.create(0, 0), Position.create(0, 0)),
+          message: "File has no context",
+          source: "devicetree",
+        },
+      ],
+    });
+  }
+});
 
 const syntaxIssueToMessage = (issue: SyntaxIssue) => {
   switch (issue) {
@@ -815,7 +814,6 @@ documents.onDidChangeContent(async (change) => {
             return;
           }
           const t = performance.now();
-          issueCache.delete(context.context);
           const itemsToClear = generateClearWorkspaceDiagnostics(
             context.context
           );
@@ -869,6 +867,7 @@ const clearWorkspaceDiagnostics = (
 };
 
 const reportWorkspaceDiagnostics = async (context: ContextAware) => {
+  await context.stable();
   const activeContextItems = await Promise.all(
     context.getContextFiles().map(async (file) => {
       const items = await getDiagnostics(context, file);
@@ -899,23 +898,11 @@ connection.languages.diagnostics.onWorkspace(async () => {
   return reportWorkspaceDiagnostics(context);
 });
 
-const issueCache = new WeakMap<ContextAware, Map<string, Diagnostic[]>>();
-
 async function getDiagnostics(
   context: ContextAware,
   uri: string
 ): Promise<Diagnostic[]> {
   const t = performance.now();
-
-  const contextIssue = issueCache.get(context);
-  if (contextIssue) {
-    const uriIssues = contextIssue.get(uri);
-    if (uriIssues) {
-      return uriIssues;
-    }
-  } else {
-    issueCache.set(context, new Map());
-  }
 
   try {
     const diagnostics: Diagnostic[] = [];
@@ -1032,7 +1019,6 @@ async function getDiagnostics(
       });
 
     console.log("diagnostics", uri, performance.now() - t);
-    issueCache.get(context)?.set(uri, diagnostics);
     return diagnostics;
   } catch (e) {
     console.error(e);

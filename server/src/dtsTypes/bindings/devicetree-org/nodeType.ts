@@ -79,22 +79,19 @@ export class DevicetreeOrgNodeType extends INodeType {
     try {
       if (!this.validate) {
         console.log("no validate");
-      } else if (this.validate(nodeJson)) {
-        console.log(
-          this.schemaKey,
-          `${node.path.join("/")}`,
-          "validate",
-          nodeJson
-        );
       } else {
-        this.validate.errors?.forEach((e) =>
-          issue.push(...convertToError(runtime, e, node, this.schemaKey))
-        );
-        console.log(
-          this.schemaKey,
-          `${node.path.join("/")}`,
-          this.validate.errors
-        );
+        this.validate(nodeJson);
+        if (this.validate.errors) {
+          this.validate.errors.forEach((e) =>
+            issue.push(...convertToError(runtime, e, node, this.schemaKey))
+          );
+          console.log(
+            this.schemaKey,
+            `${node.path.join("/")}`,
+            this.validate.errors,
+            nodeJson
+          );
+        }
       }
     } catch (ee) {
       console.log(this.schemaKey, `${node.path.join("/")}`, this.schemaKey, ee);
