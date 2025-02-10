@@ -308,6 +308,8 @@ const defaultSettings: Settings = {
   defaultBindingType: "Zephyr",
   defaultZephyrBindings: [],
   defaultIncludePaths: [],
+  defaultDeviceOrgBindingsMetaSchema: [],
+  defaultDeviceOrgTreeBindings: [],
   contexts: [],
   lockRenameEdits: [],
   allowAdhocContexts: true,
