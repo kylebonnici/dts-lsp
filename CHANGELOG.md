@@ -26,7 +26,7 @@ node1@1,0 {}
 
 ### Fixed
 
-- Standard type `interrup-map` no longer reports error if `#address-cells` is omitted and instead it will now default to 2
+- Standard type `interrupt-map` no longer reports error if `#address-cells` is omitted and instead it will now default to 2
 - Parser issue where `unknown syntax` diagnostic is reported for no apparent reason
 - Issue with providing document symbol on startup
 - Issue with providing semantic tokens on startup
