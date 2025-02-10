@@ -73,20 +73,22 @@ EOF
 }
 ```
 
-## Using Devicetree-Org bindings example
+## Using Devicetree-Org bindings example settings
 
 ```json
 {
-  "devicetree.cwd": "/Users/user/Workspace/linux/",
-  "devicetree.defaultIncludePaths": ["include"],
-  "devicetree.defaultBindingType": "DevicetreeOrg",
-  "devicetree.defaultDeviceOrgBindingsMetaSchema": [
-    "/Users/user/Workspace/linuxBindings/dt-schema/dtschema/meta-schemas" // https://github.com/devicetree-org/dt-schema/tree/main/dtschema/meta-schemas
-  ],
-  "devicetree.defaultDeviceOrgTreeBindings": [
-    "/Users/user/Workspace/linuxBindings/dt-schema/dtschema/schemas", // https://github.com/devicetree-org/dt-schema/tree/main/dtschema/schemas
-    "/Users/user/Workspace/linux/Documentation/devicetree/bindings" // https://github.com/torvalds/linux/tree/master/Documentation/devicetree/bindings
-  ]
+  "devicetree": {
+    "cwd": "/Users/user/Workspace/linux/",
+    "defaultIncludePaths": ["include"],
+    "defaultBindingType": "DevicetreeOrg",
+    "defaultDeviceOrgBindingsMetaSchema": [
+      "/Users/user/Workspace/linuxBindings/dt-schema/dtschema/meta-schemas" // https://github.com/devicetree-org/dt-schema/tree/main/dtschema/meta-schemas
+    ],
+    "defaultDeviceOrgTreeBindings": [
+      "/Users/user/Workspace/linuxBindings/dt-schema/dtschema/schemas", // https://github.com/devicetree-org/dt-schema/tree/main/dtschema/schemas
+      "/Users/user/Workspace/linux/Documentation/devicetree/bindings" // https://github.com/torvalds/linux/tree/master/Documentation/devicetree/bindings
+    ]
+  }
 }
 ```
 

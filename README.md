@@ -68,7 +68,7 @@ Sample configuration in VSCode `settings.json`
 }
 ```
 
-## Using Devicetree-Org bindings example
+## Using Devicetree-Org bindings example VSCode settings
 
 ```json
 {
