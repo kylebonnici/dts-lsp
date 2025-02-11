@@ -72,15 +72,54 @@ import {
 import { getFoldingRanges } from "./foldingRanges";
 import { typeDefinition } from "./typeDefinition";
 import { resolve } from "path";
+import { FileWatcher } from "./fileWatcher";
 
-let contextAware: ContextAware[] = [];
+const contextAware: ContextAware[] = [];
 let activeContext: Promise<ContextAware | undefined>;
 let activeFileUri: string | undefined;
-
 let debounce = new WeakMap<
   ContextAware,
   { abort: AbortController; promise: Promise<void> }
 >();
+const fileWatchers = new Map<string, FileWatcher>();
+
+const addContext = (context: ContextAware) => {
+  if (contextAware.some((ctx) => ctx === context)) {
+    return;
+  }
+
+  contextAware.push(context);
+  context.stable().then(() => {
+    context.getContextFiles().forEach((file) => {
+      if (!fileWatchers.has(file)) {
+        fileWatchers.set(
+          file,
+          new FileWatcher(
+            file,
+            onChange,
+            (file) => !!documents.get(`file://${file}`)
+          )
+        );
+      }
+      fileWatchers.get(file)?.watch();
+    });
+  });
+};
+
+const deleteContext = async (context: ContextAware) => {
+  const index = contextAware.indexOf(context);
+  if (index === -1) {
+    return;
+  }
+
+  contextAware.splice(index, 1);
+
+  context.stable().then(() => {
+    context.getContextFiles().forEach((file) => {
+      fileWatchers.get(file)?.unwatch();
+    });
+  });
+};
 
 const isStable = (context: ContextAware) => {
   const d = debounce.get(context);
@@ -188,7 +227,8 @@ const cleanUpAdHocContext = async (context: ContextAware) => {
         `cleaning up context with ID ${c.name} and uri ${c.parser.uri}`
       );
     });
-    contextAware = contextAware.filter((c) => contextToClean.indexOf(c) === -1);
+
+    contextToClean.forEach(deleteContext);
   }
 };
 
@@ -380,7 +420,7 @@ connection.onDidChangeConfiguration((change) => {
 
   let adhocContexts = getAdhocContexts(oldSettngs);
 
-  contextAware = [];
+  contextAware.forEach(deleteContext);
 
   debounce = new WeakMap<
     ContextAware,
@@ -407,7 +447,7 @@ connection.onDidChangeConfiguration((change) => {
       context.overlays,
       context.ctxName
     );
-    contextAware.push(newContext);
+    addContext(newContext);
     console.log(
       `New context with ID ${newContext.name} for ${context.dtsFile}`
     );
@@ -416,9 +456,8 @@ connection.onDidChangeConfiguration((change) => {
   // resolve global with cwd
   const resolvedGlobal = resolveGlobal();
 
-  contextAware = [
-    ...contextAware,
-    ...adhocContexts.map((c) => {
+  adhocContexts
+    .map((c) => {
       const bindingType = globalSettings.defaultBindingType;
       const context = new ContextAware(
         c.parser.uri,
@@ -438,8 +477,8 @@ connection.onDidChangeConfiguration((change) => {
       );
       console.log(`New context with ID ${context.name} for ${c.parser.uri}`);
       return context;
-    }),
-  ];
+    })
+    .forEach(addContext);
 
   adhocContexts = getAdhocContexts(globalSettings);
   adhocContexts.forEach(cleanUpAdHocContext);
@@ -763,18 +802,7 @@ const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
   }
 };
 
-// // The content of a text document has changed. This event is emitted
-// // when the text document first opened or when its content has changed.
-documents.onDidChangeContent(async (change) => {
-  console.log("Content changed");
-  const uri = change.document.uri.replace("file://", "");
-
-  const text = change.document.getText();
-  const tokenProvider = getTokenizedDocumentProvider();
-  if (!tokenProvider.needsRenew(uri, text)) return;
-
-  tokenProvider.renewLexer(uri, text);
-
+const onChange = async (uri: string) => {
   await initialSettingsProvided;
 
   const contexts = await findContexts(contextAware, uri);
@@ -803,7 +831,7 @@ documents.onDidChangeContent(async (change) => {
         : undefined
     );
     console.log(`New ad hoc context with ID ${newContext.name} for ${uri}`);
-    contextAware.push(newContext);
+    addContext(newContext);
     updateActiveContext(uri);
     await newContext.parser.stable;
     cleanUpAdHocContext(newContext);
@@ -845,6 +873,20 @@ documents.onDidChangeContent(async (change) => {
       debounce.set(context.context, { abort, promise });
     });
   }
+};
+
+// // The content of a text document has changed. This event is emitted
+// // when the text document first opened or when its content has changed.
+documents.onDidChangeContent(async (change) => {
+  const uri = change.document.uri.replace("file://", "");
+
+  const text = change.document.getText();
+  const tokenProvider = getTokenizedDocumentProvider();
+  if (!tokenProvider.needsRenew(uri, text)) return;
+
+  console.log("Content changed");
+  tokenProvider.renewLexer(uri, text);
+  onChange(uri);
 });
 
 const generateClearWorkspaceDiagnostics = (context: ContextAware) =>
