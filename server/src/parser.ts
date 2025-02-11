@@ -1063,6 +1063,8 @@ export class Parser extends BaseParser {
         const shouldHaveValue = validToken(this.currentToken, LexerToken.COMMA);
         if (shouldHaveValue) {
           this.moveToNextToken;
+        } else if (!sameLine(this.prevToken, this.currentToken)) {
+          break;
         }
         const next = getValue();
         if (end && next === null && shouldHaveValue) {
