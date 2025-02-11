@@ -27,7 +27,6 @@ import {
   TextDocumentSyncKind,
   InitializeResult,
   DocumentDiagnosticReportKind,
-  type DocumentDiagnosticReport,
   SemanticTokensBuilder,
   CodeActionKind,
   WorkspaceDocumentDiagnosticReport,
@@ -52,7 +51,6 @@ import {
 import {
   findContext,
   findContexts,
-  positionInBetween,
   resolveContextFiles,
   toRange,
 } from "./helpers";
