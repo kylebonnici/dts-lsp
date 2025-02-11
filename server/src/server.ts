@@ -89,20 +89,24 @@ const addContext = (context: ContextAware) => {
   }
 
   contextAware.push(context);
-  context.stable().then(() => {
-    context.getContextFiles().forEach((file) => {
-      if (!fileWatchers.has(file)) {
-        fileWatchers.set(
+  setContextFileWatch(context);
+};
+
+const setContextFileWatch = async (context: ContextAware) => {
+  await context.stable();
+  context.getContextFiles().forEach((file) => {
+    if (file.endsWith(".h")) return;
+    if (!fileWatchers.has(file)) {
+      fileWatchers.set(
+        file,
+        new FileWatcher(
           file,
-          new FileWatcher(
-            file,
-            onChange,
-            (file) => !!documents.get(`file://${file}`)
-          )
-        );
-      }
-      fileWatchers.get(file)?.watch();
-    });
+          onChange,
+          (file) => !!documents.get(`file://${file}`)
+        )
+      );
+    }
+    fileWatchers.get(file)?.watch();
   });
 };
 
@@ -114,10 +118,13 @@ const deleteContext = async (context: ContextAware) => {
 
   contextAware.splice(index, 1);
 
-  context.stable().then(() => {
-    context.getContextFiles().forEach((file) => {
-      fileWatchers.get(file)?.unwatch();
-    });
+  clearContextFileWatch(context);
+};
+
+const clearContextFileWatch = async (context: ContextAware) => {
+  await context.stable();
+  context.getContextFiles().forEach((file) => {
+    if (!file.endsWith(".h")) fileWatchers.get(file)?.unwatch();
   });
 };
 
@@ -849,7 +856,9 @@ const onChange = async (uri: string) => {
           const itemsToClear = generateClearWorkspaceDiagnostics(
             context.context
           );
+          clearContextFileWatch(context.context);
           await context.context.reevaluate(uri);
+          setContextFileWatch(context.context);
           clearWorkspaceDiagnostics(context.context, itemsToClear);
           reportWorkspaceDiagnostics(context.context).then((d) => {
             d.items
