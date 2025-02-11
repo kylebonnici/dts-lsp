@@ -769,7 +769,11 @@ documents.onDidChangeContent(async (change) => {
   console.log("Content changed");
   const uri = change.document.uri.replace("file://", "");
 
-  getTokenizedDocumentProvider().renewLexer(uri, change.document.getText());
+  const text = change.document.getText();
+  const tokenProvider = getTokenizedDocumentProvider();
+  if (!tokenProvider.needsRenew(uri, text)) return;
+
+  tokenProvider.renewLexer(uri, text);
 
   await initialSettingsProvided;
 

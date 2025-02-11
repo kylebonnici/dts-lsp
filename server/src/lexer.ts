@@ -29,7 +29,7 @@ export class Lexer {
     return this._tokens;
   }
 
-  constructor(private text: string, private uri: string) {
+  constructor(readonly text: string, private uri: string) {
     this.lines = this.text
       .replace("\r\n", "\n")
       .split(/\n/)

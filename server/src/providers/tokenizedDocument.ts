@@ -32,6 +32,10 @@ class TokenizedDocumentProvider {
     return newList;
   }
 
+  needsRenew(uri: string, text: string) {
+    return this.fileMap.get(uri)?.text !== text;
+  }
+
   renewLexer(uri: string, text?: string): Token[] {
     if (!uri || !existsSync(uri)) {
       return [];

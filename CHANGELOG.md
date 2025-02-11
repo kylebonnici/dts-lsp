@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Diagnostics when property is missing ';'. Now code does not assume ',' is missing if token is at end of line.
+- Avoid reparsing when onDidChangeContent text content did not change from last state.
 
 # 0.1.0 - 2025-02-09
 
