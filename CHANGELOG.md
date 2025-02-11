@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+# 0.1.1 - UNRELEASED
+
+### Fixed
+
+- Diagnostics when property is missing ';'. Now code does not assume ',' is missing if token is at end of line.
+
 # 0.1.0 - 2025-02-09
 
 ### Added
