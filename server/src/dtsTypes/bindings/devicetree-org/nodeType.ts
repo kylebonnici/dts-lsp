@@ -102,7 +102,7 @@ export class DevicetreeOrgNodeType extends INodeType {
 
   getOnPropertyHover(name: string): MarkupContent | undefined {
     const prop = (this.validate?.schema as any).properties?.[name];
-    if (prop && "description" in prop) {
+    if (prop && typeof prop === "object" && "description" in prop) {
       return {
         kind: MarkupKind.Markdown,
         value: [
