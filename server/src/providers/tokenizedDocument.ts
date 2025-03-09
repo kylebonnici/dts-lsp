@@ -60,6 +60,10 @@ class TokenizedDocumentProvider {
     }
     return TokenizedDocumentProvider.clone(tokens ?? []);
   }
+
+  reset(uri: string){
+    this.fileMap.delete(uri);
+  }
 }
 
 export function getTokenizedDocumentProvider(): TokenizedDocumentProvider {
