@@ -12,9 +12,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- On hover error on certin properties when using linux bindings.
+- Error onHover error on certin properties when using linux bindings.
 - Diagnostics when property is missing ';'. Now code does not assume ',' is missing if token is at end of line.
 - Avoid reparsing when onDidChangeContent text content did not change from last state.
+- Clean up diagnostics of all file when all files are closed
+- Removing adHoc from memory on all files closed.
 
 # 0.1.0 - 2025-02-09
 
@@ -44,8 +46,6 @@ node1@1,0 {}
 - Issue with providing semantic tokens on startup
 - Issue with providing folding ranges on startup
 - Clean up diagnostics from inactive context
-- Clean up diagnostics of all file when all files are closed
-- Removing adHoc from memory on all files closed.
 
 # 0.0.9 - 2025-01-26
 
