@@ -15,7 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - onHover error on certin properties when using linux bindings.
 - Diagnostics when property is missing ';'. Now LSP does not assume ',' is missing if token is at end of line.
 - Avoid reparsing when onDidChangeContent text content did not change from last state.
-- Clean up diagnostics of all file when all files are closed
+- Clean up diagnostics of all files when all files are closed
 - Removing adHoc context from memory on all files closed.
 
 # 0.1.0 - 2025-02-09
