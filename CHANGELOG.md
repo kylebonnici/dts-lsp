@@ -44,6 +44,8 @@ node1@1,0 {}
 - Issue with providing semantic tokens on startup
 - Issue with providing folding ranges on startup
 - Clean up diagnostics from inactive context
+- Clean up diagnostics of all file when all files are closed
+- Removing adHoc from memory on all files closed.
 
 # 0.0.9 - 2025-01-26
 

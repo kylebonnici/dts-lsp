@@ -75,7 +75,7 @@ import { resolve } from "path";
 import { FileWatcher } from "./fileWatcher";
 
 const contextAware: ContextAware[] = [];
-let activeContext: Promise<ContextAware | undefined>;
+let activeContext: ContextAware | undefined;
 let activeFileUri: string | undefined;
 let debounce = new WeakMap<
   ContextAware,
@@ -115,6 +115,12 @@ const deleteContext = async (context: ContextAware) => {
   if (index === -1) {
     return;
   }
+
+  clearWorkspaceDiagnostics(context);
+  debounce.delete(context);
+  console.log(
+    `cleaning up context with ID ${context.name} and uri ${context.parser.uri}`
+  );
 
   contextAware.splice(index, 1);
 
@@ -185,14 +191,18 @@ const contextFullyOverlaps = async (a: ContextAware, b: ContextAware) => {
     : b.getContextFiles().some((ff) => ff === a.parser.uri);
 };
 
+const isAdHocContext = (context: ContextAware) => {
+  const adhocContexts = getAdhocContexts(globalSettings);
+
+  return adhocContexts.indexOf(context) !== -1;
+};
+
 const cleanUpAdHocContext = async (context: ContextAware) => {
+  if (!isAdHocContext(context)) return;
+
   const adhocContexts = getAdhocContexts(globalSettings);
   const configContexts = await getConfiguredContexts(globalSettings);
   const adhocContextFiles = await resolveContextFiles(adhocContexts);
-
-  if (contextAware.indexOf(context) === -1) {
-    return;
-  }
 
   const contextFiles = [
     ...context.overlayParsers.map((p) => p.uri),
@@ -227,14 +237,6 @@ const cleanUpAdHocContext = async (context: ContextAware) => {
     .map((o) => o.context);
 
   if (contextToClean.length) {
-    contextToClean.forEach((c) => {
-      clearWorkspaceDiagnostics(c);
-      debounce.delete(c);
-      console.log(
-        `cleaning up context with ID ${c.name} and uri ${c.parser.uri}`
-      );
-    });
-
     contextToClean.forEach(deleteContext);
   }
 };
@@ -557,17 +559,26 @@ const resolveGlobal = () => {
 };
 
 // Only keep settings for open documents
-documents.onDidClose(async (e) => {
+documents.onDidClose((e) => {
   const uri = e.document.uri.replace("file://", "");
-  const context = await activeContext;
-  const fileInActiveContext =
-    context && context.getContextFiles().some((f) => f === uri);
-  if (!fileInActiveContext) {
-    connection.sendDiagnostics({
-      uri: e.document.uri,
-      version: documents.get(e.document.uri)?.version,
-      diagnostics: [],
-    });
+  const context = activeContext;
+  if (!context) {
+    return;
+  }
+
+  const contextAllFiles = context?.getContextFiles() ?? [];
+
+  const contextHasFileOpen = contextAllFiles
+    .filter((f) => f !== uri)
+    .some((f) => documents.get(`file://${f}`));
+  if (!contextHasFileOpen) {
+    if (isAdHocContext(context)) {
+      deleteContext(context);
+    } else {
+      clearWorkspaceDiagnostics(context);
+    }
+
+    activeContext = undefined;
   }
 
   documentSettings.delete(e.document.uri);
@@ -575,7 +586,8 @@ documents.onDidClose(async (e) => {
 
 documents.onDidOpen(async (e) => {
   await allStable();
-  const context = await activeContext;
+  const context = activeContext;
+  const uri = e.document.uri.replace("file://", "");
 
   if (!context) {
     connection.sendDiagnostics({
@@ -591,6 +603,8 @@ documents.onDidOpen(async (e) => {
       ],
     });
   }
+
+  onChange(uri);
 });
 
 const syntaxIssueToMessage = (issue: SyntaxIssue) => {
@@ -812,7 +826,7 @@ const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
 const onChange = async (uri: string) => {
   await initialSettingsProvided;
 
-  const contexts = await findContexts(contextAware, uri);
+  const contexts = findContexts(contextAware, uri);
 
   if (!contexts.length) {
     if (globalSettings.allowAdhocContexts === false) {
@@ -942,7 +956,7 @@ const reportWorkspaceDiagnostics = async (context: ContextAware) => {
 
 connection.languages.diagnostics.onWorkspace(async () => {
   await allStable();
-  const context = await activeContext;
+  const context = activeContext;
 
   if (!context) {
     return {
@@ -1132,14 +1146,14 @@ const updateActiveContext = async (uri: string, force = false) => {
 
   activeFileUri = uri;
   await allStable();
-  const oldContext = await activeContext;
+  const oldContext = activeContext;
   activeContext = findContext(
     contextAware,
     uri,
     globalSettings.preferredContext
-  ).then((r) => r?.context);
+  )?.context;
 
-  const context = await activeContext;
+  const context = activeContext;
   if (oldContext !== context) {
     if (oldContext) {
       clearWorkspaceDiagnostics(oldContext);
@@ -1175,7 +1189,7 @@ connection.onDocumentSymbol(async (h) => {
   const uri = h.textDocument.uri.replace("file://", "");
   await updateActiveContext(uri);
 
-  const context = await activeContext;
+  const context = activeContext;
 
   const data = await context?.parser;
   if (!data) return [];
@@ -1184,7 +1198,7 @@ connection.onDocumentSymbol(async (h) => {
 
 connection.onWorkspaceSymbol(async () => {
   await allStable();
-  const context = await activeContext;
+  const context = activeContext;
   if (!context) return [];
 
   return (await context.getAllParsers()).flatMap((p) =>
@@ -1308,7 +1322,7 @@ connection.onFoldingRanges(async (event) => {
   const uri = event.textDocument.uri.replace("file://", "");
   await updateActiveContext(uri);
 
-  const context = await activeContext;
+  const context = activeContext;
 
   const isInContext = context?.isInContext(uri);
   if (!context || !isInContext) {

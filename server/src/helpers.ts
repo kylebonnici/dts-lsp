@@ -219,7 +219,7 @@ export async function nodeFinder<T>(
 ): Promise<T[]> {
   const uri = location.textDocument.uri.replace("file://", "");
 
-  const contextMeta = await findContext(contexts, uri, preferredContext);
+  const contextMeta = findContext(contexts, uri, preferredContext);
 
   if (!contextMeta) return [];
 
@@ -283,32 +283,27 @@ export const adjacentTokens = (tokenA?: Token, tokenB?: Token) => {
   );
 };
 
-export const resolveContextFiles = async (contextAware: ContextAware[]) => {
-  return Promise.all(
-    contextAware.map(async (c, index) => ({
-      index,
-      context: c,
-      files: c.getContextFiles(),
-    }))
-  );
+export const resolveContextFiles = (contextAware: ContextAware[]) => {
+  return contextAware.map((c, index) => ({
+    index,
+    context: c,
+    files: c.getContextFiles(),
+  }));
 };
 
-export const findContext = async (
+export const findContext = (
   contextAware: ContextAware[],
   uri: string,
   preferredContext?: string | number
 ) => {
-  const contextFiles = await resolveContextFiles(contextAware);
+  const contextFiles = resolveContextFiles(contextAware);
 
   return contextFiles
     .sort((a) => (a.context.name === preferredContext ? -1 : 0))
     .find((c) => c.files.some((p) => p === uri));
 };
 
-export const findContexts = async (
-  contextAware: ContextAware[],
-  uri: string
-) => {
-  const contextFiles = await resolveContextFiles(contextAware);
+export const findContexts = (contextAware: ContextAware[], uri: string) => {
+  const contextFiles = resolveContextFiles(contextAware);
   return contextFiles.filter((c) => c.files.some((p) => p === uri));
 };
