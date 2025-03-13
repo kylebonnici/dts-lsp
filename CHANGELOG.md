@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+# 0.1.2 - UNRELEASED
+
+### Added
+
+- Hook '.dtso' file format in language server [Contribution by [SpieringsAE](https://github.com/SpieringsAE)]
+
 # 0.1.1 - 2025-03-09
 
 ### Added
