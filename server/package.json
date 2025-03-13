@@ -4,7 +4,7 @@
   "author": "Kyle Micallef Bonnici",
   "package-name": "devicetree-language-server",
   "main": "dist/server.js",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "keywords": [
     "dts",
     "devicetree",
