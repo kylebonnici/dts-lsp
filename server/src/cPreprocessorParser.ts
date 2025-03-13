@@ -117,7 +117,6 @@ export class CPreprocessorParser extends BaseParser {
     }
 
     const token = this.currentToken;
-    const uri = this.currentToken?.uri;
     const found =
       (await this.processInclude()) ||
       this.processDefinitions() ||
