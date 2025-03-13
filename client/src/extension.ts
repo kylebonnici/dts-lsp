@@ -60,6 +60,7 @@ export async function activate(context: ExtensionContext) {
       fileEvents: [
         workspace.createFileSystemWatcher("**/*.dts"),
         workspace.createFileSystemWatcher("**/*.dtsi"),
+        workspace.createFileSystemWatcher("**/*.dtso"),
         workspace.createFileSystemWatcher("**/*.overlay"),
       ],
     },
