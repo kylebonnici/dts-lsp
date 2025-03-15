@@ -244,7 +244,7 @@ export class ZephyrBindingsLoader {
     const compatible = ZephyrBindingsLoader.getNodeCompatible(node);
 
     if (!compatible) {
-      return [getStandardType()];
+      return [getStandardType(node)];
     }
 
     const cachedType = this.typeCache.filter((t) =>
@@ -259,7 +259,7 @@ export class ZephyrBindingsLoader {
       return cachedType;
     }
 
-    this.loadTypeAndCache(folders);
+    this.loadTypeAndCache(folders, node);
     const out = this.typeCache.filter((t) =>
       folders.some(
         (f) =>
@@ -267,10 +267,10 @@ export class ZephyrBindingsLoader {
           t.bindingsPath?.startsWith(f)
       )
     );
-    return out.length ? out : [getStandardType()];
+    return out.length ? out : [getStandardType(node)];
   }
 
-  private loadTypeAndCache(folders: string | string[]) {
+  private loadTypeAndCache(folders: string | string[], node: Node) {
     folders = Array.isArray(folders) ? folders : [folders];
 
     folders.forEach((f) => {
@@ -300,7 +300,7 @@ export class ZephyrBindingsLoader {
       const resolvedBindings = bindings
         .map((b) => resolveBinding(bindings, b))
         .filter((b) => !!b && !b.include.length) as ZephyrBindingYml[];
-      this.typeCache.push(...convertBindingsToType(resolvedBindings));
+      this.typeCache.push(...convertBindingsToType(resolvedBindings, node));
     });
   }
 }
@@ -311,12 +311,12 @@ export const getZephyrBindingsLoader = () => {
   return zephyrBindingsLoader;
 };
 
-const convertBindingsToType = (bindings: ZephyrBindingYml[]) => {
-  return bindings.map(convertBindingToType);
+const convertBindingsToType = (bindings: ZephyrBindingYml[], node: Node) => {
+  return bindings.map((bindings) => convertBindingToType(bindings, node));
 };
 
-const convertBindingToType = (binding: ZephyrBindingYml) => {
-  const nodeType = getStandardType();
+const convertBindingToType = (binding: ZephyrBindingYml, node: Node) => {
+  const nodeType = getStandardType(node);
   nodeType.compatible =
     binding.compatible ??
     (binding.filePath ? basename(binding.filePath, "yaml") : undefined);
@@ -342,7 +342,10 @@ const convertBindingToType = (binding: ZephyrBindingYml) => {
   }
 
   if (binding["child-binding"]) {
-    nodeType.childNodeType = convertBindingToType(binding["child-binding"]);
+    nodeType.childNodeType = convertBindingToType(
+      binding["child-binding"],
+      node
+    );
     nodeType.childNodeType.bindingsPath = nodeType.bindingsPath;
   }
 

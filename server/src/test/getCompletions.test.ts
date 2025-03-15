@@ -30,7 +30,7 @@ import { getStandardType } from "../dtsTypes/standardTypes";
 
 const getFakeBindingLoader = (): BindingLoader => ({
   getNodeTypes: (node: Node) => {
-    return Promise.resolve([getStandardType()]);
+    return Promise.resolve([getStandardType(node)]);
   },
 });
 
