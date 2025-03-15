@@ -272,6 +272,8 @@ export type SearchableResult = {
   runtime: Runtime;
   item: Node | Property | null;
   ast: ASTBase;
+  beforeAst?: ASTBase;
+  afterAst?: ASTBase;
 };
 
 export interface Searchable {

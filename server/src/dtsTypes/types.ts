@@ -338,11 +338,10 @@ export class PropertyNodeType<T = string | number> {
 
   getPropertyCompletionItems(
     property: Property,
+    valueIndex: number,
     inValue: boolean
   ): CompletionItem[] {
-    const currentValue = this.type.at(
-      (property.ast.values?.values.length ?? 0) - 1
-    );
+    const currentValue = this.type.at(valueIndex);
 
     if (currentValue?.types.some((tt) => tt === PropertyType.STRING)) {
       if (

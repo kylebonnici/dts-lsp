@@ -629,6 +629,7 @@ export class Parser extends BaseParser {
 
     let result: PropertyValues | undefined;
     if (validToken(this.currentToken, LexerToken.ASSIGN_OPERATOR)) {
+      node.assignOperatorToken = this.currentToken;
       this.moveToNextToken;
       result = this.processValue(node);
 

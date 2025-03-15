@@ -146,7 +146,7 @@ export class Node {
         .find(
           (i) =>
             positionInBetween(i.ast, file, position) ||
-            (i.ast.lastToken.value === ";" &&
+            (i.ast.lastToken.value !== ";" &&
               positionSameLineAndNotAfter(i.ast, file, position))
         );
 

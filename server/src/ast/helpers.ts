@@ -67,3 +67,11 @@ export const getNodeNameOrNodeLabelRef = (nodes: DtcBaseNode[]) => {
     }),
   ].filter((a) => !!a) as (NodeName | LabelRef)[];
 };
+
+export const isChildOfAstNode = (parent: ASTBase, ast?: ASTBase): boolean => {
+  if (!ast) {
+    return false;
+  }
+
+  return ast.parentNode === parent || isChildOfAstNode(parent, ast.parentNode);
+};

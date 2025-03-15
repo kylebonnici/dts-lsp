@@ -83,6 +83,34 @@ export const getTokenModifiers = (type: SemanticTokenModifiers) => {
   return tokenModifiers.findIndex((t) => t === type);
 };
 
+export const positionAfter = (
+  token: Token,
+  file: string,
+  position: Position
+): boolean => {
+  if (token.uri !== file) return false;
+
+  if (position.line < token.pos.line) return false;
+
+  if (position.line > token.pos.line) return true;
+
+  return position.character > token.pos.col + token.pos.len;
+};
+
+export const positionBefore = (
+  token: Token,
+  file: string,
+  position: Position
+): boolean => {
+  if (token.uri !== file) return false;
+
+  if (position.line < token.pos.line) return true;
+
+  if (position.line > token.pos.line) return false;
+
+  return position.character < token.pos.col;
+};
+
 export const positionInBetween = (
   ast: ASTBase,
   file: string,
@@ -163,6 +191,38 @@ export const getDeepestAstNodeInBetween = (
       .find((c) => positionInBetween(c, file, position));
   }
   return deepestAstNode;
+};
+
+export const getDeepestAstNodeAfter = (
+  ast: ASTBase,
+  file: string,
+  position: Position
+) => {
+  let deepestAstNode: ASTBase | undefined = ast;
+  let next: ASTBase | undefined = ast;
+  while (next) {
+    deepestAstNode = next;
+    next = [...deepestAstNode.children].find((c) =>
+      positionBefore(c.lastToken, file, position)
+    );
+  }
+  return deepestAstNode === ast ? undefined : deepestAstNode;
+};
+
+export const getDeepestAstNodeBefore = (
+  ast: ASTBase,
+  file: string,
+  position: Position
+) => {
+  let deepestAstNode: ASTBase | undefined = ast;
+  let next: ASTBase | undefined = ast;
+  while (next) {
+    deepestAstNode = next;
+    next = [...deepestAstNode.children]
+      .reverse()
+      .find((c) => positionAfter(c.firstToken, file, position));
+  }
+  return deepestAstNode === ast ? undefined : deepestAstNode;
 };
 
 export const genIssue = <T extends IssueTypes>(

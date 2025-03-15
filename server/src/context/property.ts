@@ -21,7 +21,12 @@ import {
   DiagnosticTag,
   Position,
 } from "vscode-languageserver";
-import { getDeepestAstNodeInBetween } from "../helpers";
+import {
+  getDeepestAstNodeAfter,
+  getDeepestAstNodeBefore,
+  getDeepestAstNodeInBetween,
+  positionAfter,
+} from "../helpers";
 import { LabelAssign } from "../ast/dtc/label";
 import { type Node } from "./node";
 
@@ -34,9 +39,22 @@ export class Property {
     file: string,
     position: Position
   ): Omit<SearchableResult, "runtime"> {
+    const deepestAstNode = getDeepestAstNodeInBetween(this.ast, file, position);
+
+    if (this.ast.assignOperatorToken) {
+      if (positionAfter(this.ast.assignOperatorToken, file, position)) {
+        return {
+          item: this,
+          ast: deepestAstNode,
+          beforeAst: getDeepestAstNodeBefore(this.ast, file, position),
+          afterAst: getDeepestAstNodeAfter(this.ast, file, position),
+        };
+      }
+    }
+
     return {
       item: this,
-      ast: getDeepestAstNodeInBetween(this.ast, file, position),
+      ast: deepestAstNode,
     };
   }
 
