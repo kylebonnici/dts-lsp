@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Stuttering when reporting diagnostics. This is clearly visable in the `Problems` tab in VSCode as when typing the
   diagnostics disappear and re appre after typing stops
 - Performace improvment to avoid repasring uneffected documents
+- Fix `find definitions`, `find declerations`, `find all references` for root nodes.
 
 # 0.1.2 - 2025-03-13
 
