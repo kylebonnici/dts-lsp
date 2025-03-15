@@ -88,10 +88,12 @@ export class DtcProperty extends ASTBase {
 
   toString() {
     return `${this.propertyName?.toString() ?? "__UNSET__"}${
-      this._values?.values.length
-        ? ` = ${this._values.values
-            .map((v) => v?.toString() ?? "NULL")
-            .join(", ")}`
+      this.assignOperatorToken
+        ? ` = ${
+            this._values?.values
+              .map((v) => v?.toString() ?? "NULL")
+              .join(", ") ?? "NULL"
+          }`
         : ""
     };`;
   }
