@@ -432,7 +432,7 @@ export class NodeType extends INodeType {
   _childNodeType?: NodeType;
 
   constructor(
-    public readonly additionalValidations: (
+    public additionalValidations: (
       runtime: Runtime,
       node: Node
     ) => Issue<StandardTypeIssue>[] = () => []

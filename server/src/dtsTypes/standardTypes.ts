@@ -20,6 +20,7 @@ import { getStandardDefaultType } from "./standardDefaultType";
 import { getAliasesNodeType } from "./standardTypes/nodeTypes/aliases/node";
 import { getMemoryNodeType } from "./standardTypes/nodeTypes/memory/node";
 import { getReservedMemoryNodeType } from "./standardTypes/nodeTypes/reserved-memory/node";
+import { getChosenNodeType } from "./standardTypes/nodeTypes/chosen/node";
 
 export function getStandardType(node: Node) {
   switch (node.name) {
@@ -31,6 +32,8 @@ export function getStandardType(node: Node) {
       return getMemoryNodeType();
     case "reserved-memory":
       return getReservedMemoryNodeType();
+    case "chosen":
+      return getChosenNodeType();
   }
 
   return getStandardDefaultType();
