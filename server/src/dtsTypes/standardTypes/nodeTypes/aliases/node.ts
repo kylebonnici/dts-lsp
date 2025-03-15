@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import { genIssue } from "src/helpers";
+import { genIssue } from "../../../../helpers";
 import { NodeType, PropertyNodeType, PropertyType } from "../../../types";
 import { generateOrTypeObj } from "../../helpers";
-import { StandardTypeIssue } from "src/types";
+import { StandardTypeIssue } from "../../../../types";
 import { DiagnosticSeverity } from "vscode-languageserver";
 
 export function getAliasesNodeType() {

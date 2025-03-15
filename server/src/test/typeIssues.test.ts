@@ -909,8 +909,8 @@ describe("Type Issues", () => {
         expect(issues[0].issues).toEqual([StandardTypeIssue.DEPRECATED]);
       });
 
-      test("valid type single string - memory", async () => {
-        mockReadFileSync(`/{${rootDefaults} memory{device_type= "memory";};};`);
+      test("valid type single string - node", async () => {
+        mockReadFileSync(`/{${rootDefaults} node{device_type= "memory";};};`);
         const context = new ContextAware(
           "/folder/dts.dts",
           [],
