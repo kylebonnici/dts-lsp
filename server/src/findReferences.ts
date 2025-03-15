@@ -18,7 +18,7 @@ import { Location, TextDocumentPositionParams } from "vscode-languageserver";
 import { ContextAware } from "./runtimeEvaluator";
 import { SearchableResult } from "./types";
 import { Node } from "./context/node";
-import { DtcChildNode, NodeName } from "./ast/dtc/node";
+import { DtcChildNode, DtcRootNode, NodeName } from "./ast/dtc/node";
 import { Label } from "./ast/dtc/label";
 import { LabelRef } from "./ast/dtc/labelRef";
 import { nodeFinder, toRange } from "./helpers";
@@ -93,7 +93,9 @@ function getPropertyReferences(
 function getNodeReferences(result: SearchableResult | undefined): Location[] {
   if (
     !result ||
-    (!(result.ast instanceof NodeName) && !(result.ast instanceof Label))
+    (!(result.ast instanceof NodeName) &&
+      !(result.ast instanceof Label) &&
+      !(result.ast instanceof DtcRootNode))
   ) {
     return [];
   }
@@ -105,6 +107,9 @@ function getNodeReferences(result: SearchableResult | undefined): Location[] {
       ...node.definitions,
     ]
       .map((dtc) => {
+        if (dtc instanceof DtcRootNode) {
+          return Location.create(`file://${dtc.uri}`, toRange(dtc.name ?? dtc));
+        }
         if (dtc instanceof DtcChildNode) {
           return Location.create(`file://${dtc.uri}`, toRange(dtc.name ?? dtc));
         }
