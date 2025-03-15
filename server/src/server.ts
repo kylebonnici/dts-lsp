@@ -807,6 +807,8 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
           return issue.templateStrings[0];
         case StandardTypeIssue.NODE_LOCATION:
           return issue.templateStrings[0];
+        case StandardTypeIssue.INVALID_VALUE:
+          return issue.templateStrings[0];
       }
     })
     .join(" or ")

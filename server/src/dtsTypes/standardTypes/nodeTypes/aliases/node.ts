@@ -36,7 +36,7 @@ export function getAliasesNodeType() {
     }
     return [];
   });
-  nodeType.allPropertiesMustMatch = true;
+  nodeType.noMismatchPropertiesAllowed = true;
 
   const prop = new PropertyNodeType(
     (name) => {

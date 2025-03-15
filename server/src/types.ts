@@ -64,6 +64,7 @@ export enum StandardTypeIssue {
   DEVICETREE_ORG_BINDINGS,
   NODE_LOCATION,
   PROPERTY_NOT_ALLOWED,
+  INVALID_VALUE,
 }
 
 export enum SyntaxIssue {

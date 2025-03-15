@@ -75,7 +75,7 @@ export class PropertyNodeType<T = string | number> {
 
   constructor(
     public readonly name: string | ((n: string) => boolean),
-    public readonly type: TypeConfig[],
+    public type: TypeConfig[],
     required:
       | RequirementStatus
       | ((node: Node) => RequirementStatus) = "optional",
@@ -304,16 +304,17 @@ export class PropertyNodeType<T = string | number> {
         );
       }
 
+      const values = this.values(property);
       // we have the right type
       if (issues.length === 0) {
         issues.push(...(this.additionalTypeCheck?.(property) ?? []));
         if (
-          this.values(property).length &&
+          values.length &&
           this.type[0].types.some((tt) => tt === PropertyType.STRING)
         ) {
           const currentValue = property.ast.values?.values[0]
             ?.value as StringValue;
-          if (!this.values(property).some((v) => currentValue.value === v)) {
+          if (!values.some((v) => currentValue.value === v)) {
             issues.push(
               genIssue(
                 StandardTypeIssue.EXPECTED_ENUM,
@@ -427,7 +428,7 @@ export abstract class INodeType {
 
 export class NodeType extends INodeType {
   private _properties: PropertyNodeType[] = [];
-  public allPropertiesMustMatch = false;
+  public noMismatchPropertiesAllowed = false;
   _childNodeType?: NodeType;
 
   constructor(
@@ -469,6 +470,7 @@ export class NodeType extends INodeType {
     const propIssues = this.properties.flatMap((propType) => {
       if (typeof propType.name === "string") {
         const property = node.getProperty(propType.name);
+        if (property) machedSet.add(property);
         return propType.validateProperty(
           runtime,
           node,
@@ -499,7 +501,7 @@ export class NodeType extends INodeType {
 
     if (
       machedSet.size !== node.property.length &&
-      this.allPropertiesMustMatch
+      this.noMismatchPropertiesAllowed
     ) {
       const mismatch = node.property.filter((p) => !machedSet.has(p));
       mismatch.forEach((p) => {
