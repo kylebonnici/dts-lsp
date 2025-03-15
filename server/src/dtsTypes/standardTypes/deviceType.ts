@@ -63,16 +63,21 @@ export default () => {
               ];
         }
       }
-      return [
-        genIssue(
-          StandardTypeIssue.DEPRECATED,
-          property.ast,
-          DiagnosticSeverity.Hint,
-          [],
-          [DiagnosticTag.Deprecated],
-          [property.name]
-        ),
-      ];
+
+      if (prop.required(property.parent) !== "required") {
+        return [
+          genIssue(
+            StandardTypeIssue.DEPRECATED,
+            property.ast,
+            DiagnosticSeverity.Hint,
+            [],
+            [DiagnosticTag.Deprecated],
+            [property.name]
+          ),
+        ];
+      }
+
+      return [];
     }
   );
   prop.description = [
