@@ -336,7 +336,10 @@ export class PropertyNodeType<T = string | number> {
     return issues;
   }
 
-  getPropertyCompletionItems(property: Property): CompletionItem[] {
+  getPropertyCompletionItems(
+    property: Property,
+    inValue: boolean
+  ): CompletionItem[] {
     const currentValue = this.type.at(
       (property.ast.values?.values.length ?? 0) - 1
     );
@@ -350,7 +353,7 @@ export class PropertyNodeType<T = string | number> {
       }
 
       return this.values(property).map((v) => ({
-        label: `"${v}"`,
+        label: inValue ? `${v}` : `"${v}"`,
         kind: CompletionItemKind.Variable,
         sortText: v === this.def ? `A${v}` : `Z${v}`,
       }));
@@ -362,7 +365,7 @@ export class PropertyNodeType<T = string | number> {
       )
     ) {
       return this.values(property).map((v) => ({
-        label: `<${v}>`,
+        label: inValue ? `${v}` : `<${v}>`,
         kind: CompletionItemKind.Variable,
         sortText: v === this.def ? `A${v}` : `Z${v}`,
       }));

@@ -26,13 +26,28 @@ import { Property } from "./context/property";
 import { nodeFinder } from "./helpers";
 import { isDeleteChild } from "./ast/helpers";
 import { NodeType } from "./dtsTypes/types";
+import { ASTBase } from "./ast/base";
+import { PropertyValue } from "./ast/dtc/values/value";
+
+const isInPropertyValue = (astBase?: ASTBase): boolean => {
+  if (!astBase || astBase instanceof DtcProperty) return false;
+
+  return (
+    astBase instanceof PropertyValue || isInPropertyValue(astBase.parentNode)
+  );
+};
 
 function getPropertyAssignItems(
   result: SearchableResult | undefined
 ): CompletionItem[] {
+  if (!result || !(result.item instanceof Property)) {
+    return [];
+  }
+
+  const inPorpertyValue = isInPropertyValue(result?.ast);
+
   if (
-    !result ||
-    !(result.item instanceof Property) ||
+    !inPorpertyValue &&
     !(
       result.ast instanceof DtcProperty &&
       (result.ast.values || result.ast.values === null)
@@ -46,7 +61,7 @@ function getPropertyAssignItems(
     return (
       nodeType.properties
         .find((p) => p.name === result.item?.name)
-        ?.getPropertyCompletionItems(result.item) ?? []
+        ?.getPropertyCompletionItems(result.item, inPorpertyValue) ?? []
     );
   }
 
