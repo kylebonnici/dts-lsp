@@ -143,10 +143,11 @@ export class Node {
           item: p,
           ast: p.ast,
         }))
-        .find((i) =>
-          i.ast.lastToken.value === ";"
-            ? positionInBetween(i.ast, file, position)
-            : positionSameLineAndNotAfter(i.ast, file, position)
+        .find(
+          (i) =>
+            positionInBetween(i.ast, file, position) ||
+            (i.ast.lastToken.value === ";" &&
+              positionSameLineAndNotAfter(i.ast, file, position))
         );
 
       if (inProperty) {
