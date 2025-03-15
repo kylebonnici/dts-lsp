@@ -50,7 +50,7 @@ function getPropertyAssignItems(
     !inPorpertyValue &&
     !(
       result.ast instanceof DtcProperty &&
-      (result.ast.values || result.ast.values === null)
+      (result.ast.values === null || result.ast.values?.values.at(-1) === null)
     )
   ) {
     return [];
