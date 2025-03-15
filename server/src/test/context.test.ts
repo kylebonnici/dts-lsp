@@ -40,7 +40,7 @@ const mockReadFileSync = (content: string, path?: string) => {
 
 const getFakeBindingLoader = (): BindingLoader => ({
   getNodeTypes: (node: Node) => {
-    return Promise.resolve([getStandardType()]);
+    return Promise.resolve([getStandardType(node)]);
   },
 });
 describe("Context Issues", () => {

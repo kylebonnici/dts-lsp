@@ -58,7 +58,7 @@ export class Node {
   linkedNodeNamePaths: NodeName[] = [];
   linkedRefLabels: LabelRef[] = [];
 
-  private _nodeTypes: INodeType[] = [getStandardType()];
+  private _nodeTypes: INodeType[] = [getStandardType(this)];
 
   static toJson(node: Node) {
     const obj: any = {};
@@ -86,7 +86,7 @@ export class Node {
       return [childType];
     }
 
-    return this._nodeTypes ?? [getStandardType()];
+    return this._nodeTypes ?? [getStandardType(this)];
   }
 
   get nodeType(): INodeType | undefined {
@@ -414,7 +414,7 @@ export class Node {
           .getNodeTypes(this)
           .then((t) => (this._nodeTypes = t));
       } else {
-        this._nodeTypes = [getStandardType()];
+        this._nodeTypes = [getStandardType(this)];
       }
     }
   }

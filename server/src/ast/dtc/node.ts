@@ -17,7 +17,12 @@
 import { BuildSemanticTokensPush, Token, TokenIndexes } from "../../types";
 import { ASTBase } from "../base";
 import { SymbolKind } from "vscode-languageserver";
-import { getTokenModifiers, getTokenTypes, toRange } from "../../helpers";
+import {
+  createTokenIndex,
+  getTokenModifiers,
+  getTokenTypes,
+  toRange,
+} from "../../helpers";
 import { DtcProperty } from "./property";
 import { DeleteNode } from "./deleteNode";
 import { LabelAssign } from "./label";
@@ -72,8 +77,13 @@ export class DtcRootNode extends DtcBaseNode {
       kind: SymbolKind.Class,
     };
   }
+
   get properties() {
     return this.children.filter((child) => child instanceof DtcProperty);
+  }
+
+  get name() {
+    return new NodeName("/", createTokenIndex(this.firstToken));
   }
 
   get deleteProperties() {

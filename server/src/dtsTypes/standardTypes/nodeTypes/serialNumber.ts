@@ -14,14 +14,19 @@
  * limitations under the License.
  */
 
-import { type Node } from "../context/node";
-import { getRootNodeType } from "./standardTypes/nodeTypes/rootNode";
-import { getStandardDefaultType } from "./standardDefaultType";
+import { PropertyNodeType, PropertyType } from "../../types";
+import { generateOrTypeObj } from "../helpers";
 
-export function getStandardType(node: Node) {
-  if (node.name === "/") {
-    return getRootNodeType();
-  }
+export default () => {
+  const prop = new PropertyNodeType(
+    "serial-number",
+    generateOrTypeObj(PropertyType.STRING),
+    "optional"
+  );
+  prop.description = [
+    `Specifies a string representing the device’s se-
+rialnumber.`,
+  ];
 
-  return getStandardDefaultType();
-}
+  return prop;
+};
