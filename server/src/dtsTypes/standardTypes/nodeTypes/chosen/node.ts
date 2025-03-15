@@ -32,7 +32,7 @@ export function getChosenNodeType() {
           DiagnosticSeverity.Error,
           node.definitions.slice(1),
           [],
-          ["Aliases node can only be added to a root node"]
+          ["Chosen node can only be added to a root node"]
         ),
       ];
     }

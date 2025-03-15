@@ -15,7 +15,6 @@
  */
 
 import { NodeType, PropertyType } from "../../../types";
-import { getStandardDefaultType } from "../../../../dtsTypes/standardDefaultType";
 import { generateOrTypeObj, getU32ValueFromProperty } from "../../helpers";
 import { genIssue } from "src/helpers";
 import { Issue, StandardTypeIssue } from "src/types";
@@ -33,25 +32,23 @@ const matchRootNode = (
 ) => {
   const issues = additionalTypeCheck?.(property) ?? [];
 
-  const rootNodeAddressCells = property.parent.root.getProperty(property.name);
-  const rootNodeAddressCellsValue = rootNodeAddressCells
-    ? getU32ValueFromProperty(rootNodeAddressCells, 0, 0)
+  const rootNode = property.parent.root.getProperty(property.name);
+  const rootNodeValue = rootNode
+    ? getU32ValueFromProperty(rootNode, 0, 0)
     : undefined;
 
-  const nodeAddressCells = property.parent.getProperty(property.name);
-  const nodeAddressCellsValue = nodeAddressCells
-    ? getU32ValueFromProperty(nodeAddressCells, 0, 0)
-    : undefined;
+  const node = property.parent.getProperty(property.name);
+  const nodeValue = node ? getU32ValueFromProperty(node, 0, 0) : undefined;
 
-  if (nodeAddressCellsValue !== rootNodeAddressCellsValue) {
+  if (nodeValue !== rootNodeValue) {
     issues.push(
       genIssue(
         StandardTypeIssue.INVALID_VALUE,
         property.ast,
         DiagnosticSeverity.Error,
-        [...(rootNodeAddressCells?.ast ? [rootNodeAddressCells.ast] : [])],
+        [...(rootNode?.ast ? [rootNode.ast] : [])],
         undefined,
-        ["#address-cells value in this node must match value of root node"]
+        [`${property.name} value in this node must match value of root node`]
       )
     );
   }

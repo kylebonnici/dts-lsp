@@ -53,9 +53,9 @@ export function getCpusNodeType() {
     return "required";
   };
 
-  const aizeCellsAdditionalTypeCheck = sizeCellsProp?.additionalTypeCheck;
-  addressCellsProp!.additionalTypeCheck = (property) => {
-    const issues = aizeCellsAdditionalTypeCheck?.(property) ?? [];
+  const sizeCellsAdditionalTypeCheck = sizeCellsProp?.additionalTypeCheck;
+  sizeCellsProp!.additionalTypeCheck = (property) => {
+    const issues = sizeCellsAdditionalTypeCheck?.(property) ?? [];
 
     const node = property.parent.getProperty(property.name);
     const nodeValue = node ? getU32ValueFromProperty(node, 0, 0) : undefined;
