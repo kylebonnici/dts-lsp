@@ -16,7 +16,6 @@
 
 import {
   CompletionItem,
-  CompletionItemKind,
   TextDocumentPositionParams,
 } from "vscode-languageserver";
 import { ContextAware } from "./runtimeEvaluator";
