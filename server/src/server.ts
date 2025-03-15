@@ -873,8 +873,8 @@ const onChange = async (uri: string) => {
           unwatchContextFiles(context.context);
           await context.context.reevaluate(uri);
           watchContextFiles(context.context);
-          clearWorkspaceDiagnostics(context.context, itemsToClear);
           reportWorkspaceDiagnostics(context.context).then((d) => {
+            clearWorkspaceDiagnostics(context.context, itemsToClear);
             d.items
               .map(
                 (i) =>

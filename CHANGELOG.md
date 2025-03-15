@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Type completion suggestions. e.g. `status=` now correctly suggesst values such as "Okey", "disabled", "fail".
+- Stuttering when reporting diagnostics. This is clearly visable in the `Problems` tab in VSCode as when typing the
+  diagnostics disappear and re appre after typing stops
 
 # 0.1.2 - 2025-03-13
 
