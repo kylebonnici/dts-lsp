@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { genIssue, getIndentString } from "../helpers";
+import { genIssue, getIndentString, toRangeWithTokenIndex } from "../helpers";
 import { type Node } from "../context/node";
 import { Property } from "../context/property";
 import { Issue, StandardTypeIssue } from "../types";
@@ -425,7 +425,17 @@ export abstract class INodeType {
 
 export class NodeType extends INodeType {
   private _properties: PropertyNodeType[] = [];
+  public allPropertiesMustMatch = false;
   _childNodeType?: NodeType;
+
+  constructor(
+    public readonly additionalValidations: (
+      runtime: Runtime,
+      node: Node
+    ) => Issue<StandardTypeIssue>[] = () => []
+  ) {
+    super();
+  }
 
   getIssue(runtime: Runtime, node: Node) {
     const issue: Issue<StandardTypeIssue>[] = [];
@@ -452,6 +462,8 @@ export class NodeType extends INodeType {
       }
     }
 
+    const machedSet = new Set<Property>();
+
     const propIssues = this.properties.flatMap((propType) => {
       if (typeof propType.name === "string") {
         const property = node.getProperty(propType.name);
@@ -467,9 +479,14 @@ export class NodeType extends INodeType {
         propType.getNameMatch(p.name)
       );
 
+      properties.forEach((p) => machedSet.add(p));
+
       const ddd = this.properties.filter((t) => t !== propType) ?? [];
 
-      if (properties.filter((p) => ddd.some((d) => d.getNameMatch(p.name)))) {
+      if (
+        ddd.length &&
+        properties.filter((p) => ddd.some((d) => d.getNameMatch(p.name)))
+      ) {
         return [];
       }
 
@@ -478,7 +495,37 @@ export class NodeType extends INodeType {
       );
     });
 
-    return [...issue, ...propIssues];
+    if (
+      machedSet.size !== node.property.length &&
+      this.allPropertiesMustMatch
+    ) {
+      const mismatch = node.property.filter((p) => !machedSet.has(p));
+      mismatch.forEach((p) => {
+        issue.push(
+          genIssue<StandardTypeIssue>(
+            StandardTypeIssue.PROPERTY_NOT_ALLOWED,
+            p.ast,
+            DiagnosticSeverity.Error,
+            [],
+            [],
+            [p.name],
+            TextEdit.del(
+              toRangeWithTokenIndex(
+                p.ast.firstToken.prevToken,
+                p.ast.lastToken,
+                false
+              )
+            )
+          )
+        );
+      });
+    }
+
+    return [
+      ...issue,
+      ...propIssues,
+      ...this.additionalValidations(runtime, node),
+    ];
   }
 
   get properties() {

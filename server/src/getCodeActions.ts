@@ -323,10 +323,10 @@ const standardTypeIssueToCodeAction = (
           },
         },
       ];
-    case StandardTypeIssue.DEVICETREE_ORG_BINDINGS:
-      return edit ? [
+    case StandardTypeIssue.PROPERTY_NOT_ALLOWED:
+      return [
         {
-          title: codeActionTitle ?? `TODO`,
+          title: codeActionTitle ?? `Remove Property`,
           diagnostics: [diagnostic],
           kind: CodeActionKind.QuickFix,
           isPreferred: true,
@@ -336,7 +336,24 @@ const standardTypeIssueToCodeAction = (
             },
           },
         },
-      ] : [];
+      ];
+    case StandardTypeIssue.DEVICETREE_ORG_BINDINGS:
+      return edit
+        ? [
+            {
+              title: codeActionTitle ?? `TODO`,
+              diagnostics: [diagnostic],
+              kind: CodeActionKind.QuickFix,
+              isPreferred: true,
+              edit: {
+                changes: {
+                  [uri]: [edit],
+                },
+              },
+            },
+          ]
+        : [];
+
     default:
       return;
   }

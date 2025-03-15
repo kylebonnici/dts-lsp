@@ -17,10 +17,14 @@
 import { type Node } from "../context/node";
 import { getRootNodeType } from "./standardTypes/nodeTypes/root/node";
 import { getStandardDefaultType } from "./standardDefaultType";
+import { getAliasesNodeType } from "./standardTypes/nodeTypes/aliases/node";
 
 export function getStandardType(node: Node) {
-  if (node.name === "/") {
-    return getRootNodeType();
+  switch (node.name) {
+    case "/":
+      return getRootNodeType();
+    case "aliases":
+      return getAliasesNodeType();
   }
 
   return getStandardDefaultType();

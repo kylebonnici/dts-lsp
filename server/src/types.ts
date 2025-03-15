@@ -62,6 +62,8 @@ export enum StandardTypeIssue {
   UNABLE_TO_RESOLVE_PATH,
   EXPECTED_VALUE,
   DEVICETREE_ORG_BINDINGS,
+  NODE_LOCATION,
+  PROPERTY_NOT_ALLOWED,
 }
 
 export enum SyntaxIssue {
