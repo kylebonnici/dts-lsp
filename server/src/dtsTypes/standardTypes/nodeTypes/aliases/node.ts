@@ -38,24 +38,9 @@ export function getAliasesNodeType() {
   });
   nodeType.noMismatchPropertiesAllowed = true;
 
-  const prop = new PropertyNodeType(
-    (name) => {
-      return !!name.match(/^[-A-Za-z0-9]+$/);
-    },
-    generateOrTypeObj([PropertyType.STRING, PropertyType.U32])
-    // undefined,
-    // undefined,
-    // undefined,
-    // (property) => {
-    //   const value = property.ast.values?.values.at(0)?.value;
-    //   if (value instanceof StringValue) {
-    //     const path = value.value.split('/');
-    //     if (property.parent.root.)
-    //   }
-
-    //   return [];
-    // }
-  );
+  const prop = new PropertyNodeType((name) => {
+    return !!name.match(/^[-A-Za-z0-9]+$/);
+  }, generateOrTypeObj([PropertyType.STRING, PropertyType.U32]));
   prop.description = [`Each property of the /aliases node defines an alias.`];
   nodeType.addProperty([prop]);
   return nodeType;

@@ -14,74 +14,19 @@
  * limitations under the License.
  */
 
-import { NodeType } from "../../../types";
-import addressCells from "../../addressCells";
-import dmaCoherent from "../../dmaCoherent";
-import dmaNoncoherent from "../../dmaNoncoherent";
-import dmaRanges from "../../dmaRanges";
-import model from "../../model";
-import phandle from "../../phandle";
-import ranges from "../../ranges";
-import reg from "../../reg";
-import sizeCells from "../../sizeCells";
-import status from "../../status";
-import virtualReg from "../../virtualReg";
-import deviceType from "../../deviceType";
-import interrupts from "../../interrupts";
-import interruptParent from "../../interruptParent";
-import interruptsExtended from "../../interruptsExtended";
-import interruptCells from "../../interruptCells";
-import interruptController from "../../interruptController";
-import interruptMap from "../../interruptMap";
-import interruptMapMask from "../../interruptMapMask";
-import nexusSpecifierMap from "../../nexusSpecifierMap";
-import nexusSpecifierMapMask from "../../nexusSpecifierMapMask";
-import nexusSpecifierMapPassThru from "../../nexusSpecifierMapPassThru";
-import nexusSpecifierCells from "../../nexusSpecifierCells";
-import name from "../../name";
-import compatible from "../../compatible";
+import { getStandardDefaultType } from "src/dtsTypes/standardDefaultType";
 
 export function getMemoryNodeType() {
-  const nodeType = new NodeType();
-  const deviceTypeProp = deviceType();
-  deviceTypeProp.required = () => {
-    return "required";
-  };
+  const standardType = getStandardDefaultType();
+  standardType.noMismatchPropertiesAllowed = true;
 
-  const regProp = reg();
-  regProp.required = () => {
-    return "required";
-  };
+  const deviceTypeProp = standardType.properties.find(
+    (p) => p.name === "device_type"
+  );
+  deviceTypeProp!.required = () => "required";
 
-  nodeType.addProperty([
-    deviceTypeProp,
-    regProp,
+  const regProp = standardType.properties.find((p) => p.name === "reg");
+  regProp!.required = () => "required";
 
-    // optional
-    addressCells(),
-    sizeCells(),
-    model(),
-    compatible(),
-    phandle(),
-    status(),
-    reg(),
-    virtualReg(),
-    ranges(),
-    dmaRanges(),
-    dmaCoherent(),
-    dmaNoncoherent(),
-    name(),
-    interrupts(),
-    interruptParent(),
-    interruptsExtended(),
-    interruptCells(),
-    interruptController(),
-    interruptMap(),
-    interruptMapMask(),
-    nexusSpecifierMap(),
-    nexusSpecifierMapMask(),
-    nexusSpecifierMapPassThru(),
-    nexusSpecifierCells(),
-  ]);
-  return nodeType;
+  return standardType;
 }

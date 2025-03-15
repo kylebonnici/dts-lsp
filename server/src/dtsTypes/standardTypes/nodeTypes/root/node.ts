@@ -14,86 +14,40 @@
  * limitations under the License.
  */
 
-import { NodeType } from "../../../types";
-import addressCells from "../../addressCells";
-import dmaCoherent from "../../dmaCoherent";
-import dmaNoncoherent from "../../dmaNoncoherent";
-import dmaRanges from "../../dmaRanges";
-import model from "../../model";
-import phandle from "../../phandle";
-import ranges from "../../ranges";
-import reg from "../../reg";
-import sizeCells from "../../sizeCells";
-import status from "../../status";
-import virtualReg from "../../virtualReg";
-import deviceType from "../../deviceType";
-import interrupts from "../../interrupts";
-import interruptParent from "../../interruptParent";
-import interruptsExtended from "../../interruptsExtended";
-import interruptCells from "../../interruptCells";
-import interruptController from "../../interruptController";
-import interruptMap from "../../interruptMap";
-import interruptMapMask from "../../interruptMapMask";
-import nexusSpecifierMap from "../../nexusSpecifierMap";
-import nexusSpecifierMapMask from "../../nexusSpecifierMapMask";
-import nexusSpecifierMapPassThru from "../../nexusSpecifierMapPassThru";
-import nexusSpecifierCells from "../../nexusSpecifierCells";
-import name from "../../name";
-import serialNumber from "./serialNumber";
+import { getStandardDefaultType } from "src/dtsTypes/standardDefaultType";
 import chassisType from "./chassisType";
+import serialNumber from "./serialNumber";
 
 export function getRootNodeType() {
-  const nodeType = new NodeType();
-  const addressCellsProp = addressCells();
-  addressCellsProp.required = () => {
+  const standardType = getStandardDefaultType();
+  standardType.noMismatchPropertiesAllowed = true;
+
+  const addressCellsProp = standardType.properties.find(
+    (p) => p.name === "#address-cells"
+  );
+  addressCellsProp!.required = () => {
     return "required";
   };
 
-  const sizeCellsProp = sizeCells();
-  sizeCellsProp.required = () => {
+  const sizeCellsProp = standardType.properties.find(
+    (p) => p.name === "#size-cells"
+  );
+  sizeCellsProp!.required = () => {
     return "required";
   };
 
-  const modelProp = model();
-  modelProp.required = () => {
+  const modelProp = standardType.properties.find((p) => p.name === "model");
+  modelProp!.required = () => {
     return "required";
   };
 
-  const compatibleProp = model();
-  compatibleProp.required = () => {
+  const compatibleProp = standardType.properties.find(
+    (p) => p.name === "compatible"
+  );
+  compatibleProp!.required = () => {
     return "required";
   };
 
-  nodeType.addProperty([
-    addressCellsProp,
-    sizeCellsProp,
-    modelProp,
-    compatibleProp,
-    serialNumber(),
-    chassisType(),
-
-    // optional
-    phandle(),
-    status(),
-    reg(),
-    virtualReg(),
-    ranges(),
-    dmaRanges(),
-    dmaCoherent(),
-    dmaNoncoherent(),
-    name(),
-    deviceType(),
-    interrupts(),
-    interruptParent(),
-    interruptsExtended(),
-    interruptCells(),
-    interruptController(),
-    interruptMap(),
-    interruptMapMask(),
-    nexusSpecifierMap(),
-    nexusSpecifierMapMask(),
-    nexusSpecifierMapPassThru(),
-    nexusSpecifierCells(),
-  ]);
-  return nodeType;
+  standardType.addProperty([chassisType(), serialNumber()]);
+  return standardType;
 }
