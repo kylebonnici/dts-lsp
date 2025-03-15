@@ -18,7 +18,7 @@ import { Location, TextDocumentPositionParams } from "vscode-languageserver";
 import { ContextAware } from "./runtimeEvaluator";
 import { SearchableResult } from "./types";
 import { Node } from "./context/node";
-import { NodeName } from "./ast/dtc/node";
+import { DtcRootNode, NodeName } from "./ast/dtc/node";
 import { Label } from "./ast/dtc/label";
 import { LabelRef } from "./ast/dtc/labelRef";
 import { PropertyName } from "./ast/dtc/property";
@@ -75,7 +75,9 @@ function getNodeDeclaration(
 ): Location | undefined {
   if (
     !result ||
-    (!(result.ast instanceof NodeName) && !(result.ast instanceof Label))
+    (!(result.ast instanceof NodeName) &&
+      !(result.ast instanceof Label) &&
+      !(result.ast instanceof DtcRootNode))
   ) {
     return;
   }
