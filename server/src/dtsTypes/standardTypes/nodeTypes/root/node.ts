@@ -14,37 +14,36 @@
  * limitations under the License.
  */
 
-import { NodeType } from "../../../dtsTypes/types";
-import addressCells from "../addressCells";
-import compatible from "../compatible";
-import dmaCoherent from "../dmaCoherent";
-import dmaNoncoherent from "../dmaNoncoherent";
-import dmaRanges from "../dmaRanges";
-import model from "../model";
-import phandle from "../phandle";
-import ranges from "../ranges";
-import reg from "../reg";
-import sizeCells from "../sizeCells";
-import status from "../status";
-import virtualReg from "../virtualReg";
-import deviceType from "../deviceType";
-import interrupts from "../interrupts";
-import interruptParent from "../interruptParent";
-import interruptsExtended from "../interruptsExtended";
-import interruptCells from "../interruptCells";
-import interruptController from "../interruptController";
-import interruptMap from "../interruptMap";
-import interruptMapMask from "../interruptMapMask";
-import nexusSpecifierMap from "../nexusSpecifierMap";
-import nexusSpecifierMapMask from "../nexusSpecifierMapMask";
-import nexusSpecifierMapPassThru from "../nexusSpecifierMapPassThru";
-import nexusSpecifierCells from "../nexusSpecifierCells";
-import name from "../name";
+import { NodeType } from "../../../types";
+import addressCells from "../../addressCells";
+import dmaCoherent from "../../dmaCoherent";
+import dmaNoncoherent from "../../dmaNoncoherent";
+import dmaRanges from "../../dmaRanges";
+import model from "../../model";
+import phandle from "../../phandle";
+import ranges from "../../ranges";
+import reg from "../../reg";
+import sizeCells from "../../sizeCells";
+import status from "../../status";
+import virtualReg from "../../virtualReg";
+import deviceType from "../../deviceType";
+import interrupts from "../../interrupts";
+import interruptParent from "../../interruptParent";
+import interruptsExtended from "../../interruptsExtended";
+import interruptCells from "../../interruptCells";
+import interruptController from "../../interruptController";
+import interruptMap from "../../interruptMap";
+import interruptMapMask from "../../interruptMapMask";
+import nexusSpecifierMap from "../../nexusSpecifierMap";
+import nexusSpecifierMapMask from "../../nexusSpecifierMapMask";
+import nexusSpecifierMapPassThru from "../../nexusSpecifierMapPassThru";
+import nexusSpecifierCells from "../../nexusSpecifierCells";
+import name from "../../name";
 import serialNumber from "./serialNumber";
 import chassisType from "./chassisType";
 
 export function getRootNodeType() {
-  const rootNodeType = new NodeType();
+  const nodeType = new NodeType();
   const addressCellsProp = addressCells();
   addressCellsProp.required = () => {
     return "required";
@@ -65,7 +64,7 @@ export function getRootNodeType() {
     return "required";
   };
 
-  rootNodeType.addProperty([
+  nodeType.addProperty([
     addressCellsProp,
     sizeCellsProp,
     modelProp,
@@ -96,5 +95,5 @@ export function getRootNodeType() {
     nexusSpecifierMapPassThru(),
     nexusSpecifierCells(),
   ]);
-  return rootNodeType;
+  return nodeType;
 }

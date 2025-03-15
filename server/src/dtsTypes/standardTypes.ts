@@ -15,7 +15,7 @@
  */
 
 import { type Node } from "../context/node";
-import { getRootNodeType } from "./standardTypes/nodeTypes/rootNode";
+import { getRootNodeType } from "./standardTypes/nodeTypes/root/node";
 import { getStandardDefaultType } from "./standardDefaultType";
 
 export function getStandardType(node: Node) {

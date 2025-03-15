@@ -14,29 +14,18 @@
  * limitations under the License.
  */
 
-import { PropertyNodeType, PropertyType } from "../../types";
-import { generateOrTypeObj } from "../helpers";
+import { PropertyNodeType, PropertyType } from "../../../types";
+import { generateOrTypeObj } from "../../helpers";
 
 export default () => {
   const prop = new PropertyNodeType(
-    "chassis-type",
+    "serial-number",
     generateOrTypeObj(PropertyType.STRING),
-    "optional",
-    undefined,
-    [
-      "desktop",
-      "laptop",
-      "convertible",
-      "server",
-      "tablet",
-      "handset",
-      "watch",
-      "embedded",
-    ]
+    "optional"
   );
   prop.description = [
-    `Specifiesastringthatidentifiestheform-factor
-of the system.`,
+    `Specifies a string representing the device’s se-
+rialnumber.`,
   ];
 
   return prop;
