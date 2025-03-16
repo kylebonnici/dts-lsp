@@ -346,8 +346,8 @@ const convertBindingToType = (binding: ZephyrBindingYml, node?: Node) => {
   }
 
   if (binding["child-binding"]) {
-    nodeType.childNodeType = convertBindingToType(binding["child-binding"]);
-    nodeType.childNodeType.bindingsPath = nodeType.bindingsPath;
+    const childBinding = binding["child-binding"];
+    nodeType.childNodeType = (n: Node) => convertBindingToType(childBinding, n);
   }
 
   return nodeType;

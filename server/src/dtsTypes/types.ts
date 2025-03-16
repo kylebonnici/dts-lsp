@@ -411,7 +411,7 @@ const propertyValueToPropertyType = (
 export abstract class INodeType {
   abstract getIssue(runtime: Runtime, node: Node): Issue<StandardTypeIssue>[];
   abstract getOnPropertyHover(name: string): MarkupContent | undefined;
-  abstract childNodeType: INodeType | undefined;
+  abstract childNodeType: ((node: Node) => INodeType) | undefined;
   onBus?: string;
   bus?: string[];
   description?: string;
@@ -429,7 +429,7 @@ export abstract class INodeType {
 export class NodeType extends INodeType {
   private _properties: PropertyNodeType[] = [];
   public noMismatchPropertiesAllowed = false;
-  _childNodeType?: NodeType;
+  _childNodeType?: (node: Node) => NodeType;
 
   constructor(
     public additionalValidations: (
@@ -551,13 +551,16 @@ export class NodeType extends INodeType {
     return this._childNodeType;
   }
 
-  set childNodeType(nodeType: NodeType | undefined) {
+  set childNodeType(nodeType: ((node: Node) => NodeType) | undefined) {
     if (!nodeType) {
       return;
     }
 
-    nodeType.bindingsPath = this.bindingsPath;
-    this._childNodeType = nodeType;
+    this._childNodeType = (node: Node) => {
+      const type = nodeType(node);
+      type.bindingsPath = this.bindingsPath;
+      return type;
+    };
   }
 
   getOnPropertyHover(name: string) {
