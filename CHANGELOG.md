@@ -12,6 +12,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - OnHover on CMacros.
 - Go to decleration/definition on CMacros in devicetree files.
 
+
+- `device_type`
+  - diagnostics will not show depricated warning when required.
+  - required for `cpu` and `memory` nodes.
+
 ### Fixed
 
 - Type completion suggestions. e.g. `status=` now correctly suggesst values such as "Okey", "disabled", "fail".
