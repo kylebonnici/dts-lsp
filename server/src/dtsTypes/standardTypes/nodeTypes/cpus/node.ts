@@ -75,7 +75,6 @@ export function getCpusNodeType() {
 
     return issues;
   };
-  addressCellsProp!.required = () => "required";
 
   return nodeType;
 }

@@ -259,7 +259,7 @@ export class ZephyrBindingsLoader {
       return cachedType;
     }
 
-    this.loadTypeAndCache(folders, node);
+    this.loadTypeAndCache(folders);
     const out = this.typeCache.filter((t) =>
       folders.some(
         (f) =>
@@ -270,7 +270,7 @@ export class ZephyrBindingsLoader {
     return out.length ? out : [getStandardType(node)];
   }
 
-  private loadTypeAndCache(folders: string | string[], node: Node) {
+  private loadTypeAndCache(folders: string | string[]) {
     folders = Array.isArray(folders) ? folders : [folders];
 
     folders.forEach((f) => {
@@ -300,7 +300,7 @@ export class ZephyrBindingsLoader {
       const resolvedBindings = bindings
         .map((b) => resolveBinding(bindings, b))
         .filter((b) => !!b && !b.include.length) as ZephyrBindingYml[];
-      this.typeCache.push(...convertBindingsToType(resolvedBindings, node));
+      this.typeCache.push(...convertBindingsToType(resolvedBindings));
     });
   }
 }
@@ -311,12 +311,12 @@ export const getZephyrBindingsLoader = () => {
   return zephyrBindingsLoader;
 };
 
-const convertBindingsToType = (bindings: ZephyrBindingYml[], node: Node) => {
-  return bindings.map((bindings) => convertBindingToType(bindings, node));
+const convertBindingsToType = (bindings: ZephyrBindingYml[]) => {
+  return bindings.map((bindings) => convertBindingToType(bindings));
 };
 
-const convertBindingToType = (binding: ZephyrBindingYml, node: Node) => {
-  const nodeType = getStandardType(node);
+const convertBindingToType = (binding: ZephyrBindingYml) => {
+  const nodeType = getStandardType();
   nodeType.compatible =
     binding.compatible ??
     (binding.filePath ? basename(binding.filePath, "yaml") : undefined);
@@ -342,10 +342,7 @@ const convertBindingToType = (binding: ZephyrBindingYml, node: Node) => {
   }
 
   if (binding["child-binding"]) {
-    nodeType.childNodeType = convertBindingToType(
-      binding["child-binding"],
-      node
-    );
+    nodeType.childNodeType = convertBindingToType(binding["child-binding"]);
     nodeType.childNodeType.bindingsPath = nodeType.bindingsPath;
   }
 
