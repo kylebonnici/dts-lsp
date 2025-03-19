@@ -239,9 +239,9 @@ export class Node {
         issues.push(
           genIssue(
             ContextIssues.MISSING_NODE,
-            this.definitions[0],
+            this.definitions.at(-1)!,
             DiagnosticSeverity.Error,
-            this.definitions.slice(1),
+            this.definitions.slice(0, -1),
             undefined,
             ["/", "cpus"]
           )
