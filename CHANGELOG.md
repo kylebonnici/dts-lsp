@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Check that `aliases` node can only be added to root node.
 - Check that `aliases` property names follow the DTS Spec v0.4.
 - Check that `aliases` property values are string or phandles to nodes.
+- Check that `aliases` node does not have any children.
 - Check that `memory` node has both `device_type` and `reg` properties.
 - Check that `reserved-memory` node has `#address-cells`, `#size-cells` and `ranges` properties.
 - Check that `cpus` node has both `#address-cells` and `#size-cells`.

@@ -14,16 +14,17 @@
  * limitations under the License.
  */
 
-import { genIssue } from "../../../../helpers";
+import { genIssue, toRange, toRangeWithTokenIndex } from "../../../../helpers";
 import { NodeType, PropertyNodeType, PropertyType } from "../../../types";
 import { generateOrTypeObj } from "../../helpers";
-import { StandardTypeIssue } from "../../../../types";
-import { DiagnosticSeverity } from "vscode-languageserver";
+import { Issue, StandardTypeIssue } from "../../../../types";
+import { DiagnosticSeverity, TextEdit } from "vscode-languageserver";
 
 export function getAliasesNodeType() {
   const nodeType = new NodeType((_, node) => {
+    const issues: Issue<StandardTypeIssue>[] = [];
     if (node.parent?.name !== "/") {
-      return [
+      issues.push(
         genIssue(
           StandardTypeIssue.NODE_LOCATION,
           node.definitions[0],
@@ -31,10 +32,34 @@ export function getAliasesNodeType() {
           node.definitions.slice(1),
           [],
           ["Aliases node can only be added to a root node"]
-        ),
-      ];
+        )
+      );
     }
-    return [];
+
+    node.nodes.forEach((n) => {
+      n.definitions.forEach((ast) => {
+        issues.push(
+          genIssue(
+            StandardTypeIssue.NODE_LOCATION,
+            ast,
+            DiagnosticSeverity.Error,
+            [],
+            [],
+            ["Aliases node can not have child nodes"],
+            TextEdit.del(
+              toRangeWithTokenIndex(
+                ast.firstToken.prevToken,
+                ast.lastToken,
+                false
+              )
+            ),
+            "Delete Node"
+          )
+        );
+      });
+    });
+
+    return issues;
   });
   nodeType.noMismatchPropertiesAllowed = true;
 

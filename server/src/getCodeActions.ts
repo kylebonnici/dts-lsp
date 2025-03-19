@@ -337,6 +337,21 @@ const standardTypeIssueToCodeAction = (
           },
         },
       ];
+    case StandardTypeIssue.NODE_LOCATION:
+      return [
+        {
+          title: codeActionTitle ?? `TODO`,
+          diagnostics: [diagnostic],
+          kind: CodeActionKind.QuickFix,
+          isPreferred: true,
+          edit: {
+            changes: {
+              [uri]: [edit],
+            },
+          },
+        },
+      ];
+
     case StandardTypeIssue.DEVICETREE_ORG_BINDINGS:
       return edit
         ? [

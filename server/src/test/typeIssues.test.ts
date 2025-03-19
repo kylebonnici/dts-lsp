@@ -123,6 +123,24 @@ describe("Type Issues", () => {
         ]);
         expect(issues[0].templateStrings).toEqual(["abc"]);
       });
+
+      test("Cannot have child nodes", async () => {
+        mockReadFileSync(`/{ ${rootDefaults} aliases{node{};};};`);
+        const context = new ContextAware(
+          "/folder/dts.dts",
+          [],
+          getFakeBindingLoader(),
+          []
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].issues).toEqual([StandardTypeIssue.NODE_LOCATION]);
+        expect(issues[0].templateStrings).toEqual([
+          "Aliases node can not have child nodes",
+        ]);
+      });
     });
 
     describe("memory node", () => {
