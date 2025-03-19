@@ -725,7 +725,7 @@ const contextIssuesToMessage = (issue: Issue<ContextIssues>) => {
         case ContextIssues.DELETE_NODE:
           return `Node "${issue.templateStrings[0]}" was deleted`;
         case ContextIssues.MISSING_NODE:
-          return `The following node "${issue.templateStrings[1]}" shall be present in Node "${issue.templateStrings[0]}".`;
+          return `The following node "${issue.templateStrings[1]}" shall be present in "${issue.templateStrings[0]}" node.`;
       }
     })
     .join(" or ");
@@ -742,6 +742,8 @@ const contextIssuesToLinkedMessage = (issue: ContextIssues) => {
     case ContextIssues.DELETE_NODE:
     case ContextIssues.DELETE_PROPERTY:
       return "Deleted here";
+    case ContextIssues.MISSING_NODE:
+      return "Node";
     default:
       return "TODO";
   }
