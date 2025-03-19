@@ -126,6 +126,7 @@ export enum ContextIssues {
   DELETE_PROPERTY,
   DELETE_NODE,
   UNABLE_TO_RESOLVE_NODE_PATH,
+  MISSING_NODE,
 }
 
 export enum LexerToken {

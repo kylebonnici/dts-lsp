@@ -724,6 +724,8 @@ const contextIssuesToMessage = (issue: Issue<ContextIssues>) => {
           return `Property "${issue.templateStrings[0]}" was deleted`;
         case ContextIssues.DELETE_NODE:
           return `Node "${issue.templateStrings[0]}" was deleted`;
+        case ContextIssues.MISSING_NODE:
+          return `The following node "${issue.templateStrings[1]}" shall be present in Node "${issue.templateStrings[0]}".`;
       }
     })
     .join(" or ");

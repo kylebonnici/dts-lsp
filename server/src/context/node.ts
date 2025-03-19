@@ -25,6 +25,7 @@ import { Property } from "./property";
 import { DeleteProperty } from "../ast/dtc/deleteProperty";
 import { DeleteNode } from "../ast/dtc/deleteNode";
 import {
+  genIssue,
   getDeepestAstNodeInBetween,
   positionInBetween,
   positionSameLineAndNotAfter,
@@ -226,13 +227,40 @@ export class Node {
   }
 
   get issues(): Issue<ContextIssues>[] {
-    return [
+    const issues = [
       ...this.property.flatMap((p) => p.issues),
       ...this._nodes.flatMap((n) => n.issues),
       ...this._deletedNodes.flatMap((n) => n.node.issues),
       ...this.deletedPropertiesIssues,
       ...this.deletedNodesIssues,
     ];
+    if (this.name === "/") {
+      if (!this._nodes.some((n) => n.name === "cpus")) {
+        issues.push(
+          genIssue(
+            ContextIssues.MISSING_NODE,
+            this.definitions[0],
+            DiagnosticSeverity.Error,
+            this.definitions.slice(1),
+            undefined,
+            ["/", "cpus"]
+          )
+        );
+      }
+      if (!this._nodes.some((n) => n.name === "memory")) {
+        issues.push(
+          genIssue(
+            ContextIssues.MISSING_NODE,
+            this.definitions[0],
+            DiagnosticSeverity.Error,
+            this.definitions.slice(1),
+            undefined,
+            ["/", "memory"]
+          )
+        );
+      }
+    }
+    return issues;
   }
 
   get deletedPropertiesIssues(): Issue<ContextIssues>[] {
