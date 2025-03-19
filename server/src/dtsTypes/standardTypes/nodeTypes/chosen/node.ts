@@ -19,7 +19,7 @@ import { PropertyNodeType, PropertyType } from "../../../types";
 import { generateOrTypeObj } from "../../helpers";
 import { StandardTypeIssue } from "../../../../types";
 import { DiagnosticSeverity } from "vscode-languageserver";
-import { getStandardDefaultType } from "src/dtsTypes/standardDefaultType";
+import { getStandardDefaultType } from "../../../../dtsTypes/standardDefaultType";
 
 export function getChosenNodeType() {
   const nodeType = getStandardDefaultType();

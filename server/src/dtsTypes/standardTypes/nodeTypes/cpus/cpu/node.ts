@@ -17,7 +17,7 @@
 import { genIssue } from "../../../../../helpers";
 import { StandardTypeIssue } from "../../../../../types";
 import { DiagnosticSeverity } from "vscode-languageserver";
-import { getStandardDefaultType } from "src/dtsTypes/standardDefaultType";
+import { getStandardDefaultType } from "../../../../../dtsTypes/standardDefaultType";
 
 export function getCpuNodeType() {
   const nodeType = getStandardDefaultType();

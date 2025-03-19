@@ -15,11 +15,10 @@
  */
 
 import { genIssue } from "../../../../helpers";
-import { PropertyNodeType, PropertyType } from "../../../types";
-import { generateOrTypeObj, getU32ValueFromProperty } from "../../helpers";
+import { getU32ValueFromProperty } from "../../helpers";
 import { StandardTypeIssue } from "../../../../types";
 import { DiagnosticSeverity } from "vscode-languageserver";
-import { getStandardDefaultType } from "src/dtsTypes/standardDefaultType";
+import { getStandardDefaultType } from "../../../../dtsTypes/standardDefaultType";
 
 export function getCpusNodeType() {
   const nodeType = getStandardDefaultType();

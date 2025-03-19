@@ -16,10 +16,10 @@
 
 import { NodeType, PropertyType } from "../../../types";
 import { generateOrTypeObj, getU32ValueFromProperty } from "../../helpers";
-import { genIssue } from "src/helpers";
-import { Issue, StandardTypeIssue } from "src/types";
+import { genIssue } from "../../../../helpers";
+import { Issue, StandardTypeIssue } from "../../../../types";
 import { DiagnosticSeverity } from "vscode-languageserver";
-import { Property } from "src/context/property";
+import { Property } from "../../../../context/property";
 import addressCells from "../../addressCells";
 import sizeCells from "../../sizeCells";
 import ranges from "../../ranges";

@@ -40,11 +40,10 @@ import { DiagnosticSeverity, Position } from "vscode-languageserver";
 import { LabelAssign } from "../ast/dtc/label";
 import { Node } from "./node";
 import { getTokenizedDocumentProvider } from "../providers/tokenizedDocument";
-import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
-import { ASTBase } from "src/ast/base";
-import { Include } from "src/ast/cPreprocessors/include";
-import { Comment } from "src/ast/dtc/comment";
-import { ContextAware } from "src/runtimeEvaluator";
+import { ASTBase } from "../ast/base";
+import { Include } from "../ast/cPreprocessors/include";
+import { Comment } from "../ast/dtc/comment";
+import { ContextAware } from "../runtimeEvaluator";
 
 export class Runtime implements Searchable {
   public comments: Comment[] = [];

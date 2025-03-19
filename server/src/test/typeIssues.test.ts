@@ -880,7 +880,7 @@ describe("Type Issues", () => {
       });
 
       test("wrong type", async () => {
-        mockReadFileSync(`/{${rootDefaults} cpu{device_type= <10>;};};`);
+        mockReadFileSync(`/{${rootDefaults} node{device_type= <10>;};};`);
         const context = new ContextAware(
           "/folder/dts.dts",
           [],
@@ -895,7 +895,9 @@ describe("Type Issues", () => {
       });
 
       test("valid type single string - cpu", async () => {
-        mockReadFileSync(`/{${rootDefaults} cpu{device_type= "cpu";};};`);
+        mockReadFileSync(
+          `/{${rootDefaults} cpus{#address-cells=<1>;#size-cells = <0>;cpu{device_type= "cpu";reg = <0>;};};};`
+        );
         const context = new ContextAware(
           "/folder/dts.dts",
           [],
@@ -905,8 +907,7 @@ describe("Type Issues", () => {
         await context.parser.stable;
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
-        expect(issues[0].tags).toEqual([DiagnosticTag.Deprecated]);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.DEPRECATED]);
+        expect(issues.length).toEqual(0);
       });
 
       test("valid type single string - node", async () => {
@@ -927,7 +928,7 @@ describe("Type Issues", () => {
 
       test("valid type multiple string", async () => {
         mockReadFileSync(
-          `/{${rootDefaults} cpu{device_type= "cpu","hello2";};};`
+          `/{${rootDefaults} node{device_type= "cpu","hello2";};};`
         );
         const context = new ContextAware(
           "/folder/dts.dts",

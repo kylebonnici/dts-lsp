@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { getStandardDefaultType } from "src/dtsTypes/standardDefaultType";
+import { getStandardDefaultType } from "../../../../dtsTypes/standardDefaultType";
 
 export function getMemoryNodeType() {
   const standardType = getStandardDefaultType();
