@@ -348,7 +348,9 @@ describe("Context Issues", () => {
 
   describe("delete ui", () => {
     test("Delete property", async () => {
-      mockReadFileSync("/{node {prop1; /delete-property/ prop1;}; cpus{};memory{};};");
+      mockReadFileSync(
+        "/{node {prop1; /delete-property/ prop1;}; cpus{};memory{};};"
+      );
       const context = new ContextAware(
         "/folder/dts.dts",
         [],
@@ -427,7 +429,9 @@ describe("Context Issues", () => {
     });
 
     test("Delete Node with name with address", async () => {
-      mockReadFileSync("/{node@200 {}; node@300 {}; /delete-node/ node@300;cpus{};memory{};};");
+      mockReadFileSync(
+        "/{node@200 {}; node@300 {}; /delete-node/ node@300;cpus{};memory{};};"
+      );
       const context = new ContextAware(
         "/folder/dts.dts",
         [],
@@ -515,7 +519,9 @@ describe("Context Issues", () => {
 
   describe("Resolve node path", () => {
     test("Delete node with path not existing", async () => {
-      mockReadFileSync("/{node1{};cpus{};memory{};};/delete-node/ &{/node1/node2};");
+      mockReadFileSync(
+        "/{node1{};cpus{};memory{};};/delete-node/ &{/node1/node2};"
+      );
       const context = new ContextAware(
         "/folder/dts.dts",
         [],
@@ -537,7 +543,9 @@ describe("Context Issues", () => {
     });
 
     test("property array node part ref values", async () => {
-      mockReadFileSync("/{node1{};}; /{prop1=<&{/node1/node2}>;cpus{};memory{};};");
+      mockReadFileSync(
+        "/{node1{};}; /{prop1=<&{/node1/node2}>;cpus{};memory{};};"
+      );
       const context = new ContextAware(
         "/folder/dts.dts",
         [],
@@ -559,7 +567,9 @@ describe("Context Issues", () => {
     });
 
     test("property node path ref", async () => {
-      mockReadFileSync("/{node1{};}; /{prop1=&{/node1/node2};cpus{};memory{};};");
+      mockReadFileSync(
+        "/{node1{};}; /{prop1=&{/node1/node2};cpus{};memory{};};"
+      );
       const context = new ContextAware(
         "/folder/dts.dts",
         [],
