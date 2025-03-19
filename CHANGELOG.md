@@ -11,7 +11,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add support for `#udef`.
 - OnHover on CMacros.
 - Go to decleration/definition on CMacros in devicetree files.
+- Check that root node has `cpus` node.
+- Check that `aliases` node can only be added to root node.
+- Check that `aliases` property names follow the DTS Spec v0.4.
+- Check that `aliases` property values are string or phandles to nodes.
+- Check that `memory` node has both `device_type` and `reg` properties.
+- Check that `reserved-memory` node has `#address-cells`, `#size-cells` and `ranges` properties.
+- Check that `cpus` node has both `#address-cells` and `#size-cells`.
+- Check that `cpus` property `#size-cells` has value of `0`.
+- Check that `cpus` node has both `#address-cells` and `#size-cells`.
+- Check that `cpu` node has both `device_type` and `reg` properties.
 
+### Changed
 
 - `device_type`
   - diagnostics will not show depricated warning when required.
@@ -25,6 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Performace improvment to avoid repasring uneffected documents
 - Fix `find definitions`, `find declerations`, `find all references` for root nodes.
 - Fix `go to definition`, `go to declerations`, `find all references` for root nodes.
+
 # 0.1.2 - 2025-03-13
 
 ### Added
