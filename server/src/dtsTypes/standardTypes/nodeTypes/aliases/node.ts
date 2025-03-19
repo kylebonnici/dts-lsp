@@ -19,6 +19,7 @@ import { NodeType, PropertyNodeType, PropertyType } from "../../../types";
 import { generateOrTypeObj } from "../../helpers";
 import { Issue, StandardTypeIssue } from "../../../../types";
 import { DiagnosticSeverity, TextEdit } from "vscode-languageserver";
+import { Node } from "../../../../context/node";
 
 export function getAliasesNodeType() {
   const nodeType = new NodeType((_, node) => {
@@ -63,9 +64,72 @@ export function getAliasesNodeType() {
   });
   nodeType.noMismatchPropertiesAllowed = true;
 
-  const prop = new PropertyNodeType((name) => {
-    return !!name.match(/^[-A-Za-z0-9]+$/);
-  }, generateOrTypeObj([PropertyType.STRING, PropertyType.U32]));
+  const prop = new PropertyNodeType<string | number>(
+    (name) => {
+      return !!name.match(/^[-A-Za-z0-9]+$/);
+    },
+    generateOrTypeObj([PropertyType.STRING, PropertyType.U32]),
+    undefined,
+    undefined,
+    undefined,
+    (property) => {
+      const issues: Issue<StandardTypeIssue>[] = [];
+      const values = property.ast.quickValues;
+      if (values?.length === 1 && typeof values[0] === "string") {
+        if (!values[0].startsWith("/")) {
+          issues.push(
+            genIssue(
+              StandardTypeIssue.UNABLE_TO_RESOLVE_PATH,
+              property.ast.values ?? property.ast,
+              DiagnosticSeverity.Error,
+              [],
+              [],
+              [values[0], property.name]
+            )
+          );
+          return issues;
+        }
+        if (values[0].trim().endsWith("/")) {
+          issues.push(
+            genIssue(
+              StandardTypeIssue.UNABLE_TO_RESOLVE_PATH,
+              property.ast.values ?? property.ast,
+              DiagnosticSeverity.Error,
+              [],
+              [],
+              ["", values[0]]
+            )
+          );
+          return issues;
+        }
+        let node: Node | undefined = property.parent.root;
+        const path = values[0].split("/").slice(1);
+        while (path[0]) {
+          const lastNode: Node | undefined = node;
+          const v = path.splice(0, 1)[0];
+          const [name, addressStr] = v.split("@");
+          const address = addressStr
+            ?.split(",")
+            .map((v) => Number.parseInt(v, 16));
+          node = name ? lastNode.getNode(name, address, false) : undefined;
+          if (!node) {
+            issues.push(
+              genIssue(
+                StandardTypeIssue.UNABLE_TO_RESOLVE_PATH,
+                property.ast.values ?? property.ast,
+                DiagnosticSeverity.Error,
+                [],
+                [],
+                [name, lastNode.fullName]
+              )
+            );
+            break;
+          }
+        }
+      }
+      return issues;
+    }
+  );
   prop.description = [`Each property of the /aliases node defines an alias.`];
   nodeType.addProperty([prop]);
   return nodeType;
