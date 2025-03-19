@@ -402,7 +402,9 @@ export class Node {
 
   getNode(name: string, address?: number[], strict = true) {
     const isAddressNeeded =
-      strict || this._nodes.filter((node) => node.name === name).length > 1;
+      strict ||
+      !!address ||
+      this._nodes.filter((node) => node.name === name).length > 1;
     const index = this._nodes.findIndex(
       (node) =>
         node.name === name &&
