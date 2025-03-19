@@ -247,18 +247,19 @@ export class Node {
           )
         );
       }
-      if (!this._nodes.some((n) => n.name === "memory")) {
-        issues.push(
-          genIssue(
-            ContextIssues.MISSING_NODE,
-            this.definitions[0],
-            DiagnosticSeverity.Error,
-            this.definitions.slice(1),
-            undefined,
-            ["/", "memory"]
-          )
-        );
-      }
+      // TODO look into this as zephyr boards do not have this node in root all the time
+      // if (!this._nodes.some((n) => n.name === "memory")) {
+      //   issues.push(
+      //     genIssue(
+      //       ContextIssues.MISSING_NODE,
+      //       this.definitions.at(-1)!,
+      //       DiagnosticSeverity.Error,
+      //       this.definitions.slice(0, -1),
+      //       undefined,
+      //       ["/", "memory"]
+      //     )
+      //   );
+      // }
     }
     return issues;
   }

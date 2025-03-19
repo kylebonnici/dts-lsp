@@ -670,7 +670,7 @@ describe("Context Issues", () => {
       expect(issues[0].templateStrings).toEqual(["/", "cpus"]);
     });
 
-    test("missing memory", async () => {
+    test.skip("missing memory", async () => {
       mockReadFileSync("/{cpus{};};");
       const context = new ContextAware(
         "/folder/dts.dts",
