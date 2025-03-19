@@ -54,6 +54,181 @@ describe("Type Issues", () => {
   });
 
   describe("Standard Types", () => {
+    describe("aliases node", () => {
+      test("must be child of root", async () => {
+        mockReadFileSync(`/{ ${rootDefaults} node{aliases{};};};`);
+        const context = new ContextAware(
+          "/folder/dts.dts",
+          [],
+          getFakeBindingLoader(),
+          []
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].issues).toEqual([StandardTypeIssue.NODE_LOCATION]);
+        expect(issues[0].templateStrings).toEqual([
+          "Aliases node can only be added to a root node",
+        ]);
+      });
+
+      test("valid node location", async () => {
+        mockReadFileSync(`/{ ${rootDefaults} aliases{};};`);
+        const context = new ContextAware(
+          "/folder/dts.dts",
+          [],
+          getFakeBindingLoader(),
+          []
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
+      });
+
+      test("invalid property names", async () => {
+        mockReadFileSync(`/{ ${rootDefaults} aliases{abc,efg="/"};};`);
+        const context = new ContextAware(
+          "/folder/dts.dts",
+          [],
+          getFakeBindingLoader(),
+          []
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].issues).toEqual([
+          StandardTypeIssue.PROPERTY_NOT_ALLOWED,
+        ]);
+        expect(issues[0].templateStrings).toEqual(["abc,efg"]);
+      });
+
+      test("invalid property type", async () => {
+        mockReadFileSync(`/{ ${rootDefaults} aliases{abc=<1 2>};};`);
+        const context = new ContextAware(
+          "/folder/dts.dts",
+          [],
+          getFakeBindingLoader(),
+          []
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].issues).toEqual([
+          StandardTypeIssue.EXPECTED_STRING,
+          StandardTypeIssue.EXPECTED_U32, // phandel
+        ]);
+        expect(issues[0].templateStrings).toEqual(["abc"]);
+      });
+    });
+
+    describe("memory node", () => {
+      test("required", async () => {
+        mockReadFileSync(`/{ ${rootDefaults} memory{};};`);
+        const context = new ContextAware(
+          "/folder/dts.dts",
+          [],
+          getFakeBindingLoader(),
+          []
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(2);
+        expect(issues[0].issues).toEqual([StandardTypeIssue.REQUIRED]);
+        expect(issues[0].templateStrings).toEqual(["reg"]);
+        expect(issues[1].issues).toEqual([StandardTypeIssue.REQUIRED]);
+        expect(issues[1].templateStrings).toEqual(["device_type"]);
+      });
+    });
+
+    describe("reserved-memory node", () => {
+      test("required", async () => {
+        mockReadFileSync(`/{ ${rootDefaults} reserved-memory{};};`);
+        const context = new ContextAware(
+          "/folder/dts.dts",
+          [],
+          getFakeBindingLoader(),
+          []
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(3);
+        expect(issues[0].issues).toEqual([StandardTypeIssue.REQUIRED]);
+        expect(issues[0].templateStrings).toEqual(["#address-cells"]);
+        expect(issues[1].issues).toEqual([StandardTypeIssue.REQUIRED]);
+        expect(issues[1].templateStrings).toEqual(["#size-cells"]);
+        expect(issues[2].issues).toEqual([StandardTypeIssue.REQUIRED]);
+        expect(issues[2].templateStrings).toEqual(["ranges"]);
+      });
+    });
+
+    describe("cpus node", () => {
+      test("required", async () => {
+        mockReadFileSync(`/{ ${rootDefaults} cpus{};};`);
+        const context = new ContextAware(
+          "/folder/dts.dts",
+          [],
+          getFakeBindingLoader(),
+          []
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(2);
+        expect(issues[0].issues).toEqual([StandardTypeIssue.REQUIRED]);
+        expect(issues[0].templateStrings).toEqual(["#address-cells"]);
+        expect(issues[1].issues).toEqual([StandardTypeIssue.REQUIRED]);
+        expect(issues[1].templateStrings).toEqual(["#size-cells"]);
+      });
+
+      test("size cells must be 0", async () => {
+        mockReadFileSync(
+          `/{ ${rootDefaults} cpus{#address-cells=<1>; #size-cells=<1>};};`
+        );
+        const context = new ContextAware(
+          "/folder/dts.dts",
+          [],
+          getFakeBindingLoader(),
+          []
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].issues).toEqual([StandardTypeIssue.INVALID_VALUE]);
+        expect(issues[0].templateStrings).toEqual([
+          "#size-cells value in cpus node must be '0'",
+        ]);
+      });
+    });
+
+    describe("cpu node", () => {
+      test("required", async () => {
+        mockReadFileSync(
+          `/{ ${rootDefaults} cpus{#address-cells=<1>; #size-cells=<0>; cpu{};};};`
+        );
+        const context = new ContextAware(
+          "/folder/dts.dts",
+          [],
+          getFakeBindingLoader(),
+          []
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(2);
+        expect(issues[0].issues).toEqual([StandardTypeIssue.REQUIRED]);
+        expect(issues[0].templateStrings).toEqual(["reg"]);
+        expect(issues[1].issues).toEqual([StandardTypeIssue.REQUIRED]);
+        expect(issues[1].templateStrings).toEqual(["device_type"]);
+      });
+    });
+
     describe("Status", () => {
       test("wrong value", async () => {
         mockReadFileSync(`/{ ${rootDefaults} status= "some string values"};`);
