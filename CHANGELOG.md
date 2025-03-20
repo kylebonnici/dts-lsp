@@ -13,9 +13,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Go to decleration/definition on CMacros in devicetree files.
 - Check that root node has `cpus` node.
 - Check that `aliases` node can only be added to root node.
-- Check that `aliases` property names follow the DTS Spec v0.4.
-- Check that `aliases` property values are string or phandles to nodes.
+- Check that `aliases` node property names follow the DTS Spec v0.4.
+- Check that `aliases` node property values is string or phandle.
 - Check that `aliases` node does not have any children.
+- Check that `aliases` node property node path string resolves to actual node.
+- `OnHover` on `aliases` node property wiht a string path will show resolved node state.
+- Go to definition/decleration on `aliases` node property with path string.
+- Find all references on `aliases` node property with path string.
 - Check that `memory` node has both `device_type` and `reg` properties.
 - Check that `reserved-memory` node has `#address-cells`, `#size-cells` and `ranges` properties.
 - Check that `cpus` node has both `#address-cells` and `#size-cells`.
@@ -37,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Performace improvment to avoid repasring uneffected documents
 - Fix `find definitions`, `find declerations`, `find all references` for root nodes.
 - Fix `go to definition`, `go to declerations`, `find all references` for root nodes.
+- Node path name matching when node name with address but name is unique.
 
 # 0.1.2 - 2025-03-13
 

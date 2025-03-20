@@ -26,6 +26,7 @@ import { DtcProperty, PropertyName } from "./ast/dtc/property";
 import { Property } from "./context/property";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
 import { isDeleteChild } from "./ast/helpers";
+import { StringValue } from "./ast/dtc/values/string";
 
 function getPropertyReferences(
   result: SearchableResult | undefined
@@ -91,17 +92,27 @@ function getPropertyReferences(
 }
 
 function getNodeReferences(result: SearchableResult | undefined): Location[] {
-  if (
-    !result ||
-    (!(result.ast instanceof NodeName) &&
-      !(result.ast instanceof Label) &&
-      !(result.ast instanceof DtcRootNode))
-  ) {
+  if (!result) {
     return [];
   }
 
   const gentItem = (node: Node) => {
+    const aliases = result.runtime.rootNode.getNode("aliases");
+    const aliaseProperties =
+      aliases?.property
+        .filter((p) => {
+          const values = p.ast.quickValues;
+          if (values?.length === 1 && typeof values[0] === "string") {
+            if (
+              result.runtime.rootNode.getChild(values[0].split("/")) === node
+            ) {
+              return true;
+            }
+          }
+        })
+        .map((p) => p.ast) ?? [];
     return [
+      ...aliaseProperties,
       ...node.linkedRefLabels,
       ...node.linkedNodeNamePaths,
       ...node.definitions,
@@ -120,6 +131,12 @@ function getNodeReferences(result: SearchableResult | undefined): Location[] {
           return Location.create(
             `file://${dtc.uri}`,
             toRange(dtc.label ?? dtc)
+          );
+        }
+        if (dtc instanceof DtcProperty) {
+          return Location.create(
+            `file://${(dtc.values ?? dtc)?.uri}`,
+            toRange(dtc.values ?? dtc)
           );
         }
       })
@@ -149,6 +166,17 @@ function getNodeReferences(result: SearchableResult | undefined): Location[] {
       }
 
       return gentItem(result.ast.linksTo);
+    }
+  }
+
+  if (
+    result?.ast instanceof StringValue &&
+    result.item instanceof Property &&
+    result.item.parent.name === "aliases"
+  ) {
+    const node = result.runtime.rootNode.getChild(result.ast.value.split("/"));
+    if (node) {
+      return gentItem(node);
     }
   }
 

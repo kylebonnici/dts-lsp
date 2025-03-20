@@ -23,6 +23,7 @@ import { NodeName } from "./ast/dtc/node";
 import { LabelRef } from "./ast/dtc/labelRef";
 import { Property } from "./context/property";
 import { PropertyName } from "./ast/dtc/property";
+import { StringValue } from "./ast/dtc/values/string";
 import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
 import { ASTBase } from "./ast/base";
 import { CMacroCall } from "./ast/cPreprocessors/functionCall";
@@ -100,6 +101,20 @@ function getNode(result: SearchableResult | undefined): Hover | undefined {
 
   if (result?.ast.parentNode instanceof LabelRef) {
     const node = result.ast.parentNode.linksTo;
+    if (node) {
+      return {
+        contents: node.toMarkupContent(),
+        range: toRange(result.ast),
+      };
+    }
+  }
+
+  if (
+    result?.ast instanceof StringValue &&
+    result.item instanceof Property &&
+    result.item.parent.name === "aliases"
+  ) {
+    const node = result.runtime.rootNode.getChild(result.ast.value.split("/"));
     if (node) {
       return {
         contents: node.toMarkupContent(),

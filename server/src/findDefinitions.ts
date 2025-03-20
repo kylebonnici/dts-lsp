@@ -32,6 +32,7 @@ import { Property } from "./context/property";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
 import { isDeleteChild } from "./ast/helpers";
 import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
+import { StringValue } from "./ast/dtc/values/string";
 
 function getPropertyDefinition(
   result: SearchableResult | undefined
@@ -84,12 +85,7 @@ function getPropertyDefinition(
 }
 
 function getNodeDefinition(result: SearchableResult | undefined): Location[] {
-  if (
-    !result ||
-    (!(result.ast instanceof NodeName) &&
-      !(result.ast instanceof Label) &&
-      !(result.ast instanceof DtcRootNode))
-  ) {
+  if (!result) {
     return [];
   }
 
@@ -124,6 +120,17 @@ function getNodeDefinition(result: SearchableResult | undefined): Location[] {
   if (result.ast instanceof NodeName) {
     if (result.ast.linksTo) {
       return gentItem(result.ast.linksTo);
+    }
+  }
+
+  if (
+    result?.ast instanceof StringValue &&
+    result.item instanceof Property &&
+    result.item.parent.name === "aliases"
+  ) {
+    const node = result.runtime.rootNode.getChild(result.ast.value.split("/"));
+    if (node) {
+      return gentItem(node);
     }
   }
 

@@ -32,6 +32,7 @@ import { DtcProperty, PropertyName } from "./ast/dtc/property";
 import { Property } from "./context/property";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
 import { isDeleteChild } from "./ast/helpers";
+import { StringValue } from "./ast/dtc/values/string";
 
 function getPropertyReferences(
   result: SearchableResult | undefined
@@ -157,13 +158,57 @@ function getNodeNameRename(result: SearchableResult | undefined): Location[] {
   }
 
   const gentItem = (node: Node) => {
-    return [...node.linkedNodeNamePaths, ...node.definitions]
+    const aliases = result.runtime.rootNode.getNode("aliases");
+    const aliaseProperties =
+      aliases?.property
+        .filter((p) => {
+          const values = p.ast.quickValues;
+          if (values?.length === 1 && typeof values[0] === "string") {
+            const childNode = result.runtime.rootNode.getChild(
+              values[0].split("/")
+            );
+            if (childNode?.isChildOf(node) || childNode === node) {
+              return true;
+            }
+          }
+        })
+        .map((p) => p.ast) ?? [];
+
+    return [
+      ...aliaseProperties,
+      ...node.linkedNodeNamePaths,
+      ...node.definitions,
+    ]
       .map((dtc) => {
         if (dtc instanceof DtcChildNode && dtc.name) {
           return Location.create(`file://${dtc.uri}`, toRange(dtc.name));
         }
         if (dtc instanceof NodeName) {
           return Location.create(`file://${dtc.uri}`, toRange(dtc));
+        }
+        if (
+          dtc instanceof DtcProperty &&
+          dtc.values?.values[0]?.value &&
+          dtc.values?.values[0]?.value instanceof StringValue
+        ) {
+          const v = dtc.values.values[0].value;
+          const strRange = toRange(v);
+          const aliasPath = v.value.split("/");
+          const nodePath = node.path;
+          const startOfset =
+            aliasPath.slice(0, nodePath.length - 1).join("/").length + 1;
+
+          const endOfset =
+            v.value.length -
+            aliasPath.slice(0, nodePath.length).join("/").length;
+
+          strRange.start.character += 1 + startOfset;
+          strRange.end.character -= 1 + endOfset;
+
+          return Location.create(
+            `file://${dtc.values.values[0].uri}`,
+            strRange
+          );
         }
       })
       .filter((r) => r) as Location[];
