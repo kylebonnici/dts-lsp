@@ -102,6 +102,13 @@ export class Node {
     );
   }
 
+  isChildOf(node: Node): boolean {
+    if (!this.parent) {
+      return false;
+    }
+    return this.parent === node ? true : this.parent.isChildOf(node);
+  }
+
   public getReferenceBy(node: DtcRefNode): Node | undefined {
     if (this.referencedBy.some((n) => n === node)) {
       return this;
