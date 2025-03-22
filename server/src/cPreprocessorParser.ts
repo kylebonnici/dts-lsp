@@ -137,6 +137,7 @@ export class CPreprocessorParser extends BaseParser {
     const found =
       (await this.processInclude()) ||
       this.processDefinitions() ||
+      this.processUndef() ||
       this.processIfDefBlocks();
 
     if (token) {
@@ -177,6 +178,39 @@ export class CPreprocessorParser extends BaseParser {
     }
     const macro = new CMacro(keyword, definition, content);
     this.macros.set(macro.name, macro);
+    this.nodes.push(macro);
+
+    const endIndex = this.peekIndex();
+    this.tokens.splice(startIndex, endIndex - startIndex);
+
+    this.positionStack[this.positionStack.length - 1] = startIndex;
+    this.mergeStack();
+    return true;
+  }
+
+  private processUndef() {
+    this.enqueueToStack();
+
+    const startIndex = this.peekIndex();
+    const token = this.moveToNextToken;
+    if (!token || !validToken(token, LexerToken.C_UNDEF)) {
+      this.popStack();
+      return false;
+    }
+
+    const keyword = new Keyword(createTokenIndex(token));
+
+    const definition = this.processCIdentifier();
+    if (!definition) {
+      this._issues.push(
+        genIssue(SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE, keyword)
+      );
+      this.mergeStack();
+      return true;
+    }
+
+    const macro = new CMacro(keyword, definition);
+    this.macros.delete(definition.name);
     this.nodes.push(macro);
 
     const endIndex = this.peekIndex();
