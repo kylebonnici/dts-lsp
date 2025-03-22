@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Add support for `#udef`.
 - OnHover on CMacros.
+- Go to decleration/definition on CMacros in devicetree files.
 
 ### Fixed
 
