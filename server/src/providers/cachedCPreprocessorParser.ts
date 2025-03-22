@@ -47,9 +47,9 @@ class CachedCPreprocessorParserProvider {
   }
 
   reset(uri: string) {
-    console.log("disposing cpreprocessor cache for", uri);
     const header = this.headerFiles.get(uri);
     if (header) {
+      console.log("disposing cpreprocessor cache for", uri);
       Array.from(this.includeOwners.get(header) ?? []).forEach(
         this.reset.bind(this)
       );
