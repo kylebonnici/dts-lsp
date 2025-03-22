@@ -251,7 +251,8 @@ export abstract class BaseParser {
   }
 
   protected processCIdentifier(
-    macros: Map<string, CMacro>
+    macros: Map<string, CMacro>,
+    skippingIssueChecking: boolean
   ): CIdentifier | undefined {
     this.enqueueToStack();
 
@@ -278,9 +279,11 @@ export abstract class BaseParser {
       createTokenIndex(valid[0], valid.at(-1))
     );
 
-    const macro = macros.get(identifier.name);
-    if (!macro) {
-      this._issues.push(genIssue(SyntaxIssue.UNKNOWN_MACRO, identifier));
+    if (!skippingIssueChecking) {
+      const macro = macros.get(identifier.name);
+      if (!macro) {
+        this._issues.push(genIssue(SyntaxIssue.UNKNOWN_MACRO, identifier));
+      }
     }
 
     this.mergeStack();

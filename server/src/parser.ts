@@ -1434,7 +1434,10 @@ export class Parser extends BaseParser {
 
   private isFunctionCall(): CMacroCall | undefined {
     this.enqueueToStack();
-    const identifier = this.processCIdentifier(this.cPreprocessorParser.macros);
+    const identifier = this.processCIdentifier(
+      this.cPreprocessorParser.macros,
+      false
+    );
     if (!identifier) {
       this.popStack();
       return;
@@ -1505,7 +1508,7 @@ export class Parser extends BaseParser {
 
     let expression: Expression | undefined =
       this.isFunctionCall() ||
-      this.processCIdentifier(this.cPreprocessorParser.macros) ||
+      this.processCIdentifier(this.cPreprocessorParser.macros, false) ||
       this.processHex() ||
       this.processDec();
     if (!expression) {
