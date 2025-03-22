@@ -1447,6 +1447,25 @@ export class Parser extends BaseParser {
       return;
     }
 
+    const macro = this.cPreprocessorParser.macros.get(identifier.name);
+    if (!(macro?.identifier instanceof FunctionDefinition)) {
+      this._issues.push(
+        genIssue(SyntaxIssue.EXPECTED_FUNCTION_LIKE, identifier)
+      );
+    } else if (params.length > macro?.identifier.params.length) {
+      this._issues.push(
+        genIssue(SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS, identifier, undefined, [
+          macro,
+        ])
+      );
+    } else if (params.length < macro?.identifier.params.length) {
+      this._issues.push(
+        genIssue(SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS, identifier, undefined, [
+          macro,
+        ])
+      );
+    }
+
     const node = new CMacroCall(identifier, params);
     this.mergeStack();
     return node;
@@ -1564,6 +1583,10 @@ export class Parser extends BaseParser {
         i
       );
     });
+
+    if (result?.length === 1 && result[0] === null) {
+      return [];
+    }
 
     return result;
   }
