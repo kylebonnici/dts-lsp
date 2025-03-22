@@ -35,10 +35,6 @@ function getCMacroCall(ast: ASTBase | undefined): CMacroCall | undefined {
   return getCMacroCall(ast.parentNode);
 }
 
-function isParam(ast: CMacroCall | undefined, param: ASTBase): boolean {
-  return !!ast?.params.some((p) => p === param);
-}
-
 function getMacros(result: SearchableResult | undefined): Hover | undefined {
   if (result?.ast instanceof CIdentifier) {
     const macro = result.runtime.context.parser.cPreprocessorParser.macros.get(
