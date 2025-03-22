@@ -266,7 +266,8 @@ export class CPreprocessorParser extends BaseParser {
     }
 
     const params: (CIdentifier | Variadic)[] = [];
-    let param = this.processCIdentifier(this.macros, true) || this.processVariadic();
+    let param =
+      this.processCIdentifier(this.macros, true) || this.processVariadic();
     while (param) {
       params.push(param);
       if (
@@ -277,7 +278,8 @@ export class CPreprocessorParser extends BaseParser {
       } else if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
         token = this.moveToNextToken;
       }
-      param = this.processCIdentifier(this.macros, true) || this.processVariadic();
+      param =
+        this.processCIdentifier(this.macros, true) || this.processVariadic();
     }
 
     const node = new FunctionDefinition(identifier, params);
