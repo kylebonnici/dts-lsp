@@ -2080,7 +2080,11 @@ describe("Parser", () => {
     describe("#DEFINE", () => {
       test("Missing identifier", async () => {
         mockReadFileSync("#DEFINE");
-        const parser = new CPreprocessorParser("/folder/dts.dts", []);
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
         await parser.stable;
         expect(parser.issues.length).toEqual(1);
         expect(parser.issues[0].issues).toEqual([
@@ -2094,7 +2098,11 @@ describe("Parser", () => {
 
       test("Simple name", async () => {
         mockReadFileSync("#DEFINE FOO_BAR");
-        const parser = new CPreprocessorParser("/folder/dts.dts", []);
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
         await parser.stable;
         expect(parser.issues.length).toEqual(0);
 
@@ -2116,7 +2124,11 @@ describe("Parser", () => {
 
       test("Function like", async () => {
         mockReadFileSync("#DEFINE ADD(a,b) a + b");
-        const parser = new CPreprocessorParser("/folder/dts.dts", []);
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
         await parser.stable;
         expect(parser.issues.length).toEqual(0);
 
@@ -2140,7 +2152,11 @@ describe("Parser", () => {
 
       test("Variadic function like", async () => {
         mockReadFileSync("#DEFINE ADD(a,b, ...) a + b + c + d");
-        const parser = new CPreprocessorParser("/folder/dts.dts", []);
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
         await parser.stable;
         expect(parser.issues.length).toEqual(0);
 
@@ -2181,7 +2197,11 @@ describe("Parser", () => {
 
       test("Multi line", async () => {
         mockReadFileSync("#DEFINE ADD(a,b,c,d) a + b \\\n + c + d");
-        const parser = new CPreprocessorParser("/folder/dts.dts", []);
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
         await parser.stable;
         expect(parser.issues.length).toEqual(0);
 
@@ -2206,7 +2226,11 @@ describe("Parser", () => {
 
       test("Missing comma function like", async () => {
         mockReadFileSync("#DEFINE ADD(a b) a + b");
-        const parser = new CPreprocessorParser("/folder/dts.dts", []);
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
         await parser.stable;
         expect(parser.issues.length).toEqual(1);
         expect(parser.issues[0].issues).toEqual([SyntaxIssue.MISSING_COMMA]);
@@ -2218,7 +2242,11 @@ describe("Parser", () => {
 
       test("Missing close round bracket function like - 1", async () => {
         mockReadFileSync("#DEFINE ADD(a, b a + b");
-        const parser = new CPreprocessorParser("/folder/dts.dts", []);
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
         await parser.stable;
         const issues = parser.issues.filter((i) =>
           i.issues.some((ii) => ii === SyntaxIssue.MISSING_ROUND_CLOSE)
@@ -2233,7 +2261,11 @@ describe("Parser", () => {
 
       test("Missing close round bracket function like - 2", async () => {
         mockReadFileSync("#DEFINE FOO(");
-        const parser = new CPreprocessorParser("/folder/dts.dts", []);
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
         await parser.stable;
         expect(parser.issues.length).toEqual(1);
         expect(parser.issues[0].issues).toEqual([
@@ -2253,7 +2285,11 @@ describe("Parser", () => {
             "/folder/dts.dts": '#include "some.dtsi"',
             "/folder/some.dtsi": "",
           });
-          const parser = new CPreprocessorParser("/folder/dts.dts", []);
+          const parser = new CPreprocessorParser(
+            "/folder/dts.dts",
+            [],
+            new Map()
+          );
           await parser.stable;
           expect(parser.issues.length).toEqual(0);
           expect(parser.dtsIncludes.length).toEqual(1);
@@ -2267,9 +2303,11 @@ describe("Parser", () => {
             "/folder/dts.dts": "#include <my_includes/some.dtsi>",
             "/my/includes/my_includes/some.dtsi": "",
           });
-          const parser = new CPreprocessorParser("/folder/dts.dts", [
-            "/my/includes",
-          ]);
+          const parser = new CPreprocessorParser(
+            "/folder/dts.dts",
+            ["/my/includes"],
+            new Map()
+          );
           await parser.stable;
           expect(parser.issues.length).toEqual(0);
           expect(parser.dtsIncludes.length).toEqual(1);
@@ -2291,9 +2329,11 @@ describe("Parser", () => {
             "/folder/dts.dts": "#include <my_includes/some.dtsi",
             "/my/includes/my_includes/some.dtsi": "",
           });
-          const parser = new CPreprocessorParser("/folder/dts.dts", [
-            "/my/includes",
-          ]);
+          const parser = new CPreprocessorParser(
+            "/folder/dts.dts",
+            ["/my/includes"],
+            new Map()
+          );
           await parser.stable;
           expect(parser.issues.length).toEqual(1);
           expect(parser.issues[0].issues).toEqual([SyntaxIssue.GT_SYM]);
@@ -2310,7 +2350,11 @@ describe("Parser", () => {
             "/folder/dts.dts": '/include/ "some.dtsi"',
             "/folder/some.dtsi": "",
           });
-          const parser = new CPreprocessorParser("/folder/dts.dts", []);
+          const parser = new CPreprocessorParser(
+            "/folder/dts.dts",
+            [],
+            new Map()
+          );
           await parser.stable;
           expect(parser.issues.length).toEqual(0);
           expect(parser.dtsIncludes.length).toEqual(1);
@@ -2324,9 +2368,11 @@ describe("Parser", () => {
             "/folder/dts.dts": "/include/ <my_includes/some.dtsi>",
             "/my/includes/my_includes/some.dtsi": "",
           });
-          const parser = new CPreprocessorParser("/folder/dts.dts", [
-            "/my/includes",
-          ]);
+          const parser = new CPreprocessorParser(
+            "/folder/dts.dts",
+            ["/my/includes"],
+            new Map()
+          );
           await parser.stable;
           expect(parser.issues.length).toEqual(0);
           expect(parser.dtsIncludes.length).toEqual(1);
@@ -2348,9 +2394,11 @@ describe("Parser", () => {
             "/folder/dts.dts": "/include/ <my_includes/some.dtsi",
             "/my/includes/my_includes/some.dtsi": "",
           });
-          const parser = new CPreprocessorParser("/folder/dts.dts", [
-            "/my/includes",
-          ]);
+          const parser = new CPreprocessorParser(
+            "/folder/dts.dts",
+            ["/my/includes"],
+            new Map()
+          );
           await parser.stable;
           expect(parser.issues.length).toEqual(1);
           expect(parser.issues[0].issues).toEqual([SyntaxIssue.GT_SYM]);
@@ -2365,7 +2413,11 @@ describe("Parser", () => {
     describe("If def", () => {
       test("Missing identifier", async () => {
         mockReadFileSync("#IFDEF\n#endif");
-        const parser = new CPreprocessorParser("/folder/dts.dts", []);
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
         await parser.stable;
         expect(parser.issues.length).toEqual(1);
         expect(parser.issues[0].issues).toEqual([
@@ -2378,7 +2430,11 @@ describe("Parser", () => {
       });
       test("If def - end", async () => {
         mockReadFileSync("#IFDEF HELLO\nsome\nstuff\n#endif");
-        const parser = new CPreprocessorParser("/folder/dts.dts", []);
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
         await parser.stable;
         expect(parser.issues.length).toEqual(0);
 
@@ -2407,7 +2463,11 @@ describe("Parser", () => {
 
       test("If def - else if - end", async () => {
         mockReadFileSync("#IFDEF HELLO\nsome\nstuff\n#else\nfoo\nbar\n#endif");
-        const parser = new CPreprocessorParser("/folder/dts.dts", []);
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
         await parser.stable;
         expect(parser.issues.length).toEqual(0);
 
@@ -2451,7 +2511,11 @@ describe("Parser", () => {
         mockReadFileSync(
           `#IFDEF HELLO\n#IFDEF AGAIN\nsome\nstuff\n#else\nfoo\nbar\n#endif\n#else\n#IFDEF HELLO_AGAIN\nsome\nstuff\n#else\nfoo\nbar\n#endif\n#endif`
         );
-        const parser = new CPreprocessorParser("/folder/dts.dts", []);
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
         await parser.stable;
         expect(parser.issues.length).toEqual(0);
 
@@ -2529,7 +2593,11 @@ describe("Parser", () => {
           \nsome\nstuff\n#else\nfoo\nbar\n#endif\n#endif`
         );
 
-        const parser = new CPreprocessorParser("/folder/dts.dts", []);
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
         await parser.stable;
         expect(parser.issues.length).toEqual(0);
 
@@ -2601,7 +2669,11 @@ describe("Parser", () => {
 
       test("If not def - end", async () => {
         mockReadFileSync("#IFNDEF HELLO\nsome\nstuff\n#endif");
-        const parser = new CPreprocessorParser("/folder/dts.dts", []);
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
         await parser.stable;
         expect(parser.issues.length).toEqual(0);
 

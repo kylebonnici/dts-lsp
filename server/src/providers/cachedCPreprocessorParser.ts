@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import { CPreprocessorParser } from "src/cPreprocessorParser";
-import { CMacro } from "src/ast/cPreprocessors/macro";
+import { CPreprocessorParser } from "../cPreprocessorParser";
+import { CMacro } from "../ast/cPreprocessors/macro";
 
 let cachedCPreprocessorParserProvider:
   | CachedCPreprocessorParserProvider
