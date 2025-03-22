@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Hover, HoverParams } from "vscode-languageserver";
+import { Hover, HoverParams, MarkupKind } from "vscode-languageserver";
 import { SearchableResult } from "./types";
 import { nodeFinder, toRange } from "./helpers";
 import { ContextAware } from "./runtimeEvaluator";
@@ -24,15 +24,56 @@ import { LabelRef } from "./ast/dtc/labelRef";
 import { Property } from "./context/property";
 import { PropertyName } from "./ast/dtc/property";
 import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
+import { ASTBase } from "./ast/base";
+import { CMacroCall } from "./ast/cPreprocessors/functionCall";
+
+function getCMacroCall(ast: ASTBase | undefined): CMacroCall | undefined {
+  if (!ast || ast instanceof CMacroCall) {
+    return ast;
+  }
+  return getCMacroCall(ast.parentNode);
+}
+
+function isParam(ast: CMacroCall | undefined, param: ASTBase): boolean {
+  return !!ast?.params.some((p) => p === param);
+}
 
 function getMacros(result: SearchableResult | undefined): Hover | undefined {
   if (result?.ast instanceof CIdentifier) {
     const macro = result.runtime.context.parser.cPreprocessorParser.macros.get(
       result.ast.name
     );
+
     if (macro) {
+      const call = getCMacroCall(result.ast);
+
+      if (call) {
+        return {
+          contents: {
+            kind: MarkupKind.Markdown,
+            value: [
+              "```cpp",
+              `#define ${macro.toString()} // = ${call?.evaluate(
+                result.runtime.context
+              )}`,
+              "```",
+            ].join("\n"),
+          },
+          range: toRange(result.ast),
+        };
+      }
+
       return {
-        contents: macro.toMarkupContent(),
+        contents: {
+          kind: MarkupKind.Markdown,
+          value: [
+            "```cpp",
+            `#define ${macro.toString()} // = ${result.ast?.evaluate(
+              result.runtime.context
+            )}`,
+            "```",
+          ].join("\n"),
+        },
         range: toRange(result.ast),
       };
     }

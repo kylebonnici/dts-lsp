@@ -14,12 +14,32 @@
  * limitations under the License.
  */
 
+import { ContextAware } from "src/runtimeEvaluator";
 import { ASTBase } from "../base";
 import { Operator } from "./operator";
+
+function sanitizeCExpression(expr: string) {
+  return expr
+    .replace(/'(.)'/g, (_, char: string) => char.charCodeAt(0).toString())
+    .replace(/(0x[a-f\d]+|\d+)[ul]*/gi, "$1");
+}
+
+function evalExp(str: string) {
+  try {
+    return (0, eval)(sanitizeCExpression(str));
+  } catch (e) {
+    console.log(e);
+  }
+  return str;
+}
 
 export abstract class Expression extends ASTBase {
   toJson() {
     return -1;
+  }
+
+  evaluate(context: ContextAware) {
+    return evalExp(context.expandMacros(this.toString()));
   }
 }
 

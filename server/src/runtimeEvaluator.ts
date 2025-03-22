@@ -268,10 +268,84 @@ export class ContextAware {
       .flatMap((p) => p.tokens)
       .forEach((t, i) => (t.sortKey = i));
 
+    [this.parser, ...this.overlayParsers].forEach((p) =>
+      Array.from(p.cPreprocessorParser.macros).forEach(([k, m]) => {
+        const ans = ContextAware.parseMacros(m.toString());
+        if (ans) {
+          this.macros.set(k, ans);
+        }
+      })
+    );
+
     this.linkPropertiesLabelsAndNodePaths(runtime);
 
     console.log("evaluate", performance.now() - t);
     return runtime;
+  }
+
+  // Macro storage
+  private macros = new Map<string, string | ((...args: string[]) => string)>();
+
+  private static parseMacros(line: string) {
+    // Regular expressions to match macro definitions
+    const macroRegex = /^(\w+)\s+(.+)$/;
+    const funcMacroRegex = /^(\w+)\(([^)]*)\)\s+(.+)$/;
+    const variadicMacroRegex = /^(\w+)\(([^)]*),\s*\.\.\.\)\s+(.+)$/;
+
+    let match;
+    if ((match = variadicMacroRegex.exec(line))) {
+      const [, , params, body] = match;
+      const paramList = params.split(",").map((p) => p.trim());
+      return (...args: string[]) => {
+        let expanded = body;
+        paramList.forEach((param, index) => {
+          const regex = new RegExp(`\\b${param}\\b`, "g");
+          expanded = expanded.replace(regex, args[index]);
+        });
+        expanded = expanded.replace(
+          /__VA_ARGS__/g,
+          args.slice(paramList.length).join(", ")
+        );
+        return expanded;
+      };
+    } else if ((match = funcMacroRegex.exec(line))) {
+      const [, , params, body] = match;
+      const paramList = params.split(",").map((p) => p.trim());
+      return (...args: string[]) => {
+        let expanded = body;
+        paramList.forEach((param, index) => {
+          const regex = new RegExp(`\\b${param}\\b`, "g");
+          expanded = expanded.replace(regex, args[index]);
+        });
+        return expanded;
+      };
+    } else if ((match = macroRegex.exec(line))) {
+      const [, , body] = match;
+      return body.trim();
+    }
+  }
+
+  expandMacros(code: string): string {
+    let expandedCode = code;
+    let prevCode;
+    do {
+      prevCode = expandedCode;
+      expandedCode = prevCode.replace(
+        /\b(\w+)\(([^)]*)\)|\b(\w+)\b/g,
+        (match, func, args, simple) => {
+          if (func && typeof this.macros.get(func) === "function") {
+            const argList = args.split(",").map((a: string) => a.trim());
+            return (this.macros.get(func) as (...args: string[]) => string)(
+              ...argList
+            );
+          } else if (simple && typeof this.macros.get(simple) === "string") {
+            return this.macros.get(simple) as string;
+          }
+          return match;
+        }
+      );
+    } while (expandedCode !== prevCode);
+    return expandedCode;
   }
 
   private processRoot(element: DtcBaseNode, runtime: Runtime) {
