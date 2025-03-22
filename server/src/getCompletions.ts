@@ -43,6 +43,7 @@ import { isDeleteChild } from "./ast/helpers";
 import { IncludePath } from "./ast/cPreprocessors/include";
 import { readdirSync } from "fs";
 import { dirname, join, relative } from "path";
+import { DeleteBase } from "./ast/dtc/delete";
 
 function getIncudePathItems(
   result: SearchableResult | undefined
@@ -219,7 +220,7 @@ function getDeleteNodeRefItems(
   return Array.from(
     new Set(getScopeItems(result.runtime.rootNode).map((l) => l.label.value))
   ).map((l) => ({
-    label: `${l}`,
+    label: result.ast instanceof LabelRef ? `${l}` : `&${l}`,
     kind: CompletionItemKind.Variable,
   }));
 }
@@ -228,7 +229,14 @@ function getDeleteNodeNameItems(
   result: SearchableResult | undefined,
   inScope: (ast: ASTBase) => boolean
 ): CompletionItem[] {
-  if (!result || !(result.item instanceof Node) || result.item === null) {
+  if (
+    !result ||
+    !(result.item instanceof Node) ||
+    result.item === null ||
+    (result.beforeAst &&
+      (!(result.beforeAst?.parentNode instanceof DeleteBase) ||
+        result.beforeAst?.parentNode instanceof DeleteProperty))
+  ) {
     return [];
   }
 
@@ -246,7 +254,11 @@ function getDeleteNodeNameItems(
       .filter((n) => inScope(n));
   };
 
-  if (result.ast instanceof NodeName || result.ast instanceof DeleteNode) {
+  if (
+    result.ast instanceof NodeName ||
+    result.ast instanceof DeleteNode ||
+    result.beforeAst?.parentNode instanceof DeleteNode
+  ) {
     return Array.from(
       new Set(getScopeItems(result.item).map((r) => r.name?.toString()))
     ).map((n) => ({
@@ -259,7 +271,6 @@ function getDeleteNodeNameItems(
     return [
       {
         label: "/delete-node/",
-        insertText: `/delete-node/$1;`,
         kind: CompletionItemKind.Keyword,
         insertTextFormat: InsertTextFormat.Snippet,
         sortText: "~",
@@ -273,7 +284,13 @@ function getDeletePropertyItems(
   result: SearchableResult | undefined,
   inScope: (ast: ASTBase) => boolean
 ): CompletionItem[] {
-  if (!result || !(result.item instanceof Node)) {
+  if (
+    !result ||
+    !(result.item instanceof Node) ||
+    (result.beforeAst &&
+      (!(result.beforeAst?.parentNode instanceof DeleteBase) ||
+        result.beforeAst?.parentNode instanceof DeleteNode))
+  ) {
     return [];
   }
 
@@ -290,7 +307,8 @@ function getDeletePropertyItems(
 
   if (
     result.ast instanceof PropertyName ||
-    result.ast instanceof DeleteProperty
+    result.ast instanceof DeleteProperty ||
+    result.beforeAst?.parentNode instanceof DeleteProperty
   ) {
     return Array.from(
       new Set(getScopeItems(result.item).map((p) => p.name))

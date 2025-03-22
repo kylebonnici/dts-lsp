@@ -21,7 +21,7 @@ import { NodePathRef } from "./nodePath";
 import { NumberValue } from "./number";
 import { LabeledValue } from "./labeledValue";
 import { Expression } from "../../cPreprocessors/expression";
-import { Token } from "src/types";
+import { Token } from "../../../types";
 
 export class ArrayValues extends ASTBase {
   public openBracket?: Token;

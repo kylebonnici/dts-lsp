@@ -724,6 +724,8 @@ const contextIssuesToMessage = (issue: Issue<ContextIssues>) => {
           return `Property "${issue.templateStrings[0]}" was deleted`;
         case ContextIssues.DELETE_NODE:
           return `Node "${issue.templateStrings[0]}" was deleted`;
+        case ContextIssues.MISSING_NODE:
+          return `The following node "${issue.templateStrings[1]}" shall be present in "${issue.templateStrings[0]}" node.`;
       }
     })
     .join(" or ");
@@ -740,6 +742,8 @@ const contextIssuesToLinkedMessage = (issue: ContextIssues) => {
     case ContextIssues.DELETE_NODE:
     case ContextIssues.DELETE_PROPERTY:
       return "Deleted here";
+    case ContextIssues.MISSING_NODE:
+      return "Node";
     default:
       return "TODO";
   }
@@ -771,6 +775,8 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
           return `INTRO is required`;
         case StandardTypeIssue.OMITTED:
           return `INTRO should be omitted`;
+        case StandardTypeIssue.PROPERTY_NOT_ALLOWED:
+          return `INTRO name is not permited under this node`;
         case StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_FIRST_VALUE:
           return `INTRO first value must match node address`;
         case StandardTypeIssue.EXPECTED_DEVICE_TYPE_CPU:
@@ -802,6 +808,10 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
         case StandardTypeIssue.EXPECTED_VALUE:
           return issue.templateStrings[0];
         case StandardTypeIssue.DEVICETREE_ORG_BINDINGS:
+          return issue.templateStrings[0];
+        case StandardTypeIssue.NODE_LOCATION:
+          return issue.templateStrings[0];
+        case StandardTypeIssue.INVALID_VALUE:
           return issue.templateStrings[0];
       }
     })

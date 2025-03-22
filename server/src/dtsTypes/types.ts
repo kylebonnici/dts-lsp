@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { genIssue, getIndentString } from "../helpers";
+import { genIssue, getIndentString, toRangeWithTokenIndex } from "../helpers";
 import { type Node } from "../context/node";
 import { Property } from "../context/property";
 import { Issue, StandardTypeIssue } from "../types";
@@ -75,7 +75,7 @@ export class PropertyNodeType<T = string | number> {
 
   constructor(
     public readonly name: string | ((n: string) => boolean),
-    public readonly type: TypeConfig[],
+    public type: TypeConfig[],
     required:
       | RequirementStatus
       | ((node: Node) => RequirementStatus) = "optional",
@@ -304,16 +304,17 @@ export class PropertyNodeType<T = string | number> {
         );
       }
 
+      const values = this.values(property);
       // we have the right type
       if (issues.length === 0) {
         issues.push(...(this.additionalTypeCheck?.(property) ?? []));
         if (
-          this.values(property).length &&
+          values.length &&
           this.type[0].types.some((tt) => tt === PropertyType.STRING)
         ) {
           const currentValue = property.ast.values?.values[0]
             ?.value as StringValue;
-          if (!this.values(property).some((v) => currentValue.value === v)) {
+          if (!values.some((v) => currentValue.value === v)) {
             issues.push(
               genIssue(
                 StandardTypeIssue.EXPECTED_ENUM,
@@ -336,10 +337,12 @@ export class PropertyNodeType<T = string | number> {
     return issues;
   }
 
-  getPropertyCompletionItems(property: Property): CompletionItem[] {
-    const currentValue = this.type.at(
-      (property.ast.values?.values.length ?? 0) - 1
-    );
+  getPropertyCompletionItems(
+    property: Property,
+    valueIndex: number,
+    inValue: boolean
+  ): CompletionItem[] {
+    const currentValue = this.type.at(valueIndex);
 
     if (currentValue?.types.some((tt) => tt === PropertyType.STRING)) {
       if (
@@ -350,7 +353,7 @@ export class PropertyNodeType<T = string | number> {
       }
 
       return this.values(property).map((v) => ({
-        label: `"${v}"`,
+        label: inValue ? `${v}` : `"${v}"`,
         kind: CompletionItemKind.Variable,
         sortText: v === this.def ? `A${v}` : `Z${v}`,
       }));
@@ -362,7 +365,7 @@ export class PropertyNodeType<T = string | number> {
       )
     ) {
       return this.values(property).map((v) => ({
-        label: `<${v}>`,
+        label: inValue ? `${v}` : `<${v}>`,
         kind: CompletionItemKind.Variable,
         sortText: v === this.def ? `A${v}` : `Z${v}`,
       }));
@@ -408,7 +411,7 @@ const propertyValueToPropertyType = (
 export abstract class INodeType {
   abstract getIssue(runtime: Runtime, node: Node): Issue<StandardTypeIssue>[];
   abstract getOnPropertyHover(name: string): MarkupContent | undefined;
-  abstract childNodeType: INodeType | undefined;
+  abstract childNodeType: ((node: Node) => INodeType) | undefined;
   onBus?: string;
   bus?: string[];
   description?: string;
@@ -425,7 +428,17 @@ export abstract class INodeType {
 
 export class NodeType extends INodeType {
   private _properties: PropertyNodeType[] = [];
-  _childNodeType?: NodeType;
+  public noMismatchPropertiesAllowed = false;
+  _childNodeType?: (node: Node) => NodeType;
+
+  constructor(
+    public additionalValidations: (
+      runtime: Runtime,
+      node: Node
+    ) => Issue<StandardTypeIssue>[] = () => []
+  ) {
+    super();
+  }
 
   getIssue(runtime: Runtime, node: Node) {
     const issue: Issue<StandardTypeIssue>[] = [];
@@ -452,9 +465,12 @@ export class NodeType extends INodeType {
       }
     }
 
+    const machedSet = new Set<Property>();
+
     const propIssues = this.properties.flatMap((propType) => {
       if (typeof propType.name === "string") {
         const property = node.getProperty(propType.name);
+        if (property) machedSet.add(property);
         return propType.validateProperty(
           runtime,
           node,
@@ -467,9 +483,14 @@ export class NodeType extends INodeType {
         propType.getNameMatch(p.name)
       );
 
+      properties.forEach((p) => machedSet.add(p));
+
       const ddd = this.properties.filter((t) => t !== propType) ?? [];
 
-      if (properties.filter((p) => ddd.some((d) => d.getNameMatch(p.name)))) {
+      if (
+        ddd.length &&
+        properties.filter((p) => ddd.some((d) => d.getNameMatch(p.name)))
+      ) {
         return [];
       }
 
@@ -478,7 +499,37 @@ export class NodeType extends INodeType {
       );
     });
 
-    return [...issue, ...propIssues];
+    if (
+      machedSet.size !== node.property.length &&
+      this.noMismatchPropertiesAllowed
+    ) {
+      const mismatch = node.property.filter((p) => !machedSet.has(p));
+      mismatch.forEach((p) => {
+        issue.push(
+          genIssue<StandardTypeIssue>(
+            StandardTypeIssue.PROPERTY_NOT_ALLOWED,
+            p.ast,
+            DiagnosticSeverity.Error,
+            [],
+            [],
+            [p.name],
+            TextEdit.del(
+              toRangeWithTokenIndex(
+                p.ast.firstToken.prevToken,
+                p.ast.lastToken,
+                false
+              )
+            )
+          )
+        );
+      });
+    }
+
+    return [
+      ...issue,
+      ...propIssues,
+      ...this.additionalValidations(runtime, node),
+    ];
   }
 
   get properties() {
@@ -500,13 +551,16 @@ export class NodeType extends INodeType {
     return this._childNodeType;
   }
 
-  set childNodeType(nodeType: NodeType | undefined) {
+  set childNodeType(nodeType: ((node: Node) => NodeType) | undefined) {
     if (!nodeType) {
       return;
     }
 
-    nodeType.bindingsPath = this.bindingsPath;
-    this._childNodeType = nodeType;
+    this._childNodeType = (node: Node) => {
+      const type = nodeType(node);
+      type.bindingsPath = this.bindingsPath;
+      return type;
+    };
   }
 
   getOnPropertyHover(name: string) {

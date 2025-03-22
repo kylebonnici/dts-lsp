@@ -18,7 +18,7 @@ import { Location, TextDocumentPositionParams } from "vscode-languageserver";
 import { ContextAware } from "./runtimeEvaluator";
 import { SearchableResult } from "./types";
 import { Node } from "./context/node";
-import { DtcChildNode, NodeName } from "./ast/dtc/node";
+import { DtcChildNode, DtcRootNode, NodeName } from "./ast/dtc/node";
 import { Label } from "./ast/dtc/label";
 import { LabelRef } from "./ast/dtc/labelRef";
 import { nodeFinder, toRange } from "./helpers";
@@ -26,6 +26,7 @@ import { DtcProperty, PropertyName } from "./ast/dtc/property";
 import { Property } from "./context/property";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
 import { isDeleteChild } from "./ast/helpers";
+import { StringValue } from "./ast/dtc/values/string";
 
 function getPropertyReferences(
   result: SearchableResult | undefined
@@ -91,22 +92,52 @@ function getPropertyReferences(
 }
 
 function getNodeReferences(result: SearchableResult | undefined): Location[] {
-  if (
-    !result ||
-    (!(result.ast instanceof NodeName) && !(result.ast instanceof Label))
-  ) {
+  if (!result) {
     return [];
   }
 
   const gentItem = (node: Node) => {
+    const aliases = result.runtime.rootNode.getNode("aliases");
+    const aliaseProperties =
+      aliases?.property
+        .filter((p) => {
+          const values = p.ast.quickValues;
+          if (values?.length === 1 && typeof values[0] === "string") {
+            if (
+              result.runtime.rootNode.getChild(values[0].split("/")) === node
+            ) {
+              return true;
+            }
+          }
+        })
+        .map((p) => p.ast) ?? [];
+
+    const deleteNodes =
+      node.parent?.deletedNodes
+        .filter(
+          (n) =>
+            n.node === node &&
+            (n.by.nodeNameOrRef instanceof NodeName
+              ? n.by.nodeNameOrRef !== result.ast
+              : !node.linkedRefLabels.some((r) => r !== result.ast))
+        )
+        .map((n) => n.by.nodeNameOrRef) ?? [];
     return [
+      ...aliaseProperties,
       ...node.linkedRefLabels,
       ...node.linkedNodeNamePaths,
       ...node.definitions,
+      ...deleteNodes,
     ]
       .map((dtc) => {
+        if (dtc instanceof DtcRootNode) {
+          return Location.create(`file://${dtc.uri}`, toRange(dtc.name ?? dtc));
+        }
         if (dtc instanceof DtcChildNode) {
           return Location.create(`file://${dtc.uri}`, toRange(dtc.name ?? dtc));
+        }
+        if (dtc instanceof NodeName) {
+          return Location.create(`file://${dtc.uri}`, toRange(dtc));
         }
         if (dtc instanceof NodeName) {
           return Location.create(`file://${dtc.uri}`, toRange(dtc));
@@ -115,6 +146,12 @@ function getNodeReferences(result: SearchableResult | undefined): Location[] {
           return Location.create(
             `file://${dtc.uri}`,
             toRange(dtc.label ?? dtc)
+          );
+        }
+        if (dtc instanceof DtcProperty) {
+          return Location.create(
+            `file://${(dtc.values ?? dtc)?.uri}`,
+            toRange(dtc.values ?? dtc)
           );
         }
       })
@@ -144,6 +181,17 @@ function getNodeReferences(result: SearchableResult | undefined): Location[] {
       }
 
       return gentItem(result.ast.linksTo);
+    }
+  }
+
+  if (
+    result?.ast instanceof StringValue &&
+    result.item instanceof Property &&
+    result.item.parent.name === "aliases"
+  ) {
+    const node = result.runtime.rootNode.getChild(result.ast.value.split("/"));
+    if (node) {
+      return gentItem(node);
     }
   }
 

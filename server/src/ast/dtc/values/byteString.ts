@@ -18,7 +18,7 @@ import { ASTBase } from "../../base";
 import { SymbolKind } from "vscode-languageserver";
 import { LabeledValue } from "./labeledValue";
 import { NumberValue } from "./number";
-import { Token } from "src/types";
+import { Token } from "../../../types";
 
 export class ByteStringValue extends ASTBase {
   public openBracket?: Token;

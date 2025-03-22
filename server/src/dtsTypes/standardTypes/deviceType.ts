@@ -25,7 +25,8 @@ export default () => {
   const prop = new PropertyNodeType(
     "device_type",
     generateOrTypeObj(PropertyType.STRING),
-    undefined,
+    (node) =>
+      node.name === "cpu" || node.name === "memory" ? "required" : "optional",
     undefined,
     (property) => {
       if (property.parent.name === "cpu" || property.parent.name === "memory") {
@@ -63,16 +64,21 @@ export default () => {
               ];
         }
       }
-      return [
-        genIssue(
-          StandardTypeIssue.DEPRECATED,
-          property.ast,
-          DiagnosticSeverity.Hint,
-          [],
-          [DiagnosticTag.Deprecated],
-          [property.name]
-        ),
-      ];
+
+      if (prop.required(property.parent) !== "required") {
+        return [
+          genIssue(
+            StandardTypeIssue.DEPRECATED,
+            property.ast,
+            DiagnosticSeverity.Hint,
+            [],
+            [DiagnosticTag.Deprecated],
+            [property.name]
+          ),
+        ];
+      }
+
+      return [];
     }
   );
   prop.description = [

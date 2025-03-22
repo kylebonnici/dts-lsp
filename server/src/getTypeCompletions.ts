@@ -24,21 +24,52 @@ import { Node } from "./context/node";
 import { DtcProperty, PropertyName } from "./ast/dtc/property";
 import { Property } from "./context/property";
 import { nodeFinder } from "./helpers";
-import { isDeleteChild } from "./ast/helpers";
+import { isChildOfAstNode, isDeleteChild } from "./ast/helpers";
 import { NodeType } from "./dtsTypes/types";
+import { ASTBase } from "./ast/base";
+import { PropertyValue } from "./ast/dtc/values/value";
+import { DeleteBase } from "./ast/dtc/delete";
+
+const propertyValue = (astBase?: ASTBase): boolean => {
+  if (!astBase || astBase instanceof DtcProperty) return false;
+
+  return astBase instanceof PropertyValue || propertyValue(astBase.parentNode);
+};
 
 function getPropertyAssignItems(
   result: SearchableResult | undefined
 ): CompletionItem[] {
   if (
     !result ||
-    !(result.item instanceof Property) ||
-    !(
-      result.ast instanceof DtcProperty &&
-      (result.ast.values || result.ast.values === null)
-    )
+    !(result.item instanceof Property && result.item.ast.assignOperatorToken)
   ) {
     return [];
+  }
+
+  const inPorpertyValue = propertyValue(result?.ast);
+
+  if (
+    !inPorpertyValue &&
+    !(result.ast instanceof DtcProperty && result.item.ast.values === null) &&
+    !propertyValue(result.beforeAst) &&
+    !propertyValue(result.afterAst)
+  ) {
+    return [];
+  }
+
+  let valueIndex = -1;
+
+  if (result.item.ast.values === null) {
+    valueIndex = 0;
+  } else {
+    valueIndex =
+      (result.item.ast.values?.values.findIndex(
+        (v) => v && isChildOfAstNode(v, result.beforeAst)
+      ) ?? -1) + 1;
+  }
+
+  if (valueIndex === -1) {
+    valueIndex = 0;
   }
 
   const nodeType = result.item.parent.nodeType;
@@ -46,7 +77,11 @@ function getPropertyAssignItems(
     return (
       nodeType.properties
         .find((p) => p.name === result.item?.name)
-        ?.getPropertyCompletionItems(result.item) ?? []
+        ?.getPropertyCompletionItems(
+          result.item,
+          valueIndex,
+          inPorpertyValue
+        ) ?? []
     );
   }
 
@@ -64,7 +99,8 @@ function getPropertyNamesItems(
         result.item.ast.values == null) ||
       result.item instanceof Node
     ) ||
-    isDeleteChild(result.ast)
+    isDeleteChild(result.ast) ||
+    result.beforeAst?.parentNode instanceof DeleteBase
   ) {
     return [];
   }

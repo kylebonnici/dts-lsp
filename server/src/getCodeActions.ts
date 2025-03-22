@@ -323,8 +323,22 @@ const standardTypeIssueToCodeAction = (
           },
         },
       ];
-    case StandardTypeIssue.DEVICETREE_ORG_BINDINGS:
-      return edit ? [
+    case StandardTypeIssue.PROPERTY_NOT_ALLOWED:
+      return [
+        {
+          title: codeActionTitle ?? `Remove Property`,
+          diagnostics: [diagnostic],
+          kind: CodeActionKind.QuickFix,
+          isPreferred: true,
+          edit: {
+            changes: {
+              [uri]: [edit],
+            },
+          },
+        },
+      ];
+    case StandardTypeIssue.NODE_LOCATION:
+      return [
         {
           title: codeActionTitle ?? `TODO`,
           diagnostics: [diagnostic],
@@ -336,7 +350,25 @@ const standardTypeIssueToCodeAction = (
             },
           },
         },
-      ] : [];
+      ];
+
+    case StandardTypeIssue.DEVICETREE_ORG_BINDINGS:
+      return edit
+        ? [
+            {
+              title: codeActionTitle ?? `TODO`,
+              diagnostics: [diagnostic],
+              kind: CodeActionKind.QuickFix,
+              isPreferred: true,
+              edit: {
+                changes: {
+                  [uri]: [edit],
+                },
+              },
+            },
+          ]
+        : [];
+
     default:
       return;
   }

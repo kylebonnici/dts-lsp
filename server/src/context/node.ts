@@ -25,6 +25,9 @@ import { Property } from "./property";
 import { DeleteProperty } from "../ast/dtc/deleteProperty";
 import { DeleteNode } from "../ast/dtc/deleteNode";
 import {
+  genIssue,
+  getDeepestAstNodeAfter,
+  getDeepestAstNodeBefore,
   getDeepestAstNodeInBetween,
   positionInBetween,
   positionSameLineAndNotAfter,
@@ -58,7 +61,7 @@ export class Node {
   linkedNodeNamePaths: NodeName[] = [];
   linkedRefLabels: LabelRef[] = [];
 
-  private _nodeTypes: INodeType[] = [getStandardType()];
+  private _nodeTypes: INodeType[] | undefined;
 
   static toJson(node: Node) {
     const obj: any = {};
@@ -80,19 +83,32 @@ export class Node {
   }
 
   get nodeTypes(): INodeType[] {
-    const childType = this.parent?.nodeType?.childNodeType;
-
-    if (childType) {
-      return [childType];
+    if (this._nodeTypes) {
+      return this._nodeTypes;
     }
 
-    return this._nodeTypes ?? [getStandardType()];
+    const childType = this.parent?.nodeType?.childNodeType?.(this);
+
+    if (childType) {
+      this._nodeTypes = [childType];
+      return this._nodeTypes;
+    }
+
+    this._nodeTypes = [getStandardType(this)];
+    return this._nodeTypes;
   }
 
   get nodeType(): INodeType | undefined {
     return this.nodeTypes.find(
       (t) => !t.onBus || this.parent?.nodeType?.bus?.some((b) => b === t.onBus)
     );
+  }
+
+  isChildOf(node: Node): boolean {
+    if (!this.parent) {
+      return false;
+    }
+    return this.parent === node ? true : this.parent.isChildOf(node);
   }
 
   public getReferenceBy(node: DtcRefNode): Node | undefined {
@@ -125,6 +141,8 @@ export class Node {
         .map((p) => ({
           item: this,
           ast: getDeepestAstNodeInBetween(p, file, position),
+          beforeAst: getDeepestAstNodeBefore(p, file, position),
+          afterAst: getDeepestAstNodeAfter(p, file, position),
         }))
         .find((i) => positionInBetween(i.ast, file, position));
 
@@ -143,10 +161,11 @@ export class Node {
           item: p,
           ast: p.ast,
         }))
-        .find((i) =>
-          i.ast.lastToken.value === ";"
-            ? positionInBetween(i.ast, file, position)
-            : positionSameLineAndNotAfter(i.ast, file, position)
+        .find(
+          (i) =>
+            positionInBetween(i.ast, file, position) ||
+            (i.ast.lastToken.value !== ";" &&
+              positionSameLineAndNotAfter(i.ast, file, position))
         );
 
       if (inProperty) {
@@ -169,6 +188,8 @@ export class Node {
       return {
         item: this,
         ast: deepestAstNode,
+        beforeAst: getDeepestAstNodeBefore(deepestAstNode, file, position),
+        afterAst: getDeepestAstNodeAfter(deepestAstNode, file, position),
       };
     }
 
@@ -219,13 +240,41 @@ export class Node {
   }
 
   get issues(): Issue<ContextIssues>[] {
-    return [
+    const issues = [
       ...this.property.flatMap((p) => p.issues),
       ...this._nodes.flatMap((n) => n.issues),
       ...this._deletedNodes.flatMap((n) => n.node.issues),
       ...this.deletedPropertiesIssues,
       ...this.deletedNodesIssues,
     ];
+    if (this.name === "/") {
+      if (!this._nodes.some((n) => n.name === "cpus")) {
+        issues.push(
+          genIssue(
+            ContextIssues.MISSING_NODE,
+            this.definitions.at(-1)!,
+            DiagnosticSeverity.Error,
+            this.definitions.slice(0, -1),
+            undefined,
+            ["/", "cpus"]
+          )
+        );
+      }
+      // TODO look into this as zephyr boards do not have this node in root all the time
+      // if (!this._nodes.some((n) => n.name === "memory")) {
+      //   issues.push(
+      //     genIssue(
+      //       ContextIssues.MISSING_NODE,
+      //       this.definitions.at(-1)!,
+      //       DiagnosticSeverity.Error,
+      //       this.definitions.slice(0, -1),
+      //       undefined,
+      //       ["/", "memory"]
+      //     )
+      //   );
+      // }
+    }
+    return issues;
   }
 
   get deletedPropertiesIssues(): Issue<ContextIssues>[] {
@@ -366,7 +415,9 @@ export class Node {
 
   getNode(name: string, address?: number[], strict = true) {
     const isAddressNeeded =
-      strict || this._nodes.filter((node) => node.name === name).length > 1;
+      strict ||
+      !!address ||
+      this._nodes.filter((node) => node.name === name).length > 1;
     const index = this._nodes.findIndex(
       (node) =>
         node.name === name &&
@@ -414,7 +465,7 @@ export class Node {
           .getNodeTypes(this)
           .then((t) => (this._nodeTypes = t));
       } else {
-        this._nodeTypes = [getStandardType()];
+        this._nodeTypes = [getStandardType(this)];
       }
     }
   }

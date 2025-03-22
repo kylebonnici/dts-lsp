@@ -40,7 +40,7 @@ const mockReadFileSync = (content: string, path?: string) => {
 
 const getFakeBindingLoader = (): BindingLoader => ({
   getNodeTypes: (node: Node) => {
-    return Promise.resolve([getStandardType()]);
+    return Promise.resolve([getStandardType(node)]);
   },
 });
 describe("Context Issues", () => {
@@ -49,7 +49,7 @@ describe("Context Issues", () => {
   });
 
   test("Duplicate property name", async () => {
-    mockReadFileSync("/{prop1;prop1;};");
+    mockReadFileSync("/{prop1;prop1;cpus{};memory{};};");
     const context = new ContextAware(
       "/folder/dts.dts",
       [],
@@ -74,7 +74,7 @@ describe("Context Issues", () => {
   });
 
   test("Delete non existing property", async () => {
-    mockReadFileSync("/{/delete-property/ prop1;};");
+    mockReadFileSync("/{/delete-property/ prop1; cpus{};memory{};};");
     const context = new ContextAware(
       "/folder/dts.dts",
       [],
@@ -93,7 +93,7 @@ describe("Context Issues", () => {
   });
 
   test("Delete property before create", async () => {
-    mockReadFileSync("/{/delete-property/ prop1; prop1;};");
+    mockReadFileSync("/{/delete-property/ prop1; prop1; cpus{};memory{};};");
     const context = new ContextAware(
       "/folder/dts.dts",
       [],
@@ -112,7 +112,7 @@ describe("Context Issues", () => {
   });
 
   test("Duplicate node name no address in node", async () => {
-    mockReadFileSync("/{node{};node{}};");
+    mockReadFileSync("/{node{};node{};cpus{};memory{};};");
     const context = new ContextAware(
       "/folder/dts.dts",
       [],
@@ -131,7 +131,7 @@ describe("Context Issues", () => {
   });
 
   test("Duplicate node name with address in node", async () => {
-    mockReadFileSync("/{node@20{};node@20{}};");
+    mockReadFileSync("/{node@20{};node@20{};cpus{};memory{};};");
     const context = new ContextAware(
       "/folder/dts.dts",
       [],
@@ -150,7 +150,7 @@ describe("Context Issues", () => {
   });
 
   test("Duplicate node name with address coma separated in node", async () => {
-    mockReadFileSync("/{node@20,30{};node@20,30{}};");
+    mockReadFileSync("/{node@20,30{};node@20,30{};cpus{};memory{};};");
     const context = new ContextAware(
       "/folder/dts.dts",
       [],
@@ -170,7 +170,7 @@ describe("Context Issues", () => {
 
   describe("Unable to resolve node name", () => {
     test("prop with invalid ref", async () => {
-      mockReadFileSync("/{prop1=&l1};");
+      mockReadFileSync("/{prop1=&l1; cpus{};memory{};};");
       const context = new ContextAware(
         "/folder/dts.dts",
         [],
@@ -191,7 +191,7 @@ describe("Context Issues", () => {
       ).toEqual(11);
     });
     test("Node Ref", async () => {
-      mockReadFileSync("&nodeLabel{};");
+      mockReadFileSync("&nodeLabel{}; /{cpus{};memory{};};");
       const context = new ContextAware(
         "/folder/dts.dts",
         [],
@@ -212,7 +212,9 @@ describe("Context Issues", () => {
     });
 
     test("Reference deleted Node with ref", async () => {
-      mockReadFileSync("/{l1: node1 {};}; /delete-node/ &l1; &l1{};");
+      mockReadFileSync(
+        "/{l1: node1 {}; cpus{};memory{};}; /delete-node/ &l1; &l1{};"
+      );
       const context = new ContextAware(
         "/folder/dts.dts",
         [],
@@ -227,15 +229,17 @@ describe("Context Issues", () => {
       expect(issues[1].issues).toEqual([
         ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
       ]);
-      expect(issues[1].astElement.firstToken.pos.col).toEqual(37);
+      expect(issues[1].astElement.firstToken.pos.col).toEqual(54);
       expect(
         issues[1].astElement.lastToken.pos.col +
           issues[1].astElement.lastToken.pos.len
-      ).toEqual(40);
+      ).toEqual(57);
     });
 
     test("Reference deleted Node with name", async () => {
-      mockReadFileSync("/{l1: node1{}; /delete-node/ node1;}; &l1{};");
+      mockReadFileSync(
+        "/{l1: node1{}; /delete-node/ node1; cpus{};memory{};}; &l1{};"
+      );
       const context = new ContextAware(
         "/folder/dts.dts",
         [],
@@ -250,15 +254,15 @@ describe("Context Issues", () => {
       expect(issues[1].issues).toEqual([
         ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
       ]);
-      expect(issues[1].astElement.firstToken.pos.col).toEqual(38);
+      expect(issues[1].astElement.firstToken.pos.col).toEqual(55);
       expect(
         issues[1].astElement.lastToken.pos.col +
           issues[1].astElement.lastToken.pos.len
-      ).toEqual(41);
+      ).toEqual(58);
     });
 
     test("Delete Node with Ref", async () => {
-      mockReadFileSync("/delete-node/ &nodeLabel;");
+      mockReadFileSync("/delete-node/ &nodeLabel; /{cpus{};memory{};}");
       const context = new ContextAware(
         "/folder/dts.dts",
         [],
@@ -280,7 +284,7 @@ describe("Context Issues", () => {
   });
 
   test("Duplicate label use", async () => {
-    mockReadFileSync("/{l1: node1{}; l1: node2{}};");
+    mockReadFileSync("/{l1: node1{}; l1: node2{};cpus{};memory{};};");
     const context = new ContextAware(
       "/folder/dts.dts",
       [],
@@ -305,7 +309,7 @@ describe("Context Issues", () => {
   });
 
   test("Delete non existing node", async () => {
-    mockReadFileSync("/{/delete-node/ node;};");
+    mockReadFileSync("/{/delete-node/ node; cpus{};memory{};};");
     const context = new ContextAware(
       "/folder/dts.dts",
       [],
@@ -324,7 +328,7 @@ describe("Context Issues", () => {
   });
 
   test("Delete node before created node", async () => {
-    mockReadFileSync("/{/delete-node/ node; node{};};");
+    mockReadFileSync("/{/delete-node/ node; node{};cpus{};memory{};};");
     const context = new ContextAware(
       "/folder/dts.dts",
       [],
@@ -344,7 +348,9 @@ describe("Context Issues", () => {
 
   describe("delete ui", () => {
     test("Delete property", async () => {
-      mockReadFileSync("/{node {prop1; /delete-property/ prop1;}};");
+      mockReadFileSync(
+        "/{node {prop1; /delete-property/ prop1;}; cpus{};memory{};};"
+      );
       const context = new ContextAware(
         "/folder/dts.dts",
         [],
@@ -364,7 +370,7 @@ describe("Context Issues", () => {
 
     test("Delete from two nodes property", async () => {
       mockReadFileSync(
-        "/{node {prop1;}};/{node {prop1; /delete-property/ prop1;}};"
+        "/{node {prop1;}};/{node {prop1; /delete-property/ prop1;};cpus{};memory{};};"
       );
       const context = new ContextAware(
         "/folder/dts.dts",
@@ -398,7 +404,7 @@ describe("Context Issues", () => {
     });
 
     test("Delete Node with name no address", async () => {
-      mockReadFileSync("/{node {}; /delete-node/ node;};");
+      mockReadFileSync("/{node {}; /delete-node/ node; cpus{};memory{};};");
       const context = new ContextAware(
         "/folder/dts.dts",
         [],
@@ -423,7 +429,9 @@ describe("Context Issues", () => {
     });
 
     test("Delete Node with name with address", async () => {
-      mockReadFileSync("/{node@200 {}; node@300 {}; /delete-node/ node@300;};");
+      mockReadFileSync(
+        "/{node@200 {}; node@300 {}; /delete-node/ node@300;cpus{};memory{};};"
+      );
       const context = new ContextAware(
         "/folder/dts.dts",
         [],
@@ -442,7 +450,7 @@ describe("Context Issues", () => {
     });
 
     test("Delete Node with label ref", async () => {
-      mockReadFileSync("/{l1: node {};};  /delete-node/ &l1;");
+      mockReadFileSync("/{l1: node {}; cpus{};memory{};};  /delete-node/ &l1;");
       const context = new ContextAware(
         "/folder/dts.dts",
         [],
@@ -462,7 +470,7 @@ describe("Context Issues", () => {
 
     test("Delete Node with path", async () => {
       mockReadFileSync(
-        "/{l1: node1 {node2 {};};};  /delete-node/ &{/node1/node2};"
+        "/{l1: node1 {node2 {};};cpus{};memory{};};  /delete-node/ &{/node1/node2};"
       );
       const context = new ContextAware(
         "/folder/dts.dts",
@@ -482,7 +490,9 @@ describe("Context Issues", () => {
     });
 
     test("Delete multiple Node", async () => {
-      mockReadFileSync("/{node {};};/{node {}; /delete-node/ node};");
+      mockReadFileSync(
+        "/{node {};};/{node {}; /delete-node/ node cpus{};memory{};};"
+      );
       const context = new ContextAware(
         "/folder/dts.dts",
         [],
@@ -509,7 +519,9 @@ describe("Context Issues", () => {
 
   describe("Resolve node path", () => {
     test("Delete node with path not existing", async () => {
-      mockReadFileSync("/{node1{};};/delete-node/ &{/node1/node2};");
+      mockReadFileSync(
+        "/{node1{};cpus{};memory{};};/delete-node/ &{/node1/node2};"
+      );
       const context = new ContextAware(
         "/folder/dts.dts",
         [],
@@ -522,16 +534,18 @@ describe("Context Issues", () => {
       expect(issues[0].issues).toEqual([
         ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH,
       ]);
-      expect(issues[0].astElement.firstToken.pos.col).toEqual(35);
+      expect(issues[0].astElement.firstToken.pos.col).toEqual(51);
       expect(
         issues[0].astElement.lastToken.pos.col +
           issues[0].astElement.lastToken.pos.len
-      ).toEqual(40);
+      ).toEqual(56);
       expect(issues[0].templateStrings).toEqual(["node2", "node1"]);
     });
 
     test("property array node part ref values", async () => {
-      mockReadFileSync("/{node1{};}; /{prop1=<&{/node1/node2}>;};");
+      mockReadFileSync(
+        "/{node1{};}; /{prop1=<&{/node1/node2}>;cpus{};memory{};};"
+      );
       const context = new ContextAware(
         "/folder/dts.dts",
         [],
@@ -553,7 +567,9 @@ describe("Context Issues", () => {
     });
 
     test("property node path ref", async () => {
-      mockReadFileSync("/{node1{};}; /{prop1=&{/node1/node2};};");
+      mockReadFileSync(
+        "/{node1{};}; /{prop1=&{/node1/node2};cpus{};memory{};};"
+      );
       const context = new ContextAware(
         "/folder/dts.dts",
         [],
@@ -577,7 +593,7 @@ describe("Context Issues", () => {
 
   describe("Resolve label ref", () => {
     test("Delete node with path not existing", async () => {
-      mockReadFileSync("/{l1: node1{};};/delete-node/ &l2;");
+      mockReadFileSync("/{l1: node1{};cpus{};memory{};};/delete-node/ &l2;");
       const context = new ContextAware(
         "/folder/dts.dts",
         [],
@@ -590,16 +606,16 @@ describe("Context Issues", () => {
       expect(issues[0].issues).toEqual([
         ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
       ]);
-      expect(issues[0].astElement.firstToken.pos.col).toEqual(30);
+      expect(issues[0].astElement.firstToken.pos.col).toEqual(46);
       expect(
         issues[0].astElement.lastToken.pos.col +
           issues[0].astElement.lastToken.pos.len
-      ).toEqual(33);
+      ).toEqual(49);
       expect(issues[0].templateStrings).toEqual(["l2"]);
     });
 
     test("property array label ref value", async () => {
-      mockReadFileSync("/{l1: node1{};}; /{prop1=<&l2>;};");
+      mockReadFileSync("/{l1: node1{};}; /{prop1=<&l2>;cpus{};memory{};};");
       const context = new ContextAware(
         "/folder/dts.dts",
         [],
@@ -621,7 +637,7 @@ describe("Context Issues", () => {
     });
 
     test("property node path ref", async () => {
-      mockReadFileSync("/{l1: node1{};}; /{prop1=&l2;};");
+      mockReadFileSync("/{l1: node1{};}; /{prop1=&l2;cpus{};memory{};};");
       const context = new ContextAware(
         "/folder/dts.dts",
         [],
@@ -640,6 +656,48 @@ describe("Context Issues", () => {
           issues[0].astElement.lastToken.pos.len
       ).toEqual(28);
       expect(issues[0].templateStrings).toEqual(["l2"]);
+    });
+  });
+
+  describe("Mandatory Nodes", () => {
+    test("missing cpus", async () => {
+      mockReadFileSync("/{memory{};};");
+      const context = new ContextAware(
+        "/folder/dts.dts",
+        [],
+        getFakeBindingLoader(),
+        []
+      );
+      await context.parser.stable;
+      const issues = await context.getContextIssues();
+      expect(issues.length).toEqual(1);
+      expect(issues[0].issues).toEqual([ContextIssues.MISSING_NODE]);
+      expect(issues[0].astElement.firstToken.pos.col).toEqual(0);
+      expect(
+        issues[0].astElement.lastToken.pos.col +
+          issues[0].astElement.lastToken.pos.len
+      ).toEqual(13);
+      expect(issues[0].templateStrings).toEqual(["/", "cpus"]);
+    });
+
+    test.skip("missing memory", async () => {
+      mockReadFileSync("/{cpus{};};");
+      const context = new ContextAware(
+        "/folder/dts.dts",
+        [],
+        getFakeBindingLoader(),
+        []
+      );
+      await context.parser.stable;
+      const issues = await context.getContextIssues();
+      expect(issues.length).toEqual(1);
+      expect(issues[0].issues).toEqual([ContextIssues.MISSING_NODE]);
+      expect(issues[0].astElement.firstToken.pos.col).toEqual(0);
+      expect(
+        issues[0].astElement.lastToken.pos.col +
+          issues[0].astElement.lastToken.pos.len
+      ).toEqual(11);
+      expect(issues[0].templateStrings).toEqual(["/", "memory"]);
     });
   });
 });

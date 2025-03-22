@@ -62,6 +62,9 @@ export enum StandardTypeIssue {
   UNABLE_TO_RESOLVE_PATH,
   EXPECTED_VALUE,
   DEVICETREE_ORG_BINDINGS,
+  NODE_LOCATION,
+  PROPERTY_NOT_ALLOWED,
+  INVALID_VALUE,
 }
 
 export enum SyntaxIssue {
@@ -123,6 +126,7 @@ export enum ContextIssues {
   DELETE_PROPERTY,
   DELETE_NODE,
   UNABLE_TO_RESOLVE_NODE_PATH,
+  MISSING_NODE,
 }
 
 export enum LexerToken {
@@ -270,6 +274,8 @@ export type SearchableResult = {
   runtime: Runtime;
   item: Node | Property | null;
   ast: ASTBase;
+  beforeAst?: ASTBase;
+  afterAst?: ASTBase;
 };
 
 export interface Searchable {

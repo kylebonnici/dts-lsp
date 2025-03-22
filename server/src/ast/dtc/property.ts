@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { TokenIndexes } from "../../types";
+import { Token, TokenIndexes } from "../../types";
 import { ASTBase } from "../base";
 import { SymbolKind } from "vscode-languageserver";
 import { LabelAssign } from "./label";
@@ -38,6 +38,7 @@ export class PropertyName extends ASTBase {
 
 export class DtcProperty extends ASTBase {
   private _values: PropertyValues | null | undefined = undefined;
+  public assignOperatorToken?: Token;
 
   constructor(
     public readonly propertyName: PropertyName | null,
@@ -87,10 +88,12 @@ export class DtcProperty extends ASTBase {
 
   toString() {
     return `${this.propertyName?.toString() ?? "__UNSET__"}${
-      this._values?.values.length
-        ? ` = ${this._values.values
-            .map((v) => v?.toString() ?? "NULL")
-            .join(", ")}`
+      this.assignOperatorToken
+        ? ` = ${
+            this._values?.values
+              .map((v) => v?.toString() ?? "NULL")
+              .join(", ") ?? "NULL"
+          }`
         : ""
     };`;
   }

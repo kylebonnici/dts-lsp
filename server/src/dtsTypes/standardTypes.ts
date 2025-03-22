@@ -15,61 +15,32 @@
  */
 
 import { type Node } from "../context/node";
-import compatible from "./standardTypes/compatible";
-import deviceType from "./standardTypes/deviceType";
-import interruptCells from "./standardTypes/interruptCells";
-import interruptController from "./standardTypes/interruptController";
-import interruptParent from "./standardTypes/interruptParent";
-import interrupts from "./standardTypes/interrupts";
-import interruptsExtended from "./standardTypes/interruptsExtended";
-import { NodeType } from "./types";
-import dmaNoncoherent from "./standardTypes/dmaNoncoherent";
-import dmaCoherent from "./standardTypes/dmaCoherent";
-import dmaRanges from "./standardTypes/dmaRanges";
-import ranges from "./standardTypes/ranges";
-import virtualReg from "./standardTypes/virtualReg";
-import reg from "./standardTypes/reg";
-import sizeCells from "./standardTypes/sizeCells";
-import addressCells from "./standardTypes/addressCells";
-import status from "./standardTypes/status";
-import phandle from "./standardTypes/phandle";
-import model from "./standardTypes/model";
-import name from "./standardTypes/name";
-import interruptMap from "./standardTypes/interruptMap";
-import interruptMapMask from "./standardTypes/interruptMapMask";
-import nexusSpecifierMap from "./standardTypes/nexusSpecifierMap";
-import nexusSpecifierMapMask from "./standardTypes/nexusSpecifierMapMask";
-import nexusSpecifierMapPassThru from "./standardTypes/nexusSpecifierMapPassThru";
-import nexusSpecifierCells from "./standardTypes/nexusSpecifierCells";
+import { getRootNodeType } from "./standardTypes/nodeTypes/root/node";
+import { getStandardDefaultType } from "./standardDefaultType";
+import { getAliasesNodeType } from "./standardTypes/nodeTypes/aliases/node";
+import { getMemoryNodeType } from "./standardTypes/nodeTypes/memory/node";
+import { getReservedMemoryNodeType } from "./standardTypes/nodeTypes/reserved-memory/node";
+import { getChosenNodeType } from "./standardTypes/nodeTypes/chosen/node";
+import { getCpusNodeType } from "./standardTypes/nodeTypes/cpus/node";
+import { getCpuNodeType } from "./standardTypes/nodeTypes/cpus/cpu/node";
 
-export function getStandardType() {
-  const standardType = new NodeType();
-  standardType.addProperty([
-    compatible(),
-    model(),
-    phandle(),
-    status(),
-    addressCells(),
-    sizeCells(),
-    reg(),
-    virtualReg(),
-    ranges(),
-    dmaRanges(),
-    dmaCoherent(),
-    dmaNoncoherent(),
-    name(),
-    deviceType(),
-    interrupts(),
-    interruptParent(),
-    interruptsExtended(),
-    interruptCells(),
-    interruptController(),
-    interruptMap(),
-    interruptMapMask(),
-    nexusSpecifierMap(),
-    nexusSpecifierMapMask(),
-    nexusSpecifierMapPassThru(),
-    nexusSpecifierCells(),
-  ]);
-  return standardType;
+export function getStandardType(node?: Node) {
+  switch (node?.name) {
+    case "/":
+      return getRootNodeType();
+    case "aliases":
+      return getAliasesNodeType();
+    case "memory":
+      return getMemoryNodeType();
+    case "reserved-memory":
+      return getReservedMemoryNodeType();
+    case "chosen":
+      return getChosenNodeType();
+    case "cpus":
+      return getCpusNodeType();
+    case "cpu":
+      return getCpuNodeType();
+  }
+
+  return getStandardDefaultType();
 }

@@ -18,7 +18,7 @@ import { Location, TextDocumentPositionParams } from "vscode-languageserver";
 import { ContextAware } from "./runtimeEvaluator";
 import { SearchableResult } from "./types";
 import { Node } from "./context/node";
-import { NodeName } from "./ast/dtc/node";
+import { DtcRootNode, NodeName } from "./ast/dtc/node";
 import { Label } from "./ast/dtc/label";
 import { LabelRef } from "./ast/dtc/labelRef";
 import { PropertyName } from "./ast/dtc/property";
@@ -27,6 +27,7 @@ import { DeleteProperty } from "./ast/dtc/deleteProperty";
 import { isDeleteChild } from "./ast/helpers";
 import { nodeFinder, toRange } from "./helpers";
 import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
+import { StringValue } from "./ast/dtc/values/string";
 
 function getPropertyDeclaration(
   result: SearchableResult | undefined
@@ -73,10 +74,7 @@ function getPropertyDeclaration(
 function getNodeDeclaration(
   result: SearchableResult | undefined
 ): Location | undefined {
-  if (
-    !result ||
-    (!(result.ast instanceof NodeName) && !(result.ast instanceof Label))
-  ) {
+  if (!result) {
     return;
   }
 
@@ -103,6 +101,17 @@ function getNodeDeclaration(
   if (result.ast instanceof NodeName) {
     if (result.ast.linksTo) {
       return gentItem(result.ast.linksTo);
+    }
+  }
+
+  if (
+    result?.ast instanceof StringValue &&
+    result.item instanceof Property &&
+    result.item.parent.name === "aliases"
+  ) {
+    const node = result.runtime.rootNode.getChild(result.ast.value.split("/"));
+    if (node) {
+      return gentItem(node);
     }
   }
 }

@@ -47,7 +47,7 @@ export class DevicetreeOrgNodeType extends INodeType {
     this.validate = this.ajv.getSchema(this.schemaKey);
   }
 
-  childNodeType: INodeType | undefined;
+  childNodeType: ((node: Node) => INodeType) | undefined;
 
   getIssue(runtime: Runtime, node: Node): Issue<StandardTypeIssue>[] {
     const issue: Issue<StandardTypeIssue>[] = [];

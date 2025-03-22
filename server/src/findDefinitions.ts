@@ -18,7 +18,12 @@ import { Location, TextDocumentPositionParams } from "vscode-languageserver";
 import { ContextAware } from "./runtimeEvaluator";
 import { SearchableResult } from "./types";
 import { Node } from "./context/node";
-import { DtcChildNode, DtcRefNode, NodeName } from "./ast/dtc/node";
+import {
+  DtcChildNode,
+  DtcRefNode,
+  DtcRootNode,
+  NodeName,
+} from "./ast/dtc/node";
 import { Label } from "./ast/dtc/label";
 import { LabelRef } from "./ast/dtc/labelRef";
 import { nodeFinder, toRange } from "./helpers";
@@ -27,6 +32,7 @@ import { Property } from "./context/property";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
 import { isDeleteChild } from "./ast/helpers";
 import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
+import { StringValue } from "./ast/dtc/values/string";
 
 function getPropertyDefinition(
   result: SearchableResult | undefined
@@ -79,16 +85,16 @@ function getPropertyDefinition(
 }
 
 function getNodeDefinition(result: SearchableResult | undefined): Location[] {
-  if (
-    !result ||
-    (!(result.ast instanceof NodeName) && !(result.ast instanceof Label))
-  ) {
+  if (!result) {
     return [];
   }
 
   const gentItem = (node: Node) => {
     return [...node.definitions, ...node.referencedBy]
       .map((dtc) => {
+        if (dtc instanceof DtcRootNode) {
+          return Location.create(`file://${dtc.uri}`, toRange(dtc));
+        }
         if (dtc instanceof DtcChildNode) {
           return Location.create(`file://${dtc.uri}`, toRange(dtc));
         }
@@ -114,6 +120,17 @@ function getNodeDefinition(result: SearchableResult | undefined): Location[] {
   if (result.ast instanceof NodeName) {
     if (result.ast.linksTo) {
       return gentItem(result.ast.linksTo);
+    }
+  }
+
+  if (
+    result?.ast instanceof StringValue &&
+    result.item instanceof Property &&
+    result.item.parent.name === "aliases"
+  ) {
+    const node = result.runtime.rootNode.getChild(result.ast.value.split("/"));
+    if (node) {
+      return gentItem(node);
     }
   }
 
