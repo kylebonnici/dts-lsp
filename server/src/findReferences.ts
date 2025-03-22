@@ -111,11 +111,23 @@ function getNodeReferences(result: SearchableResult | undefined): Location[] {
           }
         })
         .map((p) => p.ast) ?? [];
+
+    const deleteNodes =
+      node.parent?.deletedNodes
+        .filter(
+          (n) =>
+            n.node === node &&
+            (n.by.nodeNameOrRef instanceof NodeName
+              ? n.by.nodeNameOrRef !== result.ast
+              : !node.linkedRefLabels.some((r) => r !== result.ast))
+        )
+        .map((n) => n.by.nodeNameOrRef) ?? [];
     return [
       ...aliaseProperties,
       ...node.linkedRefLabels,
       ...node.linkedNodeNamePaths,
       ...node.definitions,
+      ...deleteNodes,
     ]
       .map((dtc) => {
         if (dtc instanceof DtcRootNode) {
@@ -123,6 +135,9 @@ function getNodeReferences(result: SearchableResult | undefined): Location[] {
         }
         if (dtc instanceof DtcChildNode) {
           return Location.create(`file://${dtc.uri}`, toRange(dtc.name ?? dtc));
+        }
+        if (dtc instanceof NodeName) {
+          return Location.create(`file://${dtc.uri}`, toRange(dtc));
         }
         if (dtc instanceof NodeName) {
           return Location.create(`file://${dtc.uri}`, toRange(dtc));

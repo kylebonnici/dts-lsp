@@ -174,10 +174,15 @@ function getNodeNameRename(result: SearchableResult | undefined): Location[] {
         })
         .map((p) => p.ast) ?? [];
 
+    const deleteNodes =
+      node.parent?.deletedNodes
+        .filter((n) => n.node === node && n.by.nodeNameOrRef !== result.ast)
+        .map((n) => n.by.nodeNameOrRef) ?? [];
     return [
       ...aliaseProperties,
       ...node.linkedNodeNamePaths,
       ...node.definitions,
+      ...deleteNodes,
     ]
       .map((dtc) => {
         if (dtc instanceof DtcChildNode && dtc.name) {

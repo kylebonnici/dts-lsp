@@ -26,6 +26,8 @@ import { DeleteProperty } from "../ast/dtc/deleteProperty";
 import { DeleteNode } from "../ast/dtc/deleteNode";
 import {
   genIssue,
+  getDeepestAstNodeAfter,
+  getDeepestAstNodeBefore,
   getDeepestAstNodeInBetween,
   positionInBetween,
   positionSameLineAndNotAfter,
@@ -139,6 +141,8 @@ export class Node {
         .map((p) => ({
           item: this,
           ast: getDeepestAstNodeInBetween(p, file, position),
+          beforeAst: getDeepestAstNodeBefore(p, file, position),
+          afterAst: getDeepestAstNodeAfter(p, file, position),
         }))
         .find((i) => positionInBetween(i.ast, file, position));
 
@@ -184,6 +188,8 @@ export class Node {
       return {
         item: this,
         ast: deepestAstNode,
+        beforeAst: getDeepestAstNodeBefore(deepestAstNode, file, position),
+        afterAst: getDeepestAstNodeAfter(deepestAstNode, file, position),
       };
     }
 

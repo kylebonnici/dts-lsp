@@ -42,6 +42,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix `find definitions`, `find declerations`, `find all references` for root nodes.
 - Fix `go to definition`, `go to declerations`, `find all references` for root nodes.
 - Node path name matching when node name with address but name is unique.
+- Find referance on a delete node now also include the `/delete-node/ <nodeName>` for when delete is done by node name.
+- Refactoring/renaming on a delete node now also refactors/renames the `/delete-node/ <nodeName>` for when delete is done by node name.
 
 # 0.1.2 - 2025-03-13
 
