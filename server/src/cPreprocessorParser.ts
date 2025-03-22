@@ -52,15 +52,17 @@ export class CPreprocessorParser extends BaseParser {
   private nodes: ASTBase[] = [];
   public dtsIncludes: Include[] = [];
   private macroSnapShot: Map<string, CMacro> = new Map<string, CMacro>();
+  public readonly macros: Map<string, CMacro> = new Map<string, CMacro>();
 
   // tokens must be filtered out from comments by now
   constructor(
     public readonly uri: string,
     private incudes: string[],
-    public macros: Map<string, CMacro> = new Map<string, CMacro>()
+    macros: Map<string, CMacro>
   ) {
     super();
     Array.from(macros).forEach(([k, m]) => this.macroSnapShot.set(k, m));
+    Array.from(macros).forEach(([k, m]) => this.macros.set(k, m));
   }
 
   protected reset() {
@@ -73,21 +75,22 @@ export class CPreprocessorParser extends BaseParser {
 
   public async reparse(macros?: Map<string, CMacro>): Promise<void> {
     const stable = this.stable;
-    if (macros && macros.size === this.macroSnapShot.size) {
-      const arr = Array.from(macros);
-      if (
-        Array.from(this.macroSnapShot).every(([k, m], i) => {
-          const [kk, mm] = arr[i];
-          return kk === k && mm.toString() === m.toString();
-        })
-      ) {
-        console.log("header file cache hit", this.uri);
-        return;
-      }
-      console.log("header file cache miss", this.uri);
-    }
     this.parsing = new Promise<void>((resolve) => {
       stable.then(() => {
+        if (macros && macros.size === this.macroSnapShot.size) {
+          const arr = Array.from(macros);
+          if (
+            Array.from(this.macroSnapShot).every(([k, m], i) => {
+              const [kk, mm] = arr[i];
+              return kk === k && mm.toString() === m.toString();
+            })
+          ) {
+            console.log("header file cache hit", this.uri);
+            resolve();
+            return;
+          }
+        }
+        console.log("header file cache miss", this.uri);
         this.reset();
         this.parse().then(resolve);
       });
@@ -501,13 +504,17 @@ export class CPreprocessorParser extends BaseParser {
     if (resolvedPath && !resolvedPath.endsWith(".h")) {
       getTokenizedDocumentProvider().requestTokens(resolvedPath, true);
       const fileParser =
-        getCachedCPreprocessorParserProvider().getCPreprocessorParser(
+        await getCachedCPreprocessorParserProvider().getCPreprocessorParser(
           resolvedPath,
           this.incudes,
-          this.macros
+          this.macros,
+          this.uri
         );
 
       await fileParser.stable;
+
+      this.macros.clear();
+      Array.from(fileParser.macros).forEach(([k, m]) => this.macros.set(k, m));
 
       this.tokens.splice(
         startIndex,

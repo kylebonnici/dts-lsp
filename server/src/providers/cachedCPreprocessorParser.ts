@@ -23,25 +23,38 @@ let cachedCPreprocessorParserProvider:
 
 class CachedCPreprocessorParserProvider {
   private headerFiles = new Map<string, CPreprocessorParser>();
+  private includeOwners = new WeakMap<CPreprocessorParser, Set<string>>();
 
   getCPreprocessorParser(
     uri: string,
     inludes: string[],
-    macros: Map<string, CMacro>
+    macros: Map<string, CMacro>,
+    parent: string
   ) {
-    let header = this.headerFiles.get(uri);
-    if (header) {
-      header.reparse(macros);
-      return header;
+    const cache = this.headerFiles.get(uri);
+    if (cache) {
+      cache.reparse(macros);
+      return cache;
     }
 
-    header = new CPreprocessorParser(uri, inludes, macros);
+    console.log("No cpreprocess cache", uri);
+    const header = new CPreprocessorParser(uri, inludes, macros);
+    const set = this.includeOwners.get(header) ?? new Set();
+    set.add(parent);
+    this.includeOwners.set(header, set);
     this.headerFiles.set(uri, header);
     return header;
   }
 
   reset(uri: string) {
-    this.headerFiles.delete(uri);
+    console.log("disposing cpreprocessor cache for", uri);
+    const header = this.headerFiles.get(uri);
+    if (header) {
+      Array.from(this.includeOwners.get(header) ?? []).forEach(
+        this.reset.bind(this)
+      );
+      this.headerFiles.delete(uri);
+    }
   }
 }
 
