@@ -16,6 +16,7 @@
 
 import { LexerToken, SyntaxIssue, Token } from "./types";
 import {
+  adjacentTokens,
   createTokenIndex,
   genIssue,
   sameLine,
@@ -58,17 +59,26 @@ export class CPreprocessorParser extends BaseParser {
   constructor(
     public readonly uri: string,
     private incudes: string[],
-    macros: Map<string, CMacro>
+    macros?: Map<string, CMacro>
   ) {
     super();
-    Array.from(macros).forEach(([k, m]) => this.macroSnapShot.set(k, m));
-    Array.from(macros).forEach(([k, m]) => this.macros.set(k, m));
+    if (macros) {
+      Array.from(macros).forEach(([k, m]) => this.macroSnapShot.set(k, m));
+      Array.from(macros).forEach(([k, m]) => this.macros.set(k, m));
+    }
   }
 
-  protected reset() {
+  protected reset(macros?: Map<string, CMacro>) {
     super.reset();
     this.macros.clear();
-    Array.from(this.macroSnapShot).forEach(([k, m]) => this.macros.set(k, m));
+    if (macros) {
+      this.macroSnapShot.clear();
+      Array.from(macros).forEach(([k, m]) => this.macroSnapShot.set(k, m));
+      Array.from(macros).forEach(([k, m]) => this.macros.set(k, m));
+    } else {
+      Array.from(this.macroSnapShot).forEach(([k, m]) => this.macros.set(k, m));
+    }
+
     this.nodes = [];
     this.dtsIncludes = [];
   }
@@ -91,7 +101,7 @@ export class CPreprocessorParser extends BaseParser {
           }
         }
         console.log("header file cache miss", this.uri);
-        this.reset();
+        this.reset(macros);
         this.parse().then(resolve);
       });
     });
@@ -137,6 +147,7 @@ export class CPreprocessorParser extends BaseParser {
     const found =
       (await this.processInclude()) ||
       this.processDefinitions() ||
+      this.processUndef() ||
       this.processIfDefBlocks();
 
     if (token) {
@@ -158,7 +169,8 @@ export class CPreprocessorParser extends BaseParser {
 
     const keyword = new Keyword(createTokenIndex(token));
 
-    const definition = this.isFunctionDefinition() || this.processCIdentifier();
+    const definition =
+      this.isFunctionDefinition() || this.processCIdentifier(this.macros, true);
     if (!definition) {
       this._issues.push(
         genIssue(SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE, keyword)
@@ -177,6 +189,39 @@ export class CPreprocessorParser extends BaseParser {
     }
     const macro = new CMacro(keyword, definition, content);
     this.macros.set(macro.name, macro);
+    this.nodes.push(macro);
+
+    const endIndex = this.peekIndex();
+    this.tokens.splice(startIndex, endIndex - startIndex);
+
+    this.positionStack[this.positionStack.length - 1] = startIndex;
+    this.mergeStack();
+    return true;
+  }
+
+  private processUndef() {
+    this.enqueueToStack();
+
+    const startIndex = this.peekIndex();
+    const token = this.moveToNextToken;
+    if (!token || !validToken(token, LexerToken.C_UNDEF)) {
+      this.popStack();
+      return false;
+    }
+
+    const keyword = new Keyword(createTokenIndex(token));
+
+    const definition = this.processCIdentifier(this.macros, true);
+    if (!definition) {
+      this._issues.push(
+        genIssue(SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE, keyword)
+      );
+      this.mergeStack();
+      return true;
+    }
+
+    const macro = new CMacro(keyword, definition);
+    this.macros.delete(definition.name);
     this.nodes.push(macro);
 
     const endIndex = this.peekIndex();
@@ -209,20 +254,24 @@ export class CPreprocessorParser extends BaseParser {
 
   protected isFunctionDefinition(): FunctionDefinition | undefined {
     this.enqueueToStack();
-    const identifier = this.processCIdentifier();
+    const identifier = this.processCIdentifier(this.macros, true);
     if (!identifier) {
       this.popStack();
       return;
     }
 
     let token = this.moveToNextToken;
-    if (!validToken(token, LexerToken.ROUND_OPEN)) {
+    if (
+      !validToken(token, LexerToken.ROUND_OPEN) ||
+      !adjacentTokens(identifier.lastToken, token)
+    ) {
       this.popStack();
       return;
     }
 
     const params: (CIdentifier | Variadic)[] = [];
-    let param = this.processCIdentifier() || this.processVariadic();
+    let param =
+      this.processCIdentifier(this.macros, true) || this.processVariadic();
     while (param) {
       params.push(param);
       if (
@@ -233,7 +282,8 @@ export class CPreprocessorParser extends BaseParser {
       } else if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
         token = this.moveToNextToken;
       }
-      param = this.processCIdentifier() || this.processVariadic();
+      param =
+        this.processCIdentifier(this.macros, true) || this.processVariadic();
     }
 
     const node = new FunctionDefinition(identifier, params);
@@ -359,7 +409,7 @@ export class CPreprocessorParser extends BaseParser {
     // rewind so we can capture the identifier
     this.positionStack[this.positionStack.length - 1] =
       this.getTokenIndex(block.startToken) + 1;
-    const identifier = this.processCIdentifier();
+    const identifier = this.processCIdentifier(this.macros, true);
     if (!identifier) {
       this._issues.push(
         genIssue(SyntaxIssue.EXPECTED_IDENTIFIER, ifDefKeyword)
@@ -501,7 +551,7 @@ export class CPreprocessorParser extends BaseParser {
       );
     }
 
-    if (resolvedPath && !resolvedPath.endsWith(".h")) {
+    if (resolvedPath) {
       getTokenizedDocumentProvider().requestTokens(resolvedPath, true);
       const fileParser =
         await getCachedCPreprocessorParserProvider().getCPreprocessorParser(
@@ -516,11 +566,15 @@ export class CPreprocessorParser extends BaseParser {
       this.macros.clear();
       Array.from(fileParser.macros).forEach(([k, m]) => this.macros.set(k, m));
 
-      this.tokens.splice(
-        startIndex,
-        endIndex - startIndex,
-        ...fileParser.tokens
-      );
+      if (resolvedPath.endsWith(".h")) {
+        this.tokens.splice(startIndex, endIndex - startIndex);
+      } else {
+        this.tokens.splice(
+          startIndex,
+          endIndex - startIndex,
+          ...fileParser.tokens
+        );
+      }
 
       this.nodes.push(...fileParser.nodes);
       this.dtsIncludes.push(...fileParser.dtsIncludes);

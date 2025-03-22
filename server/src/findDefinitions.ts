@@ -26,6 +26,7 @@ import { DtcProperty, PropertyName } from "./ast/dtc/property";
 import { Property } from "./context/property";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
 import { isDeleteChild } from "./ast/helpers";
+import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
 
 function getPropertyDefinition(
   result: SearchableResult | undefined
@@ -119,6 +120,21 @@ function getNodeDefinition(result: SearchableResult | undefined): Location[] {
   return [];
 }
 
+function getMacrosDefinition(result: SearchableResult | undefined): Location[] {
+  if (result?.ast instanceof CIdentifier) {
+    const macro = result.runtime.context.parser.cPreprocessorParser.macros.get(
+      result.ast.name
+    );
+    if (macro) {
+      return [
+        Location.create(`file://${macro.uri}`, toRange(macro.identifier)),
+      ];
+    }
+  }
+
+  return [];
+}
+
 export async function getDefinitions(
   location: TextDocumentPositionParams,
   contexts: ContextAware[],
@@ -130,6 +146,7 @@ export async function getDefinitions(
     (locationMeta) => [
       ...getNodeDefinition(locationMeta),
       ...getPropertyDefinition(locationMeta),
+      ...getMacrosDefinition(locationMeta),
     ],
     preferredContext
   );

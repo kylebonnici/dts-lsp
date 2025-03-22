@@ -26,6 +26,7 @@ import { Property } from "./context/property";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
 import { isDeleteChild } from "./ast/helpers";
 import { nodeFinder, toRange } from "./helpers";
+import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
 
 function getPropertyDeclaration(
   result: SearchableResult | undefined
@@ -106,6 +107,19 @@ function getNodeDeclaration(
   }
 }
 
+function getMacrosDeclaration(
+  result: SearchableResult | undefined
+): Location | undefined {
+  if (result?.ast instanceof CIdentifier) {
+    const macro = result.runtime.context.parser.cPreprocessorParser.macros.get(
+      result.ast.name
+    );
+    if (macro) {
+      return Location.create(`file://${macro.uri}`, toRange(macro.identifier));
+    }
+  }
+}
+
 export async function getDeclaration(
   location: TextDocumentPositionParams,
   contexts: ContextAware[],
@@ -117,7 +131,8 @@ export async function getDeclaration(
       contexts,
       (locationMeta) => [
         getNodeDeclaration(locationMeta) ||
-          getPropertyDeclaration(locationMeta),
+          getPropertyDeclaration(locationMeta) ||
+          getMacrosDeclaration(locationMeta),
       ],
       preferredContext
     )

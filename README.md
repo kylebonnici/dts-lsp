@@ -179,10 +179,6 @@ NOTE: The references will stop at the definition, hence, if for example a node w
 
 - On hover over the node name, a tooltip will show the final state of that node. If bindings are used it will also include the description from the binding files.
 
-### Limitations
-
-Parsing will only look at the files the devicetree uses. C header files will not be parsed to keep parsing fast enough. Hence there is no check on whether a macro exists and therefore there is no type checking.
-
 ## Bindings
 
 At the moment, this LSP only supports bindings for the Zephyr project. Feel free to contribute to this project or reach out to request other formats.

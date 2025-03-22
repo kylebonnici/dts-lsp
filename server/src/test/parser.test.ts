@@ -564,7 +564,7 @@ describe("Parser", () => {
     describe("Values", () => {
       describe("Macro calls", () => {
         test("At root", async () => {
-          mockReadFileSync("/{prop=FOO(10);};");
+          mockReadFileSync("#define FOO(x) \n /{prop=FOO(10);};");
           const parser = new Parser("/folder/dts.dts", []);
           await parser.stable;
           expect(parser.issues.length).toEqual(0);
@@ -588,7 +588,7 @@ describe("Parser", () => {
         });
 
         test("No Parameters", async () => {
-          mockReadFileSync("/{prop=FOO();};");
+          mockReadFileSync("#define FOO() ff \n /{prop=FOO();};");
           const parser = new Parser("/folder/dts.dts", []);
           await parser.stable;
           expect(parser.issues.length).toEqual(0);
@@ -612,7 +612,7 @@ describe("Parser", () => {
         });
 
         test("No Missing Parameter", async () => {
-          mockReadFileSync("/{prop=FOO(10,,20);};");
+          mockReadFileSync("#define FOO(x,y,z) \n/{prop=FOO(10,,20);};");
           const parser = new Parser("/folder/dts.dts", []);
           await parser.stable;
           expect(parser.issues.length).toEqual(0);
@@ -974,7 +974,7 @@ describe("Parser", () => {
 
         describe("Macro calls", () => {
           test("With params", async () => {
-            mockReadFileSync("/{prop=<ADD(1,2)>;};");
+            mockReadFileSync("#define ADD(x,y) \n/{prop=<ADD(1,2)>;};");
             const parser = new Parser("/folder/dts.dts", []);
             await parser.stable;
             expect(parser.issues.length).toEqual(0);
@@ -1004,7 +1004,7 @@ describe("Parser", () => {
           });
 
           test("C Macro expression missing coma", async () => {
-            mockReadFileSync("/{prop=<ADD(1 2)>;};");
+            mockReadFileSync("#define ADD(x) \n/{prop=<ADD(1 2)>;};");
             const parser = new Parser("/folder/dts.dts", []);
             await parser.stable;
             expect(parser.issues.length).toEqual(0);
@@ -1034,7 +1034,9 @@ describe("Parser", () => {
           });
 
           test("Nested call", async () => {
-            mockReadFileSync("/{prop=<ADD(1,MULT(2, 5))>;};");
+            mockReadFileSync(
+              "#define ADD(x,y)\n#define MULT(x,y)\n /{prop=<ADD(1,MULT(2, 5))>;};"
+            );
             const parser = new Parser("/folder/dts.dts", []);
             await parser.stable;
             expect(parser.issues.length).toEqual(0);
@@ -1067,7 +1069,9 @@ describe("Parser", () => {
           });
 
           test("Math expression call", async () => {
-            mockReadFileSync("/{prop=<ADD(1,(2 + 5) * (50 + 1))>;};");
+            mockReadFileSync(
+              "#define ADD(x,y) \n/{prop=<ADD(1,(2 + 5) * (50 + 1))>;};"
+            );
             const parser = new Parser("/folder/dts.dts", []);
             await parser.stable;
             expect(parser.issues.length).toEqual(0);

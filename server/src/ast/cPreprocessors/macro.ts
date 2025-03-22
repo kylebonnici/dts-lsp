@@ -20,6 +20,7 @@ import { Keyword } from "../keyword";
 import { ASTBase } from "../base";
 import { LexerToken, Token, TokenIndexes } from "../../types";
 import { validToken } from "../../helpers";
+import { MarkupContent, MarkupKind } from "vscode-languageserver";
 
 export class CMacroContent extends ASTBase {
   constructor(tokenIndexes: TokenIndexes, public readonly content: Token[]) {
@@ -70,5 +71,12 @@ export class CMacro extends ASTBase {
       this.identifier.toString(),
       ...(this.content ? [this.content?.toString()] : []),
     ].join(" ");
+  }
+
+  toMarkupContent(): MarkupContent {
+    return {
+      kind: MarkupKind.Markdown,
+      value: ["```cpp", `#define ${this.toString()}`, "```"].join("\n"),
+    };
   }
 }

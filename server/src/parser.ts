@@ -57,6 +57,7 @@ import { Include } from "./ast/cPreprocessors/include";
 import { DtsMemreserveNode } from "./ast/dtc/memreserveNode";
 import { DtsBitsNode } from "./ast/dtc/bitsNode";
 import { DiagnosticSeverity } from "vscode-languageserver";
+import { FunctionDefinition } from "./ast/cPreprocessors/functionDefinition";
 
 type AllowNodeRef = "Ref" | "Name";
 
@@ -71,7 +72,7 @@ export class Parser extends BaseParser {
   constructor(
     public readonly uri: string,
     private incudes: string[],
-    macros: Map<string, CMacro> = new Map<string, CMacro>()
+    macros?: Map<string, CMacro>
   ) {
     super();
     this.cPreprocessorParser = new CPreprocessorParser(
@@ -1433,7 +1434,10 @@ export class Parser extends BaseParser {
 
   private isFunctionCall(): CMacroCall | undefined {
     this.enqueueToStack();
-    const identifier = this.processCIdentifier();
+    const identifier = this.processCIdentifier(
+      this.cPreprocessorParser.macros,
+      false
+    );
     if (!identifier) {
       this.popStack();
       return;
@@ -1444,6 +1448,25 @@ export class Parser extends BaseParser {
     if (!params) {
       this.popStack();
       return;
+    }
+
+    const macro = this.cPreprocessorParser.macros.get(identifier.name);
+    if (!(macro?.identifier instanceof FunctionDefinition)) {
+      this._issues.push(
+        genIssue(SyntaxIssue.EXPECTED_FUNCTION_LIKE, identifier)
+      );
+    } else if (params.length > macro?.identifier.params.length) {
+      this._issues.push(
+        genIssue(SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS, identifier, undefined, [
+          macro,
+        ])
+      );
+    } else if (params.length < macro?.identifier.params.length) {
+      this._issues.push(
+        genIssue(SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS, identifier, undefined, [
+          macro,
+        ])
+      );
     }
 
     const node = new CMacroCall(identifier, params);
@@ -1485,7 +1508,7 @@ export class Parser extends BaseParser {
 
     let expression: Expression | undefined =
       this.isFunctionCall() ||
-      this.processCIdentifier() ||
+      this.processCIdentifier(this.cPreprocessorParser.macros, false) ||
       this.processHex() ||
       this.processDec();
     if (!expression) {
@@ -1563,6 +1586,10 @@ export class Parser extends BaseParser {
         i
       );
     });
+
+    if (result?.length === 1 && result[0] === null) {
+      return [];
+    }
 
     return result;
   }

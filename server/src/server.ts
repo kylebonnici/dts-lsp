@@ -95,7 +95,6 @@ const addContext = (context: ContextAware) => {
 const watchContextFiles = async (context: ContextAware) => {
   await context.stable();
   context.getContextFiles().forEach((file) => {
-    if (file.endsWith(".h")) return;
     if (!fileWatchers.has(file)) {
       fileWatchers.set(
         file,
@@ -690,6 +689,14 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
     case SyntaxIssue.EXPECTED_BITS_SIZE:
     case SyntaxIssue.INVALID_BITS_SIZE:
       return "Expected 8|16|32|64";
+    case SyntaxIssue.UNKNOWN_MACRO:
+      return "Unkown macro name";
+    case SyntaxIssue.EXPECTED_FUNCTION_LIKE:
+      return "Expected function like macro";
+    case SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS:
+      return "Macro expects less arguments";
+    case SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS:
+      return "Macro expects more arguments";
     case SyntaxIssue.BITS_NON_OFFICIAL_SYNATX:
       return "This syntax is not officially part of the DTS V0.4 standard";
   }
