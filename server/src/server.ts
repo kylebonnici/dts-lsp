@@ -937,6 +937,7 @@ const clearWorkspaceDiagnostics = (
 
 const reportWorkspaceDiagnostics = async (context: ContextAware) => {
   await context.stable();
+  const t = performance.now();
   const activeContextItems = await Promise.all(
     context.getContextFiles().map(async (file) => {
       const items = await getDiagnostics(context, file);
@@ -949,6 +950,7 @@ const reportWorkspaceDiagnostics = async (context: ContextAware) => {
     })
   );
 
+  console.log("workspace diagnostics", context.name, performance.now() - t);
   return {
     items: [...activeContextItems],
   };
@@ -971,8 +973,6 @@ async function getDiagnostics(
   context: ContextAware,
   uri: string
 ): Promise<Diagnostic[]> {
-  const t = performance.now();
-
   try {
     const diagnostics: Diagnostic[] = [];
 
@@ -1087,7 +1087,6 @@ async function getDiagnostics(
         diagnostics.push(diagnostic);
       });
 
-    console.log("diagnostics", uri, performance.now() - t);
     return diagnostics;
   } catch (e) {
     console.error(e);

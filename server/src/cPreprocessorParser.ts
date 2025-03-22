@@ -81,9 +81,10 @@ export class CPreprocessorParser extends BaseParser {
           return kk === k && mm.toString() === m.toString();
         })
       ) {
-        console.log("header file cache hit - no reparse", this.uri);
+        console.log("header file cache hit", this.uri);
         return;
       }
+      console.log("header file cache miss", this.uri);
     }
     this.parsing = new Promise<void>((resolve) => {
       stable.then(() => {
