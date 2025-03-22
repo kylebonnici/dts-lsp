@@ -45,21 +45,24 @@ import {
   IfDefineBlock,
 } from "./ast/cPreprocessors/ifDefine";
 import { DiagnosticSeverity } from "vscode-languageserver";
+import { getCachedCPreprocessorParserProvider } from "./providers/cachedCPreprocessorParser";
 
 export class CPreprocessorParser extends BaseParser {
   public tokens: Token[] = [];
   private nodes: ASTBase[] = [];
   public dtsIncludes: Include[] = [];
   private macroSnapShot: Map<string, CMacro> = new Map<string, CMacro>();
+  public readonly macros: Map<string, CMacro> = new Map<string, CMacro>();
 
   // tokens must be filtered out from comments by now
   constructor(
     public readonly uri: string,
     private incudes: string[],
-    public macros: Map<string, CMacro> = new Map<string, CMacro>()
+    macros: Map<string, CMacro>
   ) {
     super();
     Array.from(macros).forEach(([k, m]) => this.macroSnapShot.set(k, m));
+    Array.from(macros).forEach(([k, m]) => this.macros.set(k, m));
   }
 
   protected reset() {
@@ -70,10 +73,24 @@ export class CPreprocessorParser extends BaseParser {
     this.dtsIncludes = [];
   }
 
-  public async reparse(): Promise<void> {
+  public async reparse(macros?: Map<string, CMacro>): Promise<void> {
     const stable = this.stable;
     this.parsing = new Promise<void>((resolve) => {
       stable.then(() => {
+        if (macros && macros.size === this.macroSnapShot.size) {
+          const arr = Array.from(macros);
+          if (
+            Array.from(this.macroSnapShot).every(([k, m], i) => {
+              const [kk, mm] = arr[i];
+              return kk === k && mm.toString() === m.toString();
+            })
+          ) {
+            console.log("header file cache hit", this.uri);
+            resolve();
+            return;
+          }
+        }
+        console.log("header file cache miss", this.uri);
         this.reset();
         this.parse().then(resolve);
       });
@@ -259,29 +276,26 @@ export class CPreprocessorParser extends BaseParser {
 
     const block = this.parseScopedBlock(
       (token?: Token) => {
-        const prevTokenIndex = this.getTokenIndex(token) - 1;
         return (
           !!token &&
           [LexerToken.C_IFDEF, LexerToken.C_IFNDEF].some((t) =>
             validToken(token, t)
           ) &&
-          !sameLine(this.tokens.at(prevTokenIndex), token)
+          !sameLine(token.prevToken, token)
         );
       },
       (token?: Token) => {
-        const prevTokenIndex = this.getTokenIndex(token) - 1;
         return (
           !!token &&
           [LexerToken.C_ENDIF].some((t) => validToken(token, t)) &&
-          !sameLine(this.tokens.at(prevTokenIndex), token)
+          !sameLine(token.prevToken, token)
         );
       },
       (token?: Token) => {
-        const prevTokenIndex = this.getTokenIndex(token) - 1;
         return (
           !!token &&
           [LexerToken.C_ELSE].some((t) => validToken(token, t)) &&
-          !sameLine(this.tokens.at(prevTokenIndex), token)
+          !sameLine(token.prevToken, token)
         );
       }
     );
@@ -352,23 +366,18 @@ export class CPreprocessorParser extends BaseParser {
       );
     }
 
-    const mainBlockEndIndex = this.getTokenIndex(block.splitTokens[0].at(-1));
-
     const ifDefContent = new CPreprocessorContent(
-      createTokenIndex(this.currentToken!, this.tokens[mainBlockEndIndex])
+      createTokenIndex(this.currentToken!, block.splitTokens[0].at(-1))
     );
     const ifDef = ifCreator(ifDefKeyword, identifier ?? null, ifDefContent);
 
     let cElse: CElse | undefined;
 
     if (block.splitTokens.length > 1) {
-      const elseIndex = this.getTokenIndex(block.splitTokens[1][0]);
-      const elseKeyword = new Keyword(createTokenIndex(this.tokens[elseIndex]));
+      const elseToken = block.splitTokens[1][0];
+      const elseKeyword = new Keyword(createTokenIndex(elseToken));
       const elseContent = new CPreprocessorContent(
-        createTokenIndex(
-          this.tokens[elseIndex + 1],
-          block.splitTokens[1].at(-1)
-        )
+        createTokenIndex(elseToken.nextToken!, block.splitTokens[1].at(-1))
       );
       cElse = new CElse(elseKeyword, elseContent);
     }
@@ -494,14 +503,18 @@ export class CPreprocessorParser extends BaseParser {
 
     if (resolvedPath && !resolvedPath.endsWith(".h")) {
       getTokenizedDocumentProvider().requestTokens(resolvedPath, true);
-
-      const fileParser = new CPreprocessorParser(
-        resolvedPath,
-        this.incudes,
-        this.macros
-      );
+      const fileParser =
+        await getCachedCPreprocessorParserProvider().getCPreprocessorParser(
+          resolvedPath,
+          this.incudes,
+          this.macros,
+          this.uri
+        );
 
       await fileParser.stable;
+
+      this.macros.clear();
+      Array.from(fileParser.macros).forEach(([k, m]) => this.macros.set(k, m));
 
       this.tokens.splice(
         startIndex,
