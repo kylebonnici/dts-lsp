@@ -17,6 +17,7 @@
 import { existsSync, readFileSync } from "fs";
 import { Token } from "../types";
 import { Lexer } from "../lexer";
+import { getCachedCPreprocessorParserProvider } from "./cachedCPreprocessorParser";
 
 let tokenizedDocumentProvider: TokenizedDocumentProvider | undefined;
 
@@ -37,6 +38,7 @@ class TokenizedDocumentProvider {
   }
 
   renewLexer(uri: string, text?: string): Token[] {
+    getCachedCPreprocessorParserProvider().reset(uri);
     if (!uri || !existsSync(uri)) {
       return [];
     }
@@ -61,7 +63,8 @@ class TokenizedDocumentProvider {
     return TokenizedDocumentProvider.clone(tokens ?? []);
   }
 
-  reset(uri: string){
+  reset(uri: string) {
+    getCachedCPreprocessorParserProvider().reset(uri);
     this.fileMap.delete(uri);
   }
 }

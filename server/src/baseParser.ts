@@ -31,6 +31,7 @@ import { ASTBase } from "./ast/base";
 import { Parser } from "./parser";
 import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
 import { Operator, OperatorType } from "./ast/cPreprocessors/operator";
+import { CMacro } from "./ast/cPreprocessors/macro";
 
 export abstract class BaseParser {
   positionStack: number[] = [];
@@ -41,7 +42,7 @@ export abstract class BaseParser {
   public abstract get uri(): string;
   public abstract get tokens(): Token[];
   protected abstract parse(): Promise<void>;
-  public abstract reparse(): Promise<void>;
+  public abstract reparse(macros?: Map<string, CMacro>): Promise<void>;
 
   constructor() {
     this.parsing = new Promise<void>((resolve) => {
@@ -413,7 +414,10 @@ export abstract class BaseParser {
 
   protected moveEndOfLine = (token: Token, report = true) => {
     const line = token.pos.line;
-    if (this.currentToken?.pos.line !== line|| this.currentToken?.uri !== token.uri ) {
+    if (
+      this.currentToken?.pos.line !== line ||
+      this.currentToken?.uri !== token.uri
+    ) {
       return;
     }
 

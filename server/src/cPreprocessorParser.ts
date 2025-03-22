@@ -45,6 +45,7 @@ import {
   IfDefineBlock,
 } from "./ast/cPreprocessors/ifDefine";
 import { DiagnosticSeverity } from "vscode-languageserver";
+import { getCachedCPreprocessorParserProvider } from "./providers/cachedCPreprocessorParser";
 
 export class CPreprocessorParser extends BaseParser {
   public tokens: Token[] = [];
@@ -70,8 +71,20 @@ export class CPreprocessorParser extends BaseParser {
     this.dtsIncludes = [];
   }
 
-  public async reparse(): Promise<void> {
+  public async reparse(macros?: Map<string, CMacro>): Promise<void> {
     const stable = this.stable;
+    if (macros && macros.size === this.macroSnapShot.size) {
+      const arr = Array.from(macros);
+      if (
+        Array.from(this.macroSnapShot).every(([k, m], i) => {
+          const [kk, mm] = arr[i];
+          return kk === k && mm.toString() === m.toString();
+        })
+      ) {
+        console.log("header file cache hit - no reparse", this.uri);
+        return;
+      }
+    }
     this.parsing = new Promise<void>((resolve) => {
       stable.then(() => {
         this.reset();
@@ -486,12 +499,12 @@ export class CPreprocessorParser extends BaseParser {
 
     if (resolvedPath && !resolvedPath.endsWith(".h")) {
       getTokenizedDocumentProvider().requestTokens(resolvedPath, true);
-
-      const fileParser = new CPreprocessorParser(
-        resolvedPath,
-        this.incudes,
-        this.macros
-      );
+      const fileParser =
+        getCachedCPreprocessorParserProvider().getCPreprocessorParser(
+          resolvedPath,
+          this.incudes,
+          this.macros
+        );
 
       await fileParser.stable;
 
