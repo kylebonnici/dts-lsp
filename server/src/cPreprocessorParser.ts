@@ -16,6 +16,7 @@
 
 import { LexerToken, SyntaxIssue, Token } from "./types";
 import {
+  adjacentTokens,
   createTokenIndex,
   genIssue,
   sameLine,
@@ -260,7 +261,10 @@ export class CPreprocessorParser extends BaseParser {
     }
 
     let token = this.moveToNextToken;
-    if (!validToken(token, LexerToken.ROUND_OPEN)) {
+    if (
+      !validToken(token, LexerToken.ROUND_OPEN) ||
+      !adjacentTokens(identifier.lastToken, token)
+    ) {
       this.popStack();
       return;
     }
