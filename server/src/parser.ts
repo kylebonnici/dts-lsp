@@ -71,7 +71,7 @@ export class Parser extends BaseParser {
   constructor(
     public readonly uri: string,
     private incudes: string[],
-    macros: Map<string, CMacro> = new Map<string, CMacro>()
+    macros?: Map<string, CMacro>
   ) {
     super();
     this.cPreprocessorParser = new CPreprocessorParser(

@@ -58,17 +58,26 @@ export class CPreprocessorParser extends BaseParser {
   constructor(
     public readonly uri: string,
     private incudes: string[],
-    macros: Map<string, CMacro>
+    macros?: Map<string, CMacro>
   ) {
     super();
-    Array.from(macros).forEach(([k, m]) => this.macroSnapShot.set(k, m));
-    Array.from(macros).forEach(([k, m]) => this.macros.set(k, m));
+    if (macros) {
+      Array.from(macros).forEach(([k, m]) => this.macroSnapShot.set(k, m));
+      Array.from(macros).forEach(([k, m]) => this.macros.set(k, m));
+    }
   }
 
-  protected reset() {
+  protected reset(macros?: Map<string, CMacro>) {
     super.reset();
     this.macros.clear();
-    Array.from(this.macroSnapShot).forEach(([k, m]) => this.macros.set(k, m));
+    if (macros) {
+      this.macroSnapShot.clear();
+      Array.from(macros).forEach(([k, m]) => this.macroSnapShot.set(k, m));
+      Array.from(macros).forEach(([k, m]) => this.macros.set(k, m));
+    } else {
+      Array.from(this.macroSnapShot).forEach(([k, m]) => this.macros.set(k, m));
+    }
+
     this.nodes = [];
     this.dtsIncludes = [];
   }
@@ -91,7 +100,7 @@ export class CPreprocessorParser extends BaseParser {
           }
         }
         console.log("header file cache miss", this.uri);
-        this.reset();
+        this.reset(macros);
         this.parse().then(resolve);
       });
     });
