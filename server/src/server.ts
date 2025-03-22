@@ -95,7 +95,6 @@ const addContext = (context: ContextAware) => {
 const watchContextFiles = async (context: ContextAware) => {
   await context.stable();
   context.getContextFiles().forEach((file) => {
-    if (file.endsWith(".h")) return;
     if (!fileWatchers.has(file)) {
       fileWatchers.set(
         file,

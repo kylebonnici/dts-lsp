@@ -501,7 +501,7 @@ export class CPreprocessorParser extends BaseParser {
       );
     }
 
-    if (resolvedPath && !resolvedPath.endsWith(".h")) {
+    if (resolvedPath) {
       getTokenizedDocumentProvider().requestTokens(resolvedPath, true);
       const fileParser =
         await getCachedCPreprocessorParserProvider().getCPreprocessorParser(
@@ -516,11 +516,15 @@ export class CPreprocessorParser extends BaseParser {
       this.macros.clear();
       Array.from(fileParser.macros).forEach(([k, m]) => this.macros.set(k, m));
 
-      this.tokens.splice(
-        startIndex,
-        endIndex - startIndex,
-        ...fileParser.tokens
-      );
+      if (resolvedPath.endsWith(".h")) {
+        this.tokens.splice(startIndex, endIndex - startIndex);
+      } else {
+        this.tokens.splice(
+          startIndex,
+          endIndex - startIndex,
+          ...fileParser.tokens
+        );
+      }
 
       this.nodes.push(...fileParser.nodes);
       this.dtsIncludes.push(...fileParser.dtsIncludes);
