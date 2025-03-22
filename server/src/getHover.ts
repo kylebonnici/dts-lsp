@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Hover, HoverParams, MarkupContent } from "vscode-languageserver";
+import { Hover, HoverParams } from "vscode-languageserver";
 import { SearchableResult } from "./types";
 import { nodeFinder, toRange } from "./helpers";
 import { ContextAware } from "./runtimeEvaluator";
@@ -23,6 +23,21 @@ import { NodeName } from "./ast/dtc/node";
 import { LabelRef } from "./ast/dtc/labelRef";
 import { Property } from "./context/property";
 import { PropertyName } from "./ast/dtc/property";
+import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
+
+function getMacros(result: SearchableResult | undefined): Hover | undefined {
+  if (result?.ast instanceof CIdentifier) {
+    const macro = result.runtime.context.parser.cPreprocessorParser.macros.get(
+      result.ast.name
+    );
+    if (macro) {
+      return {
+        contents: macro.toMarkupContent(),
+        range: toRange(result.ast),
+      };
+    }
+  }
+}
 
 function getNode(result: SearchableResult | undefined): Hover | undefined {
   if (result?.item instanceof Node) {
@@ -78,7 +93,11 @@ export function getHover(
   return nodeFinder<Hover | undefined>(
     hoverParams,
     context,
-    (locationMeta) => [getNode(locationMeta) || getPropertyName(locationMeta)],
+    (locationMeta) => [
+      getNode(locationMeta) ||
+        getPropertyName(locationMeta) ||
+        getMacros(locationMeta),
+    ],
     preferredContext
   );
 }
