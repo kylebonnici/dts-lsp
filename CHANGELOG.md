@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Check that `aliases` node property values is string or phandle.
 - Check that `aliases` node does not have any children.
 - Check that `aliases` node property node path string resolves to actual node.
-- `OnHover` on `aliases` node property wiht a string path will show resolved node state.
+- `OnHover` on `aliases` node property with a string path will show resolved node state.
 - Go to definition/decleration on `aliases` node property with path string.
 - Find all references on `aliases` node property with path string.
 - Check that `memory` node has both `device_type` and `reg` properties.
