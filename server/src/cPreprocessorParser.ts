@@ -259,29 +259,26 @@ export class CPreprocessorParser extends BaseParser {
 
     const block = this.parseScopedBlock(
       (token?: Token) => {
-        const prevTokenIndex = this.getTokenIndex(token) - 1;
         return (
           !!token &&
           [LexerToken.C_IFDEF, LexerToken.C_IFNDEF].some((t) =>
             validToken(token, t)
           ) &&
-          !sameLine(this.tokens.at(prevTokenIndex), token)
+          !sameLine(token.prevToken, token)
         );
       },
       (token?: Token) => {
-        const prevTokenIndex = this.getTokenIndex(token) - 1;
         return (
           !!token &&
           [LexerToken.C_ENDIF].some((t) => validToken(token, t)) &&
-          !sameLine(this.tokens.at(prevTokenIndex), token)
+          !sameLine(token.prevToken, token)
         );
       },
       (token?: Token) => {
-        const prevTokenIndex = this.getTokenIndex(token) - 1;
         return (
           !!token &&
           [LexerToken.C_ELSE].some((t) => validToken(token, t)) &&
-          !sameLine(this.tokens.at(prevTokenIndex), token)
+          !sameLine(token.prevToken, token)
         );
       }
     );
@@ -352,23 +349,18 @@ export class CPreprocessorParser extends BaseParser {
       );
     }
 
-    const mainBlockEndIndex = this.getTokenIndex(block.splitTokens[0].at(-1));
-
     const ifDefContent = new CPreprocessorContent(
-      createTokenIndex(this.currentToken!, this.tokens[mainBlockEndIndex])
+      createTokenIndex(this.currentToken!, block.splitTokens[0].at(-1))
     );
     const ifDef = ifCreator(ifDefKeyword, identifier ?? null, ifDefContent);
 
     let cElse: CElse | undefined;
 
     if (block.splitTokens.length > 1) {
-      const elseIndex = this.getTokenIndex(block.splitTokens[1][0]);
-      const elseKeyword = new Keyword(createTokenIndex(this.tokens[elseIndex]));
+      const elseToken = block.splitTokens[1][0];
+      const elseKeyword = new Keyword(createTokenIndex(elseToken));
       const elseContent = new CPreprocessorContent(
-        createTokenIndex(
-          this.tokens[elseIndex + 1],
-          block.splitTokens[1].at(-1)
-        )
+        createTokenIndex(elseToken.nextToken!, block.splitTokens[1].at(-1))
       );
       cElse = new CElse(elseKeyword, elseContent);
     }
