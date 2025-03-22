@@ -168,7 +168,8 @@ export class CPreprocessorParser extends BaseParser {
 
     const keyword = new Keyword(createTokenIndex(token));
 
-    const definition = this.isFunctionDefinition() || this.processCIdentifier();
+    const definition =
+      this.isFunctionDefinition() || this.processCIdentifier(this.macros);
     if (!definition) {
       this._issues.push(
         genIssue(SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE, keyword)
@@ -209,7 +210,7 @@ export class CPreprocessorParser extends BaseParser {
 
     const keyword = new Keyword(createTokenIndex(token));
 
-    const definition = this.processCIdentifier();
+    const definition = this.processCIdentifier(this.macros);
     if (!definition) {
       this._issues.push(
         genIssue(SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE, keyword)
@@ -252,7 +253,7 @@ export class CPreprocessorParser extends BaseParser {
 
   protected isFunctionDefinition(): FunctionDefinition | undefined {
     this.enqueueToStack();
-    const identifier = this.processCIdentifier();
+    const identifier = this.processCIdentifier(this.macros);
     if (!identifier) {
       this.popStack();
       return;
@@ -265,7 +266,7 @@ export class CPreprocessorParser extends BaseParser {
     }
 
     const params: (CIdentifier | Variadic)[] = [];
-    let param = this.processCIdentifier() || this.processVariadic();
+    let param = this.processCIdentifier(this.macros) || this.processVariadic();
     while (param) {
       params.push(param);
       if (
@@ -276,7 +277,7 @@ export class CPreprocessorParser extends BaseParser {
       } else if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
         token = this.moveToNextToken;
       }
-      param = this.processCIdentifier() || this.processVariadic();
+      param = this.processCIdentifier(this.macros) || this.processVariadic();
     }
 
     const node = new FunctionDefinition(identifier, params);
@@ -402,7 +403,7 @@ export class CPreprocessorParser extends BaseParser {
     // rewind so we can capture the identifier
     this.positionStack[this.positionStack.length - 1] =
       this.getTokenIndex(block.startToken) + 1;
-    const identifier = this.processCIdentifier();
+    const identifier = this.processCIdentifier(this.macros);
     if (!identifier) {
       this._issues.push(
         genIssue(SyntaxIssue.EXPECTED_IDENTIFIER, ifDefKeyword)

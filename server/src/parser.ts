@@ -57,6 +57,7 @@ import { Include } from "./ast/cPreprocessors/include";
 import { DtsMemreserveNode } from "./ast/dtc/memreserveNode";
 import { DtsBitsNode } from "./ast/dtc/bitsNode";
 import { DiagnosticSeverity } from "vscode-languageserver";
+import { FunctionDefinition } from "./ast/cPreprocessors/functionDefinition";
 
 type AllowNodeRef = "Ref" | "Name";
 
@@ -1433,7 +1434,7 @@ export class Parser extends BaseParser {
 
   private isFunctionCall(): CMacroCall | undefined {
     this.enqueueToStack();
-    const identifier = this.processCIdentifier();
+    const identifier = this.processCIdentifier(this.cPreprocessorParser.macros);
     if (!identifier) {
       this.popStack();
       return;
@@ -1485,7 +1486,7 @@ export class Parser extends BaseParser {
 
     let expression: Expression | undefined =
       this.isFunctionCall() ||
-      this.processCIdentifier() ||
+      this.processCIdentifier(this.cPreprocessorParser.macros) ||
       this.processHex() ||
       this.processDec();
     if (!expression) {

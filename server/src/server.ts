@@ -689,6 +689,8 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
     case SyntaxIssue.EXPECTED_BITS_SIZE:
     case SyntaxIssue.INVALID_BITS_SIZE:
       return "Expected 8|16|32|64";
+    case SyntaxIssue.UNKNOWN_MACRO:
+      return "Unkown macro name";
     case SyntaxIssue.BITS_NON_OFFICIAL_SYNATX:
       return "This syntax is not officially part of the DTS V0.4 standard";
   }

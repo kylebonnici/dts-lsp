@@ -28,7 +28,6 @@ import {
   validToken,
 } from "./helpers";
 import { ASTBase } from "./ast/base";
-import { Parser } from "./parser";
 import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
 import { Operator, OperatorType } from "./ast/cPreprocessors/operator";
 import { CMacro } from "./ast/cPreprocessors/macro";
@@ -251,7 +250,9 @@ export abstract class BaseParser {
       );
   }
 
-  protected processCIdentifier(): CIdentifier | undefined {
+  protected processCIdentifier(
+    macros: Map<string, CMacro>
+  ): CIdentifier | undefined {
     this.enqueueToStack();
 
     const valid = this.consumeAnyConcurrentTokens(
@@ -276,6 +277,11 @@ export abstract class BaseParser {
       name,
       createTokenIndex(valid[0], valid.at(-1))
     );
+
+    const macro = macros.get(identifier.name);
+    if (!macro) {
+      this._issues.push(genIssue(SyntaxIssue.UNKNOWN_MACRO, identifier));
+    }
 
     this.mergeStack();
     return identifier;

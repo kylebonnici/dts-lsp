@@ -107,6 +107,7 @@ export enum SyntaxIssue {
   EXPECTED_BITS_SIZE,
   INVALID_BITS_SIZE,
   BITS_NON_OFFICIAL_SYNATX,
+  UNKNOWN_MACRO,
 }
 
 export enum ContextIssues {
