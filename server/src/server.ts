@@ -1345,8 +1345,12 @@ connection.onFoldingRanges(async (event) => {
     return [];
   }
 
-  const result = getFoldingRanges(context.parser);
-  return result;
+  const parser = (await context.getAllParsers()).find((p) =>
+    p.includes.some((i) => i.uri === uri)
+  );
+
+  if (parser) return getFoldingRanges(uri, parser);
+  return [];
 });
 
 connection.onTypeDefinition(async (event) => {

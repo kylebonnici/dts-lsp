@@ -32,6 +32,8 @@ const nodeToRange = (dtcNode: DtcBaseNode): FoldingRange[] => {
 
   return [range, ...dtcNode.nodes.flatMap(nodeToRange)];
 };
-export function getFoldingRanges(parser: Parser): FoldingRange[] {
-  return parser.rootDocument.nodes.flatMap(nodeToRange);
+export function getFoldingRanges(uri: string, parser: Parser): FoldingRange[] {
+  return parser.rootDocument.nodes
+    .filter((n) => n.uri === uri)
+    .flatMap(nodeToRange);
 }

@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+# 0.2.1 - 2025-03-23
+
+### Fixed
+
+- Folding ranges for context with multiple dts files/overlays
+
 # 0.2.0 - 2025-03-23
 
 ### Added
@@ -30,8 +36,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - `device_type`
-  - diagnostics will not show depricated warning when required.
-  - required for `cpu` and `memory` nodes.
+  - diagnostics will not show deprecated warning when required.
+  - required for `cpus` node.
 
 ### Fixed
 
