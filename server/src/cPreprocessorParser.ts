@@ -269,9 +269,18 @@ export class CPreprocessorParser extends BaseParser {
       return;
     }
 
+    if (
+      this.currentToken && // allow to break line at end of line with \
+      validToken(this.currentToken, LexerToken.BACK_SLASH) &&
+      sameLine(token, this.currentToken)
+    ) {
+      token = this.moveToNextToken;
+    }
+
     const params: (CIdentifier | Variadic)[] = [];
     let param =
       this.processCIdentifier(this.macros, true) || this.processVariadic();
+
     while (param) {
       params.push(param);
       if (
@@ -282,6 +291,15 @@ export class CPreprocessorParser extends BaseParser {
       } else if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
         token = this.moveToNextToken;
       }
+
+      if (
+        this.currentToken && // allow to break line at end of line with \
+        validToken(this.currentToken, LexerToken.BACK_SLASH) &&
+        sameLine(token, this.currentToken)
+      ) {
+        token = this.moveToNextToken;
+      }
+
       param =
         this.processCIdentifier(this.macros, true) || this.processVariadic();
     }
