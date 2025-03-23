@@ -581,6 +581,9 @@ export class CPreprocessorParser extends BaseParser {
 
       await fileParser.stable;
 
+      // TODO once #id defined are supported
+      // this._issues.push(...fileParser.issues);
+
       this.macros.clear();
       Array.from(fileParser.macros).forEach(([k, m]) => this.macros.set(k, m));
 
