@@ -697,7 +697,7 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "Macro expects less arguments";
     case SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS:
       return "Macro expects more arguments";
-    case SyntaxIssue.BITS_NON_OFFICIAL_SYNATX:
+    case SyntaxIssue.BITS_NON_OFFICIAL_SYNTAX:
       return "This syntax is not officially part of the DTS V0.4 standard";
   }
 };

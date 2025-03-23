@@ -793,7 +793,7 @@ export class Parser extends BaseParser {
 
     this._issues.push(
       genIssue(
-        SyntaxIssue.BITS_NON_OFFICIAL_SYNATX,
+        SyntaxIssue.BITS_NON_OFFICIAL_SYNTAX,
         node,
         DiagnosticSeverity.Warning
       )
