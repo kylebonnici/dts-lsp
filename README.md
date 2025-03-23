@@ -159,7 +159,7 @@ Completions are context aware of the document state on the line the action is re
 - On node name/label reference; will list all the places where the node is altered. /delete-node/ cases are not listed.
 - On property name; will list all the places where the property is assigned a value. Note: defining a property name with no assign (empty) is equal to assigning a truthful value and hence it will also be shown.
 
-NOTE: If for example a node with name node1 has been created, then deleted, and then created again, depending on where the definition call is made in the file, in one case one will get the definition from before the delete keyword, and in the other case the definiton from under the delete keyword.
+NOTE: If for example a node with name node1 has been created, then deleted, and then created again, depending on where the definition call is made in the file, in one case one will get the definition from before the delete keyword, and in the other case the definition from under the delete keyword.
 
 ### Find Declarations
 
@@ -189,7 +189,7 @@ Refactoring is possible on the following elements:
 
 - Node names
 - Node labels
-- Propery names
+- Property names
 
 Given that in some cases the files included in a devicetree might come from an SDK which should not be edited, one can configure "lockRenameEdits" in the settings to lock refactoring from being permitted on any elements which would otherwise effect edits to the files listed in "lockRenameEdits".
 

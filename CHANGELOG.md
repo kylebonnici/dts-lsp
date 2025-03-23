@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Add support for `#udef`.
 - OnHover on CMacros.
-- Go to decleration/definition on CMacros in devicetree files.
+- Go to declaration/definition on CMacros in devicetree files.
 - Check that root node has `cpus` node.
 - Check that `aliases` node can only be added to root node.
 - Check that `aliases` node property names follow the DTS Spec v0.4.
@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Check that `aliases` node does not have any children.
 - Check that `aliases` node property node path string resolves to actual node.
 - `OnHover` on `aliases` node property with a string path will show resolved node state.
-- Go to definition/decleration on `aliases` node property with path string.
+- Go to definition/declaration on `aliases` node property with path string.
 - Find all references on `aliases` node property with path string.
 - Check that `memory` node has both `device_type` and `reg` properties.
 - Check that `reserved-memory` node has `#address-cells`, `#size-cells` and `ranges` properties.
@@ -35,14 +35,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Type completion suggestions. e.g. `status=` now correctly suggesst values such as "Okey", "disabled", "fail".
-- Stuttering when reporting diagnostics. This is clearly visable in the `Problems` tab in VSCode as when typing the
-  diagnostics disappear and re appre after typing stops
-- Performace improvment to avoid repasring uneffected documents
-- Fix `find definitions`, `find declerations`, `find all references` for root nodes.
-- Fix `go to definition`, `go to declerations`, `find all references` for root nodes.
+- Type completion suggestions. e.g. `status=` now correctly suggests values such as "Okay", "disabled", "fail".
+- Stuttering when reporting diagnostics. This is clearly visible in the `Problems` tab in VSCode as when typing the
+  diagnostics disappear and repaper after typing stops
+- Performance improvement to avoid repassing unaffected documents
+- Fix `find definitions`, `find declarations`, `find all references` for root nodes.
+- Fix `go to definition`, `go to declarations`, `find all references` for root nodes.
 - Node path name matching when node name with address but name is unique.
-- Find referance on a delete node now also include the `/delete-node/ <nodeName>` for when delete is done by node name.
+- Find reference on a delete node now also include the `/delete-node/ <nodeName>` for when delete is done by node name.
 - Refactoring/renaming on a delete node now also refactors/renames the `/delete-node/ <nodeName>` for when delete is done by node name.
 
 # 0.1.2 - 2025-03-13
@@ -59,9 +59,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- onHover error on certin properties when using linux bindings.
+- onHover error on cretin properties when using linux bindings.
 - Diagnostics when property is missing ';'. Now LSP does not assume ',' is missing if token is at end of line.
-- Avoid reparsing when onDidChangeContent text content did not change from last state.
+- Avoid re parsing when onDidChangeContent text content did not change from last state.
 - Clean up diagnostics of all files when all files are closed
 - Removing adHoc context from memory on all files closed.
 
@@ -82,8 +82,8 @@ node1@1,0 {}
 ### Changed
 
 - `device_type`
-  - diagnostics now always show depricated warning.
-  - no longer show `should be ommited` diagnostic
+  - diagnostics now always show depreciated warning.
+  - no longer show `should be omitted` diagnostic
 
 ### Fixed
 
@@ -104,11 +104,11 @@ node1@1,0 {}
 
 ### Added
 
-- Go to definition on document links to proide alternative to LSP clients with no DocumentLink support [User Feedback]
+- Go to definition on document links to provide alternative to LSP clients with no DocumentLink support [User Feedback]
 
 ### Fixed
 
-- Diagnosting cleared on each `onDidChangeContent` event before new diagnostics are generated.
+- Diagnostics cleared on each `onDidChangeContent` event before new diagnostics are generated.
 
 # 0.0.7 - 2025-01-21
 
@@ -122,7 +122,7 @@ node1@1,0 {}
 - Disable `diagnostics.refresh` if Client does not support this. [Fixed by [topisani](https://github.com/topisani)]
 - Invalid uri format in diagnostics when clearing workspace diagnostics `diagnostics.refresh`. [Fixed by [topisani](https://github.com/topisani)]
 - Server crash if import is a directory
-- Report diagnostics issues from CPrePorcessor
+- Report diagnostics issues from CPreProcessor
 
 # 0.0.6 - 2025-01-18
 
@@ -162,7 +162,7 @@ prop = FOO(10,)
 
 ### Fixed
 
-- On Hover rendered Macro calls parametes as `[object object]` instead of the actual string value e.g
+- On Hover rendered Macro calls parameter as `[object object]` instead of the actual string value e.g
 
 ```devicetree
 reg = <536870912 DT_SIZE_K([object object])>;  -> issue
@@ -173,12 +173,12 @@ reg = <536870912 DT_SIZE_K(448)>; -> fix
 
 ### Added
 
-- Formating of comments
+- Formatting of comments
 - Code action to add missing properties
 
 ### Fixed
 
-- Formating of includes statment in files that where included inside a DTC node
+- Formatting of includes statement in files that where included inside a DTC node
 
 ## 0.0.2 - 2025-01-10
 
@@ -187,16 +187,16 @@ reg = <536870912 DT_SIZE_K(448)>; -> fix
 - Support for `devicetree.cwd` in the setting. This can be used to allow relative paths in:
   - `devicetree.defaultIncludePaths`
   - `devicetree.defaultZephyrBindings`
-- Support for `cwd` in each context. If this is missing `devicetree.cwd` will be used as falback. This can be used to allow relative paths in:
+- Support for `cwd` in each context. If this is missing `devicetree.cwd` will be used as fallback. This can be used to allow relative paths in:
   - `includePaths`
   - `zephyrBindings`
   - `dtsFile`
 - `ctxName` to the context settings. This can be a string or a number.
 - Extended `preferredContext` to support linking to `ctxName`. This can be a string or a number.
 - `devicetree.autoChangeContext`. If true the LSP will auto change the active context for actions. Defaults to true.
-- `devicetree.allowAdhocContexts` If true the LSP will create ad hoc context for when `.dts` file is opned and not in any `devicetree.contexts`. Defaults to true. If not context is avalable for a devicetree file a warning.
-- Formating `include` in document
-- Formating now support confiuration of tab vs spaces and spaces size
+- `devicetree.allowAdhocContexts` If true the LSP will create ad hoc context for when `.dts` file is opened and not in any `devicetree.contexts`. Defaults to true. If not context is available for a devicetree file a warning.
+- Formatting `include` in document
+- Formatting now support configuration of tab vs spaces and spaces size
 
 ### Fixed
 
