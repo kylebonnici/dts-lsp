@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 # 0.2.1 - 2025-03-23
 
+### Added
+
+- Folding ranges `#IFDEF/#IFNDEF ... #ELSE ... #END`
+
 ### Fixed
 
 - Folding ranges for context with multiple dts files/overlays
