@@ -90,7 +90,7 @@ export class ContextAware {
       ...this.overlayParsers.map((c) => c.uri),
       this.parser.uri,
       ...(this.parser.cPreprocessorParser.dtsIncludes
-        .flatMap((include) => include.reolvedPath)
+        .flatMap((include) => include.resolvedPath)
         .filter((f) => !!f) as string[]),
     ];
   }

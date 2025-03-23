@@ -558,7 +558,7 @@ export class CPreprocessorParser extends BaseParser {
     const endIndex = this.peekIndex();
 
     const resolvedPath = this.resolveInclude(node);
-    node.reolvedPath = resolvedPath;
+    node.resolvedPath = resolvedPath;
     if (!resolvedPath) {
       this._issues.push(
         genIssue(

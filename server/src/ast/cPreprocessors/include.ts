@@ -21,7 +21,7 @@ import { basename } from "path";
 import { TokenIndexes } from "../../types";
 
 export class Include extends ASTBase {
-  private _reolvedPath?: string;
+  private _resolvedPath?: string;
 
   constructor(
     public readonly keyword: Keyword,
@@ -36,16 +36,16 @@ export class Include extends ASTBase {
     this.addChild(path);
   }
 
-  get reolvedPath(): string | undefined {
-    return this._reolvedPath;
+  get resolvedPath(): string | undefined {
+    return this._resolvedPath;
   }
 
-  set reolvedPath(reolvedPath: string | undefined) {
+  set resolvedPath(resolvedPath: string | undefined) {
     this.docSymbolsMeta = {
-      name: `Include ${reolvedPath}`,
+      name: `Include ${resolvedPath}`,
       kind: SymbolKind.File,
     };
-    this._reolvedPath = reolvedPath;
+    this._resolvedPath = resolvedPath;
   }
 }
 

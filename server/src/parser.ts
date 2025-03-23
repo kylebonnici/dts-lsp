@@ -90,7 +90,7 @@ export class Parser extends BaseParser {
     return [
       this.uri,
       ...(this.cPreprocessorParser.dtsIncludes
-        .flatMap((include) => include.reolvedPath)
+        .flatMap((include) => include.resolvedPath)
         .filter((f) => !!f) as string[]),
     ];
   }

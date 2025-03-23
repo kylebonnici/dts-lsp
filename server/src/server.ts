@@ -178,7 +178,7 @@ const contextFullyOverlaps = async (a: ContextAware, b: ContextAware) => {
     ? contextAIncludes.every((f) =>
         contextBIncludes.some(
           (ff) =>
-            ff.reolvedPath === f.reolvedPath &&
+            ff.resolvedPath === f.resolvedPath &&
             ff.firstToken.pos.col === f.firstToken.pos.col &&
             ff.firstToken.pos.len === f.firstToken.pos.len &&
             ff.firstToken.pos.line === f.firstToken.pos.line &&
@@ -206,7 +206,7 @@ const cleanUpAdHocContext = async (context: ContextAware) => {
   const contextFiles = [
     ...context.overlayParsers.map((p) => p.uri),
     context.parser.uri,
-    ...context.parser.includes.map((p) => p.reolvedPath),
+    ...context.parser.includes.map((p) => p.resolvedPath),
   ];
 
   if (contextAware.indexOf(context) === -1) {
