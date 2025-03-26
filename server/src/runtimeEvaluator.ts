@@ -326,11 +326,22 @@ export class ContextAware {
   }
 
   expandMacros(code: string): string {
+    const handleTokenConcatenation = (code: string): string => {
+      return code.replace(
+        /(\w+)\s*##\s*(\w+)/g,
+        (match, left, right) => left + right
+      );
+    };
+    const handleStringification = (code: string): string => {
+      return code.replace(/#(\w+)/g, (_, param) => `"${param}"`);
+    };
     let expandedCode = code;
     let prevCode;
     do {
       prevCode = expandedCode;
-      expandedCode = prevCode.replace(
+      expandedCode = handleTokenConcatenation(prevCode); // Handle ## operator
+      expandedCode = handleStringification(expandedCode); // Handle # operator
+      expandedCode = expandedCode.replace(
         /\b(\w+)\(([^)]*)\)|\b(\w+)\b/g,
         (match, func, args, simple) => {
           if (func && typeof this.macros.get(func) === "function") {
