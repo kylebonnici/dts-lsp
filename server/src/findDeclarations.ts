@@ -28,6 +28,7 @@ import { isDeleteChild } from "./ast/helpers";
 import { nodeFinder, toRange } from "./helpers";
 import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
 import { StringValue } from "./ast/dtc/values/string";
+import { CMacroCallParam } from "./ast/cPreprocessors/functionCall";
 
 function getPropertyDeclaration(
   result: SearchableResult | undefined
@@ -119,9 +120,12 @@ function getNodeDeclaration(
 function getMacrosDeclaration(
   result: SearchableResult | undefined
 ): Location | undefined {
-  if (result?.ast instanceof CIdentifier) {
+  if (
+    result?.ast instanceof CIdentifier ||
+    result?.ast instanceof CMacroCallParam
+  ) {
     const macro = result.runtime.context.parser.cPreprocessorParser.macros.get(
-      result.ast.name
+      result.ast instanceof CIdentifier ? result.ast.name : result.ast.value
     );
     if (macro) {
       return Location.create(`file://${macro.uri}`, toRange(macro.identifier));

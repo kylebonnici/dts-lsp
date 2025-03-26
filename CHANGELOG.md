@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Support inline eval of macros with `#` and `##` syntax
+- Support onhover/getDefinition/getDecleration on Macro param
 
 # 0.2.1 - 2025-03-23
 

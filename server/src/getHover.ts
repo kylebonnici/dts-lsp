@@ -26,7 +26,7 @@ import { PropertyName } from "./ast/dtc/property";
 import { StringValue } from "./ast/dtc/values/string";
 import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
 import { ASTBase } from "./ast/base";
-import { CMacroCall } from "./ast/cPreprocessors/functionCall";
+import { CMacroCall, CMacroCallParam } from "./ast/cPreprocessors/functionCall";
 
 function getCMacroCall(ast: ASTBase | undefined): CMacroCall | undefined {
   if (!ast || ast instanceof CMacroCall) {
@@ -36,9 +36,12 @@ function getCMacroCall(ast: ASTBase | undefined): CMacroCall | undefined {
 }
 
 function getMacros(result: SearchableResult | undefined): Hover | undefined {
-  if (result?.ast instanceof CIdentifier) {
+  if (
+    result?.ast instanceof CIdentifier ||
+    result?.ast instanceof CMacroCallParam
+  ) {
     const macro = result.runtime.context.parser.cPreprocessorParser.macros.get(
-      result.ast.name
+      result?.ast instanceof CIdentifier ? result.ast.name : result.ast.value
     );
 
     if (macro) {

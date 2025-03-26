@@ -33,6 +33,7 @@ import { DeleteProperty } from "./ast/dtc/deleteProperty";
 import { isDeleteChild } from "./ast/helpers";
 import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
 import { StringValue } from "./ast/dtc/values/string";
+import { CMacroCallParam } from "./ast/cPreprocessors/functionCall";
 
 function getPropertyDefinition(
   result: SearchableResult | undefined
@@ -138,9 +139,12 @@ function getNodeDefinition(result: SearchableResult | undefined): Location[] {
 }
 
 function getMacrosDefinition(result: SearchableResult | undefined): Location[] {
-  if (result?.ast instanceof CIdentifier) {
+  if (
+    result?.ast instanceof CIdentifier ||
+    result?.ast instanceof CMacroCallParam
+  ) {
     const macro = result.runtime.context.parser.cPreprocessorParser.macros.get(
-      result.ast.name
+      result.ast instanceof CIdentifier ? result.ast.name : result.ast.value
     );
     if (macro) {
       return [
