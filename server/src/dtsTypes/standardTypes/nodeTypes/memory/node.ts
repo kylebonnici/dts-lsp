@@ -20,11 +20,6 @@ export function getMemoryNodeType() {
   const standardType = getStandardDefaultType();
   standardType.noMismatchPropertiesAllowed = true;
 
-  const deviceTypeProp = standardType.properties.find(
-    (p) => p.name === "device_type"
-  );
-  deviceTypeProp!.required = () => "required";
-
   const regProp = standardType.properties.find((p) => p.name === "reg");
   regProp!.required = () => "required";
 

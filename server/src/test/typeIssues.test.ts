@@ -155,11 +155,9 @@ describe("Type Issues", () => {
         await context.parser.stable;
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
-        expect(issues.length).toEqual(2);
+        expect(issues.length).toEqual(1);
         expect(issues[0].issues).toEqual([StandardTypeIssue.REQUIRED]);
         expect(issues[0].templateStrings).toEqual(["reg"]);
-        expect(issues[1].issues).toEqual([StandardTypeIssue.REQUIRED]);
-        expect(issues[1].templateStrings).toEqual(["device_type"]);
       });
     });
 
