@@ -25,8 +25,7 @@ export default () => {
   const prop = new PropertyNodeType(
     "device_type",
     generateOrTypeObj(PropertyType.STRING),
-    (node) =>
-      node.name === "cpu" || node.name === "memory" ? "required" : "optional",
+    "optional",
     undefined,
     (property) => {
       if (property.parent.name === "cpu" || property.parent.name === "memory") {
