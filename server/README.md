@@ -205,7 +205,6 @@ Given that in some cases the files included in a devicetree might come from an S
 - Formatting
   - Clean up trailing white spaces
 - Implement syntax for Ternary operator
-- Implement support #IF and #ELSEIF preprocessors
 - Implement "Device Node Requirements" (chapter 3 - Devicetree Specification Release v0.4)
 - Write more unit tests
 - Let me know what you should be added or changed
