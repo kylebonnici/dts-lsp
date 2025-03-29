@@ -18,7 +18,7 @@ import { DocumentSymbol, SymbolKind } from "vscode-languageserver";
 import { CIdentifier } from "./cIdentifier";
 import { Expression } from "./expression";
 import { toRange } from "../../helpers";
-import { TokenIndexes } from "../../types";
+import { MacroRegistryItem, TokenIndexes } from "../../types";
 
 export class CMacroCallParam extends Expression {
   constructor(
@@ -68,5 +68,17 @@ export class CMacroCall extends Expression {
     return `${this.functionName.toString()}(${this.params
       .map((p) => p?.toString() ?? "<NULL>")
       .join(",")})`;
+  }
+
+  isTrue(macros: Map<string, MacroRegistryItem>): boolean {
+    if (this.functionName.name === "defined") {
+      return !!(
+        this.params.length === 1 &&
+        this.params[0] &&
+        macros.has(this.params[0].value)
+      );
+    }
+
+    return super.isTrue(macros);
   }
 }

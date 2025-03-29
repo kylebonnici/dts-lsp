@@ -697,6 +697,10 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "Macro expects less arguments";
     case SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS:
       return "Macro expects more arguments";
+    case SyntaxIssue.MISSINEG_ENDIF:
+      return "Missing #ENDIF";
+    case SyntaxIssue.UNUSED_BLOCK:
+      return "Block Unused";
     case SyntaxIssue.BITS_NON_OFFICIAL_SYNTAX:
       return "This syntax is not officially part of the DTS V0.4 standard";
   }
@@ -1014,6 +1018,7 @@ async function getDiagnostics(
             ? issue.issues.map(syntaxIssueToMessage).join(" or ")
             : "",
           source: "devicetree",
+          tags: issue.tags,
           data: {
             firstToken: {
               pos: issue.astElement.firstToken.pos,
@@ -1223,26 +1228,31 @@ connection.onWorkspaceSymbol(async () => {
 });
 
 connection.languages.semanticTokens.on(async (h) => {
-  await allStable();
-  const uri = h.textDocument.uri.replace("file://", "");
-  await updateActiveContext(uri);
+  try {
+    await allStable();
+    const uri = h.textDocument.uri.replace("file://", "");
+    await updateActiveContext(uri);
 
-  const tokensBuilder = new SemanticTokensBuilder();
+    const tokensBuilder = new SemanticTokensBuilder();
 
-  const contextMeta = await findContext(
-    contextAware,
-    uri,
-    globalSettings.preferredContext
-  );
+    const contextMeta = await findContext(
+      contextAware,
+      uri,
+      globalSettings.preferredContext
+    );
 
-  const isInContext = contextMeta?.context.isInContext(uri);
-  if (!contextMeta || !isInContext) {
-    return { data: [] };
+    const isInContext = contextMeta?.context.isInContext(uri);
+    if (!contextMeta || !isInContext) {
+      return { data: [] };
+    }
+
+    contextMeta.context.parser.buildSemanticTokens(tokensBuilder, uri);
+
+    return tokensBuilder.build();
+  } catch (e) {
+    console.log(e);
+    throw e;
   }
-
-  contextMeta.context.parser.buildSemanticTokens(tokensBuilder, uri);
-
-  return tokensBuilder.build();
 });
 
 connection.onDocumentLinks(async (event) => {
@@ -1345,8 +1355,8 @@ connection.onFoldingRanges(async (event) => {
     return [];
   }
 
-  const parser = (await context.getAllParsers()).find((p) =>
-    p.includes.some((i) => i.uri === uri)
+  const parser = (await context.getAllParsers()).find(
+    (p) => p.includes.some((i) => i.uri === uri) || p.uri === uri
   );
 
   if (parser) return getFoldingRanges(uri, parser);

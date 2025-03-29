@@ -72,8 +72,10 @@ export class Runtime implements Searchable {
       ...this.unlinkedDeletes,
       ...this.unlinkedRefNodes,
       ...this.globalDeletes,
-      ...this.includes,
-      ...this.comments,
+      ...this.context.parser.cPreprocessorParser.allAstItems,
+      ...this.context.overlayParsers.flatMap(
+        (op) => op.cPreprocessorParser.allAstItems
+      ),
     ].flatMap((c) => Runtime.getFileTopMostAst(c, file));
   }
 

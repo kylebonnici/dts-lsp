@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
+import { MacroRegistryItem } from "../types";
 import { CPreprocessorParser } from "../cPreprocessorParser";
-import { CMacro } from "../ast/cPreprocessors/macro";
 
 let cachedCPreprocessorParserProvider:
   | CachedCPreprocessorParserProvider
@@ -28,7 +28,7 @@ class CachedCPreprocessorParserProvider {
   getCPreprocessorParser(
     uri: string,
     inludes: string[],
-    macros: Map<string, CMacro>,
+    macros: Map<string, MacroRegistryItem>,
     parent: string
   ) {
     const cache = this.headerFiles.get(uri);

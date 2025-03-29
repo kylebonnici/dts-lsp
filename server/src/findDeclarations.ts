@@ -128,7 +128,10 @@ function getMacrosDeclaration(
       result.ast instanceof CIdentifier ? result.ast.name : result.ast.value
     );
     if (macro) {
-      return Location.create(`file://${macro.uri}`, toRange(macro.identifier));
+      return Location.create(
+        `file://${macro.macro.uri}`,
+        toRange(macro.macro.identifier)
+      );
     }
   }
 }

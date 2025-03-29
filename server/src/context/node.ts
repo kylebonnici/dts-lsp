@@ -247,7 +247,7 @@ export class Node {
       ...this.deletedPropertiesIssues,
       ...this.deletedNodesIssues,
     ];
-    if (this.name === "/") {
+    if (this.name === "/" && this.definitions.length) {
       if (!this._nodes.some((n) => n.name === "cpus")) {
         issues.push(
           genIssue(

@@ -148,7 +148,10 @@ function getMacrosDefinition(result: SearchableResult | undefined): Location[] {
     );
     if (macro) {
       return [
-        Location.create(`file://${macro.uri}`, toRange(macro.identifier)),
+        Location.create(
+          `file://${macro.macro.uri}`,
+          toRange(macro.macro.identifier)
+        ),
       ];
     }
   }

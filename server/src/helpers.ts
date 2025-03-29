@@ -33,6 +33,7 @@ import {
   tokenTypes,
   TokenIndexes,
   LexerToken,
+  MacroRegistryItem,
 } from "./types";
 import { ContextAware } from "./runtimeEvaluator";
 
@@ -56,6 +57,19 @@ export const toRangeWithTokenIndex = (
         : end?.pos.col ?? 0,
     },
   };
+};
+
+export const tokensToString = (tokens: Token[]) => {
+  return tokens
+    .map((p, i) => {
+      let v = p.value;
+      if (p.pos.line === tokens.at(i + 1)?.pos.line) {
+        return v.padEnd(tokens[i + 1].pos.col - p.pos.col, " ");
+      } else {
+        return (v += "\n");
+      }
+    })
+    .join("");
 };
 
 export const toRange = (slxBase: ASTBase) => {
@@ -274,7 +288,7 @@ export async function nodeFinder<T>(
   action: (
     result: SearchableResult | undefined,
     inScope: (ast: ASTBase) => boolean
-  ) => T[],
+  ) => T[] | Promise<T[]>,
   preferredContext?: string | number
 ): Promise<T[]> {
   const uri = location.textDocument.uri.replace("file://", "");
@@ -366,4 +380,91 @@ export const findContext = (
 export const findContexts = (contextAware: ContextAware[], uri: string) => {
   const contextFiles = resolveContextFiles(contextAware);
   return contextFiles.filter((c) => c.files.some((p) => p === uri));
+};
+
+export const parseMacros = (line: string) => {
+  // Regular expressions to match macro definitions
+  const macroRegex = /^(\w+)\s+(.+)$/;
+  const funcMacroRegex = /^(\w+)\(([^)]*)\)\s+(.+)$/;
+  const variadicMacroRegex = /^(\w+)\(([^)]*),\s*\.\.\.\)\s+(.+)$/;
+
+  let match;
+  if ((match = variadicMacroRegex.exec(line))) {
+    const [, , params, body] = match;
+    const paramList = params.split(",").map((p) => p.trim());
+    return (...args: string[]) => {
+      let expanded = body;
+      paramList.forEach((param, index) => {
+        const regex = new RegExp(`\\b${param}\\b`, "g");
+        expanded = expanded.replace(regex, args[index]);
+      });
+      expanded = expanded.replace(
+        /__VA_ARGS__/g,
+        args.slice(paramList.length).join(", ")
+      );
+      return expanded;
+    };
+  } else if ((match = funcMacroRegex.exec(line))) {
+    const [, , params, body] = match;
+    const paramList = params.split(",").map((p) => p.trim());
+    return (...args: string[]) => {
+      let expanded = body;
+      paramList.forEach((param, index) => {
+        const regex = new RegExp(`\\b${param}\\b`, "g");
+        expanded = expanded.replace(regex, args[index]);
+      });
+      return expanded;
+    };
+  } else if ((match = macroRegex.exec(line))) {
+    const [, , body] = match;
+    return body.trim();
+  }
+};
+
+export const expandMacros = (
+  code: string,
+  macrosResolvers: Map<string, MacroRegistryItem>
+): string => {
+  const handleTokenConcatenation = (code: string): string => {
+    return code.replace(
+      /(\w+)\s*##\s*(\w+)/g,
+      (match, left, right) => left + right
+    );
+  };
+  const handleStringification = (code: string): string => {
+    return code.replace(/#(\w+)/g, (_, param) => `"${param}"`);
+  };
+  let expandedCode = code;
+  let prevCode;
+  do {
+    prevCode = expandedCode;
+    expandedCode = handleTokenConcatenation(prevCode); // Handle ## operator
+    expandedCode = handleStringification(expandedCode); // Handle # operator
+    expandedCode = expandedCode.replace(
+      /\b(\w+)\(([^)]*)\)|\b(\w+)\b/g,
+      (match, func, args, simple) => {
+        if (func === "defined") {
+          const argList = args.split(",").map((a: string) => a.trim());
+          return argList[0]
+            ? (macrosResolvers.get(argList[0])?.resolver as string)
+            : argList;
+        } else if (
+          func &&
+          typeof macrosResolvers.get(func)?.resolver === "function"
+        ) {
+          const argList = args.split(",").map((a: string) => a.trim());
+          return (
+            macrosResolvers.get(func)?.resolver as (...args: string[]) => string
+          )(...argList);
+        } else if (
+          simple &&
+          typeof macrosResolvers.get(simple)?.resolver === "string"
+        ) {
+          return macrosResolvers.get(simple)?.resolver as string;
+        }
+        return match;
+      }
+    );
+  } while (expandedCode !== prevCode);
+  return expandedCode;
 };

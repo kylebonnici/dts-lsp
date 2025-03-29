@@ -30,10 +30,12 @@ export enum OperatorType {
   ARITHMETIC_MULTIPLE = "*",
   ARITHMETIC_SUBTRACT = "-",
   BOOLEAN_GT = ">",
+  BOOLEAN_LT = "<",
   BOOLEAN_AND = "&&",
   BOOLEAN_GT_EQUAL = ">=",
   BOOLEAN_LT_EQUAL = "<=",
-  BOOLEAN_NOT_EQ = "==",
+  BOOLEAN_NOT_EQ = "!=",
+  BOOLEAN_EQ = "==",
   BOOLEAN_OR = "||",
   C_CONCAT = "##",
 }
