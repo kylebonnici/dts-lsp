@@ -22,7 +22,7 @@ let cachedCPreprocessorParserProvider:
   | undefined;
 
 class CachedCPreprocessorParserProvider {
-  private headerFiles = new Map<string, CPreprocessorParser>();
+  private headerFiles = new Map<string, Map<string, CPreprocessorParser>>();
   private includeOwners = new WeakMap<CPreprocessorParser, Set<string>>();
 
   getCPreprocessorParser(
@@ -31,7 +31,10 @@ class CachedCPreprocessorParserProvider {
     macros: Map<string, MacroRegistryItem>,
     parent: string
   ) {
-    const cache = this.headerFiles.get(uri);
+    const key = `${Array.from(macros)
+      .map((m) => m[1].macro.toString())
+      .join("::")}`;
+    const cache = this.headerFiles.get(uri)?.get(key);
     if (cache) {
       cache.reparse(macros);
       return cache;
@@ -42,19 +45,25 @@ class CachedCPreprocessorParserProvider {
     const set = this.includeOwners.get(header) ?? new Set();
     set.add(parent);
     this.includeOwners.set(header, set);
-    this.headerFiles.set(uri, header);
+    if (!this.headerFiles.has(uri)) {
+      this.headerFiles.set(uri, new Map());
+    }
+    this.headerFiles.get(uri)?.set(key, header);
     return header;
   }
 
   reset(uri: string) {
-    const header = this.headerFiles.get(uri);
-    if (header) {
-      console.log("disposing cpreprocessor cache for", uri);
-      Array.from(this.includeOwners.get(header) ?? []).forEach(
-        this.reset.bind(this)
-      );
-      this.headerFiles.delete(uri);
-    }
+    const headers = this.headerFiles.get(uri);
+    if (headers)
+      Array.from(headers).forEach((header) => {
+        if (header[1]) {
+          console.log("disposing cpreprocessor cache for", uri);
+          Array.from(this.includeOwners.get(header[1]) ?? []).forEach(
+            this.reset.bind(this)
+          );
+          this.headerFiles.delete(uri);
+        }
+      });
   }
 }
 
