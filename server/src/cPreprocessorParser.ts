@@ -125,7 +125,7 @@ export class CPreprocessorParser extends BaseParser {
           if (
             Array.from(this.macroSnapShot).every(([k, m], i) => {
               const [kk, mm] = arr[i];
-              return kk === k && mm.toString() === m.toString();
+              return kk === k && mm.macro.toString() === m.macro.toString();
             })
           ) {
             console.log("header file cache hit", this.uri);
@@ -133,7 +133,6 @@ export class CPreprocessorParser extends BaseParser {
             return;
           }
         }
-        console.log("header file cache miss", this.uri);
         this.reset(macros);
         this.parse().then(resolve);
       });

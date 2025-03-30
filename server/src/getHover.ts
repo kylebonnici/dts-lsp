@@ -146,6 +146,7 @@ function getPropertyName(
 export function getHover(
   hoverParams: HoverParams,
   context: ContextAware[],
+  activeContext?: ContextAware,
   preferredContext?: string | number
 ): Promise<(Hover | undefined)[]> {
   return nodeFinder<Hover | undefined>(
@@ -156,6 +157,7 @@ export function getHover(
         getPropertyName(locationMeta) ||
         (await getMacros(locationMeta)),
     ],
+    activeContext,
     preferredContext
   );
 }

@@ -162,6 +162,7 @@ function getMacrosDefinition(result: SearchableResult | undefined): Location[] {
 export async function getDefinitions(
   location: TextDocumentPositionParams,
   contexts: ContextAware[],
+  activeContext?: ContextAware,
   preferredContext?: string | number
 ): Promise<Location[]> {
   return nodeFinder(
@@ -172,6 +173,7 @@ export async function getDefinitions(
       ...getPropertyDefinition(locationMeta),
       ...getMacrosDefinition(locationMeta),
     ],
+    activeContext,
     preferredContext
   );
 }

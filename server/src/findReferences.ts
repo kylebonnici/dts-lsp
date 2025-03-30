@@ -201,6 +201,7 @@ function getNodeReferences(result: SearchableResult | undefined): Location[] {
 export async function getReferences(
   location: TextDocumentPositionParams,
   contexts: ContextAware[],
+  activeContext?: ContextAware,
   preferredContext?: string | number
 ): Promise<Location[]> {
   return nodeFinder(
@@ -210,6 +211,7 @@ export async function getReferences(
       ...getNodeReferences(locationMeta),
       ...getPropertyReferences(locationMeta),
     ],
+    activeContext,
     preferredContext
   );
 }

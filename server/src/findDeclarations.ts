@@ -139,6 +139,7 @@ function getMacrosDeclaration(
 export async function getDeclaration(
   location: TextDocumentPositionParams,
   contexts: ContextAware[],
+  activeContext?: ContextAware,
   preferredContext?: string | number
 ): Promise<Location | undefined> {
   return (
@@ -150,6 +151,7 @@ export async function getDeclaration(
           getPropertyDeclaration(locationMeta) ||
           getMacrosDeclaration(locationMeta),
       ],
+      activeContext,
       preferredContext
     )
   ).at(0);

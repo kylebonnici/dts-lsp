@@ -31,7 +31,6 @@ import {
   adjacentTokens,
   createTokenIndex,
   genIssue,
-  sameLine,
   validateToken,
   validateValue,
   validToken,

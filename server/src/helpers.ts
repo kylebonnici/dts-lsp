@@ -289,11 +289,17 @@ export async function nodeFinder<T>(
     result: SearchableResult | undefined,
     inScope: (ast: ASTBase) => boolean
   ) => T[] | Promise<T[]>,
+  activeContext?: ContextAware,
   preferredContext?: string | number
 ): Promise<T[]> {
   const uri = location.textDocument.uri.replace("file://", "");
 
-  const contextMeta = findContext(contexts, uri, preferredContext);
+  const contextMeta = findContext(
+    contexts,
+    uri,
+    activeContext,
+    preferredContext
+  );
 
   if (!contextMeta) return [];
 
@@ -368,8 +374,11 @@ export const resolveContextFiles = (contextAware: ContextAware[]) => {
 export const findContext = (
   contextAware: ContextAware[],
   uri: string,
+  activeContext?: ContextAware,
   preferredContext?: string | number
 ) => {
+  if (activeContext?.getContextFiles().find((f) => f=== uri)) return {context: activeContext};
+
   const contextFiles = resolveContextFiles(contextAware);
 
   return contextFiles
