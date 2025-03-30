@@ -128,7 +128,10 @@ function getMacrosDeclaration(
       result.ast instanceof CIdentifier ? result.ast.name : result.ast.value
     );
     if (macro) {
-      return Location.create(`file://${macro.uri}`, toRange(macro.identifier));
+      return Location.create(
+        `file://${macro.macro.uri}`,
+        toRange(macro.macro.identifier)
+      );
     }
   }
 }
@@ -136,6 +139,7 @@ function getMacrosDeclaration(
 export async function getDeclaration(
   location: TextDocumentPositionParams,
   contexts: ContextAware[],
+  activeContext?: ContextAware,
   preferredContext?: string | number
 ): Promise<Location | undefined> {
   return (
@@ -147,6 +151,7 @@ export async function getDeclaration(
           getPropertyDeclaration(locationMeta) ||
           getMacrosDeclaration(locationMeta),
       ],
+      activeContext,
       preferredContext
     )
   ).at(0);

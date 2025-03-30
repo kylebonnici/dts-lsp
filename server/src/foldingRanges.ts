@@ -18,7 +18,8 @@ import { FoldingRange, FoldingRangeKind } from "vscode-languageserver";
 import { DtcBaseNode } from "./ast/dtc/node";
 import { Parser } from "./parser";
 import { ASTBase } from "./ast/base";
-import { IfDefineBlock } from "./ast/cPreprocessors/ifDefine";
+import { IfDefineBlock, IfElIfBlock } from "./ast/cPreprocessors/ifDefine";
+import { start } from "repl";
 
 const nodeToRange = (dtcNode: DtcBaseNode): FoldingRange[] => {
   if (!dtcNode.openScope || !dtcNode.closeScope?.prevToken) {
@@ -35,19 +36,40 @@ const nodeToRange = (dtcNode: DtcBaseNode): FoldingRange[] => {
   return [range, ...dtcNode.nodes.flatMap(nodeToRange)];
 };
 
-const ifDefBlockToRange = (ifDefBlock: IfDefineBlock): FoldingRange[] => {
+const ifElIfBlockToRange = (
+  ifDefBlock: IfElIfBlock | IfDefineBlock
+): FoldingRange[] => {
   const ranges: FoldingRange[] = [];
 
-  [ifDefBlock.ifDef.content, ifDefBlock.elseOption?.content].forEach((b) => {
-    if (!b) {
+  [
+    ...(ifDefBlock instanceof IfElIfBlock
+      ? ifDefBlock.ifBlocks.map((b) => ({
+          start: (b.expression ?? b.keyword).lastToken,
+          end: b.content?.lastToken ?? (b.expression ?? b.keyword).lastToken,
+        }))
+      : [
+          {
+            start: (ifDefBlock.ifDef.identifier ?? ifDefBlock.ifDef.keyword)
+              .lastToken,
+            end: ifDefBlock.ifDef.content?.lastToken,
+          },
+        ]),
+    ifDefBlock.elseOption
+      ? {
+          start: ifDefBlock.elseOption.keyword.lastToken,
+          end: ifDefBlock.elseOption.content?.lastToken,
+        }
+      : null,
+  ].forEach((b) => {
+    if (!b || !b.end) {
       return;
     }
 
     ranges.push({
-      startLine: b.firstToken.prevToken!.pos.line,
-      startCharacter: b.firstToken.prevToken!.pos.col,
-      endLine: b.lastToken.pos.line,
-      endCharacter: b.lastToken.pos.col + b.lastToken.pos.len,
+      startLine: b.start.pos.line,
+      startCharacter: b.start.pos.col,
+      endLine: b.end.pos.line,
+      endCharacter: b.end.pos.col + b.end.pos.len,
       kind: FoldingRangeKind.Region,
     });
   });
@@ -61,7 +83,11 @@ const toFoldingRange = (ast: ASTBase): FoldingRange[] => {
   }
 
   if (ast instanceof IfDefineBlock) {
-    return ifDefBlockToRange(ast);
+    return ifElIfBlockToRange(ast);
+  }
+
+  if (ast instanceof IfElIfBlock) {
+    return ifElIfBlockToRange(ast);
   }
 
   return [];

@@ -75,12 +75,14 @@ function getNodeTypeDefinition(
 export async function typeDefinition(
   location: TypeDefinitionParams,
   contexts: ContextAware[],
+  activeContext?: ContextAware,
   preferredContext?: number
 ): Promise<Location[]> {
   return nodeFinder(
     location,
     contexts,
     (locationMeta) => [...getNodeTypeDefinition(locationMeta)],
+    activeContext,
     preferredContext
   );
 }

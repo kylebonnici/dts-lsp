@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-import { LexerToken, SyntaxIssue, Token } from "./types";
+import { LexerToken, MacroRegistryItem, SyntaxIssue, Token } from "./types";
 import {
   adjacentTokens,
   createTokenIndex,
   genIssue,
+  parseMacros,
   sameLine,
   validateToken,
   validateValue,
@@ -40,26 +41,35 @@ import {
 } from "./ast/cPreprocessors/functionDefinition";
 import {
   CElse,
+  CIf,
   CIfDef,
   CIfNotDef,
   CPreprocessorContent,
   IfDefineBlock,
+  IfElIfBlock,
 } from "./ast/cPreprocessors/ifDefine";
-import { DiagnosticSeverity } from "vscode-languageserver";
+import { DiagnosticSeverity, DiagnosticTag } from "vscode-languageserver";
 import { getCachedCPreprocessorParserProvider } from "./providers/cachedCPreprocessorParser";
+import { Expression } from "./ast/cPreprocessors/expression";
 
 export class CPreprocessorParser extends BaseParser {
   public tokens: Token[] = [];
   private nodes: ASTBase[] = [];
   public dtsIncludes: Include[] = [];
-  private macroSnapShot: Map<string, CMacro> = new Map<string, CMacro>();
-  public readonly macros: Map<string, CMacro> = new Map<string, CMacro>();
+  private macroSnapShot: Map<string, MacroRegistryItem> = new Map<
+    string,
+    MacroRegistryItem
+  >();
+  public readonly macros: Map<string, MacroRegistryItem> = new Map<
+    string,
+    MacroRegistryItem
+  >();
 
   // tokens must be filtered out from comments by now
   constructor(
     public readonly uri: string,
     private incudes: string[],
-    macros?: Map<string, CMacro>
+    macros?: Map<string, MacroRegistryItem>
   ) {
     super();
     if (macros) {
@@ -68,7 +78,30 @@ export class CPreprocessorParser extends BaseParser {
     }
   }
 
-  protected reset(macros?: Map<string, CMacro>) {
+  private macroStart = false;
+
+  protected get currentToken(): Token | undefined {
+    // allow to break line at end of line with \
+    const prevToken = this.prevToken;
+    const tokenPartOfMacro =
+      sameLine(prevToken, this.tokens.at(this.peekIndex())) ||
+      !prevToken ||
+      (validToken(prevToken, LexerToken.BACK_SLASH) &&
+        prevToken.pos.line + 1 === this.tokens.at(this.peekIndex())?.pos.line);
+    if (this.macroStart && !tokenPartOfMacro) return;
+
+    if (
+      this.macroStart &&
+      validToken(this.tokens.at(this.peekIndex()), LexerToken.BACK_SLASH)
+    ) {
+      this.moveStackIndex();
+      return this.currentToken;
+    }
+
+    return this.tokens.at(this.peekIndex());
+  }
+
+  protected reset(macros?: Map<string, MacroRegistryItem>) {
     super.reset();
     this.macros.clear();
     if (macros) {
@@ -83,7 +116,7 @@ export class CPreprocessorParser extends BaseParser {
     this.dtsIncludes = [];
   }
 
-  public async reparse(macros?: Map<string, CMacro>): Promise<void> {
+  public async reparse(macros?: Map<string, MacroRegistryItem>): Promise<void> {
     const stable = this.stable;
     this.parsing = new Promise<void>((resolve) => {
       stable.then(() => {
@@ -92,7 +125,7 @@ export class CPreprocessorParser extends BaseParser {
           if (
             Array.from(this.macroSnapShot).every(([k, m], i) => {
               const [kk, mm] = arr[i];
-              return kk === k && mm.toString() === m.toString();
+              return kk === k && mm.macro.toString() === m.macro.toString();
             })
           ) {
             console.log("header file cache hit", this.uri);
@@ -100,7 +133,6 @@ export class CPreprocessorParser extends BaseParser {
             return;
           }
         }
-        console.log("header file cache miss", this.uri);
         this.reset(macros);
         this.parse().then(resolve);
       });
@@ -167,6 +199,8 @@ export class CPreprocessorParser extends BaseParser {
       return false;
     }
 
+    this.macroStart = true;
+
     const keyword = new Keyword(createTokenIndex(token));
 
     const definition =
@@ -176,6 +210,7 @@ export class CPreprocessorParser extends BaseParser {
         genIssue(SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE, keyword)
       );
       this.mergeStack();
+      this.macroStart = false;
       return true;
     }
 
@@ -188,7 +223,10 @@ export class CPreprocessorParser extends BaseParser {
       );
     }
     const macro = new CMacro(keyword, definition, content);
-    this.macros.set(macro.name, macro);
+    this.macros.set(macro.name, {
+      macro,
+      resolver: parseMacros(macro.toString()),
+    } satisfies MacroRegistryItem);
     this.nodes.push(macro);
 
     const endIndex = this.peekIndex();
@@ -196,6 +234,7 @@ export class CPreprocessorParser extends BaseParser {
 
     this.positionStack[this.positionStack.length - 1] = startIndex;
     this.mergeStack();
+    this.macroStart = false;
     return true;
   }
 
@@ -209,6 +248,8 @@ export class CPreprocessorParser extends BaseParser {
       return false;
     }
 
+    this.macroStart = true;
+
     const keyword = new Keyword(createTokenIndex(token));
 
     const definition = this.processCIdentifier(this.macros, true);
@@ -217,6 +258,7 @@ export class CPreprocessorParser extends BaseParser {
         genIssue(SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE, keyword)
       );
       this.mergeStack();
+      this.macroStart = false;
       return true;
     }
 
@@ -229,23 +271,17 @@ export class CPreprocessorParser extends BaseParser {
 
     this.positionStack[this.positionStack.length - 1] = startIndex;
     this.mergeStack();
+    this.macroStart = false;
     return true;
   }
 
   private consumeDefinitionContent(): Token[] {
     const tokens: Token[] = [];
 
-    let prevToken = this.prevToken;
-
-    while (
-      sameLine(prevToken, this.currentToken) ||
-      (prevToken && // allow to break line at end of line with \
-        validToken(prevToken, LexerToken.BACK_SLASH) &&
-        prevToken.pos.line + 1 === this.currentToken?.pos.line)
-    ) {
-      prevToken = this.moveToNextToken;
-      if (prevToken) {
-        tokens.push(prevToken);
+    while (this.currentToken) {
+      const token = this.moveToNextToken;
+      if (token) {
+        tokens.push(token);
       }
     }
 
@@ -269,14 +305,6 @@ export class CPreprocessorParser extends BaseParser {
       return;
     }
 
-    if (
-      this.currentToken && // allow to break line at end of line with \
-      validToken(this.currentToken, LexerToken.BACK_SLASH) &&
-      sameLine(token, this.currentToken)
-    ) {
-      token = this.moveToNextToken;
-    }
-
     const params: (CIdentifier | Variadic)[] = [];
     let param =
       this.processCIdentifier(this.macros, true) || this.processVariadic();
@@ -289,14 +317,6 @@ export class CPreprocessorParser extends BaseParser {
       ) {
         this._issues.push(genIssue(SyntaxIssue.MISSING_COMMA, param));
       } else if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
-        token = this.moveToNextToken;
-      }
-
-      if (
-        this.currentToken && // allow to break line at end of line with \
-        validToken(this.currentToken, LexerToken.BACK_SLASH) &&
-        sameLine(token, this.currentToken)
-      ) {
         token = this.moveToNextToken;
       }
 
@@ -346,7 +366,7 @@ export class CPreprocessorParser extends BaseParser {
       (token?: Token) => {
         return (
           !!token &&
-          [LexerToken.C_IFDEF, LexerToken.C_IFNDEF].some((t) =>
+          [LexerToken.C_IFDEF, LexerToken.C_IFNDEF, LexerToken.C_IF].some((t) =>
             validToken(token, t)
           ) &&
           !sameLine(token.prevToken, token)
@@ -362,7 +382,9 @@ export class CPreprocessorParser extends BaseParser {
       (token?: Token) => {
         return (
           !!token &&
-          [LexerToken.C_ELSE].some((t) => validToken(token, t)) &&
+          [LexerToken.C_ELSE, LexerToken.C_ELIF].some((t) =>
+            validToken(token, t)
+          ) &&
           !sameLine(token.prevToken, token)
         );
       }
@@ -371,44 +393,61 @@ export class CPreprocessorParser extends BaseParser {
       return;
     }
 
-    if (
-      validToken(block.startToken, LexerToken.C_IFDEF) ||
-      validToken(block.startToken, LexerToken.C_IFNDEF)
-    ) {
-      let ifDefBlock: IfDefineBlock | undefined;
-      if (validToken(block.startToken, LexerToken.C_IFDEF)) {
-        ifDefBlock = this.processIfDefBlock(
-          block,
-          (
-            keyword: Keyword,
-            identifier: CIdentifier | null,
-            content: CPreprocessorContent
-          ) => new CIfDef(keyword, identifier ?? null, content)
-        );
-      } else {
-        ifDefBlock = this.processIfDefBlock(
-          block,
-          (
-            keyword: Keyword,
-            identifier: CIdentifier | null,
-            content: CPreprocessorContent
-          ) => new CIfNotDef(keyword, identifier ?? null, content)
+    let ifDefBlock: IfDefineBlock | IfElIfBlock | undefined;
+    if (validToken(block.startToken, LexerToken.C_IF)) {
+      ifDefBlock = this.processIfBlock(
+        block,
+        (
+          keyword: Keyword,
+          identifier: Expression | null,
+          content: CPreprocessorContent | null
+        ) => new CIf(keyword, identifier ?? null, content)
+      );
+    } else {
+      ifDefBlock = this.processIfDefBlock(
+        block,
+        (
+          keyword: Keyword,
+          identifier: CIdentifier | null,
+          content: CPreprocessorContent | null
+        ) =>
+          validToken(block.startToken, LexerToken.C_IFDEF)
+            ? new CIfDef(keyword, identifier ?? null, content)
+            : new CIfNotDef(keyword, identifier ?? null, content)
+      );
+    }
+
+    this.nodes.push(ifDefBlock);
+
+    const rangeToClean = ifDefBlock
+      .getInValidTokenRange(this.macros, this.tokens)
+      .reverse();
+    rangeToClean.forEach((r) => {
+      this.tokens.splice(r.start, r.end - r.start + 1);
+    });
+
+    [
+      ...(ifDefBlock instanceof IfElIfBlock
+        ? ifDefBlock.ifBlocks
+        : [ifDefBlock.ifDef]),
+      ...(ifDefBlock.elseOption ? [ifDefBlock.elseOption] : []),
+    ].forEach((b) => {
+      if (!b.active && b.content) {
+        this._issues.push(
+          genIssue(
+            SyntaxIssue.UNUSED_BLOCK,
+            b.content,
+            DiagnosticSeverity.Hint,
+            [],
+            [DiagnosticTag.Unnecessary]
+          )
         );
       }
+    });
 
-      this.nodes.push(ifDefBlock);
-
-      const rangeToClean = ifDefBlock
-        .getInValidTokenRange(this.macros, this.tokens)
-        .reverse();
-      rangeToClean.forEach((r) => {
-        this.tokens.splice(r.start, r.end - r.start + 1);
-      });
-
-      // rewind to proves the content of the if def that was true
-      this.positionStack[this.positionStack.length - 1] = startIndex;
-      return;
-    }
+    // rewind to proves the content of the if def that was true
+    this.positionStack[this.positionStack.length - 1] = startIndex;
+    return;
   }
 
   private processIfDefBlock(
@@ -416,17 +455,16 @@ export class CPreprocessorParser extends BaseParser {
     ifCreator: (
       keyword: Keyword,
       identifier: CIdentifier | null,
-      content: CPreprocessorContent
+      content: CPreprocessorContent | null
     ) => CIfDef | CIfNotDef
   ): IfDefineBlock {
     this.enqueueToStack();
+    this.macroStart = true;
 
     const ifDefKeyword = new Keyword(createTokenIndex(block.startToken));
-    const endifKeyword = new Keyword(createTokenIndex(block.endToken));
 
     // rewind so we can capture the identifier
-    this.positionStack[this.positionStack.length - 1] =
-      this.getTokenIndex(block.startToken) + 1;
+    block.splitTokens[0].rewind();
     const identifier = this.processCIdentifier(this.macros, true);
     if (!identifier) {
       this._issues.push(
@@ -434,26 +472,127 @@ export class CPreprocessorParser extends BaseParser {
       );
     }
 
-    const ifDefContent = new CPreprocessorContent(
-      createTokenIndex(this.currentToken!, block.splitTokens[0].at(-1))
+    this.macroStart = false;
+
+    let ifDefContent: CPreprocessorContent | undefined;
+    const contentStart =
+      identifier?.lastToken.nextToken ?? ifDefKeyword.lastToken.nextToken;
+    if (
+      contentStart &&
+      block.splitTokens[0].tokens.find((t) => t === contentStart)
+    ) {
+      ifDefContent = new CPreprocessorContent(
+        createTokenIndex(contentStart, block.splitTokens[0].tokens.at(-1))
+      );
+    }
+
+    const ifDef = ifCreator(
+      ifDefKeyword,
+      identifier ?? null,
+      ifDefContent ?? null
     );
-    const ifDef = ifCreator(ifDefKeyword, identifier ?? null, ifDefContent);
 
     let cElse: CElse | undefined;
 
     if (block.splitTokens.length > 1) {
-      const elseToken = block.splitTokens[1][0];
+      const elseToken = block.splitTokens[1].tokens[0].prevToken!;
       const elseKeyword = new Keyword(createTokenIndex(elseToken));
-      const elseContent = new CPreprocessorContent(
-        createTokenIndex(elseToken.nextToken!, block.splitTokens[1].at(-1))
-      );
-      cElse = new CElse(elseKeyword, elseContent);
+      let elseContent: CPreprocessorContent | undefined;
+      if (block.splitTokens[1].tokens.length) {
+        elseContent = new CPreprocessorContent(
+          createTokenIndex(
+            block.splitTokens[1].tokens[0],
+            block.splitTokens[1].tokens.at(-1)
+          )
+        );
+      }
+      cElse = new CElse(elseKeyword, elseContent ?? null);
     }
 
-    const ifDefBlock = new IfDefineBlock(ifDef, endifKeyword, cElse);
+    let endifKeyword: Keyword | undefined;
+    if (block.endToken) {
+      endifKeyword = new Keyword(createTokenIndex(block.endToken));
+    } else {
+      this._issues.push(genIssue(SyntaxIssue.MISSINEG_ENDIF, ifDefKeyword));
+    }
+
+    const ifDefBlock = new IfDefineBlock(ifDef, endifKeyword ?? null, cElse);
 
     this.mergeStack();
     return ifDefBlock;
+  }
+
+  private processIfBlock(
+    block: Block,
+    ifCreator: (
+      keyword: Keyword,
+      expression: Expression | null,
+      content: CPreprocessorContent | null
+    ) => CIf
+  ): IfElIfBlock {
+    this.enqueueToStack();
+
+    const ifKeyword = new Keyword(createTokenIndex(block.startToken));
+
+    const ifBlocks: CIf[] = [];
+    let cElse: CElse | undefined;
+
+    block.splitTokens.forEach((scope, i) => {
+      scope.rewind();
+      const startToken = this.prevToken!;
+      const keyword = new Keyword(createTokenIndex(startToken));
+
+      this.macroStart = true;
+
+      const expression =
+        this.processExpression(this.macros, true) ||
+        this.processCIdentifier(this.macros, true);
+
+      this.macroStart = false;
+
+      const isElse =
+        i === block.splitTokens.length - 1 &&
+        validToken(startToken, LexerToken.C_ELSE);
+      if (isElse) {
+        const elseToken = startToken;
+        const elseKeyword = new Keyword(createTokenIndex(elseToken));
+        let elseContent: CPreprocessorContent | undefined;
+        if (scope.tokens.length) {
+          elseContent = new CPreprocessorContent(
+            createTokenIndex(scope.tokens[0], scope.tokens.at(-1))
+          );
+        }
+        cElse = new CElse(elseKeyword, elseContent ?? null);
+      } else {
+        if (!expression) {
+          this._issues.push(
+            genIssue(SyntaxIssue.EXPECTED_IDENTIFIER, ifKeyword)
+          );
+        }
+
+        let content: CPreprocessorContent | undefined;
+        const contentStart =
+          expression?.lastToken.nextToken ?? ifKeyword.lastToken.nextToken;
+        if (contentStart && scope.tokens.find((t) => t === contentStart)) {
+          content = new CPreprocessorContent(
+            createTokenIndex(contentStart, block.splitTokens[i].tokens.at(-1))
+          );
+        }
+
+        const ifBlock = ifCreator(keyword, expression ?? null, content ?? null);
+        ifBlocks.push(ifBlock);
+      }
+    });
+
+    let endifKeyword: Keyword | undefined;
+    if (block.endToken) {
+      endifKeyword = new Keyword(createTokenIndex(block.endToken));
+    } else {
+      this._issues.push(genIssue(SyntaxIssue.MISSINEG_ENDIF, ifKeyword));
+    }
+    const ifElIfBlock = new IfElIfBlock(ifBlocks, endifKeyword ?? null, cElse);
+    this.mergeStack();
+    return ifElIfBlock;
   }
 
   get allAstItems(): ASTBase[] {
@@ -581,8 +720,7 @@ export class CPreprocessorParser extends BaseParser {
 
       await fileParser.stable;
 
-      // TODO once #id defined are supported
-      // this._issues.push(...fileParser.issues);
+      this._issues.push(...fileParser.issues);
 
       this.macros.clear();
       Array.from(fileParser.macros).forEach(([k, m]) => this.macros.set(k, m));

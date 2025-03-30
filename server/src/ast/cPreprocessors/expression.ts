@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-import { ContextAware } from "src/runtimeEvaluator";
 import { ASTBase } from "../base";
 import { Operator } from "./operator";
+import { MacroRegistryItem } from "../../types";
+import { expandMacros } from "../../helpers";
 
 function sanitizeCExpression(expr: string) {
   return expr
@@ -38,14 +39,23 @@ export abstract class Expression extends ASTBase {
     return -1;
   }
 
-  evaluate(context: ContextAware) {
-    return evalExp(context.expandMacros(this.toString()));
+  resolve(macros: Map<string, MacroRegistryItem>) {
+    return expandMacros(this.toString(), macros);
+  }
+
+  evaluate(macros: Map<string, MacroRegistryItem>) {
+    return evalExp(this.resolve(macros));
+  }
+
+  isTrue(macros: Map<string, MacroRegistryItem>): boolean {
+    return evalExp(`!!(${this.resolve(macros)})`);
   }
 }
 
 export class ComplexExpression extends Expression {
   constructor(
     public readonly expression: Expression,
+    private wrapped: boolean,
     public readonly join?: { operator: Operator; expression: Expression }
   ) {
     super();
@@ -62,6 +72,17 @@ export class ComplexExpression extends Expression {
   }
 
   toString() {
-    return `(${this.children.map((c) => c.toString()).join(" ")})`;
+    const exp = this.children.map((c) => c.toString()).join(" ");
+    if (this.wrapped) {
+      return `(${exp})`;
+    }
+    return `${exp}`;
+  }
+
+  isTrue(macros: Map<string, MacroRegistryItem>): boolean {
+    const exp = `(${this.children
+      .map((c) => (c instanceof Expression ? c.resolve(macros) : c.toString()))
+      .join(" ")})`;
+    return evalExp(`!!${exp}`);
   }
 }

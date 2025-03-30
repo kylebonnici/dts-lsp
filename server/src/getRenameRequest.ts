@@ -242,6 +242,7 @@ function getNodeNameRename(result: SearchableResult | undefined): Location[] {
 export async function getRenameRequest(
   location: RenameParams,
   contexts: ContextAware[],
+  activeContext?: ContextAware,
   preferredContext?: string | number
 ): Promise<WorkspaceEdit> {
   const changes: { [uri: string]: TextEdit[] } = {};
@@ -254,6 +255,7 @@ export async function getRenameRequest(
       ...getNodeLabelRename(location, locationMeta),
       ...getPropertyReferences(locationMeta),
     ],
+    activeContext,
     preferredContext
   );
 
@@ -273,6 +275,7 @@ export async function getPrepareRenameRequest(
   location: PrepareRenameParams,
   contexts: ContextAware[],
   lockRenameEdits: string[],
+  activeContext?: ContextAware,
   preferredContext?: string | number
 ): Promise<{
   defaultBehavior: boolean;
@@ -285,6 +288,7 @@ export async function getPrepareRenameRequest(
       ...getNodeLabelRename(location, locationMeta),
       ...getPropertyReferences(locationMeta),
     ],
+    activeContext,
     preferredContext
   );
 

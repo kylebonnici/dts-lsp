@@ -148,7 +148,10 @@ function getMacrosDefinition(result: SearchableResult | undefined): Location[] {
     );
     if (macro) {
       return [
-        Location.create(`file://${macro.uri}`, toRange(macro.identifier)),
+        Location.create(
+          `file://${macro.macro.uri}`,
+          toRange(macro.macro.identifier)
+        ),
       ];
     }
   }
@@ -159,6 +162,7 @@ function getMacrosDefinition(result: SearchableResult | undefined): Location[] {
 export async function getDefinitions(
   location: TextDocumentPositionParams,
   contexts: ContextAware[],
+  activeContext?: ContextAware,
   preferredContext?: string | number
 ): Promise<Location[]> {
   return nodeFinder(
@@ -169,6 +173,7 @@ export async function getDefinitions(
       ...getPropertyDefinition(locationMeta),
       ...getMacrosDefinition(locationMeta),
     ],
+    activeContext,
     preferredContext
   );
 }

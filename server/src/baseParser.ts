@@ -19,18 +19,29 @@ import {
   SemanticTokensBuilder,
   WorkspaceSymbol,
 } from "vscode-languageserver";
-import { Issue, LexerToken, SyntaxIssue, Token, TokenIndexes } from "./types";
+import {
+  Issue,
+  LexerToken,
+  MacroRegistryItem,
+  SyntaxIssue,
+  Token,
+  TokenIndexes,
+} from "./types";
 import {
   adjacentTokens,
   createTokenIndex,
   genIssue,
   validateToken,
+  validateValue,
   validToken,
 } from "./helpers";
 import { ASTBase } from "./ast/base";
 import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
 import { Operator, OperatorType } from "./ast/cPreprocessors/operator";
-import { CMacro } from "./ast/cPreprocessors/macro";
+import { FunctionDefinition } from "./ast/cPreprocessors/functionDefinition";
+import { CMacroCall, CMacroCallParam } from "./ast/cPreprocessors/functionCall";
+import { ComplexExpression, Expression } from "./ast/cPreprocessors/expression";
+import { NumberValue } from "./ast/dtc/values/number";
 
 export abstract class BaseParser {
   positionStack: number[] = [];
@@ -41,7 +52,9 @@ export abstract class BaseParser {
   public abstract get uri(): string;
   public abstract get tokens(): Token[];
   protected abstract parse(): Promise<void>;
-  public abstract reparse(macros?: Map<string, CMacro>): Promise<void>;
+  public abstract reparse(
+    macros?: Map<string, MacroRegistryItem>
+  ): Promise<void>;
 
   constructor() {
     this.parsing = new Promise<void>((resolve) => {
@@ -69,9 +82,12 @@ export abstract class BaseParser {
     return this.peekIndex() >= this.tokens.length;
   }
 
-  protected get moveToNextToken() {
+  protected get moveToNextToken(): Token | undefined {
     const token = this.currentToken;
+
+    if (!token) return;
     this.moveStackIndex();
+
     return token;
   }
 
@@ -126,12 +142,15 @@ export abstract class BaseParser {
   }
 
   protected moveStackIndex() {
-    if (this.positionStack[this.positionStack.length - 1] === undefined) {
+    const index = this.positionStack.length - 1;
+    if (this.positionStack[index] === undefined) {
       /* istanbul ignore next */
       throw new Error("Index out of bounds");
     }
 
-    this.positionStack[this.positionStack.length - 1]++;
+    if (this.positionStack[index] !== this.tokens.length) {
+      this.positionStack[index]++;
+    }
   }
 
   protected checkConcurrentTokens(
@@ -251,7 +270,7 @@ export abstract class BaseParser {
   }
 
   protected processCIdentifier(
-    macros: Map<string, CMacro>,
+    macros: Map<string, MacroRegistryItem>,
     skippingIssueChecking: boolean
   ): CIdentifier | undefined {
     this.enqueueToStack();
@@ -279,7 +298,7 @@ export abstract class BaseParser {
       createTokenIndex(valid[0], valid.at(-1))
     );
 
-    if (!skippingIssueChecking) {
+    if (!skippingIssueChecking && identifier.name !== "defined") {
       const macro = macros.get(identifier.name);
       if (!macro) {
         this._issues.push(genIssue(SyntaxIssue.UNKNOWN_MACRO, identifier));
@@ -332,7 +351,7 @@ export abstract class BaseParser {
         end = this.moveToNextToken;
       }
     } else if (validToken(start, LexerToken.LT_SYM)) {
-      operator = OperatorType.BOOLEAN_GT;
+      operator = OperatorType.BOOLEAN_LT;
       if (validToken(this.currentToken, LexerToken.LT_SYM)) {
         operator = OperatorType.BIT_LEFT_SHIFT;
         end = this.moveToNextToken;
@@ -353,6 +372,11 @@ export abstract class BaseParser {
     } else if (validToken(start, LexerToken.HASH)) {
       if (validToken(this.currentToken, LexerToken.HASH)) {
         operator = OperatorType.C_CONCAT;
+        end = this.moveToNextToken;
+      }
+    } else if (validToken(start, LexerToken.ASSIGN_OPERATOR)) {
+      if (validToken(this.currentToken, LexerToken.ASSIGN_OPERATOR)) {
+        operator = OperatorType.BOOLEAN_EQ;
         end = this.moveToNextToken;
       }
     }
@@ -379,36 +403,52 @@ export abstract class BaseParser {
       return;
     }
 
-    const items: BlockItem[] = [];
-    const split: Token[][] = [];
-    split[0] = [];
+    const index = this.peekIndex();
+    const rewind = () => {
+      this.positionStack[this.positionStack.length - 1] = index;
+    };
 
-    while (!isClose(this.currentToken)) {
-      const token = this.moveToNextToken;
+    const expandItems = (items: BlockItem[]): Token[] => {
+      return items.flatMap((i) => ("items" in i ? expandItems(i.items) : i));
+    };
 
+    const items: BlockItem[] = [start];
+    const split: { rewind: () => void; tokens: Token[] }[] = [];
+    split[0] = { rewind, tokens: [] };
+
+    let token = this.currentToken;
+    while (token && !isClose(token)) {
       if (isSplit?.(token)) {
-        split[split.length] = [];
-      }
-
-      if (token) {
+        const index = this.peekIndex() + 1;
+        const rewind = () => {
+          this.positionStack[this.positionStack.length - 1] = index;
+        };
         items.push(token);
-        split[split.length - 1].push(token);
-      }
-
-      if (isOpen(this.currentToken)) {
+        split[split.length] = { rewind, tokens: [] };
+      } else if (isOpen(token)) {
         const nestedBlock = this.parseScopedBlock(isOpen, isClose, isSplit);
         if (nestedBlock) {
           items.push(nestedBlock);
-          split[split.length - 1].push(
-            nestedBlock.startToken,
-            ...nestedBlock.splitTokens.flat(),
-            nestedBlock.endToken
+          split[split.length - 1].tokens.push(
+            ...expandItems(nestedBlock.items)
           );
         }
+        token = this.currentToken;
+        continue;
+      } else {
+        items.push(token);
+        split[split.length - 1].tokens.push(token);
       }
+
+      this.moveToNextToken;
+      token = this.currentToken;
     }
 
-    const end = this.moveToNextToken;
+    const end = token;
+    if (end && isClose(end)) {
+      this.moveToNextToken;
+      items.push(end);
+    }
 
     const block: Block = {
       startToken: start,
@@ -419,6 +459,243 @@ export abstract class BaseParser {
 
     this.mergeStack();
     return block;
+  }
+
+  protected isFunctionCall(
+    macros: Map<string, MacroRegistryItem>
+  ): CMacroCall | undefined {
+    this.enqueueToStack();
+    const identifier = this.processCIdentifier(macros, false);
+    if (!identifier) {
+      this.popStack();
+      return;
+    }
+
+    const params = this.processMacroCallParams();
+
+    if (!params) {
+      this.popStack();
+      return;
+    }
+
+    if (identifier.name === "defined") {
+      if (params.length > 1) {
+        this._issues.push(
+          genIssue(SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS, identifier)
+        );
+      } else if (params.length < 1) {
+        this._issues.push(
+          genIssue(SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS, identifier)
+        );
+      }
+    } else {
+      const macro = macros.get(identifier.name)?.macro;
+      if (macro) {
+        if (!(macro?.identifier instanceof FunctionDefinition)) {
+          this._issues.push(
+            genIssue(SyntaxIssue.EXPECTED_FUNCTION_LIKE, identifier)
+          );
+        } else if (params.length > macro.identifier.params.length) {
+          this._issues.push(
+            genIssue(
+              SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS,
+              identifier,
+              undefined,
+              [macro]
+            )
+          );
+        } else if (params.length < macro.identifier.params.length) {
+          this._issues.push(
+            genIssue(
+              SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS,
+              identifier,
+              undefined,
+              [macro]
+            )
+          );
+        }
+      }
+    }
+
+    const node = new CMacroCall(identifier, params);
+    node.lastToken = this.prevToken;
+    this.mergeStack();
+    return node;
+  }
+
+  protected processHex(): NumberValue | undefined {
+    this.enqueueToStack();
+
+    const validStart = this.checkConcurrentTokens([
+      validateValue("0"),
+      validateValue("x"),
+    ]);
+
+    if (validStart.length !== 2) {
+      this.popStack();
+      return;
+    }
+
+    const validValue = this.consumeAnyConcurrentTokens(
+      [LexerToken.DIGIT, LexerToken.HEX].map(validateToken)
+    );
+
+    if (!validValue.length) {
+      this.popStack();
+      return;
+    }
+
+    const num = Number.parseInt(validValue.map((v) => v.value).join(""), 16);
+    const numberValue = new NumberValue(
+      num,
+      createTokenIndex(validStart[0], validValue.at(-1))
+    );
+
+    this.mergeStack();
+    return numberValue;
+  }
+
+  protected processDec(): NumberValue | undefined {
+    this.enqueueToStack();
+
+    const valid = this.consumeAnyConcurrentTokens(
+      [LexerToken.DIGIT].map(validateToken)
+    );
+
+    if (!valid.length) {
+      this.popStack();
+      return;
+    }
+
+    const num = Number.parseInt(valid.map((v) => v.value).join(""), 10);
+    const numberValue = new NumberValue(
+      num,
+      createTokenIndex(valid[0], valid.at(-1))
+    );
+
+    this.mergeStack();
+    return numberValue;
+  }
+
+  private processEnclosedExpression(macros: Map<string, MacroRegistryItem>) {
+    this.enqueueToStack();
+
+    let start: Token | undefined;
+    let token: Token | undefined;
+    let expression: Expression | undefined;
+    if (validToken(this.currentToken, LexerToken.ROUND_OPEN)) {
+      start = this.moveToNextToken;
+      token = start;
+      expression = this.processExpression(macros, true);
+      if (expression) {
+        expression = new ComplexExpression(
+          new ComplexExpression(expression, true),
+          false
+        );
+      }
+      if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
+        this._issues.push(
+          genIssue(
+            SyntaxIssue.MISSING_ROUND_CLOSE,
+            new ASTBase(createTokenIndex(start!))
+          )
+        );
+      } else {
+        token = this.moveToNextToken;
+      }
+
+      this.mergeStack();
+      return expression;
+    }
+
+    this.popStack();
+  }
+
+  protected processExpression(
+    macros: Map<string, MacroRegistryItem>,
+    complexExpression = false
+  ): Expression | undefined {
+    this.enqueueToStack();
+
+    let expression: Expression | undefined;
+
+    expression =
+      this.processEnclosedExpression(macros) ||
+      this.isFunctionCall(macros) ||
+      this.processCIdentifier(macros, false) ||
+      this.processHex() ||
+      this.processDec();
+    if (!expression) {
+      this.popStack();
+      return;
+    }
+
+    if (complexExpression) {
+      let operator = this.isOperator();
+
+      while (operator) {
+        // complex
+        const nextExpression = this.processExpression(macros);
+
+        if (!nextExpression) {
+          this._issues.push(
+            genIssue(SyntaxIssue.EXPECTED_EXPRESSION, operator)
+          );
+        } else {
+          if (expression instanceof ComplexExpression) {
+            expression.addExpression(operator, nextExpression);
+          } else {
+            expression = new ComplexExpression(expression, false, {
+              operator,
+              expression: nextExpression,
+            });
+          }
+        }
+
+        operator = this.isOperator();
+      }
+    }
+
+    this.mergeStack();
+    return expression;
+  }
+
+  private processMacroCallParams(): (CMacroCallParam | null)[] | undefined {
+    if (!validToken(this.currentToken, LexerToken.ROUND_OPEN)) {
+      return;
+    }
+
+    const block = this.parseScopedBlock(
+      (token?: Token) => !!validToken(token, LexerToken.ROUND_OPEN),
+      (token?: Token) => !!validToken(token, LexerToken.ROUND_CLOSE),
+      (token?: Token) => !!validToken(token, LexerToken.COMMA)
+    );
+
+    if (
+      block?.items.length === 2 &&
+      validToken(block.endToken, LexerToken.ROUND_CLOSE)
+    ) {
+      return [];
+    }
+
+    const result = block?.splitTokens.map((param, i) => {
+      if (param.tokens.length === 0) return null;
+      return new CMacroCallParam(
+        param.tokens
+          .map((p, i) => {
+            let v = p.value;
+            if (p.pos.line === param.tokens.at(i + 1)?.pos.line) {
+              v = v.padEnd(param.tokens[i + 1].pos.col - p.pos.col, " ");
+            }
+            return v;
+          })
+          .join(""),
+        createTokenIndex(param.tokens[0], param.tokens.at(-1)),
+        i
+      );
+    });
+
+    return result;
   }
 
   protected moveEndOfLine = (token: Token, report = true) => {
@@ -443,16 +720,12 @@ export abstract class BaseParser {
 
     return end;
   };
-
-  getTokenIndex(token?: Token) {
-    return token ? this.tokens.findIndex((item) => item === token) : -1;
-  }
 }
 
 export type BlockItem = Token | Block;
 export interface Block {
   startToken: Token;
   items: BlockItem[];
-  splitTokens: Token[][];
-  endToken: Token;
+  splitTokens: { rewind: () => void; tokens: Token[] }[];
+  endToken?: Token;
 }

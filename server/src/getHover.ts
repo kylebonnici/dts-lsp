@@ -35,7 +35,9 @@ function getCMacroCall(ast: ASTBase | undefined): CMacroCall | undefined {
   return getCMacroCall(ast.parentNode);
 }
 
-function getMacros(result: SearchableResult | undefined): Hover | undefined {
+async function getMacros(
+  result: SearchableResult | undefined
+): Promise<Hover | undefined> {
   if (
     result?.ast instanceof CIdentifier ||
     result?.ast instanceof CMacroCallParam
@@ -46,6 +48,7 @@ function getMacros(result: SearchableResult | undefined): Hover | undefined {
 
     if (macro) {
       const call = getCMacroCall(result.ast);
+      const lastParser = (await result.runtime.context.getAllParsers()).at(-1)!;
 
       if (call) {
         return {
@@ -53,8 +56,8 @@ function getMacros(result: SearchableResult | undefined): Hover | undefined {
             kind: MarkupKind.Markdown,
             value: [
               "```cpp",
-              `#define ${macro.toString()} // = ${call?.evaluate(
-                result.runtime.context
+              `#define ${macro.macro.toString()} // = ${call?.evaluate(
+                lastParser.cPreprocessorParser.macros
               )}`,
               "```",
             ].join("\n"),
@@ -68,8 +71,8 @@ function getMacros(result: SearchableResult | undefined): Hover | undefined {
           kind: MarkupKind.Markdown,
           value: [
             "```cpp",
-            `#define ${macro.toString()} // = ${result.ast?.evaluate(
-              result.runtime.context
+            `#define ${macro.macro.toString()} // = ${result.ast?.evaluate(
+              lastParser.cPreprocessorParser.macros
             )}`,
             "```",
           ].join("\n"),
@@ -143,16 +146,18 @@ function getPropertyName(
 export function getHover(
   hoverParams: HoverParams,
   context: ContextAware[],
+  activeContext?: ContextAware,
   preferredContext?: string | number
 ): Promise<(Hover | undefined)[]> {
   return nodeFinder<Hover | undefined>(
     hoverParams,
     context,
-    (locationMeta) => [
+    async (locationMeta) => [
       getNode(locationMeta) ||
         getPropertyName(locationMeta) ||
-        getMacros(locationMeta),
+        (await getMacros(locationMeta)),
     ],
+    activeContext,
     preferredContext
   );
 }

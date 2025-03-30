@@ -697,6 +697,10 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "Macro expects less arguments";
     case SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS:
       return "Macro expects more arguments";
+    case SyntaxIssue.MISSINEG_ENDIF:
+      return "Missing #ENDIF";
+    case SyntaxIssue.UNUSED_BLOCK:
+      return "Block Unused";
     case SyntaxIssue.BITS_NON_OFFICIAL_SYNTAX:
       return "This syntax is not officially part of the DTS V0.4 standard";
   }
@@ -939,17 +943,19 @@ const generateClearWorkspaceDiagnostics = (context: ContextAware) =>
       } satisfies PublishDiagnosticsParams)
   );
 
-const clearWorkspaceDiagnostics = (
+const clearWorkspaceDiagnostics = async (
   context: ContextAware,
   items: PublishDiagnosticsParams[] = generateClearWorkspaceDiagnostics(context)
 ) => {
-  items.forEach((item) => {
-    connection.sendDiagnostics({
-      uri: item.uri,
-      version: documents.get(item.uri)?.version,
-      diagnostics: [],
-    } satisfies PublishDiagnosticsParams);
-  });
+  return await Promise.all(
+    items.map((item) => {
+      return connection.sendDiagnostics({
+        uri: item.uri,
+        version: documents.get(item.uri)?.version,
+        diagnostics: [],
+      } satisfies PublishDiagnosticsParams);
+    })
+  );
 };
 
 const reportWorkspaceDiagnostics = async (context: ContextAware) => {
@@ -1014,6 +1020,7 @@ async function getDiagnostics(
             ? issue.issues.map(syntaxIssueToMessage).join(" or ")
             : "",
           source: "devicetree",
+          tags: issue.tags,
           data: {
             firstToken: {
               pos: issue.astElement.firstToken.pos,
@@ -1128,11 +1135,13 @@ connection.onCompletion(
         ...(await getCompletions(
           _textDocumentPosition,
           contextAware,
+          activeContext,
           globalSettings.preferredContext
         )),
         ...(await getTypeCompletions(
           _textDocumentPosition,
           contextAware,
+          activeContext,
           globalSettings.preferredContext
         )),
       ];
@@ -1162,17 +1171,20 @@ const updateActiveContext = async (uri: string, force = false) => {
 
   activeFileUri = uri;
   await allStable();
+  if (activeContext?.getContextFiles().find((f) => f === uri)) return;
   const oldContext = activeContext;
+
   activeContext = findContext(
     contextAware,
     uri,
+    undefined,
     globalSettings.preferredContext
   )?.context;
 
   const context = activeContext;
   if (oldContext !== context) {
     if (oldContext) {
-      clearWorkspaceDiagnostics(oldContext);
+      await clearWorkspaceDiagnostics(oldContext);
     }
     if (context) {
       reportWorkspaceDiagnostics(context).then((d) => {
@@ -1223,26 +1235,32 @@ connection.onWorkspaceSymbol(async () => {
 });
 
 connection.languages.semanticTokens.on(async (h) => {
-  await allStable();
-  const uri = h.textDocument.uri.replace("file://", "");
-  await updateActiveContext(uri);
+  try {
+    await allStable();
+    const uri = h.textDocument.uri.replace("file://", "");
+    await updateActiveContext(uri);
 
-  const tokensBuilder = new SemanticTokensBuilder();
+    const tokensBuilder = new SemanticTokensBuilder();
 
-  const contextMeta = await findContext(
-    contextAware,
-    uri,
-    globalSettings.preferredContext
-  );
+    const contextMeta = await findContext(
+      contextAware,
+      uri,
+      activeContext,
+      globalSettings.preferredContext
+    );
 
-  const isInContext = contextMeta?.context.isInContext(uri);
-  if (!contextMeta || !isInContext) {
-    return { data: [] };
+    const isInContext = contextMeta?.context.isInContext(uri);
+    if (!contextMeta || !isInContext) {
+      return { data: [] };
+    }
+
+    contextMeta.context.parser.buildSemanticTokens(tokensBuilder, uri);
+
+    return tokensBuilder.build();
+  } catch (e) {
+    console.log(e);
+    throw e;
   }
-
-  contextMeta.context.parser.buildSemanticTokens(tokensBuilder, uri);
-
-  return tokensBuilder.build();
 });
 
 connection.onDocumentLinks(async (event) => {
@@ -1251,6 +1269,7 @@ connection.onDocumentLinks(async (event) => {
   const contextMeta = await findContext(
     contextAware,
     uri,
+    activeContext,
     globalSettings.preferredContext
   );
 
@@ -1263,18 +1282,29 @@ connection.onPrepareRename(async (event) => {
     event,
     contextAware,
     globalSettings.lockRenameEdits ?? [],
+    activeContext,
     globalSettings.preferredContext
   );
 });
 
 connection.onRenameRequest(async (event) => {
   await allStable();
-  return getRenameRequest(event, contextAware, globalSettings.preferredContext);
+  return getRenameRequest(
+    event,
+    contextAware,
+    activeContext,
+    globalSettings.preferredContext
+  );
 });
 
 connection.onReferences(async (event) => {
   await allStable();
-  return getReferences(event, contextAware, globalSettings.preferredContext);
+  return getReferences(
+    event,
+    contextAware,
+    activeContext,
+    globalSettings.preferredContext
+  );
 });
 
 connection.onDefinition(async (event) => {
@@ -1284,6 +1314,7 @@ connection.onDefinition(async (event) => {
   const contextMeta = await findContext(
     contextAware,
     uri,
+    activeContext,
     globalSettings.preferredContext
   );
 
@@ -1294,12 +1325,22 @@ connection.onDefinition(async (event) => {
 
   if (documentLinkDefinition.length) return documentLinkDefinition;
 
-  return getDefinitions(event, contextAware, globalSettings.preferredContext);
+  return getDefinitions(
+    event,
+    contextAware,
+    activeContext,
+    globalSettings.preferredContext
+  );
 });
 
 connection.onDeclaration(async (event) => {
   await allStable();
-  return getDeclaration(event, contextAware, globalSettings.preferredContext);
+  return getDeclaration(
+    event,
+    contextAware,
+    activeContext,
+    globalSettings.preferredContext
+  );
 });
 
 connection.onCodeAction(async (event) => {
@@ -1312,6 +1353,7 @@ connection.onDocumentFormatting(async (event) => {
   const contextMeta = await findContext(
     contextAware,
     uri,
+    activeContext,
     globalSettings.preferredContext
   );
   if (!contextMeta) {
@@ -1324,7 +1366,12 @@ connection.onDocumentFormatting(async (event) => {
 connection.onHover(async (event) => {
   await allStable();
   return (
-    await getHover(event, contextAware, globalSettings.preferredContext)
+    await getHover(
+      event,
+      contextAware,
+      activeContext,
+      globalSettings.preferredContext
+    )
   ).at(0);
 });
 
@@ -1345,8 +1392,8 @@ connection.onFoldingRanges(async (event) => {
     return [];
   }
 
-  const parser = (await context.getAllParsers()).find((p) =>
-    p.includes.some((i) => i.uri === uri)
+  const parser = (await context.getAllParsers()).find(
+    (p) => p.includes.some((i) => i.uri === uri) || p.uri === uri
   );
 
   if (parser) return getFoldingRanges(uri, parser);
@@ -1355,5 +1402,5 @@ connection.onFoldingRanges(async (event) => {
 
 connection.onTypeDefinition(async (event) => {
   await allStable();
-  return typeDefinition(event, contextAware);
+  return typeDefinition(event, contextAware, activeContext);
 });

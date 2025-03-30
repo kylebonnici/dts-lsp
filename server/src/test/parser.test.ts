@@ -35,7 +35,7 @@ import { StringValue } from "../ast/dtc/values/string";
 import { ByteStringValue } from "../ast/dtc/values/byteString";
 import { DeleteNode } from "../ast/dtc/deleteNode";
 import { Comment } from "../ast/dtc/comment";
-import { IfDefineBlock } from "../ast/cPreprocessors/ifDefine";
+import { IfDefineBlock, IfElIfBlock } from "../ast/cPreprocessors/ifDefine";
 import { CPreprocessorParser } from "../cPreprocessorParser";
 import { DtsDocumentVersion } from "../ast/dtc/dtsDocVersion";
 import { CMacroCall } from "../ast/cPreprocessors/functionCall";
@@ -47,6 +47,7 @@ import {
   Variadic,
 } from "../ast/cPreprocessors/functionDefinition";
 import { DtsMemreserveNode } from "../ast/dtc/memreserveNode";
+import { tokensToString } from "../helpers";
 
 jest.mock("fs", () => ({
   readFileSync: jest.fn().mockImplementation(() => {
@@ -373,10 +374,13 @@ describe("Parser", () => {
       mockReadFileSync("/{ node1{}; node{");
       const parser = new Parser("/folder/dts.dts", []);
       await parser.stable;
-      expect(parser.issues.length).toEqual(1);
+      expect(parser.issues.length).toEqual(2);
       expect(parser.issues[0].issues).toEqual([SyntaxIssue.CURLY_CLOSE]);
       expect(parser.issues[0].astElement.lastToken.pos.col).toEqual(16);
       expect(parser.issues[0].astElement.lastToken.pos.len).toEqual(1);
+      expect(parser.issues[1].issues).toEqual([SyntaxIssue.CURLY_CLOSE]);
+      expect(parser.issues[1].astElement.lastToken.pos.col).toEqual(16);
+      expect(parser.issues[1].astElement.lastToken.pos.len).toEqual(1);
     });
 
     test("Ref Path", async () => {
@@ -2154,6 +2158,35 @@ describe("Parser", () => {
         expect(cMacro.toString()).toEqual("ADD(a,b) a + b");
       });
 
+      test("Multi Line like", async () => {
+        mockReadFileSync("#DEFINE \\\nADD(a,b) \\\na + b");
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const cMacros = parser.allAstItems.filter(
+          (o) => o instanceof CMacro
+        ) as CMacro[];
+        expect(cMacros.length).toEqual(1);
+
+        const cMacro = cMacros[0];
+        expect(cMacro.name).toEqual("ADD");
+        expect(cMacro.tokenIndexes.start.pos.col).toEqual(0);
+
+        expect(cMacro.tokenIndexes.end.pos.line).toEqual(2);
+        expect(
+          cMacro.tokenIndexes.end.pos.col + cMacro.tokenIndexes.end.pos.len
+        ).toEqual(5);
+
+        expect(cMacro.content?.toString()).toEqual("a + b");
+
+        expect(cMacro.toString()).toEqual("ADD(a,b) a + b");
+      });
+
       test("Variadic function like", async () => {
         mockReadFileSync("#DEFINE ADD(a,b, ...) a + b + c + d");
         const parser = new CPreprocessorParser(
@@ -2432,7 +2465,7 @@ describe("Parser", () => {
             parser.issues[0].astElement.lastToken.pos.len
         ).toEqual(6);
       });
-      test("If def - end", async () => {
+      test("If def - end - false", async () => {
         mockReadFileSync("#IFDEF HELLO\nsome\nstuff\n#endif");
         const parser = new CPreprocessorParser(
           "/folder/dts.dts",
@@ -2440,7 +2473,8 @@ describe("Parser", () => {
           new Map()
         );
         await parser.stable;
-        expect(parser.issues.length).toEqual(0);
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.UNUSED_BLOCK]);
 
         const ifDefineBlocks = parser.allAstItems.filter(
           (o) => o instanceof IfDefineBlock
@@ -2463,10 +2497,11 @@ describe("Parser", () => {
           2
         );
         expect(ifDefineBlock.elseOption).toBeUndefined();
+        expect(tokensToString(parser.tokens)).toEqual("");
       });
 
-      test("If def - else if - end", async () => {
-        mockReadFileSync("#IFDEF HELLO\nsome\nstuff\n#else\nfoo\nbar\n#endif");
+      test("If def - end - true", async () => {
+        mockReadFileSync("#DEFINE HELLO\n#IFDEF HELLO\nsome\nstuff\n#endif");
         const parser = new CPreprocessorParser(
           "/folder/dts.dts",
           [],
@@ -2474,6 +2509,97 @@ describe("Parser", () => {
         );
         await parser.stable;
         expect(parser.issues.length).toEqual(0);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfDefineBlock
+        ) as IfDefineBlock[];
+        expect(ifDefineBlocks.length).toEqual(1);
+
+        const ifDefineBlock = ifDefineBlocks[0];
+        expect(ifDefineBlock.ifDef.identifier?.name).toEqual("HELLO");
+        expect(ifDefineBlock.ifDef.content?.tokenIndexes.start.pos.col).toEqual(
+          0
+        );
+        expect(
+          ifDefineBlock.ifDef.content?.tokenIndexes.start.pos.line
+        ).toEqual(2);
+        expect(
+          ifDefineBlock.ifDef.content!.tokenIndexes.end.pos.col +
+            ifDefineBlock.ifDef.content!.tokenIndexes.end.pos.len
+        ).toEqual(5);
+        expect(ifDefineBlock.ifDef.content?.tokenIndexes.end.pos.line).toEqual(
+          3
+        );
+        expect(ifDefineBlock.elseOption).toBeUndefined();
+        expect(tokensToString(parser.tokens).trim()).toEqual("some\nstuff");
+      });
+
+      test("Nested - If def - end - true", async () => {
+        mockReadFileSync(
+          "#DEFINE HELLO\n#DEFINE AGAIN\n#IFDEF HELLO\nsome\nstuff\n#IFDEF AGAIN\nfoo\nbar\n#endif\n#endif"
+        );
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfDefineBlock
+        ) as IfDefineBlock[];
+        expect(ifDefineBlocks.length).toEqual(2);
+
+        const ifDefineBlock = ifDefineBlocks[0];
+        expect(ifDefineBlock.ifDef.identifier?.name).toEqual("HELLO");
+        expect(ifDefineBlock.ifDef.content?.tokenIndexes.start.pos.col).toEqual(
+          0
+        );
+        expect(
+          ifDefineBlock.ifDef.content?.tokenIndexes.start.pos.line
+        ).toEqual(3);
+        expect(
+          ifDefineBlock.ifDef.content!.tokenIndexes.end.pos.col +
+            ifDefineBlock.ifDef.content!.tokenIndexes.end.pos.len
+        ).toEqual(6);
+        expect(ifDefineBlock.ifDef.content?.tokenIndexes.end.pos.line).toEqual(
+          8
+        );
+        expect(ifDefineBlock.elseOption).toBeUndefined();
+
+        const ifDefineBlockNested = ifDefineBlocks[1];
+        expect(ifDefineBlockNested.ifDef.identifier?.name).toEqual("AGAIN");
+        expect(
+          ifDefineBlockNested.ifDef.content?.tokenIndexes.start.pos.col
+        ).toEqual(0);
+        expect(
+          ifDefineBlockNested.ifDef.content?.tokenIndexes.start.pos.line
+        ).toEqual(6);
+        expect(
+          ifDefineBlockNested.ifDef.content!.tokenIndexes.end.pos.col +
+            ifDefineBlockNested.ifDef.content!.tokenIndexes.end.pos.len
+        ).toEqual(3);
+        expect(
+          ifDefineBlockNested.ifDef.content?.tokenIndexes.end.pos.line
+        ).toEqual(7);
+        expect(ifDefineBlockNested.elseOption).toBeUndefined();
+
+        expect(tokensToString(parser.tokens).trim()).toEqual(
+          "some\nstuff\nfoo\nbar"
+        );
+      });
+
+      test("If def - else  - end", async () => {
+        mockReadFileSync("#IFDEF HELLO\nsome\nstuff\n#else\nfoo\nbar\n#endif");
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.UNUSED_BLOCK]);
 
         const ifDefineBlocks = parser.allAstItems.filter(
           (o) => o instanceof IfDefineBlock
@@ -2509,6 +2635,7 @@ describe("Parser", () => {
         expect(
           ifDefineBlock.elseOption!.content?.tokenIndexes.end.pos.line
         ).toEqual(5);
+        expect(tokensToString(parser.tokens).trim()).toEqual("foo\nbar");
       });
 
       test("Nested If def - else - end -- Use else", async () => {
@@ -2521,7 +2648,9 @@ describe("Parser", () => {
           new Map()
         );
         await parser.stable;
-        expect(parser.issues.length).toEqual(0);
+        expect(parser.issues.length).toEqual(2);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.UNUSED_BLOCK]);
+        expect(parser.issues[1].issues).toEqual([SyntaxIssue.UNUSED_BLOCK]);
 
         const ifDefineBlocks = parser.allAstItems.filter(
           (o) => o instanceof IfDefineBlock
@@ -2589,12 +2718,14 @@ describe("Parser", () => {
         expect(
           ifDefineBlockInner.elseOption!.content?.tokenIndexes.end.pos.line
         ).toEqual(14);
+
+        expect(tokensToString(parser.tokens).trim()).toEqual("foo\nbar");
       });
 
       test("Nested If def - else - end -- Use HELLO and AGAIN", async () => {
         mockReadFileSync(
           `#DEFINE HELLO\n#DEFINE AGAIN\n#IFDEF HELLO\n#IFDEF AGAIN\nsome\nstuff\n#else\nfoo\nbar\n#endif\n#else\n#IFDEF HELLO_AGAIN
-          \nsome\nstuff\n#else\nfoo\nbar\n#endif\n#endif`
+          \nsome\nstuff2\n#else\nfoo\nbar2\n#endif\n#endif`
         );
 
         const parser = new CPreprocessorParser(
@@ -2603,7 +2734,9 @@ describe("Parser", () => {
           new Map()
         );
         await parser.stable;
-        expect(parser.issues.length).toEqual(0);
+        expect(parser.issues.length).toEqual(2);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.UNUSED_BLOCK]);
+        expect(parser.issues[1].issues).toEqual([SyntaxIssue.UNUSED_BLOCK]);
 
         const ifDefineBlocks = parser.allAstItems.filter(
           (o) => o instanceof IfDefineBlock
@@ -2669,6 +2802,8 @@ describe("Parser", () => {
         expect(
           ifDefineBlockInner.elseOption!.content?.tokenIndexes.end.pos.line
         ).toEqual(8);
+
+        expect(tokensToString(parser.tokens).trim()).toEqual("some\nstuff");
       });
 
       test("If not def - end", async () => {
@@ -2702,6 +2837,408 @@ describe("Parser", () => {
           2
         );
         expect(ifDefineBlock.elseOption).toBeUndefined();
+      });
+    });
+
+    describe("If elif", () => {
+      test("If def - end - defined - false", async () => {
+        mockReadFileSync("#IF defined(HELLO)\nsome\nstuff\n#endif");
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.UNUSED_BLOCK]);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfElIfBlock
+        ) as IfElIfBlock[];
+        expect(ifDefineBlocks.length).toEqual(1);
+
+        const ifDefineBlock = ifDefineBlocks[0];
+        expect(
+          ifDefineBlock.ifBlocks[0].expression instanceof CMacroCall
+        ).toBeTruthy();
+        const expression = ifDefineBlock.ifBlocks[0].expression as CMacroCall;
+        expect(expression.functionName.name).toEqual("defined");
+        expect(expression.params[0]?.value).toEqual("HELLO");
+        expect(expression.isTrue(parser.macros)).toBeFalsy();
+
+        expect(tokensToString(parser.tokens).trim()).toEqual("");
+      });
+
+      test("If def - else - end - use else", async () => {
+        mockReadFileSync(
+          "#IF defined(HELLO)\nsome\nstuff\n#else\nfoo\nbar\n#endif"
+        );
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.UNUSED_BLOCK]);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfElIfBlock
+        ) as IfElIfBlock[];
+        expect(ifDefineBlocks.length).toEqual(1);
+
+        const ifDefineBlock = ifDefineBlocks[0];
+        expect(
+          ifDefineBlock.ifBlocks[0].expression instanceof CMacroCall
+        ).toBeTruthy();
+        const expression = ifDefineBlock.ifBlocks[0].expression as CMacroCall;
+        expect(expression.functionName.name).toEqual("defined");
+        expect(expression.params[0]?.value).toEqual("HELLO");
+        expect(expression.isTrue(parser.macros)).toBeFalsy();
+
+        expect(tokensToString(parser.tokens).trim()).toEqual("foo\nbar");
+      });
+
+      test("If def - eldif - else - end - use elif", async () => {
+        mockReadFileSync(
+          "#DEFINE AGAIN\n#IF defined(HELLO)\nsome\nstuff\n#ELIF defined(AGAIN)\nFOOBAR\n#ELSE\nfoo\nbar\n#endif"
+        );
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
+        await parser.stable;
+        expect(parser.issues.length).toEqual(2);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.UNUSED_BLOCK]);
+        expect(parser.issues[1].issues).toEqual([SyntaxIssue.UNUSED_BLOCK]);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfElIfBlock
+        ) as IfElIfBlock[];
+        expect(ifDefineBlocks.length).toEqual(1);
+
+        const ifDefineBlock = ifDefineBlocks[0];
+        expect(
+          ifDefineBlock.ifBlocks[0].expression instanceof CMacroCall
+        ).toBeTruthy();
+        const expression = ifDefineBlock.ifBlocks[0].expression as CMacroCall;
+        expect(expression.functionName.name).toEqual("defined");
+        expect(expression.params[0]?.value).toEqual("HELLO");
+        expect(expression.isTrue(parser.macros)).toBeFalsy();
+
+        expect(tokensToString(parser.tokens).trim()).toEqual("FOOBAR");
+      });
+
+      test("If def - end - defined - true", async () => {
+        mockReadFileSync(
+          "#DEFINE HELLO\n#IF defined(HELLO)\nsome\nstuff\n#endif"
+        );
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfElIfBlock
+        ) as IfElIfBlock[];
+        expect(ifDefineBlocks.length).toEqual(1);
+
+        const ifDefineBlock = ifDefineBlocks[0];
+        expect(
+          ifDefineBlock.ifBlocks[0].expression instanceof CMacroCall
+        ).toBeTruthy();
+        const expression = ifDefineBlock.ifBlocks[0].expression as CMacroCall;
+        expect(expression.functionName.name).toEqual("defined");
+        expect(expression.params[0]?.value).toEqual("HELLO");
+        expect(expression.isTrue(parser.macros)).toBeTruthy();
+
+        expect(tokensToString(parser.tokens).trim()).toEqual("some\nstuff");
+      });
+
+      test("If def - end - simple expression - true", async () => {
+        mockReadFileSync("#IF 10 < 20\nsome\nstuff\n#endif");
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfElIfBlock
+        ) as IfElIfBlock[];
+        expect(ifDefineBlocks.length).toEqual(1);
+
+        const ifDefineBlock = ifDefineBlocks[0];
+
+        const expression = ifDefineBlock.ifBlocks[0].expression;
+        expect(expression?.isTrue(parser.macros)).toBeTruthy();
+
+        expect(tokensToString(parser.tokens).trim()).toEqual("some\nstuff");
+      });
+
+      test("If def - end - simple expression - false", async () => {
+        mockReadFileSync("#IF 10 > 20\nsome\nstuff\n#endif");
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.UNUSED_BLOCK]);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfElIfBlock
+        ) as IfElIfBlock[];
+        expect(ifDefineBlocks.length).toEqual(1);
+
+        const ifDefineBlock = ifDefineBlocks[0];
+
+        const expression = ifDefineBlock.ifBlocks[0].expression;
+        expect(expression?.isTrue(parser.macros)).toBeFalsy();
+
+        expect(tokensToString(parser.tokens).trim()).toEqual("");
+      });
+
+      test("If def - end - simple macro expression - true", async () => {
+        mockReadFileSync(
+          "#DEFINE ADD(x,y) x + y\n#IF ADD(6,4) == 10\nsome\nstuff\n#endif"
+        );
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfElIfBlock
+        ) as IfElIfBlock[];
+        expect(ifDefineBlocks.length).toEqual(1);
+
+        const ifDefineBlock = ifDefineBlocks[0];
+
+        const expression = ifDefineBlock.ifBlocks[0].expression;
+        expect(expression?.isTrue(parser.macros)).toBeTruthy();
+
+        expect(tokensToString(parser.tokens).trim()).toEqual("some\nstuff");
+      });
+
+      test("If def - end - simple long expression - false", async () => {
+        mockReadFileSync("#IF 10 + 5 > 20 - 5\nsome\nstuff\n#endif");
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.UNUSED_BLOCK]);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfElIfBlock
+        ) as IfElIfBlock[];
+        expect(ifDefineBlocks.length).toEqual(1);
+
+        const ifDefineBlock = ifDefineBlocks[0];
+
+        const expression = ifDefineBlock.ifBlocks[0].expression;
+        expect(expression?.isTrue(parser.macros)).toBeFalsy();
+
+        expect(tokensToString(parser.tokens).trim()).toEqual("");
+      });
+
+      test("If def - end - simple long expression - true", async () => {
+        mockReadFileSync("#IF 10 + 5 == 20 - 5\nsome\nstuff\n#endif");
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfElIfBlock
+        ) as IfElIfBlock[];
+        expect(ifDefineBlocks.length).toEqual(1);
+
+        const ifDefineBlock = ifDefineBlocks[0];
+
+        const expression = ifDefineBlock.ifBlocks[0].expression;
+        expect(expression?.isTrue(parser.macros)).toBeTruthy();
+        expect(tokensToString(parser.tokens).trim()).toEqual("some\nstuff");
+      });
+
+      test("If def - end - simple long expression MACRO - true", async () => {
+        mockReadFileSync(
+          "#DEFINE ADD(x,y) x + y\n#DEFINE SUB(x,y) x - y\n#IF ADD(10, 5) == SUB(20 ,5)\nsome\nstuff\n#endif"
+        );
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfElIfBlock
+        ) as IfElIfBlock[];
+        expect(ifDefineBlocks.length).toEqual(1);
+
+        const ifDefineBlock = ifDefineBlocks[0];
+
+        const expression = ifDefineBlock.ifBlocks[0].expression;
+        expect(expression?.isTrue(parser.macros)).toBeTruthy();
+        expect(tokensToString(parser.tokens).trim()).toEqual("some\nstuff");
+      });
+
+      test("If def - end - simple long expression MACRO - false", async () => {
+        mockReadFileSync(
+          "#DEFINE ADD(x,y) x + y\n#DEFINE SUB(x,y) x - y\n#IF ADD(10, 6) == SUB(20 ,5)\nsome\nstuff\n#endif"
+        );
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.UNUSED_BLOCK]);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfElIfBlock
+        ) as IfElIfBlock[];
+        expect(ifDefineBlocks.length).toEqual(1);
+
+        const ifDefineBlock = ifDefineBlocks[0];
+
+        const expression = ifDefineBlock.ifBlocks[0].expression;
+        expect(expression?.isTrue(parser.macros)).toBeFalsy();
+
+        expect(tokensToString(parser.tokens).trim()).toEqual("");
+      });
+
+      test("If def - end - simple longer expression - true", async () => {
+        mockReadFileSync("#IF 10 + 5 == 20 - 5 && 5 < 10\nsome\nstuff\n#endif");
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfElIfBlock
+        ) as IfElIfBlock[];
+        expect(ifDefineBlocks.length).toEqual(1);
+
+        const ifDefineBlock = ifDefineBlocks[0];
+
+        const expression = ifDefineBlock.ifBlocks[0].expression;
+        expect(expression?.isTrue(parser.macros)).toBeTruthy();
+
+        expect(tokensToString(parser.tokens).trim()).toEqual("some\nstuff");
+      });
+
+      test("If def - end - simple longer expression - false", async () => {
+        mockReadFileSync("#IF 10 + 5 == 20 - 5 && 5 > 10\nsome\nstuff\n#endif");
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.UNUSED_BLOCK]);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfElIfBlock
+        ) as IfElIfBlock[];
+        expect(ifDefineBlocks.length).toEqual(1);
+
+        const ifDefineBlock = ifDefineBlocks[0];
+
+        const expression = ifDefineBlock.ifBlocks[0].expression;
+        expect(expression?.isTrue(parser.macros)).toBeFalsy();
+        expect(tokensToString(parser.tokens).trim()).toEqual("");
+      });
+
+      test("If def - end - simple longer expression - false", async () => {
+        mockReadFileSync("#IF 10 + 5 == 20 - 5 && 5 > 10\nsome\nstuff\n#endif");
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.UNUSED_BLOCK]);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfElIfBlock
+        ) as IfElIfBlock[];
+        expect(ifDefineBlocks.length).toEqual(1);
+
+        const ifDefineBlock = ifDefineBlocks[0];
+
+        const expression = ifDefineBlock.ifBlocks[0].expression;
+        expect(expression?.isTrue(parser.macros)).toBeFalsy();
+        expect(tokensToString(parser.tokens).trim()).toEqual("");
+      });
+
+      test("If def - end - BODMAS - true", async () => {
+        mockReadFileSync("#IF 10 + 5 * 2 == 20\nsome\nstuff\n#endif");
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
+        await parser.stable;
+        expect(parser.issues.length).toEqual(0);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfElIfBlock
+        ) as IfElIfBlock[];
+        expect(ifDefineBlocks.length).toEqual(1);
+
+        const ifDefineBlock = ifDefineBlocks[0];
+
+        const expression = ifDefineBlock.ifBlocks[0].expression;
+        expect(expression?.isTrue(parser.macros)).toBeTruthy();
+        expect(tokensToString(parser.tokens).trim()).toEqual("some\nstuff");
+      });
+
+      test("If def - end - BODMAS - false", async () => {
+        mockReadFileSync("#IF (10 + 5) * 2 == 20\nsome\nstuff\n#endif");
+        const parser = new CPreprocessorParser(
+          "/folder/dts.dts",
+          [],
+          new Map()
+        );
+        await parser.stable;
+        expect(parser.issues.length).toEqual(1);
+        expect(parser.issues[0].issues).toEqual([SyntaxIssue.UNUSED_BLOCK]);
+
+        const ifDefineBlocks = parser.allAstItems.filter(
+          (o) => o instanceof IfElIfBlock
+        ) as IfElIfBlock[];
+        expect(ifDefineBlocks.length).toEqual(1);
+
+        const ifDefineBlock = ifDefineBlocks[0];
+
+        const expression = ifDefineBlock.ifBlocks[0].expression;
+        expect(expression?.isTrue(parser.macros)).toBeFalsy();
+        expect(tokensToString(parser.tokens).trim()).toEqual("");
       });
     });
   });

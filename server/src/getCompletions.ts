@@ -377,6 +377,7 @@ function getNodeRefPathsItems(
 export async function getCompletions(
   location: TextDocumentPositionParams,
   context: ContextAware[],
+  activeContext?: ContextAware,
   preferredContext?: string | number
 ): Promise<CompletionItem[]> {
   return nodeFinder(
@@ -391,6 +392,7 @@ export async function getCompletions(
       ...getRefLabelsItems(locationMeta, inScope),
       ...getIncudePathItems(locationMeta),
     ],
+    activeContext,
     preferredContext
   );
 }

@@ -24,6 +24,7 @@ import { ASTBase } from "./ast/base";
 import { Node } from "./context/node";
 import { Property } from "./context/property";
 import { Runtime } from "./context/runtime";
+import { CMacro } from "./ast/cPreprocessors/macro";
 
 export type CodeActionDiagnosticData = {
   issues: { edit?: TextEdit; codeActionTitle?: string } & (
@@ -114,6 +115,8 @@ export enum SyntaxIssue {
   EXPECTED_FUNCTION_LIKE,
   MACRO_EXPECTS_LESS_PARAMS,
   MACRO_EXPECTS_MORE_PARAMS,
+  MISSINEG_ENDIF,
+  UNUSED_BLOCK,
 }
 
 export enum ContextIssues {
@@ -283,4 +286,11 @@ export interface Searchable {
     file: string,
     position: vsCodePosition
   ): SearchableResult | undefined;
+}
+
+export type MacrosResolver = string | ((...args: string[]) => string);
+
+export interface MacroRegistryItem {
+  resolver: MacrosResolver | undefined;
+  macro: CMacro;
 }
