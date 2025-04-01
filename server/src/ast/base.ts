@@ -107,6 +107,13 @@ export class ASTBase {
         (child) => child.getWorkspaceSymbols() ?? []
       );
 
+    const kind = this.docSymbolsMeta.kind;
+    if (
+      ![SymbolKind.File, SymbolKind.Class, SymbolKind.Namespace].some(k => k === kind)
+    ) {
+      return [];
+    }
+
     const range = toRange(this);
     return [
       {

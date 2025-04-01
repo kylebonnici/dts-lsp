@@ -19,6 +19,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Remove `required` property `device_type` for `memory` and `cpu` node
 
+### Fixed
+
+- Issue when `autoChangeContext` is true (default) and a file is usd by two or more context,
+  the first created context would take precedence. Now the active content takes precedence if files
+  is in it.
+
 # 0.2.1 - 2025-03-23
 
 ### Added
