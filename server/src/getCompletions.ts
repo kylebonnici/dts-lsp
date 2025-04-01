@@ -25,7 +25,7 @@ import { SearchableResult } from "./types";
 import { Node } from "./context/node";
 import { ASTBase } from "./ast/base";
 import { Keyword } from "./ast/keyword";
-import { PropertyName } from "./ast/dtc/property";
+import { DtcProperty, PropertyName } from "./ast/dtc/property";
 import {
   DtcChildNode,
   DtcRefNode,
@@ -44,6 +44,10 @@ import { IncludePath } from "./ast/cPreprocessors/include";
 import { readdirSync } from "fs";
 import { dirname, join, relative } from "path";
 import { DeleteBase } from "./ast/dtc/delete";
+import { NodeType } from "./dtsTypes/types";
+import { PropertyValue } from "./ast/dtc/values/value";
+import { FunctionDefinition } from "./ast/cPreprocessors/functionDefinition";
+import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
 
 function getIncudePathItems(
   result: SearchableResult | undefined
@@ -374,6 +378,65 @@ function getNodeRefPathsItems(
   }));
 }
 
+const propertyValue = (astBase?: ASTBase): boolean => {
+  if (!astBase || astBase instanceof DtcProperty) return false;
+
+  return astBase instanceof PropertyValue || propertyValue(astBase.parentNode);
+};
+
+function getPropertyAssignMacroItems(
+  result: SearchableResult | undefined
+): CompletionItem[] {
+  if (
+    !result ||
+    !(result.item instanceof Property && result.item.ast.assignOperatorToken)
+  ) {
+    return [];
+  }
+
+  const inPorpertyValue = propertyValue(result?.ast);
+
+  if (
+    !inPorpertyValue &&
+    !(result.ast instanceof DtcProperty && result.item.ast.values === null) &&
+    !propertyValue(result.beforeAst) &&
+    !propertyValue(result.afterAst)
+  ) {
+    return [];
+  }
+
+  const nodeType = result.item.parent.nodeType;
+  if (nodeType instanceof NodeType) {
+    return Array.from(
+      [
+        result.runtime.context.parser,
+        ...result.runtime.context.overlayParsers,
+      ].at(-1)?.cPreprocessorParser.macros ?? []
+    ).map(([k, v]) => {
+      if (v.macro.identifier instanceof FunctionDefinition) {
+        return {
+          label: `${v.macro.identifier.toString()} -> ${
+            v.macro.content?.toString() ?? "__UNSET__"
+          }`,
+          insertText: `${v.macro.name}(${v.macro.identifier.params
+            .map((p, i) => (p instanceof CIdentifier ? `$${i + 1}` : ""))
+            .join(", ")})`,
+          kind: CompletionItemKind.Function,
+          sortText: `~${v.macro.name}`,
+          insertTextFormat: InsertTextFormat.Snippet,
+        };
+      }
+      return {
+        label: v.macro.identifier.name,
+        kind: CompletionItemKind.Variable,
+        sortText: `~${v.macro.name}`,
+      };
+    });
+  }
+
+  return [];
+}
+
 export async function getCompletions(
   location: TextDocumentPositionParams,
   context: ContextAware[],
@@ -391,6 +454,7 @@ export async function getCompletions(
       ...getCreateNodeRefItems(locationMeta, inScope),
       ...getRefLabelsItems(locationMeta, inScope),
       ...getIncudePathItems(locationMeta),
+      ...getPropertyAssignMacroItems(locationMeta),
     ],
     activeContext,
     preferredContext
