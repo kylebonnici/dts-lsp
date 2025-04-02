@@ -54,7 +54,7 @@ import { PropertyValues } from "./ast/dtc/values/values";
 import { DtsDocumentVersion } from "./ast/dtc/dtsDocVersion";
 import { ArrayValues } from "./ast/dtc/values/arrayValue";
 import { LabeledValue } from "./ast/dtc/values/labeledValue";
-import { ComplexExpression, Expression } from "./ast/cPreprocessors/expression";
+import { Expression } from "./ast/cPreprocessors/expression";
 import { BaseParser } from "./baseParser";
 import { CPreprocessorParser } from "./cPreprocessorParser";
 import { Include } from "./ast/cPreprocessors/include";

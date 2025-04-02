@@ -19,7 +19,6 @@ import { DtcBaseNode } from "./ast/dtc/node";
 import { Parser } from "./parser";
 import { ASTBase } from "./ast/base";
 import { IfDefineBlock, IfElIfBlock } from "./ast/cPreprocessors/ifDefine";
-import { start } from "repl";
 
 const nodeToRange = (dtcNode: DtcBaseNode): FoldingRange[] => {
   if (!dtcNode.openScope || !dtcNode.closeScope?.prevToken) {
@@ -83,7 +82,7 @@ const toFoldingRange = (ast: ASTBase): FoldingRange[] => {
   }
 
   if (ast instanceof IfDefineBlock) {
-    return ifElIfBlockToRange(ast);
+    return ifElIfBlockToRange(ast); 
   }
 
   if (ast instanceof IfElIfBlock) {
