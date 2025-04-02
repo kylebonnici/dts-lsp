@@ -1392,8 +1392,8 @@ connection.onFoldingRanges(async (event) => {
     return [];
   }
 
-  const parser = (await context.getAllParsers()).find(
-    (p) => p.includes.some((i) => i.uri === uri) || p.uri === uri
+  const parser = (await context.getAllParsers()).find((p) =>
+    p.getFiles().some((i) => i === uri)
   );
 
   if (parser) return getFoldingRanges(uri, parser);
