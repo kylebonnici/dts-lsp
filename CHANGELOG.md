@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+# 0.2.4 - unreleased
+
+### Fixed
+
+- Issue with folding ranges not showing for content added as the below
+
+```devicetree
+/dts-v1/;
+#include "nrf5340_cpuapp_common.dtsi" // -> OK
+
+/ {
+	model = "Nordic NRF5340 DK NRF5340 Application";
+	compatible = "nordic,nrf5340-dk-nrf5340-cpuapp";
+
+	chosen {
+		#include "nrf5340_cpuapp_common.dtsi" // -> ISSUE Fixed
+	};
+};
+```
+
 # 0.2.3 - 2025-04-02
 
 ### Fixed

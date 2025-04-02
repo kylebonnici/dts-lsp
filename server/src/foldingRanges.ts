@@ -82,7 +82,7 @@ const toFoldingRange = (ast: ASTBase): FoldingRange[] => {
   }
 
   if (ast instanceof IfDefineBlock) {
-    return ifElIfBlockToRange(ast); 
+    return ifElIfBlockToRange(ast);
   }
 
   if (ast instanceof IfElIfBlock) {
@@ -94,6 +94,7 @@ const toFoldingRange = (ast: ASTBase): FoldingRange[] => {
 
 export function getFoldingRanges(uri: string, parser: Parser): FoldingRange[] {
   return parser.allAstItems
+    .flatMap((ast) => [ast, ...ast.allDescendants])
     .filter((n) => n.uri === uri)
     .flatMap(toFoldingRange);
 }
