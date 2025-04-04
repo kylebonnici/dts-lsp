@@ -36,6 +36,7 @@ import {
   Position,
   PublishDiagnosticsParams,
   Location,
+  WorkspaceFolder,
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -247,11 +248,18 @@ const connection = createConnection(ProposedFeatures.all);
 // Create a simple text document manager.
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
-let hasConfigurationCapability = true;
+let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
 let hasDiagnosticRefreshCapability = false;
 
+let workspaceFolder: WorkspaceFolder[] | null | undefined;
 connection.onInitialize((params: InitializeParams) => {
+  // The workspace folder this server is operating on
+  workspaceFolder = params.workspaceFolders;
+  connection.console.log(
+    `[Server(${process.pid}) ${workspaceFolder?.[0].uri}] Started and initialize received`
+  );
+
   const capabilities = params.capabilities;
 
   // Does the client support the `workspace/configuration` request?
@@ -302,6 +310,7 @@ connection.onInitialize((params: InitializeParams) => {
   if (hasWorkspaceFolderCapability) {
     result.capabilities.workspace = {
       workspaceFolders: {
+        changeNotifications: true,
         supported: true,
       },
     };
@@ -315,8 +324,10 @@ connection.onInitialized(() => {
     connection.client.register(DidChangeConfigurationNotification.type, {});
   }
   if (hasWorkspaceFolderCapability) {
-    connection.workspace.onDidChangeWorkspaceFolders((_event) => {
+    connection.workspace.onDidChangeWorkspaceFolders(async (_event) => {
       connection.console.log("Workspace folder change event received");
+      await initialSettingsProvided;
+      await loadSettings(globalSettings, globalSettings);
     });
   }
 });
@@ -375,59 +386,138 @@ const initialSettingsProvided: Promise<void> = new Promise((resolve) => {
     }
   }, 100);
 });
-connection.onDidChangeConfiguration((change) => {
-  init = true;
-  if (!change.settings) {
-    return;
+
+const resolvePathVariable = async (path: string): Promise<string> => {
+  const workspaceFolders = (
+    (await connection.workspace.getWorkspaceFolders()) ?? workspaceFolder
+  )?.map((p) => p.uri.replace("file://", ""));
+  if (workspaceFolders?.length) {
+    path = path.replaceAll("${workspaceFolder}", workspaceFolders[0]);
   }
-  console.log("Configuration changed", change);
-  if (hasConfigurationCapability) {
-    // Reset all cached document settings
-    documentSettings.clear();
-  }
+  return path;
+};
 
-  const oldSettngs = globalSettings;
+const resolveContextSetting = (context: Context) => {
+  if (context.cwd || globalSettings.cwd) {
+    const cwd = (context.cwd ?? globalSettings.cwd) as string;
+    context.includePaths ??= globalSettings.defaultIncludePaths;
+    context.zephyrBindings ??= globalSettings.defaultIncludePaths;
+    context.bindingType ??= globalSettings.defaultBindingType;
+    context.deviceOrgTreeBindings ??=
+      globalSettings.defaultDeviceOrgTreeBindings;
+    context.deviceOrgBindingsMetaSchema ??=
+      globalSettings.defaultDeviceOrgBindingsMetaSchema;
 
-  globalSettings = <Settings>{
-    ...defaultSettings,
-    ...change.settings?.devicetree,
-  };
-
-  // resolve context paths defaults
-  globalSettings.contexts?.forEach((context, i) => {
-    if (context.cwd || globalSettings.cwd) {
-      const cwd = (context.cwd ?? globalSettings.cwd) as string;
-      context.includePaths ??= globalSettings.defaultIncludePaths;
-      context.zephyrBindings ??= globalSettings.defaultIncludePaths;
-      context.bindingType ??= globalSettings.defaultBindingType;
-      context.deviceOrgTreeBindings ??=
-        globalSettings.defaultDeviceOrgTreeBindings;
-      context.deviceOrgBindingsMetaSchema ??=
-        globalSettings.defaultDeviceOrgBindingsMetaSchema;
-
-      if (
-        cwd &&
-        context.bindingType === "Zephyr" &&
-        (!context.zephyrBindings || context.zephyrBindings.length === 0)
-      ) {
-        context.zephyrBindings = ["./zephyr/dts/bindings"];
-      }
-
-      context.zephyrBindings = context.zephyrBindings?.map((i) =>
-        resolve(cwd, i)
-      );
-      context.deviceOrgTreeBindings = context.deviceOrgTreeBindings?.map((i) =>
-        resolve(cwd, i)
-      );
-      context.deviceOrgBindingsMetaSchema =
-        context.deviceOrgBindingsMetaSchema?.map((i) => resolve(cwd, i));
-      context.includePaths = context.includePaths?.map((i) => resolve(cwd, i));
-      context.dtsFile = resolve(cwd, context.dtsFile);
+    if (
+      cwd &&
+      context.bindingType === "Zephyr" &&
+      (!context.zephyrBindings || context.zephyrBindings.length === 0)
+    ) {
+      context.zephyrBindings = ["./zephyr/dts/bindings"];
     }
+
+    context.zephyrBindings = context.zephyrBindings?.map((i) =>
+      resolve(cwd, i)
+    );
+    context.deviceOrgTreeBindings = context.deviceOrgTreeBindings?.map((i) =>
+      resolve(cwd, i)
+    );
+    context.deviceOrgBindingsMetaSchema =
+      context.deviceOrgBindingsMetaSchema?.map((i) => resolve(cwd, i));
+    context.includePaths = context.includePaths?.map((i) => resolve(cwd, i));
+    context.dtsFile = resolve(cwd, context.dtsFile);
+  }
+};
+
+const resolveGlobalSettings = async (globalSettings: Settings) => {
+  globalSettings.cwd = globalSettings.cwd
+    ? await resolvePathVariable(globalSettings.cwd)
+    : undefined;
+
+  globalSettings.defaultDeviceOrgBindingsMetaSchema = await Promise.all(
+    (globalSettings.defaultDeviceOrgBindingsMetaSchema ?? []).map(
+      resolvePathVariable
+    )
+  );
+  globalSettings.defaultDeviceOrgTreeBindings = await Promise.all(
+    (globalSettings.defaultDeviceOrgTreeBindings ?? []).map(resolvePathVariable)
+  );
+  globalSettings.defaultIncludePaths = await Promise.all(
+    (globalSettings.defaultIncludePaths ?? []).map(resolvePathVariable)
+  );
+  globalSettings.defaultZephyrBindings = await Promise.all(
+    (globalSettings.defaultZephyrBindings ?? []).map(resolvePathVariable)
+  );
+  globalSettings.lockRenameEdits = await Promise.all(
+    (globalSettings.lockRenameEdits ?? []).map(resolvePathVariable)
+  );
+
+  // resolve global with cwd
+  globalSettings.defaultIncludePaths = (
+    globalSettings.defaultIncludePaths ?? []
+  ).map((i) => {
+    if (globalSettings.cwd) {
+      return resolve(globalSettings.cwd, i);
+    }
+
+    return i;
   });
 
-  let adhocContexts = getAdhocContexts(oldSettngs);
+  if (
+    globalSettings.cwd &&
+    globalSettings.defaultBindingType === "Zephyr" &&
+    !globalSettings.defaultZephyrBindings
+  ) {
+    globalSettings.defaultZephyrBindings = ["./zephyr/dts/bindings"];
+  }
 
+  globalSettings.defaultZephyrBindings = (
+    globalSettings.defaultZephyrBindings ?? []
+  ).map((i) => {
+    if (globalSettings.cwd) {
+      return resolve(globalSettings.cwd, i);
+    }
+
+    return i;
+  });
+
+  globalSettings.defaultDeviceOrgBindingsMetaSchema = (
+    globalSettings.defaultDeviceOrgBindingsMetaSchema ?? []
+  ).map((i) => {
+    if (globalSettings.cwd) {
+      return resolve(globalSettings.cwd, i);
+    }
+
+    return i;
+  });
+
+  globalSettings.defaultDeviceOrgTreeBindings = (
+    globalSettings.defaultDeviceOrgTreeBindings ?? []
+  ).map((i) => {
+    if (globalSettings.cwd) {
+      return resolve(globalSettings.cwd, i);
+    }
+
+    return i;
+  });
+
+  globalSettings.contexts?.forEach(resolveContextSetting);
+};
+
+const loadSettings = async (
+  oldSettngs: Settings | undefined,
+  globalSettings: Settings
+) => {
+  // resolve context paths defaults
+  await resolveGlobalSettings(globalSettings);
+
+  // TODO deep cmp of old and new and if none change return
+  console.log(
+    "Resolve settings",
+    JSON.stringify(globalSettings, undefined, "\t")
+  );
+
+  // TODO consider removing only effected contexts?
   contextAware.forEach(deleteContext);
 
   debounce = new WeakMap<
@@ -461,23 +551,21 @@ connection.onDidChangeConfiguration((change) => {
     );
   });
 
-  // resolve global with cwd
-  const resolvedGlobal = resolveGlobal();
-
+  let adhocContexts = oldSettngs ? getAdhocContexts(oldSettngs) : [];
   adhocContexts
     .map((c) => {
       const bindingType = globalSettings.defaultBindingType;
       const context = new ContextAware(
         c.parser.uri,
-        resolvedGlobal.defaultIncludePaths,
+        globalSettings.defaultIncludePaths ?? [],
         bindingType
           ? getBindingLoader(
               {
-                zephyrBindings: resolvedGlobal.defaultZephyrBindings,
+                zephyrBindings: globalSettings.defaultZephyrBindings ?? [],
                 deviceOrgBindingsMetaSchema:
-                  resolvedGlobal.defaultDeviceOrgBindingsMetaSchema,
+                  globalSettings.defaultDeviceOrgBindingsMetaSchema ?? [],
                 deviceOrgTreeBindings:
-                  resolvedGlobal.defaultDeviceOrgTreeBindings,
+                  globalSettings.defaultDeviceOrgTreeBindings ?? [],
               },
               bindingType
             )
@@ -497,65 +585,31 @@ connection.onDidChangeConfiguration((change) => {
   if (hasDiagnosticRefreshCapability) {
     connection.languages.diagnostics.refresh();
   }
-});
+};
 
-const resolveGlobal = () => {
-  // resolve global with cwd
-  const defaultIncludePaths = (globalSettings.defaultIncludePaths ?? []).map(
-    (i) => {
-      if (globalSettings.cwd) {
-        return resolve(globalSettings.cwd, i);
-      }
-
-      return i;
-    }
-  );
-
-  if (
-    globalSettings.cwd &&
-    globalSettings.defaultBindingType === "Zephyr" &&
-    !globalSettings.defaultZephyrBindings
-  ) {
-    globalSettings.defaultZephyrBindings = ["./zephyr/dts/bindings"];
+connection.onDidChangeConfiguration(async (change) => {
+  let oldSettngs: Settings | undefined;
+  if (init) {
+    oldSettngs = globalSettings;
+  }
+  init = true;
+  if (!change.settings) {
+    return;
   }
 
-  const defaultZephyrBindings = (
-    globalSettings.defaultZephyrBindings ?? []
-  ).map((i) => {
-    if (globalSettings.cwd) {
-      return resolve(globalSettings.cwd, i);
-    }
+  console.log("Configuration changed", JSON.stringify(change, undefined, "\t"));
+  if (hasConfigurationCapability) {
+    // Reset all cached document settings
+    documentSettings.clear();
+  }
 
-    return i;
-  });
-
-  const defaultDeviceOrgBindingsMetaSchema = (
-    globalSettings.defaultDeviceOrgBindingsMetaSchema ?? []
-  ).map((i) => {
-    if (globalSettings.cwd) {
-      return resolve(globalSettings.cwd, i);
-    }
-
-    return i;
-  });
-
-  const defaultDeviceOrgTreeBindings = (
-    globalSettings.defaultDeviceOrgTreeBindings ?? []
-  ).map((i) => {
-    if (globalSettings.cwd) {
-      return resolve(globalSettings.cwd, i);
-    }
-
-    return i;
-  });
-
-  return {
-    defaultIncludePaths,
-    defaultZephyrBindings,
-    defaultDeviceOrgBindingsMetaSchema,
-    defaultDeviceOrgTreeBindings,
+  globalSettings = <Settings>{
+    ...defaultSettings,
+    ...change.settings?.devicetree,
   };
-};
+
+  await loadSettings(oldSettngs, globalSettings);
+});
 
 // Only keep settings for open documents
 documents.onDidClose((e) => {
@@ -855,18 +909,17 @@ const onChange = async (uri: string) => {
     }
 
     const bindingType = globalSettings.defaultBindingType;
-    const resolvedGlobal = resolveGlobal();
     const newContext = new ContextAware(
       uri,
-      resolvedGlobal.defaultIncludePaths,
+      globalSettings.defaultIncludePaths ?? [],
       bindingType
         ? getBindingLoader(
             {
-              zephyrBindings: resolvedGlobal.defaultZephyrBindings,
+              zephyrBindings: globalSettings.defaultZephyrBindings ?? [],
               deviceOrgBindingsMetaSchema:
-                resolvedGlobal.defaultDeviceOrgBindingsMetaSchema,
+                globalSettings.defaultDeviceOrgBindingsMetaSchema ?? [],
               deviceOrgTreeBindings:
-                resolvedGlobal.defaultDeviceOrgTreeBindings,
+                globalSettings.defaultDeviceOrgTreeBindings ?? [],
             },
             bindingType
           )
