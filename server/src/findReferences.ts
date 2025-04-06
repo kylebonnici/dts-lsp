@@ -21,7 +21,7 @@ import { Node } from "./context/node";
 import { DtcChildNode, DtcRootNode, NodeName } from "./ast/dtc/node";
 import { Label } from "./ast/dtc/label";
 import { LabelRef } from "./ast/dtc/labelRef";
-import { nodeFinder, toRange } from "./helpers";
+import { nodeFinder, pathToFileURL, toRange } from "./helpers";
 import { DtcProperty, PropertyName } from "./ast/dtc/property";
 import { Property } from "./context/property";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
@@ -59,13 +59,13 @@ function getPropertyReferences(
       .map((dtc) => {
         if (dtc instanceof DtcProperty) {
           return Location.create(
-            `file://${dtc.uri}`,
+            pathToFileURL(dtc.uri),
             toRange(dtc.propertyName ?? dtc)
           );
         }
         if (dtc instanceof DeleteProperty) {
           return Location.create(
-            `file://${dtc.uri}`,
+            pathToFileURL(dtc.uri),
             toRange(dtc.propertyName ?? dtc)
           );
         }
@@ -131,26 +131,32 @@ function getNodeReferences(result: SearchableResult | undefined): Location[] {
     ]
       .map((dtc) => {
         if (dtc instanceof DtcRootNode) {
-          return Location.create(`file://${dtc.uri}`, toRange(dtc.name ?? dtc));
+          return Location.create(
+            pathToFileURL(dtc.uri),
+            toRange(dtc.name ?? dtc)
+          );
         }
         if (dtc instanceof DtcChildNode) {
-          return Location.create(`file://${dtc.uri}`, toRange(dtc.name ?? dtc));
+          return Location.create(
+            pathToFileURL(dtc.uri),
+            toRange(dtc.name ?? dtc)
+          );
         }
         if (dtc instanceof NodeName) {
-          return Location.create(`file://${dtc.uri}`, toRange(dtc));
+          return Location.create(pathToFileURL(dtc.uri), toRange(dtc));
         }
         if (dtc instanceof NodeName) {
-          return Location.create(`file://${dtc.uri}`, toRange(dtc));
+          return Location.create(pathToFileURL(dtc.uri), toRange(dtc));
         }
         if (dtc instanceof LabelRef) {
           return Location.create(
-            `file://${dtc.uri}`,
+            pathToFileURL(dtc.uri),
             toRange(dtc.label ?? dtc)
           );
         }
         if (dtc instanceof DtcProperty) {
           return Location.create(
-            `file://${(dtc.values ?? dtc)?.uri}`,
+            pathToFileURL((dtc.values ?? dtc)?.uri),
             toRange(dtc.values ?? dtc)
           );
         }
@@ -176,7 +182,7 @@ function getNodeReferences(result: SearchableResult | undefined): Location[] {
       if (isDeleteChild(result.ast)) {
         return [
           ...gentItem(result.ast.linksTo),
-          Location.create(`file://${result.ast.uri}`, toRange(result.ast)),
+          Location.create(pathToFileURL(result.ast.uri), toRange(result.ast)),
         ];
       }
 

@@ -50,8 +50,11 @@ import {
   tokenTypes,
 } from "./types";
 import {
+  fileURLToPath,
   findContext,
   findContexts,
+  isPathEqual,
+  pathToFileURL,
   resolveContextFiles,
   toRange,
 } from "./helpers";
@@ -99,11 +102,7 @@ const watchContextFiles = async (context: ContextAware) => {
     if (!fileWatchers.has(file)) {
       fileWatchers.set(
         file,
-        new FileWatcher(
-          file,
-          onChange,
-          (file) => !!documents.get(`file://${file}`)
-        )
+        new FileWatcher(file, onChange, (file) => !!fetchDocument(file))
       );
     }
     fileWatchers.get(file)?.watch();
@@ -390,7 +389,7 @@ const initialSettingsProvided: Promise<void> = new Promise((resolve) => {
 const resolvePathVariable = async (path: string): Promise<string> => {
   const workspaceFolders = (
     (await connection.workspace.getWorkspaceFolders()) ?? workspaceFolder
-  )?.map((p) => p.uri.replace("file://", ""));
+  )?.map((p) => fileURLToPath(p.uri));
   if (workspaceFolders?.length) {
     path = path.replaceAll("${workspaceFolder}", workspaceFolders[0]);
   }
@@ -613,7 +612,7 @@ connection.onDidChangeConfiguration(async (change) => {
 
 // Only keep settings for open documents
 documents.onDidClose((e) => {
-  const uri = e.document.uri.replace("file://", "");
+  const uri = fileURLToPath(e.document.uri);
   const context = activeContext;
   if (!context) {
     return;
@@ -623,7 +622,7 @@ documents.onDidClose((e) => {
 
   const contextHasFileOpen = contextAllFiles
     .filter((f) => f !== uri)
-    .some((f) => documents.get(`file://${f}`));
+    .some((f) => fetchDocument(f));
   if (!contextHasFileOpen) {
     if (isAdHocContext(context)) {
       deleteContext(context);
@@ -640,7 +639,7 @@ documents.onDidClose((e) => {
 documents.onDidOpen(async (e) => {
   await allStable();
   const context = activeContext;
-  const uri = e.document.uri.replace("file://", "");
+  const uri = fileURLToPath(e.document.uri);
 
   if (!context) {
     connection.sendDiagnostics({
@@ -975,7 +974,7 @@ const onChange = async (uri: string) => {
 // // The content of a text document has changed. This event is emitted
 // // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(async (change) => {
-  const uri = change.document.uri.replace("file://", "");
+  const uri = fileURLToPath(change.document.uri);
 
   const text = change.document.getText();
   const tokenProvider = getTokenizedDocumentProvider();
@@ -986,12 +985,23 @@ documents.onDidChangeContent(async (change) => {
   onChange(uri);
 });
 
+const fetchDocumentUri = (file: string) => {
+  return documents.keys().find((f) => isPathEqual(fileURLToPath(f), file));
+};
+
+const fetchDocument = (file: string) => {
+  const uri = fetchDocumentUri(file);
+  if (!uri) return;
+
+  return documents.get(uri);
+};
+
 const generateClearWorkspaceDiagnostics = (context: ContextAware) =>
   context.getContextFiles().map(
     (file) =>
       ({
-        uri: `file://${file}`,
-        version: documents.get(`file://${file}`)?.version,
+        uri: pathToFileURL(file),
+        version: fetchDocument(file)?.version,
         diagnostics: [],
       } satisfies PublishDiagnosticsParams)
   );
@@ -1018,10 +1028,10 @@ const reportWorkspaceDiagnostics = async (context: ContextAware) => {
     context.getContextFiles().map(async (file) => {
       const items = await getDiagnostics(context, file);
       return {
-        uri: `file://${file}`,
+        uri: pathToFileURL(file),
         kind: DocumentDiagnosticReportKind.Full,
         items,
-        version: documents.get(`file://${file}`)?.version ?? null,
+        version: fetchDocument(file)?.version ?? null,
       } satisfies WorkspaceDocumentDiagnosticReport;
     })
   );
@@ -1112,7 +1122,7 @@ async function getDiagnostics(
                 .map(contextIssuesToLinkedMessage)
                 .join(" or "),
               location: {
-                uri: `file://${element.uri!}`,
+                uri: pathToFileURL(element.uri!),
                 range: toRange(element),
               },
             })),
@@ -1135,7 +1145,7 @@ async function getDiagnostics(
                 .map(standardTypeToLinkedMessage)
                 .join(" or "),
               location: {
-                uri: `file://${element.uri!}`,
+                uri: pathToFileURL(element.uri!),
                 range: toRange(element),
               },
             })),
@@ -1267,7 +1277,7 @@ const updateActiveContext = async (uri: string, force = false) => {
 
 connection.onDocumentSymbol(async (h) => {
   await allStable();
-  const uri = h.textDocument.uri.replace("file://", "");
+  const uri = fileURLToPath(h.textDocument.uri);
   await updateActiveContext(uri);
 
   const context = activeContext;
@@ -1290,7 +1300,7 @@ connection.onWorkspaceSymbol(async () => {
 connection.languages.semanticTokens.on(async (h) => {
   try {
     await allStable();
-    const uri = h.textDocument.uri.replace("file://", "");
+    const uri = fileURLToPath(h.textDocument.uri);
     await updateActiveContext(uri);
 
     const tokensBuilder = new SemanticTokensBuilder();
@@ -1317,7 +1327,7 @@ connection.languages.semanticTokens.on(async (h) => {
 });
 
 connection.onDocumentLinks(async (event) => {
-  const uri = event.textDocument.uri.replace("file://", "");
+  const uri = fileURLToPath(event.textDocument.uri);
   await allStable();
   const contextMeta = await findContext(
     contextAware,
@@ -1361,7 +1371,7 @@ connection.onReferences(async (event) => {
 });
 
 connection.onDefinition(async (event) => {
-  const uri = event.textDocument.uri.replace("file://", "");
+  const uri = fileURLToPath(event.textDocument.uri);
   await allStable();
 
   const contextMeta = await findContext(
@@ -1401,7 +1411,7 @@ connection.onCodeAction(async (event) => {
 });
 
 connection.onDocumentFormatting(async (event) => {
-  const uri = event.textDocument.uri.replace("file://", "");
+  const uri = fileURLToPath(event.textDocument.uri);
   await allStable();
   const contextMeta = await findContext(
     contextAware,
@@ -1435,7 +1445,7 @@ connection.onRequest("devicetree/contexts", async () => {
 
 connection.onFoldingRanges(async (event) => {
   await allStable();
-  const uri = event.textDocument.uri.replace("file://", "");
+  const uri = fileURLToPath(event.textDocument.uri);
   await updateActiveContext(uri);
 
   const context = activeContext;

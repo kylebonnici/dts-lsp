@@ -6,8 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 # 0.2.4 - unreleased
 
+### Added
+
+- Resolve `${workspaceFolder}` to the top most workspace uri if used in the configuration.
+
 ### Fixed
 
+- LSP not woring on Windows Operating systems
 - Issue with folding ranges not showing for content added as the below
 
 ```devicetree

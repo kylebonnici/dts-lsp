@@ -25,7 +25,7 @@ import { PropertyName } from "./ast/dtc/property";
 import { Property } from "./context/property";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
 import { isDeleteChild } from "./ast/helpers";
-import { nodeFinder, toRange } from "./helpers";
+import { nodeFinder, pathToFileURL, toRange } from "./helpers";
 import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
 import { StringValue } from "./ast/dtc/values/string";
 import { CMacroCallParam } from "./ast/cPreprocessors/functionCall";
@@ -51,7 +51,7 @@ function getPropertyDeclaration(
 
   const gentItem = (property: Property) => {
     return Location.create(
-      `file://${property.ast.uri}`,
+      pathToFileURL(property.ast.uri),
       toRange(property.ast.propertyName ?? property.ast)
     );
   };
@@ -82,7 +82,7 @@ function getNodeDeclaration(
   const gentItem = (node: Node) => {
     const declaration = node.definitions.at(0);
     return declaration
-      ? Location.create(`file://${declaration.uri}`, toRange(declaration))
+      ? Location.create(pathToFileURL(declaration.uri), toRange(declaration))
       : undefined;
   };
 
@@ -129,7 +129,7 @@ function getMacrosDeclaration(
     );
     if (macro) {
       return Location.create(
-        `file://${macro.macro.uri}`,
+        pathToFileURL(macro.macro.uri),
         toRange(macro.macro.identifier)
       );
     }

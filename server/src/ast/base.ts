@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { getTokenModifiers, getTokenTypes, toRange } from "../helpers";
+import { getTokenModifiers, getTokenTypes, pathToFileURL, toRange } from "../helpers";
 import type {
   BuildSemanticTokensPush,
   SemanticTokenModifiers,
@@ -109,7 +109,9 @@ export class ASTBase {
 
     const kind = this.docSymbolsMeta.kind;
     if (
-      ![SymbolKind.File, SymbolKind.Class, SymbolKind.Namespace].some(k => k === kind)
+      ![SymbolKind.File, SymbolKind.Class, SymbolKind.Namespace].some(
+        (k) => k === kind
+      )
     ) {
       return [];
     }
@@ -117,7 +119,7 @@ export class ASTBase {
     const range = toRange(this);
     return [
       {
-        location: Location.create(`file://${this.uri}`, range),
+        location: Location.create(pathToFileURL(this.uri), range),
         name: this.docSymbolsMeta.name ? this.docSymbolsMeta.name : "__UNSET__",
         kind: this.docSymbolsMeta.kind,
       },
