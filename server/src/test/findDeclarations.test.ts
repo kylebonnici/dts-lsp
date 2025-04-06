@@ -27,6 +27,7 @@ import {
 import { Node } from "../context/node";
 import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
 import { getStandardType } from "../dtsTypes/standardTypes";
+import { fileURLToPath } from 'url';
 
 const getFakeBindingLoader = (): BindingLoader => ({
   getNodeTypes: (node: Node) => {
@@ -55,9 +56,11 @@ describe("Find Decleration", () => {
 
   test("No definition to find", async () => {
     mockReadFileSync("/{prop1;prop2;prop1;};    /{prop1;prop2;prop1;};");
-    const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+    const textDocument: TextDocumentIdentifier = {
+      uri: "file:///folder/dts.dts",
+    };
     const context = new ContextAware(
-      textDocument.uri,
+      fileURLToPath(textDocument.uri),
       [],
       getFakeBindingLoader(),
       []
@@ -76,9 +79,11 @@ describe("Find Decleration", () => {
   describe("Properties", () => {
     test("Duplicate property name samle level", async () => {
       mockReadFileSync("/{prop1;prop2;prop1;};/{prop1;prop2;prop1;};");
-      const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+      const textDocument: TextDocumentIdentifier = {
+        uri: "file:///folder/dts.dts",
+      };
       const context = new ContextAware(
-        textDocument.uri,
+        fileURLToPath(textDocument.uri),
         [],
         getFakeBindingLoader(),
         []
@@ -99,9 +104,11 @@ describe("Find Decleration", () => {
       mockReadFileSync(
         "/{ node1{prop1; node1{prop1;}};};/{ node1{prop1; node1{prop1;}};};"
       );
-      const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+      const textDocument: TextDocumentIdentifier = {
+        uri: "file:///folder/dts.dts",
+      };
       const context = new ContextAware(
-        textDocument.uri,
+        fileURLToPath(textDocument.uri),
         [],
         getFakeBindingLoader(),
         []
@@ -131,9 +138,11 @@ describe("Find Decleration", () => {
       mockReadFileSync(
         "/{ l1: node1{prop1; node1{prop1;}};}; /delete-node/ &l1; /{ node1{prop1; node1{prop1;}};};"
       );
-      const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+      const textDocument: TextDocumentIdentifier = {
+        uri: "file:///folder/dts.dts",
+      };
       const context = new ContextAware(
-        textDocument.uri,
+        fileURLToPath(textDocument.uri),
         [],
         getFakeBindingLoader(),
         []
@@ -152,9 +161,11 @@ describe("Find Decleration", () => {
 
     test("Delete property", async () => {
       mockReadFileSync("/{prop1;};/{prop1; /delete-property/ prop1;};");
-      const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+      const textDocument: TextDocumentIdentifier = {
+        uri: "file:///folder/dts.dts",
+      };
       const context = new ContextAware(
-        textDocument.uri,
+        fileURLToPath(textDocument.uri),
         [],
         getFakeBindingLoader(),
         []
@@ -175,9 +186,11 @@ describe("Find Decleration", () => {
   describe("Nodes", () => {
     test("Duplicate node name samle level", async () => {
       mockReadFileSync("/{node1{};node2{}};/{node1{};node2{};};");
-      const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+      const textDocument: TextDocumentIdentifier = {
+        uri: "file:///folder/dts.dts",
+      };
       const context = new ContextAware(
-        textDocument.uri,
+        fileURLToPath(textDocument.uri),
         [],
         getFakeBindingLoader(),
         []
@@ -196,9 +209,11 @@ describe("Find Decleration", () => {
 
     test("Duplicate node name different level", async () => {
       mockReadFileSync("/{ node1{node1{};};};/{ node1{node1{};};};");
-      const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+      const textDocument: TextDocumentIdentifier = {
+        uri: "file:///folder/dts.dts",
+      };
       const context = new ContextAware(
-        textDocument.uri,
+        fileURLToPath(textDocument.uri),
         [],
         getFakeBindingLoader(),
         []
@@ -228,9 +243,11 @@ describe("Find Decleration", () => {
       mockReadFileSync(
         "/{ l1: node1{node1{};};}; /delete-node/ &l1; /{ node1{node1{};};};"
       );
-      const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+      const textDocument: TextDocumentIdentifier = {
+        uri: "file:///folder/dts.dts",
+      };
       const context = new ContextAware(
-        textDocument.uri,
+        fileURLToPath(textDocument.uri),
         [],
         getFakeBindingLoader(),
         []
@@ -251,9 +268,11 @@ describe("Find Decleration", () => {
       mockReadFileSync(
         "/{ l1: node1{node1{};};}; /delete-node/ &l1; /{ node1{node1{};};};"
       );
-      const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+      const textDocument: TextDocumentIdentifier = {
+        uri: "file:///folder/dts.dts",
+      };
       const context = new ContextAware(
-        textDocument.uri,
+        fileURLToPath(textDocument.uri),
         [],
         getFakeBindingLoader(),
         []
@@ -274,9 +293,11 @@ describe("Find Decleration", () => {
       mockReadFileSync(
         "/{ l1: node1{node1{};};}; /{ node1{node1{};}; /delete-node/ node1;};"
       );
-      const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+      const textDocument: TextDocumentIdentifier = {
+        uri: "file:///folder/dts.dts",
+      };
       const context = new ContextAware(
-        textDocument.uri,
+        fileURLToPath(textDocument.uri),
         [],
         getFakeBindingLoader(),
         []
@@ -297,9 +318,11 @@ describe("Find Decleration", () => {
       mockReadFileSync(
         "/{ l1: node1{node1{};};}; /{ node1{node1{ prop1=&l1;};};};"
       );
-      const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+      const textDocument: TextDocumentIdentifier = {
+        uri: "file:///folder/dts.dts",
+      };
       const context = new ContextAware(
-        textDocument.uri,
+        fileURLToPath(textDocument.uri),
         [],
         getFakeBindingLoader(),
         []
@@ -320,9 +343,11 @@ describe("Find Decleration", () => {
       mockReadFileSync(
         "/{ l1: node1{node1{};};}; /{ node1{node1{ prop1=&{/node1/node1};};};};"
       );
-      const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+      const textDocument: TextDocumentIdentifier = {
+        uri: "file:///folder/dts.dts",
+      };
       const context = new ContextAware(
-        textDocument.uri,
+        fileURLToPath(textDocument.uri),
         [],
         getFakeBindingLoader(),
         []
