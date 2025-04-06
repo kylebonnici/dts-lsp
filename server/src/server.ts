@@ -591,7 +591,7 @@ connection.onDidChangeConfiguration(async (change) => {
   if (init) {
     oldSettngs = globalSettings;
   }
-  init = true;
+
   if (!change.settings) {
     return;
   }
@@ -608,6 +608,7 @@ connection.onDidChangeConfiguration(async (change) => {
   };
 
   await loadSettings(oldSettngs, globalSettings);
+  init = true;
 });
 
 // Only keep settings for open documents
