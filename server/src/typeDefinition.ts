@@ -26,7 +26,7 @@ import { Node } from "./context/node";
 import { NodeName } from "./ast/dtc/node";
 import { Label } from "./ast/dtc/label";
 import { LabelRef } from "./ast/dtc/labelRef";
-import { nodeFinder, toRange } from "./helpers";
+import { nodeFinder, pathToFileURL } from "./helpers";
 import { isDeleteChild } from "./ast/helpers";
 
 function getNodeTypeDefinition(
@@ -45,7 +45,7 @@ function getNodeTypeDefinition(
     }
     return [
       Location.create(
-        `file://${node.nodeType.bindingsPath}`,
+        pathToFileURL(node.nodeType.bindingsPath),
         Range.create(Position.create(0, 0), Position.create(0, 0))
       ),
     ];

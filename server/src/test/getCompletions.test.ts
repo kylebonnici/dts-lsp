@@ -27,6 +27,7 @@ import {
 import { Node } from "../context/node";
 import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
 import { getStandardType } from "../dtsTypes/standardTypes";
+import { fileURLToPath } from "url";
 
 const getFakeBindingLoader = (): BindingLoader => ({
   getNodeTypes: (node: Node) => {
@@ -55,9 +56,9 @@ describe("Find completions", () => {
 
   test("No completions to find", async () => {
     mockReadFileSync("/{prop1;prop2;prop1;};    /{prop1;prop2;prop1;};");
-    const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+    const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
     const context = new ContextAware(
-      textDocument.uri,
+      fileURLToPath(textDocument.uri),
       [],
       getFakeBindingLoader(),
       []
@@ -77,9 +78,9 @@ describe("Find completions", () => {
     describe("Delete", () => {
       test("Before props", async () => {
         mockReadFileSync("/{/delete-property/ p;prop1;prop2;};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -97,9 +98,9 @@ describe("Find completions", () => {
 
       test("Between props", async () => {
         mockReadFileSync("/{prop1;/delete-property/ p;prop2;};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -118,9 +119,9 @@ describe("Find completions", () => {
 
       test("after props", async () => {
         mockReadFileSync("/{prop1;prop2;/delete-property/ p;};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -142,9 +143,9 @@ describe("Find completions", () => {
         mockReadFileSync(
           "/{prop1;prop2;/delete-property/ prop1;/delete-property/ p;};"
         );
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -165,9 +166,9 @@ describe("Find completions", () => {
         mockReadFileSync(
           "/{prop1;prop2;/delete-property/ ;/delete-property/ prop1;};"
         );
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -187,9 +188,9 @@ describe("Find completions", () => {
 
       test("delete keyword", async () => {
         mockReadFileSync("/{prop1;prop2;/};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -210,9 +211,9 @@ describe("Find completions", () => {
     describe("Values", () => {
       test("No label ref", async () => {
         mockReadFileSync("/{prop1=&;};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -230,9 +231,9 @@ describe("Find completions", () => {
 
       test("Exists label ref", async () => {
         mockReadFileSync("/{l1: node{};prop1=&;};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -251,9 +252,9 @@ describe("Find completions", () => {
 
       test("Exists array value with label ref", async () => {
         mockReadFileSync("/{l1: node{};prop1=<&>;};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -272,9 +273,9 @@ describe("Find completions", () => {
 
       test("No node path ref", async () => {
         mockReadFileSync("/{prop1=&{/};};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -292,9 +293,9 @@ describe("Find completions", () => {
 
       test("Exists node path ref", async () => {
         mockReadFileSync("/{node{};prop1=&{/};};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -313,9 +314,9 @@ describe("Find completions", () => {
 
       test("Exists array value with node path ref", async () => {
         mockReadFileSync("/{node{};prop1=<&{/}>;};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -334,9 +335,9 @@ describe("Find completions", () => {
 
       test("Before delete Exists array value with node path ref", async () => {
         mockReadFileSync("/{node{};prop1=<&{/}>;/delete-node/ node;};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -355,9 +356,9 @@ describe("Find completions", () => {
 
       test("After delete Exists array value with node path ref", async () => {
         mockReadFileSync("/{node{};/delete-node/ node; prop1=<&{/}>;};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -379,9 +380,9 @@ describe("Find completions", () => {
     describe("Create ref node", () => {
       test("Before node", async () => {
         mockReadFileSync("& /{l1: node1{}; l2: node2{};};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -399,9 +400,9 @@ describe("Find completions", () => {
 
       test("Between nodes", async () => {
         mockReadFileSync("/{l1: node1{};} & /{l2: node2{};};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -420,9 +421,9 @@ describe("Find completions", () => {
 
       test("after props", async () => {
         mockReadFileSync("/{l1: node1{};} /{l2: node2{};}; &");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -444,9 +445,9 @@ describe("Find completions", () => {
         mockReadFileSync(
           "/{node1{};node2{};/delete-node/ node1;/delete-node/ ;};"
         );
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -465,9 +466,9 @@ describe("Find completions", () => {
 
       test("delete keyword", async () => {
         mockReadFileSync("/{node1{};node2{};/};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -487,9 +488,9 @@ describe("Find completions", () => {
     describe("Delete node name", () => {
       test("Before node", async () => {
         mockReadFileSync("/{/delete-node/ ;node1{};node2{};};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -507,9 +508,9 @@ describe("Find completions", () => {
 
       test("Between nodes", async () => {
         mockReadFileSync("/{node1{};/delete-node/ ;node2{};};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -528,9 +529,9 @@ describe("Find completions", () => {
 
       test("after props", async () => {
         mockReadFileSync("/{node1{};node2{};/delete-node/ ;};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -552,9 +553,9 @@ describe("Find completions", () => {
         mockReadFileSync(
           "/{node1{};node2{};/delete-node/ node1;/delete-node/ ;};"
         );
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -573,9 +574,9 @@ describe("Find completions", () => {
 
       test("delete keyword in node", async () => {
         mockReadFileSync("/{node1{};node2{};/};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -594,9 +595,9 @@ describe("Find completions", () => {
 
       test("delete keyword in root doc no labels", async () => {
         mockReadFileSync("/{node1{};node2{};}; /");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -615,9 +616,9 @@ describe("Find completions", () => {
 
       test("delete keyword in root doc with labels", async () => {
         mockReadFileSync("/{l1: node1{}; l2: node2{};}; /");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -638,9 +639,9 @@ describe("Find completions", () => {
         mockReadFileSync(
           "/{node1{};node2{};/delete-node/ ;/delete-node/ node1;};"
         );
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -662,9 +663,9 @@ describe("Find completions", () => {
     describe("Delete node path", () => {
       test("Before node", async () => {
         mockReadFileSync("/delete-node/ &{/};/{node1{};};/{node2{};};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -682,9 +683,9 @@ describe("Find completions", () => {
 
       test("Between nodes", async () => {
         mockReadFileSync("/{node1{};}; /delete-node/ &{/}; /{node2{};};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -703,9 +704,9 @@ describe("Find completions", () => {
 
       test("after props", async () => {
         mockReadFileSync("/{node1{};}; /{node2{};};  /delete-node/ &{/};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -727,9 +728,9 @@ describe("Find completions", () => {
         mockReadFileSync(
           "/{node1{};node2{};/delete-node/ node1;/delete-node/ ;};"
         );
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = { uri: "file:///folder/dts.dts" };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []
@@ -748,9 +749,11 @@ describe("Find completions", () => {
 
       test("delete keyword", async () => {
         mockReadFileSync("/{node1{};node2{};/};");
-        const textDocument: TextDocumentIdentifier = { uri: "/folder/dts.dts" };
+        const textDocument: TextDocumentIdentifier = {
+          uri: "file:///folder/dts.dts",
+        };
         const context = new ContextAware(
-          textDocument.uri,
+          fileURLToPath(textDocument.uri),
           [],
           getFakeBindingLoader(),
           []

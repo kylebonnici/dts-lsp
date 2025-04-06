@@ -58,7 +58,7 @@ describe("Type Issues", () => {
       test("must be child of root", async () => {
         mockReadFileSync(`/{ ${rootDefaults} node{aliases{};};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -76,7 +76,7 @@ describe("Type Issues", () => {
       test("valid node location", async () => {
         mockReadFileSync(`/{ ${rootDefaults} aliases{};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -90,7 +90,7 @@ describe("Type Issues", () => {
       test("invalid property names", async () => {
         mockReadFileSync(`/{ ${rootDefaults} aliases{abc,efg="/"};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -108,7 +108,7 @@ describe("Type Issues", () => {
       test("invalid property type", async () => {
         mockReadFileSync(`/{ ${rootDefaults} aliases{abc=<1 2>};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -127,7 +127,7 @@ describe("Type Issues", () => {
       test("Cannot have child nodes", async () => {
         mockReadFileSync(`/{ ${rootDefaults} aliases{node{};};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -147,7 +147,7 @@ describe("Type Issues", () => {
       test("required", async () => {
         mockReadFileSync(`/{ ${rootDefaults} memory{};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -165,7 +165,7 @@ describe("Type Issues", () => {
       test("required", async () => {
         mockReadFileSync(`/{ ${rootDefaults} reserved-memory{};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -187,7 +187,7 @@ describe("Type Issues", () => {
       test("required", async () => {
         mockReadFileSync(`/{ ${rootDefaults} cpus{};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -207,7 +207,7 @@ describe("Type Issues", () => {
           `/{ ${rootDefaults} cpus{#address-cells=<1>; #size-cells=<1>};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -229,7 +229,7 @@ describe("Type Issues", () => {
           `/{ ${rootDefaults} cpus{#address-cells=<1>; #size-cells=<0>; cpu{};};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -249,7 +249,7 @@ describe("Type Issues", () => {
       test("wrong value", async () => {
         mockReadFileSync(`/{ ${rootDefaults} status= "some string values"};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -269,7 +269,7 @@ describe("Type Issues", () => {
       test("wrong type", async () => {
         mockReadFileSync(`/{ ${rootDefaults} status= <10>;};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -286,7 +286,7 @@ describe("Type Issues", () => {
       test("wrong type", async () => {
         mockReadFileSync(`/{ ${rootDefaults} node {compatible= <10>;};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -303,7 +303,7 @@ describe("Type Issues", () => {
       test("valid type single string", async () => {
         mockReadFileSync(`/{ ${rootDefaults}  node{compatible= "hello";};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -319,7 +319,7 @@ describe("Type Issues", () => {
           `/{ ${rootDefaults}  node {compatible= "hello","hello2";};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -335,7 +335,7 @@ describe("Type Issues", () => {
       test("wrong type", async () => {
         mockReadFileSync(`/{${rootDefaults} node {model= <10>;};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -350,7 +350,7 @@ describe("Type Issues", () => {
       test("valid type single string", async () => {
         mockReadFileSync(`/{ ${rootDefaults}  node {model= "hello";};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -366,7 +366,7 @@ describe("Type Issues", () => {
           `/{${rootDefaults} node {model= "hello","hello2";};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -383,7 +383,7 @@ describe("Type Issues", () => {
       test("wrong type", async () => {
         mockReadFileSync(`/{${rootDefaults}  phandle= "hello";};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -398,7 +398,7 @@ describe("Type Issues", () => {
       test("valid type dec", async () => {
         mockReadFileSync(`/{${rootDefaults}  phandle= <10>;};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -412,7 +412,7 @@ describe("Type Issues", () => {
       test("valid type hex ", async () => {
         mockReadFileSync(`/{${rootDefaults} phandle= <0x10>;};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -426,7 +426,7 @@ describe("Type Issues", () => {
       test("multiple values", async () => {
         mockReadFileSync(`/{${rootDefaults} phandle= <10 20>;};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -443,7 +443,7 @@ describe("Type Issues", () => {
           `/{node1 {phandle= <1>;}; node2 {phandle= <1>;}; ${rootDefaults}};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -469,7 +469,7 @@ describe("Type Issues", () => {
           `/{${rootDefaults} node {#address-cells= "hello";};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -484,7 +484,7 @@ describe("Type Issues", () => {
       test("valid type dec", async () => {
         mockReadFileSync(`/{${rootDefaults} node {#address-cells= <10>;};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -498,7 +498,7 @@ describe("Type Issues", () => {
       test("valid type hex ", async () => {
         mockReadFileSync(`/{${rootDefaults} node {#address-cells= <0x10>;};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -514,7 +514,7 @@ describe("Type Issues", () => {
           `/{${rootDefaults} node {#address-cells= <10 20>;};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -529,7 +529,7 @@ describe("Type Issues", () => {
       test("Requiered in root node", async () => {
         mockReadFileSync(`/{#size-cells=<1>; model=''; compatible='';"};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -547,7 +547,7 @@ describe("Type Issues", () => {
       test("wrong type", async () => {
         mockReadFileSync(`/{${rootDefaults} node {#size-cells= "hello";};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -562,7 +562,7 @@ describe("Type Issues", () => {
       test("valid type dec", async () => {
         mockReadFileSync(`/{${rootDefaults} node {#size-cells= <10>;};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -576,7 +576,7 @@ describe("Type Issues", () => {
       test("valid type hex ", async () => {
         mockReadFileSync(`/{${rootDefaults} node {#size-cells= <0x10>;};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -590,7 +590,7 @@ describe("Type Issues", () => {
       test("multiple values", async () => {
         mockReadFileSync(`/{${rootDefaults} node {#size-cells= <10 20>;};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -605,7 +605,7 @@ describe("Type Issues", () => {
       test("Requiered in root node", async () => {
         mockReadFileSync(`/{#address-cells=<1>; model=''; compatible='';"};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -625,7 +625,7 @@ describe("Type Issues", () => {
           `/{ ${rootDefaults} node1{#address-cells=<1>;#size-cells=<1>; node2@200{};};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -642,7 +642,7 @@ describe("Type Issues", () => {
           `/{${rootDefaults} node1{ node2{reg=<0x200 0x20>};};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -659,7 +659,7 @@ describe("Type Issues", () => {
           `/{${rootDefaults} node1{#address-cells=<1>;#size-cells=<0>; node2@200{reg=<0x200>;};};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -675,7 +675,7 @@ describe("Type Issues", () => {
           `/{${rootDefaults} node1{#address-cells=<2>;#size-cells=<3>; node2@200{reg=<0 0x200 0 0 0>;};};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -691,7 +691,7 @@ describe("Type Issues", () => {
           `/{${rootDefaults} node1{#address-cells=<1>;#size-cells=<2>; node2@200{reg=<0x200 0 0>;};};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -705,7 +705,7 @@ describe("Type Issues", () => {
       test("wrong type", async () => {
         mockReadFileSync(`/{${rootDefaults} node@200{reg= "hello";};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -722,7 +722,7 @@ describe("Type Issues", () => {
       test("valid type dec", async () => {
         mockReadFileSync(`/{${rootDefaults} node@200{reg= < 0 512 20>;};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -736,7 +736,7 @@ describe("Type Issues", () => {
       test("valid type hex ", async () => {
         mockReadFileSync(`/{${rootDefaults} node@200{reg= <0 0x200 0x20>;};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -750,7 +750,7 @@ describe("Type Issues", () => {
       test("single values", async () => {
         mockReadFileSync(`/{${rootDefaults} node@200{reg= < 0 512>;};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -765,7 +765,7 @@ describe("Type Issues", () => {
       test("Address mismatch - 2 size", async () => {
         mockReadFileSync(`/{${rootDefaults} node@200{reg= <0 0x300 0x20>;};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -784,7 +784,7 @@ describe("Type Issues", () => {
           `/{${rootDefaults} node1{#address-cells=<1>;#size-cells=<2>; node2@200{reg=<0x300 0 0>;};};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -803,7 +803,7 @@ describe("Type Issues", () => {
       test("wrong type", async () => {
         mockReadFileSync(`/{${rootDefaults} virtual-reg= "hello";};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -818,7 +818,7 @@ describe("Type Issues", () => {
       test("valid type dec", async () => {
         mockReadFileSync(`/{${rootDefaults} virtual-reg= <10>;};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -832,7 +832,7 @@ describe("Type Issues", () => {
       test("valid type hex ", async () => {
         mockReadFileSync(`/{${rootDefaults} virtual-reg= <0x10>;};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -846,7 +846,7 @@ describe("Type Issues", () => {
       test("multiple values", async () => {
         mockReadFileSync(`/{${rootDefaults} virtual-reg= <10 20>;};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -863,7 +863,7 @@ describe("Type Issues", () => {
       test("wrong type", async () => {
         mockReadFileSync(`/{${rootDefaults} ranges= "hello";};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -881,7 +881,7 @@ describe("Type Issues", () => {
       test("valid type empty", async () => {
         mockReadFileSync(`/{${rootDefaults} ranges;};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -897,7 +897,7 @@ describe("Type Issues", () => {
           `/{${rootDefaults} #address-cells=<1>;  node {#address-cells=<1>; #size-cells=<1>; ranges= <10 20 30>;};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -913,7 +913,7 @@ describe("Type Issues", () => {
           `/{${rootDefaults} #address-cells=<1>;  node {#address-cells=<1>; #size-cells=<1>; ranges= <0x10 0x20 0x30>;);};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -929,7 +929,7 @@ describe("Type Issues", () => {
       test("wrong type", async () => {
         mockReadFileSync(`/{${rootDefaults} dma-ranges= "hello";};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -947,7 +947,7 @@ describe("Type Issues", () => {
       test("valid type empty", async () => {
         mockReadFileSync(`/{${rootDefaults} dma-ranges;};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -963,7 +963,7 @@ describe("Type Issues", () => {
           `/{ ${rootDefaults} #address-cells=<1>;  node {#address-cells=<1>; #size-cells=<1>;dma-ranges= <10 20 30>;};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -979,7 +979,7 @@ describe("Type Issues", () => {
           `/{${rootDefaults} #address-cells=<1>;  node {#address-cells=<1>; #size-cells=<1>; dma-ranges= <0x10 0x20 0x30>;};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -995,7 +995,7 @@ describe("Type Issues", () => {
       test("wrong type", async () => {
         mockReadFileSync(`/{${rootDefaults} dma-coherent= "hello";};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1010,7 +1010,7 @@ describe("Type Issues", () => {
       test("valid type empty", async () => {
         mockReadFileSync(`/{${rootDefaults} dma-coherent;};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1026,7 +1026,7 @@ describe("Type Issues", () => {
       test("wrong type", async () => {
         mockReadFileSync(`/{${rootDefaults} dma-noncoherent= "hello";};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1041,7 +1041,7 @@ describe("Type Issues", () => {
       test("valid type empty", async () => {
         mockReadFileSync(`/{${rootDefaults} dma-noncoherent;};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1057,7 +1057,7 @@ describe("Type Issues", () => {
       test("omitted", async () => {
         mockReadFileSync(`/{${rootDefaults} node{device_type= "node";};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1073,7 +1073,7 @@ describe("Type Issues", () => {
       test("wrong type", async () => {
         mockReadFileSync(`/{${rootDefaults} node{device_type= <10>;};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1090,7 +1090,7 @@ describe("Type Issues", () => {
           `/{${rootDefaults} cpus{#address-cells=<1>;#size-cells = <0>;cpu{device_type= "cpu";reg = <0>;};};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1104,7 +1104,7 @@ describe("Type Issues", () => {
       test("valid type single string - node", async () => {
         mockReadFileSync(`/{${rootDefaults} node{device_type= "memory";};};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1122,7 +1122,7 @@ describe("Type Issues", () => {
           `/{${rootDefaults} node{device_type= "cpu","hello2";};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1139,7 +1139,7 @@ describe("Type Issues", () => {
       test("wrong type", async () => {
         mockReadFileSync(`/{${rootDefaults} name= <10>;};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1154,7 +1154,7 @@ describe("Type Issues", () => {
       test("valid type single string", async () => {
         mockReadFileSync(`/{${rootDefaults} name= "hello";};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1169,7 +1169,7 @@ describe("Type Issues", () => {
       test("valid type multiple string", async () => {
         mockReadFileSync(`/{${rootDefaults} name= "hello","hello2";};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1186,7 +1186,7 @@ describe("Type Issues", () => {
       test("wrong type", async () => {
         mockReadFileSync(`/{${rootDefaults} interrupts= "hello";};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1205,7 +1205,7 @@ describe("Type Issues", () => {
           `/{${rootDefaults} interrupt-controller; #interrupt-cells = <1>; node2{interrupts= <10>;};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1221,7 +1221,7 @@ describe("Type Issues", () => {
           `/{${rootDefaults} interrupt-controller; #interrupt-cells = <2>; node2{interrupts= <10 20>;};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1235,7 +1235,7 @@ describe("Type Issues", () => {
       test("unable to resolve parent - 1", async () => {
         mockReadFileSync(`/{${rootDefaults} interrupts= <10 20>};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1254,7 +1254,7 @@ describe("Type Issues", () => {
           `/{${rootDefaults} interrupts= <10 20>; interrupt-parent=<10>};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1273,7 +1273,7 @@ describe("Type Issues", () => {
           `/{ ${rootDefaults} interrupts= <10 20 30>; interrupt-parent=<10>; node{interrupt-controller; #interrupt-cells = <3>; phandle=<10>};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1289,7 +1289,7 @@ describe("Type Issues", () => {
       test("wrong type", async () => {
         mockReadFileSync(`/{${rootDefaults} interrupt-parent= "hello";};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1306,7 +1306,7 @@ describe("Type Issues", () => {
           `/{${rootDefaults}  phandle=<10>; interrupt-controller; #interrupt-cells= <1>; node{interrupts=<10>; interrupt-parent= <10>;};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1322,7 +1322,7 @@ describe("Type Issues", () => {
           `/{${rootDefaults} phandle=<0x10>; interrupt-controller; #interrupt-cells= <1>; node{interrupts=<10>; interrupt-parent= <0x10>;};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1338,7 +1338,7 @@ describe("Type Issues", () => {
           `/{${rootDefaults} phandle=<0x10>; interrupt-controller; #interrupt-cells= <1>; node{interrupts=<10>; interrupt-parent= <0x10 0x20>;};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1355,7 +1355,7 @@ describe("Type Issues", () => {
       test("wrong type", async () => {
         mockReadFileSync(`/{${rootDefaults} interrupts-extended= "hello";};`);
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1374,7 +1374,7 @@ describe("Type Issues", () => {
           `/{ node1: node1{#interrupt-cells = <1>; interrupt-controller; node2{interrupts = <10>; interrupts-extended= <&node1 10>;};}; ${rootDefaults}};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1401,7 +1401,7 @@ describe("Type Issues", () => {
           `/{ ${rootDefaults} node1: node1{interrupt-controller; #interrupt-cells = <1>;}; node2{interrupts-extended= <&node1 10>;};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1417,7 +1417,7 @@ describe("Type Issues", () => {
           `/{ ${rootDefaults} #address-cells=<1>; #size-cells=<1>; model=''; compatible='';  node1: node1{interrupt-controller; #interrupt-cells = <2>;}; node2{interrupts-extended= <&node1 10 20>;};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1433,7 +1433,7 @@ describe("Type Issues", () => {
           `/{${rootDefaults} node1{interrupt-controller; #interrupt-cells = <1>;}; node2{interrupts-extended= <&{/node1} 10>;};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1449,7 +1449,7 @@ describe("Type Issues", () => {
           `/{ ${rootDefaults} node1{interrupt-controller; #interrupt-cells = <2>;}; node2{interrupts-extended= <&{/node1} 10 20>;};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1465,7 +1465,7 @@ describe("Type Issues", () => {
           `/{ ${rootDefaults} node1{phandle= <1>; interrupt-controller; #interrupt-cells = <1>;}; node2{interrupts-extended= <1 10>;};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1481,7 +1481,7 @@ describe("Type Issues", () => {
           `/{ ${rootDefaults} node1{phandle= <1>; interrupt-controller; #interrupt-cells = <2>;}; node2{interrupts-extended= <1 10 20>;};};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1497,7 +1497,7 @@ describe("Type Issues", () => {
           `/{  node2{interrupts-extended= <1 10>;}; ${rootDefaults}};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1521,7 +1521,7 @@ describe("Type Issues", () => {
           `/{  node1{phandle= <1>; interrupt-controller; #interrupt-cells = <3>;}; node2{interrupts-extended= <1 10 20>;}; ${rootDefaults}};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1546,7 +1546,7 @@ describe("Type Issues", () => {
           `/{node1{phandle= <1>; }; node2{interrupts-extended= <1 10>;}; ${rootDefaults}};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []
@@ -1571,7 +1571,7 @@ describe("Type Issues", () => {
           `/{  node1{interrupt-controller; #interrupt-cells = <2>;};  node2{interrupt-controller; #interrupt-cells = <3>;}; node3{interrupts-extended= <&{/node1} 10 20>, <&{/node2} 10 20 30>;}; ${rootDefaults}};`
         );
         const context = new ContextAware(
-          "/folder/dts.dts",
+          "file:///folder/dts.dts",
           [],
           getFakeBindingLoader(),
           []

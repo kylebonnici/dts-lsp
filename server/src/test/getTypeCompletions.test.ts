@@ -27,6 +27,7 @@ import {
 import { Node } from "../context/node";
 import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
 import { getStandardType } from "../dtsTypes/standardTypes";
+import { fileURLToPath } from 'url';
 
 const getFakeBindingLoader = (): BindingLoader => ({
   getNodeTypes: (node: Node) => {
@@ -57,10 +58,10 @@ describe("Find typed completions", () => {
     test("status first string", async () => {
       mockReadFileSync("/{node{status= ;};};");
       const textDocument: TextDocumentIdentifier = {
-        uri: "/folder/dts.dts",
+        uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        textDocument.uri,
+        fileURLToPath(textDocument.uri),
         [],
         getFakeBindingLoader(),
         []
@@ -84,10 +85,10 @@ describe("Find typed completions", () => {
     test("status second string", async () => {
       mockReadFileSync('/{node{status= "okay", ;};};');
       const textDocument: TextDocumentIdentifier = {
-        uri: "/folder/dts.dts",
+        uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        textDocument.uri,
+        fileURLToPath(textDocument.uri),
         [],
         getFakeBindingLoader(),
         []
@@ -106,10 +107,10 @@ describe("Find typed completions", () => {
     test("address-cells first value", async () => {
       mockReadFileSync("/{node{#address-cells= ;};};");
       const textDocument: TextDocumentIdentifier = {
-        uri: "/folder/dts.dts",
+        uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        textDocument.uri,
+        fileURLToPath(textDocument.uri),
         [],
         getFakeBindingLoader(),
         []
@@ -129,10 +130,10 @@ describe("Find typed completions", () => {
     test("address-cells second value", async () => {
       mockReadFileSync("/{node{#address-cells= <10>,;};};");
       const textDocument: TextDocumentIdentifier = {
-        uri: "/folder/dts.dts",
+        uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        textDocument.uri,
+        fileURLToPath(textDocument.uri),
         [],
         getFakeBindingLoader(),
         []
@@ -151,10 +152,10 @@ describe("Find typed completions", () => {
     test("size-cells first value", async () => {
       mockReadFileSync("/{node{#size-cells= ;};};");
       const textDocument: TextDocumentIdentifier = {
-        uri: "/folder/dts.dts",
+        uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        textDocument.uri,
+        fileURLToPath(textDocument.uri),
         [],
         getFakeBindingLoader(),
         []
@@ -174,10 +175,10 @@ describe("Find typed completions", () => {
     test("size-cells second value", async () => {
       mockReadFileSync("/{node{#size-cells= <10>,;};};");
       const textDocument: TextDocumentIdentifier = {
-        uri: "/folder/dts.dts",
+        uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        textDocument.uri,
+        fileURLToPath(textDocument.uri),
         [],
         getFakeBindingLoader(),
         []
@@ -196,10 +197,10 @@ describe("Find typed completions", () => {
     test("device_type - cpu", async () => {
       mockReadFileSync("/{cpu{device_type= ;};};");
       const textDocument: TextDocumentIdentifier = {
-        uri: "/folder/dts.dts",
+        uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        textDocument.uri,
+        fileURLToPath(textDocument.uri),
         [],
         getFakeBindingLoader(),
         []
@@ -219,10 +220,10 @@ describe("Find typed completions", () => {
     test("device_type - memory", async () => {
       mockReadFileSync("/{memory{device_type= ;};};");
       const textDocument: TextDocumentIdentifier = {
-        uri: "/folder/dts.dts",
+        uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        textDocument.uri,
+        fileURLToPath(textDocument.uri),
         [],
         getFakeBindingLoader(),
         []

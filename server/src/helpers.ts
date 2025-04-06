@@ -36,6 +36,7 @@ import {
   MacroRegistryItem,
 } from "./types";
 import { ContextAware } from "./runtimeEvaluator";
+import url from "url";
 
 export const toRangeWithTokenIndex = (
   start?: Token,
@@ -292,7 +293,7 @@ export async function nodeFinder<T>(
   activeContext?: ContextAware,
   preferredContext?: string | number
 ): Promise<T[]> {
-  const uri = location.textDocument.uri.replace("file://", "");
+  const uri = fileURLToPath(location.textDocument.uri);
 
   const contextMeta = findContext(
     contexts,
@@ -377,7 +378,8 @@ export const findContext = (
   activeContext?: ContextAware,
   preferredContext?: string | number
 ) => {
-  if (activeContext?.getContextFiles().find((f) => f=== uri)) return {context: activeContext};
+  if (activeContext?.getContextFiles().find((f) => f === uri))
+    return { context: activeContext };
 
   const contextFiles = resolveContextFiles(contextAware);
 
@@ -476,4 +478,16 @@ export const expandMacros = (
     );
   } while (expandedCode !== prevCode);
   return expandedCode;
+};
+
+export const pathToFileURL = (path: string) => {
+  return url.pathToFileURL(path).toString();
+};
+
+export const fileURLToPath = (fileUrl: string) => {
+  return url.fileURLToPath(fileUrl);
+};
+
+export const isPathEqual = (pathA: string, pathB: string) => {
+  return pathA === pathB;
 };

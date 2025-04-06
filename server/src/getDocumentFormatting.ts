@@ -34,6 +34,7 @@ import { ByteStringValue } from "./ast/dtc/values/byteString";
 import { LabeledValue } from "./ast/dtc/values/labeledValue";
 import { Include } from "./ast/cPreprocessors/include";
 import {
+  fileURLToPath,
   getDeepestAstNodeInBetween,
   positionInBetween,
   setIndentString,
@@ -91,7 +92,7 @@ export async function getDocumentFormatting(
   contextAware: ContextAware
 ): Promise<TextEdit[]> {
   const result: TextEdit[] = [];
-  const uri = documentFormattingParams.textDocument.uri.replace("file://", "");
+  const uri = fileURLToPath(documentFormattingParams.textDocument.uri);
 
   const fileRootAsts = (await contextAware.getRuntime()).fileTopMostAst(uri);
 

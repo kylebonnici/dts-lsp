@@ -30,7 +30,7 @@ import { LabelRef } from "./ast/dtc/labelRef";
 import { Node } from "./context/node";
 import { Property } from "./context/property";
 import { Runtime } from "./context/runtime";
-import { genIssue, positionInBetween, toRange } from "./helpers";
+import { genIssue, pathToFileURL, positionInBetween, toRange } from "./helpers";
 import { Parser } from "./parser";
 import {
   DiagnosticSeverity,
@@ -141,7 +141,7 @@ export class ContextAware {
             return nodeType
               ? {
                   range: toRange(v!.value!),
-                  target: `file://${nodeType.bindingsPath}`,
+                  target: pathToFileURL(nodeType.bindingsPath!),
                 }
               : undefined;
           })
@@ -160,7 +160,7 @@ export class ContextAware {
           if (path) {
             const link: DocumentLink = {
               range: toRange(include.path),
-              target: `file://${path}`,
+              target: pathToFileURL(path),
             };
             return link;
           }

@@ -26,7 +26,7 @@ import {
 } from "./ast/dtc/node";
 import { Label } from "./ast/dtc/label";
 import { LabelRef } from "./ast/dtc/labelRef";
-import { nodeFinder, toRange } from "./helpers";
+import { nodeFinder, pathToFileURL, toRange } from "./helpers";
 import { DtcProperty, PropertyName } from "./ast/dtc/property";
 import { Property } from "./context/property";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
@@ -59,7 +59,7 @@ function getPropertyDefinition(
       .map((dtc) => {
         if (dtc instanceof DtcProperty) {
           return Location.create(
-            `file://${dtc.uri}`,
+            pathToFileURL(dtc.uri),
             toRange(dtc.propertyName ?? dtc)
           );
         }
@@ -94,13 +94,13 @@ function getNodeDefinition(result: SearchableResult | undefined): Location[] {
     return [...node.definitions, ...node.referencedBy]
       .map((dtc) => {
         if (dtc instanceof DtcRootNode) {
-          return Location.create(`file://${dtc.uri}`, toRange(dtc));
+          return Location.create(pathToFileURL(dtc.uri), toRange(dtc));
         }
         if (dtc instanceof DtcChildNode) {
-          return Location.create(`file://${dtc.uri}`, toRange(dtc));
+          return Location.create(pathToFileURL(dtc.uri), toRange(dtc));
         }
         if (dtc instanceof DtcRefNode) {
-          return Location.create(`file://${dtc.uri}`, toRange(dtc));
+          return Location.create(pathToFileURL(dtc.uri), toRange(dtc));
         }
       })
       .filter((r) => r) as Location[];
@@ -149,7 +149,7 @@ function getMacrosDefinition(result: SearchableResult | undefined): Location[] {
     if (macro) {
       return [
         Location.create(
-          `file://${macro.macro.uri}`,
+          pathToFileURL(macro.macro.uri),
           toRange(macro.macro.identifier)
         ),
       ];

@@ -27,7 +27,7 @@ import { Node } from "./context/node";
 import { DtcChildNode, NodeName } from "./ast/dtc/node";
 import { Label, LabelAssign } from "./ast/dtc/label";
 import { LabelRef } from "./ast/dtc/labelRef";
-import { nodeFinder, toRange } from "./helpers";
+import { fileURLToPath, nodeFinder, pathToFileURL, toRange } from "./helpers";
 import { DtcProperty, PropertyName } from "./ast/dtc/property";
 import { Property } from "./context/property";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
@@ -68,7 +68,7 @@ function getPropertyReferences(
           dtc.propertyName
         ) {
           return Location.create(
-            `file://${dtc.uri}`,
+            pathToFileURL(dtc.uri),
             toRange(dtc.propertyName)
           );
         }
@@ -130,7 +130,7 @@ function getNodeLabelRename(
       .filter((l) => l?.value === labelValue)
       .map((dtc) => {
         if (dtc) {
-          return Location.create(`file://${dtc.uri}`, toRange(dtc));
+          return Location.create(pathToFileURL(dtc.uri), toRange(dtc));
         }
       })
       .filter((r) => r) as Location[];
@@ -186,10 +186,10 @@ function getNodeNameRename(result: SearchableResult | undefined): Location[] {
     ]
       .map((dtc) => {
         if (dtc instanceof DtcChildNode && dtc.name) {
-          return Location.create(`file://${dtc.uri}`, toRange(dtc.name));
+          return Location.create(pathToFileURL(dtc.uri), toRange(dtc.name));
         }
         if (dtc instanceof NodeName) {
-          return Location.create(`file://${dtc.uri}`, toRange(dtc));
+          return Location.create(pathToFileURL(dtc.uri), toRange(dtc));
         }
         if (
           dtc instanceof DtcProperty &&
@@ -211,7 +211,7 @@ function getNodeNameRename(result: SearchableResult | undefined): Location[] {
           strRange.end.character -= 1 + endOfset;
 
           return Location.create(
-            `file://${dtc.values.values[0].uri}`,
+            pathToFileURL(dtc.values.values[0].uri),
             strRange
           );
         }
@@ -228,7 +228,7 @@ function getNodeNameRename(result: SearchableResult | undefined): Location[] {
       if (isDeleteChild(result.ast)) {
         return [
           ...gentItem(result.ast.linksTo),
-          Location.create(`file://${result.ast.uri}`, toRange(result.ast)),
+          Location.create(pathToFileURL(result.ast.uri), toRange(result.ast)),
         ];
       }
 
@@ -294,7 +294,7 @@ export async function getPrepareRenameRequest(
 
   if (
     locationResult.some((r) =>
-      lockRenameEdits.some((l) => r.uri.replace("file://", "").startsWith(l))
+      lockRenameEdits.some((l) => fileURLToPath(r.uri).startsWith(l))
     )
   ) {
     throw new Error('Path is locked by user setting "lockRenameEdits"');
