@@ -504,7 +504,7 @@ const resolveGlobalSettings = async (globalSettings: Settings) => {
 };
 
 const loadSettings = async (
-  oldSettngs: Settings | undefined,
+  oldSettings: Settings | undefined,
   globalSettings: Settings
 ) => {
   // resolve context paths defaults
@@ -550,7 +550,7 @@ const loadSettings = async (
     );
   });
 
-  let adhocContexts = oldSettngs ? getAdhocContexts(oldSettngs) : [];
+  let adhocContexts = oldSettings ? getAdhocContexts(oldSettings) : [];
   adhocContexts
     .map((c) => {
       const bindingType = globalSettings.defaultBindingType;
@@ -587,9 +587,9 @@ const loadSettings = async (
 };
 
 connection.onDidChangeConfiguration(async (change) => {
-  let oldSettngs: Settings | undefined;
+  let oldSettings: Settings | undefined;
   if (init) {
-    oldSettngs = globalSettings;
+    oldSettings = globalSettings;
   }
 
   if (!change.settings) {
@@ -607,7 +607,7 @@ connection.onDidChangeConfiguration(async (change) => {
     ...change.settings?.devicetree,
   };
 
-  await loadSettings(oldSettngs, globalSettings);
+  await loadSettings(oldSettings, globalSettings);
   init = true;
 });
 
@@ -737,21 +737,21 @@ const syntaxIssueToMessage = (issue: SyntaxIssue) => {
     case SyntaxIssue.UNABLE_TO_RESOLVE_INCLUDE:
       return "Unable to resolve include";
     case SyntaxIssue.EXPECTED_START_ADDRESS:
-      return "Expedted start address";
+      return "Expected start address";
     case SyntaxIssue.EXPECTED_END_ADDRESS:
       return "Expected end address";
     case SyntaxIssue.EXPECTED_BITS_SIZE:
     case SyntaxIssue.INVALID_BITS_SIZE:
       return "Expected 8|16|32|64";
     case SyntaxIssue.UNKNOWN_MACRO:
-      return "Unkown macro name";
+      return "Unknown macro name";
     case SyntaxIssue.EXPECTED_FUNCTION_LIKE:
       return "Expected function like macro";
     case SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS:
       return "Macro expects less arguments";
     case SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS:
       return "Macro expects more arguments";
-    case SyntaxIssue.MISSINEG_ENDIF:
+    case SyntaxIssue.MISSING_ENDIF:
       return "Missing #ENDIF";
     case SyntaxIssue.UNUSED_BLOCK:
       return "Block Unused";
@@ -834,7 +834,7 @@ const standardTypeIssueIssuesToMessage = (issue: Issue<StandardTypeIssue>) => {
         case StandardTypeIssue.OMITTED:
           return `INTRO should be omitted`;
         case StandardTypeIssue.PROPERTY_NOT_ALLOWED:
-          return `INTRO name is not permited under this node`;
+          return `INTRO name is not permitted under this node`;
         case StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_FIRST_VALUE:
           return `INTRO first value must match node address`;
         case StandardTypeIssue.EXPECTED_DEVICE_TYPE_CPU:

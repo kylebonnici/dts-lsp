@@ -513,7 +513,7 @@ export class CPreprocessorParser extends BaseParser {
     if (block.endToken) {
       endifKeyword = new Keyword(createTokenIndex(block.endToken));
     } else {
-      this._issues.push(genIssue(SyntaxIssue.MISSINEG_ENDIF, ifDefKeyword));
+      this._issues.push(genIssue(SyntaxIssue.MISSING_ENDIF, ifDefKeyword));
     }
 
     const ifDefBlock = new IfDefineBlock(ifDef, endifKeyword ?? null, cElse);
@@ -588,7 +588,7 @@ export class CPreprocessorParser extends BaseParser {
     if (block.endToken) {
       endifKeyword = new Keyword(createTokenIndex(block.endToken));
     } else {
-      this._issues.push(genIssue(SyntaxIssue.MISSINEG_ENDIF, ifKeyword));
+      this._issues.push(genIssue(SyntaxIssue.MISSING_ENDIF, ifKeyword));
     }
     const ifElIfBlock = new IfElIfBlock(ifBlocks, endifKeyword ?? null, cElse);
     this.mergeStack();

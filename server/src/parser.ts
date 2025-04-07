@@ -422,7 +422,7 @@ export class Parser extends BaseParser {
     return nodeAddress;
   }
 
-  private processNodeAddresse(nodeName: NodeName): NodeAddress[] | undefined {
+  private processNodeAddresses(nodeName: NodeName): NodeAddress[] | undefined {
     this.enqueueToStack();
 
     const atValid = this.checkConcurrentTokens([validateToken(LexerToken.AT)]);
@@ -490,7 +490,7 @@ export class Parser extends BaseParser {
     }
 
     const node = new NodeName(name, createTokenIndex(valid[0], valid.at(-1)));
-    const addresses = this.processNodeAddresse(node);
+    const addresses = this.processNodeAddresses(node);
     node.address = addresses;
 
     this.mergeStack();
@@ -1117,11 +1117,11 @@ export class Parser extends BaseParser {
       throw new Error("Token must have value");
     }
 
-    let trimedValue = token.value;
-    if (trimedValue.match(/["']$/)) {
-      trimedValue = trimedValue.slice(1, -1);
+    let trimmedValue = token.value;
+    if (trimmedValue.match(/["']$/)) {
+      trimmedValue = trimmedValue.slice(1, -1);
     }
-    const propValue = new StringValue(trimedValue, createTokenIndex(token));
+    const propValue = new StringValue(trimmedValue, createTokenIndex(token));
 
     if (!token.value.match(/["']$/)) {
       this._issues.push(
@@ -1152,8 +1152,8 @@ export class Parser extends BaseParser {
     const startLabels = this.processOptionalLabelAssign(true);
     const bits = this.processBits();
 
-    const openBraket = this.currentToken;
-    if (!validToken(openBraket, LexerToken.LT_SYM)) {
+    const openBracket = this.currentToken;
+    if (!validToken(openBracket, LexerToken.LT_SYM)) {
       this.popStack();
       return;
     } else {
@@ -1161,7 +1161,7 @@ export class Parser extends BaseParser {
     }
 
     const value = this.processArrayValues(dtcProperty) ?? null;
-    value.openBracket = openBraket;
+    value.openBracket = openBracket;
 
     const endLabels1 = this.processOptionalLabelAssign(true) ?? [];
 
@@ -1187,7 +1187,7 @@ export class Parser extends BaseParser {
 
     node.endLabels.push(...endLabels2);
 
-    node.firstToken = openBraket;
+    node.firstToken = openBracket;
     node.lastToken = this.prevToken;
     return node;
   }

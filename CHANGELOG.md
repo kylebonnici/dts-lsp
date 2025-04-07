@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- LSP not woring on Windows Operating systems
+- LSP not working on Windows Operating systems
 - Issue with folding ranges not showing for content added as the below
 
 ```devicetree
@@ -45,7 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Support inline eval of macros with `#` and `##` syntax
-- Support onhover/getDefinition/getDecleration on Macro param
+- Support onHover/getDefinition/getDeclaration on Macro param
 
 ### Changed
 

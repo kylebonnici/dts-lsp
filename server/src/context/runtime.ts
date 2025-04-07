@@ -174,7 +174,7 @@ export class Runtime implements Searchable {
   private labelIssues() {
     const issues: Issue<ContextIssues>[] = [];
 
-    const lablesUsed = new Map<
+    const labelsUsed = new Map<
       string,
       {
         label: LabelAssign;
@@ -184,14 +184,14 @@ export class Runtime implements Searchable {
     >();
 
     this.rootNode.allDescendantsLabelsMapped.forEach((item) => {
-      if (!lablesUsed.has(item.label.label.value)) {
-        lablesUsed.set(item.label.label.value, [item]);
+      if (!labelsUsed.has(item.label.label.value)) {
+        labelsUsed.set(item.label.label.value, [item]);
       } else {
-        lablesUsed.get(item.label.label.value)?.push(item);
+        labelsUsed.get(item.label.label.value)?.push(item);
       }
     });
 
-    Array.from(lablesUsed).forEach((pair) => {
+    Array.from(labelsUsed).forEach((pair) => {
       const otherOwners = pair[1];
       if (otherOwners.length > 1) {
         const firstLabeledNode = otherOwners.find(
@@ -203,10 +203,6 @@ export class Runtime implements Searchable {
         );
 
         if (!allSameOwner || !firstLabeledNode) {
-          const conflits = otherOwners.filter(
-            (owner) => !(owner && owner.owner === firstLabeledNode?.owner)
-          );
-
           issues.push(
             genIssue(
               ContextIssues.LABEL_ALREADY_IN_USE,
