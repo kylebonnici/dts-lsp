@@ -224,6 +224,8 @@ export class Runtime implements Searchable {
     return issues;
   }
 
+  private typesIssuesCache?: Issue<StandardTypeIssue>[];
+
   get typesIssues() {
     const getIssue = (node: Node): Issue<StandardTypeIssue>[] => {
       return [
@@ -232,7 +234,9 @@ export class Runtime implements Searchable {
       ];
     };
 
-    return getIssue(this.rootNode);
+    this.typesIssuesCache ??= getIssue(this.rootNode);
+
+    return this.typesIssuesCache;
   }
 
   getOrderedNodeAst(node: Node) {

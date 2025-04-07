@@ -60,6 +60,8 @@ export class CMacro extends ASTBase {
     }
   }
 
+  private toStringCache?: string;
+
   get name() {
     return this.identifier instanceof CIdentifier
       ? this.identifier.name
@@ -67,10 +69,11 @@ export class CMacro extends ASTBase {
   }
 
   toString() {
-    return [
+    this.toStringCache ??= [
       this.identifier.toString(),
       ...(this.content ? [this.content?.toString()] : []),
     ].join(" ");
+    return this.toStringCache;
   }
 
   toMarkupContent(): MarkupContent {

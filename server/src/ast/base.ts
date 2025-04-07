@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
-import { getTokenModifiers, getTokenTypes, pathToFileURL, toRange } from "../helpers";
+import {
+  getTokenModifiers,
+  getTokenTypes,
+  pathToFileURL,
+  toRange,
+} from "../helpers";
 import type {
   BuildSemanticTokensPush,
   SemanticTokenModifiers,
@@ -38,6 +43,7 @@ export class ASTBase {
 
   private _lastToken?: Token;
   private _fisrtToken?: Token;
+  private allDescendantsCache?: ASTBase[];
 
   constructor(_tokenIndexes?: TokenIndexes) {
     this._fisrtToken = _tokenIndexes?.start;
@@ -153,10 +159,12 @@ export class ASTBase {
   }
 
   get allDescendants(): ASTBase[] {
-    return [
+    this.allDescendantsCache ??= [
       ...this._children,
       ...this._children.flatMap((child) => child.allDescendants),
     ];
+
+    return this.allDescendantsCache;
   }
 
   protected addChild(child: ASTBase | null | undefined) {
@@ -164,5 +172,6 @@ export class ASTBase {
       child.parentNode = this;
       this.children.push(child);
     }
+    this.allDescendantsCache = undefined;
   }
 }
