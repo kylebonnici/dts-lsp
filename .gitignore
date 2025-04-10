@@ -6,4 +6,5 @@ server/coverage
 dist
 dts-lsp-types/server
 tsconfig.types.tsbuildinfo
-types-devicetree-language-server*
+devicetree-language-server-types*
+devicetree-language-server-vscode-types*
