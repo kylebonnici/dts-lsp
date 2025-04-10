@@ -124,7 +124,8 @@
     }
   },
   "scripts": {
-    "compile": "npm run compile:server && npm run compile:client",
+    "types:server": "tsc -p server/tsconfig.types.json",
+    "compile": "npm run compile:server && npm run types:server && npm run compile:client",
     "compile:prod": "npm run compile:server:prod && npm run compile:client:prod",
     "compile:server": "node ./server/esbuild.js",
     "compile:client": "node ./client/esbuild.js",

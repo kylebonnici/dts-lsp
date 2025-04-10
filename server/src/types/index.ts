@@ -14,22 +14,6 @@
  * limitations under the License.
  */
 
-import { ContextListItem } from 'devicetree-language-server';
-import { LanguageClient } from "vscode-languageclient/node";
-
-export class API {
-  #client: LanguageClient;
-
-  constructor(client: LanguageClient) {
-    this.#client = client;
-  }
-  public get client(): LanguageClient {
-    return this.#client;
-  }
-
-  getContexts(): Promise<ContextListItem[]> {
-    return this.#client.sendRequest("devicetree/getContexts") as Promise<
-      ContextListItem[]
-    >;
-  }
+export interface ContextListItem {
+  uniqueName: string;
 }

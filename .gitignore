@@ -4,3 +4,6 @@ client/server
 .vscode-test
 server/coverage
 dist
+dts-lsp-types/server
+tsconfig.types.tsbuildinfo
+types-devicetree-language-server*
