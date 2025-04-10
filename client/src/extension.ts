@@ -77,9 +77,8 @@ export async function activate(context: ExtensionContext) {
 
   const api = new API(client);
 
-  const disposable = commands.registerCommand(
-    "devicetree.context.set.active",
-    async () => {
+  context.subscriptions.push(
+    commands.registerCommand("devicetree.context.set.active", async () => {
       const contexts = await api.getContexts();
       const options: (QuickPickItem & { uniqueName: string })[] = contexts.map(
         (context) => ({
@@ -102,11 +101,8 @@ export async function activate(context: ExtensionContext) {
             api.setActiveContexts(selected.uniqueName);
           }
         });
-      window.showInformationMessage("Hello from your extension!");
-    }
+    })
   );
-
-  context.subscriptions.push(disposable);
 
   return api;
 }

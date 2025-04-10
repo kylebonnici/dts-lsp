@@ -1478,7 +1478,7 @@ connection.onTypeDefinition(async (event) => {
   return typeDefinition(event, contextAware, activeContext);
 });
 
-connection.onRequest("devicetree/contexts", async () => {
+connection.onRequest("devicetree/getContexts", async () => {
   await allStable();
   return contextAware.map<ContextListItem>((c) => ({
     uniqueName: c.uniqueName,
