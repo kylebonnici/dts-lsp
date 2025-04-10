@@ -43,7 +43,6 @@ import { StringValue } from "./ast/dtc/values/string";
 import { existsSync } from "fs";
 import { basename } from "path";
 import { Comment } from "./ast/dtc/comment";
-import { BaseParser } from "./baseParser";
 
 export class ContextAware {
   _issues: Issue<ContextIssues>[] = [];
@@ -51,7 +50,7 @@ export class ContextAware {
   public parser: Parser;
   public overlayParsers: Parser[] = [];
   public overlays: string[] = [];
-  public readonly name: string | number;
+  public readonly uniqueName: string | number;
 
   constructor(
     uri: string,
@@ -64,7 +63,7 @@ export class ContextAware {
     this.overlays.filter(existsSync);
 
     this.parser = new Parser(uri, includePaths);
-    this.name = name ?? basename(uri);
+    this.uniqueName = name ?? basename(uri);
     this.parser.stable.then(() => {
       this.overlayParsers =
         this.overlays?.map(
