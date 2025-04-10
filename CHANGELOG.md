@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - onHover over macro now returns both decimal and hex value for the computed result
+- VS Code Integration API
 
 ### Fixed
 
