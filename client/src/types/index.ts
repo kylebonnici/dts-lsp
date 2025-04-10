@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { ContextListItem } from "devicetree-language-server";
+import { ContextListItem } from 'devicetree-language-server-types';
 import { LanguageClient } from "vscode-languageclient/node";
 
 export class API {
