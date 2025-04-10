@@ -23,17 +23,9 @@ import {
   ServerOptions,
   TransportKind,
 } from "vscode-languageclient/node";
+import { API } from "./api";
 
 let client: LanguageClient;
-
-class API {
-  public get client(): LanguageClient {
-    return client;
-  }
-  getContexts() {
-    return client.sendRequest("devicetree/getContexts");
-  }
-}
 
 export async function activate(context: ExtensionContext) {
   // The server is implemented in node
@@ -77,7 +69,7 @@ export async function activate(context: ExtensionContext) {
   // Start the client. This will also launch the server
   await client.start();
 
-  return new API();
+  return new API(client);
 }
 
 export function deactivate(): Thenable<void> | undefined {
