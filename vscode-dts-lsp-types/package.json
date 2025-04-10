@@ -1,0 +1,15 @@
+{
+  "name": "@types/vscode-devicetree-language-server",
+  "version": "0.2.5",
+  "description": "Type definitions Devicetree LSP extension",
+  "main": "./dist/index.d.ts",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "^4.0.0"
+  },
+  "author": "Kyle Micallef Bonnici",
+  "license": "Apache-2.0"
+}
