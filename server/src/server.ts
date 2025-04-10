@@ -118,7 +118,7 @@ const deleteContext = async (context: ContextAware) => {
   clearWorkspaceDiagnostics(context);
   debounce.delete(context);
   console.log(
-    `cleaning up context with ID ${context.name} and uri ${context.parser.uri}`
+    `cleaning up context with ID ${context.uniqueName} and uri ${context.parser.uri}`
   );
 
   contextAware.splice(index, 1);
@@ -546,7 +546,7 @@ const loadSettings = async (
     );
     addContext(newContext);
     console.log(
-      `New context with ID ${newContext.name} for ${context.dtsFile}`
+      `New context with ID ${newContext.uniqueName} for ${context.dtsFile}`
     );
   });
 
@@ -570,7 +570,9 @@ const loadSettings = async (
             )
           : undefined
       );
-      console.log(`New context with ID ${context.name} for ${c.parser.uri}`);
+      console.log(
+        `New context with ID ${context.uniqueName} for ${c.parser.uri}`
+      );
       return context;
     })
     .forEach(addContext);
@@ -578,7 +580,7 @@ const loadSettings = async (
   adhocContexts = getAdhocContexts(globalSettings);
   adhocContexts.forEach(cleanUpAdHocContext);
   if (activeFileUri) {
-    updateActiveContext(activeFileUri, true);
+    updateActiveContext(activeFileUri, undefined, true);
   }
 
   if (hasDiagnosticRefreshCapability) {
@@ -925,7 +927,9 @@ const onChange = async (uri: string) => {
           )
         : undefined
     );
-    console.log(`New ad hoc context with ID ${newContext.name} for ${uri}`);
+    console.log(
+      `New ad hoc context with ID ${newContext.uniqueName} for ${uri}`
+    );
     addContext(newContext);
     updateActiveContext(uri);
     await newContext.stable();
@@ -1037,7 +1041,11 @@ const reportWorkspaceDiagnostics = async (context: ContextAware) => {
     })
   );
 
-  console.log("workspace diagnostics", context.name, performance.now() - t);
+  console.log(
+    "workspace diagnostics",
+    context.uniqueName,
+    performance.now() - t
+  );
   return {
     items: [...activeContextItems],
   };
@@ -1230,7 +1238,11 @@ documents.listen(connection);
 // Listen on the connection
 connection.listen();
 
-const updateActiveContext = async (uri: string, force = false) => {
+const updateActiveContext = async (
+  uri: string,
+  uniqueName?: string,
+  force = false
+) => {
   if (!force && globalSettings.autoChangeContext === false) {
     return;
   }
@@ -1243,9 +1255,10 @@ const updateActiveContext = async (uri: string, force = false) => {
   activeContext = findContext(
     contextAware,
     uri,
+    uniqueName,
     undefined,
     globalSettings.preferredContext
-  )?.context;
+  );
 
   const context = activeContext;
   if (oldContext !== context) {
@@ -1269,11 +1282,11 @@ const updateActiveContext = async (uri: string, force = false) => {
       });
     }
     console.log(
-      `(ID: ${context?.name ?? -1}) activeContext:`,
+      `(ID: ${context?.uniqueName ?? -1}) activeContext:`,
       context?.parser.uri
     );
     contextAware.forEach((c, i) => {
-      console.log(`Context with ID ${c.name} for ${c.parser.uri}`);
+      console.log(`Context with ID ${c.uniqueName} for ${c.parser.uri}`);
     });
   }
 };
@@ -1310,16 +1323,17 @@ connection.languages.semanticTokens.on(async (h) => {
     const contextMeta = await findContext(
       contextAware,
       uri,
+      undefined,
       activeContext,
       globalSettings.preferredContext
     );
 
-    const isInContext = contextMeta?.context.isInContext(uri);
+    const isInContext = contextMeta?.isInContext(uri);
     if (!contextMeta || !isInContext) {
       return { data: [] };
     }
 
-    (await contextMeta.context.getAllParsers()).forEach((parser) =>
+    (await contextMeta.getAllParsers()).forEach((parser) =>
       parser.buildSemanticTokens(tokensBuilder, uri)
     );
 
@@ -1336,11 +1350,12 @@ connection.onDocumentLinks(async (event) => {
   const contextMeta = await findContext(
     contextAware,
     uri,
+    undefined,
     activeContext,
     globalSettings.preferredContext
   );
 
-  return contextMeta?.context.getDocumentLinks(uri);
+  return contextMeta?.getDocumentLinks(uri);
 });
 
 connection.onPrepareRename(async (event) => {
@@ -1381,12 +1396,13 @@ connection.onDefinition(async (event) => {
   const contextMeta = await findContext(
     contextAware,
     uri,
+    undefined,
     activeContext,
     globalSettings.preferredContext
   );
 
   const documentLinkDefinition =
-    (await contextMeta?.context.getDocumentLinks(uri, event.position))
+    (await contextMeta?.getDocumentLinks(uri, event.position))
       ?.filter((docLink) => docLink.target)
       .map((docLink) => Location.create(docLink.target!, docLink.range)) ?? [];
 
@@ -1420,6 +1436,7 @@ connection.onDocumentFormatting(async (event) => {
   const contextMeta = await findContext(
     contextAware,
     uri,
+    undefined,
     activeContext,
     globalSettings.preferredContext
   );
@@ -1427,7 +1444,7 @@ connection.onDocumentFormatting(async (event) => {
     return [];
   }
 
-  return getDocumentFormatting(event, contextMeta.context);
+  return getDocumentFormatting(event, contextMeta);
 });
 
 connection.onHover(async (event) => {

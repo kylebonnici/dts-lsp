@@ -298,6 +298,7 @@ export async function nodeFinder<T>(
   const contextMeta = findContext(
     contexts,
     uri,
+    undefined,
     activeContext,
     preferredContext
   );
@@ -305,7 +306,7 @@ export async function nodeFinder<T>(
   if (!contextMeta) return [];
 
   console.time("search");
-  const runtime = await contextMeta.context.getRuntime();
+  const runtime = await contextMeta.getRuntime();
   const locationMeta = runtime.getDeepestAstNode(uri, location.position);
   const sortKey = locationMeta?.ast?.firstToken.sortKey;
   console.timeEnd("search");
@@ -375,17 +376,25 @@ export const resolveContextFiles = (contextAware: ContextAware[]) => {
 export const findContext = (
   contextAware: ContextAware[],
   uri: string,
+  uniqueName?: string,
   activeContext?: ContextAware,
   preferredContext?: string | number
 ) => {
+  if (uniqueName && contextAware?.find((f) => f.uniqueName === uniqueName)) {
+    const context = contextAware?.find((f) => f.uniqueName === uniqueName);
+    if (context) {
+      return context;
+    }
+  }
+
   if (activeContext?.getContextFiles().find((f) => f === uri))
-    return { context: activeContext };
+    return activeContext;
 
   const contextFiles = resolveContextFiles(contextAware);
 
   return contextFiles
-    .sort((a) => (a.context.name === preferredContext ? -1 : 0))
-    .find((c) => c.files.some((p) => p === uri));
+    .sort((a) => (a.context.uniqueName === preferredContext ? -1 : 0))
+    .find((c) => c.files.some((p) => p === uri))?.context;
 };
 
 export const findContexts = (contextAware: ContextAware[], uri: string) => {
