@@ -15,7 +15,13 @@
  */
 
 import * as path from "path";
-import { workspace, ExtensionContext } from "vscode";
+import {
+  commands,
+  window,
+  workspace,
+  ExtensionContext,
+  QuickPickItem,
+} from "vscode";
 
 import {
   LanguageClient,
@@ -69,7 +75,40 @@ export async function activate(context: ExtensionContext) {
   // Start the client. This will also launch the server
   await client.start();
 
-  return new API(client);
+  const api = new API(client);
+
+  const disposable = commands.registerCommand(
+    "devicetree.context.set.active",
+    async () => {
+      const contexts = await api.getContexts();
+      const options: (QuickPickItem & { uniqueName: string })[] = contexts.map(
+        (context) => ({
+          uniqueName: context.uniqueName,
+          label: path.basename(context.mainDtsPath),
+          description: context.overlays.length
+            ? `overlays: ${context.overlays
+                .map((overlay) => path.basename(overlay))
+                .join(", ")}`
+            : "",
+        })
+      );
+
+      window
+        .showQuickPick(options, {
+          placeHolder: "Select devicetree context",
+        })
+        .then((selected) => {
+          if (selected) {
+            api.setActiveContexts(selected.uniqueName);
+          }
+        });
+      window.showInformationMessage("Hello from your extension!");
+    }
+  );
+
+  context.subscriptions.push(disposable);
+
+  return api;
 }
 
 export function deactivate(): Thenable<void> | undefined {
