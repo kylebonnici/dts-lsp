@@ -294,3 +294,5 @@ export interface MacroRegistryItem {
   resolver: MacrosResolver | undefined;
   macro: CMacro;
 }
+
+export type ContextId = { uri: string } | { uniqueName: string };
