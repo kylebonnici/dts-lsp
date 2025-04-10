@@ -22,6 +22,12 @@
   },
   "main": "./client/dist/extension",
   "contributes": {
+    "commands": [
+      {
+        "command": "devicetree.context.set.active",
+        "title": "Devicetree: Set active context"
+      }
+    ],
     "languages": [
       {
         "id": "devicetree",
