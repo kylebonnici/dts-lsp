@@ -15,13 +15,7 @@
  */
 
 import * as path from "path";
-import {
-  commands,
-  window,
-  workspace,
-  ExtensionContext,
-  QuickPickItem,
-} from "vscode";
+import * as vscode from "vscode";
 
 import {
   LanguageClient,
@@ -33,7 +27,7 @@ import { API } from "./api";
 
 let client: LanguageClient;
 
-export async function activate(context: ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   // The server is implemented in node
   const serverModule = context.asAbsolutePath(
     path.join("server", "dist", "server.js")
@@ -56,10 +50,10 @@ export async function activate(context: ExtensionContext) {
     synchronize: {
       configurationSection: "devicetree",
       fileEvents: [
-        workspace.createFileSystemWatcher("**/*.dts"),
-        workspace.createFileSystemWatcher("**/*.dtsi"),
-        workspace.createFileSystemWatcher("**/*.dtso"),
-        workspace.createFileSystemWatcher("**/*.overlay"),
+        vscode.workspace.createFileSystemWatcher("**/*.dts"),
+        vscode.workspace.createFileSystemWatcher("**/*.dtsi"),
+        vscode.workspace.createFileSystemWatcher("**/*.dtso"),
+        vscode.workspace.createFileSystemWatcher("**/*.overlay"),
       ],
     },
   };
@@ -78,30 +72,32 @@ export async function activate(context: ExtensionContext) {
   const api = new API(client);
 
   context.subscriptions.push(
-    commands.registerCommand("devicetree.context.set.active", async () => {
-      const contexts = await api.getContexts();
-      const options: (QuickPickItem & { uniqueName: string })[] = contexts.map(
-        (context) => ({
-          uniqueName: context.uniqueName,
-          label: path.basename(context.mainDtsPath),
-          description: context.overlays.length
-            ? `overlays: ${context.overlays
-                .map((overlay) => path.basename(overlay))
-                .join(", ")}`
-            : "",
-        })
-      );
+    vscode.commands.registerCommand(
+      "devicetree.context.set.active",
+      async () => {
+        const contexts = await api.getContexts();
+        const options: (vscode.QuickPickItem & { uniqueName: string })[] =
+          contexts.map((context) => ({
+            uniqueName: context.uniqueName,
+            label: path.basename(context.mainDtsPath),
+            description: context.overlays.length
+              ? `overlays: ${context.overlays
+                  .map((overlay) => path.basename(overlay))
+                  .join(", ")}`
+              : "",
+          }));
 
-      window
-        .showQuickPick(options, {
-          placeHolder: "Select devicetree context",
-        })
-        .then((selected) => {
-          if (selected) {
-            api.setActiveContexts(selected.uniqueName);
-          }
-        });
-    })
+        vscode.window
+          .showQuickPick(options, {
+            placeHolder: "Select devicetree context",
+          })
+          .then((selected) => {
+            if (selected) {
+              api.setActiveContexts(selected.uniqueName);
+            }
+          });
+      }
+    )
   );
 
   return api;
