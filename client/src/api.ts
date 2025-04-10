@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { ContextListItem } from 'devicetree-language-server';
+import { ContextListItem } from "devicetree-language-server";
 import { LanguageClient } from "vscode-languageclient/node";
 
 export class API {
@@ -28,8 +28,13 @@ export class API {
   }
 
   getContexts(): Promise<ContextListItem[]> {
-    return this.#client.sendRequest("devicetree/getContexts") as Promise<
-      ContextListItem[]
-    >;
+    return this.#client.sendRequest("devicetree/getContexts");
+  }
+
+  setActiveContexts(uniqueName: string) {
+    return this.#client.sendRequest(
+      "devicetree/setActive",
+      uniqueName
+    ) as Promise<void>;
   }
 }

@@ -16,4 +16,6 @@
 
 export interface ContextListItem {
   uniqueName: string;
+  mainDtsPath: string;
+  overlays: string[];
 }
