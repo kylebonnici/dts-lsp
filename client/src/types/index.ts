@@ -18,21 +18,14 @@ import { ContextListItem } from "devicetree-language-server";
 import { LanguageClient } from "vscode-languageclient/node";
 
 export class API {
-  #client: LanguageClient;
-
-  constructor(client: LanguageClient) {
-    this.#client = client;
-  }
-  public get client(): LanguageClient {
-    return this.#client;
-  }
+  constructor(private readonly client: LanguageClient) {}
 
   getContexts(): Promise<ContextListItem[]> {
-    return this.#client.sendRequest("devicetree/getContexts");
+    return this.client.sendRequest("devicetree/getContexts");
   }
 
   setActiveContexts(uniqueName: string) {
-    return this.#client.sendRequest(
+    return this.client.sendRequest(
       "devicetree/setActive",
       uniqueName
     ) as Promise<void>;

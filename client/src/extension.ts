@@ -29,7 +29,7 @@ import {
   ServerOptions,
   TransportKind,
 } from "vscode-languageclient/node";
-import { API } from "./api";
+import { API } from "./types";
 
 let client: LanguageClient;
 
