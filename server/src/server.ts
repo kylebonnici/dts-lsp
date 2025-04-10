@@ -77,6 +77,7 @@ import { getFoldingRanges } from "./foldingRanges";
 import { typeDefinition } from "./typeDefinition";
 import { resolve } from "path";
 import { FileWatcher } from "./fileWatcher";
+import type { ContextListItem } from "./types/index";
 
 const contextAware: ContextAware[] = [];
 let activeContext: ContextAware | undefined;
@@ -1459,11 +1460,6 @@ connection.onHover(async (event) => {
   ).at(0);
 });
 
-connection.onRequest("devicetree/contexts", async () => {
-  await allStable();
-  return contextAware.map((c) => c.parser.uri);
-});
-
 connection.onFoldingRanges(async (event) => {
   await allStable();
   const uri = fileURLToPath(event.textDocument.uri);
@@ -1487,4 +1483,16 @@ connection.onFoldingRanges(async (event) => {
 connection.onTypeDefinition(async (event) => {
   await allStable();
   return typeDefinition(event, contextAware, activeContext);
+});
+
+connection.onRequest("devicetree/contexts", async () => {
+  await allStable();
+  return contextAware.map<ContextListItem>((c) => ({
+    uniqueName: c.uniqueName,
+  })) satisfies ContextListItem[];
+});
+
+connection.onRequest("devicetree/set-active", async (id: string) => {
+  await allStable();
+  return contextAware.map((c) => c.parser.uri);
 });
