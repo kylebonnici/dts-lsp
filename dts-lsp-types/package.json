@@ -1,9 +1,15 @@
 {
-  "name": "@types/devicetree-language-server",
-  "version": "0.2.5",
+  "name": "devicetree-language-server-types",
+  "package-name": "devicetree-language-server-types",
+  "version": "0.0.2-alpha.0",
   "description": "Type definitions devicetree-lsp",
   "main": "./dist/index.d.ts",
   "types": "./dist/index.d.ts",
+  "git repository": "https://github.com/kylebonnici/dts-lsp/dts-lsp-types",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kylebonnici/dts-lsp"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json"
   },
