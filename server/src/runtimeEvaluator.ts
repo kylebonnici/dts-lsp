@@ -50,7 +50,7 @@ export class ContextAware {
   public parser: Parser;
   public overlayParsers: Parser[] = [];
   public overlays: string[] = [];
-  public readonly uniqueName: string | number;
+  public readonly uniqueName: string;
 
   constructor(
     uri: string,
@@ -63,7 +63,7 @@ export class ContextAware {
     this.overlays.filter(existsSync);
 
     this.parser = new Parser(uri, includePaths);
-    this.uniqueName = name ?? uuidv4();
+    this.uniqueName = name?.toString() ?? uuidv4();
     this.parser.stable.then(() => {
       this.overlayParsers =
         this.overlays?.map(
