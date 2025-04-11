@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import { PartialBy } from "../types";
+
 export type BindingType = "Zephyr" | "DevicetreeOrg";
 
 export interface Context {
@@ -28,6 +30,16 @@ export interface Context {
   deviceOrgBindingsMetaSchema?: string[];
 }
 
+export type IntegrationSettings = Omit<
+  Settings,
+  "contexts" | "preferredContext"
+>;
+
+export type ResolvedContext = PartialBy<
+  Required<Context>,
+  "cwd" | "bindingType"
+>;
+
 export interface Settings {
   cwd?: string;
   defaultBindingType?: BindingType;
@@ -35,7 +47,7 @@ export interface Settings {
   defaultDeviceOrgTreeBindings?: string[];
   defaultDeviceOrgBindingsMetaSchema?: string[];
   defaultIncludePaths?: string[];
-  contexts?: Context[];
+  contexts?: ResolvedContext[];
   preferredContext?: string | number;
   lockRenameEdits?: string[];
   autoChangeContext?: boolean;
