@@ -555,7 +555,11 @@ const loadSettings = async (
   }
 };
 
+let disabledFileConfiguration = false;
+
 connection.onDidChangeConfiguration(async (change) => {
+  if (disabledFileConfiguration) return; // 3rd party integration is providing the settings
+
   let oldSettings: Settings | undefined;
   if (init) {
     oldSettings = globalSettings;
@@ -1449,3 +1453,15 @@ connection.onRequest("devicetree/setActive", async (uniqueName: string) => {
   await allStable();
   return updateActiveContext({ uniqueName });
 });
+
+connection.onRequest(
+  "devicetree/isFileConfigurationDisabled",
+  () => disabledFileConfiguration
+);
+
+connection.onRequest(
+  "devicetree/disableFileConfiguration",
+  async (disabled: boolean) => {
+    disabledFileConfiguration = disabled;
+  }
+);
