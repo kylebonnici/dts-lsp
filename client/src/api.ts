@@ -38,10 +38,14 @@ export class API implements IDeviceTreeAPI {
     return this.client.sendRequest("devicetree/getContexts");
   }
 
-  setActiveContext(uniqueName: string) {
+  setActiveContext(id: string) {
+    return this.client.sendRequest("devicetree/setActive", id) as Promise<void>;
+  }
+
+  removeContext(id: string) {
     return this.client.sendRequest(
-      "devicetree/setActive",
-      uniqueName
+      "devicetree/removeContext",
+      id
     ) as Promise<void>;
   }
 }

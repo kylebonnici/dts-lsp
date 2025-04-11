@@ -22,5 +22,6 @@ export interface IDeviceTree {
   disableFileConfiguration(disable: boolean): Promise<void>; // to disallow usage of settings.json
   isFileConfigurationDisabled(): Promise<boolean>;
   getContexts(): Promise<ContextListItem[]>;
-  setActiveContext(uniqueName: string);
+  setActiveContext(id: string): Promise<void>;
+  removeContext(id: string): Promise<void>;
 }
