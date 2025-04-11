@@ -19,9 +19,7 @@ import { describe, test, jest, expect } from "@jest/globals";
 import { StandardTypeIssue } from "../types";
 import { resetTokenizedDocumentProvider } from "../providers/tokenizedDocument";
 import { ContextAware } from "../runtimeEvaluator";
-import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
-import { getStandardType } from "../dtsTypes/standardTypes";
-import { Node } from "../context/node";
+import { getFakeBindingLoader } from "./helpers";
 import { DiagnosticTag } from "vscode-languageserver";
 
 jest.mock("fs", () => ({
@@ -38,12 +36,6 @@ const mockReadFileSync = (content: string, path?: string) => {
     return content;
   });
 };
-
-const getFakeBindingLoader = (): BindingLoader => ({
-  getNodeTypes: (node: Node) => {
-    return Promise.resolve([getStandardType(node)]);
-  },
-});
 
 const rootDefaults =
   "#address-cells=<2>; #size-cells=<1>; model=''; compatible='';";

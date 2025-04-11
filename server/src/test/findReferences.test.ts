@@ -24,16 +24,8 @@ import {
   TextDocumentIdentifier,
   TextDocumentPositionParams,
 } from "vscode-languageserver";
-import { Node } from "../context/node";
-import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
-import { getStandardType } from "../dtsTypes/standardTypes";
+import { getFakeBindingLoader } from "./helpers";
 import { fileURLToPath } from "url";
-
-const getFakeBindingLoader = (): BindingLoader => ({
-  getNodeTypes: (node: Node) => {
-    return Promise.resolve([getStandardType(node)]);
-  },
-});
 
 jest.mock("fs", () => ({
   readFileSync: jest.fn().mockImplementation(() => {

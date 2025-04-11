@@ -19,9 +19,7 @@ import { describe, test, jest, expect } from "@jest/globals";
 import { resetTokenizedDocumentProvider } from "../providers/tokenizedDocument";
 import { ContextAware } from "../runtimeEvaluator";
 import { ContextIssues } from "../types";
-import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
-import { getStandardType } from "../dtsTypes/standardTypes";
-import { Node } from "../context/node";
+import { getFakeBindingLoader } from "./helpers";
 
 jest.mock("fs", () => ({
   readFileSync: jest.fn().mockImplementation(() => {
@@ -38,11 +36,6 @@ const mockReadFileSync = (content: string, path?: string) => {
   });
 };
 
-const getFakeBindingLoader = (): BindingLoader => ({
-  getNodeTypes: (node: Node) => {
-    return Promise.resolve([getStandardType(node)]);
-  },
-});
 describe("Context Issues", () => {
   beforeEach(() => {
     resetTokenizedDocumentProvider();
