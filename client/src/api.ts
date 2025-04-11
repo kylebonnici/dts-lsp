@@ -16,10 +16,23 @@
 
 import { ContextListItem } from "devicetree-language-server-types";
 import { LanguageClient } from "vscode-languageclient/node";
-import { IDeviceTree } from "./types";
+import { IDeviceTree as IDeviceTreeAPI } from "./types";
 
-export class API implements IDeviceTree {
+export class API implements IDeviceTreeAPI {
   constructor(private readonly client: LanguageClient) {}
+  version = "0.0.0";
+
+  disableFileConfiguration(disable: boolean): Promise<void> {
+    return this.client.sendRequest(
+      "devicetree/disableFileConfiguration",
+      disable
+    );
+  }
+  isFileConfigurationDisabled() {
+    return this.client.sendRequest(
+      "devicetree/isFileConfigurationDisabled"
+    ) as Promise<boolean>;
+  }
 
   getContexts(): Promise<ContextListItem[]> {
     return this.client.sendRequest("devicetree/getContexts");

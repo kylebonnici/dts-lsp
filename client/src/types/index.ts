@@ -17,6 +17,10 @@
 import { ContextListItem } from "devicetree-language-server-types";
 
 export interface IDeviceTree {
+  readonly version: string;
+
+  disableFileConfiguration(disable: boolean): Promise<void>; // to disallow usage of settings.json
+  isFileConfigurationDisabled(): Promise<boolean>;
   getContexts(): Promise<ContextListItem[]>;
   setActiveContext(uniqueName: string);
 }
