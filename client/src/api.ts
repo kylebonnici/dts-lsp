@@ -17,6 +17,7 @@
 import type {
   Context,
   ContextListItem,
+  IntegrationSettings,
   Settings,
 } from "devicetree-language-server-types";
 import { LanguageClient } from "vscode-languageclient/node";
@@ -38,7 +39,7 @@ export class API implements IDeviceTreeAPI {
     return this.client.sendRequest("devicetree/setActive", id) as Promise<void>;
   }
 
-  requestContext(ctx: Context) {
+  requestContext(ctx: IntegrationSettings) {
     return this.client.sendRequest(
       "devicetree/requestContext",
       ctx
