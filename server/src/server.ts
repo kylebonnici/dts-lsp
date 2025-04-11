@@ -1449,9 +1449,9 @@ connection.onRequest("devicetree/getContexts", async () => {
   })) satisfies ContextListItem[];
 });
 
-connection.onRequest("devicetree/setActive", async (uniqueName: string) => {
+connection.onRequest("devicetree/setActive", async (id: string) => {
   await allStable();
-  return updateActiveContext({ uniqueName });
+  return updateActiveContext({ id });
 });
 
 connection.onRequest(
