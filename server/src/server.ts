@@ -1465,3 +1465,13 @@ connection.onRequest(
     disabledFileConfiguration = disabled;
   }
 );
+
+connection.onRequest("devicetree/removeContext", async (id: string) => {
+  const context = findContext(contextAware, { id });
+  if (!context) return;
+
+  const configuredContexts = getConfiguredContexts(globalSettings);
+  if (configuredContexts.includes(context)) {
+    deleteContext(context);
+  }
+});
