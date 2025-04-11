@@ -43,6 +43,8 @@ import { StringValue } from "./ast/dtc/values/string";
 import { existsSync } from "fs";
 import { Comment } from "./ast/dtc/comment";
 import { v4 as uuidv4 } from "uuid";
+import { basename } from "path";
+import { createHash } from "crypto";
 
 export class ContextAware {
   _issues: Issue<ContextIssues>[] = [];
@@ -50,7 +52,8 @@ export class ContextAware {
   public parser: Parser;
   public overlayParsers: Parser[] = [];
   public overlays: string[] = [];
-  public readonly uniqueName: string;
+  public readonly id: string;
+  public readonly ctxName: string | number;
 
   constructor(
     uri: string,
@@ -63,7 +66,20 @@ export class ContextAware {
     this.overlays.filter(existsSync);
 
     this.parser = new Parser(uri, includePaths);
-    this.uniqueName = name?.toString() ?? uuidv4();
+    this.ctxName = name ?? basename(uri);
+    this.id = createHash("sha256")
+      .update(
+        [
+          uri,
+          ...includePaths,
+          ...overlays,
+          bindingLoader?.type ?? "",
+          ...(bindingLoader?.files.zephyrBindings ?? []),
+          ...(bindingLoader?.files.deviceOrgBindingsMetaSchema ?? []),
+          ...(bindingLoader?.files.deviceOrgTreeBindings ?? []),
+        ].join(":")
+      )
+      .digest("hex");
     this.parser.stable.then(() => {
       this.overlayParsers =
         this.overlays?.map(

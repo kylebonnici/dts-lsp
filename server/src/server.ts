@@ -116,9 +116,7 @@ const deleteContext = async (context: ContextAware) => {
 
   clearWorkspaceDiagnostics(context);
   debounce.delete(context);
-  console.log(
-    `cleaning up context with ID ${context.uniqueName} and uri ${context.parser.uri}`
-  );
+  console.log(`cleaning up context ${context.ctxName} with ID ${context.id}`);
 
   contextAware.splice(index, 1);
 
@@ -518,9 +516,7 @@ const loadSettings = async (
       context.ctxName
     );
     addContext(newContext);
-    console.log(
-      `New context with ID ${newContext.uniqueName} for ${context.dtsFile}`
-    );
+    console.log(`New context with ID ${newContext.id} for ${context.dtsFile}`);
   });
 
   let adhocContexts = oldSettings ? getAdhocContexts(oldSettings) : [];
@@ -543,9 +539,7 @@ const loadSettings = async (
             )
           : undefined
       );
-      console.log(
-        `New context with ID ${context.uniqueName} for ${c.parser.uri}`
-      );
+      console.log(`New context with ID ${context.id} for ${c.parser.uri}`);
       return context;
     })
     .forEach(addContext);
@@ -900,9 +894,7 @@ const onChange = async (uri: string) => {
           )
         : undefined
     );
-    console.log(
-      `New ad hoc context with ID ${newContext.uniqueName} for ${uri}`
-    );
+    console.log(`New ad hoc context with ID ${newContext.id} for ${uri}`);
     addContext(newContext);
 
     updateActiveContext({ uri });
@@ -1013,11 +1005,7 @@ const reportWorkspaceDiagnostics = async (context: ContextAware) => {
     })
   );
 
-  console.log(
-    "workspace diagnostics",
-    context.uniqueName,
-    performance.now() - t
-  );
+  console.log("workspace diagnostics", context.id, performance.now() - t);
   return {
     items: [...activeContextItems],
   };
@@ -1249,11 +1237,11 @@ const updateActiveContext = async (id: ContextId, force = false) => {
       });
     }
     console.log(
-      `(ID: ${context?.uniqueName ?? -1}) activeContext:`,
+      `(ID: ${context?.id ?? -1}) activeContext:`,
       context?.parser.uri
     );
     contextAware.forEach((c, i) => {
-      console.log(`Context with ID ${c.uniqueName} for ${c.parser.uri}`);
+      console.log(`Context with ID ${c.id} for ${c.parser.uri}`);
     });
   }
 };
@@ -1450,7 +1438,7 @@ connection.onTypeDefinition(async (event) => {
 connection.onRequest("devicetree/getContexts", async () => {
   await allStable();
   return contextAware.map<ContextListItem>((c) => ({
-    uniqueName: c.uniqueName,
+    uniqueName: c.id,
     mainDtsPath: c.parser.uri,
     overlays: c.overlays,
   })) satisfies ContextListItem[];
