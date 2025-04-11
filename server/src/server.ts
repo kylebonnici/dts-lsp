@@ -70,15 +70,12 @@ import { getCodeActions } from "./getCodeActions";
 import { getDocumentFormatting } from "./getDocumentFormatting";
 import { getTypeCompletions } from "./getTypeCompletions";
 import { getHover } from "./getHover";
-import {
-  BindingType,
-  getBindingLoader,
-} from "./dtsTypes/bindings/bindingLoader";
+import { getBindingLoader } from "./dtsTypes/bindings/bindingLoader";
 import { getFoldingRanges } from "./foldingRanges";
 import { typeDefinition } from "./typeDefinition";
 import { resolve } from "path";
 import { FileWatcher } from "./fileWatcher";
-import type { ContextListItem } from "./types/index";
+import type { Context, ContextListItem, Settings } from "./types/index";
 
 const contextAware: ContextAware[] = [];
 let activeContext: ContextAware | undefined;
@@ -332,32 +329,6 @@ connection.onInitialized(() => {
     });
   }
 });
-
-interface Context {
-  ctxName: string | number;
-  cwd?: string;
-  includePaths?: string[];
-  dtsFile: string;
-  overlays?: string[];
-  bindingType?: BindingType;
-  zephyrBindings?: string[];
-  deviceOrgTreeBindings?: string[];
-  deviceOrgBindingsMetaSchema?: string[];
-}
-
-interface Settings {
-  cwd?: string;
-  defaultBindingType?: BindingType;
-  defaultZephyrBindings?: string[];
-  defaultDeviceOrgTreeBindings?: string[];
-  defaultDeviceOrgBindingsMetaSchema?: string[];
-  defaultIncludePaths?: string[];
-  contexts?: Context[];
-  preferredContext?: string | number;
-  lockRenameEdits?: string[];
-  autoChangeContext?: boolean;
-  allowAdhocContexts?: boolean;
-}
 
 // The global settings, used when the `workspace/configuration` request is not supported by the client.
 // Please note that this is not the case when using this server with the client provided in this example
