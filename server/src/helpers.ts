@@ -380,7 +380,7 @@ export const findContext = (
   preferredContext?: string | number
 ) => {
   if ("uniqueName" in id) {
-    const context = contextAware?.find((f) => f.uniqueName === id.uniqueName);
+    const context = contextAware?.find((f) => f.id === id.uniqueName);
     if (context) {
       return context;
     }
@@ -393,7 +393,7 @@ export const findContext = (
   const contextFiles = resolveContextFiles(contextAware);
 
   return contextFiles
-    .sort((a) => (a.context.uniqueName === preferredContext ? -1 : 0))
+    .sort((a) => (a.context.id === preferredContext ? -1 : 0))
     .find((c) => c.files.some((p) => p === id.uri))?.context;
 };
 
