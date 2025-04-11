@@ -379,8 +379,8 @@ export const findContext = (
   activeContext?: ContextAware,
   preferredContext?: string | number
 ) => {
-  if ("uniqueName" in id) {
-    const context = contextAware?.find((f) => f.id === id.uniqueName);
+  if ("id" in id) {
+    const context = contextAware?.find((f) => f.id === id.id);
     if (context) {
       return context;
     }
