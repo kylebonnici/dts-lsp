@@ -96,11 +96,8 @@ export class ContextAware {
 
   getContextFiles() {
     return [
-      ...this.overlayParsers.map((c) => c.uri),
-      this.parser.uri,
-      ...(this.parser.cPreprocessorParser.dtsIncludes
-        .flatMap((include) => include.resolvedPath)
-        .filter((f) => !!f) as string[]),
+      ...this.overlayParsers.flatMap((c) => c.getFiles()),
+      ...this.parser.getFiles(),
     ];
   }
 
