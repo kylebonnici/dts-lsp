@@ -109,6 +109,19 @@ export class ContextAware {
     return this.getContextFiles().some((file) => file === uri);
   }
 
+  getUriParser(uri: string) {
+    let parser = this.overlayParsers.find((p) => p.uri === uri);
+    parser ??= [
+      this.parser.uri,
+      ...(this.parser.cPreprocessorParser.dtsIncludes
+        .flatMap((include) => include.resolvedPath)
+        .filter((f) => !!f) as string[]),
+    ].includes(uri)
+      ? this.parser
+      : undefined;
+    return parser;
+  }
+
   async getAllParsers(): Promise<Parser[]> {
     await this.stable();
     return [this.parser, ...this.overlayParsers];
