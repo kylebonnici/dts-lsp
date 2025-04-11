@@ -1459,17 +1459,6 @@ connection.onRequest("devicetree/setActive", async (id: string) => {
   return updateActiveContext({ id });
 });
 
-connection.onRequest(
-  "devicetree/isFileConfigurationDisabled",
-  () => disabledFileConfiguration
-);
-
-connection.onRequest(
-  "devicetree/disableFileConfiguration",
-  async (disabled: boolean) => {
-    disabledFileConfiguration = disabled;
-  }
-);
 
 connection.onRequest("devicetree/setLSPSettings", async (setting: Settings) => {
   disabledFileConfiguration = true;
