@@ -15,6 +15,7 @@
  */
 
 import type {
+  Context,
   ContextListItem,
   Settings,
 } from "devicetree-language-server-types";
@@ -35,6 +36,13 @@ export class API implements IDeviceTreeAPI {
 
   setActiveContext(id: string) {
     return this.client.sendRequest("devicetree/setActive", id) as Promise<void>;
+  }
+
+  requestContext(ctx: Context) {
+    return this.client.sendRequest(
+      "devicetree/requestContext",
+      ctx
+    ) as Promise<ContextListItem>;
   }
 
   removeContext(id: string) {
