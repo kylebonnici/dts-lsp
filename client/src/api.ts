@@ -25,18 +25,6 @@ export class API implements IDeviceTreeAPI {
   constructor(private readonly client: LanguageClient) {}
   version = "0.0.0";
 
-  disableFileConfiguration(disable: boolean): Promise<void> {
-    return this.client.sendRequest(
-      "devicetree/disableFileConfiguration",
-      disable
-    );
-  }
-  isFileConfigurationDisabled() {
-    return this.client.sendRequest(
-      "devicetree/isFileConfigurationDisabled"
-    ) as Promise<boolean>;
-  }
-
   setLSPSettings(settings: Settings): Promise<void> {
     return this.client.sendRequest("devicetree/setLSPSettings", settings);
   }

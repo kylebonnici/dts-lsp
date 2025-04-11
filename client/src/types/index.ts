@@ -19,9 +19,7 @@ import type { ContextListItem, Settings } from "devicetree-language-server-types
 export interface IDeviceTree {
   readonly version: string;
 
-  disableFileConfiguration(disable: boolean): Promise<void>; // to disallow usage of settings.json
   setLSPSettings(settings: Settings): Promise<void>;
-  isFileConfigurationDisabled(): Promise<boolean>;
   getContexts(): Promise<ContextListItem[]>;
   setActiveContext(id: string): Promise<void>;
   removeContext(id: string): Promise<void>;
