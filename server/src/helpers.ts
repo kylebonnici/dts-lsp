@@ -34,6 +34,7 @@ import {
   TokenIndexes,
   LexerToken,
   MacroRegistryItem,
+  ContextId,
 } from "./types";
 import { ContextAware } from "./runtimeEvaluator";
 import url from "url";
@@ -297,7 +298,7 @@ export async function nodeFinder<T>(
 
   const contextMeta = findContext(
     contexts,
-    uri,
+    { uri },
     activeContext,
     preferredContext
   );
@@ -305,7 +306,7 @@ export async function nodeFinder<T>(
   if (!contextMeta) return [];
 
   console.time("search");
-  const runtime = await contextMeta.context.getRuntime();
+  const runtime = await contextMeta.getRuntime();
   const locationMeta = runtime.getDeepestAstNode(uri, location.position);
   const sortKey = locationMeta?.ast?.firstToken.sortKey;
   console.timeEnd("search");
@@ -374,18 +375,26 @@ export const resolveContextFiles = (contextAware: ContextAware[]) => {
 
 export const findContext = (
   contextAware: ContextAware[],
-  uri: string,
+  id: ContextId,
   activeContext?: ContextAware,
   preferredContext?: string | number
 ) => {
-  if (activeContext?.getContextFiles().find((f) => f === uri))
-    return { context: activeContext };
+  if ("uniqueName" in id) {
+    const context = contextAware?.find((f) => f.uniqueName === id.uniqueName);
+    if (context) {
+      return context;
+    }
+    return;
+  }
+
+  if (activeContext?.getContextFiles().find((f) => f === id.uri))
+    return activeContext;
 
   const contextFiles = resolveContextFiles(contextAware);
 
   return contextFiles
-    .sort((a) => (a.context.name === preferredContext ? -1 : 0))
-    .find((c) => c.files.some((p) => p === uri));
+    .sort((a) => (a.context.uniqueName === preferredContext ? -1 : 0))
+    .find((c) => c.files.some((p) => p === id.uri))?.context;
 };
 
 export const findContexts = (contextAware: ContextAware[], uri: string) => {

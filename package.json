@@ -22,6 +22,12 @@
   },
   "main": "./client/dist/extension",
   "contributes": {
+    "commands": [
+      {
+        "command": "devicetree.context.set.active",
+        "title": "Devicetree: Set active context"
+      }
+    ],
     "languages": [
       {
         "id": "devicetree",
@@ -124,7 +130,9 @@
     }
   },
   "scripts": {
-    "compile": "npm run compile:server && npm run compile:client",
+    "types:client": "tsc -p client/tsconfig.types.json",
+    "types:server": "tsc -p server/tsconfig.types.json",
+    "compile": "npm run compile:server && npm run types:server && npm run compile:client && npm run types:client",
     "compile:prod": "npm run compile:server:prod && npm run compile:client:prod",
     "compile:server": "node ./server/esbuild.js",
     "compile:client": "node ./client/esbuild.js",

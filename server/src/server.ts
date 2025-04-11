@@ -42,6 +42,7 @@ import {
 import { TextDocument } from "vscode-languageserver-textdocument";
 import {
   CodeActionDiagnosticData,
+  ContextId,
   ContextIssues,
   Issue,
   StandardTypeIssue,
@@ -77,6 +78,7 @@ import { getFoldingRanges } from "./foldingRanges";
 import { typeDefinition } from "./typeDefinition";
 import { resolve } from "path";
 import { FileWatcher } from "./fileWatcher";
+import type { ContextListItem } from "./types/index";
 
 const contextAware: ContextAware[] = [];
 let activeContext: ContextAware | undefined;
@@ -118,7 +120,7 @@ const deleteContext = async (context: ContextAware) => {
   clearWorkspaceDiagnostics(context);
   debounce.delete(context);
   console.log(
-    `cleaning up context with ID ${context.name} and uri ${context.parser.uri}`
+    `cleaning up context with ID ${context.uniqueName} and uri ${context.parser.uri}`
   );
 
   contextAware.splice(index, 1);
@@ -546,7 +548,7 @@ const loadSettings = async (
     );
     addContext(newContext);
     console.log(
-      `New context with ID ${newContext.name} for ${context.dtsFile}`
+      `New context with ID ${newContext.uniqueName} for ${context.dtsFile}`
     );
   });
 
@@ -570,7 +572,9 @@ const loadSettings = async (
             )
           : undefined
       );
-      console.log(`New context with ID ${context.name} for ${c.parser.uri}`);
+      console.log(
+        `New context with ID ${context.uniqueName} for ${c.parser.uri}`
+      );
       return context;
     })
     .forEach(addContext);
@@ -578,7 +582,7 @@ const loadSettings = async (
   adhocContexts = getAdhocContexts(globalSettings);
   adhocContexts.forEach(cleanUpAdHocContext);
   if (activeFileUri) {
-    updateActiveContext(activeFileUri, true);
+    updateActiveContext({ uri: activeFileUri }, true);
   }
 
   if (hasDiagnosticRefreshCapability) {
@@ -925,9 +929,12 @@ const onChange = async (uri: string) => {
           )
         : undefined
     );
-    console.log(`New ad hoc context with ID ${newContext.name} for ${uri}`);
+    console.log(
+      `New ad hoc context with ID ${newContext.uniqueName} for ${uri}`
+    );
     addContext(newContext);
-    updateActiveContext(uri);
+
+    updateActiveContext({uri});
     await newContext.stable();
     cleanUpAdHocContext(newContext);
   } else {
@@ -1037,7 +1044,11 @@ const reportWorkspaceDiagnostics = async (context: ContextAware) => {
     })
   );
 
-  console.log("workspace diagnostics", context.name, performance.now() - t);
+  console.log(
+    "workspace diagnostics",
+    context.uniqueName,
+    performance.now() - t
+  );
   return {
     items: [...activeContextItems],
   };
@@ -1230,22 +1241,22 @@ documents.listen(connection);
 // Listen on the connection
 connection.listen();
 
-const updateActiveContext = async (uri: string, force = false) => {
+const updateActiveContext = async (id: ContextId, force = false) => {
   if (!force && globalSettings.autoChangeContext === false) {
     return;
   }
 
-  activeFileUri = uri;
   await allStable();
-  if (activeContext?.getContextFiles().find((f) => f === uri)) return;
+  if (activeContext?.getContextFiles().find((f) => "uri" in id && f === id.uri))
+    return;
   const oldContext = activeContext;
 
   activeContext = findContext(
     contextAware,
-    uri,
+    id,
     undefined,
     globalSettings.preferredContext
-  )?.context;
+  );
 
   const context = activeContext;
   if (oldContext !== context) {
@@ -1269,11 +1280,11 @@ const updateActiveContext = async (uri: string, force = false) => {
       });
     }
     console.log(
-      `(ID: ${context?.name ?? -1}) activeContext:`,
+      `(ID: ${context?.uniqueName ?? -1}) activeContext:`,
       context?.parser.uri
     );
     contextAware.forEach((c, i) => {
-      console.log(`Context with ID ${c.name} for ${c.parser.uri}`);
+      console.log(`Context with ID ${c.uniqueName} for ${c.parser.uri}`);
     });
   }
 };
@@ -1281,7 +1292,7 @@ const updateActiveContext = async (uri: string, force = false) => {
 connection.onDocumentSymbol(async (h) => {
   await allStable();
   const uri = fileURLToPath(h.textDocument.uri);
-  await updateActiveContext(uri);
+  await updateActiveContext({ uri });
 
   const context = activeContext;
 
@@ -1303,23 +1314,23 @@ connection.languages.semanticTokens.on(async (h) => {
   try {
     await allStable();
     const uri = fileURLToPath(h.textDocument.uri);
-    await updateActiveContext(uri);
+    await updateActiveContext({ uri });
 
     const tokensBuilder = new SemanticTokensBuilder();
 
     const contextMeta = await findContext(
       contextAware,
-      uri,
+      { uri },
       activeContext,
       globalSettings.preferredContext
     );
 
-    const isInContext = contextMeta?.context.isInContext(uri);
+    const isInContext = contextMeta?.isInContext(uri);
     if (!contextMeta || !isInContext) {
       return { data: [] };
     }
 
-    (await contextMeta.context.getAllParsers()).forEach((parser) =>
+    (await contextMeta.getAllParsers()).forEach((parser) =>
       parser.buildSemanticTokens(tokensBuilder, uri)
     );
 
@@ -1335,12 +1346,12 @@ connection.onDocumentLinks(async (event) => {
   await allStable();
   const contextMeta = await findContext(
     contextAware,
-    uri,
+    { uri },
     activeContext,
     globalSettings.preferredContext
   );
 
-  return contextMeta?.context.getDocumentLinks(uri);
+  return contextMeta?.getDocumentLinks(uri);
 });
 
 connection.onPrepareRename(async (event) => {
@@ -1380,13 +1391,13 @@ connection.onDefinition(async (event) => {
 
   const contextMeta = await findContext(
     contextAware,
-    uri,
+    { uri },
     activeContext,
     globalSettings.preferredContext
   );
 
   const documentLinkDefinition =
-    (await contextMeta?.context.getDocumentLinks(uri, event.position))
+    (await contextMeta?.getDocumentLinks(uri, event.position))
       ?.filter((docLink) => docLink.target)
       .map((docLink) => Location.create(docLink.target!, docLink.range)) ?? [];
 
@@ -1419,7 +1430,7 @@ connection.onDocumentFormatting(async (event) => {
   await allStable();
   const contextMeta = await findContext(
     contextAware,
-    uri,
+    { uri },
     activeContext,
     globalSettings.preferredContext
   );
@@ -1427,7 +1438,7 @@ connection.onDocumentFormatting(async (event) => {
     return [];
   }
 
-  return getDocumentFormatting(event, contextMeta.context);
+  return getDocumentFormatting(event, contextMeta);
 });
 
 connection.onHover(async (event) => {
@@ -1442,15 +1453,10 @@ connection.onHover(async (event) => {
   ).at(0);
 });
 
-connection.onRequest("devicetree/contexts", async () => {
-  await allStable();
-  return contextAware.map((c) => c.parser.uri);
-});
-
 connection.onFoldingRanges(async (event) => {
   await allStable();
   const uri = fileURLToPath(event.textDocument.uri);
-  await updateActiveContext(uri);
+  await updateActiveContext({ uri });
 
   const context = activeContext;
 
@@ -1470,4 +1476,18 @@ connection.onFoldingRanges(async (event) => {
 connection.onTypeDefinition(async (event) => {
   await allStable();
   return typeDefinition(event, contextAware, activeContext);
+});
+
+connection.onRequest("devicetree/getContexts", async () => {
+  await allStable();
+  return contextAware.map<ContextListItem>((c) => ({
+    uniqueName: c.uniqueName,
+    mainDtsPath: c.parser.uri,
+    overlays: c.overlays,
+  })) satisfies ContextListItem[];
+});
+
+connection.onRequest("devicetree/setActive", async (uniqueName: string) => {
+  await allStable();
+  return updateActiveContext({ uniqueName });
 });

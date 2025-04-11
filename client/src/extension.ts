@@ -15,7 +15,7 @@
  */
 
 import * as path from "path";
-import { workspace, ExtensionContext } from "vscode";
+import * as vscode from "vscode";
 
 import {
   LanguageClient,
@@ -23,19 +23,11 @@ import {
   ServerOptions,
   TransportKind,
 } from "vscode-languageclient/node";
+import { API } from "./api";
 
 let client: LanguageClient;
 
-class API {
-  public get client(): LanguageClient {
-    return client;
-  }
-  getContexts() {
-    return client.sendRequest("devicetree/getContexts");
-  }
-}
-
-export async function activate(context: ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   // The server is implemented in node
   const serverModule = context.asAbsolutePath(
     path.join("server", "dist", "server.js")
@@ -58,10 +50,10 @@ export async function activate(context: ExtensionContext) {
     synchronize: {
       configurationSection: "devicetree",
       fileEvents: [
-        workspace.createFileSystemWatcher("**/*.dts"),
-        workspace.createFileSystemWatcher("**/*.dtsi"),
-        workspace.createFileSystemWatcher("**/*.dtso"),
-        workspace.createFileSystemWatcher("**/*.overlay"),
+        vscode.workspace.createFileSystemWatcher("**/*.dts"),
+        vscode.workspace.createFileSystemWatcher("**/*.dtsi"),
+        vscode.workspace.createFileSystemWatcher("**/*.dtso"),
+        vscode.workspace.createFileSystemWatcher("**/*.overlay"),
       ],
     },
   };
@@ -77,7 +69,38 @@ export async function activate(context: ExtensionContext) {
   // Start the client. This will also launch the server
   await client.start();
 
-  return new API();
+  const api = new API(client);
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "devicetree.context.set.active",
+      async () => {
+        const contexts = await api.getContexts();
+        const options: (vscode.QuickPickItem & { uniqueName: string })[] =
+          contexts.map((context) => ({
+            uniqueName: context.uniqueName,
+            label: path.basename(context.mainDtsPath),
+            description: context.overlays.length
+              ? `overlays: ${context.overlays
+                  .map((overlay) => path.basename(overlay))
+                  .join(", ")}`
+              : "",
+          }));
+
+        vscode.window
+          .showQuickPick(options, {
+            placeHolder: "Select devicetree context",
+          })
+          .then((selected) => {
+            if (selected) {
+              api.setActiveContexts(selected.uniqueName);
+            }
+          });
+      }
+    )
+  );
+
+  return api;
 }
 
 export function deactivate(): Thenable<void> | undefined {
