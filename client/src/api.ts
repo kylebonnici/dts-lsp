@@ -25,7 +25,7 @@ export class API implements IDeviceTree {
     return this.client.sendRequest("devicetree/getContexts");
   }
 
-  setActiveContexts(uniqueName: string) {
+  setActiveContext(uniqueName: string) {
     return this.client.sendRequest(
       "devicetree/setActive",
       uniqueName

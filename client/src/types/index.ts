@@ -18,5 +18,5 @@ import { ContextListItem } from "devicetree-language-server-types";
 
 export interface IDeviceTree {
   getContexts(): Promise<ContextListItem[]>;
-  setActiveContexts(uniqueName: string);
+  setActiveContext(uniqueName: string);
 }
