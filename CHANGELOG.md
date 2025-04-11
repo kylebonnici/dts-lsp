@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 # 0.2.6 - Unreleased
 
+### Added
+
+- onHover over macro now returns both decimal and hex value for the computed result
+
 ### Fixed
 
 - No semantic tokens for overlays files

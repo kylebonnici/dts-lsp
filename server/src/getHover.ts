@@ -51,14 +51,15 @@ async function getMacros(
       const lastParser = (await result.runtime.context.getAllParsers()).at(-1)!;
 
       if (call) {
+        const val = call?.evaluate(lastParser.cPreprocessorParser.macros);
         return {
           contents: {
             kind: MarkupKind.Markdown,
             value: [
               "```cpp",
-              `#define ${macro.macro.toString()} // = ${call?.evaluate(
-                lastParser.cPreprocessorParser.macros
-              )}`,
+              `#define ${macro.macro.toString()} // = ${val}${
+                typeof val === "number" ? ` (0x${val.toString(16)})` : ""
+              }`,
               "```",
             ].join("\n"),
           },
