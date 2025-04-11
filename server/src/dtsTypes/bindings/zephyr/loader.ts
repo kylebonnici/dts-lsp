@@ -281,7 +281,7 @@ export class ZephyrBindingsLoader {
             const readData = yaml.parse(readFileSync(bindingFile, "utf-8"));
             return {
               ...readData,
-              include: simplifiyInclude(readData.include),
+              include: simplifiyInclude(readData?.include),
               filePath: bindingFile,
             } as ZephyrBindingYml;
           } catch (e) {

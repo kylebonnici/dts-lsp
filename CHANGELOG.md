@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - No semantic tokens for overlays files
 - No syntax diagnostics for overlays files
 - No document symbols for overlays files
+- Exception when parsing zephyr binding with no include property
 
 # 0.2.5 - 2025-04-08
 
