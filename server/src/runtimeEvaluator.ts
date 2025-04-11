@@ -110,15 +110,8 @@ export class ContextAware {
   }
 
   getUriParser(uri: string) {
-    let parser = this.overlayParsers.find((p) => p.uri === uri);
-    parser ??= [
-      this.parser.uri,
-      ...(this.parser.cPreprocessorParser.dtsIncludes
-        .flatMap((include) => include.resolvedPath)
-        .filter((f) => !!f) as string[]),
-    ].includes(uri)
-      ? this.parser
-      : undefined;
+    let parser = this.overlayParsers.find((p) => p.getFiles().includes(uri));
+    parser ??= this.parser.getFiles().includes(uri) ? this.parser : undefined;
     return parser;
   }
 
