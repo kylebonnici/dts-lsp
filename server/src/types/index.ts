@@ -14,6 +14,34 @@
  * limitations under the License.
  */
 
+export type BindingType = "Zephyr" | "DevicetreeOrg";
+
+export interface Context {
+  ctxName: string | number;
+  cwd?: string;
+  includePaths?: string[];
+  dtsFile: string;
+  overlays?: string[];
+  bindingType?: BindingType;
+  zephyrBindings?: string[];
+  deviceOrgTreeBindings?: string[];
+  deviceOrgBindingsMetaSchema?: string[];
+}
+
+export interface Settings {
+  cwd?: string;
+  defaultBindingType?: BindingType;
+  defaultZephyrBindings?: string[];
+  defaultDeviceOrgTreeBindings?: string[];
+  defaultDeviceOrgBindingsMetaSchema?: string[];
+  defaultIncludePaths?: string[];
+  contexts?: Context[];
+  preferredContext?: string | number;
+  lockRenameEdits?: string[];
+  autoChangeContext?: boolean;
+  allowAdhocContexts?: boolean;
+}
+
 export interface ContextListItem {
   uniqueName: string;
   mainDtsPath: string;
