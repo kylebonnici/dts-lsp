@@ -557,31 +557,36 @@ const loadSettings = async (
 
 let disabledFileConfiguration = false;
 
-connection.onDidChangeConfiguration(async (change) => {
-  if (disabledFileConfiguration) return; // 3rd party integration is providing the settings
+const onSettingsChange = async (settings: Settings | undefined) => {
+  if (!settings) {
+    return;
+  }
 
   let oldSettings: Settings | undefined;
   if (init) {
     oldSettings = globalSettings;
   }
 
-  if (!change.settings) {
-    return;
-  }
-
-  console.log("Configuration changed", JSON.stringify(change, undefined, "\t"));
-  if (hasConfigurationCapability) {
-    // Reset all cached document settings
-    documentSettings.clear();
-  }
-
   globalSettings = <Settings>{
     ...defaultSettings,
-    ...change.settings?.devicetree,
+    ...settings,
   };
 
   await loadSettings(oldSettings, globalSettings);
   init = true;
+};
+
+connection.onDidChangeConfiguration(async (change) => {
+  if (disabledFileConfiguration) return; // 3rd party integration is providing the settings
+
+  if (!change?.settings?.devicetree) {
+    return;
+  }
+
+  console.log("Configuration changed", JSON.stringify(change, undefined, "\t"));
+
+  documentSettings.clear();
+  await onSettingsChange(change.settings.devicetree as Settings);
 });
 
 // Only keep settings for open documents
@@ -1465,6 +1470,11 @@ connection.onRequest(
     disabledFileConfiguration = disabled;
   }
 );
+
+connection.onRequest("devicetree/setLSPSettings", async (setting: Settings) => {
+  disabledFileConfiguration = true;
+  await onSettingsChange(setting);
+});
 
 connection.onRequest("devicetree/removeContext", async (id: string) => {
   const context = findContext(contextAware, { id });

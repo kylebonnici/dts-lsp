@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 
-import { ContextListItem } from "devicetree-language-server-types";
+import type {
+  ContextListItem,
+  Settings,
+} from "devicetree-language-server-types";
 import { LanguageClient } from "vscode-languageclient/node";
 import { IDeviceTree as IDeviceTreeAPI } from "./types";
 
@@ -32,6 +35,10 @@ export class API implements IDeviceTreeAPI {
     return this.client.sendRequest(
       "devicetree/isFileConfigurationDisabled"
     ) as Promise<boolean>;
+  }
+
+  setLSPSettings(settings: Settings): Promise<void> {
+    return this.client.sendRequest("devicetree/setLSPSettings", settings);
   }
 
   getContexts(): Promise<ContextListItem[]> {
