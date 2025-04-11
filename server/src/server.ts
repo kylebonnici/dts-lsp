@@ -928,7 +928,7 @@ const onChange = async (uri: string) => {
     console.log(`New ad hoc context with ID ${newContext.name} for ${uri}`);
     addContext(newContext);
     updateActiveContext(uri);
-    await newContext.parser.stable;
+    await newContext.stable();
     cleanUpAdHocContext(newContext);
   } else {
     contexts.forEach((context) => {
@@ -1074,38 +1074,40 @@ async function getDiagnostics(
       ];
     }
 
-    context.parser.issues
-      .filter((issue) => issue.astElement.uri === uri)
-      .forEach((issue) => {
-        const diagnostic: Diagnostic = {
-          severity: issue.severity,
-          range: toRange(issue.astElement),
-          message: issue.issues
-            ? issue.issues.map(syntaxIssueToMessage).join(" or ")
-            : "",
-          source: "devicetree",
-          tags: issue.tags,
-          data: {
-            firstToken: {
-              pos: issue.astElement.firstToken.pos,
-              tokens: issue.astElement.firstToken.tokens,
-              value: issue.astElement.firstToken.value,
-            },
-            lastToken: {
-              pos: issue.astElement.lastToken.pos,
-              tokens: issue.astElement.lastToken.tokens,
-              value: issue.astElement.lastToken.value,
-            },
-            issues: {
-              type: "SyntaxIssue",
-              items: issue.issues,
-              edit: issue.edit,
-              codeActionTitle: issue.codeActionTitle,
-            },
-          } satisfies CodeActionDiagnosticData,
-        };
-        diagnostics.push(diagnostic);
-      });
+    (await context.getAllParsers()).forEach((parser) => {
+      parser.issues
+        .filter((issue) => issue.astElement.uri === uri)
+        .forEach((issue) => {
+          const diagnostic: Diagnostic = {
+            severity: issue.severity,
+            range: toRange(issue.astElement),
+            message: issue.issues
+              ? issue.issues.map(syntaxIssueToMessage).join(" or ")
+              : "",
+            source: "devicetree",
+            tags: issue.tags,
+            data: {
+              firstToken: {
+                pos: issue.astElement.firstToken.pos,
+                tokens: issue.astElement.firstToken.tokens,
+                value: issue.astElement.firstToken.value,
+              },
+              lastToken: {
+                pos: issue.astElement.lastToken.pos,
+                tokens: issue.astElement.lastToken.tokens,
+                value: issue.astElement.lastToken.value,
+              },
+              issues: {
+                type: "SyntaxIssue",
+                items: issue.issues,
+                edit: issue.edit,
+                codeActionTitle: issue.codeActionTitle,
+              },
+            } satisfies CodeActionDiagnosticData,
+          };
+          diagnostics.push(diagnostic);
+        });
+    });
 
     const contextIssues = (await context.getContextIssues()) ?? [];
     contextIssues
@@ -1283,9 +1285,8 @@ connection.onDocumentSymbol(async (h) => {
 
   const context = activeContext;
 
-  const data = await context?.parser;
-  if (!data) return [];
-  return data.getDocumentSymbols(uri);
+  if (!context) return [];
+  return context.getUriParser(uri)?.getDocumentSymbols(uri);
 });
 
 connection.onWorkspaceSymbol(async () => {
@@ -1318,7 +1319,9 @@ connection.languages.semanticTokens.on(async (h) => {
       return { data: [] };
     }
 
-    contextMeta.context.parser.buildSemanticTokens(tokensBuilder, uri);
+    (await contextMeta.context.getAllParsers()).forEach((parser) =>
+      parser.buildSemanticTokens(tokensBuilder, uri)
+    );
 
     return tokensBuilder.build();
   } catch (e) {
