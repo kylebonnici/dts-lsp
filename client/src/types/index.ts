@@ -14,7 +14,11 @@
  * limitations under the License.
  */
 
-import type { ContextListItem, Settings } from "devicetree-language-server-types";
+import type {
+  Context,
+  ContextListItem,
+  Settings,
+} from "devicetree-language-server-types";
 
 export interface IDeviceTree {
   readonly version: string;
@@ -22,5 +26,6 @@ export interface IDeviceTree {
   setLSPSettings(settings: Settings): Promise<void>;
   getContexts(): Promise<ContextListItem[]>;
   setActiveContext(id: string): Promise<void>;
+  requestContext(ctx: Context): Promise<ContextListItem>;
   removeContext(id: string): Promise<void>;
 }
