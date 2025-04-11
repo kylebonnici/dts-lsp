@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Changes overlys files where not being reparsed
 - No semantic tokens for overlays files
 - No syntax diagnostics for overlays files
 - No document symbols for overlays files

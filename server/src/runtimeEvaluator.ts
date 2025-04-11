@@ -259,11 +259,9 @@ export class ContextAware {
   }
 
   public async reevaluate(uri: string) {
-    if (!this.isInContext(uri)) {
-      return this._runtime;
-    }
+    const parser = this.getUriParser(uri);
+    if (!parser) return this._runtime;
 
-    const parser = this.parser;
     await parser.reparse();
 
     this._runtime = this.evaluate();
