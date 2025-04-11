@@ -399,7 +399,9 @@ export const findContext = (
 
 export const findContexts = (contextAware: ContextAware[], uri: string) => {
   const contextFiles = resolveContextFiles(contextAware);
-  return contextFiles.filter((c) => c.files.some((p) => p === uri));
+  return contextFiles
+    .filter((c) => c.files.some((p) => p === uri))
+    .map((c) => c.context);
 };
 
 export const parseMacros = (line: string) => {
