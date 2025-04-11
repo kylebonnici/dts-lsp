@@ -1438,6 +1438,7 @@ connection.onTypeDefinition(async (event) => {
 connection.onRequest("devicetree/getContexts", async () => {
   await allStable();
   return contextAware.map<ContextListItem>((c) => ({
+    ctxName: c.ctxName.toString(),
     uniqueName: c.id,
     mainDtsPath: c.parser.uri,
     overlays: c.overlays,
