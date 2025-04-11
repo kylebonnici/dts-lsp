@@ -934,12 +934,12 @@ const onChange = async (uri: string) => {
     );
     addContext(newContext);
 
-    updateActiveContext({uri});
+    updateActiveContext({ uri });
     await newContext.stable();
     cleanUpAdHocContext(newContext);
   } else {
     contexts.forEach((context) => {
-      debounce.get(context.context)?.abort.abort();
+      debounce.get(context)?.abort.abort();
       const abort = new AbortController();
       const promise = new Promise<void>((resolve) => {
         setTimeout(async () => {
@@ -948,14 +948,12 @@ const onChange = async (uri: string) => {
             return;
           }
           const t = performance.now();
-          const itemsToClear = generateClearWorkspaceDiagnostics(
-            context.context
-          );
-          unwatchContextFiles(context.context);
-          await context.context.reevaluate(uri);
-          watchContextFiles(context.context);
-          reportWorkspaceDiagnostics(context.context).then((d) => {
-            clearWorkspaceDiagnostics(context.context, itemsToClear);
+          const itemsToClear = generateClearWorkspaceDiagnostics(context);
+          unwatchContextFiles(context);
+          await context.reevaluate(uri);
+          watchContextFiles(context);
+          reportWorkspaceDiagnostics(context).then((d) => {
+            clearWorkspaceDiagnostics(context, itemsToClear);
             d.items
               .map(
                 (i) =>
@@ -974,7 +972,7 @@ const onChange = async (uri: string) => {
         }, 50);
       });
 
-      debounce.set(context.context, { abort, promise });
+      debounce.set(context, { abort, promise });
     });
   }
 };
