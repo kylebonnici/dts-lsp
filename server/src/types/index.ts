@@ -43,6 +43,7 @@ export interface Settings {
 }
 
 export interface ContextListItem {
+  ctxName: string;
   uniqueName: string;
   mainDtsPath: string;
   overlays: string[];
