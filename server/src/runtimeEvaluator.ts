@@ -30,7 +30,13 @@ import { LabelRef } from "./ast/dtc/labelRef";
 import { Node } from "./context/node";
 import { Property } from "./context/property";
 import { Runtime } from "./context/runtime";
-import { genIssue, pathToFileURL, positionInBetween, toRange } from "./helpers";
+import {
+  generateContextId,
+  genIssue,
+  pathToFileURL,
+  positionInBetween,
+  toRange,
+} from "./helpers";
 import { Parser } from "./parser";
 import {
   DiagnosticSeverity,
@@ -42,9 +48,8 @@ import { BindingLoader } from "./dtsTypes/bindings/bindingLoader";
 import { StringValue } from "./ast/dtc/values/string";
 import { existsSync } from "fs";
 import { Comment } from "./ast/dtc/comment";
-import { v4 as uuidv4 } from "uuid";
 import { basename } from "path";
-import { createHash } from "crypto";
+import type { Context, PartialBy, ResolvedContext } from "./types/index";
 
 export class ContextAware {
   _issues: Issue<ContextIssues>[] = [];
@@ -56,37 +61,34 @@ export class ContextAware {
   public readonly ctxName: string | number;
 
   constructor(
-    uri: string,
-    public readonly includePaths: string[],
-    public readonly bindingLoader?: BindingLoader,
-    overlays: string | string[] = [],
-    name?: string | number
+    readonly settings: PartialBy<Context, "ctxName">,
+    public readonly bindingLoader?: BindingLoader
   ) {
-    this.overlays = Array.isArray(overlays) ? overlays : [overlays];
+    const resolvedSettings: ResolvedContext = {
+      includePaths: [],
+      overlays: [],
+      zephyrBindings: [],
+      deviceOrgTreeBindings: [],
+      deviceOrgBindingsMetaSchema: [],
+      ...settings,
+      ctxName: settings.ctxName ?? basename(settings.dtsFile),
+    };
+    this.overlays = resolvedSettings.overlays;
     this.overlays.filter(existsSync);
 
-    this.parser = new Parser(uri, includePaths);
-    this.ctxName = name ?? basename(uri);
-    this.id = createHash("sha256")
-      .update(
-        [
-          uri,
-          ...includePaths,
-          ...overlays,
-          bindingLoader?.type ?? "",
-          ...(bindingLoader?.files.zephyrBindings ?? []),
-          ...(bindingLoader?.files.deviceOrgBindingsMetaSchema ?? []),
-          ...(bindingLoader?.files.deviceOrgTreeBindings ?? []),
-        ].join(":")
-      )
-      .digest("hex");
+    this.parser = new Parser(
+      resolvedSettings.dtsFile,
+      resolvedSettings.includePaths
+    );
+    this.ctxName = resolvedSettings.ctxName;
+    this.id = generateContextId(resolvedSettings);
     this.parser.stable.then(() => {
       this.overlayParsers =
         this.overlays?.map(
           (overlay) =>
             new Parser(
               overlay,
-              includePaths,
+              resolvedSettings.includePaths,
               this.parser.cPreprocessorParser.macros
             )
         ) ?? [];

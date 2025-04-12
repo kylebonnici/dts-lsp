@@ -52,10 +52,8 @@ describe("Find completions", () => {
       uri: "file:///folder/dts.dts",
     };
     const context = new ContextAware(
-      fileURLToPath(textDocument.uri),
-      [],
-      getFakeBindingLoader(),
-      []
+      { dtsFile: fileURLToPath(textDocument.uri) },
+      getFakeBindingLoader()
     );
     await context.parser.stable;
 
@@ -76,10 +74,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -98,10 +94,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -121,10 +115,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -147,10 +139,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -172,10 +162,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -196,10 +184,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -221,10 +207,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -243,10 +227,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -266,10 +248,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -289,10 +269,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -311,10 +289,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -334,10 +310,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -357,10 +331,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -380,10 +352,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -406,10 +376,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -428,10 +396,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -451,10 +417,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -477,10 +441,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -500,10 +462,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -524,10 +484,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -546,10 +504,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -569,10 +525,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -595,10 +549,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -618,10 +570,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -641,10 +591,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -664,10 +612,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -689,10 +635,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -715,10 +659,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -737,10 +679,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -760,10 +700,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -786,10 +724,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 
@@ -809,10 +745,8 @@ describe("Find completions", () => {
           uri: "file:///folder/dts.dts",
         };
         const context = new ContextAware(
-          fileURLToPath(textDocument.uri),
-          [],
-          getFakeBindingLoader(),
-          []
+          { dtsFile: fileURLToPath(textDocument.uri) },
+          getFakeBindingLoader()
         );
         await context.parser.stable;
 

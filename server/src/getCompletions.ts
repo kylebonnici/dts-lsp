@@ -76,7 +76,7 @@ function getIncudePathItems(
     return getItems([dirname(result.ast.uri)]);
   }
 
-  const includePaths = result.runtime.context.includePaths;
+  const includePaths = result.runtime.context.settings.includePaths ?? [];
 
   return getItems(includePaths);
 }

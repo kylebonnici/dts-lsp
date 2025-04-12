@@ -38,6 +38,8 @@ import {
 } from "./types";
 import { ContextAware } from "./runtimeEvaluator";
 import url from "url";
+import { createHash } from "crypto";
+import { ResolvedContext } from "./types/index";
 
 export const toRangeWithTokenIndex = (
   start?: Token,
@@ -501,4 +503,20 @@ export const fileURLToPath = (fileUrl: string) => {
 
 export const isPathEqual = (pathA: string, pathB: string) => {
   return pathA === pathB;
+};
+
+export const generateContextId = (ctx: ResolvedContext) => {
+  return createHash("sha256")
+    .update(
+      [
+        ctx.dtsFile,
+        ...ctx.includePaths,
+        ...ctx.overlays,
+        ctx.bindingType,
+        ...ctx.zephyrBindings,
+        ...ctx.deviceOrgBindingsMetaSchema,
+        ...ctx.deviceOrgTreeBindings,
+      ].join(":")
+    )
+    .digest("hex");
 };

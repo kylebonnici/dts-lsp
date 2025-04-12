@@ -21,14 +21,14 @@ import type {
   Settings,
 } from "devicetree-language-server-types";
 import { LanguageClient } from "vscode-languageclient/node";
-import { IDeviceTree as IDeviceTreeAPI } from "./types";
+import { IDeviceTreeAPI as IDeviceTreeAPI } from "./types";
 
 export class API implements IDeviceTreeAPI {
   constructor(private readonly client: LanguageClient) {}
   version = "0.0.0";
 
-  setLSPSettings(settings: Settings): Promise<void> {
-    return this.client.sendRequest("devicetree/setLSPSettings", settings);
+  setDefaultSettings(settings: IntegrationSettings): Promise<void> {
+    return this.client.sendRequest("devicetree/setDefaultSettings", settings);
   }
 
   getContexts(): Promise<ContextListItem[]> {
@@ -36,10 +36,13 @@ export class API implements IDeviceTreeAPI {
   }
 
   setActiveContext(id: string) {
-    return this.client.sendRequest("devicetree/setActive", id) as Promise<void>;
+    return this.client.sendRequest(
+      "devicetree/setActive",
+      id
+    ) as Promise<boolean>;
   }
 
-  requestContext(ctx: IntegrationSettings) {
+  requestContext(ctx: Context) {
     return this.client.sendRequest(
       "devicetree/requestContext",
       ctx
