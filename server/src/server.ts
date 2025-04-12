@@ -460,13 +460,18 @@ const onSettingsChange = async (newSettings: Settings | undefined) => {
 
 let lspConfigurationSettings: Settings | undefined;
 let integrationSettings: Settings | undefined;
+const integrationContext = new Map<string, Context>();
 
 const mergedInterationAndLsp = (): Settings | undefined => {
   if (!integrationSettings && !lspConfigurationSettings) return;
 
-  const merged = {
+  const merged = <Settings>{
     ...integrationSettings,
     ...lspConfigurationSettings,
+    contexts: [
+      ...(lspConfigurationSettings?.contexts ?? []),
+      ...Array.from(integrationContext.values()),
+    ],
   };
 
   if (integrationSettings)
@@ -1184,7 +1189,7 @@ const updateActiveContext = async (id: ContextId, force = false) => {
     const userCtxs = lspConfigurationSettings
       ? getConfiguredContexts(
           await resolveSettings(
-            lspConfigurationSettings,
+            { ...integrationSettings, ...lspConfigurationSettings },
             await getRootWorkspace()
           )
         )
@@ -1448,6 +1453,7 @@ connection.onRequest(
       contexts: [...resolvedSettings.contexts],
     };
     resolvedSettings.contexts.push(resolvedContext);
+    integrationContext.set(id, ctx);
     await loadSettings(prevSettings, resolvedSettings);
 
     return {
@@ -1484,6 +1490,8 @@ connection.onRequest("devicetree/removeContext", async (id: string) => {
     ...resolvedSettings,
     contexts: [...resolvedSettings.contexts],
   };
+
+  integrationContext.delete(id);
 
   const ctxToKeep = resolvedSettings.contexts.filter(
     (c) => generateContextId(c) !== id
