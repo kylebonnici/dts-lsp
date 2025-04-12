@@ -76,16 +76,17 @@ export async function activate(context: vscode.ExtensionContext) {
       "devicetree.context.set.active",
       async () => {
         const contexts = await api.getContexts();
-        const options: (vscode.QuickPickItem & { uniqueName: string })[] =
-          contexts.map((context) => ({
-            uniqueName: context.uniqueName,
+        const options: (vscode.QuickPickItem & { id: string })[] = contexts.map(
+          (context) => ({
+            id: context.id,
             label: path.basename(context.mainDtsPath),
             description: context.overlays.length
               ? `overlays: ${context.overlays
                   .map((overlay) => path.basename(overlay))
                   .join(", ")}`
               : "",
-          }));
+          })
+        );
 
         vscode.window
           .showQuickPick(options, {
@@ -93,7 +94,7 @@ export async function activate(context: vscode.ExtensionContext) {
           })
           .then((selected) => {
             if (selected) {
-              api.setActiveContexts(selected.uniqueName);
+              api.setActiveContext(selected.id);
             }
           });
       }

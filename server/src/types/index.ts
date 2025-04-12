@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-import { PartialBy } from "../types";
-
 export type BindingType = "Zephyr" | "DevicetreeOrg";
 
+export type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+
 export interface Context {
-  ctxName: string | number;
+  ctxName?: string | number;
   cwd?: string;
   includePaths?: string[];
   dtsFile: string;
@@ -56,7 +56,7 @@ export interface Settings {
 
 export interface ContextListItem {
   ctxName: string;
-  uniqueName: string;
+  id: string;
   mainDtsPath: string;
   overlays: string[];
 }

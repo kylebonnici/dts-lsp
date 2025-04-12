@@ -26,8 +26,6 @@ import { Property } from "./context/property";
 import { Runtime } from "./context/runtime";
 import { CMacro } from "./ast/cPreprocessors/macro";
 
-export type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
-
 export type CodeActionDiagnosticData = {
   issues: { edit?: TextEdit; codeActionTitle?: string } & (
     | { type: "SyntaxIssue"; items: SyntaxIssue[] }

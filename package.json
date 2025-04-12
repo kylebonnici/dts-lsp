@@ -53,13 +53,16 @@
       "properties": {
         "devicetree.preferredContext": {
           "scope": "resource",
-          "type": "number",
-          "description": "Index of the context to be used when files is used by multiple context."
+          "type": [
+            "string",
+            "number"
+          ],
+          "description": "Name of the context to be used when files is used by multiple context."
         },
         "devicetree.defaultIncludePaths": {
           "scope": "resource",
           "type": "array",
-          "default": [],
+          "default": null,
           "description": "Default includes to be used when a file is opened that is not defined in known context"
         },
         "devicetree.defaultBindingType": {
@@ -71,19 +74,19 @@
         "devicetree.defaultZephyrBindings": {
           "scope": "resource",
           "type": "array",
-          "default": [],
+          "default": null,
           "description": "Default Zephyr binding paths"
         },
         "devicetree.defaultDeviceOrgTreeBindings": {
           "scope": "resource",
           "type": "array",
-          "default": [],
+          "default": null,
           "description": "Default devicetree-org binding paths"
         },
         "devicetree.defaultDeviceOrgBindingsMetaSchema": {
           "scope": "resource",
           "type": "array",
-          "default": [],
+          "default": null,
           "description": "Default devicetree-org MetaSchema binding paths"
         },
         "devicetree.cwd": {
@@ -94,13 +97,13 @@
         "devicetree.contexts": {
           "scope": "resource",
           "type": "array",
-          "default": [],
+          "default": null,
           "description": "Known contexts."
         },
         "devicetree.lockRenameEdits": {
           "scope": "resource",
           "type": "array",
-          "default": [],
+          "default": null,
           "description": "Locations that Renaming should not be allowrd if any of the edits is a child node of that directory"
         },
         "devicetree.autoChangeContext": {

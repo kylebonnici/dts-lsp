@@ -18,15 +18,14 @@ import type {
   Context,
   ContextListItem,
   IntegrationSettings,
-  Settings,
 } from "devicetree-language-server-types";
 
-export interface IDeviceTree {
+export interface IDeviceTreeAPI {
   readonly version: string;
 
-  setLSPSettings(settings: Settings): Promise<void>;
+  setDefaultSettings(settings: IntegrationSettings): Promise<void>;
   getContexts(): Promise<ContextListItem[]>;
-  setActiveContext(id: string): Promise<void>;
-  requestContext(ctx: IntegrationSettings): Promise<ContextListItem>;
+  setActiveContext(id: string): Promise<boolean>;
+  requestContext(ctx: Context): Promise<ContextListItem>;
   removeContext(id: string): Promise<void>;
 }
