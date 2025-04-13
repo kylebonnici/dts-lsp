@@ -58,6 +58,11 @@ export interface Settings {
 export interface ContextListItem {
   ctxName: string;
   id: string;
-  mainDtsPath: string;
-  overlays: string[];
+  mainDtsPath: File;
+  overlays: File[];
+}
+
+export interface File {
+  file: string;
+  includes: File[];
 }

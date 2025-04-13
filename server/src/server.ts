@@ -1365,12 +1365,16 @@ connection.onRequest(
   "devicetree/getContexts",
   async (): Promise<ContextListItem[]> => {
     await allStable();
-    return contextAware.map<ContextListItem>((c) => ({
-      ctxName: c.ctxName.toString(),
-      id: c.id,
-      mainDtsPath: c.parser.uri,
-      overlays: c.overlays,
-    }));
+    return Promise.all(
+      contextAware.map(
+        async (c) =>
+          ({
+            ctxName: c.ctxName.toString(),
+            id: c.id,
+            ...(await c.getFileTree()),
+          } satisfies ContextListItem)
+      )
+    );
   }
 );
 
@@ -1400,8 +1404,7 @@ connection.onRequest(
       return {
         ctxName: persitedCtx.ctxName.toString(),
         id: persitedCtx.id,
-        mainDtsPath: persitedCtx.parser.uri,
-        overlays: persitedCtx.overlays,
+        ...(await persitedCtx.getFileTree()),
       };
     }
 
@@ -1413,11 +1416,14 @@ connection.onRequest(
     integrationContext.set(id, ctx);
     await loadSettings(prevSettings, resolvedSettings);
 
+    const context = contextAware.find((c) => c.id === id);
+    if (!context) {
+      throw new Error("Failed to create context");
+    }
     return {
       ctxName: ctx.ctxName?.toString() ?? basename(ctx.dtsFile),
       id: id,
-      mainDtsPath: ctx.dtsFile,
-      overlays: ctx.overlays ?? [],
+      ...(await context.getFileTree()),
     };
   }
 );
