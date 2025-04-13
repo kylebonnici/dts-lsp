@@ -43,7 +43,7 @@ export const defaultSettings: ResolvedSettings = {
   defaultDeviceOrgBindingsMetaSchema: [],
   defaultDeviceOrgTreeBindings: [],
   contexts: [],
-  lockRenameEdits: [],
+  defaultLockRenameEdits: [],
   allowAdhocContexts: true,
   autoChangeContext: true,
 };
@@ -133,11 +133,12 @@ export const resolveSettings = async (
         resolvePathVariable(v, rootWorkspace)
       )
     ));
-  const lockRenameEdits = (globalSettings.lockRenameEdits = await Promise.all(
-    (globalSettings.lockRenameEdits ?? []).map((v) =>
-      resolvePathVariable(v, rootWorkspace)
-    )
-  ));
+  const defaultLockRenameEdits = (globalSettings.defaultLockRenameEdits =
+    await Promise.all(
+      (globalSettings.defaultLockRenameEdits ?? []).map((v) =>
+        resolvePathVariable(v, rootWorkspace)
+      )
+    ));
 
   if (cwd) {
     // resolve global with cwd
@@ -175,7 +176,7 @@ export const resolveSettings = async (
     defaultDeviceOrgTreeBindings,
     defaultIncludePaths,
     defaultZephyrBindings,
-    lockRenameEdits,
+    defaultLockRenameEdits,
     defaultBindingType,
     autoChangeContext:
       globalSettings.autoChangeContext ?? defaultSettings.autoChangeContext,

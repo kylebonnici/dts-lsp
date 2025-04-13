@@ -1285,7 +1285,7 @@ connection.onPrepareRename(async (event) => {
   return getPrepareRenameRequest(
     event,
     contextAware,
-    resolvedSettings.lockRenameEdits,
+    resolvedSettings.defaultLockRenameEdits,
     activeContext,
     resolvedSettings.preferredContext
   );
