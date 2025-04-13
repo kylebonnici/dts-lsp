@@ -62,7 +62,7 @@ describe("Find completions", () => {
       position: Position.create(0, 24),
     };
 
-    const completions = await getCompletions(location, [context]);
+    const completions = await getCompletions(location, context);
     expect(completions).toEqual([]);
   });
 
@@ -84,7 +84,7 @@ describe("Find completions", () => {
           position: Position.create(0, 21),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions).toEqual([]);
       });
 
@@ -104,7 +104,7 @@ describe("Find completions", () => {
           position: Position.create(0, 27),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(1);
         expect(completions[0].label).toEqual("prop1");
       });
@@ -125,7 +125,7 @@ describe("Find completions", () => {
           position: Position.create(0, 33),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(2);
         expect(completions[0].label).toEqual("prop1");
         expect(completions[1].label).toEqual("prop2");
@@ -149,7 +149,7 @@ describe("Find completions", () => {
           position: Position.create(0, 57),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(1);
         expect(completions[0].label).toEqual("prop2");
       });
@@ -172,7 +172,7 @@ describe("Find completions", () => {
           position: Position.create(0, 32),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(2);
         expect(completions[0].label).toEqual("prop2");
         expect(completions[1].label).toEqual("prop1");
@@ -194,7 +194,7 @@ describe("Find completions", () => {
           position: Position.create(0, 15),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(1);
         expect(completions[0].label).toEqual("/delete-property/");
       });
@@ -217,7 +217,7 @@ describe("Find completions", () => {
           position: Position.create(0, 9),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(0);
       });
 
@@ -237,7 +237,7 @@ describe("Find completions", () => {
           position: Position.create(0, 20),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(1);
         expect(completions[0].label).toEqual("l1");
       });
@@ -258,7 +258,7 @@ describe("Find completions", () => {
           position: Position.create(0, 21),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(1);
         expect(completions[0].label).toEqual("l1");
       });
@@ -279,7 +279,7 @@ describe("Find completions", () => {
           position: Position.create(0, 11),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(0);
       });
 
@@ -299,7 +299,7 @@ describe("Find completions", () => {
           position: Position.create(0, 18),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(1);
         expect(completions[0].label).toEqual("/node");
       });
@@ -320,7 +320,7 @@ describe("Find completions", () => {
           position: Position.create(0, 19),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(1);
         expect(completions[0].label).toEqual("/node");
       });
@@ -341,7 +341,7 @@ describe("Find completions", () => {
           position: Position.create(0, 19),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(1);
         expect(completions[0].label).toEqual("/node");
       });
@@ -362,7 +362,7 @@ describe("Find completions", () => {
           position: Position.create(0, 39),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(0);
       });
     });
@@ -386,7 +386,7 @@ describe("Find completions", () => {
           position: Position.create(0, 1),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions).toEqual([]);
       });
 
@@ -406,7 +406,7 @@ describe("Find completions", () => {
           position: Position.create(0, 17),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(1);
         expect(completions[0].label).toEqual("l1");
       });
@@ -427,7 +427,7 @@ describe("Find completions", () => {
           position: Position.create(0, 34),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(2);
         expect(completions[0].label).toEqual("l1");
         expect(completions[1].label).toEqual("l2");
@@ -451,7 +451,7 @@ describe("Find completions", () => {
           position: Position.create(0, 52),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(1);
         expect(completions[0].label).toEqual("node2");
       });
@@ -472,7 +472,7 @@ describe("Find completions", () => {
           position: Position.create(0, 19),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(1);
         expect(completions[0].label).toEqual("/delete-node/");
       });
@@ -494,7 +494,7 @@ describe("Find completions", () => {
           position: Position.create(0, 16),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions).toEqual([]);
       });
 
@@ -514,7 +514,7 @@ describe("Find completions", () => {
           position: Position.create(0, 24),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(1);
         expect(completions[0].label).toEqual("node1");
       });
@@ -535,7 +535,7 @@ describe("Find completions", () => {
           position: Position.create(0, 32),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(2);
         expect(completions[0].label).toEqual("node1");
         expect(completions[1].label).toEqual("node2");
@@ -559,7 +559,7 @@ describe("Find completions", () => {
           position: Position.create(0, 52),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(1);
         expect(completions[0].label).toEqual("node2");
       });
@@ -580,7 +580,7 @@ describe("Find completions", () => {
           position: Position.create(0, 19),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(1);
         expect(completions[0].label).toEqual("/delete-node/");
       });
@@ -601,7 +601,7 @@ describe("Find completions", () => {
           position: Position.create(0, 22),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(1);
         expect(completions[0].label).toEqual("/delete-node/ &{}");
       });
@@ -622,7 +622,7 @@ describe("Find completions", () => {
           position: Position.create(0, 31),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(1);
         expect(completions[0].label).toEqual("/delete-node/");
       });
@@ -645,7 +645,7 @@ describe("Find completions", () => {
           position: Position.create(0, 32),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(2);
         expect(completions[0].label).toEqual("node2");
         expect(completions[1].label).toEqual("node1");
@@ -669,7 +669,7 @@ describe("Find completions", () => {
           position: Position.create(0, 17),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions).toEqual([]);
       });
 
@@ -689,7 +689,7 @@ describe("Find completions", () => {
           position: Position.create(0, 30),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(1);
         expect(completions[0].label).toEqual("/node1");
       });
@@ -710,7 +710,7 @@ describe("Find completions", () => {
           position: Position.create(0, 44),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(2);
         expect(completions[0].label).toEqual("/node1");
         expect(completions[1].label).toEqual("/node2");
@@ -734,7 +734,7 @@ describe("Find completions", () => {
           position: Position.create(0, 52),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(1);
         expect(completions[0].label).toEqual("node2");
       });
@@ -755,7 +755,7 @@ describe("Find completions", () => {
           position: Position.create(0, 19),
         };
 
-        const completions = await getCompletions(location, [context]);
+        const completions = await getCompletions(location, context);
         expect(completions.length).toEqual(1);
         expect(completions[0].label).toEqual("/delete-node/");
       });

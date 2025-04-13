@@ -62,7 +62,7 @@ describe("Find references", () => {
       position: Position.create(0, 24),
     };
 
-    const references = await getReferences(location, [context]);
+    const references = await getReferences(location, context);
     expect(references).toEqual([]);
   });
 
@@ -83,7 +83,7 @@ describe("Find references", () => {
         position: Position.create(0, 37),
       };
 
-      const references = await getReferences(location, [context]);
+      const references = await getReferences(location, context);
       expect(references.length).toEqual(4);
       expect(references[3].range.start.character).toEqual(2);
       expect(references[3].range.end.character).toEqual(7);
@@ -116,7 +116,7 @@ describe("Find references", () => {
         position: Position.create(0, 57),
       };
 
-      let references = await getReferences(location1, [context]);
+      let references = await getReferences(location1, context);
       expect(references.length).toEqual(2);
 
       expect(references[1].range.start.character).toEqual(22);
@@ -130,7 +130,7 @@ describe("Find references", () => {
         position: Position.create(0, 45),
       };
 
-      references = await getReferences(location2, [context]);
+      references = await getReferences(location2, context);
       expect(references.length).toEqual(2);
       expect(references[1].range.start.character).toEqual(9);
       expect(references[1].range.end.character).toEqual(14);
@@ -157,7 +157,7 @@ describe("Find references", () => {
         position: Position.create(0, 82),
       };
 
-      const references = await getReferences(location, [context]);
+      const references = await getReferences(location, context);
       expect(references.length).toEqual(1);
       expect(references[0].range.start.character).toEqual(79);
       expect(references[0].range.end.character).toEqual(84);
@@ -179,7 +179,7 @@ describe("Find references", () => {
         position: Position.create(0, 23),
       };
 
-      const references = await getReferences(location, [context]);
+      const references = await getReferences(location, context);
       expect(references.length).toEqual(2);
       expect(references[1].range.start.character).toEqual(13);
       expect(references[1].range.end.character).toEqual(18);
@@ -204,7 +204,7 @@ describe("Find references", () => {
         position: Position.create(0, 39),
       };
 
-      const references = await getReferences(location, [context]);
+      const references = await getReferences(location, context);
       expect(references.length).toEqual(3);
       expect(references[0].range.start.character).toEqual(12);
       expect(references[0].range.end.character).toEqual(17);
@@ -234,7 +234,7 @@ describe("Find references", () => {
         position: Position.create(0, 31),
       };
 
-      const references = await getReferences(location, [context]);
+      const references = await getReferences(location, context);
       expect(references.length).toEqual(2);
       expect(references[0].range.start.character).toEqual(10);
       expect(references[0].range.end.character).toEqual(15);
@@ -259,7 +259,7 @@ describe("Find references", () => {
         position: Position.create(0, 32),
       };
 
-      let references = await getReferences(location1, [context]);
+      let references = await getReferences(location1, context);
       expect(references.length).toEqual(2);
       expect(references[0].range.start.character).toEqual(9);
       expect(references[0].range.end.character).toEqual(14);
@@ -272,7 +272,7 @@ describe("Find references", () => {
         position: Position.create(0, 26),
       };
 
-      references = await getReferences(location2, [context]);
+      references = await getReferences(location2, context);
       expect(references.length).toEqual(2);
       expect(references[0].range.start.character).toEqual(3);
       expect(references[0].range.end.character).toEqual(8);
@@ -297,7 +297,7 @@ describe("Find references", () => {
         position: Position.create(0, 9),
       };
 
-      const references = await getReferences(location, [context]);
+      const references = await getReferences(location, context);
       expect(references.length).toEqual(2);
       expect(references[0].range.start.character).toEqual(17);
       expect(references[0].range.end.character).toEqual(19);
@@ -322,7 +322,7 @@ describe("Find references", () => {
         position: Position.create(0, 18),
       };
 
-      const references = await getReferences(location, [context]);
+      const references = await getReferences(location, context);
       expect(references.length).toEqual(2);
       expect(references[0].range.start.character).toEqual(17);
       expect(references[0].range.end.character).toEqual(19);
@@ -349,7 +349,7 @@ describe("Find references", () => {
         position: Position.create(0, 57),
       };
 
-      const references = await getReferences(location, [context]);
+      const references = await getReferences(location, context);
       expect(references.length).toEqual(1);
       expect(references[0].range.start.character).toEqual(54);
       expect(references[0].range.end.character).toEqual(59);
@@ -373,7 +373,7 @@ describe("Find references", () => {
         position: Position.create(0, 16),
       };
 
-      const references = await getReferences(location, [context]);
+      const references = await getReferences(location, context);
       expect(references.length).toEqual(1);
       expect(references[0].range.start.character).toEqual(13);
       expect(references[0].range.end.character).toEqual(18);
@@ -397,7 +397,7 @@ describe("Find references", () => {
         position: Position.create(0, 42),
       };
 
-      const references = await getReferences(location, [context]);
+      const references = await getReferences(location, context);
       expect(references.length).toEqual(2);
       expect(references[0].range.start.character).toEqual(41);
       expect(references[0].range.end.character).toEqual(43);
@@ -424,7 +424,7 @@ describe("Find references", () => {
         position: Position.create(0, 62),
       };
 
-      const references = await getReferences(location, [context]);
+      const references = await getReferences(location, context);
       expect(references.length).toEqual(3);
       expect(references[0].range.start.character).toEqual(7);
       expect(references[0].range.end.character).toEqual(12);
@@ -454,7 +454,7 @@ describe("Find references", () => {
         position: Position.create(0, 50),
       };
 
-      const references = await getReferences(location, [context]);
+      const references = await getReferences(location, context);
       expect(references.length).toEqual(3);
       expect(references[0].range.start.character).toEqual(49);
       expect(references[0].range.end.character).toEqual(51);
@@ -484,7 +484,7 @@ describe("Find references", () => {
         position: Position.create(0, 53),
       };
 
-      const references = await getReferences(location, [context]);
+      const references = await getReferences(location, context);
       expect(references.length).toEqual(3);
       expect(references[0].range.start.character).toEqual(51);
       expect(references[0].range.end.character).toEqual(56);

@@ -63,7 +63,7 @@ describe("Find typed completions", () => {
         position: Position.create(0, 15),
       };
 
-      const completions = await getTypeCompletions(location, [context]);
+      const completions = await getTypeCompletions(location, context);
       expect(completions.length).toEqual(5);
       expect(completions[0].label).toEqual('"okay"');
       expect(completions[1].label).toEqual('"disabled"');
@@ -88,7 +88,7 @@ describe("Find typed completions", () => {
         position: Position.create(0, 23),
       };
 
-      const completions = await getTypeCompletions(location, [context]);
+      const completions = await getTypeCompletions(location, context);
       expect(completions.length).toEqual(0);
     });
 
@@ -108,7 +108,7 @@ describe("Find typed completions", () => {
         position: Position.create(0, 23),
       };
 
-      const completions = await getTypeCompletions(location, [context]);
+      const completions = await getTypeCompletions(location, context);
       expect(completions.length).toEqual(1);
       expect(completions[0].label).toEqual("<2>");
     });
@@ -129,7 +129,7 @@ describe("Find typed completions", () => {
         position: Position.create(0, 28),
       };
 
-      const completions = await getTypeCompletions(location, [context]);
+      const completions = await getTypeCompletions(location, context);
       expect(completions.length).toEqual(0);
     });
 
@@ -149,7 +149,7 @@ describe("Find typed completions", () => {
         position: Position.create(0, 20),
       };
 
-      const completions = await getTypeCompletions(location, [context]);
+      const completions = await getTypeCompletions(location, context);
       expect(completions.length).toEqual(1);
       expect(completions[0].label).toEqual("<1>");
     });
@@ -170,7 +170,7 @@ describe("Find typed completions", () => {
         position: Position.create(0, 25),
       };
 
-      const completions = await getTypeCompletions(location, [context]);
+      const completions = await getTypeCompletions(location, context);
       expect(completions.length).toEqual(0);
     });
 
@@ -190,7 +190,7 @@ describe("Find typed completions", () => {
         position: Position.create(0, 19),
       };
 
-      const completions = await getTypeCompletions(location, [context]);
+      const completions = await getTypeCompletions(location, context);
       expect(completions.length).toEqual(1);
       expect(completions[0].label).toEqual('"cpu"');
     });
@@ -211,7 +211,7 @@ describe("Find typed completions", () => {
         position: Position.create(0, 22),
       };
 
-      const completions = await getTypeCompletions(location, [context]);
+      const completions = await getTypeCompletions(location, context);
       expect(completions.length).toEqual(1);
       expect(completions[0].label).toEqual('"memory"');
     });

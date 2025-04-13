@@ -288,27 +288,20 @@ export const sortAstForScope = <T extends ASTBase>(ast: T[]) => {
 
 export async function nodeFinder<T>(
   location: TextDocumentPositionParams,
-  contexts: ContextAware[],
+  context: ContextAware | undefined,
   action: (
     result: SearchableResult | undefined,
     inScope: (ast: ASTBase) => boolean
-  ) => T[] | Promise<T[]>,
-  activeContext?: ContextAware,
-  preferredContext?: string | number
+  ) => T[] | Promise<T[]>
 ): Promise<T[]> {
   const uri = fileURLToPath(location.textDocument.uri);
 
-  const contextMeta = findContext(
-    contexts,
-    { uri },
-    activeContext,
-    preferredContext
-  );
-
-  if (!contextMeta) return [];
+  if (!context) {
+    return [];
+  }
 
   console.time("search");
-  const runtime = await contextMeta.getRuntime();
+  const runtime = await context.getRuntime();
   const locationMeta = runtime.getDeepestAstNode(uri, location.position);
   const sortKey = locationMeta?.ast?.firstToken.sortKey;
   console.timeEnd("search");

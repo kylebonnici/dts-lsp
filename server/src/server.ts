@@ -1107,18 +1107,8 @@ connection.onCompletion(
 
     if (contextAware) {
       return [
-        ...(await getCompletions(
-          _textDocumentPosition,
-          contextAware,
-          activeContext,
-          resolvedSettings.preferredContext
-        )),
-        ...(await getTypeCompletions(
-          _textDocumentPosition,
-          contextAware,
-          activeContext,
-          resolvedSettings.preferredContext
-        )),
+        ...(await getCompletions(_textDocumentPosition, activeContext)),
+        ...(await getTypeCompletions(_textDocumentPosition, activeContext)),
       ];
     }
 
@@ -1284,31 +1274,19 @@ connection.onPrepareRename(async (event) => {
   await allStable();
   return getPrepareRenameRequest(
     event,
-    contextAware,
-    resolvedSettings.defaultLockRenameEdits,
     activeContext,
-    resolvedSettings.preferredContext
+    resolvedSettings.defaultLockRenameEdits
   );
 });
 
 connection.onRenameRequest(async (event) => {
   await allStable();
-  return getRenameRequest(
-    event,
-    contextAware,
-    activeContext,
-    resolvedSettings.preferredContext
-  );
+  return getRenameRequest(event, activeContext);
 });
 
 connection.onReferences(async (event) => {
   await allStable();
-  return getReferences(
-    event,
-    contextAware,
-    activeContext,
-    resolvedSettings.preferredContext
-  );
+  return getReferences(event, activeContext);
 });
 
 connection.onDefinition(async (event) => {
@@ -1329,22 +1307,12 @@ connection.onDefinition(async (event) => {
 
   if (documentLinkDefinition.length) return documentLinkDefinition;
 
-  return getDefinitions(
-    event,
-    contextAware,
-    activeContext,
-    resolvedSettings.preferredContext
-  );
+  return getDefinitions(event, activeContext);
 });
 
 connection.onDeclaration(async (event) => {
   await allStable();
-  return getDeclaration(
-    event,
-    contextAware,
-    activeContext,
-    resolvedSettings.preferredContext
-  );
+  return getDeclaration(event, activeContext);
 });
 
 connection.onCodeAction(async (event) => {
@@ -1369,14 +1337,7 @@ connection.onDocumentFormatting(async (event) => {
 
 connection.onHover(async (event) => {
   await allStable();
-  return (
-    await getHover(
-      event,
-      contextAware,
-      activeContext,
-      resolvedSettings.preferredContext
-    )
-  ).at(0);
+  return (await getHover(event, activeContext)).at(0);
 });
 
 connection.onFoldingRanges(async (event) => {
