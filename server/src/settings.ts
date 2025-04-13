@@ -16,6 +16,7 @@
 
 import { basename, resolve } from "path";
 import { Context, PartialBy, ResolvedContext, Settings } from "./types/index";
+import { generateContextId } from "./helpers";
 
 const resolvePathVariable = async (
   path: string,
@@ -182,13 +183,18 @@ export const resolveSettings = async (
       globalSettings.allowAdhocContexts ?? defaultSettings.allowAdhocContexts,
   };
 
-  const resolvedContext =
+  const resolvedContextMap = new Map<string, ResolvedContext>();
+
+  (
     globalSettings.contexts?.map((ctx) =>
       resolveContextSetting(ctx, resolvedGlobalSettings)
-    ) ?? [];
+    ) ?? []
+  ).forEach((ctx) => {
+    resolvedContextMap.set(generateContextId(ctx), ctx);
+  });
 
   return {
     ...resolvedGlobalSettings,
-    contexts: resolvedContext,
+    contexts: Array.from(resolvedContextMap.values()),
   };
 };
