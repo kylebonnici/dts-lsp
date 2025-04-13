@@ -64,6 +64,8 @@ export const resolveContextSetting = (
   let deviceOrgBindingsMetaSchema =
     context.deviceOrgBindingsMetaSchema ??
     defaultSettings.defaultDeviceOrgBindingsMetaSchema;
+  let lockRenameEdits =
+    context.lockRenameEdits ?? defaultSettings.defaultLockRenameEdits;
 
   if (
     bindingType === "Zephyr" &&
@@ -84,6 +86,9 @@ export const resolveContextSetting = (
     includePaths = includePaths.map((i) => resolve(cwd, i));
     dtsFile = resolve(cwd, dtsFile);
     overlays = overlays.map((overlay) => resolve(cwd, overlay));
+    lockRenameEdits = lockRenameEdits.map((lockRenameEdit) =>
+      resolve(cwd, lockRenameEdit)
+    );
   }
 
   return {
@@ -96,6 +101,7 @@ export const resolveContextSetting = (
     deviceOrgBindingsMetaSchema,
     dtsFile,
     overlays,
+    lockRenameEdits,
   };
 };
 
