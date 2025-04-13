@@ -18,7 +18,6 @@ import type {
   Context,
   ContextListItem,
   IntegrationSettings,
-  Settings,
 } from "devicetree-language-server-types";
 import { LanguageClient } from "vscode-languageclient/node";
 import { IDeviceTreeAPI as IDeviceTreeAPI } from "./types";
