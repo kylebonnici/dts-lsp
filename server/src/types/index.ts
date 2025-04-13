@@ -49,7 +49,7 @@ export interface Settings {
   defaultIncludePaths?: string[];
   contexts?: ResolvedContext[];
   preferredContext?: string | number;
-  lockRenameEdits?: string[];
+  defaultLockRenameEdits?: string[];
   autoChangeContext?: boolean;
   allowAdhocContexts?: boolean;
 }

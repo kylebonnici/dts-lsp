@@ -39,7 +39,7 @@ interface Settings {
   defaultIncludePaths?: string[];
   contexts?: Context[];
   preferredContext?: string | number;
-  lockRenameEdits?: string[];
+  defaultLockRenameEdits?: string[];
   autoChangeContext?: boolean;
   allowAdhocContexts?: boolean;
 }
