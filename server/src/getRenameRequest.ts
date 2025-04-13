@@ -265,8 +265,7 @@ export async function getRenameRequest(
 
 export async function getPrepareRenameRequest(
   location: PrepareRenameParams,
-  context: ContextAware | undefined,
-  lockRenameEdits: string[]
+  context: ContextAware | undefined
 ): Promise<{
   defaultBehavior: boolean;
 }> {
@@ -278,7 +277,9 @@ export async function getPrepareRenameRequest(
 
   if (
     locationResult.some((r) =>
-      lockRenameEdits.some((l) => fileURLToPath(r.uri).startsWith(l))
+      context?.settings.lockRenameEdits?.some((l) =>
+        fileURLToPath(r.uri).startsWith(l)
+      )
     )
   ) {
     throw new Error('Path is locked by user setting "lockRenameEdits"');

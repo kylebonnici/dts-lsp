@@ -72,6 +72,7 @@ export class ContextAware {
       deviceOrgBindingsMetaSchema: [],
       ...settings,
       ctxName: settings.ctxName ?? basename(settings.dtsFile),
+      lockRenameEdits: [],
     };
     this.overlays = resolvedSettings.overlays;
     this.overlays.filter(existsSync);
