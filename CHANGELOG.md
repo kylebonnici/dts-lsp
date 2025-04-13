@@ -8,7 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- VSCode extention API support.
 - onHover over macro now returns both decimal and hex value for the computed result
+- lockRenameEdits to context settings
+
+### Changed
+
+- Renamed lockRenameEdits to defaultLockRenameEdits in the root settings
 
 ### Fixed
 
