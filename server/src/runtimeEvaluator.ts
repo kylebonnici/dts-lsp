@@ -49,7 +49,7 @@ import { StringValue } from "./ast/dtc/values/string";
 import { existsSync } from "fs";
 import { Comment } from "./ast/dtc/comment";
 import { basename } from "path";
-import type { Context, PartialBy, ResolvedContext } from "./types/index";
+import type { File, Context, PartialBy, ResolvedContext } from "./types/index";
 
 export class ContextAware {
   _issues: Issue<ContextIssues>[] = [];
@@ -98,6 +98,37 @@ export class ContextAware {
 
   async getContextIssues() {
     return [...(await this.getRuntime()).issues, ...this._issues];
+  }
+
+  async getFileTree(): Promise<{ mainDtsPath: File; overlays: File[] }> {
+    const temp = new Map<string, { path: string; resolvedPath?: string }[]>();
+
+    const getTreeItem = (uri: string): File => {
+      return {
+        file: uri,
+        includes: (temp.get(uri) ?? []).map((f) =>
+          getTreeItem(f.resolvedPath ?? f.path)
+        ),
+      };
+    };
+
+    const runtime = await this.getRuntime();
+    runtime.includes.forEach((include) => {
+      let t = temp.get(include.uri);
+      if (!t) {
+        t = [];
+        temp.set(include.uri, t);
+      }
+      t.push({
+        path: include.path.path,
+        resolvedPath: include.resolvedPath,
+      });
+    });
+
+    return {
+      mainDtsPath: getTreeItem(this.parser.uri),
+      overlays: this.overlays.map(getTreeItem),
+    };
   }
 
   async stable() {
