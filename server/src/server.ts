@@ -1390,7 +1390,7 @@ connection.onRequest(
 connection.onRequest(
   "devicetree/requestContext",
   async (ctx: Context): Promise<ContextListItem> => {
-    const resolvedContext = resolveContextSetting(ctx, resolvedSettings);
+    const resolvedContext = await resolveContextSetting(ctx, resolvedSettings);
     console.log("devicetree/requestContext", resolvedContext);
     const configuredContexts = getConfiguredContexts(resolvedSettings);
     const id = generateContextId(resolvedContext);

@@ -48,24 +48,43 @@ export const defaultSettings: ResolvedSettings = {
   autoChangeContext: true,
 };
 
-export const resolveContextSetting = (
+export const resolveContextSetting = async (
   context: Context,
-  defaultSettings: PartialBy<ResolvedSettings, "contexts">
-): ResolvedContext => {
-  const cwd = context.cwd ?? defaultSettings.cwd;
-  let includePaths =
-    context.includePaths ?? defaultSettings.defaultIncludePaths;
-  let zephyrBindings =
-    context.zephyrBindings ?? defaultSettings.defaultZephyrBindings;
+  defaultSettings: PartialBy<ResolvedSettings, "contexts">,
+  rootWorkspace?: string
+): Promise<ResolvedContext> => {
+  const cwd =
+    (context.cwd
+      ? await resolvePathVariable(context.cwd, rootWorkspace)
+      : undefined) ?? defaultSettings.cwd;
+  let includePaths = await Promise.all(
+    (context.includePaths ?? defaultSettings.defaultIncludePaths).map((v) =>
+      resolvePathVariable(v, rootWorkspace)
+    )
+  );
+  let zephyrBindings = await Promise.all(
+    (context.zephyrBindings ?? defaultSettings.defaultZephyrBindings).map((v) =>
+      resolvePathVariable(v, rootWorkspace)
+    )
+  );
   const bindingType = context.bindingType ?? defaultSettings.defaultBindingType;
-  let deviceOrgTreeBindings =
-    context.deviceOrgTreeBindings ??
-    defaultSettings.defaultDeviceOrgTreeBindings;
-  let deviceOrgBindingsMetaSchema =
-    context.deviceOrgBindingsMetaSchema ??
-    defaultSettings.defaultDeviceOrgBindingsMetaSchema;
-  let lockRenameEdits =
-    context.lockRenameEdits ?? defaultSettings.defaultLockRenameEdits;
+  let deviceOrgTreeBindings = await Promise.all(
+    (
+      context.deviceOrgTreeBindings ??
+      defaultSettings.defaultDeviceOrgTreeBindings
+    ).map((v) => resolvePathVariable(v, rootWorkspace))
+  );
+  let deviceOrgBindingsMetaSchema = await Promise.all(
+    (
+      context.deviceOrgBindingsMetaSchema ??
+      defaultSettings.defaultDeviceOrgBindingsMetaSchema
+    ).map((v) => resolvePathVariable(v, rootWorkspace))
+  );
+  let lockRenameEdits = await Promise.all(
+    (context.lockRenameEdits ?? defaultSettings.defaultLockRenameEdits).map(
+      (v) => resolvePathVariable(v, rootWorkspace)
+    )
+  );
 
   if (
     bindingType === "Zephyr" &&
@@ -193,9 +212,11 @@ export const resolveSettings = async (
   const resolvedContextMap = new Map<string, ResolvedContext>();
 
   (
-    globalSettings.contexts?.map((ctx) =>
-      resolveContextSetting(ctx, resolvedGlobalSettings)
-    ) ?? []
+    await Promise.all(
+      globalSettings.contexts?.map((ctx) =>
+        resolveContextSetting(ctx, resolvedGlobalSettings, rootWorkspace)
+      ) ?? []
+    )
   ).forEach((ctx) => {
     resolvedContextMap.set(generateContextId(ctx), ctx);
   });
