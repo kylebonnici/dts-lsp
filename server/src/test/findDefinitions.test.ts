@@ -62,7 +62,7 @@ describe("Find definitions", () => {
       position: Position.create(0, 24),
     };
 
-    const declarations = await getDefinitions(location, [context]);
+    const declarations = await getDefinitions(location, context);
     expect(declarations).toEqual([]);
   });
 
@@ -83,7 +83,7 @@ describe("Find definitions", () => {
         position: Position.create(0, 37),
       };
 
-      const declarations = await getDefinitions(location, [context]);
+      const declarations = await getDefinitions(location, context);
       expect(declarations.length).toEqual(4);
       expect(declarations[3].range.start.character).toEqual(2);
       expect(declarations[3].range.end.character).toEqual(7);
@@ -116,7 +116,7 @@ describe("Find definitions", () => {
         position: Position.create(0, 57),
       };
 
-      let declarations = await getDefinitions(location1, [context]);
+      let declarations = await getDefinitions(location1, context);
       expect(declarations.length).toEqual(2);
 
       expect(declarations[1].range.start.character).toEqual(22);
@@ -130,7 +130,7 @@ describe("Find definitions", () => {
         position: Position.create(0, 45),
       };
 
-      declarations = await getDefinitions(location2, [context]);
+      declarations = await getDefinitions(location2, context);
       expect(declarations.length).toEqual(2);
       expect(declarations[1].range.start.character).toEqual(9);
       expect(declarations[1].range.end.character).toEqual(14);
@@ -157,7 +157,7 @@ describe("Find definitions", () => {
         position: Position.create(0, 82),
       };
 
-      const declarations = await getDefinitions(location, [context]);
+      const declarations = await getDefinitions(location, context);
       expect(declarations.length).toEqual(1);
       expect(declarations[0].range.start.character).toEqual(79);
       expect(declarations[0].range.end.character).toEqual(84);
@@ -179,7 +179,7 @@ describe("Find definitions", () => {
         position: Position.create(0, 23),
       };
 
-      const declarations = await getDefinitions(location, [context]);
+      const declarations = await getDefinitions(location, context);
       expect(declarations.length).toEqual(2);
       expect(declarations[1].range.start.character).toEqual(13);
       expect(declarations[1].range.end.character).toEqual(18);
@@ -204,7 +204,7 @@ describe("Find definitions", () => {
         position: Position.create(0, 39),
       };
 
-      const declarations = await getDefinitions(location, [context]);
+      const declarations = await getDefinitions(location, context);
       expect(declarations.length).toEqual(2);
       expect(declarations[0].range.start.character).toEqual(12);
       expect(declarations[0].range.end.character).toEqual(17);
@@ -231,7 +231,7 @@ describe("Find definitions", () => {
         position: Position.create(0, 31),
       };
 
-      const declarations = await getDefinitions(location, [context]);
+      const declarations = await getDefinitions(location, context);
       expect(declarations.length).toEqual(2);
       expect(declarations[0].range.start.character).toEqual(10);
       expect(declarations[0].range.end.character).toEqual(17);
@@ -256,7 +256,7 @@ describe("Find definitions", () => {
         position: Position.create(0, 32),
       };
 
-      let declarations = await getDefinitions(location1, [context]);
+      let declarations = await getDefinitions(location1, context);
       expect(declarations.length).toEqual(2);
       expect(declarations[0].range.start.character).toEqual(9);
       expect(declarations[0].range.end.character).toEqual(17);
@@ -269,7 +269,7 @@ describe("Find definitions", () => {
         position: Position.create(0, 26),
       };
 
-      declarations = await getDefinitions(location2, [context]);
+      declarations = await getDefinitions(location2, context);
       expect(declarations.length).toEqual(2);
       expect(declarations[0].range.start.character).toEqual(3);
       expect(declarations[0].range.end.character).toEqual(19);
@@ -294,7 +294,7 @@ describe("Find definitions", () => {
         position: Position.create(0, 9),
       };
 
-      const declarations = await getDefinitions(location, [context]);
+      const declarations = await getDefinitions(location, context);
       expect(declarations.length).toEqual(2);
       expect(declarations[0].range.start.character).toEqual(2);
       expect(declarations[0].range.end.character).toEqual(14);
@@ -319,7 +319,7 @@ describe("Find definitions", () => {
         position: Position.create(0, 18),
       };
 
-      const declarations = await getDefinitions(location, [context]);
+      const declarations = await getDefinitions(location, context);
       expect(declarations.length).toEqual(2);
       expect(declarations[0].range.start.character).toEqual(2);
       expect(declarations[0].range.end.character).toEqual(14);
@@ -346,7 +346,7 @@ describe("Find definitions", () => {
         position: Position.create(0, 57),
       };
 
-      const declarations = await getDefinitions(location, [context]);
+      const declarations = await getDefinitions(location, context);
       expect(declarations.length).toEqual(1);
       expect(declarations[0].range.start.character).toEqual(54);
       expect(declarations[0].range.end.character).toEqual(62);
@@ -370,7 +370,7 @@ describe("Find definitions", () => {
         position: Position.create(0, 16),
       };
 
-      const declarations = await getDefinitions(location, [context]);
+      const declarations = await getDefinitions(location, context);
       expect(declarations.length).toEqual(1);
       expect(declarations[0].range.start.character).toEqual(13);
       expect(declarations[0].range.end.character).toEqual(21);
@@ -394,7 +394,7 @@ describe("Find definitions", () => {
         position: Position.create(0, 42),
       };
 
-      const declarations = await getDefinitions(location, [context]);
+      const declarations = await getDefinitions(location, context);
       expect(declarations.length).toEqual(1);
       expect(declarations[0].range.start.character).toEqual(3);
       expect(declarations[0].range.end.character).toEqual(23);
@@ -418,7 +418,7 @@ describe("Find definitions", () => {
         position: Position.create(0, 62),
       };
 
-      const declarations = await getDefinitions(location, [context]);
+      const declarations = await getDefinitions(location, context);
       expect(declarations.length).toEqual(2);
       expect(declarations[0].range.start.character).toEqual(3);
       expect(declarations[0].range.end.character).toEqual(23);
@@ -445,7 +445,7 @@ describe("Find definitions", () => {
         position: Position.create(0, 50),
       };
 
-      const declarations = await getDefinitions(location, [context]);
+      const declarations = await getDefinitions(location, context);
       expect(declarations.length).toEqual(2);
       expect(declarations[0].range.start.character).toEqual(3);
       expect(declarations[0].range.end.character).toEqual(23);
@@ -472,7 +472,7 @@ describe("Find definitions", () => {
         position: Position.create(0, 59),
       };
 
-      const declarations = await getDefinitions(location, [context]);
+      const declarations = await getDefinitions(location, context);
       expect(declarations.length).toEqual(2);
       expect(declarations[0].range.start.character).toEqual(13);
       expect(declarations[0].range.end.character).toEqual(21);
