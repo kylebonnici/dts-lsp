@@ -28,6 +28,7 @@ interface Context {
   zephyrBindings?: string[];
   deviceOrgTreeBindings?: string[];
   deviceOrgBindingsMetaSchema?: string[];
+  lockRenameEdits?: string[];
 }
 
 interface Settings {
