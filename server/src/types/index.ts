@@ -28,6 +28,7 @@ export interface Context {
   zephyrBindings?: string[];
   deviceOrgTreeBindings?: string[];
   deviceOrgBindingsMetaSchema?: string[];
+  lockRenameEdits?: string[];
 }
 
 export type IntegrationSettings = Omit<
