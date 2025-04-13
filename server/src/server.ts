@@ -1272,11 +1272,7 @@ connection.onDocumentLinks(async (event) => {
 
 connection.onPrepareRename(async (event) => {
   await allStable();
-  return getPrepareRenameRequest(
-    event,
-    activeContext,
-    resolvedSettings.defaultLockRenameEdits
-  );
+  return getPrepareRenameRequest(event, activeContext);
 });
 
 connection.onRenameRequest(async (event) => {
