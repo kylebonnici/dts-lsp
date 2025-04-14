@@ -44,7 +44,7 @@ export class ArrayValues extends ASTBase {
     return `<${this.values.map((v) => v.toString()).join(" ")}>`;
   }
 
-  toPrettyString(macros: Map<string, MacroRegistryItem>) {
+  toPrettyString(macros: (name: string) => MacroRegistryItem | undefined) {
     return `<${this.values.map((v) => v.toPrettyString(macros)).join(" ")}>`;
   }
 

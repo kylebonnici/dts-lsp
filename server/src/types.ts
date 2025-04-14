@@ -130,6 +130,7 @@ export enum ContextIssues {
   DELETE_NODE,
   UNABLE_TO_RESOLVE_NODE_PATH,
   MISSING_NODE,
+  UNUSED_HEADER_FILE,
 }
 
 export enum LexerToken {

@@ -515,7 +515,7 @@ export class Node {
     return this.name;
   }
 
-  toTooltipString(macros: Map<string, MacroRegistryItem>) {
+  toTooltipString(macros: (name: string) => MacroRegistryItem | undefined) {
     return `${this.labels.map((l) => l.toString()).join(" ")}${
       this.labels.length ? " " : ""
     }${this.fullName} {${this.property.length ? "\n\t" : ""}${this.property
@@ -530,7 +530,9 @@ export class Node {
 };`;
   }
 
-  toMarkupContent(macros: Map<string, MacroRegistryItem>): MarkupContent {
+  toMarkupContent(
+    macros: (name: string) => MacroRegistryItem | undefined
+  ): MarkupContent {
     return {
       kind: MarkupKind.Markdown,
       value: [
@@ -556,7 +558,10 @@ export class Node {
     };
   }
 
-  toFullString(macros: Map<string, MacroRegistryItem>, level = 1): string {
+  toFullString(
+    macros: (name: string) => MacroRegistryItem | undefined,
+    level = 1
+  ): string {
     const hasOmitIfNoRef = this.definitions.some(
       (d) => d instanceof DtcChildNode && d.omitIfNoRef
     );

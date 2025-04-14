@@ -50,8 +50,8 @@ export class CIfDef extends CIfBase {
     this.addChild(content);
   }
 
-  useBlock(macrosResolvers: Map<string, MacroRegistryItem>) {
-    return this.identifier && macrosResolvers.has(this.identifier.name);
+  useBlock(macrosResolvers: (name: string) => MacroRegistryItem | undefined) {
+    return this.identifier && !!macrosResolvers(this.identifier.name);
   }
 }
 
@@ -66,12 +66,12 @@ export class CIf extends CIfBase {
     this.addChild(content);
   }
 
-  useBlock(macros: Map<string, MacroRegistryItem>) {
+  useBlock(macros: (name: string) => MacroRegistryItem | undefined) {
     if (this.expression instanceof CMacroCall) {
       if (this.expression.functionName.name === "defined") {
         return (
           this.expression &&
-          macros.has(this.expression.params.at(0)?.value ?? "")
+          macros(this.expression.params.at(0)?.value ?? "")
         );
       }
 
@@ -83,8 +83,8 @@ export class CIf extends CIfBase {
 }
 
 export class CIfNotDef extends CIfDef {
-  useBlock(macrosResolvers: Map<string, MacroRegistryItem>) {
-    return this.identifier && !macrosResolvers.has(this.identifier.name);
+  useBlock(macrosResolvers: (name: string) => MacroRegistryItem | undefined) {
+    return this.identifier && !macrosResolvers(this.identifier.name);
   }
 }
 
@@ -105,7 +105,7 @@ export class IfDefineBlock extends ASTBase {
   }
 
   getInValidTokenRange(
-    macrosResolvers: Map<string, MacroRegistryItem>,
+    macrosResolvers: (name: string) => MacroRegistryItem | undefined,
     tokens: Token[]
   ) {
     const invalidRange: { start: number; end: number }[] = [];
@@ -179,7 +179,7 @@ export class IfElIfBlock extends ASTBase {
   }
 
   getInValidTokenRange(
-    macros: Map<string, MacroRegistryItem>,
+    macros: (name: string) => MacroRegistryItem | undefined,
     tokens: Token[]
   ) {
     const invalidRange: { start: number; end: number }[] = [];

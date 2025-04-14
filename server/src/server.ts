@@ -731,6 +731,8 @@ const contextIssuesToMessage = (issue: Issue<ContextIssues>) => {
           return `Node "${issue.templateStrings[0]}" was deleted`;
         case ContextIssues.MISSING_NODE:
           return `The following node "${issue.templateStrings[1]}" shall be present in "${issue.templateStrings[0]}" node.`;
+        case ContextIssues.UNUSED_HEADER_FILE:
+          return `Header file "${issue.templateStrings[0]}" is not used`;
       }
     })
     .join(" or ");

@@ -56,6 +56,7 @@ export abstract class BaseParser {
   public abstract reparse(
     macros?: Map<string, MacroRegistryItem>
   ): Promise<void>;
+  public readonly externalMacrosUsed = new Set<string>();
 
   constructor() {
     this.parsing = new Promise<void>((resolve) => {
@@ -269,8 +270,8 @@ export abstract class BaseParser {
   }
 
   protected processCIdentifier(
-    macros: Map<string, MacroRegistryItem>,
-    skippingIssueChecking: boolean
+    macros: (name: string) => MacroRegistryItem | undefined,
+    skipIssueChecking: boolean
   ): CIdentifier | undefined {
     this.enqueueToStack();
 
@@ -297,8 +298,8 @@ export abstract class BaseParser {
       createTokenIndex(valid[0], valid.at(-1))
     );
 
-    if (!skippingIssueChecking && identifier.name !== "defined") {
-      const macro = macros.get(identifier.name);
+    if (!skipIssueChecking && identifier.name !== "defined") {
+      const macro = macros(identifier.name);
       if (!macro) {
         this._issues.push(genIssue(SyntaxIssue.UNKNOWN_MACRO, identifier));
       }
@@ -461,7 +462,7 @@ export abstract class BaseParser {
   }
 
   protected isFunctionCall(
-    macros: Map<string, MacroRegistryItem>
+    macros: (name: string) => MacroRegistryItem | undefined
   ): CMacroCall | undefined {
     this.enqueueToStack();
     const identifier = this.processCIdentifier(macros, false);
@@ -488,7 +489,7 @@ export abstract class BaseParser {
         );
       }
     } else {
-      const macro = macros.get(identifier.name)?.macro;
+      const macro = macros(identifier.name)?.macro;
       if (macro) {
         if (!(macro?.identifier instanceof FunctionDefinition)) {
           this._issues.push(
@@ -576,7 +577,9 @@ export abstract class BaseParser {
     return numberValue;
   }
 
-  private processEnclosedExpression(macros: Map<string, MacroRegistryItem>) {
+  private processEnclosedExpression(
+    macros: (name: string) => MacroRegistryItem | undefined
+  ) {
     this.enqueueToStack();
 
     let start: Token | undefined;
@@ -611,7 +614,7 @@ export abstract class BaseParser {
   }
 
   protected processExpression(
-    macros: Map<string, MacroRegistryItem>,
+    macros: (name: string) => MacroRegistryItem | undefined,
     complexExpression = false
   ): Expression | undefined {
     this.enqueueToStack();

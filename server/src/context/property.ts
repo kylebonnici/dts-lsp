@@ -113,7 +113,7 @@ export class Property {
     return this.ast.toString();
   }
 
-  toPrettyString(macros: Map<string, MacroRegistryItem>) {
+  toPrettyString(macros: (name: string) => MacroRegistryItem | undefined) {
     return this.ast.toPrettyString(macros);
   }
 }

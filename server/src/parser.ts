@@ -1371,7 +1371,9 @@ export class Parser extends BaseParser {
       labels = this.processOptionalLabelAssign(acceptLabelName);
     }
 
-    const expression = this.processExpression(this.cPreprocessorParser.macros);
+    const expression = this.processExpression(
+      this.cPreprocessorParser.getMacro.bind(this.cPreprocessorParser)
+    );
 
     if (!expression) {
       this.popStack();
@@ -1387,7 +1389,9 @@ export class Parser extends BaseParser {
     this.enqueueToStack();
     const startLabels = this.processOptionalLabelAssign(false);
 
-    const expression = this.processExpression(this.cPreprocessorParser.macros);
+    const expression = this.processExpression(
+      this.cPreprocessorParser.getMacro.bind(this.cPreprocessorParser)
+    );
 
     if (!expression) {
       this.popStack();

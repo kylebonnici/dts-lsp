@@ -36,7 +36,7 @@ export class LabeledValue<T extends ASTBase> extends ASTBase {
     }`;
   }
 
-  toPrettyString(macros: Map<string, MacroRegistryItem>) {
+  toPrettyString(macros: (name: string) => MacroRegistryItem | undefined) {
     return `${this.labels.map((l) => l.toString()).join(" ")}${
       this.value?.toPrettyString(macros) ?? "NULL"
     }`;

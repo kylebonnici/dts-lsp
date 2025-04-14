@@ -70,12 +70,12 @@ export class CMacroCall extends Expression {
       .join(",")})`;
   }
 
-  isTrue(macros: Map<string, MacroRegistryItem>): boolean {
+  isTrue(macros: (name: string) => MacroRegistryItem | undefined): boolean {
     if (this.functionName.name === "defined") {
       return !!(
         this.params.length === 1 &&
         this.params[0] &&
-        macros.has(this.params[0].value)
+        macros(this.params[0].value)
       );
     }
 

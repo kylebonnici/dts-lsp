@@ -2760,7 +2760,7 @@ describe("Parser", () => {
         const expression = ifDefineBlock.ifBlocks[0].expression as CMacroCall;
         expect(expression.functionName.name).toEqual("defined");
         expect(expression.params[0]?.value).toEqual("HELLO");
-        expect(expression.isTrue(parser.macros)).toBeFalsy();
+        expect(expression.isTrue(parser.getMacro.bind(parser))).toBeFalsy();
 
         expect(tokensToString(parser.tokens).trim()).toEqual("");
       });
@@ -2790,7 +2790,7 @@ describe("Parser", () => {
         const expression = ifDefineBlock.ifBlocks[0].expression as CMacroCall;
         expect(expression.functionName.name).toEqual("defined");
         expect(expression.params[0]?.value).toEqual("HELLO");
-        expect(expression.isTrue(parser.macros)).toBeFalsy();
+        expect(expression.isTrue(parser.getMacro.bind(parser))).toBeFalsy();
 
         expect(tokensToString(parser.tokens).trim()).toEqual("foo\nbar");
       });
@@ -2821,7 +2821,7 @@ describe("Parser", () => {
         const expression = ifDefineBlock.ifBlocks[0].expression as CMacroCall;
         expect(expression.functionName.name).toEqual("defined");
         expect(expression.params[0]?.value).toEqual("HELLO");
-        expect(expression.isTrue(parser.macros)).toBeFalsy();
+        expect(expression.isTrue(parser.getMacro.bind(parser))).toBeFalsy();
 
         expect(tokensToString(parser.tokens).trim()).toEqual("FOOBAR");
       });
@@ -2850,7 +2850,7 @@ describe("Parser", () => {
         const expression = ifDefineBlock.ifBlocks[0].expression as CMacroCall;
         expect(expression.functionName.name).toEqual("defined");
         expect(expression.params[0]?.value).toEqual("HELLO");
-        expect(expression.isTrue(parser.macros)).toBeTruthy();
+        expect(expression.isTrue(parser.getMacro.bind(parser))).toBeTruthy();
 
         expect(tokensToString(parser.tokens).trim()).toEqual("some\nstuff");
       });
@@ -2873,7 +2873,7 @@ describe("Parser", () => {
         const ifDefineBlock = ifDefineBlocks[0];
 
         const expression = ifDefineBlock.ifBlocks[0].expression;
-        expect(expression?.isTrue(parser.macros)).toBeTruthy();
+        expect(expression?.isTrue(parser.getMacro.bind(parser))).toBeTruthy();
 
         expect(tokensToString(parser.tokens).trim()).toEqual("some\nstuff");
       });
@@ -2897,7 +2897,7 @@ describe("Parser", () => {
         const ifDefineBlock = ifDefineBlocks[0];
 
         const expression = ifDefineBlock.ifBlocks[0].expression;
-        expect(expression?.isTrue(parser.macros)).toBeFalsy();
+        expect(expression?.isTrue(parser.getMacro.bind(parser))).toBeFalsy();
 
         expect(tokensToString(parser.tokens).trim()).toEqual("");
       });
@@ -2922,7 +2922,7 @@ describe("Parser", () => {
         const ifDefineBlock = ifDefineBlocks[0];
 
         const expression = ifDefineBlock.ifBlocks[0].expression;
-        expect(expression?.isTrue(parser.macros)).toBeTruthy();
+        expect(expression?.isTrue(parser.getMacro.bind(parser))).toBeTruthy();
 
         expect(tokensToString(parser.tokens).trim()).toEqual("some\nstuff");
       });
@@ -2946,7 +2946,7 @@ describe("Parser", () => {
         const ifDefineBlock = ifDefineBlocks[0];
 
         const expression = ifDefineBlock.ifBlocks[0].expression;
-        expect(expression?.isTrue(parser.macros)).toBeFalsy();
+        expect(expression?.isTrue(parser.getMacro.bind(parser))).toBeFalsy();
 
         expect(tokensToString(parser.tokens).trim()).toEqual("");
       });
@@ -2969,7 +2969,7 @@ describe("Parser", () => {
         const ifDefineBlock = ifDefineBlocks[0];
 
         const expression = ifDefineBlock.ifBlocks[0].expression;
-        expect(expression?.isTrue(parser.macros)).toBeTruthy();
+        expect(expression?.isTrue(parser.getMacro.bind(parser))).toBeTruthy();
         expect(tokensToString(parser.tokens).trim()).toEqual("some\nstuff");
       });
 
@@ -2993,7 +2993,7 @@ describe("Parser", () => {
         const ifDefineBlock = ifDefineBlocks[0];
 
         const expression = ifDefineBlock.ifBlocks[0].expression;
-        expect(expression?.isTrue(parser.macros)).toBeTruthy();
+        expect(expression?.isTrue(parser.getMacro.bind(parser))).toBeTruthy();
         expect(tokensToString(parser.tokens).trim()).toEqual("some\nstuff");
       });
 
@@ -3018,7 +3018,7 @@ describe("Parser", () => {
         const ifDefineBlock = ifDefineBlocks[0];
 
         const expression = ifDefineBlock.ifBlocks[0].expression;
-        expect(expression?.isTrue(parser.macros)).toBeFalsy();
+        expect(expression?.isTrue(parser.getMacro.bind(parser))).toBeFalsy();
 
         expect(tokensToString(parser.tokens).trim()).toEqual("");
       });
@@ -3041,7 +3041,7 @@ describe("Parser", () => {
         const ifDefineBlock = ifDefineBlocks[0];
 
         const expression = ifDefineBlock.ifBlocks[0].expression;
-        expect(expression?.isTrue(parser.macros)).toBeTruthy();
+        expect(expression?.isTrue(parser.getMacro.bind(parser))).toBeTruthy();
 
         expect(tokensToString(parser.tokens).trim()).toEqual("some\nstuff");
       });
@@ -3065,7 +3065,7 @@ describe("Parser", () => {
         const ifDefineBlock = ifDefineBlocks[0];
 
         const expression = ifDefineBlock.ifBlocks[0].expression;
-        expect(expression?.isTrue(parser.macros)).toBeFalsy();
+        expect(expression?.isTrue(parser.getMacro.bind(parser))).toBeFalsy();
         expect(tokensToString(parser.tokens).trim()).toEqual("");
       });
 
@@ -3088,7 +3088,7 @@ describe("Parser", () => {
         const ifDefineBlock = ifDefineBlocks[0];
 
         const expression = ifDefineBlock.ifBlocks[0].expression;
-        expect(expression?.isTrue(parser.macros)).toBeFalsy();
+        expect(expression?.isTrue(parser.getMacro.bind(parser))).toBeFalsy();
         expect(tokensToString(parser.tokens).trim()).toEqual("");
       });
 
@@ -3110,7 +3110,7 @@ describe("Parser", () => {
         const ifDefineBlock = ifDefineBlocks[0];
 
         const expression = ifDefineBlock.ifBlocks[0].expression;
-        expect(expression?.isTrue(parser.macros)).toBeTruthy();
+        expect(expression?.isTrue(parser.getMacro.bind(parser))).toBeTruthy();
         expect(tokensToString(parser.tokens).trim()).toEqual("some\nstuff");
       });
 
@@ -3133,7 +3133,7 @@ describe("Parser", () => {
         const ifDefineBlock = ifDefineBlocks[0];
 
         const expression = ifDefineBlock.ifBlocks[0].expression;
-        expect(expression?.isTrue(parser.macros)).toBeFalsy();
+        expect(expression?.isTrue(parser.getMacro.bind(parser))).toBeFalsy();
         expect(tokensToString(parser.tokens).trim()).toEqual("");
       });
     });

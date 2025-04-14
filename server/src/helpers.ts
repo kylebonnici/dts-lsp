@@ -446,7 +446,7 @@ export const parseMacros = (line: string) => {
 
 export const expandMacros = (
   code: string,
-  macrosResolvers: Map<string, MacroRegistryItem>
+  macrosResolvers: (name: string) => MacroRegistryItem | undefined
 ): string => {
   const handleTokenConcatenation = (code: string): string => {
     return code.replace(
@@ -469,21 +469,21 @@ export const expandMacros = (
         if (func === "defined") {
           const argList = args.split(",").map((a: string) => a.trim());
           return argList[0]
-            ? (macrosResolvers.get(argList[0])?.resolver as string)
+            ? (macrosResolvers(argList[0])?.resolver as string)
             : argList;
         } else if (
           func &&
-          typeof macrosResolvers.get(func)?.resolver === "function"
+          typeof macrosResolvers(func)?.resolver === "function"
         ) {
           const argList = args.split(",").map((a: string) => a.trim());
           return (
-            macrosResolvers.get(func)?.resolver as (...args: string[]) => string
+            macrosResolvers(func)?.resolver as (...args: string[]) => string
           )(...argList);
         } else if (
           simple &&
-          typeof macrosResolvers.get(simple)?.resolver === "string"
+          typeof macrosResolvers(simple)?.resolver === "string"
         ) {
-          return macrosResolvers.get(simple)?.resolver as string;
+          return macrosResolvers(simple)?.resolver as string;
         }
         return match;
       }

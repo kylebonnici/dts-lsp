@@ -45,7 +45,7 @@ export class PropertyValue extends ASTBase {
     ].join(" ")}`;
   }
 
-  toPrettyString(macros: Map<string, MacroRegistryItem>) {
+  toPrettyString(macros: (name: string) => MacroRegistryItem | undefined) {
     return `${[
       this.value?.toPrettyString(macros) ?? "NULL",
       ...this.endLabels.map((l) => l.toString()),

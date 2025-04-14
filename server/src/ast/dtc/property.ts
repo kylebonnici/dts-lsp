@@ -98,7 +98,7 @@ export class DtcProperty extends ASTBase {
     };`;
   }
 
-  toPrettyString(macros: Map<string, MacroRegistryItem>) {
+  toPrettyString(macros: (name: string) => MacroRegistryItem | undefined) {
     return `${this.propertyName?.toString() ?? "__UNSET__"}${
       this.assignOperatorToken
         ? ` = ${

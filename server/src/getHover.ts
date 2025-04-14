@@ -42,16 +42,22 @@ async function getMacros(
     result?.ast instanceof CIdentifier ||
     result?.ast instanceof CMacroCallParam
   ) {
-    const macro = result.runtime.context.parser.cPreprocessorParser.macros.get(
-      result?.ast instanceof CIdentifier ? result.ast.name : result.ast.value
-    );
+    const macro = (await result.runtime.context.getAllParsers())
+      .at(-1)!
+      .cPreprocessorParser.macros.get(
+        result?.ast instanceof CIdentifier ? result.ast.name : result.ast.value
+      );
 
     if (macro) {
       const call = getCMacroCall(result.ast);
       const lastParser = (await result.runtime.context.getAllParsers()).at(-1)!;
 
       if (call) {
-        const val = call?.evaluate(lastParser.cPreprocessorParser.macros);
+        const val = call?.evaluate(
+          lastParser.cPreprocessorParser.getMacro.bind(
+            lastParser.cPreprocessorParser
+          )
+        );
         return {
           contents: {
             kind: MarkupKind.Markdown,
@@ -73,7 +79,9 @@ async function getMacros(
           value: [
             "```cpp",
             `#define ${macro.macro.toString()} // = ${result.ast?.evaluate(
-              lastParser.cPreprocessorParser.macros
+              lastParser.cPreprocessorParser.getMacro.bind(
+                lastParser.cPreprocessorParser
+              )
             )}`,
             "```",
           ].join("\n"),

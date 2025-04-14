@@ -144,6 +144,46 @@ export class ContextAware {
     };
   }
 
+  async getUnusedHeaderFiles() {
+    const allParsers = await this.getAllParsers();
+    const externalMacrosUsed = allParsers.flatMap((p) =>
+      Array.from(p.cPreprocessorParser.externalMacrosUsed)
+    );
+
+    const cPreprocessorParser = allParsers.at(-1)!.cPreprocessorParser;
+
+    const usedMacroDefinitionsFiles = new Set(
+      Array.from(cPreprocessorParser.macros.values())
+        .filter(
+          (m) =>
+            m.macro.uri.endsWith(".h") &&
+            externalMacrosUsed.find((mm) => mm === m.macro.toString())
+        )
+        .map((m) => m.macro.uri)
+    );
+
+    const runtime = await this.getRuntime();
+    const unusedHeaderFiles = runtime.includes.filter(
+      (include) =>
+        include.path.path.endsWith(".h") &&
+        include.resolvedPath &&
+        !usedMacroDefinitionsFiles.has(include.resolvedPath)
+    );
+
+    unusedHeaderFiles.forEach((include) => {
+      this._issues.push(
+        genIssue(
+          ContextIssues.UNUSED_HEADER_FILE,
+          include,
+          DiagnosticSeverity.Information,
+          [],
+          [],
+          [include.path.path]
+        )
+      );
+    });
+  }
+
   async stable() {
     await Promise.all([
       this.parser.stable,
@@ -346,6 +386,7 @@ export class ContextAware {
       .forEach((t, i) => (t.sortKey = i));
 
     this.linkPropertiesLabelsAndNodePaths(runtime);
+    this.getUnusedHeaderFiles();
 
     console.log(`(ID: ${this.id}) evaluate`, performance.now() - t);
     return runtime;
@@ -764,7 +805,7 @@ export class ContextAware {
 
   async toFullString() {
     return `/dts-v1/;\n${(await this.getRuntime()).rootNode.toFullString(
-      (await this.getAllParsers()).at(-1)!.cPreprocessorParser.macros
+      (await this.getAllParsers()).at(-1)!.cPreprocessorParser.getMacro
     )}`;
   }
 }

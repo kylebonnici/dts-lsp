@@ -37,7 +37,9 @@ export class NumberValue extends Expression {
     return this.value;
   }
 
-  toPrettyString(macros: Map<string, MacroRegistryItem>): string {
+  toPrettyString(
+    macros: (name: string) => MacroRegistryItem | undefined
+  ): string {
     const value = this.evaluate(macros);
 
     return `${value.toString()} /* ${

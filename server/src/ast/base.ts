@@ -182,7 +182,7 @@ export class ASTBase {
     this.allDescendantsCache = undefined;
   }
 
-  toPrettyString(macros: Map<string, MacroRegistryItem>) {
+  toPrettyString(macros: (name: string) => MacroRegistryItem | undefined) {
     return this.toString();
   }
 
