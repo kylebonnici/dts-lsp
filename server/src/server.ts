@@ -556,7 +556,12 @@ documents.onDidOpen(async (e) => {
     });
   }
 
-  onChange(uri);
+  const ctx = findContext(contextAware, { uri });
+  if (!ctx) {
+    onChange(uri);
+  } else if (ctx !== activeContext) {
+    updateActiveContext({ id: ctx.id });
+  }
 });
 
 const syntaxIssueToMessage = (issue: SyntaxIssue) => {
@@ -683,6 +688,8 @@ const contextIssuesToMessage = (issue: Issue<ContextIssues>) => {
           return `Node "${issue.templateStrings[0]}" was deleted`;
         case ContextIssues.MISSING_NODE:
           return `The following node "${issue.templateStrings[1]}" shall be present in "${issue.templateStrings[0]}" node.`;
+        case ContextIssues.UNUSED_HEADER_FILE:
+          return "Header file content is not used in this context";
       }
     })
     .join(" or ");
