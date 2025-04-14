@@ -1392,6 +1392,7 @@ connection.onRequest(
   "devicetree/setDefaultSettings",
   async (setting: IntegrationSettings) => {
     integrationSettings = setting;
+    console.log("Integration Settings", setting);
     await onSettingsChange(mergedInterationAndLsp());
   }
 );
@@ -1425,6 +1426,23 @@ connection.onRequest(
     if (!context) {
       throw new Error("Failed to create context");
     }
+
+    await context.stable();
+    const adhoc = getAdhocContexts(resolvedSettings);
+    const ctxFiles = context.getContextFiles();
+
+    let replaceAsActive = false;
+    adhoc.forEach((c) => {
+      if (c.getContextFiles().some((f) => ctxFiles.includes(f))) {
+        cleanUpAdHocContext(c);
+        replaceAsActive = true;
+      }
+    });
+
+    if (replaceAsActive) {
+      updateActiveContext({ id }, true);
+    }
+
     return {
       ctxName: ctx.ctxName?.toString() ?? basename(ctx.dtsFile),
       id: id,
