@@ -1441,15 +1441,16 @@ connection.onRequest(
 
     await context.stable();
     const adhoc = getAdhocContexts(resolvedSettings);
-    const ctxFiles = context.getContextFiles();
 
     let replaceAsActive = false;
-    adhoc.forEach((c) => {
-      if (c.getContextFiles().some((f) => ctxFiles.includes(f))) {
-        cleanUpAdHocContext(c);
-        replaceAsActive = true;
-      }
-    });
+    await Promise.all(
+      adhoc.map(async (c) => {
+        if (await contextFullyOverlaps(c, context)) {
+          cleanUpAdHocContext(c);
+          replaceAsActive = true;
+        }
+      })
+    );
 
     if (replaceAsActive) {
       updateActiveContext({ id }, true);
