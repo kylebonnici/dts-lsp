@@ -100,7 +100,7 @@
           "default": null,
           "description": "Known contexts."
         },
-        "devicetree.lockRenameEdits": {
+        "devicetree.defaultLockRenameEdits": {
           "scope": "resource",
           "type": "array",
           "default": null,
@@ -109,13 +109,13 @@
         "devicetree.autoChangeContext": {
           "scope": "resource",
           "type": "boolean",
-          "default": true,
+          "default": null,
           "description": "Auto chnage active context on file change"
         },
         "devicetree.allowAdhocContexts": {
           "scope": "resource",
           "type": "boolean",
-          "default": true,
+          "default": null,
           "description": "Allow LSP to create new context on the file for dts files opened that are not in the context settings"
         },
         "devicetree.trace.server": {
