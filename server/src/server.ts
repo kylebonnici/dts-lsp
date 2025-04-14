@@ -1143,6 +1143,10 @@ documents.listen(connection);
 connection.listen();
 
 const updateActiveContext = async (id: ContextId, force = false) => {
+  if ("uri" in id) {
+    activeFileUri = id.uri;
+  }
+
   if (!force && resolvedSettings.autoChangeContext === false) {
     return false;
   }
@@ -1163,12 +1167,6 @@ const updateActiveContext = async (id: ContextId, force = false) => {
   if (oldContext !== context) {
     if (oldContext) {
       await clearWorkspaceDiagnostics(oldContext);
-    }
-
-    if ("uri" in id) {
-      activeFileUri = id.uri;
-    } else {
-      activeFileUri = context?.parser.uri;
     }
 
     if (context) {
@@ -1473,7 +1471,7 @@ connection.onRequest(
     const names = context.ctxNames;
     context.removeCtxName(name);
 
-    if (names.length) {
+    if (context.ctxNames.length) {
       console.log(
         "Context will not be deleted as it is still in use by others"
       );
@@ -1516,10 +1514,11 @@ connection.onRequest(
 
     resolvedSettings.contexts = ctxToKeep;
 
+    const deletingActiveCtx = context === activeContext;
     await loadSettings(prevSettings, resolvedSettings);
 
-    if (context === activeContext && activeFileUri) {
-      onChange(activeFileUri);
+    if (deletingActiveCtx && activeFileUri) {
+      await onChange(activeFileUri);
     }
   }
 );
