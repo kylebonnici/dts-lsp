@@ -39,15 +39,15 @@ export abstract class Expression extends ASTBase {
     return -1;
   }
 
-  resolve(macros: Map<string, MacroRegistryItem>) {
+  resolve(macros: (name: string) => MacroRegistryItem | undefined) {
     return expandMacros(this.toString(), macros);
   }
 
-  evaluate(macros: Map<string, MacroRegistryItem>) {
+  evaluate(macros: (name: string) => MacroRegistryItem | undefined) {
     return evalExp(this.resolve(macros));
   }
 
-  isTrue(macros: Map<string, MacroRegistryItem>): boolean {
+  isTrue(macros: (name: string) => MacroRegistryItem | undefined): boolean {
     return evalExp(`!!(${this.resolve(macros)})`);
   }
 }
@@ -79,7 +79,7 @@ export class ComplexExpression extends Expression {
     return `${exp}`;
   }
 
-  isTrue(macros: Map<string, MacroRegistryItem>): boolean {
+  isTrue(macros: (name: string) => MacroRegistryItem | undefined): boolean {
     const exp = `(${this.children
       .map((c) => (c instanceof Expression ? c.resolve(macros) : c.toString()))
       .join(" ")})`;

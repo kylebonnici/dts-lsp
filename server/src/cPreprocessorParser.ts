@@ -78,6 +78,14 @@ export class CPreprocessorParser extends BaseParser {
     }
   }
 
+  getMacro(name: string): MacroRegistryItem | undefined {
+    const macro = this.macros.get(name);
+    if (macro) {
+      this.externalMacrosUsed.add(macro.macro.toString());
+    }
+    return macro;
+  }
+
   private macroStart = false;
 
   protected get currentToken(): Token | undefined {
@@ -204,7 +212,8 @@ export class CPreprocessorParser extends BaseParser {
     const keyword = new Keyword(createTokenIndex(token));
 
     const definition =
-      this.isFunctionDefinition() || this.processCIdentifier(this.macros, true);
+      this.isFunctionDefinition() ||
+      this.processCIdentifier(this.getMacro.bind(this), true);
     if (!definition) {
       this._issues.push(
         genIssue(SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE, keyword)
@@ -252,7 +261,7 @@ export class CPreprocessorParser extends BaseParser {
 
     const keyword = new Keyword(createTokenIndex(token));
 
-    const definition = this.processCIdentifier(this.macros, true);
+    const definition = this.processCIdentifier(this.getMacro.bind(this), true);
     if (!definition) {
       this._issues.push(
         genIssue(SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE, keyword)
@@ -290,7 +299,7 @@ export class CPreprocessorParser extends BaseParser {
 
   protected isFunctionDefinition(): FunctionDefinition | undefined {
     this.enqueueToStack();
-    const identifier = this.processCIdentifier(this.macros, true);
+    const identifier = this.processCIdentifier(this.getMacro.bind(this), true);
     if (!identifier) {
       this.popStack();
       return;
@@ -307,7 +316,8 @@ export class CPreprocessorParser extends BaseParser {
 
     const params: (CIdentifier | Variadic)[] = [];
     let param =
-      this.processCIdentifier(this.macros, true) || this.processVariadic();
+      this.processCIdentifier(this.getMacro.bind(this), true) ||
+      this.processVariadic();
 
     while (param) {
       params.push(param);
@@ -321,7 +331,8 @@ export class CPreprocessorParser extends BaseParser {
       }
 
       param =
-        this.processCIdentifier(this.macros, true) || this.processVariadic();
+        this.processCIdentifier(this.getMacro.bind(this), true) ||
+        this.processVariadic();
     }
 
     const node = new FunctionDefinition(identifier, params);
@@ -420,7 +431,7 @@ export class CPreprocessorParser extends BaseParser {
     this.nodes.push(ifDefBlock);
 
     const rangeToClean = ifDefBlock
-      .getInValidTokenRange(this.macros, this.tokens)
+      .getInValidTokenRange(this.getMacro.bind(this), this.tokens)
       .reverse();
     rangeToClean.forEach((r) => {
       this.tokens.splice(r.start, r.end - r.start + 1);
@@ -465,7 +476,7 @@ export class CPreprocessorParser extends BaseParser {
 
     // rewind so we can capture the identifier
     block.splitTokens[0].rewind();
-    const identifier = this.processCIdentifier(this.macros, true);
+    const identifier = this.processCIdentifier(this.getMacro.bind(this), true);
     if (!identifier) {
       this._issues.push(
         genIssue(SyntaxIssue.EXPECTED_IDENTIFIER, ifDefKeyword)
@@ -545,8 +556,8 @@ export class CPreprocessorParser extends BaseParser {
       this.macroStart = true;
 
       const expression =
-        this.processExpression(this.macros, true) ||
-        this.processCIdentifier(this.macros, true);
+        this.processExpression(this.getMacro.bind(this), true) ||
+        this.processCIdentifier(this.getMacro.bind(this), true);
 
       this.macroStart = false;
 
@@ -723,6 +734,9 @@ export class CPreprocessorParser extends BaseParser {
       this._issues.push(...fileParser.issues);
 
       this.macros.clear();
+      fileParser.externalMacrosUsed.forEach((m) =>
+        this.externalMacrosUsed.add(m)
+      );
       Array.from(fileParser.macros).forEach(([k, m]) => this.macros.set(k, m));
 
       if (resolvedPath.endsWith(".h")) {
