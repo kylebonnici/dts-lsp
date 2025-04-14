@@ -129,7 +129,9 @@ const deleteContext = async (context: ContextAware) => {
 
   clearWorkspaceDiagnostics(context);
   debounce.delete(context);
-  console.log(`(ID: ${context.id}) cleaning Context for ${context.ctxName} `);
+  console.log(
+    `(ID: ${context.id}) cleaning Context for [${context.ctxNames.join(",")}]`
+  );
 
   contextAware.splice(index, 1);
 
@@ -423,7 +425,11 @@ const loadSettings = async (
         : undefined
     );
     addContext(newContext);
-    console.log(`(ID: ${newContext.id}) New context for ${newContext.ctxName}`);
+    console.log(
+      `(ID: ${newContext.id}) New context for [${newContext.ctxNames.join(
+        ","
+      )}]`
+    );
     return newContext;
   });
 
@@ -829,7 +835,9 @@ const onChange = async (uri: string) => {
         : undefined
     );
     console.log(
-      `(ID: ${newContext.id}) New ad hoc context for ${newContext.ctxName}`
+      `(ID: ${
+        newContext.id
+      }) New ad hoc context for [${newContext.ctxNames.join(",")}]`
     );
     addContext(newContext);
 
@@ -949,7 +957,7 @@ const reportWorkspaceDiagnostics = async (context: ContextAware) => {
   console.log(
     `(ID: ${context.id})`,
     "workspace diagnostics",
-    context.ctxName,
+    `[${context.ctxNames.join(",")}]`,
     performance.now() - t
   );
   return {
@@ -1190,11 +1198,14 @@ const updateActiveContext = async (id: ContextId, force = false) => {
         )
       : [];
     console.log("======= Active Context =======");
-    console.log(`(ID: ${context?.id ?? -1})`, context?.ctxName);
+    console.log(
+      `(ID: ${context?.id ?? -1})`,
+      `[${context?.ctxNames.join(",")}]`
+    );
     console.log("======== Context List ========");
     contextAware.forEach((c) => {
       console.log(
-        `(ID: ${c.id}) ${c.ctxName}`,
+        `(ID: ${c.id}) [${c.ctxNames.join(",")}]`,
         `${
           persistantCtxs.includes(c)
             ? ` -- Persistant ${
@@ -1374,7 +1385,7 @@ connection.onRequest(
       contextAware.map(
         async (c) =>
           ({
-            ctxName: c.ctxName.toString(),
+            ctxNames: c.ctxNames.map((n) => n.toString()),
             id: c.id,
             ...(await c.getFileTree()),
           } satisfies ContextListItem)
@@ -1407,8 +1418,9 @@ connection.onRequest(
 
     const persitedCtx = configuredContexts.find((c) => c.id === id);
     if (persitedCtx) {
+      persitedCtx.addCtxName(ctx.ctxName);
       return {
-        ctxName: persitedCtx.ctxName.toString(),
+        ctxNames: persitedCtx.ctxNames.map((c) => c.toString()),
         id: persitedCtx.id,
         ...(await persitedCtx.getFileTree()),
       };
@@ -1444,50 +1456,65 @@ connection.onRequest(
     }
 
     return {
-      ctxName: ctx.ctxName?.toString() ?? basename(ctx.dtsFile),
+      ctxNames: context.ctxNames.map((c) => c.toString()),
       id: id,
       ...(await context.getFileTree()),
     };
   }
 );
 
-connection.onRequest("devicetree/removeContext", async (id: string) => {
-  const context = findContext(contextAware, { id });
-  if (!context) return;
+connection.onRequest(
+  "devicetree/removeContext",
+  async ({ id, name }: { id: string; name: string }) => {
+    const context = findContext(contextAware, { id });
+    if (!context) return;
 
-  if (lspConfigurationSettings) {
-    const lspResolveSettings = await resolveSettings(
-      lspConfigurationSettings,
-      await getRootWorkspace()
-    );
-    const resolveLspSettings = getConfiguredContexts(lspResolveSettings);
-    if (resolveLspSettings.includes(context)) {
-      throw new Error(
-        "Cannot delete context which was create from users settings"
+    const names = context.ctxNames;
+    context.removeCtxName(name);
+
+    if (names.length) {
+      console.log(
+        "Context will not be deleted as it is still in use by others"
       );
+      return;
     }
-    const adHocContext = getAdhocContexts(resolvedSettings);
-    if (adHocContext.includes(context)) {
-      throw new Error("Cannot delete an ad Hoc context");
+
+    if (lspConfigurationSettings) {
+      const lspResolveSettings = await resolveSettings(
+        lspConfigurationSettings,
+        await getRootWorkspace()
+      );
+      const resolveLspSettings = getConfiguredContexts(lspResolveSettings);
+      if (resolveLspSettings.includes(context)) {
+        names.forEach((n) => context.addCtxName(n));
+        throw new Error(
+          "Cannot delete context which was create from users settings"
+        );
+      }
+      const adHocContext = getAdhocContexts(resolvedSettings);
+      if (adHocContext.includes(context)) {
+        names.forEach((n) => context.addCtxName(n));
+        throw new Error("Cannot delete an ad Hoc context");
+      }
     }
+
+    const prevSettings = {
+      ...resolvedSettings,
+      contexts: [...resolvedSettings.contexts],
+    };
+
+    integrationContext.delete(id);
+
+    const ctxToKeep = resolvedSettings.contexts.filter(
+      (c) => generateContextId(c) !== id
+    );
+
+    if (ctxToKeep.length === resolvedSettings.contexts.length) {
+      return;
+    }
+
+    resolvedSettings.contexts = ctxToKeep;
+
+    await loadSettings(prevSettings, resolvedSettings);
   }
-
-  const prevSettings = {
-    ...resolvedSettings,
-    contexts: [...resolvedSettings.contexts],
-  };
-
-  integrationContext.delete(id);
-
-  const ctxToKeep = resolvedSettings.contexts.filter(
-    (c) => generateContextId(c) !== id
-  );
-
-  if (ctxToKeep.length === resolvedSettings.contexts.length) {
-    return;
-  }
-
-  resolvedSettings.contexts = ctxToKeep;
-
-  await loadSettings(prevSettings, resolvedSettings);
-});
+);

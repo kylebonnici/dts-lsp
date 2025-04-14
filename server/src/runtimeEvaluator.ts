@@ -58,7 +58,7 @@ export class ContextAware {
   public overlayParsers: Parser[] = [];
   public overlays: string[] = [];
   public readonly id: string;
-  public readonly ctxName: string | number;
+  private readonly ctxNames_ = new Set<string | number>();
 
   constructor(
     readonly settings: PartialBy<Context, "ctxName">,
@@ -81,7 +81,7 @@ export class ContextAware {
       resolvedSettings.dtsFile,
       resolvedSettings.includePaths
     );
-    this.ctxName = resolvedSettings.ctxName;
+    this.ctxNames_.add(resolvedSettings.ctxName);
     this.id = generateContextId(resolvedSettings);
     this.parser.stable.then(() => {
       this.overlayParsers =
@@ -94,6 +94,18 @@ export class ContextAware {
             )
         ) ?? [];
     });
+  }
+
+  get ctxNames() {
+    return Array.from(this.ctxNames_);
+  }
+
+  addCtxName(name: string | number) {
+    this.ctxNames_.add(name);
+  }
+
+  removeCtxName(name: string | number) {
+    this.ctxNames_.delete(name);
   }
 
   async getContextIssues() {

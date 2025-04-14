@@ -48,10 +48,10 @@ export class API implements IDeviceTreeAPI {
     ) as Promise<ContextListItem>;
   }
 
-  removeContext(id: string) {
-    return this.client.sendRequest(
-      "devicetree/removeContext",
-      id
-    ) as Promise<void>;
+  removeContext(id: string, name: string) {
+    return this.client.sendRequest("devicetree/removeContext", {
+      id,
+      name,
+    }) as Promise<void>;
   }
 }
