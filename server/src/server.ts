@@ -1516,5 +1516,9 @@ connection.onRequest(
     resolvedSettings.contexts = ctxToKeep;
 
     await loadSettings(prevSettings, resolvedSettings);
+
+    if (context === activeContext && activeFileUri) {
+      onChange(activeFileUri);
+    }
   }
 );
