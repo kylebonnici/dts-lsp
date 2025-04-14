@@ -556,7 +556,12 @@ documents.onDidOpen(async (e) => {
     });
   }
 
-  onChange(uri);
+  const ctx = findContext(contextAware, { uri });
+  if (!ctx) {
+    onChange(uri);
+  } else if (ctx !== activeContext) {
+    updateActiveContext({ id: ctx.id });
+  }
 });
 
 const syntaxIssueToMessage = (issue: SyntaxIssue) => {
