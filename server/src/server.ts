@@ -576,9 +576,9 @@ documents.onDidOpen(async (e) => {
 
   const ctx = findContext(contextAware, { uri });
   if (!ctx) {
-    onChange(uri);
+    await onChange(uri);
   } else if (ctx !== activeContext) {
-    updateActiveContext({ id: ctx.id });
+    await updateActiveContext({ id: ctx.id });
   }
 });
 
@@ -1483,7 +1483,7 @@ connection.onRequest(
     );
 
     if (replaceAsActive) {
-      updateActiveContext({ id }, true);
+      await updateActiveContext({ id }, true);
     }
 
     return {
