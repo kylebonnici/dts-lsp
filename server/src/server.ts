@@ -263,6 +263,7 @@ let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
 let hasDiagnosticRefreshCapability = false;
 let hasSemanticTokensRefreshCapability = false;
+let hasFoldingRangesRefreshCapability = false;
 
 let workspaceFolder: WorkspaceFolder[] | null | undefined;
 connection.onInitialize((params: InitializeParams) => {
@@ -287,6 +288,9 @@ connection.onInitialize((params: InitializeParams) => {
 
   hasSemanticTokensRefreshCapability =
     !!capabilities.workspace?.semanticTokens?.refreshSupport;
+
+  hasFoldingRangesRefreshCapability =
+    !!capabilities.workspace?.foldingRange?.refreshSupport;
 
   const result: InitializeResult = {
     capabilities: {
@@ -464,14 +468,6 @@ const loadSettings = async (
 
   if (activeFileUri) {
     await updateActiveContext({ uri: activeFileUri }, true);
-  }
-
-  if (hasDiagnosticRefreshCapability) {
-    connection.languages.diagnostics.refresh();
-  }
-
-  if (hasSemanticTokensRefreshCapability) {
-    connection.languages.semanticTokens.refresh();
   }
 
   await Promise.all(newContexts);
@@ -1227,6 +1223,18 @@ const updateActiveContext = debounceFunc(
     if (oldContext !== context) {
       if (oldContext) {
         await clearWorkspaceDiagnostics(oldContext);
+      }
+
+      if (hasDiagnosticRefreshCapability) {
+        connection.languages.diagnostics.refresh();
+      }
+
+      if (hasFoldingRangesRefreshCapability) {
+        connection.languages.foldingRange.refresh();
+      }
+
+      if (hasSemanticTokensRefreshCapability) {
+        connection.languages.semanticTokens.refresh();
       }
 
       if (context) {
