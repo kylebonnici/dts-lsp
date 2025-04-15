@@ -92,6 +92,7 @@
         "devicetree.cwd": {
           "scope": "resource",
           "type": "string",
+          "default": null,
           "description": "Working directorys"
         },
         "devicetree.contexts": {

@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import { basename, resolve } from "path";
+import path, { basename, resolve } from "path";
 import { Context, PartialBy, ResolvedContext, Settings } from "./types/index";
-import { generateContextId } from "./helpers";
+import { existsSync } from "fs";
 
 const resolvePathVariable = async (
   path: string,
@@ -209,10 +209,14 @@ export const resolveSettings = async (
       globalSettings.allowAdhocContexts ?? defaultSettings.allowAdhocContexts,
   };
 
-  const contexts = await Promise.all(
-    globalSettings.contexts?.map((ctx) =>
-      resolveContextSetting(ctx, resolvedGlobalSettings, rootWorkspace)
-    ) ?? []
+  const contexts = (
+    await Promise.all(
+      globalSettings.contexts?.map((ctx) =>
+        resolveContextSetting(ctx, resolvedGlobalSettings, rootWorkspace)
+      ) ?? []
+    )
+  ).filter((c) =>
+    [c.dtsFile, ...c.overlays].every((p) => existsSync(p) && path.isAbsolute(p))
   );
 
   return {
