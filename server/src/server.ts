@@ -887,10 +887,9 @@ const onChange = async (uri: string) => {
       }) New ad hoc context for [${newContext.ctxNames.join(",")}]`
     );
     addContext(newContext);
-
-    updateActiveContext({ uri });
     await newContext.stable();
-    cleanUpAdHocContext(newContext);
+    await updateActiveContext({ uri });
+    await cleanUpAdHocContext(newContext);
   } else {
     contexts.forEach((context) => {
       debounce.get(context)?.abort.abort();
@@ -1514,8 +1513,8 @@ connection.onRequest(
     await Promise.all(
       adhoc.map(async (c) => {
         if (await contextFullyOverlaps(c, context)) {
-          cleanUpAdHocContext(c);
-          replaceAsActive = true;
+          await cleanUpAdHocContext(c);
+          replaceAsActive = replaceAsActive || c === activeContext;
         }
       })
     );
