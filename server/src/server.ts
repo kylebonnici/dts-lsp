@@ -262,6 +262,7 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
 let hasDiagnosticRefreshCapability = false;
+let hasSemanticTokensRefreshCapability = false;
 
 let workspaceFolder: WorkspaceFolder[] | null | undefined;
 connection.onInitialize((params: InitializeParams) => {
@@ -283,6 +284,9 @@ connection.onInitialize((params: InitializeParams) => {
   );
   hasDiagnosticRefreshCapability =
     !!capabilities.workspace?.diagnostics?.refreshSupport;
+
+  hasSemanticTokensRefreshCapability =
+    !!capabilities.workspace?.semanticTokens?.refreshSupport;
 
   const result: InitializeResult = {
     capabilities: {
@@ -464,6 +468,10 @@ const loadSettings = async (
 
   if (hasDiagnosticRefreshCapability) {
     connection.languages.diagnostics.refresh();
+  }
+
+  if (hasSemanticTokensRefreshCapability) {
+    connection.languages.semanticTokens.refresh();
   }
 
   await Promise.all(newContexts);
