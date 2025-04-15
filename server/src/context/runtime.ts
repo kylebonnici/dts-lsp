@@ -65,8 +65,13 @@ export class Runtime implements Searchable {
       : astNode.children.flatMap((c) => Runtime.getFileTopMostAst(c, file));
   };
 
+  private fileTopMostAstCache = new Map<string, ASTBase[]>();
+
   fileTopMostAst(file: string) {
-    return [
+    const cache = this.fileTopMostAstCache.get(file);
+    if (cache) return cache;
+    // TODO consider a different way to optain this as this is costly
+    const result = [
       ...this.roots,
       ...this.references,
       ...this.unlinkedDeletes,
@@ -77,6 +82,9 @@ export class Runtime implements Searchable {
         (op) => op.cPreprocessorParser.allAstItems
       ),
     ].flatMap((c) => Runtime.getFileTopMostAst(c, file));
+
+    this.fileTopMostAstCache.set(file, result);
+    return result;
   }
 
   getDeepestAstNode(
