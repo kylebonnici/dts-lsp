@@ -460,14 +460,15 @@ const loadSettings = async (
   });
 
   if (activeFileUri) {
-    updateActiveContext({ uri: activeFileUri }, true);
+    await updateActiveContext({ uri: activeFileUri }, true);
   }
 
   if (hasDiagnosticRefreshCapability) {
     connection.languages.diagnostics.refresh();
   }
 
-  return Promise.all(newContexts);
+  await Promise.all(newContexts);
+  reportNoContextFiles();
 };
 
 const onSettingsChange = async (newSettings: Settings | undefined) => {
