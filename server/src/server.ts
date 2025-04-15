@@ -79,6 +79,7 @@ import type {
   Context,
   ContextListItem,
   IntegrationSettings,
+  ResolvedContext,
   Settings,
 } from "./types/index";
 import {
@@ -87,6 +88,7 @@ import {
   ResolvedSettings,
   resolveSettings,
 } from "./settings";
+import { basename } from "path";
 
 const contextAware: ContextAware[] = [];
 let activeContext: ContextAware | undefined;
@@ -96,15 +98,6 @@ const debounce = new WeakMap<
   { abort: AbortController; promise: Promise<void> }
 >();
 const fileWatchers = new Map<string, FileWatcher>();
-
-const addContext = (context: ContextAware) => {
-  if (contextAware.some((ctx) => ctx === context)) {
-    return;
-  }
-
-  contextAware.push(context);
-  watchContextFiles(context);
-};
 
 const watchContextFiles = async (context: ContextAware) => {
   await context.stable();
@@ -135,6 +128,14 @@ const deleteContext = async (context: ContextAware) => {
 
   if (context === activeContext) {
     activeContext = undefined;
+    if (contextAware.length) {
+      let ctx = activeFileUri
+        ? findContext(contextAware, { uri: activeFileUri })
+        : undefined;
+      ctx ??= contextAware[0];
+      console.log("Active context was deleted. Forcing active to", ctx.id);
+      await updateActiveContext({ id: ctx.id }, true);
+    }
   }
 
   unwatchContextFiles(context);
@@ -154,27 +155,33 @@ const isStable = (context: ContextAware) => {
 };
 
 const allStable = async () => {
-  await initialSettingsProvided;
   await Promise.all(contextAware.map(isStable));
 };
 
-const getAdhocContexts = (settings: ResolvedSettings) => {
-  const configuredContexts = getConfiguredContexts(settings);
+const isAdHocContext = async (context: ContextAware) =>
+  (await getAdhocContexts()).indexOf(context) !== -1;
+
+const getAdhocContexts = async () => {
+  const configuredContexts = await getConfiguredContexts();
   return contextAware.filter((c) => !configuredContexts.some((cc) => cc === c));
 };
 
-const getConfiguredContexts = (settings: ResolvedSettings) => {
-  return contextAware.filter((c) => {
-    const settingContext = settings.contexts?.find(
-      (sc) => generateContextId(sc) === c.id
-    );
-
-    return (
-      !!settingContext &&
-      settingContext.overlays?.every((o) => c.overlays.some((oo) => oo === o))
-    );
-  });
+const getConfiguredContexts = async () => {
+  const settings = await getResolvedPersistantContextSettings();
+  return contextAware.filter((c) =>
+    settings.contexts.find((sc) => generateContextId(sc) === c.id)
+  );
 };
+
+const getUserSettingsContexts = async () => {
+  const settings = await getResolvedUserContextSettings();
+  return contextAware.filter((c) =>
+    settings.contexts.find((sc) => generateContextId(sc) === c.id)
+  );
+};
+
+const isUserSettingsContext = async (context: ContextAware) =>
+  (await getUserSettingsContexts()).indexOf(context) !== -1;
 
 const contextFullyOverlaps = async (a: ContextAware, b: ContextAware) => {
   if (a === b) {
@@ -188,7 +195,8 @@ const contextFullyOverlaps = async (a: ContextAware, b: ContextAware) => {
     .flatMap((p) => p.cPreprocessorParser.dtsIncludes)
     .filter((i) => i.resolvedPath);
 
-  return contextAIncludes.length
+  return contextBIncludes.some((i) => i.resolvedPath === a.parser.uri) &&
+    contextAIncludes.length
     ? contextAIncludes.every((f) =>
         contextBIncludes.some(
           (ff) =>
@@ -204,19 +212,13 @@ const contextFullyOverlaps = async (a: ContextAware, b: ContextAware) => {
     : b.getContextFiles().some((ff) => ff === a.parser.uri);
 };
 
-const isAdHocContext = (context: ContextAware) => {
-  const adhocContexts = getAdhocContexts(resolvedSettings);
-
-  return adhocContexts.indexOf(context) !== -1;
-};
-
 const cleanUpAdHocContext = async (context: ContextAware) => {
   // NOTE For these context Overlays are not an to be consired as there is no way
   // for an adHocContext to be created with overlays
-  if (!isAdHocContext(context)) return;
+  if (!(await isAdHocContext(context))) return;
 
-  const adhocContexts = getAdhocContexts(resolvedSettings);
-  const configContexts = await getConfiguredContexts(resolvedSettings);
+  const adhocContexts = await getAdhocContexts();
+  const configContexts = await getConfiguredContexts();
   const adhocContextFiles = await resolveContextFiles(adhocContexts);
 
   if (contextAware.indexOf(context) === -1) {
@@ -344,26 +346,46 @@ connection.onInitialized(() => {
   if (hasWorkspaceFolderCapability) {
     connection.workspace.onDidChangeWorkspaceFolders(async (_event) => {
       connection.console.log("Workspace folder change event received");
-      await initialSettingsProvided;
-      await loadSettings(resolvedSettings, resolvedSettings);
+      await loadSettings();
     });
   }
 });
 
-let resolvedSettings: ResolvedSettings = defaultSettings;
+const getResolvedPersistantContextSettings = async () => {
+  let unresolvedSettings = getUnresolvedPersistantContextSettings();
+
+  unresolvedSettings = <Settings>{
+    ...defaultSettings,
+    ...unresolvedSettings,
+  };
+
+  return resolveSettings(unresolvedSettings, await getRootWorkspace());
+};
+
+const getResolvedUserContextSettings = async () => {
+  let unresolvedSettings = getUnresolvedUserContextSettings();
+
+  unresolvedSettings = <Settings>{
+    ...defaultSettings,
+    ...unresolvedSettings,
+  };
+
+  return resolveSettings(unresolvedSettings, await getRootWorkspace());
+};
+
+const getResolvedAllContextSettings = async () => {
+  let unresolvedSettings = getUnresolvedAllContextSettings();
+
+  unresolvedSettings = <Settings>{
+    ...defaultSettings,
+    ...unresolvedSettings,
+  };
+
+  return resolveSettings(unresolvedSettings, await getRootWorkspace());
+};
 
 // Cache the settings of all open documents
 const documentSettings: Map<string, Thenable<Settings>> = new Map();
-
-let init = false;
-const initialSettingsProvided: Promise<void> = new Promise((resolve) => {
-  const t = setInterval(() => {
-    if (init) {
-      resolve();
-      clearInterval(t);
-    }
-  }, 100);
-});
 
 const getRootWorkspace = async () => {
   const workspaceFolders = (
@@ -372,132 +394,103 @@ const getRootWorkspace = async () => {
   return workspaceFolders?.at(0);
 };
 
-const settingsCmp = (a: ResolvedSettings, b: ResolvedSettings): boolean => {
-  return (
-    a.allowAdhocContexts === b.allowAdhocContexts &&
-    a.autoChangeContext === b.autoChangeContext &&
-    a.cwd === b.cwd &&
-    a.defaultBindingType === b.defaultBindingType &&
-    a.defaultDeviceOrgBindingsMetaSchema.length ===
-      b.defaultDeviceOrgBindingsMetaSchema.length &&
-    a.defaultDeviceOrgBindingsMetaSchema.every(
-      (f, i) => f === b.defaultDeviceOrgBindingsMetaSchema[i]
-    ) &&
-    a.defaultDeviceOrgTreeBindings.length ===
-      b.defaultDeviceOrgTreeBindings.length &&
-    a.defaultDeviceOrgTreeBindings.every(
-      (f, i) => f === b.defaultDeviceOrgTreeBindings[i]
-    ) &&
-    a.defaultIncludePaths.length === b.defaultIncludePaths.length &&
-    a.defaultIncludePaths.every((f, i) => f === b.defaultIncludePaths[i]) &&
-    a.defaultLockRenameEdits.length === b.defaultLockRenameEdits.length &&
-    a.defaultLockRenameEdits.every(
-      (f, i) => f === b.defaultLockRenameEdits[i]
-    ) &&
-    a.defaultZephyrBindings.length === b.defaultZephyrBindings.length &&
-    a.defaultZephyrBindings.every((f, i) => f === b.defaultZephyrBindings[i]) &&
-    a.contexts.length === b.contexts?.length &&
-    a.contexts.every(
-      (c, i) => generateContextId(c) === generateContextId(b.contexts![i])
-    )
-  );
-};
-
-const loadSettings = async (
-  oldSettings: ResolvedSettings | undefined,
-  newSettings: Settings
-) => {
-  // resolve context paths defaults
-  resolvedSettings = await resolveSettings(
-    newSettings,
-    await getRootWorkspace()
-  );
-
-  console.log(
-    "Resolved settings",
-    JSON.stringify(resolvedSettings, undefined, "\t")
-  );
-
-  if (oldSettings && settingsCmp(oldSettings, resolvedSettings)) {
-    return;
-  }
-
-  const ctxToKeep = contextAware.filter((c) =>
-    resolvedSettings.contexts?.some((oc) => generateContextId(oc) === c.id)
-  );
-
-  const adhocContexts = oldSettings ? getAdhocContexts(oldSettings) : [];
-  const toDelete = contextAware.filter(
-    (c) =>
-      (!adhocContexts.includes(c) ||
-        (!resolvedSettings.allowAdhocContexts && adhocContexts.includes(c))) &&
-      !ctxToKeep.includes(c)
-  );
-  const toCreate = resolvedSettings.contexts?.filter(
-    (c) => !ctxToKeep.some((cc) => cc.id === generateContextId(c))
-  );
-
-  toDelete.forEach(deleteContext);
-
-  const newContexts = toCreate?.map((context) => {
-    const bindingType = context.bindingType;
-
-    const newContext = new ContextAware(
-      context,
-      bindingType
-        ? getBindingLoader(
-            {
-              zephyrBindings: context.zephyrBindings ?? [],
-              deviceOrgBindingsMetaSchema:
-                context.deviceOrgBindingsMetaSchema ?? [],
-              deviceOrgTreeBindings: context.deviceOrgTreeBindings ?? [],
-            },
-            bindingType
-          )
-        : undefined
-    );
-    addContext(newContext);
-    console.log(
-      `(ID: ${newContext.id}) New context for [${newContext.ctxNames.join(
-        ","
-      )}]`
-    );
-    return newContext;
+const createContext = async (context: ResolvedContext) => {
+  const existingCtx = findContext(contextAware, {
+    id: generateContextId(context),
   });
 
-  if (activeFileUri) {
-    await updateActiveContext({ uri: activeFileUri }, true);
+  if (existingCtx) {
+    if (!existingCtx.ctxNames.includes(context.ctxName))
+      console.log(
+        `(ID: ${existingCtx.id}) Adding name ${
+          context.ctxName
+        } for [${existingCtx.ctxNames.join(",")}]`
+      );
+    existingCtx.addCtxName(context.ctxName);
+    return existingCtx;
   }
 
-  await Promise.all(newContexts);
-  reportNoContextFiles();
+  console.log(
+    `(ID: ${generateContextId(context)}) New context [${context.ctxName}]`
+  );
+
+  const newContext = new ContextAware(
+    context,
+    context.bindingType
+      ? getBindingLoader(
+          {
+            zephyrBindings: context.zephyrBindings ?? [],
+            deviceOrgBindingsMetaSchema:
+              context.deviceOrgBindingsMetaSchema ?? [],
+            deviceOrgTreeBindings: context.deviceOrgTreeBindings ?? [],
+          },
+          context.bindingType
+        )
+      : undefined
+  );
+
+  contextAware.push(newContext);
+  watchContextFiles(newContext);
+
+  newContext.stable();
+  await cleanUpAdHocContext(newContext);
+  return newContext;
 };
 
-const onSettingsChange = async (newSettings: Settings | undefined) => {
-  if (!newSettings) {
-    return;
+const loadSettings = async () => {
+  let resolvedFullSettings = await getResolvedAllContextSettings();
+  if (!resolvedFullSettings.allowAdhocContexts) {
+    resolvedFullSettings = await getResolvedPersistantContextSettings();
   }
 
-  let oldSettings: ResolvedSettings | undefined;
-  if (init) {
-    oldSettings = resolvedSettings;
+  const allActiveIds = resolvedFullSettings.contexts.map(generateContextId);
+  const toDelete = contextAware.filter((c) => !allActiveIds.includes(c.id));
+  toDelete.forEach(deleteContext);
+
+  await resolvedFullSettings.contexts?.reduce((p, c) => {
+    return p.then(async () => {
+      await (await createContext(c)).stable();
+    });
+  }, Promise.resolve());
+
+  await Promise.all((await getAdhocContexts()).map(cleanUpAdHocContext));
+
+  if (activeFileUri) {
+    await updateActiveContext({ uri: activeFileUri });
+  } else if (!activeContext && contextAware.length) {
+    console.log(
+      `No active context using first context (ID: ${
+        contextAware[0].id
+      }) cleaning Context for [${contextAware[0].ctxNames.join(",")}]`
+    );
+    await updateActiveContext({ id: contextAware[0].id });
   }
 
-  newSettings = <Settings>{
-    ...defaultSettings,
-    ...newSettings,
-  };
-
-  documentSettings.clear();
-  await loadSettings(oldSettings, newSettings);
-  init = true;
+  reportNoContextFiles();
 };
 
 let lspConfigurationSettings: Settings | undefined;
 let integrationSettings: Settings | undefined;
+const adHocContextSettings = new Map<string, Context>();
 const integrationContext = new Map<string, Context>();
 
-const mergedInterationAndLsp = (): Settings | undefined => {
+const getUnresolvedAllContextSettings = (): Settings | undefined => {
+  if (!integrationSettings && !lspConfigurationSettings) return;
+
+  const merged = <Settings>{
+    ...integrationSettings,
+    ...lspConfigurationSettings,
+    contexts: [
+      ...(lspConfigurationSettings?.contexts ?? []),
+      ...Array.from(integrationContext.values()),
+      ...Array.from(adHocContextSettings.values()), // last so if ctx exists we can reuse
+    ],
+  };
+
+  return merged;
+};
+
+const getUnresolvedPersistantContextSettings = (): Settings | undefined => {
   if (!integrationSettings && !lspConfigurationSettings) return;
 
   const merged = <Settings>{
@@ -509,8 +502,16 @@ const mergedInterationAndLsp = (): Settings | undefined => {
     ],
   };
 
-  if (integrationSettings)
-    console.log("Merged Interation And Lsp Settings", merged);
+  return merged;
+};
+
+const getUnresolvedUserContextSettings = (): Settings | undefined => {
+  if (!integrationSettings && !lspConfigurationSettings) return;
+
+  const merged = <Settings>{
+    ...lspConfigurationSettings,
+    contexts: [...(lspConfigurationSettings?.contexts ?? [])],
+  };
 
   return merged;
 };
@@ -540,53 +541,12 @@ connection.onDidChangeConfiguration(async (change) => {
 
   console.log("Configuration changed", JSON.stringify(change, undefined, "\t"));
 
-  await onSettingsChange(mergedInterationAndLsp());
-});
+  console.log(
+    "Resolved settings",
+    JSON.stringify(await getResolvedAllContextSettings(), undefined, "\t")
+  );
 
-// Only keep settings for open documents
-documents.onDidClose((e) => {
-  const uri = fileURLToPath(e.document.uri);
-  const context = findContext(contextAware, { uri });
-  if (!context) {
-    connection.sendDiagnostics({
-      uri: e.document.uri,
-      version: documents.get(e.document.uri)?.version,
-      diagnostics: [],
-    });
-    return;
-  }
-
-  const contextAllFiles = context?.getContextFiles() ?? [];
-
-  const contextHasFileOpen = contextAllFiles
-    .filter((f) => f !== uri)
-    .some((f) => fetchDocument(f));
-  if (!contextHasFileOpen) {
-    if (isAdHocContext(context)) {
-      deleteContext(context);
-    } else {
-      clearWorkspaceDiagnostics(context);
-    }
-
-    if (context === activeContext) {
-      activeContext = undefined;
-    }
-  }
-
-  documentSettings.delete(e.document.uri);
-});
-
-documents.onDidOpen(async (e) => {
-  await allStable();
-  reportNoContextFiles();
-  const uri = fileURLToPath(e.document.uri);
-
-  const ctx = findContext(contextAware, { uri });
-  if (!ctx) {
-    await onChange(uri);
-  } else if (ctx !== activeContext) {
-    await updateActiveContext({ id: ctx.id });
-  }
+  await loadSettings();
 });
 
 const syntaxIssueToMessage = (issue: SyntaxIssue) => {
@@ -848,48 +808,16 @@ const reportNoContextFiles = () => {
 };
 
 const onChange = async (uri: string) => {
-  await initialSettingsProvided;
-
   const contexts = findContexts(contextAware, uri);
 
   if (!contexts.length) {
+    const resolvedSettings = await getResolvedAllContextSettings();
     if (resolvedSettings.allowAdhocContexts === false) {
       return;
     }
 
-    const bindingType = resolvedSettings.defaultBindingType;
-    const newContext = new ContextAware(
-      {
-        dtsFile: uri,
-        includePaths: resolvedSettings.defaultIncludePaths,
-        bindingType: resolvedSettings.defaultBindingType,
-        zephyrBindings: resolvedSettings.defaultZephyrBindings,
-        deviceOrgBindingsMetaSchema:
-          resolvedSettings.defaultDeviceOrgBindingsMetaSchema,
-        deviceOrgTreeBindings: resolvedSettings.defaultDeviceOrgTreeBindings,
-      },
-      bindingType
-        ? getBindingLoader(
-            {
-              zephyrBindings: resolvedSettings.defaultZephyrBindings,
-              deviceOrgBindingsMetaSchema:
-                resolvedSettings.defaultDeviceOrgBindingsMetaSchema,
-              deviceOrgTreeBindings:
-                resolvedSettings.defaultDeviceOrgTreeBindings,
-            },
-            bindingType
-          )
-        : undefined
-    );
-    console.log(
-      `(ID: ${
-        newContext.id
-      }) New ad hoc context for [${newContext.ctxNames.join(",")}]`
-    );
-    addContext(newContext);
-    await newContext.stable();
+    await loadSettings();
     await updateActiveContext({ uri });
-    await cleanUpAdHocContext(newContext);
   } else {
     contexts.forEach((context) => {
       debounce.get(context)?.abort.abort();
@@ -934,20 +862,6 @@ const onChange = async (uri: string) => {
     });
   }
 };
-
-// // The content of a text document has changed. This event is emitted
-// // when the text document first opened or when its content has changed.
-documents.onDidChangeContent(async (change) => {
-  const uri = fileURLToPath(change.document.uri);
-
-  const text = change.document.getText();
-  const tokenProvider = getTokenizedDocumentProvider();
-  if (!tokenProvider.needsRenew(uri, text)) return;
-
-  console.log("Content changed");
-  tokenProvider.renewLexer(uri, text);
-  onChange(uri);
-});
 
 const fetchDocumentUri = (file: string) => {
   return documents.keys().find((f) => isPathEqual(fileURLToPath(f), file));
@@ -1010,19 +924,6 @@ const reportWorkspaceDiagnostics = async (context: ContextAware) => {
     items: [...activeContextItems],
   };
 };
-
-connection.languages.diagnostics.onWorkspace(async () => {
-  await allStable();
-  const context = activeContext;
-
-  if (!context) {
-    return {
-      items: [],
-    };
-  }
-
-  return reportWorkspaceDiagnostics(context);
-});
 
 async function getDiagnostics(
   context: ContextAware,
@@ -1152,65 +1053,28 @@ async function getDiagnostics(
   }
 }
 
-connection.onDidChangeWatchedFiles((_change) => {
-  // Monitored files have change in VSCode
-  connection.console.log("We received a file change event");
-});
-
-// This handler provides the initial list of the completion items.
-connection.onCompletion(
-  async (
-    _textDocumentPosition: TextDocumentPositionParams
-  ): Promise<CompletionItem[]> => {
-    await allStable();
-
-    if (contextAware) {
-      return [
-        ...(await getCompletions(_textDocumentPosition, activeContext)),
-        ...(await getTypeCompletions(_textDocumentPosition, activeContext)),
-      ];
-    }
-
-    return [];
-  }
-);
-
-// This handler resolves additional information for the item selected in
-// the completion list.
-connection.onCompletionResolve((item: CompletionItem): CompletionItem => {
-  return item;
-});
-
-// Make the text document manager listen on the connection
-// for open, change and close text document events
-documents.listen(connection);
-
-// Listen on the connection
-connection.listen();
-
 const updateActiveContext = async (id: ContextId, force = false) => {
   if ("uri" in id) {
     activeFileUri = id.uri;
   }
 
-  if (activeContext && !force && resolvedSettings.autoChangeContext === false) {
+  const resolvedSettings = await getResolvedAllContextSettings();
+
+  await allStable();
+
+  if (activeContext && !force && !resolvedSettings.autoChangeContext) {
     return false;
   }
 
-  await allStable();
   if (
     !force &&
     activeContext?.getContextFiles().find((f) => "uri" in id && f === id.uri)
   )
     return false;
+
   const oldContext = activeContext;
 
-  activeContext = findContext(
-    contextAware,
-    id,
-    undefined,
-    resolvedSettings.preferredContext
-  );
+  activeContext = findContext(contextAware, id);
 
   const context = activeContext;
   if (oldContext !== context) {
@@ -1247,38 +1111,148 @@ const updateActiveContext = async (id: ContextId, force = false) => {
       });
     }
 
-    const persistantCtxs = getConfiguredContexts(resolvedSettings);
-    const userCtxs = lspConfigurationSettings
-      ? getConfiguredContexts(
-          await resolveSettings(
-            { ...integrationSettings, ...lspConfigurationSettings },
-            await getRootWorkspace()
-          )
-        )
-      : [];
-    console.log("======= Active Context =======");
-    console.log(
-      `(ID: ${context?.id ?? -1})`,
-      `[${context?.ctxNames.join(",")}]`
+    const forLogs = await Promise.all(
+      contextAware.map(async (ctx) => {
+        const adHoc = await isAdHocContext(ctx);
+        const userCtx = !adHoc && (await isUserSettingsContext(ctx));
+        const intergatorCtx = !adHoc && !userCtx;
+        return {
+          ctx,
+          adHoc,
+          userCtx,
+          intergatorCtx,
+        };
+      })
     );
+
     console.log("======== Context List ========");
-    contextAware.forEach((c) => {
+    forLogs.forEach((c) => {
       console.log(
-        `(ID: ${c.id}) [${c.ctxNames.join(",")}]`,
-        `${
-          persistantCtxs.includes(c)
-            ? ` -- Persistant ${
-                userCtxs.includes(c) ? " (user)" : " (3rd Party)"
-              }`
-            : " -- Ad Hoc"
-        }`
+        `(ID: ${c.ctx.id}) [${c.ctx.ctxNames.join(",")}]`,
+        c.adHoc ? "[Ad Hoc]" : "",
+        c.userCtx ? "[user]" : "",
+        c.intergatorCtx ? "[3rd Party]" : "",
+        activeContext === c.ctx ? " [ACTIVE]" : ""
       );
     });
     console.log("==============================");
   }
 
+  reportNoContextFiles();
+
   return true;
 };
+
+// Make the text document manager listen on the connection
+// for open, change and close text document events
+documents.listen(connection);
+
+// Only keep settings for open documents
+documents.onDidClose(async (e) => {
+  const uri = fileURLToPath(e.document.uri);
+  const contexts = findContexts(contextAware, uri);
+  if (contexts.length === 0) {
+    adHocContextSettings.delete(uri);
+    connection.sendDiagnostics({
+      uri: e.document.uri,
+      version: documents.get(e.document.uri)?.version,
+      diagnostics: [],
+    });
+    return;
+  }
+
+  await Promise.all(
+    contexts.map(async (context) => {
+      const contextAllFiles = context?.getContextFiles() ?? [];
+
+      const contextHasFileOpen = contextAllFiles
+        .filter((f) => f !== uri)
+        .some((f) => fetchDocument(f));
+      if (!contextHasFileOpen) {
+        if (await isAdHocContext(context)) {
+          deleteContext(context);
+          adHocContextSettings.delete(context.settings.dtsFile);
+        } else {
+          clearWorkspaceDiagnostics(context);
+        }
+      }
+    })
+  );
+
+  documentSettings.delete(e.document.uri);
+});
+
+documents.onDidOpen(async (e) => {
+  await allStable();
+  reportNoContextFiles();
+  const uri = fileURLToPath(e.document.uri);
+
+  const ctx = findContext(contextAware, { uri });
+  if (!ctx) {
+    const contextBaseSettings: Context = {
+      ctxName: basename(uri),
+      dtsFile: uri,
+    };
+
+    adHocContextSettings.set(uri, contextBaseSettings);
+    await onChange(uri);
+  } else if (ctx !== activeContext) {
+    await updateActiveContext({ id: ctx.id });
+  }
+});
+
+documents.onDidChangeContent(async (change) => {
+  const uri = fileURLToPath(change.document.uri);
+
+  const text = change.document.getText();
+  const tokenProvider = getTokenizedDocumentProvider();
+  if (!tokenProvider.needsRenew(uri, text)) return;
+
+  console.log("Content changed");
+  tokenProvider.renewLexer(uri, text);
+  await onChange(uri);
+});
+
+// Listen on the connection
+connection.listen();
+
+connection.languages.diagnostics.onWorkspace(async () => {
+  await allStable();
+  const context = activeContext;
+
+  if (!context) {
+    return {
+      items: [],
+    };
+  }
+
+  return reportWorkspaceDiagnostics(context);
+});
+
+connection.onDidChangeWatchedFiles((_change) => {
+  connection.console.log("We received a file change event");
+});
+
+connection.onCompletion(
+  async (
+    _textDocumentPosition: TextDocumentPositionParams
+  ): Promise<CompletionItem[]> => {
+    await allStable();
+
+    if (contextAware) {
+      return [
+        ...(await getCompletions(_textDocumentPosition, activeContext)),
+        ...(await getTypeCompletions(_textDocumentPosition, activeContext)),
+      ];
+    }
+
+    return [];
+  }
+);
+
+connection.onCompletionResolve((item: CompletionItem): CompletionItem => {
+  return item;
+});
 
 connection.onDocumentSymbol(async (h) => {
   await allStable();
@@ -1313,7 +1287,9 @@ connection.languages.semanticTokens.on(async (h) => {
       contextAware,
       { uri },
       activeContext,
-      resolvedSettings.preferredContext
+      (
+        await getResolvedAllContextSettings()
+      ).preferredContext
     );
 
     const isInContext = contextMeta?.isInContext(uri);
@@ -1333,13 +1309,15 @@ connection.languages.semanticTokens.on(async (h) => {
 });
 
 connection.onDocumentLinks(async (event) => {
-  const uri = fileURLToPath(event.textDocument.uri);
   await allStable();
+  const uri = fileURLToPath(event.textDocument.uri);
   const contextMeta = await findContext(
     contextAware,
     { uri },
     activeContext,
-    resolvedSettings.preferredContext
+    (
+      await getResolvedAllContextSettings()
+    ).preferredContext
   );
 
   return contextMeta?.getDocumentLinks(uri);
@@ -1368,7 +1346,9 @@ connection.onDefinition(async (event) => {
     contextAware,
     { uri },
     activeContext,
-    resolvedSettings.preferredContext
+    (
+      await getResolvedAllContextSettings()
+    ).preferredContext
   );
 
   const documentLinkDefinition =
@@ -1397,7 +1377,9 @@ connection.onDocumentFormatting(async (event) => {
     contextAware,
     { uri },
     activeContext,
-    resolvedSettings.preferredContext
+    (
+      await getResolvedAllContextSettings()
+    ).preferredContext
   );
   if (!contextMeta) {
     return [];
@@ -1458,7 +1440,6 @@ connection.onRequest(
   async (id: string): Promise<boolean> => {
     await allStable();
     const result = await updateActiveContext({ id }, true);
-    reportNoContextFiles();
     return result;
   }
 );
@@ -1469,7 +1450,11 @@ connection.onRequest(
     await allStable();
     integrationSettings = setting;
     console.log("Integration Settings", setting);
-    await onSettingsChange(mergedInterationAndLsp());
+    console.log(
+      "Resolved settings",
+      JSON.stringify(await getResolvedAllContextSettings(), undefined, "\t")
+    );
+    await loadSettings();
   }
 );
 
@@ -1477,53 +1462,19 @@ connection.onRequest(
   "devicetree/requestContext",
   async (ctx: Context): Promise<ContextListItem> => {
     await allStable();
+
+    const resolvedSettings = await getResolvedAllContextSettings();
     const resolvedContext = await resolveContextSetting(ctx, resolvedSettings);
     console.log("devicetree/requestContext", resolvedContext);
     const id = generateContextId(resolvedContext);
+    integrationContext.set(`${id}:${ctx.ctxName}`, ctx);
 
-    const persitedCtx = contextAware.find((c) => c.id === id);
-    if (persitedCtx) {
-      persitedCtx.addCtxName(ctx.ctxName);
-      integrationContext.set(id, ctx);
-      return {
-        ctxNames: persitedCtx.ctxNames.map((c) => c.toString()),
-        id: persitedCtx.id,
-        ...(await persitedCtx.getFileTree()),
-      };
-    }
-
-    const prevSettings = {
-      ...resolvedSettings,
-      contexts: [...resolvedSettings.contexts],
-    };
-    resolvedSettings.contexts.push(resolvedContext);
-    integrationContext.set(id, ctx);
-    await loadSettings(prevSettings, resolvedSettings);
+    await loadSettings(); // TODO ensure that loadSettings returns when all ctx are stable
 
     const context = contextAware.find((c) => c.id === id);
     if (!context) {
       throw new Error("Failed to create context");
     }
-
-    await context.stable();
-
-    const adhoc = getAdhocContexts(resolvedSettings);
-
-    let replaceAsActive = false;
-    await Promise.all(
-      adhoc.map(async (c) => {
-        if (await contextFullyOverlaps(c, context)) {
-          await cleanUpAdHocContext(c);
-          replaceAsActive = replaceAsActive || c === activeContext;
-        }
-      })
-    );
-
-    if (replaceAsActive || !activeContext) {
-      await updateActiveContext({ id }, true);
-    }
-
-    reportNoContextFiles();
 
     return {
       ctxNames: context.ctxNames.map((c) => c.toString()),
@@ -1537,6 +1488,9 @@ connection.onRequest(
   "devicetree/removeContext",
   async ({ id, name }: { id: string; name: string }) => {
     await allStable();
+
+    integrationContext.delete(`${id}:${name}`);
+
     const context = findContext(contextAware, { id });
     if (!context) return;
 
@@ -1550,47 +1504,6 @@ connection.onRequest(
       return;
     }
 
-    if (lspConfigurationSettings) {
-      const lspResolveSettings = await resolveSettings(
-        lspConfigurationSettings,
-        await getRootWorkspace()
-      );
-      const resolveLspSettings = getConfiguredContexts(lspResolveSettings);
-      if (resolveLspSettings.includes(context)) {
-        names.forEach((n) => context.addCtxName(n));
-        throw new Error(
-          "Cannot delete context which was create from users settings"
-        );
-      }
-      const adHocContext = getAdhocContexts(resolvedSettings);
-      if (adHocContext.includes(context)) {
-        names.forEach((n) => context.addCtxName(n));
-        throw new Error("Cannot delete an ad Hoc context");
-      }
-    }
-
-    const prevSettings = {
-      ...resolvedSettings,
-      contexts: [...resolvedSettings.contexts],
-    };
-
-    integrationContext.delete(id);
-
-    const ctxToKeep = resolvedSettings.contexts.filter(
-      (c) => generateContextId(c) !== id
-    );
-
-    if (ctxToKeep.length === resolvedSettings.contexts.length) {
-      return;
-    }
-
-    resolvedSettings.contexts = ctxToKeep;
-
-    const deletingActiveCtx = context === activeContext;
-    await loadSettings(prevSettings, resolvedSettings);
-
-    if (deletingActiveCtx && activeFileUri) {
-      await onChange(activeFileUri);
-    }
+    await loadSettings(); // TODO loadSettings set active force if no active remain
   }
 );

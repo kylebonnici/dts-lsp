@@ -342,7 +342,7 @@ export class ContextAware {
 
     this.linkPropertiesLabelsAndNodePaths(runtime);
 
-    console.log("evaluate", performance.now() - t);
+    console.log(`(ID: ${this.id}) evaluate`, performance.now() - t);
     return runtime;
   }
 

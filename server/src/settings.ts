@@ -209,20 +209,14 @@ export const resolveSettings = async (
       globalSettings.allowAdhocContexts ?? defaultSettings.allowAdhocContexts,
   };
 
-  const resolvedContextMap = new Map<string, ResolvedContext>();
-
-  (
-    await Promise.all(
-      globalSettings.contexts?.map((ctx) =>
-        resolveContextSetting(ctx, resolvedGlobalSettings, rootWorkspace)
-      ) ?? []
-    )
-  ).forEach((ctx) => {
-    resolvedContextMap.set(generateContextId(ctx), ctx);
-  });
+  const contexts = await Promise.all(
+    globalSettings.contexts?.map((ctx) =>
+      resolveContextSetting(ctx, resolvedGlobalSettings, rootWorkspace)
+    ) ?? []
+  );
 
   return {
     ...resolvedGlobalSettings,
-    contexts: Array.from(resolvedContextMap.values()),
+    contexts,
   };
 };
