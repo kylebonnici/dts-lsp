@@ -87,7 +87,6 @@ import {
   ResolvedSettings,
   resolveSettings,
 } from "./settings";
-import { debounce as debounceFunc } from "./debounce";
 
 const contextAware: ContextAware[] = [];
 let activeContext: ContextAware | undefined;
@@ -1190,104 +1189,97 @@ documents.listen(connection);
 // Listen on the connection
 connection.listen();
 
-const updateActiveContext = debounceFunc(
-  async (id: ContextId, force = false) => {
-    if ("uri" in id) {
-      activeFileUri = id.uri;
+const updateActiveContext = async (id: ContextId, force = false) => {
+  if ("uri" in id) {
+    activeFileUri = id.uri;
+  }
+
+  if (activeContext && !force && resolvedSettings.autoChangeContext === false) {
+    return false;
+  }
+
+  await allStable();
+  if (
+    !force &&
+    activeContext?.getContextFiles().find((f) => "uri" in id && f === id.uri)
+  )
+    return false;
+  const oldContext = activeContext;
+
+  activeContext = findContext(
+    contextAware,
+    id,
+    undefined,
+    resolvedSettings.preferredContext
+  );
+
+  const context = activeContext;
+  if (oldContext !== context) {
+    if (oldContext) {
+      await clearWorkspaceDiagnostics(oldContext);
     }
 
-    if (
-      activeContext &&
-      !force &&
-      resolvedSettings.autoChangeContext === false
-    ) {
-      return false;
+    if (hasDiagnosticRefreshCapability) {
+      connection.languages.diagnostics.refresh();
     }
 
-    await allStable();
-    if (
-      !force &&
-      activeContext?.getContextFiles().find((f) => "uri" in id && f === id.uri)
-    )
-      return false;
-    const oldContext = activeContext;
+    if (hasFoldingRangesRefreshCapability) {
+      connection.languages.foldingRange.refresh();
+    }
 
-    activeContext = findContext(
-      contextAware,
-      id,
-      undefined,
-      resolvedSettings.preferredContext
-    );
+    if (hasSemanticTokensRefreshCapability) {
+      connection.languages.semanticTokens.refresh();
+    }
 
-    const context = activeContext;
-    if (oldContext !== context) {
-      if (oldContext) {
-        await clearWorkspaceDiagnostics(oldContext);
-      }
-
-      if (hasDiagnosticRefreshCapability) {
-        connection.languages.diagnostics.refresh();
-      }
-
-      if (hasFoldingRangesRefreshCapability) {
-        connection.languages.foldingRange.refresh();
-      }
-
-      if (hasSemanticTokensRefreshCapability) {
-        connection.languages.semanticTokens.refresh();
-      }
-
-      if (context) {
-        reportWorkspaceDiagnostics(context).then((d) => {
-          d.items
-            .map(
-              (i) =>
-                ({
-                  uri: i.uri,
-                  version: i.version ?? undefined,
-                  diagnostics: i.items,
-                } satisfies PublishDiagnosticsParams)
-            )
-            .forEach((ii) => {
-              connection.sendDiagnostics(ii);
-            });
-        });
-      }
-
-      const persistantCtxs = getConfiguredContexts(resolvedSettings);
-      const userCtxs = lspConfigurationSettings
-        ? getConfiguredContexts(
-            await resolveSettings(
-              { ...integrationSettings, ...lspConfigurationSettings },
-              await getRootWorkspace()
-            )
+    if (context) {
+      reportWorkspaceDiagnostics(context).then((d) => {
+        d.items
+          .map(
+            (i) =>
+              ({
+                uri: i.uri,
+                version: i.version ?? undefined,
+                diagnostics: i.items,
+              } satisfies PublishDiagnosticsParams)
           )
-        : [];
-      console.log("======= Active Context =======");
-      console.log(
-        `(ID: ${context?.id ?? -1})`,
-        `[${context?.ctxNames.join(",")}]`
-      );
-      console.log("======== Context List ========");
-      contextAware.forEach((c) => {
-        console.log(
-          `(ID: ${c.id}) [${c.ctxNames.join(",")}]`,
-          `${
-            persistantCtxs.includes(c)
-              ? ` -- Persistant ${
-                  userCtxs.includes(c) ? " (user)" : " (3rd Party)"
-                }`
-              : " -- Ad Hoc"
-          }`
-        );
+          .forEach((ii) => {
+            connection.sendDiagnostics(ii);
+          });
       });
-      console.log("==============================");
     }
 
-    return true;
-  },
-  50
-);
+    const persistantCtxs = getConfiguredContexts(resolvedSettings);
+    const userCtxs = lspConfigurationSettings
+      ? getConfiguredContexts(
+          await resolveSettings(
+            { ...integrationSettings, ...lspConfigurationSettings },
+            await getRootWorkspace()
+          )
+        )
+      : [];
+    console.log("======= Active Context =======");
+    console.log(
+      `(ID: ${context?.id ?? -1})`,
+      `[${context?.ctxNames.join(",")}]`
+    );
+    console.log("======== Context List ========");
+    contextAware.forEach((c) => {
+      console.log(
+        `(ID: ${c.id}) [${c.ctxNames.join(",")}]`,
+        `${
+          persistantCtxs.includes(c)
+            ? ` -- Persistant ${
+                userCtxs.includes(c) ? " (user)" : " (3rd Party)"
+              }`
+            : " -- Ad Hoc"
+        }`
+      );
+    });
+    console.log("==============================");
+  }
+
+  return true;
+};
 
 connection.onDocumentSymbol(async (h) => {
   await allStable();
@@ -1523,7 +1515,7 @@ connection.onRequest(
       })
     );
 
-    if (replaceAsActive) {
+    if (replaceAsActive || !activeContext) {
       await updateActiveContext({ id }, true);
     }
 
