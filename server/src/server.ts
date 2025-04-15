@@ -182,12 +182,12 @@ const contextFullyOverlaps = async (a: ContextAware, b: ContextAware) => {
     return true;
   }
 
-  const contextAIncludes = (await a.getAllParsers()).flatMap(
-    (p) => p.cPreprocessorParser.dtsIncludes
-  );
-  const contextBIncludes = (await b.getAllParsers()).flatMap(
-    (p) => p.cPreprocessorParser.dtsIncludes
-  );
+  const contextAIncludes = (await a.getAllParsers())
+    .flatMap((p) => p.cPreprocessorParser.dtsIncludes)
+    .filter((i) => i.resolvedPath);
+  const contextBIncludes = (await b.getAllParsers())
+    .flatMap((p) => p.cPreprocessorParser.dtsIncludes)
+    .filter((i) => i.resolvedPath);
 
   return contextAIncludes.length
     ? contextAIncludes.every((f) =>
