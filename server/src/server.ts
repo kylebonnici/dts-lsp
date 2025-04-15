@@ -1184,7 +1184,10 @@ const updateActiveContext = async (id: ContextId, force = false) => {
   }
 
   await allStable();
-  if (activeContext?.getContextFiles().find((f) => "uri" in id && f === id.uri))
+  if (
+    !force &&
+    activeContext?.getContextFiles().find((f) => "uri" in id && f === id.uri)
+  )
     return false;
   const oldContext = activeContext;
 
