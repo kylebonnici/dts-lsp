@@ -1446,6 +1446,7 @@ connection.onRequest("devicetree/setActive", async (id: string) => {
 connection.onRequest(
   "devicetree/setDefaultSettings",
   async (setting: IntegrationSettings) => {
+    await allStable();
     integrationSettings = setting;
     console.log("Integration Settings", setting);
     await onSettingsChange(mergedInterationAndLsp());
@@ -1455,6 +1456,7 @@ connection.onRequest(
 connection.onRequest(
   "devicetree/requestContext",
   async (ctx: Context): Promise<ContextListItem> => {
+    await allStable();
     const resolvedContext = await resolveContextSetting(ctx, resolvedSettings);
     console.log("devicetree/requestContext", resolvedContext);
     const configuredContexts = getConfiguredContexts(resolvedSettings);
@@ -1484,6 +1486,7 @@ connection.onRequest(
     }
 
     await context.stable();
+
     const adhoc = getAdhocContexts(resolvedSettings);
 
     let replaceAsActive = false;
@@ -1511,6 +1514,7 @@ connection.onRequest(
 connection.onRequest(
   "devicetree/removeContext",
   async ({ id, name }: { id: string; name: string }) => {
+    await allStable();
     const context = findContext(contextAware, { id });
     if (!context) return;
 
