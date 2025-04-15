@@ -79,9 +79,10 @@ export async function activate(context: vscode.ExtensionContext) {
         const options: (vscode.QuickPickItem & { id: string })[] = contexts.map(
           (context) => ({
             id: context.id,
-            label: path.basename(context.mainDtsPath.file),
-            description: context.overlays.length
-              ? `overlays: ${context.overlays
+            label: `[${context.ctxNames.join(",")}]`,
+            description: `dts: ${path.basename(context.mainDtsPath.file)}`,
+            detail: context.overlays.length
+              ? ` overlays: ${context.overlays
                   .map((overlay) => path.basename(overlay.file))
                   .join(", ")}`
               : "",
