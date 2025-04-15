@@ -366,6 +366,37 @@ const getRootWorkspace = async () => {
   return workspaceFolders?.at(0);
 };
 
+const settingsCmp = (a: ResolvedSettings, b: ResolvedSettings): boolean => {
+  return (
+    a.allowAdhocContexts === b.allowAdhocContexts &&
+    a.autoChangeContext === b.autoChangeContext &&
+    a.cwd === b.cwd &&
+    a.defaultBindingType === b.defaultBindingType &&
+    a.defaultDeviceOrgBindingsMetaSchema.length ===
+      b.defaultDeviceOrgBindingsMetaSchema.length &&
+    a.defaultDeviceOrgBindingsMetaSchema.every(
+      (f, i) => f === b.defaultDeviceOrgBindingsMetaSchema[i]
+    ) &&
+    a.defaultDeviceOrgTreeBindings.length ===
+      b.defaultDeviceOrgTreeBindings.length &&
+    a.defaultDeviceOrgTreeBindings.every(
+      (f, i) => f === b.defaultDeviceOrgTreeBindings[i]
+    ) &&
+    a.defaultIncludePaths.length === b.defaultIncludePaths.length &&
+    a.defaultIncludePaths.every((f, i) => f === b.defaultIncludePaths[i]) &&
+    a.defaultLockRenameEdits.length === b.defaultLockRenameEdits.length &&
+    a.defaultLockRenameEdits.every(
+      (f, i) => f === b.defaultLockRenameEdits[i]
+    ) &&
+    a.defaultZephyrBindings.length === b.defaultZephyrBindings.length &&
+    a.defaultZephyrBindings.every((f, i) => f === b.defaultZephyrBindings[i]) &&
+    a.contexts.length === b.contexts?.length &&
+    a.contexts.every(
+      (c, i) => generateContextId(c) === generateContextId(b.contexts![i])
+    )
+  );
+};
+
 const loadSettings = async (
   oldSettings: ResolvedSettings | undefined,
   newSettings: Settings
@@ -381,15 +412,7 @@ const loadSettings = async (
     JSON.stringify(resolvedSettings, undefined, "\t")
   );
 
-  if (
-    oldSettings &&
-    oldSettings.contexts.length === resolvedSettings.contexts?.length &&
-    oldSettings.contexts.every(
-      (c, i) =>
-        generateContextId(c) ===
-        generateContextId(resolvedSettings.contexts![i])
-    )
-  ) {
+  if (oldSettings && settingsCmp(oldSettings, resolvedSettings)) {
     return;
   }
 
@@ -399,7 +422,10 @@ const loadSettings = async (
 
   const adhocContexts = oldSettings ? getAdhocContexts(oldSettings) : [];
   const toDelete = contextAware.filter(
-    (c) => !adhocContexts.includes(c) && !ctxToKeep.includes(c)
+    (c) =>
+      (!adhocContexts.includes(c) ||
+        (!resolvedSettings.allowAdhocContexts && adhocContexts.includes(c))) &&
+      !ctxToKeep.includes(c)
   );
   const toCreate = resolvedSettings.contexts?.filter(
     (c) => !ctxToKeep.some((cc) => cc.id === generateContextId(c))
