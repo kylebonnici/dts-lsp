@@ -570,23 +570,8 @@ documents.onDidClose((e) => {
 
 documents.onDidOpen(async (e) => {
   await allStable();
-  const context = activeContext;
+  reportNoContextFiles();
   const uri = fileURLToPath(e.document.uri);
-
-  if (!context) {
-    connection.sendDiagnostics({
-      uri: e.document.uri,
-      version: documents.get(e.document.uri)?.version,
-      diagnostics: [
-        {
-          severity: DiagnosticSeverity.Warning,
-          range: Range.create(Position.create(0, 0), Position.create(0, 0)),
-          message: "File has no context",
-          source: "devicetree",
-        },
-      ],
-    });
-  }
 
   const ctx = findContext(contextAware, { uri });
   if (!ctx) {
@@ -832,6 +817,26 @@ const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
     default:
       return `TODO`;
   }
+};
+
+const reportNoContextFiles = () => {
+  const activeCtxFiles = activeContext?.getContextFiles();
+  Array.from(documents.keys()).forEach((u) => {
+    if (!activeCtxFiles?.includes(fileURLToPath(u))) {
+      connection.sendDiagnostics({
+        uri: u,
+        version: documents.get(u)?.version,
+        diagnostics: [
+          {
+            severity: DiagnosticSeverity.Warning,
+            range: Range.create(Position.create(0, 0), Position.create(0, 0)),
+            message: "File has no context",
+            source: "devicetree",
+          },
+        ],
+      });
+    }
+  });
 };
 
 const onChange = async (uri: string) => {
