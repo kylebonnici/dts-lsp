@@ -856,7 +856,15 @@ const onChange = async (uri: string) => {
 
     const bindingType = resolvedSettings.defaultBindingType;
     const newContext = new ContextAware(
-      { dtsFile: uri, includePaths: resolvedSettings.defaultIncludePaths },
+      {
+        dtsFile: uri,
+        includePaths: resolvedSettings.defaultIncludePaths,
+        bindingType: resolvedSettings.defaultBindingType,
+        zephyrBindings: resolvedSettings.defaultZephyrBindings,
+        deviceOrgBindingsMetaSchema:
+          resolvedSettings.defaultDeviceOrgBindingsMetaSchema,
+        deviceOrgTreeBindings: resolvedSettings.defaultDeviceOrgTreeBindings,
+      },
       bindingType
         ? getBindingLoader(
             {
