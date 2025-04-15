@@ -87,8 +87,7 @@ import {
   ResolvedSettings,
   resolveSettings,
 } from "./settings";
-import { basename } from "path";
-import { resetCachedCPreprocessorParserProvider } from "./providers/cachedCPreprocessorParser";
+import { debounce as debounceFunc } from "./debounce";
 
 const contextAware: ContextAware[] = [];
 let activeContext: ContextAware | undefined;
@@ -1174,85 +1173,92 @@ documents.listen(connection);
 // Listen on the connection
 connection.listen();
 
-const updateActiveContext = async (id: ContextId, force = false) => {
-  if ("uri" in id) {
-    activeFileUri = id.uri;
-  }
-
-  if (!force && resolvedSettings.autoChangeContext === false) {
-    return false;
-  }
-
-  await allStable();
-  if (
-    !force &&
-    activeContext?.getContextFiles().find((f) => "uri" in id && f === id.uri)
-  )
-    return false;
-  const oldContext = activeContext;
-
-  activeContext = findContext(
-    contextAware,
-    id,
-    undefined,
-    resolvedSettings.preferredContext
-  );
-
-  const context = activeContext;
-  if (oldContext !== context) {
-    if (oldContext) {
-      await clearWorkspaceDiagnostics(oldContext);
+const updateActiveContext = debounceFunc(
+  async (id: ContextId, force = false) => {
+    if ("uri" in id) {
+      activeFileUri = id.uri;
     }
 
-    if (context) {
-      reportWorkspaceDiagnostics(context).then((d) => {
-        d.items
-          .map(
-            (i) =>
-              ({
-                uri: i.uri,
-                version: i.version ?? undefined,
-                diagnostics: i.items,
-              } satisfies PublishDiagnosticsParams)
-          )
-          .forEach((ii) => {
-            connection.sendDiagnostics(ii);
-          });
-      });
+    if (
+      activeContext &&
+      !force &&
+      resolvedSettings.autoChangeContext === false
+    ) {
+      return false;
     }
 
-    const persistantCtxs = getConfiguredContexts(resolvedSettings);
-    const userCtxs = lspConfigurationSettings
-      ? getConfiguredContexts(
-          await resolveSettings(
-            { ...integrationSettings, ...lspConfigurationSettings },
-            await getRootWorkspace()
-          )
-        )
-      : [];
-    console.log("======= Active Context =======");
-    console.log(
-      `(ID: ${context?.id ?? -1})`,
-      `[${context?.ctxNames.join(",")}]`
+    await allStable();
+    if (
+      !force &&
+      activeContext?.getContextFiles().find((f) => "uri" in id && f === id.uri)
+    )
+      return false;
+    const oldContext = activeContext;
+
+    activeContext = findContext(
+      contextAware,
+      id,
+      undefined,
+      resolvedSettings.preferredContext
     );
-    console.log("======== Context List ========");
-    contextAware.forEach((c) => {
-      console.log(
-        `(ID: ${c.id}) [${c.ctxNames.join(",")}]`,
-        `${
-          persistantCtxs.includes(c)
-            ? ` -- Persistant ${
-                userCtxs.includes(c) ? " (user)" : " (3rd Party)"
-              }`
-            : " -- Ad Hoc"
-        }`
-      );
-    });
-    console.log("==============================");
-  }
 
-  return true;
-};
+    const context = activeContext;
+    if (oldContext !== context) {
+      if (oldContext) {
+        await clearWorkspaceDiagnostics(oldContext);
+      }
+
+      if (context) {
+        reportWorkspaceDiagnostics(context).then((d) => {
+          d.items
+            .map(
+              (i) =>
+                ({
+                  uri: i.uri,
+                  version: i.version ?? undefined,
+                  diagnostics: i.items,
+                } satisfies PublishDiagnosticsParams)
+            )
+            .forEach((ii) => {
+              connection.sendDiagnostics(ii);
+            });
+        });
+      }
+
+      const persistantCtxs = getConfiguredContexts(resolvedSettings);
+      const userCtxs = lspConfigurationSettings
+        ? getConfiguredContexts(
+            await resolveSettings(
+              { ...integrationSettings, ...lspConfigurationSettings },
+              await getRootWorkspace()
+            )
+          )
+        : [];
+      console.log("======= Active Context =======");
+      console.log(
+        `(ID: ${context?.id ?? -1})`,
+        `[${context?.ctxNames.join(",")}]`
+      );
+      console.log("======== Context List ========");
+      contextAware.forEach((c) => {
+        console.log(
+          `(ID: ${c.id}) [${c.ctxNames.join(",")}]`,
+          `${
+            persistantCtxs.includes(c)
+              ? ` -- Persistant ${
+                  userCtxs.includes(c) ? " (user)" : " (3rd Party)"
+                }`
+              : " -- Ad Hoc"
+          }`
+        );
+      });
+      console.log("==============================");
+    }
+
+    return true;
+  },
+  50
+);
 
 connection.onDocumentSymbol(async (h) => {
   await allStable();
