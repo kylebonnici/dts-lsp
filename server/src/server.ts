@@ -545,6 +545,11 @@ documents.onDidClose((e) => {
   const uri = fileURLToPath(e.document.uri);
   const context = findContext(contextAware, { uri });
   if (!context) {
+    connection.sendDiagnostics({
+      uri: e.document.uri,
+      version: documents.get(e.document.uri)?.version,
+      diagnostics: [],
+    });
     return;
   }
 
