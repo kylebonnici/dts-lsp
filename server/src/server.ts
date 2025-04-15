@@ -1467,12 +1467,12 @@ connection.onRequest(
     await allStable();
     const resolvedContext = await resolveContextSetting(ctx, resolvedSettings);
     console.log("devicetree/requestContext", resolvedContext);
-    const configuredContexts = getConfiguredContexts(resolvedSettings);
     const id = generateContextId(resolvedContext);
 
-    const persitedCtx = configuredContexts.find((c) => c.id === id);
+    const persitedCtx = contextAware.find((c) => c.id === id);
     if (persitedCtx) {
       persitedCtx.addCtxName(ctx.ctxName);
+      integrationContext.set(id, ctx);
       return {
         ctxNames: persitedCtx.ctxNames.map((c) => c.toString()),
         id: persitedCtx.id,
