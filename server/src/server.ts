@@ -1454,10 +1454,15 @@ connection.onRequest(
   }
 );
 
-connection.onRequest("devicetree/setActive", async (id: string) => {
-  await allStable();
-  return updateActiveContext({ id }, true);
-});
+connection.onRequest(
+  "devicetree/setActive",
+  async (id: string): Promise<boolean> => {
+    await allStable();
+    const result = await updateActiveContext({ id }, true);
+    reportNoContextFiles();
+    return result;
+  }
+);
 
 connection.onRequest(
   "devicetree/setDefaultSettings",
@@ -1518,6 +1523,8 @@ connection.onRequest(
     if (replaceAsActive || !activeContext) {
       await updateActiveContext({ id }, true);
     }
+
+    reportNoContextFiles();
 
     return {
       ctxNames: context.ctxNames.map((c) => c.toString()),
