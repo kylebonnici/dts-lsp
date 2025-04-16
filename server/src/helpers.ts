@@ -106,7 +106,7 @@ export const positionAfter = (
   file: string,
   position: Position
 ): boolean => {
-  if (token.uri !== file) return false;
+  if (!isPathEqual(token.uri, file)) return false;
 
   if (position.line < token.pos.line) return false;
 
@@ -120,7 +120,7 @@ export const positionBefore = (
   file: string,
   position: Position
 ): boolean => {
-  if (token.uri !== file) return false;
+  if (!isPathEqual(token.uri, file)) return false;
 
   if (position.line < token.pos.line) return true;
 
@@ -135,7 +135,7 @@ export const positionInBetween = (
   position: Position
 ): boolean => {
   return !!(
-    ast.uri === file &&
+    isPathEqual(ast.uri, file) &&
     ast.tokenIndexes?.start &&
     ast.tokenIndexes?.end &&
     (ast.tokenIndexes.start.pos.line < position.line ||
@@ -154,7 +154,7 @@ export const positionSameLineAndNotAfter = (
   position: Position
 ): boolean => {
   return !!(
-    ast.uri === file &&
+    isPathEqual(ast.uri, file) &&
     ast.lastToken.value !== ";" &&
     ast.tokenIndexes?.start &&
     ast.tokenIndexes?.end &&
@@ -308,7 +308,7 @@ export async function nodeFinder<T>(
 
   const inScope = (ast: ASTBase) => {
     const position = location.position;
-    if (ast.uri === uri) {
+    if (isPathEqual(ast.uri, uri)) {
       return !!(
         ast.tokenIndexes?.end &&
         (ast.tokenIndexes.end.pos.line < position.line ||
@@ -347,7 +347,7 @@ export const sameLine = (tokenA?: Token, tokenB?: Token) => {
     !!tokenA &&
     !!tokenB &&
     tokenA.pos.line === tokenB.pos.line &&
-    tokenA.uri === tokenB.uri
+    isPathEqual(tokenA.uri, tokenB.uri)
   );
 };
 
@@ -382,20 +382,20 @@ export const findContext = (
     return;
   }
 
-  if (activeContext?.getContextFiles().find((f) => f === id.uri))
+  if (activeContext?.getContextFiles().find((f) => isPathEqual(f, id.uri)))
     return activeContext;
 
   const contextFiles = resolveContextFiles(contextAware);
 
   return contextFiles
     .sort((a) => (a.context.id === preferredContext ? -1 : 0))
-    .find((c) => c.files.some((p) => p === id.uri))?.context;
+    .find((c) => c.files.some((p) => isPathEqual(p, id.uri)))?.context;
 };
 
 export const findContexts = (contextAware: ContextAware[], uri: string) => {
   const contextFiles = resolveContextFiles(contextAware);
   return contextFiles
-    .filter((c) => c.files.some((p) => p === uri))
+    .filter((c) => c.files.some((p) => isPathEqual(p, uri)))
     .map((c) => c.context);
 };
 
@@ -494,21 +494,33 @@ export const fileURLToPath = (fileUrl: string) => {
   return url.fileURLToPath(fileUrl);
 };
 
-export const isPathEqual = (pathA: string, pathB: string) => {
+export const isPathEqual = (
+  pathA: string | undefined,
+  pathB: string | undefined
+) => {
+  if (!pathA || !pathB) return false;
+
+  if (process.platform === "win32") {
+    pathA = normalizePath(pathA);
+    pathB = normalizePath(pathB);
+  }
   return pathA === pathB;
 };
+
+export const normalizePath = (path: string) =>
+  process.platform === "win32" ? path.toLowerCase() : path;
 
 export const generateContextId = (ctx: ResolvedContext) => {
   return createHash("sha256")
     .update(
       [
-        ctx.dtsFile,
-        ...ctx.includePaths,
-        ...ctx.overlays,
+        normalizePath(ctx.dtsFile),
+        ...ctx.includePaths.map(normalizePath),
+        ...ctx.overlays.map(normalizePath),
         ctx.bindingType,
-        ...ctx.zephyrBindings,
-        ...ctx.deviceOrgBindingsMetaSchema,
-        ...ctx.deviceOrgTreeBindings,
+        ...ctx.zephyrBindings.map(normalizePath),
+        ...ctx.deviceOrgBindingsMetaSchema.map(normalizePath),
+        ...ctx.deviceOrgTreeBindings.map(normalizePath),
       ].join(":")
     )
     .digest("hex");

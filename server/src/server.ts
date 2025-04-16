@@ -197,8 +197,9 @@ const contextFullyOverlaps = async (a: ContextAware, b: ContextAware) => {
     .flatMap((p) => p.cPreprocessorParser.dtsIncludes)
     .filter((i) => i.resolvedPath);
 
-  return contextBIncludes.some((i) => i.resolvedPath === a.parser.uri) &&
-    contextAIncludes.length
+  return contextBIncludes.some((i) =>
+    isPathEqual(i.resolvedPath, a.parser.uri)
+  ) && contextAIncludes.length
     ? contextAIncludes.every((f) =>
         contextBIncludes.some(
           (ff) =>
@@ -211,7 +212,7 @@ const contextFullyOverlaps = async (a: ContextAware, b: ContextAware) => {
             ff.lastToken.pos.line === f.lastToken.pos.line
         )
       )
-    : b.getContextFiles().some((ff) => ff === a.parser.uri);
+    : b.getContextFiles().some((ff) => isPathEqual(ff, a.parser.uri));
 };
 
 const cleanUpAdHocContext = async (context: ContextAware) => {
@@ -245,7 +246,7 @@ const cleanUpAdHocContext = async (context: ContextAware) => {
       (o) =>
         sameChart.some((r) => r.context === o.context && r.same) ||
         (o.context !== context &&
-          o.context.parser.uri === context.parser.uri &&
+          isPathEqual(o.context.parser.uri, context.parser.uri) &&
           contextFiles.some((f) => f && o.files.indexOf(f) !== -1))
     )
     .map((o) => o.context);
@@ -795,7 +796,7 @@ const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
 const reportNoContextFiles = () => {
   const activeCtxFiles = activeContext?.getContextFiles();
   Array.from(documents.keys()).forEach((u) => {
-    if (!activeCtxFiles?.includes(fileURLToPath(u))) {
+    if (!activeCtxFiles?.some((p) => isPathEqual(p, fileURLToPath(u)))) {
       connection.sendDiagnostics({
         uri: u,
         version: documents.get(u)?.version,
@@ -950,7 +951,7 @@ async function getDiagnostics(
 
     (await context.getAllParsers()).forEach((parser) => {
       parser.issues
-        .filter((issue) => issue.astElement.uri === uri)
+        .filter((issue) => isPathEqual(issue.astElement.uri, uri))
         .forEach((issue) => {
           const diagnostic: Diagnostic = {
             severity: issue.severity,
@@ -985,7 +986,7 @@ async function getDiagnostics(
 
     const contextIssues = (await context.getContextIssues()) ?? [];
     contextIssues
-      .filter((issue) => issue.astElement.uri === uri)
+      .filter((issue) => isPathEqual(issue.astElement.uri, uri))
       .forEach((issue) => {
         const diagnostic: Diagnostic = {
           severity: issue.severity,
@@ -1010,7 +1011,7 @@ async function getDiagnostics(
 
     const runtime = await context.getRuntime();
     runtime?.typesIssues
-      .filter((issue) => issue.astElement.uri === uri)
+      .filter((issue) => isPathEqual(issue.astElement.uri, uri))
       .forEach((issue) => {
         const diagnostic: Diagnostic = {
           severity: issue.severity,
@@ -1101,7 +1102,9 @@ const updateActiveContext = async (id: ContextId, force = false) => {
 
   if (
     !force &&
-    activeContext?.getContextFiles().find((f) => "uri" in id && f === id.uri)
+    activeContext
+      ?.getContextFiles()
+      .find((f) => "uri" in id && isPathEqual(f, id.uri))
   )
     return false;
 

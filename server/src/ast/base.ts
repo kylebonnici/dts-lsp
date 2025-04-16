@@ -17,6 +17,7 @@
 import {
   getTokenModifiers,
   getTokenTypes,
+  isPathEqual,
   pathToFileURL,
   toRange,
 } from "../helpers";
@@ -89,7 +90,7 @@ export class ASTBase {
         (child) => child.getDocumentSymbols(uri) ?? []
       );
 
-    if (this.uri !== uri) return [];
+    if (!isPathEqual(this.uri, uri)) return [];
 
     const range = toRange(this);
     return [

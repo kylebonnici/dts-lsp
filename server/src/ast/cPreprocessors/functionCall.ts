@@ -17,7 +17,7 @@
 import { DocumentSymbol, SymbolKind } from "vscode-languageserver";
 import { CIdentifier } from "./cIdentifier";
 import { Expression } from "./expression";
-import { toRange } from "../../helpers";
+import { isPathEqual, toRange } from "../../helpers";
 import { MacroRegistryItem, TokenIndexes } from "../../types";
 
 export class CMacroCallParam extends Expression {
@@ -50,7 +50,7 @@ export class CMacroCall extends Expression {
   }
 
   getDocumentSymbols(uri: string): DocumentSymbol[] {
-    if (this.uri !== uri) {
+    if (!isPathEqual(this.uri, uri)) {
       return [];
     }
     return [

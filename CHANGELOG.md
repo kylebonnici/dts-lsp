@@ -10,7 +10,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - VSCode extention API support.
 - onHover over macro now returns both decimal and hex value for the computed result
-- VS Code Integration API
 - lockRenameEdits to context settings
 
 ### Changed
@@ -25,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - No document symbols for overlays files
 - Exception when parsing zephyr binding with no include property
 - Parsing issue when a node path is `prop = &{}`
+- Issue with `setting` path case sesitivity on windows
 
 # 0.2.5 - 2025-04-08
 

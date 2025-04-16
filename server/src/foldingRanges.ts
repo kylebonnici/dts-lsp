@@ -19,6 +19,7 @@ import { DtcBaseNode } from "./ast/dtc/node";
 import { Parser } from "./parser";
 import { ASTBase } from "./ast/base";
 import { IfDefineBlock, IfElIfBlock } from "./ast/cPreprocessors/ifDefine";
+import { isPathEqual } from "./helpers";
 
 const nodeToRange = (dtcNode: DtcBaseNode): FoldingRange[] => {
   if (!dtcNode.openScope || !dtcNode.closeScope?.prevToken) {
@@ -95,6 +96,6 @@ const toFoldingRange = (ast: ASTBase): FoldingRange[] => {
 export function getFoldingRanges(uri: string, parser: Parser): FoldingRange[] {
   return parser.allAstItems
     .flatMap((ast) => [ast, ...ast.allDescendants])
-    .filter((n) => n.uri === uri)
+    .filter((n) => isPathEqual(n.uri, uri))
     .flatMap(toFoldingRange);
 }

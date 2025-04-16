@@ -36,6 +36,7 @@ import { Include } from "./ast/cPreprocessors/include";
 import {
   fileURLToPath,
   getDeepestAstNodeInBetween,
+  isPathEqual,
   positionInBetween,
   setIndentString,
 } from "./helpers";
@@ -62,7 +63,7 @@ export const countParent = (
   node?: DtcBaseNode,
   count = 0
 ): number => {
-  if (!node || node.uri !== uri) return count;
+  if (!node || !isPathEqual(node.uri, uri)) return count;
 
   return countParent(uri, getClosestAstNode(node.parentNode), count + 1);
 };
@@ -222,7 +223,7 @@ const formatDtcNode = async (
   indentString: string,
   computeLevel: (astNode: ASTBase) => Promise<number | undefined>
 ): Promise<TextEdit[]> => {
-  if (node.uri !== uri) return [];
+  if (!isPathEqual(node.uri, uri)) return [];
 
   const result: TextEdit[] = [];
 
@@ -561,7 +562,7 @@ const formatDtcInclude = (
   // we should not format this case
   if (level === undefined) return [];
 
-  if (includeItem.uri !== uri) return [];
+  if (!isPathEqual(includeItem.uri, uri)) return [];
 
   const result: TextEdit[] = [];
 

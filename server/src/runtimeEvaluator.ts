@@ -33,6 +33,7 @@ import { Runtime } from "./context/runtime";
 import {
   generateContextId,
   genIssue,
+  isPathEqual,
   pathToFileURL,
   positionInBetween,
   toRange,
@@ -164,12 +165,16 @@ export class ContextAware {
   }
 
   isInContext(uri: string): boolean {
-    return this.getContextFiles().some((file) => file === uri);
+    return this.getContextFiles().some((file) => isPathEqual(file, uri));
   }
 
   getUriParser(uri: string) {
-    let parser = this.overlayParsers.find((p) => p.getFiles().includes(uri));
-    parser ??= this.parser.getFiles().includes(uri) ? this.parser : undefined;
+    let parser = this.overlayParsers.find((p) =>
+      p.getFiles().some((p) => isPathEqual(p, uri))
+    );
+    parser ??= this.parser.getFiles().some((p) => isPathEqual(p, uri))
+      ? this.parser
+      : undefined;
     return parser;
   }
 
@@ -191,7 +196,7 @@ export class ContextAware {
       (runtime.rootNode.allBindingsProperties
         .filter(
           (p) =>
-            p.ast.uri === file &&
+            isPathEqual(p.ast.uri, file) &&
             (!position || positionInBetween(p.ast, file, position))
         )
         .flatMap((p) =>
@@ -216,7 +221,7 @@ export class ContextAware {
       ...((this.parser.cPreprocessorParser.dtsIncludes
         .filter(
           (include) =>
-            include.uri === file &&
+            isPathEqual(include.uri, file) &&
             (!position || positionInBetween(include, file, position))
         )
         .map((include) => {

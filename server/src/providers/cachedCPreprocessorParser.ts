@@ -16,6 +16,7 @@
 
 import { MacroRegistryItem } from "../types";
 import { CPreprocessorParser } from "../cPreprocessorParser";
+import { normalizePath } from "../helpers";
 
 let cachedCPreprocessorParserProvider:
   | CachedCPreprocessorParserProvider
@@ -31,6 +32,7 @@ class CachedCPreprocessorParserProvider {
     macros: Map<string, MacroRegistryItem>,
     parent: string
   ) {
+    uri = normalizePath(uri);
     const key = `${Array.from(macros)
       .map((m) => m[1].macro.toString())
       .join("::")}`;
@@ -53,6 +55,7 @@ class CachedCPreprocessorParserProvider {
   }
 
   reset(uri: string) {
+    uri = normalizePath(uri);
     const headers = this.headerFiles.get(uri);
     if (headers)
       Array.from(headers).forEach((header) => {
