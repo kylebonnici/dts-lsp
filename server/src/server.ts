@@ -126,6 +126,8 @@ const deleteContext = async (context: ContextAware) => {
 
   contextAware.splice(index, 1);
 
+  reportContexList();
+
   if (context === activeContext) {
     activeContext = undefined;
     if (contextAware.length) {
@@ -433,6 +435,9 @@ const createContext = async (context: ResolvedContext) => {
   watchContextFiles(newContext);
 
   newContext.stable();
+
+  reportContexList();
+
   await cleanUpAdHocContext(newContext);
   return newContext;
 };
@@ -1053,6 +1058,34 @@ async function getDiagnostics(
   }
 }
 
+const reportContexList = async () => {
+  const forLogs = await Promise.all(
+    contextAware.map(async (ctx) => {
+      const adHoc = await isAdHocContext(ctx);
+      const userCtx = !adHoc && (await isUserSettingsContext(ctx));
+      const intergatorCtx = !adHoc && !userCtx;
+      return {
+        ctx,
+        adHoc,
+        userCtx,
+        intergatorCtx,
+      };
+    })
+  );
+
+  console.log("======== Context List ========");
+  forLogs.forEach((c) => {
+    console.log(
+      `(ID: ${c.ctx.id}) [${c.ctx.ctxNames.join(",")}]`,
+      c.adHoc ? "[Ad Hoc]" : "",
+      c.userCtx ? "[user]" : "",
+      c.intergatorCtx ? "[3rd Party]" : "",
+      activeContext === c.ctx ? " [ACTIVE]" : ""
+    );
+  });
+  console.log("==============================");
+};
+
 const updateActiveContext = async (id: ContextId, force = false) => {
   if ("uri" in id) {
     activeFileUri = id.uri;
@@ -1082,18 +1115,6 @@ const updateActiveContext = async (id: ContextId, force = false) => {
       await clearWorkspaceDiagnostics(oldContext);
     }
 
-    if (hasDiagnosticRefreshCapability) {
-      connection.languages.diagnostics.refresh();
-    }
-
-    if (hasFoldingRangesRefreshCapability) {
-      connection.languages.foldingRange.refresh();
-    }
-
-    if (hasSemanticTokensRefreshCapability) {
-      connection.languages.semanticTokens.refresh();
-    }
-
     if (context) {
       reportWorkspaceDiagnostics(context).then((d) => {
         d.items
@@ -1109,33 +1130,21 @@ const updateActiveContext = async (id: ContextId, force = false) => {
             connection.sendDiagnostics(ii);
           });
       });
+
+      await reportContexList();
     }
+  }
 
-    const forLogs = await Promise.all(
-      contextAware.map(async (ctx) => {
-        const adHoc = await isAdHocContext(ctx);
-        const userCtx = !adHoc && (await isUserSettingsContext(ctx));
-        const intergatorCtx = !adHoc && !userCtx;
-        return {
-          ctx,
-          adHoc,
-          userCtx,
-          intergatorCtx,
-        };
-      })
-    );
+  if (hasDiagnosticRefreshCapability) {
+    connection.languages.diagnostics.refresh();
+  }
 
-    console.log("======== Context List ========");
-    forLogs.forEach((c) => {
-      console.log(
-        `(ID: ${c.ctx.id}) [${c.ctx.ctxNames.join(",")}]`,
-        c.adHoc ? "[Ad Hoc]" : "",
-        c.userCtx ? "[user]" : "",
-        c.intergatorCtx ? "[3rd Party]" : "",
-        activeContext === c.ctx ? " [ACTIVE]" : ""
-      );
-    });
-    console.log("==============================");
+  if (hasFoldingRangesRefreshCapability) {
+    connection.languages.foldingRange.refresh();
+  }
+
+  if (hasSemanticTokensRefreshCapability) {
+    connection.languages.semanticTokens.refresh();
   }
 
   reportNoContextFiles();
