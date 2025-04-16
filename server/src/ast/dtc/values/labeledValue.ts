@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { MacroRegistryItem } from "src/types";
+import type { MacroRegistryItem } from "../../../types";
 import { ASTBase } from "../../base";
 import { LabelAssign } from "../label";
 

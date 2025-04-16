@@ -18,7 +18,7 @@ import { ASTBase } from "../../base";
 import { AllValueType } from "../types";
 import { LabelAssign } from "../label";
 import { DtsBitsNode } from "../bitsNode";
-import { MacroRegistryItem } from "src/types";
+import type { MacroRegistryItem } from "../../../types";
 
 export class PropertyValue extends ASTBase {
   constructor(
