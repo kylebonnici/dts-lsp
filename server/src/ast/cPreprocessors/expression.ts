@@ -18,6 +18,7 @@ import { ASTBase } from "../base";
 import { Operator } from "./operator";
 import { MacroRegistryItem } from "../../types";
 import { expandMacros } from "../../helpers";
+import { NumberValue } from "../dtc/values/number";
 
 function sanitizeCExpression(expr: string) {
   return expr
@@ -49,6 +50,20 @@ export abstract class Expression extends ASTBase {
 
   isTrue(macros: Map<string, MacroRegistryItem>): boolean {
     return evalExp(`!!(${this.resolve(macros)})`);
+  }
+
+  toPrettyString(macros: Map<string, MacroRegistryItem>) {
+    const value = this.evaluate(macros);
+
+    if (this instanceof NumberValue) {
+      return `${value.toString()} /* ${
+        typeof value === "number" ? `0x${value.toString(16)}` : ""
+      } */`;
+    }
+
+    return `${value.toString()} /* ${this.toString()}${
+      typeof value === "number" ? ` = 0x${value.toString(16)}` : ""
+    } */`;
   }
 }
 

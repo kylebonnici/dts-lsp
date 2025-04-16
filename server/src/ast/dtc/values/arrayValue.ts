@@ -21,7 +21,7 @@ import { NodePathRef } from "./nodePath";
 import { NumberValue } from "./number";
 import { LabeledValue } from "./labeledValue";
 import { Expression } from "../../cPreprocessors/expression";
-import { Token } from "../../../types";
+import { MacroRegistryItem, Token } from "../../../types";
 
 export class ArrayValues extends ASTBase {
   public openBracket?: Token;
@@ -42,6 +42,10 @@ export class ArrayValues extends ASTBase {
 
   toString() {
     return `<${this.values.map((v) => v.toString()).join(" ")}>`;
+  }
+
+  toPrettyString(macros: Map<string, MacroRegistryItem>) {
+    return `<${this.values.map((v) => v.toPrettyString(macros)).join(" ")}>`;
   }
 
   toJson() {

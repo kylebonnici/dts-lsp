@@ -20,7 +20,12 @@ import {
   DtcRootNode,
   NodeName,
 } from "../ast/dtc/node";
-import { ContextIssues, Issue, SearchableResult } from "../types";
+import {
+  ContextIssues,
+  Issue,
+  MacroRegistryItem,
+  SearchableResult,
+} from "../types";
 import { Property } from "./property";
 import { DeleteProperty } from "../ast/dtc/deleteProperty";
 import { DeleteNode } from "../ast/dtc/deleteNode";
@@ -510,11 +515,11 @@ export class Node {
     return this.name;
   }
 
-  toString() {
-    return `${this.labels.map((l) => l.toString()).join(" ")} ${
-      this.fullName
-    } {${this.property.length ? "\n\t" : ""}${this.property
-      .map((p) => p.toString())
+  toTooltipString(macros: Map<string, MacroRegistryItem>) {
+    return `${this.labels.map((l) => l.toString()).join(" ")}${
+      this.labels.length ? " " : ""
+    }${this.fullName} {${this.property.length ? "\n\t" : ""}${this.property
+      .map((p) => p.toPrettyString(macros))
       .join("\n\t")}${
       this.nodes.length
         ? `\n\t${this.nodes
@@ -525,13 +530,13 @@ export class Node {
 };`;
   }
 
-  toMarkupContent(): MarkupContent {
+  toMarkupContent(macros: Map<string, MacroRegistryItem>): MarkupContent {
     return {
       kind: MarkupKind.Markdown,
       value: [
         "### Current State",
         "```devicetree",
-        this.toString(),
+        this.toTooltipString(macros),
         "```",
         ...(this.nodeType?.maintainers
           ? ["### Maintainers", ...(this.nodeType?.maintainers ?? [])]
@@ -549,5 +554,22 @@ export class Node {
           : []),
       ].join("\n"),
     };
+  }
+
+  toFullString(macros: Map<string, MacroRegistryItem>, level = 1): string {
+    return `${this.labels.map((l) => l.toString()).join(" ")}${
+      this.labels.length ? " " : ""
+    }${this.fullName} {${
+      this.property.length ? `\n${"\t".repeat(level)}` : ""
+    }${this.property
+      .map((p) => p.toPrettyString(macros))
+      .join(`\n${"\t".repeat(level)}`)}${
+      this.nodes.length
+        ? `\n${"\t".repeat(level)}${this.nodes
+            .map((n) => n.toFullString(macros, level + 1))
+            .join(`\n${"\t".repeat(level)}`)}`
+        : ""
+    } 
+${"\t".repeat(level - 1)}};`;
   }
 }

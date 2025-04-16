@@ -26,6 +26,10 @@
       {
         "command": "devicetree.context.set.active",
         "title": "Devicetree: Set active context"
+      },
+      {
+        "command": "devicetree.context.output",
+        "title": "Devicetree: Generate context output"
       }
     ],
     "languages": [

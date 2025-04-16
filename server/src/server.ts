@@ -1519,3 +1519,15 @@ connection.onRequest(
     await loadSettings(); // TODO loadSettings set active force if no active remain
   }
 );
+
+connection.onRequest(
+  "devicetree/compiledDtsOutput",
+  async (id: string): Promise<string | undefined> => {
+    await allStable();
+    if (!id) {
+      return;
+    }
+    const ctx = findContext(contextAware, { id });
+    return ctx?.toFullString();
+  }
+);

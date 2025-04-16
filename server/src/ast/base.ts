@@ -23,6 +23,7 @@ import {
 } from "../helpers";
 import type {
   BuildSemanticTokensPush,
+  MacroRegistryItem,
   SemanticTokenModifiers,
   SemanticTokenType,
   Token,
@@ -174,5 +175,9 @@ export class ASTBase {
       this.children.push(child);
     }
     this.allDescendantsCache = undefined;
+  }
+
+  toPrettyString(macros: Map<string, MacroRegistryItem>) {
+    return this.toString();
   }
 }

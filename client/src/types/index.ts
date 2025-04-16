@@ -28,4 +28,5 @@ export interface IDeviceTreeAPI {
   setActiveContext(id: string): Promise<boolean>;
   requestContext(ctx: Context): Promise<ContextListItem>;
   removeContext(id: string, name: string): Promise<void>;
+  compiledOutput(id?: string): Promise<string | undefined>;
 }
