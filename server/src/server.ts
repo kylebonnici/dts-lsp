@@ -131,7 +131,7 @@ const deleteContext = async (context: ContextAware) => {
   } satisfies ContextListItem);
   contextAware.splice(index, 1);
 
-  reportContexList();
+  await reportContexList();
 
   if (context === activeContext) {
     activeContext = undefined;
@@ -359,6 +359,17 @@ connection.onInitialized(() => {
   }
 });
 
+const getResolvedAdhocContextSettings = async () => {
+  let unresolvedSettings = getUnresolvedAdhocContextSettings();
+
+  unresolvedSettings = <Settings>{
+    ...defaultSettings,
+    ...unresolvedSettings,
+  };
+
+  return resolveSettings(unresolvedSettings, await getRootWorkspace());
+};
+
 const getResolvedPersistantContextSettings = async () => {
   let unresolvedSettings = getUnresolvedPersistantContextSettings();
 
@@ -442,7 +453,7 @@ const createContext = async (context: ResolvedContext) => {
   contextAware.push(newContext);
   watchContextFiles(newContext);
 
-  newContext.stable();
+  await newContext.stable();
 
   connection.sendNotification("devicetree/contextCreated", {
     ctxNames: newContext.ctxNames.map((c) => c.toString()),
@@ -451,13 +462,14 @@ const createContext = async (context: ResolvedContext) => {
     settings: newContext.settings,
   } satisfies ContextListItem);
 
-  reportContexList();
-
   await cleanUpAdHocContext(newContext);
+  await reportContexList();
   return newContext;
 };
 
 const loadSettings = async () => {
+  const resolvedPersistantSettings =
+    await getResolvedPersistantContextSettings();
   let resolvedFullSettings = await getResolvedAllContextSettings();
   if (!resolvedFullSettings.allowAdhocContexts) {
     resolvedFullSettings = await getResolvedPersistantContextSettings();
@@ -467,13 +479,23 @@ const loadSettings = async () => {
   const toDelete = contextAware.filter((c) => !allActiveIds.includes(c.id));
   toDelete.forEach(deleteContext);
 
-  await resolvedFullSettings.contexts?.reduce((p, c) => {
+  await resolvedPersistantSettings.contexts?.reduce((p, c) => {
     return p.then(async () => {
       await (await createContext(c)).stable();
     });
   }, Promise.resolve());
 
-  await Promise.all((await getAdhocContexts()).map(cleanUpAdHocContext));
+  if (resolvedFullSettings.allowAdhocContexts) {
+    const resolvedAdHocSettings = await getResolvedAdhocContextSettings();
+    await resolvedAdHocSettings.contexts?.reduce((p, c) => {
+      return p.then(async () => {
+        if (findContext(contextAware, { uri: c.dtsFile })) {
+          return; // Skip creating this adhoc context thier is a peristance context covering this URI
+        }
+        await (await createContext(c)).stable();
+      });
+    }, Promise.resolve());
+  }
 
   if (activeFileUri) {
     await updateActiveContext({ uri: activeFileUri });
@@ -485,8 +507,6 @@ const loadSettings = async () => {
     );
     await updateActiveContext({ id: contextAware[0].id });
   }
-
-  reportNoContextFiles();
 };
 
 let lspConfigurationSettings: Settings | undefined;
@@ -505,6 +525,18 @@ const getUnresolvedAllContextSettings = (): Settings | undefined => {
       ...Array.from(integrationContext.values()),
       ...Array.from(adHocContextSettings.values()), // last so if ctx exists we can reuse
     ],
+  };
+
+  return merged;
+};
+
+const getUnresolvedAdhocContextSettings = (): Settings | undefined => {
+  if (!integrationSettings && !lspConfigurationSettings) return;
+
+  const merged = <Settings>{
+    ...integrationSettings,
+    ...lspConfigurationSettings,
+    contexts: [...Array.from(adHocContextSettings.values())],
   };
 
   return merged;
