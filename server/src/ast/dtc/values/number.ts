@@ -16,7 +16,7 @@
 
 import { SymbolKind } from "vscode-languageserver";
 import { Expression } from "../../cPreprocessors/expression";
-import { TokenIndexes } from "../../../types";
+import { MacroRegistryItem, TokenIndexes } from "../../../types";
 
 export class NumberValue extends Expression {
   constructor(public readonly value: number, tokenIndexes: TokenIndexes) {
@@ -35,5 +35,13 @@ export class NumberValue extends Expression {
 
   toJson() {
     return this.value;
+  }
+
+  toPrettyString(macros: Map<string, MacroRegistryItem>): string {
+    const value = this.evaluate(macros);
+
+    return `${value.toString()} /* ${
+      typeof value === "number" ? `0x${value.toString(16)}` : ""
+    } */`;
   }
 }

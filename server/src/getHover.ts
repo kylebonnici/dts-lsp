@@ -84,10 +84,19 @@ async function getMacros(
   }
 }
 
-function getNode(result: SearchableResult | undefined): Hover | undefined {
+async function getNode(
+  result: SearchableResult | undefined
+): Promise<Hover | undefined> {
+  if (!result) {
+    return;
+  }
+
+  const lastParser = (await result.runtime.context.getAllParsers()).at(-1)!;
   if (result?.item instanceof Node) {
     return {
-      contents: result.item.toMarkupContent(),
+      contents: result.item.toMarkupContent(
+        lastParser.cPreprocessorParser.macros
+      ),
       range: toRange(result.ast),
     };
   }
@@ -96,7 +105,7 @@ function getNode(result: SearchableResult | undefined): Hover | undefined {
     const node = result.ast.linksTo;
     if (node) {
       return {
-        contents: node.toMarkupContent(),
+        contents: node.toMarkupContent(lastParser.cPreprocessorParser.macros),
         range: toRange(result.ast),
       };
     }
@@ -106,7 +115,7 @@ function getNode(result: SearchableResult | undefined): Hover | undefined {
     const node = result.ast.parentNode.linksTo;
     if (node) {
       return {
-        contents: node.toMarkupContent(),
+        contents: node.toMarkupContent(lastParser.cPreprocessorParser.macros),
         range: toRange(result.ast),
       };
     }
@@ -120,7 +129,7 @@ function getNode(result: SearchableResult | undefined): Hover | undefined {
     const node = result.runtime.rootNode.getChild(result.ast.value.split("/"));
     if (node) {
       return {
-        contents: node.toMarkupContent(),
+        contents: node.toMarkupContent(lastParser.cPreprocessorParser.macros),
         range: toRange(result.ast),
       };
     }
@@ -152,7 +161,7 @@ export function getHover(
     hoverParams,
     context,
     async (locationMeta) => [
-      getNode(locationMeta) ||
+      (await getNode(locationMeta)) ||
         getPropertyName(locationMeta) ||
         (await getMacros(locationMeta)),
     ]

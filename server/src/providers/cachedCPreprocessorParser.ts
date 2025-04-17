@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { MacroRegistryItem } from "../types";
+import type { MacroRegistryItem } from "../types";
 import { CPreprocessorParser } from "../cPreprocessorParser";
 import { normalizePath } from "../helpers";
 

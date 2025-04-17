@@ -54,4 +54,11 @@ export class API implements IDeviceTreeAPI {
       name,
     }) as Promise<void>;
   }
+
+  compiledOutput(id: string) {
+    return this.client.sendRequest(
+      "devicetree/compiledDtsOutput",
+      id
+    ) as Promise<string | undefined>;
+  }
 }
