@@ -565,6 +565,23 @@ export class Node {
       this.linkedRefLabels.length === 0 &&
       this.linkedNodeNamePaths.length === 0;
 
+    if (isOmmited) {
+      return `/* /omit-if-no-ref/ ${this.labels
+        .map((l) => l.toString())
+        .join(" ")}${this.labels.length ? " " : ""}${this.fullName} {${
+        this.property.length ? `\n${"\t".repeat(level)}` : ""
+      }${this.property
+        .map((p) => p.toString())
+        .join(`\n${"\t".repeat(level)}`)}${
+        this.nodes.length
+          ? `\n${"\t".repeat(level)}${this.nodes
+              .map((n) => `${n.fullName}{ ... };`)
+              .join(`\n${"\t".repeat(level)}`)}`
+          : ""
+      } 
+${"\t".repeat(level - 1)}}; */`;
+    }
+
     return `${
       isOmmited
         ? "/* /omit-if-no-ref/ "
