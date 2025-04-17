@@ -557,7 +557,21 @@ export class Node {
   }
 
   toFullString(macros: Map<string, MacroRegistryItem>, level = 1): string {
-    return `${this.labels.map((l) => l.toString()).join(" ")}${
+    const hasOmitIfNoRef = this.definitions.some(
+      (d) => d instanceof DtcChildNode && d.omitIfNoRef
+    );
+    const isOmmited =
+      hasOmitIfNoRef &&
+      this.linkedRefLabels.length === 0 &&
+      this.linkedNodeNamePaths.length === 0;
+
+    return `${
+      isOmmited
+        ? "/* /omit-if-no-ref/ "
+        : hasOmitIfNoRef
+        ? "/* /omit-if-no-ref/ */\n"
+        : ""
+    }${this.labels.map((l) => l.toString()).join(" ")}${
       this.labels.length ? " " : ""
     }${this.fullName} {${
       this.property.length ? `\n${"\t".repeat(level)}` : ""
@@ -570,6 +584,6 @@ export class Node {
             .join(`\n${"\t".repeat(level)}`)}`
         : ""
     } 
-${"\t".repeat(level - 1)}};`;
+${"\t".repeat(level - 1)}}; ${isOmmited ? " */" : ""}`;
   }
 }
