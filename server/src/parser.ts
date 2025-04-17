@@ -1542,10 +1542,12 @@ export class Parser extends BaseParser {
       firstToken ? new ASTBase(createTokenIndex(firstToken)) : undefined
     );
 
-    if (first && !firstToken) {
+    if (first && !firstToken && nodePath.children.length === 0) {
       this.mergeStack();
       return undefined;
     }
+
+    this.processNodePath(false, nodePath);
 
     this.mergeStack();
     return nodePath;
