@@ -85,7 +85,6 @@ import type {
 import {
   defaultSettings,
   resolveContextSetting,
-  ResolvedSettings,
   resolveSettings,
 } from "./settings";
 import { basename } from "path";
@@ -124,6 +123,12 @@ const deleteContext = async (context: ContextAware) => {
     `(ID: ${context.id}) cleaning Context for [${context.ctxNames.join(",")}]`
   );
 
+  connection.sendNotification("devicetree/contextDeleted", {
+    ctxNames: context.ctxNames.map((c) => c.toString()),
+    id: context.id,
+    ...(await context.getFileTree()),
+    settings: context.settings,
+  } satisfies ContextListItem);
   contextAware.splice(index, 1);
 
   reportContexList();
@@ -413,8 +418,10 @@ const createContext = async (context: ResolvedContext) => {
     return existingCtx;
   }
 
+  const id = generateContextId(context);
+  console.log(`(ID: ${id}) New context [${context.ctxName}]`);
   console.log(
-    `(ID: ${generateContextId(context)}) New context [${context.ctxName}]`
+    `(ID: ${id}) Settings: ${JSON.stringify(context, undefined, "\t")}`
   );
 
   const newContext = new ContextAware(
@@ -436,6 +443,13 @@ const createContext = async (context: ResolvedContext) => {
   watchContextFiles(newContext);
 
   newContext.stable();
+
+  connection.sendNotification("devicetree/contextCreated", {
+    ctxNames: newContext.ctxNames.map((c) => c.toString()),
+    id: newContext.id,
+    ...(await newContext.getFileTree()),
+    settings: newContext.settings,
+  } satisfies ContextListItem);
 
   reportContexList();
 
@@ -536,6 +550,17 @@ function deleteTopLevelNulls<T extends Record<string, any>>(
   return result;
 }
 
+const onSettingsChanged = async () => {
+  const newSettings = await getResolvedAllContextSettings();
+  console.log(
+    "Resolved settings",
+    JSON.stringify(newSettings, undefined, "\t")
+  );
+  connection.sendNotification("devicetree/settingsChanged", newSettings);
+
+  await loadSettings();
+};
+
 connection.onDidChangeConfiguration(async (change) => {
   if (!change?.settings?.devicetree) {
     return;
@@ -547,12 +572,7 @@ connection.onDidChangeConfiguration(async (change) => {
 
   console.log("Configuration changed", JSON.stringify(change, undefined, "\t"));
 
-  console.log(
-    "Resolved settings",
-    JSON.stringify(await getResolvedAllContextSettings(), undefined, "\t")
-  );
-
-  await loadSettings();
+  await onSettingsChanged();
 });
 
 const syntaxIssueToMessage = (issue: SyntaxIssue) => {
@@ -1118,6 +1138,18 @@ const updateActiveContext = async (id: ContextId, force = false) => {
       await clearWorkspaceDiagnostics(oldContext);
     }
 
+    connection.sendNotification(
+      "devicetree/newActiveContext",
+      context
+        ? ({
+            ctxNames: context.ctxNames.map((c) => c.toString()),
+            id: context.id,
+            ...(await context.getFileTree()),
+            settings: context.settings,
+          } satisfies ContextListItem)
+        : undefined
+    );
+
     if (context) {
       reportWorkspaceDiagnostics(context).then((d) => {
         d.items
@@ -1441,6 +1473,7 @@ connection.onRequest(
             ctxNames: c.ctxNames.map((n) => n.toString()),
             id: c.id,
             ...(await c.getFileTree()),
+            settings: c.settings,
           } satisfies ContextListItem)
       )
     );
@@ -1462,11 +1495,7 @@ connection.onRequest(
     await allStable();
     integrationSettings = setting;
     console.log("Integration Settings", setting);
-    console.log(
-      "Resolved settings",
-      JSON.stringify(await getResolvedAllContextSettings(), undefined, "\t")
-    );
-    await loadSettings();
+    await onSettingsChanged();
   }
 );
 
@@ -1481,7 +1510,7 @@ connection.onRequest(
     const id = generateContextId(resolvedContext);
     integrationContext.set(`${id}:${ctx.ctxName}`, ctx);
 
-    await loadSettings(); // TODO ensure that loadSettings returns when all ctx are stable
+    await loadSettings();
 
     const context = contextAware.find((c) => c.id === id);
     if (!context) {
@@ -1492,6 +1521,7 @@ connection.onRequest(
       ctxNames: context.ctxNames.map((c) => c.toString()),
       id: id,
       ...(await context.getFileTree()),
+      settings: context.settings,
     };
   }
 );

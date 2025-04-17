@@ -15,7 +15,13 @@
  */
 
 import path, { basename, resolve } from "path";
-import { Context, PartialBy, ResolvedContext, Settings } from "./types/index";
+import {
+  Context,
+  PartialBy,
+  ResolvedContext,
+  ResolvedSettings,
+  Settings,
+} from "./types/index";
 import { existsSync } from "fs";
 
 const resolvePathVariable = async (
@@ -27,14 +33,6 @@ const resolvePathVariable = async (
   }
   return path;
 };
-
-// The global settings, used when the `workspace/configuration` request is not supported by the client.
-// Please note that this is not the case when using this server with the client provided in this example
-// but could happen with other clients.
-export type ResolvedSettings = PartialBy<
-  Required<Settings>,
-  "cwd" | "preferredContext" | "defaultBindingType"
->;
 
 export const defaultSettings: ResolvedSettings = {
   defaultBindingType: "Zephyr",

@@ -18,12 +18,41 @@ import type {
   Context,
   ContextListItem,
   IntegrationSettings,
+  ResolvedSettings,
 } from "devicetree-language-server-types";
-import { LanguageClient } from "vscode-languageclient/node";
+import { LanguageClient, NotificationType } from "vscode-languageclient/node";
 import { IDeviceTreeAPI as IDeviceTreeAPI } from "./types";
+import { EventEmitter } from "events";
+
+const contextDeletedNotification = new NotificationType<ContextListItem>(
+  "devicetree/contextDeleted"
+);
+const contextCreatedNotification = new NotificationType<ContextListItem>(
+  "devicetree/contextCreated"
+);
+const newActiveContextNotification = new NotificationType<
+  ContextListItem | undefined
+>("devicetree/newActiveContext");
+const settingsChangedNotification = new NotificationType<ContextListItem>(
+  "devicetree/settingsChanged"
+);
 
 export class API implements IDeviceTreeAPI {
-  constructor(private readonly client: LanguageClient) {}
+  constructor(private readonly client: LanguageClient) {
+    this.client.onNotification(contextDeletedNotification, (ctx) =>
+      this.event.emit("onContextDeleted", ctx)
+    );
+    this.client.onNotification(contextCreatedNotification, (ctx) =>
+      this.event.emit("onContextCreated", ctx)
+    );
+    this.client.onNotification(newActiveContextNotification, (ctx) =>
+      this.event.emit("onActiveContextChange", ctx)
+    );
+    this.client.onNotification(settingsChangedNotification, (ctx) =>
+      this.event.emit("onSettingsChanged", ctx)
+    );
+  }
+  private event = new EventEmitter();
   version = "0.0.0";
 
   setDefaultSettings(settings: IntegrationSettings): Promise<void> {
@@ -60,5 +89,35 @@ export class API implements IDeviceTreeAPI {
       "devicetree/compiledDtsOutput",
       id
     ) as Promise<string | undefined>;
+  }
+
+  onActiveContextChange(listener: (ctx: ContextListItem | undefined) => void) {
+    this.event.addListener("onActiveContextChange", listener);
+    return () => {
+      this.event.removeListener("onActiveContextChange", listener);
+    };
+  }
+
+  onContextDeleted(listener: (ctx: ContextListItem) => void): () => void {
+    this.event.addListener("onContextDeleted", listener);
+    return () => {
+      this.event.removeListener("onContextDeleted", listener);
+    };
+  }
+
+  onContextCreated(listener: (ctx: ContextListItem) => void): () => void {
+    this.event.addListener("onContextCreated", listener);
+    return () => {
+      this.event.removeListener("onContextCreated", listener);
+    };
+  }
+
+  onSettingsChanged(
+    listener: (setiings: ResolvedSettings) => void
+  ): () => void {
+    this.event.addListener("onSettingsChanged", listener);
+    return () => {
+      this.event.removeListener("onSettingsChanged", listener);
+    };
   }
 }

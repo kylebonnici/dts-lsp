@@ -18,6 +18,7 @@ import type {
   Context,
   ContextListItem,
   IntegrationSettings,
+  ResolvedSettings,
 } from "devicetree-language-server-types";
 
 export interface IDeviceTreeAPI {
@@ -29,4 +30,10 @@ export interface IDeviceTreeAPI {
   requestContext(ctx: Context): Promise<ContextListItem>;
   removeContext(id: string, name: string): Promise<void>;
   compiledOutput(id?: string): Promise<string | undefined>;
+  onActiveContextChange(
+    listener: (ctx: ContextListItem | undefined) => void
+  ): () => void;
+  onContextDeleted(listener: (ctx: ContextListItem) => void): () => void;
+  onContextCreated(listener: (ctx: ContextListItem) => void): () => void;
+  onSettingsChanged(listener: (setiings: ResolvedSettings) => void): () => void;
 }

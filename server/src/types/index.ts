@@ -41,6 +41,11 @@ export type ResolvedContext = PartialBy<
   "cwd" | "bindingType"
 >;
 
+export type ResolvedSettings = PartialBy<
+  Required<Settings>,
+  "cwd" | "preferredContext" | "defaultBindingType"
+>;
+
 export interface Settings {
   cwd?: string;
   defaultBindingType?: BindingType;
@@ -60,6 +65,7 @@ export interface ContextListItem {
   id: string;
   mainDtsPath: File;
   overlays: File[];
+  settings: Settings;
 }
 
 export interface File {
