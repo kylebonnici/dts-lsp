@@ -30,9 +30,9 @@ export class LabeledValue<T extends ASTBase> extends ASTBase {
     this.addChild(this.value);
   }
 
-  toString() {
+  toString(radix?: number) {
     return `${this.labels.map((l) => l.toString()).join(" ")}${
-      this.value?.toString() ?? "NULL"
+      this.value?.toString(radix) ?? "NULL"
     }`;
   }
 

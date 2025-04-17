@@ -29,8 +29,8 @@ export class NumberValue extends Expression {
     this.semanticTokenModifiers = "declaration";
   }
 
-  toString() {
-    return this.value.toString();
+  toString(radix?: number) {
+    return this.value.toString(radix);
   }
 
   toJson() {

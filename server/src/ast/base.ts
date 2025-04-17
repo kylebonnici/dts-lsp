@@ -180,4 +180,8 @@ export class ASTBase {
   toPrettyString(macros: Map<string, MacroRegistryItem>) {
     return this.toString();
   }
+
+  toString(radix?: number) {
+    return "TODO";
+  }
 }
