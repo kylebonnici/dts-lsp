@@ -569,7 +569,7 @@ export class Node {
       isOmmited
         ? "/* /omit-if-no-ref/ "
         : hasOmitIfNoRef
-        ? "/* /omit-if-no-ref/ */\n"
+        ? `/* /omit-if-no-ref/ */\n${"\t".repeat(level - 1)}`
         : ""
     }${this.labels.map((l) => l.toString()).join(" ")}${
       this.labels.length ? " " : ""
