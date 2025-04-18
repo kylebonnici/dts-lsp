@@ -49,7 +49,7 @@ export const defaultSettings: ResolvedSettings = {
 export const resolveContextSetting = async (
   context: Context,
   defaultSettings: PartialBy<ResolvedSettings, "contexts">,
-  rootWorkspace?: string
+  rootWorkspace: string | undefined
 ): Promise<ResolvedContext> => {
   const cwd =
     (context.cwd
@@ -124,7 +124,7 @@ export const resolveContextSetting = async (
 
 export const resolveSettings = async (
   globalSettings: Settings,
-  rootWorkspace?: string
+  rootWorkspace: string | undefined
 ): Promise<ResolvedSettings> => {
   const cwd = globalSettings.cwd
     ? await resolvePathVariable(globalSettings.cwd, rootWorkspace)

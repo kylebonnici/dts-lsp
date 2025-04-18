@@ -481,7 +481,7 @@ const loadSettings = async () => {
 
   await resolvedPersistantSettings.contexts?.reduce((p, c) => {
     return p.then(async () => {
-      await (await createContext(c)).stable();
+      await createContext(c);
     });
   }, Promise.resolve());
 
@@ -492,7 +492,7 @@ const loadSettings = async () => {
         if (findContext(contextAware, { uri: c.dtsFile })) {
           return; // Skip creating this adhoc context thier is a peristance context covering this URI
         }
-        await (await createContext(c)).stable();
+        await createContext(c);
       });
     }, Promise.resolve());
   }
@@ -1544,7 +1544,11 @@ connection.onRequest(
     await allStable();
 
     const resolvedSettings = await getResolvedAllContextSettings();
-    const resolvedContext = await resolveContextSetting(ctx, resolvedSettings);
+    const resolvedContext = await resolveContextSetting(
+      ctx,
+      resolvedSettings,
+      await getRootWorkspace()
+    );
     console.log("devicetree/requestContext", resolvedContext);
     const id = generateContextId(resolvedContext);
     integrationContext.set(`${id}:${ctx.ctxName}`, ctx);
@@ -1585,7 +1589,7 @@ connection.onRequest(
       return;
     }
 
-    await loadSettings(); // TODO loadSettings set active force if no active remain
+    await loadSettings();
   }
 );
 
