@@ -503,7 +503,7 @@ const loadSettings = async () => {
     console.log(
       `No active context using first context (ID: ${
         contextAware[0].id
-      }) cleaning Context for [${contextAware[0].ctxNames.join(",")}]`
+      }) [${contextAware[0].ctxNames.join(",")}]`
     );
     await updateActiveContext({ id: contextAware[0].id });
   }
