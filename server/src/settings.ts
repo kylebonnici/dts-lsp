@@ -23,6 +23,7 @@ import {
   Settings,
 } from "./types/index";
 import { existsSync } from "fs";
+import { normalizePath } from "./helpers";
 
 const resolvePathVariable = async (
   path: string,
@@ -113,15 +114,15 @@ export const resolveContextSetting = async (
 
   return {
     ctxName: context.ctxName ?? basename(dtsFile),
-    cwd,
-    includePaths,
-    zephyrBindings,
+    cwd: cwd ? normalizePath(cwd) : undefined,
+    includePaths: includePaths.map(normalizePath),
+    zephyrBindings: zephyrBindings.map(normalizePath),
     bindingType,
-    deviceOrgTreeBindings,
-    deviceOrgBindingsMetaSchema,
-    dtsFile,
-    overlays,
-    lockRenameEdits,
+    deviceOrgTreeBindings: deviceOrgTreeBindings.map(normalizePath),
+    deviceOrgBindingsMetaSchema: deviceOrgBindingsMetaSchema.map(normalizePath),
+    dtsFile: normalizePath(dtsFile),
+    overlays: overlays.map(normalizePath),
+    lockRenameEdits: lockRenameEdits.map(normalizePath),
   };
 };
 
