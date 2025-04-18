@@ -18,6 +18,7 @@ import { existsSync, readFileSync } from "fs";
 import { Token } from "../types";
 import { Lexer } from "../lexer";
 import { getCachedCPreprocessorParserProvider } from "./cachedCPreprocessorParser";
+import { normalizePath } from "../helpers";
 
 let tokenizedDocumentProvider: TokenizedDocumentProvider | undefined;
 
@@ -34,10 +35,12 @@ class TokenizedDocumentProvider {
   }
 
   needsRenew(uri: string, text: string) {
+    uri = normalizePath(uri);
     return this.fileMap.get(uri)?.text !== text;
   }
 
   renewLexer(uri: string, text?: string): Token[] {
+    uri = normalizePath(uri);
     getCachedCPreprocessorParserProvider().reset(uri);
     if (!uri || !existsSync(uri)) {
       return [];
@@ -56,6 +59,7 @@ class TokenizedDocumentProvider {
   }
 
   requestTokens(uri: string, renewIfNotFound: boolean): Token[] {
+    uri = normalizePath(uri);
     const tokens = this.fileMap.get(uri)?.tokens;
     if (!tokens && renewIfNotFound) {
       return [...this.renewLexer(uri)];
@@ -64,6 +68,7 @@ class TokenizedDocumentProvider {
   }
 
   reset(uri: string) {
+    uri = normalizePath(uri);
     getCachedCPreprocessorParserProvider().reset(uri);
     this.fileMap.delete(uri);
   }

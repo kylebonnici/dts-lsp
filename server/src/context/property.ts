@@ -15,7 +15,12 @@
  */
 
 import { DtcProperty } from "../ast/dtc/property";
-import { ContextIssues, Issue, SearchableResult } from "../types";
+import {
+  ContextIssues,
+  Issue,
+  MacroRegistryItem,
+  SearchableResult,
+} from "../types";
 import {
   DiagnosticSeverity,
   DiagnosticTag,
@@ -106,5 +111,9 @@ export class Property {
 
   toString() {
     return this.ast.toString();
+  }
+
+  toPrettyString(macros: Map<string, MacroRegistryItem>) {
+    return this.ast.toPrettyString(macros);
   }
 }

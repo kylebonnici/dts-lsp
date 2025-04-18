@@ -18,6 +18,7 @@ import { ASTBase } from "../../base";
 import { AllValueType } from "../types";
 import { LabelAssign } from "../label";
 import { DtsBitsNode } from "../bitsNode";
+import type { MacroRegistryItem } from "../../../types";
 
 export class PropertyValue extends ASTBase {
   constructor(
@@ -40,6 +41,13 @@ export class PropertyValue extends ASTBase {
   toString() {
     return `${[
       this.value?.toString() ?? "NULL",
+      ...this.endLabels.map((l) => l.toString()),
+    ].join(" ")}`;
+  }
+
+  toPrettyString(macros: Map<string, MacroRegistryItem>) {
+    return `${[
+      this.value?.toPrettyString(macros) ?? "NULL",
       ...this.endLabels.map((l) => l.toString()),
     ].join(" ")}`;
   }

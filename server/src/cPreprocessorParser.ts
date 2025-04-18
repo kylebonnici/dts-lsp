@@ -19,6 +19,7 @@ import {
   adjacentTokens,
   createTokenIndex,
   genIssue,
+  isPathEqual,
   parseMacros,
   sameLine,
   validateToken,
@@ -168,7 +169,7 @@ export class CPreprocessorParser extends BaseParser {
     const isFirstTokenOnLine =
       !this.prevToken ||
       this.prevToken.pos.line !== this.currentToken?.pos.line ||
-      this.prevToken.uri !== this.currentToken?.uri;
+      !isPathEqual(this.prevToken.uri, this.currentToken.uri);
     if (!isFirstTokenOnLine) {
       this.moveEndOfLine(this.prevToken!, false);
       this.mergeStack();

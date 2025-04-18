@@ -138,21 +138,13 @@ function getMacrosDeclaration(
 
 export async function getDeclaration(
   location: TextDocumentPositionParams,
-  contexts: ContextAware[],
-  activeContext?: ContextAware,
-  preferredContext?: string | number
+  context: ContextAware | undefined
 ): Promise<Location | undefined> {
   return (
-    await nodeFinder(
-      location,
-      contexts,
-      (locationMeta) => [
-        getNodeDeclaration(locationMeta) ||
-          getPropertyDeclaration(locationMeta) ||
-          getMacrosDeclaration(locationMeta),
-      ],
-      activeContext,
-      preferredContext
-    )
+    await nodeFinder(location, context, (locationMeta) => [
+      getNodeDeclaration(locationMeta) ||
+        getPropertyDeclaration(locationMeta) ||
+        getMacrosDeclaration(locationMeta),
+    ])
   ).at(0);
 }

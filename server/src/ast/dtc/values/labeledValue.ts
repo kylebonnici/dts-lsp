@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import type { MacroRegistryItem } from "../../../types";
 import { ASTBase } from "../../base";
 import { LabelAssign } from "../label";
 
@@ -29,9 +30,15 @@ export class LabeledValue<T extends ASTBase> extends ASTBase {
     this.addChild(this.value);
   }
 
-  toString() {
+  toString(radix?: number) {
     return `${this.labels.map((l) => l.toString()).join(" ")}${
-      this.value?.toString() ?? "NULL"
+      this.value?.toString(radix) ?? "NULL"
+    }`;
+  }
+
+  toPrettyString(macros: Map<string, MacroRegistryItem>) {
+    return `${this.labels.map((l) => l.toString()).join(" ")}${
+      this.value?.toPrettyString(macros) ?? "NULL"
     }`;
   }
 }

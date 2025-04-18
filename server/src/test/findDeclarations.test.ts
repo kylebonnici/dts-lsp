@@ -24,16 +24,8 @@ import {
   TextDocumentIdentifier,
   TextDocumentPositionParams,
 } from "vscode-languageserver";
-import { Node } from "../context/node";
-import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
-import { getStandardType } from "../dtsTypes/standardTypes";
-import { fileURLToPath } from 'url';
-
-const getFakeBindingLoader = (): BindingLoader => ({
-  getNodeTypes: (node: Node) => {
-    return Promise.resolve([getStandardType(node)]);
-  },
-});
+import { getFakeBindingLoader } from "./helpers";
+import { fileURLToPath } from "url";
 
 jest.mock("fs", () => ({
   readFileSync: jest.fn().mockImplementation(() => {
@@ -60,10 +52,8 @@ describe("Find Decleration", () => {
       uri: "file:///folder/dts.dts",
     };
     const context = new ContextAware(
-      fileURLToPath(textDocument.uri),
-      [],
-      getFakeBindingLoader(),
-      []
+      { dtsFile: fileURLToPath(textDocument.uri) },
+      getFakeBindingLoader()
     );
     await context.parser.stable;
 
@@ -72,7 +62,7 @@ describe("Find Decleration", () => {
       position: Position.create(0, 24),
     };
 
-    const decleration = await getDeclaration(location, [context]);
+    const decleration = await getDeclaration(location, context);
     expect(decleration).toBeUndefined();
   });
 
@@ -83,10 +73,8 @@ describe("Find Decleration", () => {
         uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        fileURLToPath(textDocument.uri),
-        [],
-        getFakeBindingLoader(),
-        []
+        { dtsFile: fileURLToPath(textDocument.uri) },
+        getFakeBindingLoader()
       );
       await context.parser.stable;
 
@@ -95,7 +83,7 @@ describe("Find Decleration", () => {
         position: Position.create(0, 37),
       };
 
-      const decleration = await getDeclaration(location, [context]);
+      const decleration = await getDeclaration(location, context);
       expect(decleration?.range.start.character).toEqual(2);
       expect(decleration?.range.end.character).toEqual(7);
     });
@@ -108,10 +96,8 @@ describe("Find Decleration", () => {
         uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        fileURLToPath(textDocument.uri),
-        [],
-        getFakeBindingLoader(),
-        []
+        { dtsFile: fileURLToPath(textDocument.uri) },
+        getFakeBindingLoader()
       );
       await context.parser.stable;
 
@@ -120,7 +106,7 @@ describe("Find Decleration", () => {
         position: Position.create(0, 57),
       };
 
-      let decleration = await getDeclaration(location1, [context]);
+      let decleration = await getDeclaration(location1, context);
       expect(decleration?.range.start.character).toEqual(22);
       expect(decleration?.range.end.character).toEqual(27);
 
@@ -129,7 +115,7 @@ describe("Find Decleration", () => {
         position: Position.create(0, 45),
       };
 
-      decleration = await getDeclaration(location2, [context]);
+      decleration = await getDeclaration(location2, context);
       expect(decleration?.range.start.character).toEqual(9);
       expect(decleration?.range.end.character).toEqual(14);
     });
@@ -142,10 +128,8 @@ describe("Find Decleration", () => {
         uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        fileURLToPath(textDocument.uri),
-        [],
-        getFakeBindingLoader(),
-        []
+        { dtsFile: fileURLToPath(textDocument.uri) },
+        getFakeBindingLoader()
       );
       await context.parser.stable;
 
@@ -154,7 +138,7 @@ describe("Find Decleration", () => {
         position: Position.create(0, 82),
       };
 
-      const decleration = await getDeclaration(location, [context]);
+      const decleration = await getDeclaration(location, context);
       expect(decleration?.range.start.character).toEqual(79);
       expect(decleration?.range.end.character).toEqual(84);
     });
@@ -165,10 +149,8 @@ describe("Find Decleration", () => {
         uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        fileURLToPath(textDocument.uri),
-        [],
-        getFakeBindingLoader(),
-        []
+        { dtsFile: fileURLToPath(textDocument.uri) },
+        getFakeBindingLoader()
       );
       await context.parser.stable;
 
@@ -177,7 +159,7 @@ describe("Find Decleration", () => {
         position: Position.create(0, 39),
       };
 
-      const decleration = await getDeclaration(location, [context]);
+      const decleration = await getDeclaration(location, context);
       expect(decleration?.range.start.character).toEqual(2);
       expect(decleration?.range.end.character).toEqual(7);
     });
@@ -190,10 +172,8 @@ describe("Find Decleration", () => {
         uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        fileURLToPath(textDocument.uri),
-        [],
-        getFakeBindingLoader(),
-        []
+        { dtsFile: fileURLToPath(textDocument.uri) },
+        getFakeBindingLoader()
       );
       await context.parser.stable;
 
@@ -202,7 +182,7 @@ describe("Find Decleration", () => {
         position: Position.create(0, 31),
       };
 
-      const decleration = await getDeclaration(location, [context]);
+      const decleration = await getDeclaration(location, context);
       expect(decleration?.range.start.character).toEqual(10);
       expect(decleration?.range.end.character).toEqual(17);
     });
@@ -213,10 +193,8 @@ describe("Find Decleration", () => {
         uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        fileURLToPath(textDocument.uri),
-        [],
-        getFakeBindingLoader(),
-        []
+        { dtsFile: fileURLToPath(textDocument.uri) },
+        getFakeBindingLoader()
       );
       await context.parser.stable;
 
@@ -225,7 +203,7 @@ describe("Find Decleration", () => {
         position: Position.create(0, 32),
       };
 
-      let decleration = await getDeclaration(location1, [context]);
+      let decleration = await getDeclaration(location1, context);
       expect(decleration?.range.start.character).toEqual(9);
       expect(decleration?.range.end.character).toEqual(17);
 
@@ -234,7 +212,7 @@ describe("Find Decleration", () => {
         position: Position.create(0, 26),
       };
 
-      decleration = await getDeclaration(location2, [context]);
+      decleration = await getDeclaration(location2, context);
       expect(decleration?.range.start.character).toEqual(3);
       expect(decleration?.range.end.character).toEqual(19);
     });
@@ -247,10 +225,8 @@ describe("Find Decleration", () => {
         uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        fileURLToPath(textDocument.uri),
-        [],
-        getFakeBindingLoader(),
-        []
+        { dtsFile: fileURLToPath(textDocument.uri) },
+        getFakeBindingLoader()
       );
       await context.parser.stable;
 
@@ -259,7 +235,7 @@ describe("Find Decleration", () => {
         position: Position.create(0, 57),
       };
 
-      const decleration = await getDeclaration(location, [context]);
+      const decleration = await getDeclaration(location, context);
       expect(decleration?.range.start.character).toEqual(54);
       expect(decleration?.range.end.character).toEqual(62);
     });
@@ -272,10 +248,8 @@ describe("Find Decleration", () => {
         uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        fileURLToPath(textDocument.uri),
-        [],
-        getFakeBindingLoader(),
-        []
+        { dtsFile: fileURLToPath(textDocument.uri) },
+        getFakeBindingLoader()
       );
       await context.parser.stable;
 
@@ -284,7 +258,7 @@ describe("Find Decleration", () => {
         position: Position.create(0, 42),
       };
 
-      const decleration = await getDeclaration(location, [context]);
+      const decleration = await getDeclaration(location, context);
       expect(decleration?.range.start.character).toEqual(3);
       expect(decleration?.range.end.character).toEqual(23);
     });
@@ -297,10 +271,8 @@ describe("Find Decleration", () => {
         uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        fileURLToPath(textDocument.uri),
-        [],
-        getFakeBindingLoader(),
-        []
+        { dtsFile: fileURLToPath(textDocument.uri) },
+        getFakeBindingLoader()
       );
       await context.parser.stable;
 
@@ -309,7 +281,7 @@ describe("Find Decleration", () => {
         position: Position.create(0, 62),
       };
 
-      const decleration = await getDeclaration(location, [context]);
+      const decleration = await getDeclaration(location, context);
       expect(decleration?.range.start.character).toEqual(3);
       expect(decleration?.range.end.character).toEqual(23);
     });
@@ -322,10 +294,8 @@ describe("Find Decleration", () => {
         uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        fileURLToPath(textDocument.uri),
-        [],
-        getFakeBindingLoader(),
-        []
+        { dtsFile: fileURLToPath(textDocument.uri) },
+        getFakeBindingLoader()
       );
       await context.parser.stable;
 
@@ -334,7 +304,7 @@ describe("Find Decleration", () => {
         position: Position.create(0, 50),
       };
 
-      const decleration = await getDeclaration(location, [context]);
+      const decleration = await getDeclaration(location, context);
       expect(decleration?.range.start.character).toEqual(3);
       expect(decleration?.range.end.character).toEqual(23);
     });
@@ -347,10 +317,8 @@ describe("Find Decleration", () => {
         uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        fileURLToPath(textDocument.uri),
-        [],
-        getFakeBindingLoader(),
-        []
+        { dtsFile: fileURLToPath(textDocument.uri) },
+        getFakeBindingLoader()
       );
       await context.parser.stable;
 
@@ -359,7 +327,7 @@ describe("Find Decleration", () => {
         position: Position.create(0, 59),
       };
 
-      const decleration = await getDeclaration(location, [context]);
+      const decleration = await getDeclaration(location, context);
       expect(decleration?.range.start.character).toEqual(13);
       expect(decleration?.range.end.character).toEqual(21);
     });

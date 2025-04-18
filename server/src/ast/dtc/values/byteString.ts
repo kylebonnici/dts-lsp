@@ -34,7 +34,9 @@ export class ByteStringValue extends ASTBase {
   }
 
   toString() {
-    return `[${this.values.map((v) => v.toString()).join(" ")}]`;
+    return `[${this.values
+      .map((v) => v.toString(16).padStart(2, "0"))
+      .join(" ")}]`;
   }
 
   toJson() {

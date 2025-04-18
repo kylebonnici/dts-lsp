@@ -31,6 +31,7 @@ import {
   adjacentTokens,
   createTokenIndex,
   genIssue,
+  isPathEqual,
   validateToken,
   validateValue,
   validToken,
@@ -231,8 +232,8 @@ export abstract class BaseParser {
       if (
         !tokenIndexes?.start ||
         !tokenIndexes?.end ||
-        tokenIndexes.start.uri !== uri ||
-        tokenIndexes.end.uri !== uri
+        !isPathEqual(tokenIndexes.start.uri, uri) ||
+        !isPathEqual(tokenIndexes.end.uri, uri)
       )
         return;
 
@@ -702,7 +703,7 @@ export abstract class BaseParser {
     const line = token.pos.line;
     if (
       this.currentToken?.pos.line !== line ||
-      this.currentToken?.uri !== token.uri
+      !isPathEqual(this.currentToken?.uri, token.uri)
     ) {
       return;
     }

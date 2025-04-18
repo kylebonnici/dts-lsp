@@ -76,7 +76,7 @@ function getIncudePathItems(
     return getItems([dirname(result.ast.uri)]);
   }
 
-  const includePaths = result.runtime.context.includePaths;
+  const includePaths = result.runtime.context.settings.includePaths ?? [];
 
   return getItems(includePaths);
 }
@@ -439,24 +439,16 @@ function getPropertyAssignMacroItems(
 
 export async function getCompletions(
   location: TextDocumentPositionParams,
-  context: ContextAware[],
-  activeContext?: ContextAware,
-  preferredContext?: string | number
+  context: ContextAware | undefined
 ): Promise<CompletionItem[]> {
-  return nodeFinder(
-    location,
-    context,
-    (locationMeta, inScope) => [
-      ...getDeletePropertyItems(locationMeta, inScope),
-      ...getDeleteNodeNameItems(locationMeta, inScope),
-      ...getDeleteNodeRefItems(locationMeta, inScope),
-      ...getNodeRefPathsItems(locationMeta, inScope),
-      ...getCreateNodeRefItems(locationMeta, inScope),
-      ...getRefLabelsItems(locationMeta, inScope),
-      ...getIncudePathItems(locationMeta),
-      ...getPropertyAssignMacroItems(locationMeta),
-    ],
-    activeContext,
-    preferredContext
-  );
+  return nodeFinder(location, context, (locationMeta, inScope) => [
+    ...getDeletePropertyItems(locationMeta, inScope),
+    ...getDeleteNodeNameItems(locationMeta, inScope),
+    ...getDeleteNodeRefItems(locationMeta, inScope),
+    ...getNodeRefPathsItems(locationMeta, inScope),
+    ...getCreateNodeRefItems(locationMeta, inScope),
+    ...getRefLabelsItems(locationMeta, inScope),
+    ...getIncudePathItems(locationMeta),
+    ...getPropertyAssignMacroItems(locationMeta),
+  ]);
 }

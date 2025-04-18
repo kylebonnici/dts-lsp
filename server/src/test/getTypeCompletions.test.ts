@@ -24,16 +24,8 @@ import {
   TextDocumentIdentifier,
   TextDocumentPositionParams,
 } from "vscode-languageserver";
-import { Node } from "../context/node";
-import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
-import { getStandardType } from "../dtsTypes/standardTypes";
-import { fileURLToPath } from 'url';
-
-const getFakeBindingLoader = (): BindingLoader => ({
-  getNodeTypes: (node: Node) => {
-    return Promise.resolve([getStandardType(node)]);
-  },
-});
+import { getFakeBindingLoader } from "./helpers";
+import { fileURLToPath } from "url";
 
 jest.mock("fs", () => ({
   readFileSync: jest.fn().mockImplementation(() => {
@@ -61,10 +53,8 @@ describe("Find typed completions", () => {
         uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        fileURLToPath(textDocument.uri),
-        [],
-        getFakeBindingLoader(),
-        []
+        { dtsFile: fileURLToPath(textDocument.uri) },
+        getFakeBindingLoader()
       );
       await context.parser.stable;
 
@@ -73,7 +63,7 @@ describe("Find typed completions", () => {
         position: Position.create(0, 15),
       };
 
-      const completions = await getTypeCompletions(location, [context]);
+      const completions = await getTypeCompletions(location, context);
       expect(completions.length).toEqual(5);
       expect(completions[0].label).toEqual('"okay"');
       expect(completions[1].label).toEqual('"disabled"');
@@ -88,10 +78,8 @@ describe("Find typed completions", () => {
         uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        fileURLToPath(textDocument.uri),
-        [],
-        getFakeBindingLoader(),
-        []
+        { dtsFile: fileURLToPath(textDocument.uri) },
+        getFakeBindingLoader()
       );
       await context.parser.stable;
 
@@ -100,7 +88,7 @@ describe("Find typed completions", () => {
         position: Position.create(0, 23),
       };
 
-      const completions = await getTypeCompletions(location, [context]);
+      const completions = await getTypeCompletions(location, context);
       expect(completions.length).toEqual(0);
     });
 
@@ -110,10 +98,8 @@ describe("Find typed completions", () => {
         uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        fileURLToPath(textDocument.uri),
-        [],
-        getFakeBindingLoader(),
-        []
+        { dtsFile: fileURLToPath(textDocument.uri) },
+        getFakeBindingLoader()
       );
       await context.parser.stable;
 
@@ -122,7 +108,7 @@ describe("Find typed completions", () => {
         position: Position.create(0, 23),
       };
 
-      const completions = await getTypeCompletions(location, [context]);
+      const completions = await getTypeCompletions(location, context);
       expect(completions.length).toEqual(1);
       expect(completions[0].label).toEqual("<2>");
     });
@@ -133,10 +119,8 @@ describe("Find typed completions", () => {
         uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        fileURLToPath(textDocument.uri),
-        [],
-        getFakeBindingLoader(),
-        []
+        { dtsFile: fileURLToPath(textDocument.uri) },
+        getFakeBindingLoader()
       );
       await context.parser.stable;
 
@@ -145,7 +129,7 @@ describe("Find typed completions", () => {
         position: Position.create(0, 28),
       };
 
-      const completions = await getTypeCompletions(location, [context]);
+      const completions = await getTypeCompletions(location, context);
       expect(completions.length).toEqual(0);
     });
 
@@ -155,10 +139,8 @@ describe("Find typed completions", () => {
         uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        fileURLToPath(textDocument.uri),
-        [],
-        getFakeBindingLoader(),
-        []
+        { dtsFile: fileURLToPath(textDocument.uri) },
+        getFakeBindingLoader()
       );
       await context.parser.stable;
 
@@ -167,7 +149,7 @@ describe("Find typed completions", () => {
         position: Position.create(0, 20),
       };
 
-      const completions = await getTypeCompletions(location, [context]);
+      const completions = await getTypeCompletions(location, context);
       expect(completions.length).toEqual(1);
       expect(completions[0].label).toEqual("<1>");
     });
@@ -178,10 +160,8 @@ describe("Find typed completions", () => {
         uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        fileURLToPath(textDocument.uri),
-        [],
-        getFakeBindingLoader(),
-        []
+        { dtsFile: fileURLToPath(textDocument.uri) },
+        getFakeBindingLoader()
       );
       await context.parser.stable;
 
@@ -190,7 +170,7 @@ describe("Find typed completions", () => {
         position: Position.create(0, 25),
       };
 
-      const completions = await getTypeCompletions(location, [context]);
+      const completions = await getTypeCompletions(location, context);
       expect(completions.length).toEqual(0);
     });
 
@@ -200,10 +180,8 @@ describe("Find typed completions", () => {
         uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        fileURLToPath(textDocument.uri),
-        [],
-        getFakeBindingLoader(),
-        []
+        { dtsFile: fileURLToPath(textDocument.uri) },
+        getFakeBindingLoader()
       );
       await context.parser.stable;
 
@@ -212,7 +190,7 @@ describe("Find typed completions", () => {
         position: Position.create(0, 19),
       };
 
-      const completions = await getTypeCompletions(location, [context]);
+      const completions = await getTypeCompletions(location, context);
       expect(completions.length).toEqual(1);
       expect(completions[0].label).toEqual('"cpu"');
     });
@@ -223,10 +201,8 @@ describe("Find typed completions", () => {
         uri: "file:///folder/dts.dts",
       };
       const context = new ContextAware(
-        fileURLToPath(textDocument.uri),
-        [],
-        getFakeBindingLoader(),
-        []
+        { dtsFile: fileURLToPath(textDocument.uri) },
+        getFakeBindingLoader()
       );
       await context.parser.stable;
 
@@ -235,7 +211,7 @@ describe("Find typed completions", () => {
         position: Position.create(0, 22),
       };
 
-      const completions = await getTypeCompletions(location, [context]);
+      const completions = await getTypeCompletions(location, context);
       expect(completions.length).toEqual(1);
       expect(completions[0].label).toEqual('"memory"');
     });
