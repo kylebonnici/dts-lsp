@@ -40,6 +40,7 @@ import { ContextAware } from "./runtimeEvaluator";
 import url from "url";
 import { createHash } from "crypto";
 import { ResolvedContext } from "./types/index";
+import { join } from "path";
 
 export const toRangeWithTokenIndex = (
   start?: Token,
@@ -500,15 +501,14 @@ export const isPathEqual = (
 ) => {
   if (!pathA || !pathB) return false;
 
-  if (process.platform === "win32") {
-    pathA = normalizePath(pathA);
-    pathB = normalizePath(pathB);
-  }
+  pathA = normalizePath(pathA);
+  pathB = normalizePath(pathB);
+
   return pathA === pathB;
 };
 
-export const normalizePath = (path: string) =>
-  process.platform === "win32" ? path.toLowerCase() : path;
+export const normalizePath = (p: string) =>
+  join(process.platform === "win32" ? p.toLowerCase() : p);
 
 export const generateContextId = (ctx: ResolvedContext) => {
   return createHash("sha256")
