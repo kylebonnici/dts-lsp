@@ -1523,6 +1523,7 @@ connection.onRequest(
   "devicetree/setActive",
   async (id: string): Promise<boolean> => {
     await allStable();
+    console.log("devicetree/setActive", id);
     const result = await updateActiveContext({ id }, true);
     return result;
   }
@@ -1579,7 +1580,6 @@ connection.onRequest(
     const context = findContext(contextAware, { id });
     if (!context) return;
 
-    const names = context.ctxNames;
     context.removeCtxName(name);
 
     if (context.ctxNames.length) {
