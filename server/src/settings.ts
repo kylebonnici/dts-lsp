@@ -85,6 +85,7 @@ export const resolveContextSetting = async (
   );
 
   if (
+    cwd &&
     bindingType === "Zephyr" &&
     (!zephyrBindings || zephyrBindings.length === 0)
   ) {
@@ -95,7 +96,9 @@ export const resolveContextSetting = async (
   let overlays = context.overlays ?? [];
 
   if (cwd) {
-    zephyrBindings = zephyrBindings.map((i) => resolve(cwd, i));
+    zephyrBindings = zephyrBindings
+      .map((i) => resolve(cwd, i))
+      .filter((p) => existsSync(p));
     deviceOrgTreeBindings = deviceOrgTreeBindings?.map((i) => resolve(cwd, i));
     deviceOrgBindingsMetaSchema = deviceOrgBindingsMetaSchema.map((i) =>
       resolve(cwd, i)
