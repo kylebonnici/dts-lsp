@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Parsing issue when a node path is `prop = &{}`
 - Issue with `setting` path case sesitivity on windows
 - toString output for bytestring is now shown in hexadecimal not decimal
+- Issue where in some casses diagnostics disapeare on typing when two context share the same file.
 
 # 0.2.5 - 2025-04-08
 

@@ -887,11 +887,14 @@ const onChange = async (uri: string) => {
             return;
           }
           const t = performance.now();
-          const itemsToClear = generateClearWorkspaceDiagnostics(context);
+          const isActive = activeContext === context;
+          const itemsToClear = isActive
+            ? generateClearWorkspaceDiagnostics(context)
+            : [];
           unwatchContextFiles(context);
           await context.reevaluate(uri);
           watchContextFiles(context);
-          if (activeContext === context) {
+          if (isActive) {
             reportWorkspaceDiagnostics(context).then((d) => {
               clearWorkspaceDiagnostics(context, itemsToClear);
               d.items
@@ -907,8 +910,6 @@ const onChange = async (uri: string) => {
                   connection.sendDiagnostics(ii);
                 });
             });
-          } else {
-            clearWorkspaceDiagnostics(context, itemsToClear);
           }
 
           resolve();
@@ -946,6 +947,9 @@ const clearWorkspaceDiagnostics = async (
   context: ContextAware,
   items: PublishDiagnosticsParams[] = generateClearWorkspaceDiagnostics(context)
 ) => {
+  if (context !== activeContext) {
+    return;
+  }
   return await Promise.all(
     items.map((item) => {
       return connection.sendDiagnostics({
@@ -1161,29 +1165,28 @@ const updateActiveContext = async (id: ContextId, force = false) => {
     return false;
 
   const oldContext = activeContext;
+  const newContext = findContext(contextAware, id);
 
-  activeContext = findContext(contextAware, id);
-
-  const context = activeContext;
-  if (oldContext !== context) {
+  if (oldContext !== newContext) {
     if (oldContext) {
       await clearWorkspaceDiagnostics(oldContext);
     }
+    activeContext = newContext;
 
     connection.sendNotification(
       "devicetree/newActiveContext",
-      context
+      newContext
         ? ({
-            ctxNames: context.ctxNames.map((c) => c.toString()),
-            id: context.id,
-            ...(await context.getFileTree()),
-            settings: context.settings,
+            ctxNames: newContext.ctxNames.map((c) => c.toString()),
+            id: newContext.id,
+            ...(await newContext.getFileTree()),
+            settings: newContext.settings,
           } satisfies ContextListItem)
         : undefined
     );
 
-    if (context) {
-      reportWorkspaceDiagnostics(context).then((d) => {
+    if (newContext) {
+      reportWorkspaceDiagnostics(newContext).then((d) => {
         d.items
           .map(
             (i) =>
