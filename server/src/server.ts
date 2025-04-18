@@ -896,19 +896,23 @@ const onChange = async (uri: string) => {
           watchContextFiles(context);
           if (isActive) {
             reportWorkspaceDiagnostics(context).then((d) => {
-              clearWorkspaceDiagnostics(context, itemsToClear);
-              d.items
-                .map(
-                  (i) =>
-                    ({
-                      uri: i.uri,
-                      version: i.version ?? undefined,
-                      diagnostics: i.items,
-                    } satisfies PublishDiagnosticsParams)
+              const newDiagnostics = d.items.map(
+                (i) =>
+                  ({
+                    uri: i.uri,
+                    version: i.version ?? undefined,
+                    diagnostics: i.items,
+                  } satisfies PublishDiagnosticsParams)
+              );
+              clearWorkspaceDiagnostics(
+                context,
+                itemsToClear.filter((i) =>
+                  newDiagnostics.every((nd) => nd.uri !== i.uri)
                 )
-                .forEach((ii) => {
-                  connection.sendDiagnostics(ii);
-                });
+              );
+              newDiagnostics.forEach((ii) => {
+                connection.sendDiagnostics(ii);
+              });
             });
           }
 
