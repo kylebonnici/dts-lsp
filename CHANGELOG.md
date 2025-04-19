@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - VSCode extension API support.
 - onHover over macro now returns both decimal and hex value for the computed result
 - lockRenameEdits to context settings
+- VS Code commands:
+  - Devicetree: Generate context output
+  - Devicetree: Set active context
 
 ### Changed
 
