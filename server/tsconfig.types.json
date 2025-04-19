@@ -1,0 +1,11 @@
+{
+	"compilerOptions": {
+	  "declaration": true,
+	  "emitDeclarationOnly": true,
+	  "rootDir": "src/types",
+	  "outDir": "../dts-lsp-types/dist",
+	  "composite": true,
+	  "types": []
+	},
+	"include": ["src/types/index.ts"]
+  }

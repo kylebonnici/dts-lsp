@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Token, TokenIndexes } from "../../types";
+import { MacroRegistryItem, Token, TokenIndexes } from "../../types";
 import { ASTBase } from "../base";
 import { SymbolKind } from "vscode-languageserver";
 import { LabelAssign } from "./label";
@@ -92,6 +92,18 @@ export class DtcProperty extends ASTBase {
         ? ` = ${
             this._values?.values
               .map((v) => v?.toString() ?? "NULL")
+              .join(", ") ?? "NULL"
+          }`
+        : ""
+    };`;
+  }
+
+  toPrettyString(macros: Map<string, MacroRegistryItem>) {
+    return `${this.propertyName?.toString() ?? "__UNSET__"}${
+      this.assignOperatorToken
+        ? ` = ${
+            this._values?.values
+              .map((v) => v?.toPrettyString(macros) ?? "NULL")
               .join(", ") ?? "NULL"
           }`
         : ""

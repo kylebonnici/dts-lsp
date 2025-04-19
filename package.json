@@ -5,7 +5,7 @@
   "author": "Microsoft Corporation",
   "license": "Apache-2.0",
   "icon": "images/icon.png",
-  "version": "0.2.6",
+  "version": "0.3.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/kylebonnici/dts-lsp"
@@ -22,6 +22,16 @@
   },
   "main": "./client/dist/extension",
   "contributes": {
+    "commands": [
+      {
+        "command": "devicetree.context.set.active",
+        "title": "Devicetree: Set active context"
+      },
+      {
+        "command": "devicetree.context.output",
+        "title": "Devicetree: Generate context output"
+      }
+    ],
     "languages": [
       {
         "id": "devicetree",
@@ -47,13 +57,16 @@
       "properties": {
         "devicetree.preferredContext": {
           "scope": "resource",
-          "type": "number",
-          "description": "Index of the context to be used when files is used by multiple context."
+          "type": [
+            "string",
+            "number"
+          ],
+          "description": "Name of the context to be used when files is used by multiple context."
         },
         "devicetree.defaultIncludePaths": {
           "scope": "resource",
           "type": "array",
-          "default": [],
+          "default": null,
           "description": "Default includes to be used when a file is opened that is not defined in known context"
         },
         "devicetree.defaultBindingType": {
@@ -65,48 +78,49 @@
         "devicetree.defaultZephyrBindings": {
           "scope": "resource",
           "type": "array",
-          "default": [],
+          "default": null,
           "description": "Default Zephyr binding paths"
         },
         "devicetree.defaultDeviceOrgTreeBindings": {
           "scope": "resource",
           "type": "array",
-          "default": [],
+          "default": null,
           "description": "Default devicetree-org binding paths"
         },
         "devicetree.defaultDeviceOrgBindingsMetaSchema": {
           "scope": "resource",
           "type": "array",
-          "default": [],
+          "default": null,
           "description": "Default devicetree-org MetaSchema binding paths"
         },
         "devicetree.cwd": {
           "scope": "resource",
           "type": "string",
+          "default": null,
           "description": "Working directorys"
         },
         "devicetree.contexts": {
           "scope": "resource",
           "type": "array",
-          "default": [],
+          "default": null,
           "description": "Known contexts."
         },
-        "devicetree.lockRenameEdits": {
+        "devicetree.defaultLockRenameEdits": {
           "scope": "resource",
           "type": "array",
-          "default": [],
+          "default": null,
           "description": "Locations that Renaming should not be allowrd if any of the edits is a child node of that directory"
         },
         "devicetree.autoChangeContext": {
           "scope": "resource",
           "type": "boolean",
-          "default": true,
+          "default": null,
           "description": "Auto chnage active context on file change"
         },
         "devicetree.allowAdhocContexts": {
           "scope": "resource",
           "type": "boolean",
-          "default": true,
+          "default": null,
           "description": "Allow LSP to create new context on the file for dts files opened that are not in the context settings"
         },
         "devicetree.trace.server": {
@@ -124,7 +138,9 @@
     }
   },
   "scripts": {
-    "compile": "npm run compile:server && npm run compile:client",
+    "types:client": "tsc -p client/tsconfig.types.json",
+    "types:server": "tsc -p server/tsconfig.types.json",
+    "compile": "npm run compile:server && npm run types:server && npm run compile:client && npm run types:client",
     "compile:prod": "npm run compile:server:prod && npm run compile:client:prod",
     "compile:server": "node ./server/esbuild.js",
     "compile:client": "node ./client/esbuild.js",

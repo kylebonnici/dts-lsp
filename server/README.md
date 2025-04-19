@@ -28,6 +28,7 @@ interface Context {
   zephyrBindings?: string[];
   deviceOrgTreeBindings?: string[];
   deviceOrgBindingsMetaSchema?: string[];
+  lockRenameEdits?: string[];
 }
 
 interface Settings {
@@ -39,7 +40,7 @@ interface Settings {
   defaultIncludePaths?: string[];
   contexts?: Context[];
   preferredContext?: string | number;
-  lockRenameEdits?: string[];
+  defaultLockRenameEdits?: string[];
   autoChangeContext?: boolean;
   allowAdhocContexts?: boolean;
 }

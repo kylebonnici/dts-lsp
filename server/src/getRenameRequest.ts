@@ -241,23 +241,15 @@ function getNodeNameRename(result: SearchableResult | undefined): Location[] {
 
 export async function getRenameRequest(
   location: RenameParams,
-  contexts: ContextAware[],
-  activeContext?: ContextAware,
-  preferredContext?: string | number
+  context: ContextAware | undefined
 ): Promise<WorkspaceEdit> {
   const changes: { [uri: string]: TextEdit[] } = {};
 
-  const locationResult = await nodeFinder(
-    location,
-    contexts,
-    (locationMeta) => [
-      ...getNodeNameRename(locationMeta),
-      ...getNodeLabelRename(location, locationMeta),
-      ...getPropertyReferences(locationMeta),
-    ],
-    activeContext,
-    preferredContext
-  );
+  const locationResult = await nodeFinder(location, context, (locationMeta) => [
+    ...getNodeNameRename(locationMeta),
+    ...getNodeLabelRename(location, locationMeta),
+    ...getPropertyReferences(locationMeta),
+  ]);
 
   locationResult.forEach((editLocation) => {
     changes[editLocation.uri] ??= [];
@@ -273,28 +265,21 @@ export async function getRenameRequest(
 
 export async function getPrepareRenameRequest(
   location: PrepareRenameParams,
-  contexts: ContextAware[],
-  lockRenameEdits: string[],
-  activeContext?: ContextAware,
-  preferredContext?: string | number
+  context: ContextAware | undefined
 ): Promise<{
   defaultBehavior: boolean;
 }> {
-  const locationResult = await nodeFinder(
-    location,
-    contexts,
-    (locationMeta) => [
-      ...getNodeNameRename(locationMeta),
-      ...getNodeLabelRename(location, locationMeta),
-      ...getPropertyReferences(locationMeta),
-    ],
-    activeContext,
-    preferredContext
-  );
+  const locationResult = await nodeFinder(location, context, (locationMeta) => [
+    ...getNodeNameRename(locationMeta),
+    ...getNodeLabelRename(location, locationMeta),
+    ...getPropertyReferences(locationMeta),
+  ]);
 
   if (
     locationResult.some((r) =>
-      lockRenameEdits.some((l) => fileURLToPath(r.uri).startsWith(l))
+      context?.settings.lockRenameEdits?.some((l) =>
+        fileURLToPath(r.uri).startsWith(l)
+      )
     )
   ) {
     throw new Error('Path is locked by user setting "lockRenameEdits"');

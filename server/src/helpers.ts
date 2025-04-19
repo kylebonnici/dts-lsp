@@ -34,9 +34,13 @@ import {
   TokenIndexes,
   LexerToken,
   MacroRegistryItem,
+  ContextId,
 } from "./types";
 import { ContextAware } from "./runtimeEvaluator";
 import url from "url";
+import { createHash } from "crypto";
+import { ResolvedContext } from "./types/index";
+import { join } from "path";
 
 export const toRangeWithTokenIndex = (
   start?: Token,
@@ -103,7 +107,7 @@ export const positionAfter = (
   file: string,
   position: Position
 ): boolean => {
-  if (token.uri !== file) return false;
+  if (!isPathEqual(token.uri, file)) return false;
 
   if (position.line < token.pos.line) return false;
 
@@ -117,7 +121,7 @@ export const positionBefore = (
   file: string,
   position: Position
 ): boolean => {
-  if (token.uri !== file) return false;
+  if (!isPathEqual(token.uri, file)) return false;
 
   if (position.line < token.pos.line) return true;
 
@@ -132,7 +136,7 @@ export const positionInBetween = (
   position: Position
 ): boolean => {
   return !!(
-    ast.uri === file &&
+    isPathEqual(ast.uri, file) &&
     ast.tokenIndexes?.start &&
     ast.tokenIndexes?.end &&
     (ast.tokenIndexes.start.pos.line < position.line ||
@@ -151,7 +155,7 @@ export const positionSameLineAndNotAfter = (
   position: Position
 ): boolean => {
   return !!(
-    ast.uri === file &&
+    isPathEqual(ast.uri, file) &&
     ast.lastToken.value !== ";" &&
     ast.tokenIndexes?.start &&
     ast.tokenIndexes?.end &&
@@ -285,34 +289,27 @@ export const sortAstForScope = <T extends ASTBase>(ast: T[]) => {
 
 export async function nodeFinder<T>(
   location: TextDocumentPositionParams,
-  contexts: ContextAware[],
+  context: ContextAware | undefined,
   action: (
     result: SearchableResult | undefined,
     inScope: (ast: ASTBase) => boolean
-  ) => T[] | Promise<T[]>,
-  activeContext?: ContextAware,
-  preferredContext?: string | number
+  ) => T[] | Promise<T[]>
 ): Promise<T[]> {
   const uri = fileURLToPath(location.textDocument.uri);
 
-  const contextMeta = findContext(
-    contexts,
-    uri,
-    activeContext,
-    preferredContext
-  );
-
-  if (!contextMeta) return [];
+  if (!context) {
+    return [];
+  }
 
   console.time("search");
-  const runtime = await contextMeta.context.getRuntime();
+  const runtime = await context.getRuntime();
   const locationMeta = runtime.getDeepestAstNode(uri, location.position);
   const sortKey = locationMeta?.ast?.firstToken.sortKey;
   console.timeEnd("search");
 
   const inScope = (ast: ASTBase) => {
     const position = location.position;
-    if (ast.uri === uri) {
+    if (isPathEqual(ast.uri, uri)) {
       return !!(
         ast.tokenIndexes?.end &&
         (ast.tokenIndexes.end.pos.line < position.line ||
@@ -351,7 +348,7 @@ export const sameLine = (tokenA?: Token, tokenB?: Token) => {
     !!tokenA &&
     !!tokenB &&
     tokenA.pos.line === tokenB.pos.line &&
-    tokenA.uri === tokenB.uri
+    isPathEqual(tokenA.uri, tokenB.uri)
   );
 };
 
@@ -374,23 +371,41 @@ export const resolveContextFiles = (contextAware: ContextAware[]) => {
 
 export const findContext = (
   contextAware: ContextAware[],
-  uri: string,
+  id: ContextId,
   activeContext?: ContextAware,
   preferredContext?: string | number
 ) => {
-  if (activeContext?.getContextFiles().find((f) => f === uri))
-    return { context: activeContext };
+  if ("id" in id) {
+    const context = contextAware?.find((f) => f.id === id.id);
+    if (context) {
+      return context;
+    }
+    return;
+  }
+
+  if ("name" in id) {
+    const context = contextAware?.find((f) => f.ctxNames.includes(id.name));
+    if (context) {
+      return context;
+    }
+    return;
+  }
+
+  if (activeContext?.getContextFiles().find((f) => isPathEqual(f, id.uri)))
+    return activeContext;
 
   const contextFiles = resolveContextFiles(contextAware);
 
   return contextFiles
-    .sort((a) => (a.context.name === preferredContext ? -1 : 0))
-    .find((c) => c.files.some((p) => p === uri));
+    .sort((a) => (a.context.id === preferredContext ? -1 : 0))
+    .find((c) => c.files.some((p) => isPathEqual(p, id.uri)))?.context;
 };
 
 export const findContexts = (contextAware: ContextAware[], uri: string) => {
   const contextFiles = resolveContextFiles(contextAware);
-  return contextFiles.filter((c) => c.files.some((p) => p === uri));
+  return contextFiles
+    .filter((c) => c.files.some((p) => isPathEqual(p, uri)))
+    .map((c) => c.context);
 };
 
 export const parseMacros = (line: string) => {
@@ -488,6 +503,33 @@ export const fileURLToPath = (fileUrl: string) => {
   return url.fileURLToPath(fileUrl);
 };
 
-export const isPathEqual = (pathA: string, pathB: string) => {
+export const isPathEqual = (
+  pathA: string | undefined,
+  pathB: string | undefined
+) => {
+  if (!pathA || !pathB) return false;
+
+  pathA = normalizePath(pathA);
+  pathB = normalizePath(pathB);
+
   return pathA === pathB;
+};
+
+export const normalizePath = (p: string) =>
+  join(process.platform === "win32" ? p.toLowerCase() : p);
+
+export const generateContextId = (ctx: ResolvedContext) => {
+  return createHash("sha256")
+    .update(
+      [
+        normalizePath(ctx.dtsFile),
+        ...ctx.includePaths.map(normalizePath),
+        ...ctx.overlays.map(normalizePath),
+        ctx.bindingType,
+        ...ctx.zephyrBindings.map(normalizePath),
+        ...ctx.deviceOrgBindingsMetaSchema.map(normalizePath),
+        ...ctx.deviceOrgTreeBindings.map(normalizePath),
+      ].join(":")
+    )
+    .digest("hex");
 };

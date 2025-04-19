@@ -4,20 +4,29 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-# 0.2.6 - Unreleased
+# 0.3.0 - 2025-04-19
 
 ### Added
 
+- VSCode extension API support.
 - onHover over macro now returns both decimal and hex value for the computed result
+- lockRenameEdits to context settings
+
+### Changed
+
+- Renamed lockRenameEdits to defaultLockRenameEdits in the root settings
 
 ### Fixed
 
-- Changes overlys files where not being reparsed
+- Changes overlays files where not being repassed
 - No semantic tokens for overlays files
 - No syntax diagnostics for overlays files
 - No document symbols for overlays files
 - Exception when parsing zephyr binding with no include property
 - Parsing issue when a node path is `prop = &{}`
+- Issue with `setting` path case sensitivity on windows
+- toString output for bytestring is now shown in hexadecimal not decimal
+- Issue where in some cases diagnostics disappear on typing when two context share the same file.
 
 # 0.2.5 - 2025-04-08
 

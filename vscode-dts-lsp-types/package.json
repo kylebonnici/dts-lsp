@@ -1,0 +1,24 @@
+{
+  "name": "devicetree-language-server-vscode-types",
+  "package-name": "devicetree-language-server-vscode-types",
+  "version": "0.0.1-alpha.6",
+  "description": "Type definitions Devicetree LSP VS Code extension",
+  "git repository": "https://github.com/kylebonnici/dts-lsp/dts-lsp-types",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kylebonnici/dts-lsp"
+  },
+  "main": "./dist/index.d.ts",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "^4.0.0"
+  },
+  "author": "Kyle Micallef Bonnici",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "devicetree-language-server-types": "^0.0.2-alpha.3"
+  }
+}

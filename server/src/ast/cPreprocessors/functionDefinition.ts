@@ -16,7 +16,7 @@
 
 import { DocumentSymbol, SymbolKind } from "vscode-languageserver";
 import { CIdentifier } from "./cIdentifier";
-import { toRange } from "../../helpers";
+import { isPathEqual, toRange } from "../../helpers";
 import { ASTBase } from "../base";
 import { Keyword } from "../keyword";
 
@@ -37,7 +37,7 @@ export class FunctionDefinition extends ASTBase {
   }
 
   getDocumentSymbols(uri: string): DocumentSymbol[] {
-    if (this.uri !== uri) {
+    if (!isPathEqual(this.uri, uri)) {
       return [];
     }
     return [

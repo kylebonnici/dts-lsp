@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
+import type { BindingType } from "../../types/index";
 import { Node } from "../../context/node";
 import { INodeType } from "../types";
 import { getDevicetreeOrgBindingsLoader } from "./devicetree-org/loader";
 import { getZephyrBindingsLoader } from "./zephyr/loader";
 
-export type BindingType = "Zephyr" | "DevicetreeOrg";
-
 export interface BindingLoader {
   getNodeTypes(node: Node): Promise<INodeType[]>;
+  readonly type: BindingType;
+  readonly files: BindingLoaderFileType;
 }
 
 export interface BindingLoaderFileType {
@@ -35,6 +36,8 @@ export const getBindingLoader = (
   files: BindingLoaderFileType,
   type: BindingType
 ): BindingLoader => ({
+  files,
+  type,
   getNodeTypes: async (node: Node) => {
     switch (type) {
       case "Zephyr":

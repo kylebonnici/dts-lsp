@@ -17,11 +17,13 @@
 import {
   getTokenModifiers,
   getTokenTypes,
+  isPathEqual,
   pathToFileURL,
   toRange,
 } from "../helpers";
 import type {
   BuildSemanticTokensPush,
+  MacroRegistryItem,
   SemanticTokenModifiers,
   SemanticTokenType,
   Token,
@@ -89,7 +91,7 @@ export class ASTBase {
         (child) => child.getDocumentSymbols(uri) ?? []
       );
 
-    if (this.uri !== uri) return [];
+    if (!isPathEqual(this.uri, uri)) return [];
 
     const range = toRange(this);
     return [
@@ -173,5 +175,13 @@ export class ASTBase {
       this.children.push(child);
     }
     this.allDescendantsCache = undefined;
+  }
+
+  toPrettyString(macros: Map<string, MacroRegistryItem>) {
+    return this.toString();
+  }
+
+  toString(radix?: number) {
+    return "TODO";
   }
 }

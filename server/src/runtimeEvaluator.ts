@@ -30,7 +30,14 @@ import { LabelRef } from "./ast/dtc/labelRef";
 import { Node } from "./context/node";
 import { Property } from "./context/property";
 import { Runtime } from "./context/runtime";
-import { genIssue, pathToFileURL, positionInBetween, toRange } from "./helpers";
+import {
+  generateContextId,
+  genIssue,
+  isPathEqual,
+  pathToFileURL,
+  positionInBetween,
+  toRange,
+} from "./helpers";
 import { Parser } from "./parser";
 import {
   DiagnosticSeverity,
@@ -41,9 +48,9 @@ import { NodePath, NodePathRef } from "./ast/dtc/values/nodePath";
 import { BindingLoader } from "./dtsTypes/bindings/bindingLoader";
 import { StringValue } from "./ast/dtc/values/string";
 import { existsSync } from "fs";
-import { basename } from "path";
 import { Comment } from "./ast/dtc/comment";
-import { BaseParser } from "./baseParser";
+import { basename } from "path";
+import type { File, Context, PartialBy, ResolvedContext } from "./types/index";
 
 export class ContextAware {
   _issues: Issue<ContextIssues>[] = [];
@@ -51,35 +58,90 @@ export class ContextAware {
   public parser: Parser;
   public overlayParsers: Parser[] = [];
   public overlays: string[] = [];
-  public readonly name: string | number;
+  public readonly id: string;
+  private readonly ctxNames_ = new Set<string | number>();
 
   constructor(
-    uri: string,
-    public readonly includePaths: string[],
-    public readonly bindingLoader?: BindingLoader,
-    overlays: string | string[] = [],
-    name?: string | number
+    readonly settings: PartialBy<Context, "ctxName">,
+    public readonly bindingLoader?: BindingLoader
   ) {
-    this.overlays = Array.isArray(overlays) ? overlays : [overlays];
+    const resolvedSettings: ResolvedContext = {
+      includePaths: [],
+      overlays: [],
+      zephyrBindings: [],
+      deviceOrgTreeBindings: [],
+      deviceOrgBindingsMetaSchema: [],
+      ...settings,
+      ctxName: settings.ctxName ?? basename(settings.dtsFile),
+      lockRenameEdits: [],
+    };
+    this.overlays = resolvedSettings.overlays;
     this.overlays.filter(existsSync);
 
-    this.parser = new Parser(uri, includePaths);
-    this.name = name ?? basename(uri);
+    this.parser = new Parser(
+      resolvedSettings.dtsFile,
+      resolvedSettings.includePaths
+    );
+    this.ctxNames_.add(resolvedSettings.ctxName);
+    this.id = generateContextId(resolvedSettings);
     this.parser.stable.then(() => {
       this.overlayParsers =
         this.overlays?.map(
           (overlay) =>
             new Parser(
               overlay,
-              includePaths,
+              resolvedSettings.includePaths,
               this.parser.cPreprocessorParser.macros
             )
         ) ?? [];
     });
   }
 
+  get ctxNames() {
+    return Array.from(this.ctxNames_);
+  }
+
+  addCtxName(name: string | number) {
+    this.ctxNames_.add(name);
+  }
+
+  removeCtxName(name: string | number) {
+    this.ctxNames_.delete(name);
+  }
+
   async getContextIssues() {
     return [...(await this.getRuntime()).issues, ...this._issues];
+  }
+
+  async getFileTree(): Promise<{ mainDtsPath: File; overlays: File[] }> {
+    const temp = new Map<string, { path: string; resolvedPath?: string }[]>();
+
+    const getTreeItem = (uri: string): File => {
+      return {
+        file: uri,
+        includes: (temp.get(uri) ?? []).map((f) =>
+          getTreeItem(f.resolvedPath ?? f.path)
+        ),
+      };
+    };
+
+    const runtime = await this.getRuntime();
+    runtime.includes.forEach((include) => {
+      let t = temp.get(include.uri);
+      if (!t) {
+        t = [];
+        temp.set(include.uri, t);
+      }
+      t.push({
+        path: include.path.path,
+        resolvedPath: include.resolvedPath,
+      });
+    });
+
+    return {
+      mainDtsPath: getTreeItem(this.parser.uri),
+      overlays: this.overlays.map(getTreeItem),
+    };
   }
 
   async stable() {
@@ -97,21 +159,22 @@ export class ContextAware {
 
   getContextFiles() {
     return [
-      ...this.overlayParsers.map((c) => c.uri),
-      this.parser.uri,
-      ...(this.parser.cPreprocessorParser.dtsIncludes
-        .flatMap((include) => include.resolvedPath)
-        .filter((f) => !!f) as string[]),
+      ...this.overlayParsers.flatMap((c) => c.getFiles()),
+      ...this.parser.getFiles(),
     ];
   }
 
   isInContext(uri: string): boolean {
-    return this.getContextFiles().some((file) => file === uri);
+    return this.getContextFiles().some((file) => isPathEqual(file, uri));
   }
 
   getUriParser(uri: string) {
-    let parser = this.overlayParsers.find((p) => p.getFiles().includes(uri));
-    parser ??= this.parser.getFiles().includes(uri) ? this.parser : undefined;
+    let parser = this.overlayParsers.find((p) =>
+      p.getFiles().some((p) => isPathEqual(p, uri))
+    );
+    parser ??= this.parser.getFiles().some((p) => isPathEqual(p, uri))
+      ? this.parser
+      : undefined;
     return parser;
   }
 
@@ -133,7 +196,7 @@ export class ContextAware {
       (runtime.rootNode.allBindingsProperties
         .filter(
           (p) =>
-            p.ast.uri === file &&
+            isPathEqual(p.ast.uri, file) &&
             (!position || positionInBetween(p.ast, file, position))
         )
         .flatMap((p) =>
@@ -158,7 +221,7 @@ export class ContextAware {
       ...((this.parser.cPreprocessorParser.dtsIncludes
         .filter(
           (include) =>
-            include.uri === file &&
+            isPathEqual(include.uri, file) &&
             (!position || positionInBetween(include, file, position))
         )
         .map((include) => {
@@ -284,7 +347,7 @@ export class ContextAware {
 
     this.linkPropertiesLabelsAndNodePaths(runtime);
 
-    console.log("evaluate", performance.now() - t);
+    console.log(`(ID: ${this.id}) evaluate`, performance.now() - t);
     return runtime;
   }
 
@@ -697,5 +760,11 @@ export class ContextAware {
     element.children.forEach((child) =>
       this.processChild(child, runtimeNodeParent, runtime)
     );
+  }
+
+  async toFullString() {
+    return `/dts-v1/;\n${(await this.getRuntime()).rootNode.toFullString(
+      (await this.getAllParsers()).at(-1)!.cPreprocessorParser.macros
+    )}`;
   }
 }
