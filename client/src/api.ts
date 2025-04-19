@@ -70,6 +70,12 @@ export class API implements IDeviceTreeAPI {
     ) as Promise<boolean>;
   }
 
+  getActiveContext() {
+    return this.client.sendRequest("devicetree/getActiveContext") as Promise<
+      ContextListItem | undefined
+    >;
+  }
+
   requestContext(ctx: Context) {
     return this.client.sendRequest(
       "devicetree/requestContext",

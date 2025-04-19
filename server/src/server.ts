@@ -1530,6 +1530,23 @@ connection.onRequest(
 );
 
 connection.onRequest(
+  "devicetree/getActiveContext",
+  async (id: string): Promise<ContextListItem | undefined> => {
+    await allStable();
+    console.log("devicetree/getActiveContext", id);
+    const result = await updateActiveContext({ id }, true);
+    return activeContext
+      ? {
+          ctxNames: activeContext.ctxNames.map((c) => c.toString()),
+          id: id,
+          ...(await activeContext.getFileTree()),
+          settings: activeContext.settings,
+        }
+      : undefined;
+  }
+);
+
+connection.onRequest(
   "devicetree/setDefaultSettings",
   async (setting: IntegrationSettings) => {
     await allStable();
