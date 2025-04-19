@@ -383,6 +383,14 @@ export const findContext = (
     return;
   }
 
+  if ("name" in id) {
+    const context = contextAware?.find((f) => f.ctxNames.includes(id.name));
+    if (context) {
+      return context;
+    }
+    return;
+  }
+
   if (activeContext?.getContextFiles().find((f) => isPathEqual(f, id.uri)))
     return activeContext;
 

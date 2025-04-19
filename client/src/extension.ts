@@ -118,7 +118,7 @@ export async function activate(context: vscode.ExtensionContext) {
       "devicetree.context.set.active",
       async () => {
         const context = await SelectContext(api);
-        api.setActiveContext(context.id);
+        api.setActiveContextById(context.id);
       }
     ),
     vscode.commands.registerCommand("devicetree.context.output", async () => {

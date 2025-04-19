@@ -63,11 +63,16 @@ export class API implements IDeviceTreeAPI {
     return this.client.sendRequest("devicetree/getContexts");
   }
 
-  setActiveContext(id: string) {
-    return this.client.sendRequest(
-      "devicetree/setActive",
-      id
-    ) as Promise<boolean>;
+  setActiveContextById(id: string) {
+    return this.client.sendRequest("devicetree/setActive", {
+      id,
+    }) as Promise<boolean>;
+  }
+
+  setActiveContextByName(name: string) {
+    return this.client.sendRequest("devicetree/setActive", {
+      name,
+    }) as Promise<boolean>;
   }
 
   getActiveContext() {

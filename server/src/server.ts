@@ -1521,10 +1521,10 @@ connection.onRequest(
 
 connection.onRequest(
   "devicetree/setActive",
-  async (id: string): Promise<boolean> => {
+  async (id: ContextId): Promise<boolean> => {
     await allStable();
     console.log("devicetree/setActive", id);
-    const result = await updateActiveContext({ id }, true);
+    const result = await updateActiveContext(id, true);
     return result;
   }
 );
@@ -1569,6 +1569,16 @@ connection.onRequest(
     );
     console.log("devicetree/requestContext", resolvedContext);
     const id = generateContextId(resolvedContext);
+    const sameNameCtx = Array.from(integrationContext).find(
+      ([, ic]) => ic.ctxName === ctx.ctxName
+    );
+    if (sameNameCtx) {
+      const id = sameNameCtx[0].split(":", 1)[0];
+      console.log(
+        `Removing integration context with ID ${id} and name ${ctx.ctxName}`
+      );
+      integrationContext.delete(sameNameCtx[0]);
+    }
     integrationContext.set(`${id}:${ctx.ctxName}`, ctx);
 
     await loadSettings();
