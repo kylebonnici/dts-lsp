@@ -18,15 +18,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Changes overlays files where not being repassed
+- Changes to overlays files where not being repassed
 - No semantic tokens for overlays files
 - No syntax diagnostics for overlays files
 - No document symbols for overlays files
 - Exception when parsing zephyr binding with no include property
 - Parsing issue when a node path is `prop = &{}`
 - Issue with `setting` path case sensitivity on windows
-- toString output for bytestring is now shown in hexadecimal not decimal
-- Issue where in some cases diagnostics disappear on typing when two context share the same file.
+- toString output for bytestring is now shown as hexadecimal not decimal
+- Issue where in some cases diagnostics disappear when typing when two context share the same file.
 
 # 0.2.5 - 2025-04-08
 
