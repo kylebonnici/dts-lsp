@@ -33,7 +33,6 @@ import {
   genIssue,
   getDeepestAstNodeInBetween,
   isLastTokenOnLine,
-  isPathEqual,
   positionInBetween,
   sortAstForScope,
 } from "../helpers";
@@ -60,12 +59,6 @@ export class Runtime implements Searchable {
 
   public labelsUsedCache = new Map<string, string[]>();
 
-  static getFileTopMostAst = (astNode: ASTBase, file: string): ASTBase[] => {
-    return isPathEqual(astNode.uri, file)
-      ? [astNode]
-      : astNode.children.flatMap((c) => Runtime.getFileTopMostAst(c, file));
-  };
-
   private fileTopMostAstCache = new Map<string, ASTBase[]>();
 
   fileTopMostAst(file: string) {
@@ -82,7 +75,7 @@ export class Runtime implements Searchable {
       ...this.context.overlayParsers.flatMap(
         (op) => op.cPreprocessorParser.allAstItems
       ),
-    ].flatMap((c) => Runtime.getFileTopMostAst(c, file));
+    ].flatMap((c) => c.getTopMostAstNodeForFile(file));
 
     this.fileTopMostAstCache.set(file, result);
     return result;

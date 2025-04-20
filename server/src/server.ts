@@ -279,7 +279,7 @@ connection.onInitialize((params: InitializeParams) => {
   // The workspace folder this server is operating on
   workspaceFolder = params.workspaceFolders;
   connection.console.log(
-    `[Server(${process.pid}) ${workspaceFolder?.[0].uri} Version 0.3.0 ] Started and initialize received`
+    `[Server(${process.pid}) ${workspaceFolder?.[0].uri} Version 0.3.1 ] Started and initialize received`
   );
 
   const capabilities = params.capabilities;
