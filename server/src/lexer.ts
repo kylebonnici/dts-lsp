@@ -598,15 +598,17 @@ export class Lexer {
       // rewind to beginning of string just after "
       this.rewind(word.slice(1));
       const line = this.lineNumber;
-      const col = this.columnNumber;
+      const col = this.columnNumber - 1; // we have already moved ....
       const string = this.getString(match[0]);
+      const len = string.length + this.numberOfEscapedCharsLastString;
       this.pushToken({
         tokens: [LexerToken.STRING],
         value: string,
         pos: {
-          col: col - 1, // we have already moved ....
+          col,
           line,
-          len: string.length + this.numberOfEscapedCharsLastString,
+          len,
+          colEnd: col + len,
         },
       });
 
@@ -941,10 +943,12 @@ export class Lexer {
   }
 
   private generatePos(word: string, expected: string): Position {
+    const col = this.columnNumber - word.length + this.lineNumberOfEscapedChars;
     return {
       line: this.lineNumber,
-      col: this.columnNumber - word.length + this.lineNumberOfEscapedChars,
+      col,
       len: expected.length,
+      colEnd: col + expected.length,
     };
   }
 }

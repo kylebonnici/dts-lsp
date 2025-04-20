@@ -113,7 +113,7 @@ export const positionAfter = (
 
   if (position.line > token.pos.line) return true;
 
-  return position.character > token.pos.col + token.pos.len;
+  return position.character > token.pos.colEnd;
 };
 
 export const positionBefore = (
@@ -144,8 +144,7 @@ export const positionInBetween = (
         ast.tokenIndexes.start.pos.col <= position.character)) &&
     (ast.tokenIndexes.end.pos.line > position.line ||
       (ast.tokenIndexes.end.pos.line === position.line &&
-        ast.tokenIndexes.end.pos.col + ast.tokenIndexes.end.pos.len >=
-          position.character))
+        ast.tokenIndexes.end.pos.colEnd >= position.character))
   );
 };
 
@@ -161,8 +160,7 @@ export const positionSameLineAndNotAfter = (
     ast.tokenIndexes?.end &&
     (ast.tokenIndexes.start.pos.line === position.line ||
       ast.tokenIndexes.end.pos.line === position.line) &&
-    position.character >=
-      ast.tokenIndexes.end.pos.col + ast.tokenIndexes.end.pos.len
+    position.character >= ast.tokenIndexes.end.pos.colEnd
   );
 };
 
@@ -314,8 +312,7 @@ export async function nodeFinder<T>(
         ast.tokenIndexes?.end &&
         (ast.tokenIndexes.end.pos.line < position.line ||
           (ast.tokenIndexes.end.pos.line === position.line &&
-            ast.tokenIndexes.end.pos.col + ast.tokenIndexes.end.pos.len <=
-              position.character))
+            ast.tokenIndexes.end.pos.colEnd <= position.character))
       );
     }
 
@@ -357,7 +354,7 @@ export const adjacentTokens = (tokenA?: Token, tokenB?: Token) => {
     !!tokenA &&
     !!tokenB &&
     sameLine(tokenA, tokenB) &&
-    tokenA.pos.col + tokenA.pos.len === tokenB.pos.col
+    tokenA.pos.colEnd === tokenB.pos.col
   );
 };
 

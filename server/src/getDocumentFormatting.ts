@@ -131,10 +131,7 @@ const removeNewLinesBetweenTokenAndPrev = (
     ) {
       return TextEdit.replace(
         Range.create(
-          Position.create(
-            token.prevToken.pos.line,
-            token.prevToken.pos.col + token.prevToken.pos.len
-          ),
+          Position.create(token.prevToken.pos.line, token.prevToken.pos.colEnd),
           Position.create(token.pos.line - expectedNewLines, token.pos.col)
         ),
         "".padEnd(expectedNewLines - 1, "\n")
@@ -192,22 +189,21 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
     }
     return [
       TextEdit.insert(
-        Position.create(token.pos.line, token.pos.col + token.pos.len),
+        Position.create(token.pos.line, token.pos.colEnd),
         "".padEnd(expectedSpaces, " ")
       ),
       removeNewLinesEdit,
     ];
   }
 
-  const numberOfWhiteSpace =
-    token.nextToken.pos.col - (token.pos.col + token.pos.len);
+  const numberOfWhiteSpace = token.nextToken.pos.col - token.pos.colEnd;
 
   if (numberOfWhiteSpace === expectedSpaces) return [];
 
   return [
     TextEdit.replace(
       Range.create(
-        Position.create(token.pos.line, token.pos.col + token.pos.len),
+        Position.create(token.pos.line, token.pos.colEnd),
         Position.create(token.nextToken.pos.line, token.nextToken.pos.col)
       ),
       "".padEnd(expectedSpaces, " ")

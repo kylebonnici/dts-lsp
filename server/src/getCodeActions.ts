@@ -96,7 +96,7 @@ const syntaxIssueToCodeAction = (
                   Range.create(
                     Position.create(
                       diagnostic.range.start.line,
-                      firstToken.pos.col + firstToken.pos.len
+                      firstToken.pos.colEnd
                     ),
                     Position.create(
                       diagnostic.range.end.line,

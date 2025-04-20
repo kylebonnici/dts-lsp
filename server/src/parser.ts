@@ -592,7 +592,7 @@ export class Parser extends BaseParser {
       if (
         lastNameToken &&
         (token.pos.line !== node.firstToken.pos.line ||
-          token.pos.col !== lastNameToken.pos.col + lastNameToken.pos.len)
+          token.pos.col !== lastNameToken.pos.colEnd)
       ) {
         this._issues.push(
           genIssue(
@@ -1424,8 +1424,7 @@ export class Parser extends BaseParser {
     if (
       ampersandToken &&
       (labelName.firstToken.pos.line !== ampersandToken.pos.line ||
-        labelName.firstToken.pos.col !==
-          ampersandToken.pos.col + ampersandToken.pos.len)
+        labelName.firstToken.pos.col !== ampersandToken.pos.colEnd)
     ) {
       this._issues.push(
         genIssue(

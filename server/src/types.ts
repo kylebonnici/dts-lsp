@@ -239,6 +239,7 @@ export interface Position {
   line: number;
   col: number;
   len: number;
+  colEnd: number;
 }
 export interface Token {
   prevToken?: Token;

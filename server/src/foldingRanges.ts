@@ -69,7 +69,7 @@ const ifElIfBlockToRange = (
       startLine: b.start.pos.line,
       startCharacter: b.start.pos.col,
       endLine: b.end.pos.line,
-      endCharacter: b.end.pos.col + b.end.pos.len,
+      endCharacter: b.end.pos.colEnd,
       kind: FoldingRangeKind.Region,
     });
   });

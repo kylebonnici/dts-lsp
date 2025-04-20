@@ -402,10 +402,7 @@ describe("Type Issues", () => {
           StandardTypeIssue.EXPECTED_UNIQUE_PHANDLE,
         ]);
         expect(issues[0].linkedTo[0].firstToken.pos.col).toEqual(9);
-        expect(
-          issues[0].linkedTo[0].lastToken.pos.col +
-            issues[0].linkedTo[0].lastToken.pos.len
-        ).toEqual(22);
+        expect(issues[0].linkedTo[0].lastToken.pos.colEnd).toEqual(22);
       });
     });
 
@@ -1217,15 +1214,9 @@ describe("Type Issues", () => {
         expect(issues.length).toEqual(1);
         expect(issues[0].issues).toEqual([StandardTypeIssue.IGNORED]);
         expect(issues[0].astElement.firstToken.pos.col).toEqual(68);
-        expect(
-          issues[0].astElement.lastToken.pos.col +
-            issues[0].astElement.lastToken.pos.len
-        ).toEqual(86);
+        expect(issues[0].astElement.lastToken.pos.colEnd).toEqual(86);
         expect(issues[0].linkedTo[0].firstToken.pos.col).toEqual(87);
-        expect(
-          issues[0].linkedTo[0].lastToken.pos.col +
-            issues[0].linkedTo[0].lastToken.pos.len
-        ).toEqual(120);
+        expect(issues[0].linkedTo[0].lastToken.pos.colEnd).toEqual(120);
       });
 
       test("valid type single cell - label ref", async () => {
@@ -1328,10 +1319,7 @@ describe("Type Issues", () => {
           StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
         ]);
         expect(issues[0].astElement.firstToken.pos.col).toEqual(32);
-        expect(
-          issues[0].astElement.lastToken.pos.col +
-            issues[0].astElement.lastToken.pos.len
-        ).toEqual(33);
+        expect(issues[0].astElement.lastToken.pos.colEnd).toEqual(33);
       });
 
       test("valid type invalid cell count ", async () => {
@@ -1350,10 +1338,7 @@ describe("Type Issues", () => {
           StandardTypeIssue.INTERRUPTS_VALUE_CELL_MISS_MATCH,
         ]);
         expect(issues[0].linkedTo[0].firstToken.pos.col).toEqual(46);
-        expect(
-          issues[0].linkedTo[0].lastToken.pos.col +
-            issues[0].linkedTo[0].lastToken.pos.len
-        ).toEqual(69);
+        expect(issues[0].linkedTo[0].lastToken.pos.colEnd).toEqual(69);
         expect(issues[0].templateStrings[1]).toEqual("3");
       });
 
@@ -1373,10 +1358,7 @@ describe("Type Issues", () => {
           StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
         ]);
         expect(issues[0].linkedTo[0].firstToken.pos.col).toEqual(2);
-        expect(
-          issues[0].linkedTo[0].lastToken.pos.col +
-            issues[0].linkedTo[0].lastToken.pos.len
-        ).toEqual(7);
+        expect(issues[0].linkedTo[0].lastToken.pos.colEnd).toEqual(7);
         expect(issues[0].templateStrings[1]).toEqual("#interrupt-cells");
       });
 

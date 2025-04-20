@@ -238,9 +238,7 @@ export abstract class BaseParser {
         return;
 
       const lengthEnd =
-        tokenIndexes.end.pos.col -
-        tokenIndexes.start.pos.col +
-        tokenIndexes.end.pos.len;
+        tokenIndexes.end.pos.col - tokenIndexes.start.pos.colEnd;
       result.push({
         line: tokenIndexes.start.pos.line,
         char: tokenIndexes.start.pos.col,
