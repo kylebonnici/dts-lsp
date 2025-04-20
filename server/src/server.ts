@@ -1574,6 +1574,9 @@ connection.onRequest(
     );
     if (sameNameCtx) {
       const id = sameNameCtx[0].split(":", 1)[0];
+      findContext(contextAware, {
+        name: ctx.ctxName.toString(),
+      })?.removeCtxName(ctx.ctxName);
       console.log(
         `Removing integration context with ID ${id} and name ${ctx.ctxName}`
       );
