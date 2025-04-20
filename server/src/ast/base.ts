@@ -78,6 +78,11 @@ export class ASTBase {
     return this.firstToken.uri;
   }
 
+  getTopMostAstNodeForFile(file: string): ASTBase[] {
+    if (isPathEqual(file, this.uri)) return [this];
+    return this.children.flatMap((c) => c.getTopMostAstNodeForFile(file));
+  }
+
   get tokenIndexes(): TokenIndexes {
     return {
       start: this.firstToken,
