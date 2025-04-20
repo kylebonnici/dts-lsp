@@ -497,7 +497,7 @@ export const pathToFileURL = (path: string) => {
 };
 
 export const fileURLToPath = (fileUrl: string) => {
-  return url.fileURLToPath(fileUrl);
+  return normalizePath(url.fileURLToPath(fileUrl));
 };
 
 export const isPathEqual = (
@@ -505,9 +505,6 @@ export const isPathEqual = (
   pathB: string | undefined
 ) => {
   if (!pathA || !pathB) return false;
-
-  pathA = normalizePath(pathA);
-  pathB = normalizePath(pathB);
 
   return pathA === pathB;
 };

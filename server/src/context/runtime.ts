@@ -33,7 +33,6 @@ import {
   genIssue,
   getDeepestAstNodeInBetween,
   isLastTokenOnLine,
-  isPathEqual,
   positionInBetween,
   sortAstForScope,
 } from "../helpers";
