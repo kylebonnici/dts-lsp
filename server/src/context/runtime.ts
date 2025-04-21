@@ -61,7 +61,7 @@ export class Runtime implements Searchable {
 
   private fileTopMostAstCache = new Map<string, ASTBase[]>();
 
-  fileTopMostAst(file: string) {
+  fileTopMostAsts(file: string) {
     const cache = this.fileTopMostAstCache.get(file);
     if (cache) return cache;
     // TODO consider a different way to optain this as this is costly
@@ -85,7 +85,7 @@ export class Runtime implements Searchable {
     file: string,
     position: Position
   ): SearchableResult | undefined {
-    const fileAsts = this.fileTopMostAst(file);
+    const fileAsts = this.fileTopMostAsts(file);
 
     const dtcNode = fileAsts.find(
       (i) =>
