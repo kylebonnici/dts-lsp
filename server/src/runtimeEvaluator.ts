@@ -775,4 +775,9 @@ export class ContextAware {
       (await this.getAllParsers()).at(-1)!.cPreprocessorParser.macros
     )}`;
   }
+  async serialize() {
+    return (await this?.getRuntime())?.rootNode.serialize(
+      (await this.getAllParsers()).at(-1)!.cPreprocessorParser.macros
+    );
+  }
 }

@@ -17,6 +17,7 @@
 import { SymbolKind } from "vscode-languageserver";
 import { ASTBase } from "../../base";
 import { NodeName } from "../node";
+import { SerializableNodePath } from "../../../types/index";
 
 export class NodePath extends ASTBase {
   private _pathParts: (NodeName | null)[] = [];
@@ -60,5 +61,13 @@ export class NodePathRef extends ASTBase {
 
   toJson() {
     return -1;
+  }
+
+  serialize(): SerializableNodePath {
+    return new SerializableNodePath(
+      this.path?.toString() ?? null,
+      this.uri,
+      this.range
+    );
   }
 }

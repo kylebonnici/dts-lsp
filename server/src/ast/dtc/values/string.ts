@@ -17,6 +17,7 @@
 import { ASTBase } from "../../base";
 import { SymbolKind } from "vscode-languageserver";
 import { TokenIndexes } from "../../../types";
+import { SerializableStringValue } from "../../../types/index";
 
 export class StringValue extends ASTBase {
   constructor(public readonly value: string, tokenIndexes: TokenIndexes) {
@@ -35,5 +36,9 @@ export class StringValue extends ASTBase {
 
   toJson() {
     return this.value;
+  }
+
+  serialize(): SerializableStringValue {
+    return new SerializableStringValue(this.value, this.uri, this.range);
   }
 }

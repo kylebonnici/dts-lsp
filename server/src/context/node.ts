@@ -54,6 +54,7 @@ import { getNodeNameOrNodeLabelRef } from "../ast/helpers";
 import { getStandardType } from "../dtsTypes/standardTypes";
 import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
 import { INodeType } from "../dtsTypes/types";
+import { SerializedNode } from "../types/index";
 
 export class Node {
   public referencedBy: DtcRefNode[] = [];
@@ -608,5 +609,17 @@ ${"\t".repeat(level - 1)}}; */`;
         : ""
     } 
 ${"\t".repeat(level - 1)}}; ${isOmmited ? " */" : ""}`;
+  }
+
+  serialize(macros: Map<string, MacroRegistryItem>): SerializedNode {
+    return {
+      name: this.fullName,
+      nodes: [
+        ...this.definitions.map((d) => d.serialize(macros)),
+        ...this.referencedBy.map((d) => d.serialize(macros)),
+      ],
+      properties: this.property.map((p) => p.ast.serialize(macros)),
+      childNodes: this.nodes.map((n) => n.serialize(macros)),
+    };
   }
 }

@@ -81,6 +81,7 @@ import type {
   ContextType,
   IntegrationSettings,
   ResolvedContext,
+  SerializedNode,
   Settings,
 } from "./types/index";
 import {
@@ -1657,6 +1658,18 @@ connection.onRequest(
     }
     const ctx = findContext(contextAware, { id });
     return ctx?.toFullString();
+  }
+);
+
+connection.onRequest(
+  "devicetree/serializedContext",
+  async (id: string): Promise<SerializedNode | undefined> => {
+    await allStable();
+    if (!id) {
+      return;
+    }
+    const ctx = findContext(contextAware, { id });
+    return ctx?.serialize();
   }
 );
 
