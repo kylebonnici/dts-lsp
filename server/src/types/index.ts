@@ -119,7 +119,7 @@ export class SerializableArrayValue extends SerializableASTBase {
   readonly type: PropertyType = "ARRAY_VALUE";
 
   constructor(
-    public readonly values: (
+    public readonly value: (
       | SerializableLabelRef
       | SerializableNodePath
       | SerializableExpressionBase
