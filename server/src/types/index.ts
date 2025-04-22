@@ -285,6 +285,7 @@ export class SerializableChildNode extends SerializableNodeBase {
 }
 
 export type SerializedNode = {
+  path: string;
   name: string;
   nodes: SerializableNodeBase[];
   properties: SerializableDtcProperty[];

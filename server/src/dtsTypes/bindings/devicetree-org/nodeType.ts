@@ -87,14 +87,14 @@ export class DevicetreeOrgNodeType extends INodeType {
           );
           console.log(
             this.schemaKey,
-            `${node.path.join("/")}`,
+            `${node.pathString}`,
             this.validate.errors,
             nodeJson
           );
         }
       }
     } catch (ee) {
-      console.log(this.schemaKey, `${node.path.join("/")}`, this.schemaKey, ee);
+      console.log(this.schemaKey, `${node.pathString}`, this.schemaKey, ee);
     }
 
     return issue;

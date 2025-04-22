@@ -47,7 +47,7 @@ export class LabelRef extends ASTBase {
   serialize(): SerializableLabelRef {
     return new SerializableLabelRef(
       this.label?.toString() ?? null,
-      this.linksTo?.path.join("/") ?? null,
+      this.linksTo?.pathString ?? null,
       this.uri,
       this.range
     );

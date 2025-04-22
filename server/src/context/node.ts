@@ -613,6 +613,7 @@ ${"\t".repeat(level - 1)}}; ${isOmmited ? " */" : ""}`;
 
   serialize(macros: Map<string, MacroRegistryItem>): SerializedNode {
     return {
+      path: this.pathString,
       name: this.fullName,
       nodes: [
         ...this.definitions.map((d) => d.serialize(macros)),
