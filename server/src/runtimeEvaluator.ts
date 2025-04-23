@@ -23,7 +23,7 @@ import {
   NodeName,
 } from "./ast/dtc/node";
 import { DtcProperty } from "./ast/dtc/property";
-import { ContextIssues, Issue, Token } from "./types";
+import { CodeActionDiagnosticData, ContextIssues, Issue, Token } from "./types";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
 import { DeleteNode } from "./ast/dtc/deleteNode";
 import { LabelRef } from "./ast/dtc/labelRef";
@@ -31,15 +31,21 @@ import { Node } from "./context/node";
 import { Property } from "./context/property";
 import { Runtime } from "./context/runtime";
 import {
+  contextIssuesToLinkedMessage,
+  contextIssuesToMessage,
   generateContextId,
   genIssue,
   isPathEqual,
   pathToFileURL,
   positionInBetween,
+  standardTypeIssueIssuesToMessage,
+  standardTypeToLinkedMessage,
+  syntaxIssueToMessage,
   toRange,
 } from "./helpers";
 import { Parser } from "./parser";
 import {
+  Diagnostic,
   DiagnosticSeverity,
   DocumentLink,
   Position,
@@ -768,6 +774,120 @@ export class ContextAware {
     element.children.forEach((child) =>
       this.processChild(child, runtimeNodeParent, runtime)
     );
+  }
+
+  async getDiagnostics(): Promise<Map<string, Diagnostic[]>> {
+    const result = new Map<string, Diagnostic[]>();
+    const add = (diagnostic: Diagnostic, uri: string) => {
+      let list: Diagnostic[] | undefined = result.get(uri);
+      if (!list) {
+        list = [];
+        result.set(uri, list);
+      }
+      list.push(diagnostic);
+    };
+    try {
+      (await this.getAllParsers()).forEach((parser) => {
+        parser.issues.forEach((issue) => {
+          const diagnostic: Diagnostic = {
+            severity: issue.severity,
+            range: toRange(issue.astElement),
+            message: issue.issues
+              ? issue.issues.map(syntaxIssueToMessage).join(" or ")
+              : "",
+            source: "devicetree",
+            tags: issue.tags,
+            data: {
+              firstToken: {
+                pos: issue.astElement.firstToken.pos,
+                tokens: issue.astElement.firstToken.tokens,
+                value: issue.astElement.firstToken.value,
+              },
+              lastToken: {
+                pos: issue.astElement.lastToken.pos,
+                tokens: issue.astElement.lastToken.tokens,
+                value: issue.astElement.lastToken.value,
+              },
+              issues: {
+                type: "SyntaxIssue",
+                items: issue.issues,
+                edit: issue.edit,
+                codeActionTitle: issue.codeActionTitle,
+              },
+            } satisfies CodeActionDiagnosticData,
+          };
+          add(diagnostic, issue.astElement.uri);
+        });
+      });
+
+      const contextIssues = (await this.getContextIssues()) ?? [];
+      contextIssues.forEach((issue) => {
+        const diagnostic: Diagnostic = {
+          severity: issue.severity,
+          range: toRange(issue.astElement),
+          message: contextIssuesToMessage(issue),
+          source: "devicetree",
+          tags: issue.tags,
+          relatedInformation: [
+            ...issue.linkedTo.map((element) => ({
+              message: issue.issues
+                .map(contextIssuesToLinkedMessage)
+                .join(" or "),
+              location: {
+                uri: pathToFileURL(element.uri!),
+                range: toRange(element),
+              },
+            })),
+          ],
+        };
+        add(diagnostic, issue.astElement.uri);
+      });
+
+      const runtime = await this.getRuntime();
+      runtime?.typesIssues.forEach((issue) => {
+        const diagnostic: Diagnostic = {
+          severity: issue.severity,
+          range: toRange(issue.astElement),
+          message: standardTypeIssueIssuesToMessage(issue),
+          relatedInformation: [
+            ...issue.linkedTo.map((element) => ({
+              message: issue.issues
+                .map(standardTypeToLinkedMessage)
+                .join(" or "),
+              location: {
+                uri: pathToFileURL(element.uri!),
+                range: toRange(element),
+              },
+            })),
+          ],
+          source: "devicetree",
+          tags: issue.tags,
+          data: {
+            firstToken: {
+              pos: issue.astElement.firstToken.pos,
+              tokens: issue.astElement.firstToken.tokens,
+              value: issue.astElement.firstToken.value,
+            },
+            lastToken: {
+              pos: issue.astElement.lastToken.pos,
+              tokens: issue.astElement.lastToken.tokens,
+              value: issue.astElement.lastToken.value,
+            },
+            issues: {
+              type: "StandardTypeIssue",
+              items: issue.issues,
+              edit: issue.edit,
+              codeActionTitle: issue.codeActionTitle,
+            },
+          } satisfies CodeActionDiagnosticData,
+        };
+        add(diagnostic, issue.astElement.uri);
+      });
+      return result;
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
   }
 
   async toFullString() {
