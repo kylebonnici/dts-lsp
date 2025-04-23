@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Issue, StandardTypeIssue } from "../../types";
+import { FileDiagnostic, StandardTypeIssue } from "../../types";
 import { PropertyNodeType, PropertyType } from "../types";
 import {
   flatNumberValues,
@@ -22,7 +22,7 @@ import {
   getInterruptInfo,
   resolvePhandleNode,
 } from "./helpers";
-import { genIssue } from "../../helpers";
+import { genStandardTypeDiagnostic } from "../../helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
 
 export default () => {
@@ -33,14 +33,14 @@ export default () => {
     undefined,
     [],
     (property) => {
-      const issues: Issue<StandardTypeIssue>[] = [];
+      const issues: FileDiagnostic[] = [];
 
       const node = property.parent;
       const interrupts = node.getProperty("interrupts");
 
       if (interrupts) {
         issues.push(
-          genIssue(
+          genStandardTypeDiagnostic(
             StandardTypeIssue.IGNORED,
             interrupts.ast,
             DiagnosticSeverity.Warning,
@@ -54,7 +54,7 @@ export default () => {
       const interruptParent = node.getProperty("interrupt-parent");
       if (interruptParent) {
         issues.push(
-          genIssue(
+          genStandardTypeDiagnostic(
             StandardTypeIssue.IGNORED,
             interruptParent.ast,
             DiagnosticSeverity.Warning,
@@ -81,7 +81,7 @@ export default () => {
 
         if (!phandleNode) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
               values[i],
               DiagnosticSeverity.Error
@@ -94,7 +94,7 @@ export default () => {
 
         if (!interruptCells.cellsProperty) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
               property.ast,
               DiagnosticSeverity.Error,
@@ -118,7 +118,7 @@ export default () => {
 
         if (interruptCells.value != null && interruptCells.value > remaining) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.INTERRUPTS_VALUE_CELL_MISS_MATCH,
               values[i],
               DiagnosticSeverity.Error,

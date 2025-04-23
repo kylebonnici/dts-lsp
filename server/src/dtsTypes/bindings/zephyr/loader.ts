@@ -16,8 +16,8 @@ import {
   getU32ValueFromProperty,
   resolvePhandleNode,
 } from "../../../dtsTypes/standardTypes/helpers";
-import { Issue, StandardTypeIssue } from "../../../types";
-import { genIssue } from "../../../helpers";
+import { FileDiagnostic, Issue, StandardTypeIssue } from "../../../types";
+import { genStandardTypeDiagnostic } from "../../../helpers";
 import { DiagnosticSeverity, DiagnosticTag } from "vscode-languageserver";
 import { Property } from "../../../context/property";
 
@@ -417,7 +417,7 @@ const generateZephyrTypeCheck = (
   const myProperty = property;
   return (p: Property) => {
     const root = p.parent.root;
-    const issues: Issue<StandardTypeIssue>[] = [];
+    const issues: FileDiagnostic[] = [];
 
     if (myProperty.const) {
       const quickValues = p.ast.quickValues;
@@ -436,7 +436,7 @@ const generateZephyrTypeCheck = (
 
         if (!equal) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.EXPECTED_VALUE,
               p.ast.values ?? p.ast,
               DiagnosticSeverity.Error,
@@ -453,7 +453,7 @@ const generateZephyrTypeCheck = (
 
     if (myProperty.deprecated) {
       issues.push(
-        genIssue(
+        genStandardTypeDiagnostic(
           StandardTypeIssue.DEPRECATED,
           p.ast,
           DiagnosticSeverity.Warning,
@@ -474,7 +474,7 @@ const generateZephyrTypeCheck = (
         const phandelValue = resolvePhandleNode(v, root);
         if (!phandelValue) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.UNABLE_TO_RESOLVE_PHANDLE,
               v,
               DiagnosticSeverity.Error
@@ -495,7 +495,7 @@ const generateZephyrTypeCheck = (
         const node = root.getNode(p);
         if (!node) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.UNABLE_TO_RESOLVE_PATH,
               path,
               DiagnosticSeverity.Error,
@@ -519,7 +519,7 @@ const generateZephyrTypeCheck = (
         const phandelValue = resolvePhandleNode(v, root);
         if (!phandelValue) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.UNABLE_TO_RESOLVE_PHANDLE,
               v ?? p.ast,
               DiagnosticSeverity.Error
@@ -541,7 +541,7 @@ const generateZephyrTypeCheck = (
 
         if (!sizeCellProperty) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
               p.ast,
               DiagnosticSeverity.Error,
@@ -577,7 +577,7 @@ const generateZephyrTypeCheck = (
 
         if (1 + sizeCellValue > values.length - i) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.CELL_MISS_MATCH,
               v ?? p.ast,
               DiagnosticSeverity.Error,

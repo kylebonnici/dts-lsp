@@ -70,7 +70,8 @@ export abstract class Expression extends ASTBase {
       this.toString(),
       this.evaluate(macros),
       this.uri,
-      this.range
+      this.range,
+      this.serializeIssues
     );
   }
 }

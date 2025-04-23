@@ -293,8 +293,6 @@ const syntaxIssueToCodeAction = (
 };
 
 const standardTypeIssueToCodeAction = (
-  firstToken: Omit<Token, "prevToken" | "nextToken" | "uri">,
-  lastToken: Omit<Token, "prevToken" | "nextToken" | "uri">,
   issue: StandardTypeIssue,
   diagnostic: Diagnostic,
   uri: string,
@@ -395,8 +393,6 @@ export function getCodeActions(
         case "StandardTypeIssue":
           return tmp?.issues.items.flatMap((issue) =>
             standardTypeIssueToCodeAction(
-              tmp.firstToken,
-              tmp.lastToken,
               issue,
               diagnostic,
               codeActionParams.textDocument.uri,

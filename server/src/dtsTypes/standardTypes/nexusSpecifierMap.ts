@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Issue, StandardTypeIssue } from "../../types";
+import { FileDiagnostic, StandardTypeIssue } from "../../types";
 import { PropertyNodeType, PropertyType } from "../types";
 import {
   flatNumberValues,
@@ -22,7 +22,7 @@ import {
   resolvePhandleNode,
   getU32ValueFromProperty,
 } from "./helpers";
-import { genIssue } from "../../helpers";
+import { genStandardTypeDiagnostic } from "../../helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
 
 export default () => {
@@ -41,14 +41,14 @@ export default () => {
     (property) => {
       const specifier = property.name.split("-map", 1)[0];
 
-      const issues: Issue<StandardTypeIssue>[] = [];
+      const issues: FileDiagnostic[] = [];
       const node = property.parent;
       const root = property.parent.root;
       const childSpecifierCells = node.getProperty(`#${specifier}-cells`);
 
       if (!childSpecifierCells) {
         issues.push(
-          genIssue(
+          genStandardTypeDiagnostic(
             StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
             property.ast,
             DiagnosticSeverity.Error,
@@ -95,7 +95,7 @@ export default () => {
         if (values.length < i + 1) {
           const expLen = childSpecifierCellsValue + 1;
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.MAP_ENTRY_INCOMPLETE,
               values[values.length - 1],
               DiagnosticSeverity.Error,
@@ -124,7 +124,7 @@ export default () => {
         const specifierParent = resolvePhandleNode(values[i], root);
         if (!specifierParent) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
               values[i],
               DiagnosticSeverity.Error
@@ -139,7 +139,7 @@ export default () => {
 
         if (!parentSpecifierAddress) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
               values[i],
               DiagnosticSeverity.Error,
@@ -171,7 +171,7 @@ export default () => {
         if (values.length < i) {
           const expLen = childSpecifierCellsValue + 1 + parentUnitAddressValue;
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.MAP_ENTRY_INCOMPLETE,
               values[values.length - 1],
               DiagnosticSeverity.Error,

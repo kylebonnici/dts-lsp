@@ -57,8 +57,8 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.NODE_LOCATION]);
-        expect(issues[0].templateStrings).toEqual([
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.NODE_LOCATION]);
+        expect(issues[0].raw.templateStrings).toEqual([
           "Aliases node can only be added to a root node",
         ]);
       });
@@ -85,10 +85,10 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([
+        expect(issues[0].raw.issues).toEqual([
           StandardTypeIssue.PROPERTY_NOT_ALLOWED,
         ]);
-        expect(issues[0].templateStrings).toEqual(["abc,efg"]);
+        expect(issues[0].raw.templateStrings).toEqual(["abc,efg"]);
       });
 
       test("invalid property type", async () => {
@@ -101,11 +101,11 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([
+        expect(issues[0].raw.issues).toEqual([
           StandardTypeIssue.EXPECTED_STRING,
           StandardTypeIssue.EXPECTED_U32, // phandel
         ]);
-        expect(issues[0].templateStrings).toEqual(["abc"]);
+        expect(issues[0].raw.templateStrings).toEqual(["abc"]);
       });
 
       test("Cannot have child nodes", async () => {
@@ -118,8 +118,8 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.NODE_LOCATION]);
-        expect(issues[0].templateStrings).toEqual([
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.NODE_LOCATION]);
+        expect(issues[0].raw.templateStrings).toEqual([
           "Aliases node can not have child nodes",
         ]);
       });
@@ -136,8 +136,8 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.REQUIRED]);
-        expect(issues[0].templateStrings).toEqual(["reg"]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.REQUIRED]);
+        expect(issues[0].raw.templateStrings).toEqual(["reg"]);
       });
     });
 
@@ -152,12 +152,12 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(3);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.REQUIRED]);
-        expect(issues[0].templateStrings).toEqual(["#address-cells"]);
-        expect(issues[1].issues).toEqual([StandardTypeIssue.REQUIRED]);
-        expect(issues[1].templateStrings).toEqual(["#size-cells"]);
-        expect(issues[2].issues).toEqual([StandardTypeIssue.REQUIRED]);
-        expect(issues[2].templateStrings).toEqual(["ranges"]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.REQUIRED]);
+        expect(issues[0].raw.templateStrings).toEqual(["#address-cells"]);
+        expect(issues[1].raw.issues).toEqual([StandardTypeIssue.REQUIRED]);
+        expect(issues[1].raw.templateStrings).toEqual(["#size-cells"]);
+        expect(issues[2].raw.issues).toEqual([StandardTypeIssue.REQUIRED]);
+        expect(issues[2].raw.templateStrings).toEqual(["ranges"]);
       });
     });
 
@@ -172,10 +172,10 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(2);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.REQUIRED]);
-        expect(issues[0].templateStrings).toEqual(["#address-cells"]);
-        expect(issues[1].issues).toEqual([StandardTypeIssue.REQUIRED]);
-        expect(issues[1].templateStrings).toEqual(["#size-cells"]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.REQUIRED]);
+        expect(issues[0].raw.templateStrings).toEqual(["#address-cells"]);
+        expect(issues[1].raw.issues).toEqual([StandardTypeIssue.REQUIRED]);
+        expect(issues[1].raw.templateStrings).toEqual(["#size-cells"]);
       });
 
       test("size cells must be 0", async () => {
@@ -190,8 +190,8 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.INVALID_VALUE]);
-        expect(issues[0].templateStrings).toEqual([
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.INVALID_VALUE]);
+        expect(issues[0].raw.templateStrings).toEqual([
           "#size-cells value in cpus node must be '0'",
         ]);
       });
@@ -210,10 +210,10 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(2);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.REQUIRED]);
-        expect(issues[0].templateStrings).toEqual(["reg"]);
-        expect(issues[1].issues).toEqual([StandardTypeIssue.REQUIRED]);
-        expect(issues[1].templateStrings).toEqual(["device_type"]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.REQUIRED]);
+        expect(issues[0].raw.templateStrings).toEqual(["reg"]);
+        expect(issues[1].raw.issues).toEqual([StandardTypeIssue.REQUIRED]);
+        expect(issues[1].raw.templateStrings).toEqual(["device_type"]);
       });
     });
 
@@ -228,8 +228,8 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_ENUM]);
-        expect(issues[0].templateStrings).toEqual([
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.EXPECTED_ENUM]);
+        expect(issues[0].raw.templateStrings).toEqual([
           ["'okay'", "'disabled'", "'reserved'", "'fail'", "'fail-sss'"].join(
             " or "
           ),
@@ -246,7 +246,9 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_STRING]);
+        expect(issues[0].raw.issues).toEqual([
+          StandardTypeIssue.EXPECTED_STRING,
+        ]);
       });
     });
 
@@ -261,7 +263,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([
+        expect(issues[0].raw.issues).toEqual([
           StandardTypeIssue.EXPECTED_STRINGLIST,
         ]);
       });
@@ -304,7 +306,9 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_STRING]);
+        expect(issues[0].raw.issues).toEqual([
+          StandardTypeIssue.EXPECTED_STRING,
+        ]);
       });
 
       test("valid type single string", async () => {
@@ -331,7 +335,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_ONE]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.EXPECTED_ONE]);
       });
     });
 
@@ -346,7 +350,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
       });
 
       test("valid type dec", async () => {
@@ -383,7 +387,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
       });
 
       test("not unique phandel value", async () => {
@@ -398,11 +402,11 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([
+        expect(issues[0].raw.issues).toEqual([
           StandardTypeIssue.EXPECTED_UNIQUE_PHANDLE,
         ]);
-        expect(issues[0].linkedTo[0].firstToken.pos.col).toEqual(9);
-        expect(issues[0].linkedTo[0].lastToken.pos.colEnd).toEqual(22);
+        expect(issues[0].raw.linkedTo[0].firstToken.pos.col).toEqual(9);
+        expect(issues[0].raw.linkedTo[0].lastToken.pos.colEnd).toEqual(22);
       });
     });
 
@@ -419,7 +423,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
       });
 
       test("valid type dec", async () => {
@@ -458,7 +462,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
       });
 
       test("Requiered in root node", async () => {
@@ -471,8 +475,8 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.REQUIRED]);
-        expect(issues[0].templateStrings).toEqual(["#address-cells"]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.REQUIRED]);
+        expect(issues[0].raw.templateStrings).toEqual(["#address-cells"]);
       });
     });
 
@@ -487,7 +491,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
       });
 
       test("valid type dec", async () => {
@@ -524,7 +528,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
       });
 
       test("Requiered in root node", async () => {
@@ -537,8 +541,8 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.REQUIRED]);
-        expect(issues[0].templateStrings).toEqual(["#size-cells"]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.REQUIRED]);
+        expect(issues[0].raw.templateStrings).toEqual(["#size-cells"]);
       });
     });
 
@@ -555,7 +559,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.REQUIRED]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.REQUIRED]);
       });
 
       test("omitted", async () => {
@@ -570,7 +574,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.OMITTED]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.OMITTED]);
       });
 
       test("length omitted", async () => {
@@ -625,7 +629,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([
+        expect(issues[0].raw.issues).toEqual([
           StandardTypeIssue.EXPECTED_PROP_ENCODED_ARRAY,
         ]);
       });
@@ -664,7 +668,9 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.CELL_MISS_MATCH]);
+        expect(issues[0].raw.issues).toEqual([
+          StandardTypeIssue.CELL_MISS_MATCH,
+        ]);
       });
 
       test("Address mismatch - 2 size", async () => {
@@ -677,7 +683,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([
+        expect(issues[0].raw.issues).toEqual([
           StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_FIRST_VALUE,
         ]);
       });
@@ -694,7 +700,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([
+        expect(issues[0].raw.issues).toEqual([
           StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_FIRST_VALUE,
         ]);
       });
@@ -711,7 +717,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
       });
 
       test("valid type dec", async () => {
@@ -748,7 +754,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
       });
     });
 
@@ -763,7 +769,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([
+        expect(issues[0].raw.issues).toEqual([
           StandardTypeIssue.EXPECTED_EMPTY,
           StandardTypeIssue.EXPECTED_PROP_ENCODED_ARRAY,
         ]);
@@ -821,7 +827,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([
+        expect(issues[0].raw.issues).toEqual([
           StandardTypeIssue.EXPECTED_EMPTY,
           StandardTypeIssue.EXPECTED_PROP_ENCODED_ARRAY,
         ]);
@@ -879,7 +885,9 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_EMPTY]);
+        expect(issues[0].raw.issues).toEqual([
+          StandardTypeIssue.EXPECTED_EMPTY,
+        ]);
       });
 
       test("valid type empty", async () => {
@@ -906,7 +914,9 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_EMPTY]);
+        expect(issues[0].raw.issues).toEqual([
+          StandardTypeIssue.EXPECTED_EMPTY,
+        ]);
       });
 
       test("valid type empty", async () => {
@@ -933,8 +943,8 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].tags).toEqual([DiagnosticTag.Deprecated]);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.DEPRECATED]);
+        expect(issues[0].raw.tags).toEqual([DiagnosticTag.Deprecated]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.DEPRECATED]);
       });
 
       test("wrong type", async () => {
@@ -947,7 +957,9 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_STRING]);
+        expect(issues[0].raw.issues).toEqual([
+          StandardTypeIssue.EXPECTED_STRING,
+        ]);
       });
 
       test("valid type single string - cpu", async () => {
@@ -974,8 +986,8 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].tags).toEqual([DiagnosticTag.Deprecated]);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.DEPRECATED]);
+        expect(issues[0].raw.tags).toEqual([DiagnosticTag.Deprecated]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.DEPRECATED]);
       });
 
       test("valid type multiple string", async () => {
@@ -990,7 +1002,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_ONE]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.EXPECTED_ONE]);
       });
     });
 
@@ -1005,7 +1017,9 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_STRING]);
+        expect(issues[0].raw.issues).toEqual([
+          StandardTypeIssue.EXPECTED_STRING,
+        ]);
       });
 
       test("valid type single string", async () => {
@@ -1018,7 +1032,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.DEPRECATED]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.DEPRECATED]);
       });
 
       test("valid type multiple string", async () => {
@@ -1031,7 +1045,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_ONE]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.EXPECTED_ONE]);
       });
     });
 
@@ -1046,7 +1060,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([
+        expect(issues[0].raw.issues).toEqual([
           StandardTypeIssue.EXPECTED_PROP_ENCODED_ARRAY,
         ]);
       });
@@ -1089,7 +1103,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([
+        expect(issues[0].raw.issues).toEqual([
           StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
         ]);
       });
@@ -1106,7 +1120,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([
+        expect(issues[0].raw.issues).toEqual([
           StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
         ]);
       });
@@ -1137,7 +1151,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
       });
 
       test("valid type dec", async () => {
@@ -1180,7 +1194,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.EXPECTED_U32]);
       });
     });
 
@@ -1195,7 +1209,7 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([
+        expect(issues[0].raw.issues).toEqual([
           StandardTypeIssue.EXPECTED_PROP_ENCODED_ARRAY,
         ]);
       });
@@ -1212,11 +1226,11 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([StandardTypeIssue.IGNORED]);
-        expect(issues[0].astElement.firstToken.pos.col).toEqual(68);
-        expect(issues[0].astElement.lastToken.pos.colEnd).toEqual(86);
-        expect(issues[0].linkedTo[0].firstToken.pos.col).toEqual(87);
-        expect(issues[0].linkedTo[0].lastToken.pos.colEnd).toEqual(120);
+        expect(issues[0].raw.issues).toEqual([StandardTypeIssue.IGNORED]);
+        expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(68);
+        expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(86);
+        expect(issues[0].raw.linkedTo[0].firstToken.pos.col).toEqual(87);
+        expect(issues[0].raw.linkedTo[0].lastToken.pos.colEnd).toEqual(120);
       });
 
       test("valid type single cell - label ref", async () => {
@@ -1315,11 +1329,11 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([
+        expect(issues[0].raw.issues).toEqual([
           StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
         ]);
-        expect(issues[0].astElement.firstToken.pos.col).toEqual(32);
-        expect(issues[0].astElement.lastToken.pos.colEnd).toEqual(33);
+        expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(32);
+        expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(33);
       });
 
       test("valid type invalid cell count ", async () => {
@@ -1334,12 +1348,12 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([
+        expect(issues[0].raw.issues).toEqual([
           StandardTypeIssue.INTERRUPTS_VALUE_CELL_MISS_MATCH,
         ]);
-        expect(issues[0].linkedTo[0].firstToken.pos.col).toEqual(46);
-        expect(issues[0].linkedTo[0].lastToken.pos.colEnd).toEqual(69);
-        expect(issues[0].templateStrings[1]).toEqual("3");
+        expect(issues[0].raw.linkedTo[0].firstToken.pos.col).toEqual(46);
+        expect(issues[0].raw.linkedTo[0].lastToken.pos.colEnd).toEqual(69);
+        expect(issues[0].raw.templateStrings[1]).toEqual("3");
       });
 
       test("missing cell size", async () => {
@@ -1354,12 +1368,12 @@ describe("Type Issues", () => {
         const runtime = await context.getRuntime();
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
-        expect(issues[0].issues).toEqual([
+        expect(issues[0].raw.issues).toEqual([
           StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
         ]);
-        expect(issues[0].linkedTo[0].firstToken.pos.col).toEqual(2);
-        expect(issues[0].linkedTo[0].lastToken.pos.colEnd).toEqual(7);
-        expect(issues[0].templateStrings[1]).toEqual("#interrupt-cells");
+        expect(issues[0].raw.linkedTo[0].firstToken.pos.col).toEqual(2);
+        expect(issues[0].raw.linkedTo[0].lastToken.pos.colEnd).toEqual(7);
+        expect(issues[0].raw.templateStrings[1]).toEqual("#interrupt-cells");
       });
 
       test("Multiple interrupts", async () => {

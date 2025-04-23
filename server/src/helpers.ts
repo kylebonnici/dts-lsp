@@ -15,6 +15,7 @@
  */
 
 import {
+  Diagnostic,
   DiagnosticSeverity,
   DiagnosticTag,
   Position,
@@ -38,6 +39,8 @@ import {
   SyntaxIssue,
   ContextIssues,
   StandardTypeIssue,
+  CodeActionDiagnosticData,
+  FileDiagnostic,
 } from "./types";
 import { ContextAware } from "./runtimeEvaluator";
 import url from "url";
@@ -245,8 +248,8 @@ export const getDeepestAstNodeBefore = (
   return deepestAstNode === ast ? undefined : deepestAstNode;
 };
 
-export const genIssue = <T extends IssueTypes>(
-  issue: T | T[],
+export const genSyntaxDiagnostic = (
+  issues: SyntaxIssue | SyntaxIssue[],
   slxBase: ASTBase,
   severity: DiagnosticSeverity = DiagnosticSeverity.Error,
   linkedTo: ASTBase[] = [],
@@ -254,16 +257,178 @@ export const genIssue = <T extends IssueTypes>(
   templateStrings: string[] = [],
   edit?: TextEdit,
   codeActionTitle?: string
-): Issue<T> => ({
-  issues: Array.isArray(issue) ? issue : [issue],
-  astElement: slxBase,
-  severity,
-  linkedTo,
-  tags,
-  templateStrings,
-  edit,
-  codeActionTitle,
-});
+): FileDiagnostic => {
+  const issue: Issue<SyntaxIssue> = {
+    issues: Array.isArray(issues) ? issues : [issues],
+    astElement: slxBase,
+    severity,
+    linkedTo,
+    tags,
+    templateStrings,
+    edit,
+    codeActionTitle,
+  };
+
+  let diagnostic: Diagnostic;
+
+  const action = () => {
+    diagnostic ??= {
+      severity: issue.severity,
+      range: toRange(issue.astElement),
+      message: issue.issues
+        ? issue.issues.map(syntaxIssueToMessage).join(" or ")
+        : "",
+      source: "devicetree",
+      tags: issue.tags,
+      data: {
+        firstToken: {
+          pos: issue.astElement.firstToken.pos,
+          tokens: issue.astElement.firstToken.tokens,
+          value: issue.astElement.firstToken.value,
+        },
+        lastToken: {
+          pos: issue.astElement.lastToken.pos,
+          tokens: issue.astElement.lastToken.tokens,
+          value: issue.astElement.lastToken.value,
+        },
+        issues: {
+          type: "SyntaxIssue",
+          items: issue.issues,
+          edit: issue.edit,
+          codeActionTitle: issue.codeActionTitle,
+        },
+      } satisfies CodeActionDiagnosticData,
+    };
+    return diagnostic;
+  };
+
+  issue.astElement.issues.push(action);
+
+  return {
+    raw: issue,
+    diagnostic: action,
+  };
+};
+
+export const genContextDiagnostic = (
+  issues: ContextIssues | ContextIssues[],
+  slxBase: ASTBase,
+  severity: DiagnosticSeverity = DiagnosticSeverity.Error,
+  linkedTo: ASTBase[] = [],
+  tags: DiagnosticTag[] | undefined = undefined,
+  templateStrings: string[] = [],
+  edit?: TextEdit,
+  codeActionTitle?: string
+): FileDiagnostic => {
+  const issue: Issue<ContextIssues> = {
+    issues: Array.isArray(issues) ? issues : [issues],
+    astElement: slxBase,
+    severity,
+    linkedTo,
+    tags,
+    templateStrings,
+    edit,
+    codeActionTitle,
+  };
+
+  let diagnostic: Diagnostic;
+
+  const action = () => {
+    diagnostic ??= {
+      severity: issue.severity,
+      range: toRange(issue.astElement),
+      message: contextIssuesToMessage(issue),
+      source: "devicetree",
+      tags: issue.tags,
+      relatedInformation: [
+        ...issue.linkedTo.map((element) => ({
+          message: issue.issues.map(contextIssuesToLinkedMessage).join(" or "),
+          location: {
+            uri: pathToFileURL(element.uri!),
+            range: toRange(element),
+          },
+        })),
+      ],
+    };
+    return diagnostic;
+  };
+
+  issue.astElement.issues.push(action);
+
+  return {
+    raw: issue,
+    diagnostic: action,
+  };
+};
+
+export const genStandardTypeDiagnostic = (
+  issues: StandardTypeIssue | StandardTypeIssue[],
+  slxBase: ASTBase,
+  severity: DiagnosticSeverity = DiagnosticSeverity.Error,
+  linkedTo: ASTBase[] = [],
+  tags: DiagnosticTag[] | undefined = undefined,
+  templateStrings: string[] = [],
+  edit?: TextEdit,
+  codeActionTitle?: string
+): FileDiagnostic => {
+  const issue: Issue<StandardTypeIssue> = {
+    issues: Array.isArray(issues) ? issues : [issues],
+    astElement: slxBase,
+    severity,
+    linkedTo,
+    tags,
+    templateStrings,
+    edit,
+    codeActionTitle,
+  };
+
+  let diagnostic: Diagnostic;
+
+  const action = () => {
+    diagnostic ??= {
+      severity: issue.severity,
+      range: toRange(issue.astElement),
+      message: standardTypeIssueIssuesToMessage(issue),
+      relatedInformation: [
+        ...issue.linkedTo.map((element) => ({
+          message: issue.issues.map(standardTypeToLinkedMessage).join(" or "),
+          location: {
+            uri: pathToFileURL(element.uri!),
+            range: toRange(element),
+          },
+        })),
+      ],
+      source: "devicetree",
+      tags: issue.tags,
+      data: {
+        firstToken: {
+          pos: issue.astElement.firstToken.pos,
+          tokens: issue.astElement.firstToken.tokens,
+          value: issue.astElement.firstToken.value,
+        },
+        lastToken: {
+          pos: issue.astElement.lastToken.pos,
+          tokens: issue.astElement.lastToken.tokens,
+          value: issue.astElement.lastToken.value,
+        },
+        issues: {
+          type: "StandardTypeIssue",
+          items: issue.issues,
+          edit: issue.edit,
+          codeActionTitle: issue.codeActionTitle,
+        },
+      } satisfies CodeActionDiagnosticData,
+    };
+    return diagnostic;
+  };
+
+  issue.astElement.issues.push(action);
+
+  return {
+    raw: issue,
+    diagnostic: action,
+  };
+};
 
 export const sortAstForScope = <T extends ASTBase>(
   ast: T[],

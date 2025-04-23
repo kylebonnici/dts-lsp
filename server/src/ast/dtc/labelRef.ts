@@ -49,7 +49,8 @@ export class LabelRef extends ASTBase {
       this.label?.toString() ?? null,
       this.linksTo?.pathString ?? null,
       this.uri,
-      this.range
+      this.range,
+      this.serializeIssues
     );
   }
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { genIssue } from "../../helpers";
+import { genStandardTypeDiagnostic } from "../../helpers";
 import { PropertyNodeType, PropertyType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 import { StandardTypeIssue } from "../../types";
@@ -28,7 +28,7 @@ export default () => {
     undefined,
     [],
     (property) => [
-      genIssue(
+      genStandardTypeDiagnostic(
         StandardTypeIssue.DEPRECATED,
         property.ast,
         DiagnosticSeverity.Warning,

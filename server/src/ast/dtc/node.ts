@@ -117,7 +117,8 @@ export class DtcRootNode extends DtcBaseNode {
       this.properties.map((p) => p.serialize(macros)),
       this.nodes.map((n) => n.serialize(macros)),
       this.uri,
-      this.range
+      this.range,
+      this.serializeIssues
     );
   }
 }
@@ -135,6 +136,12 @@ export class DtcRefNode extends DtcBaseNode {
     labels.forEach((label) => {
       super.addChild(label);
     });
+  }
+
+  get serializeIssues() {
+    return [...this.issues, ...(this.labelReference?.issues ?? [])].map((i) =>
+      i()
+    );
   }
 
   set labelReference(labelReference: LabelRef | null) {
@@ -184,7 +191,8 @@ export class DtcRefNode extends DtcBaseNode {
       this.properties.map((p) => p.serialize(macros)),
       this.nodes.map((n) => n.serialize(macros)),
       this.uri,
-      this.range
+      this.range,
+      this.serializeIssues
     );
   }
 }
@@ -209,6 +217,10 @@ export class DtcChildNode extends DtcBaseNode {
     labels.forEach((label) => {
       this.addChild(label);
     });
+  }
+
+  get serializeIssues() {
+    return [...this.issues, ...(this.name?.issues ?? [])].map((i) => i());
   }
 
   set name(name: NodeName | null) {
@@ -248,7 +260,8 @@ export class DtcChildNode extends DtcBaseNode {
       this.properties.map((p) => p.serialize(macros)),
       this.nodes.map((n) => n.serialize(macros)),
       this.uri,
-      this.range
+      this.range,
+      this.serializeIssues
     );
   }
 }
@@ -265,7 +278,12 @@ export class NodeAddress extends ASTBase {
   }
 
   serialize(): SerializableNodeAddress {
-    return new SerializableNodeAddress(this.address, this.uri, this.range);
+    return new SerializableNodeAddress(
+      this.address,
+      this.uri,
+      this.range,
+      this.serializeIssues
+    );
   }
 }
 
@@ -333,6 +351,13 @@ export class NodeName extends ASTBase {
     }
   }
 
+  get serializeIssues() {
+    return [
+      ...this.issues,
+      ...(this._address?.flatMap((add) => add.issues) ?? []),
+    ].map((i) => i());
+  }
+
   serialize(): SerializableFullNodeName {
     return new SerializableFullNodeName(
       this.toString(),
@@ -348,11 +373,13 @@ export class NodeName extends ASTBase {
             this.tokenIndexes.start.pos.line,
             this.tokenIndexes.start.pos.colEnd
           )
-        )
+        ),
+        []
       ),
       this.address?.map((add) => add.serialize()) ?? null,
       this.uri,
-      this.range
+      this.range,
+      this.serializeIssues
     );
   }
 }

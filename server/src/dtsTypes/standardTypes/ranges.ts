@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-import { genIssue } from "../../helpers";
+import { genStandardTypeDiagnostic } from "../../helpers";
 import { PropertyNodeType, PropertyType } from "../types";
 import {
   flatNumberValues,
   generateOrTypeObj,
   getU32ValueFromProperty,
 } from "./helpers";
-import { Issue, StandardTypeIssue } from "../../types";
+import { FileDiagnostic, Issue, StandardTypeIssue } from "../../types";
 import { DiagnosticSeverity } from "vscode-languageserver";
 
 export default () => {
@@ -32,7 +32,7 @@ export default () => {
     undefined,
     [],
     (property) => {
-      const issues: Issue<StandardTypeIssue>[] = [];
+      const issues: FileDiagnostic[] = [];
 
       const values = flatNumberValues(property.ast.values);
       if (!values?.length) {
@@ -62,7 +62,7 @@ export default () => {
           0
       ) {
         issues.push(
-          genIssue(
+          genStandardTypeDiagnostic(
             StandardTypeIssue.CELL_MISS_MATCH,
             values.at(
               values.length -

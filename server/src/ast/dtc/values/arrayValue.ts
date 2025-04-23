@@ -73,6 +73,11 @@ export class ArrayValues extends ASTBase {
 
   serialize(macros: Map<string, MacroRegistryItem>): SerializableArrayValue {
     const a = this.values.map((v) => v.value?.serialize(macros) ?? null);
-    return new SerializableArrayValue(a, this.uri, this.range);
+    return new SerializableArrayValue(
+      a,
+      this.uri,
+      this.range,
+      this.serializeIssues
+    );
   }
 }

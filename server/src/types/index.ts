@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Range } from "vscode-languageserver-types";
+import { Diagnostic, Range } from "vscode-languageserver-types";
 
 export type BindingType = "Zephyr" | "DevicetreeOrg";
 
@@ -88,14 +88,23 @@ export type PropertyType =
   | "EXPRESSION";
 
 export class SerializableASTBase {
-  constructor(public readonly uri: string, public readonly range: Range) {}
+  constructor(
+    public readonly uri: string,
+    public readonly range: Range,
+    public readonly issues: Diagnostic[]
+  ) {}
 }
 
 export class SerializableStringValue extends SerializableASTBase {
   readonly type: PropertyType = "STRING";
 
-  constructor(public readonly value: string, uri: string, range: Range) {
-    super(uri, range);
+  constructor(
+    public readonly value: string,
+    uri: string,
+    range: Range,
+    issues: Diagnostic[]
+  ) {
+    super(uri, range, issues);
   }
 }
 
@@ -109,9 +118,10 @@ export class SerializableByteString extends SerializableASTBase {
       evaluated: number;
     } | null)[],
     uri: string,
-    range: Range
+    range: Range,
+    issues: Diagnostic[]
   ) {
-    super(uri, range);
+    super(uri, range, issues);
   }
 }
 
@@ -126,9 +136,10 @@ export class SerializableArrayValue extends SerializableASTBase {
       | null
     )[],
     uri: string,
-    range: Range
+    range: Range,
+    issues: Diagnostic[]
   ) {
-    super(uri, range);
+    super(uri, range, issues);
   }
 }
 
@@ -139,17 +150,23 @@ export class SerializableLabelRef extends SerializableASTBase {
     readonly label: string | null,
     readonly nodePath: string | null,
     uri: string,
-    range: Range
+    range: Range,
+    issues: Diagnostic[]
   ) {
-    super(uri, range);
+    super(uri, range, issues);
   }
 }
 
 export class SerializableNodePath extends SerializableASTBase {
   readonly type: PropertyType = "NODE_PATH";
 
-  constructor(readonly nodePath: string | null, uri: string, range: Range) {
-    super(uri, range);
+  constructor(
+    readonly nodePath: string | null,
+    uri: string,
+    range: Range,
+    issues: Diagnostic[]
+  ) {
+    super(uri, range, issues);
   }
 }
 
@@ -158,17 +175,24 @@ export abstract class SerializableExpressionBase extends SerializableASTBase {
     readonly value: string | null,
     readonly evaluated: number | string,
     uri: string,
-    range: Range
+    range: Range,
+    issues: Diagnostic[]
   ) {
-    super(uri, range);
+    super(uri, range, issues);
   }
 }
 
 export class SerializableNumberValue extends SerializableExpressionBase {
   readonly type: PropertyType = "NUMBER_VALUE";
 
-  constructor(value: string, evaluated: number, uri: string, range: Range) {
-    super(value, evaluated, uri, range);
+  constructor(
+    value: string,
+    evaluated: number,
+    uri: string,
+    range: Range,
+    issues: Diagnostic[]
+  ) {
+    super(value, evaluated, uri, range, issues);
   }
 }
 
@@ -179,9 +203,10 @@ export class SerializableExpression extends SerializableExpressionBase {
     value: string,
     evaluated: number | string,
     uri: string,
-    range: Range
+    range: Range,
+    issues: Diagnostic[]
   ) {
-    super(value, evaluated, uri, range);
+    super(value, evaluated, uri, range, issues);
   }
 }
 
@@ -195,8 +220,13 @@ export type SerializablePropertyValue =
   | null;
 
 export class SerializablePropertyName extends SerializableASTBase {
-  constructor(public readonly value: string, uri: string, range: Range) {
-    super(uri, range);
+  constructor(
+    public readonly value: string,
+    uri: string,
+    range: Range,
+    issues: Diagnostic[]
+  ) {
+    super(uri, range, issues);
   }
 }
 export class SerializableDtcProperty extends SerializableASTBase {
@@ -204,17 +234,23 @@ export class SerializableDtcProperty extends SerializableASTBase {
     public readonly name: SerializablePropertyName | null,
     public readonly values: SerializablePropertyValue[] | null,
     uri: string,
-    range: Range
+    range: Range,
+    issues: Diagnostic[]
   ) {
-    super(uri, range);
+    super(uri, range, issues);
   }
 }
 
 export type NodeType = "ROOT" | "REF" | "CHILD";
 
 export class SerializableNodeAddress extends SerializableASTBase {
-  constructor(readonly address: number, uri: string, range: Range) {
-    super(uri, range);
+  constructor(
+    readonly address: number,
+    uri: string,
+    range: Range,
+    issues: Diagnostic[]
+  ) {
+    super(uri, range, issues);
   }
 }
 
@@ -224,15 +260,21 @@ export class SerializableFullNodeName extends SerializableASTBase {
     readonly name: SerializableNodeName,
     readonly address: SerializableNodeAddress[] | null,
     uri: string,
-    range: Range
+    range: Range,
+    issues: Diagnostic[]
   ) {
-    super(uri, range);
+    super(uri, range, issues);
   }
 }
 
 export class SerializableNodeName extends SerializableASTBase {
-  constructor(readonly name: string, uri: string, range: Range) {
-    super(uri, range);
+  constructor(
+    readonly name: string,
+    uri: string,
+    range: Range,
+    issues: Diagnostic[]
+  ) {
+    super(uri, range, issues);
   }
 }
 
@@ -243,9 +285,10 @@ export abstract class SerializableNodeBase extends SerializableASTBase {
     readonly properties: SerializableDtcProperty[],
     readonly nodes: SerializableNodeBase[],
     uri: string,
-    range: Range
+    range: Range,
+    issues: Diagnostic[]
   ) {
-    super(uri, range);
+    super(uri, range, issues);
   }
 }
 
@@ -255,9 +298,10 @@ export class SerializableNodeRef extends SerializableNodeBase {
     properties: SerializableDtcProperty[],
     nodes: SerializableNodeBase[],
     uri: string,
-    range: Range
+    range: Range,
+    issues: Diagnostic[]
   ) {
-    super("REF", name, properties, nodes, uri, range);
+    super("REF", name, properties, nodes, uri, range, issues);
   }
 }
 
@@ -266,9 +310,10 @@ export class SerializableRootNode extends SerializableNodeBase {
     properties: SerializableDtcProperty[],
     nodes: SerializableNodeBase[],
     uri: string,
-    range: Range
+    range: Range,
+    issues: Diagnostic[]
   ) {
-    super("ROOT", null, properties, nodes, uri, range);
+    super("ROOT", null, properties, nodes, uri, range, issues);
   }
 }
 
@@ -278,13 +323,15 @@ export class SerializableChildNode extends SerializableNodeBase {
     properties: SerializableDtcProperty[],
     nodes: SerializableNodeBase[],
     uri: string,
-    range: Range
+    range: Range,
+    issues: Diagnostic[]
   ) {
-    super("CHILD", name, properties, nodes, uri, range);
+    super("CHILD", name, properties, nodes, uri, range, issues);
   }
 }
 
 export type SerializedNode = {
+  issues: Diagnostic[];
   path: string;
   name: string;
   nodes: SerializableNodeBase[];

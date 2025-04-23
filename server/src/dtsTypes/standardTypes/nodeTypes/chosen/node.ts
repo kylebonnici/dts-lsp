@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { genIssue } from "../../../../helpers";
+import { genStandardTypeDiagnostic } from "../../../../helpers";
 import { PropertyNodeType, PropertyType } from "../../../types";
 import { generateOrTypeObj } from "../../helpers";
 import { StandardTypeIssue } from "../../../../types";
@@ -26,7 +26,7 @@ export function getChosenNodeType() {
   nodeType.additionalValidations = (_, node) => {
     if (node.parent?.name !== "/") {
       return [
-        genIssue(
+        genStandardTypeDiagnostic(
           StandardTypeIssue.NODE_LOCATION,
           node.definitions[0],
           DiagnosticSeverity.Error,

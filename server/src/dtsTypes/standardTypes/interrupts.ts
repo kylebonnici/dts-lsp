@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import { Issue, StandardTypeIssue } from "../../types";
+import { FileDiagnostic, Issue, StandardTypeIssue } from "../../types";
 import { PropertyNodeType, PropertyType } from "../types";
 import { generateOrTypeObj, resolvePhandleNode } from "./helpers";
-import { genIssue } from "../../helpers";
+import { genStandardTypeDiagnostic } from "../../helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
 
 export default () => {
@@ -28,7 +28,7 @@ export default () => {
     undefined,
     [],
     (property) => {
-      const issues: Issue<StandardTypeIssue>[] = [];
+      const issues: FileDiagnostic[] = [];
 
       const node = property.parent;
       const interruptParent = node.getProperty("interrupt-parent");
@@ -40,7 +40,7 @@ export default () => {
       if (!parentInterruptNode) {
         if (!interruptParent) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
               property.ast,
               DiagnosticSeverity.Error,
@@ -56,7 +56,7 @@ export default () => {
           return issues;
         } else {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
               interruptParent.ast.values?.values.at(0)?.value ??
                 interruptParent.ast

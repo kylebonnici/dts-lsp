@@ -16,8 +16,8 @@
 
 import { NodeType, PropertyType } from "../../../types";
 import { generateOrTypeObj, getU32ValueFromProperty } from "../../helpers";
-import { genIssue } from "../../../../helpers";
-import { Issue, StandardTypeIssue } from "../../../../types";
+import { genStandardTypeDiagnostic } from "../../../../helpers";
+import { FileDiagnostic, StandardTypeIssue } from "../../../../types";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { Property } from "../../../../context/property";
 import addressCells from "../../addressCells";
@@ -25,9 +25,7 @@ import sizeCells from "../../sizeCells";
 import ranges from "../../ranges";
 
 const matchRootNode = (
-  additionalTypeCheck:
-    | ((property: Property) => Issue<StandardTypeIssue>[])
-    | undefined,
+  additionalTypeCheck: ((property: Property) => FileDiagnostic[]) | undefined,
   property: Property
 ) => {
   const issues = additionalTypeCheck?.(property) ?? [];
@@ -42,7 +40,7 @@ const matchRootNode = (
 
   if (nodeValue !== rootNodeValue) {
     issues.push(
-      genIssue(
+      genStandardTypeDiagnostic(
         StandardTypeIssue.INVALID_VALUE,
         property.ast,
         DiagnosticSeverity.Error,

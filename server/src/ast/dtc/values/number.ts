@@ -54,7 +54,8 @@ export class NumberValue extends Expression {
       this.value.toString(),
       this.value,
       this.uri,
-      this.range
+      this.range,
+      this.serializeIssues
     );
   }
 }

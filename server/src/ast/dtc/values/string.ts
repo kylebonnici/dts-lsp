@@ -39,6 +39,11 @@ export class StringValue extends ASTBase {
   }
 
   serialize(): SerializableStringValue {
-    return new SerializableStringValue(this.value, this.uri, this.range);
+    return new SerializableStringValue(
+      this.value,
+      this.uri,
+      this.range,
+      this.serializeIssues
+    );
   }
 }

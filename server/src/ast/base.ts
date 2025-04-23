@@ -31,6 +31,7 @@ import type {
   TokenIndexes,
 } from "../types";
 import {
+  Diagnostic,
   DocumentSymbol,
   Location,
   Position,
@@ -49,6 +50,17 @@ export class ASTBase {
   private _lastToken?: Token;
   private _fisrtToken?: Token;
   private allDescendantsCache?: ASTBase[];
+
+  public issues: (() => Diagnostic)[] = [];
+
+  addIssue(issue: () => Diagnostic) {
+    this.issues.push(issue);
+  }
+
+  // all issues we want to this item to show when serialized
+  get serializeIssues() {
+    return this.issues.map((i) => i());
+  }
 
   constructor(_tokenIndexes?: TokenIndexes) {
     this._fisrtToken = _tokenIndexes?.start;
@@ -197,6 +209,6 @@ export class ASTBase {
   }
 
   serialize(macros: Map<string, MacroRegistryItem>): SerializableASTBase {
-    return new SerializableASTBase(this.uri, this.range);
+    return new SerializableASTBase(this.uri, this.range, this.serializeIssues);
   }
 }

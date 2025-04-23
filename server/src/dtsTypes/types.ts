@@ -14,10 +14,14 @@
  * limitations under the License.
  */
 
-import { genIssue, getIndentString, toRangeWithTokenIndex } from "../helpers";
+import {
+  genStandardTypeDiagnostic,
+  getIndentString,
+  toRangeWithTokenIndex,
+} from "../helpers";
 import { type Node } from "../context/node";
 import { Property } from "../context/property";
-import { Issue, StandardTypeIssue } from "../types";
+import { FileDiagnostic, Issue, StandardTypeIssue } from "../types";
 import { Runtime } from "../context/runtime";
 import {
   CompletionItem,
@@ -37,6 +41,7 @@ import { LabelRef } from "../ast/dtc/labelRef";
 import { NodePathRef } from "../ast/dtc/values/nodePath";
 import { getNodeNameOrNodeLabelRef } from "../ast/helpers";
 import { countParent } from "../getDocumentFormatting";
+import { DtcProperty } from "src/ast/dtc/property";
 
 function propertyTypeToString(type: PropertyType): string {
   switch (type) {
@@ -150,9 +155,7 @@ export class PropertyNodeType<T = string | number> {
       | ((node: Node) => RequirementStatus) = "optional",
     public readonly def: T | undefined = undefined,
     values: T[] | ((property: Property) => T[]) = [],
-    public additionalTypeCheck?: (
-      property: Property
-    ) => Issue<StandardTypeIssue>[]
+    public additionalTypeCheck?: (property: Property) => FileDiagnostic[]
   ) {
     if (typeof required !== "function") {
       this.required = () => required;
@@ -177,7 +180,7 @@ export class PropertyNodeType<T = string | number> {
     node: Node,
     propertyName: string,
     property?: Property
-  ): Issue<StandardTypeIssue>[] {
+  ): FileDiagnostic[] {
     const required = this.required(node);
     if (!property) {
       if (required === "required") {
@@ -206,7 +209,7 @@ export class PropertyNodeType<T = string | number> {
           ...childOrRefNode.map((node, i) => {
             const token = node.openScope ?? orderedTree[i].lastToken;
 
-            return genIssue<StandardTypeIssue>(
+            return genStandardTypeDiagnostic(
               StandardTypeIssue.REQUIRED,
               orderedTree[i],
               DiagnosticSeverity.Error,
@@ -229,7 +232,7 @@ export class PropertyNodeType<T = string | number> {
       return [];
     } else if (required === "omitted") {
       return [
-        genIssue<StandardTypeIssue>(
+        genStandardTypeDiagnostic(
           StandardTypeIssue.OMITTED,
           property.ast,
           DiagnosticSeverity.Error,
@@ -241,7 +244,7 @@ export class PropertyNodeType<T = string | number> {
     }
 
     const propTypes = propertyValuesToPropertyType(property);
-    const issues: Issue<StandardTypeIssue>[] = [];
+    const issues: FileDiagnostic[] = [];
 
     const checkType = (
       expected: PropertyType[],
@@ -284,7 +287,7 @@ export class PropertyNodeType<T = string | number> {
 
         if (issue.length) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               issue,
               ast,
               DiagnosticSeverity.Error,
@@ -305,7 +308,7 @@ export class PropertyNodeType<T = string | number> {
       const type = this.type;
       if (!this.list && this.type.length !== propTypes.length) {
         issues.push(
-          genIssue(
+          genStandardTypeDiagnostic(
             StandardTypeIssue.EXPECTED_COMPOSITE_LENGTH,
             property.ast.values ?? property.ast,
             DiagnosticSeverity.Error,
@@ -318,7 +321,7 @@ export class PropertyNodeType<T = string | number> {
         propTypes.forEach((t, i) => {
           if (type[0].types.every((tt) => tt !== t)) {
             issues.push(
-              genIssue(
+              genStandardTypeDiagnostic(
                 StandardTypeIssue.EXPECTED_STRINGLIST,
                 property.ast.values?.values[i] ?? property.ast
               )
@@ -354,7 +357,7 @@ export class PropertyNodeType<T = string | number> {
         this.type[0].types.some((tt) => tt !== PropertyType.EMPTY)
       ) {
         issues.push(
-          genIssue(
+          genStandardTypeDiagnostic(
             StandardTypeIssue.EXPECTED_ONE,
             property.ast.propertyName ?? property.ast,
             DiagnosticSeverity.Error,
@@ -385,7 +388,7 @@ export class PropertyNodeType<T = string | number> {
             ?.value as StringValue;
           if (!values.some((v) => currentValue.value === v)) {
             issues.push(
-              genIssue(
+              genStandardTypeDiagnostic(
                 StandardTypeIssue.EXPECTED_ENUM,
                 property.ast.values?.values[0]?.value ?? property.ast,
                 DiagnosticSeverity.Error,
@@ -478,7 +481,7 @@ const propertyValueToPropertyType = (
 };
 
 export abstract class INodeType {
-  abstract getIssue(runtime: Runtime, node: Node): Issue<StandardTypeIssue>[];
+  abstract getIssue(runtime: Runtime, node: Node): FileDiagnostic[];
   abstract getOnPropertyHover(name: string): MarkupContent | undefined;
   abstract childNodeType: ((node: Node) => INodeType) | undefined;
   onBus?: string;
@@ -504,20 +507,20 @@ export class NodeType extends INodeType {
     public additionalValidations: (
       runtime: Runtime,
       node: Node
-    ) => Issue<StandardTypeIssue>[] = () => []
+    ) => FileDiagnostic[] = () => []
   ) {
     super();
   }
 
   getIssue(runtime: Runtime, node: Node) {
-    const issue: Issue<StandardTypeIssue>[] = [];
+    const issue: FileDiagnostic[] = [];
     const statusProperty = node.getProperty("status");
     const value = statusProperty?.ast.values?.values.at(0)?.value;
     if (value instanceof StringValue) {
       if (value.value === "disabled") {
         [...node.definitions, ...node.referencedBy].forEach((n) =>
           issue.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.NODE_DISABLED,
               n,
               DiagnosticSeverity.Hint,
@@ -575,7 +578,7 @@ export class NodeType extends INodeType {
       const mismatch = node.property.filter((p) => !machedSet.has(p));
       mismatch.forEach((p) => {
         issue.push(
-          genIssue<StandardTypeIssue>(
+          genStandardTypeDiagnostic(
             StandardTypeIssue.PROPERTY_NOT_ALLOWED,
             p.ast,
             DiagnosticSeverity.Error,

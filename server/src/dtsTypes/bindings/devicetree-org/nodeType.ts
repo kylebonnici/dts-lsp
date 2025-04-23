@@ -20,11 +20,11 @@ import { Node } from "../../../context/node";
 import { Runtime } from "../../../context/runtime";
 import { INodeType } from "../../../dtsTypes/types";
 import {
-  genIssue,
+  genStandardTypeDiagnostic,
   getIndentString,
   toRangeWithTokenIndex,
 } from "../../../helpers";
-import { Issue, StandardTypeIssue } from "../../../types";
+import { FileDiagnostic, Issue, StandardTypeIssue } from "../../../types";
 import {
   CompletionItemKind,
   DiagnosticSeverity,
@@ -49,8 +49,8 @@ export class DevicetreeOrgNodeType extends INodeType {
 
   childNodeType: ((node: Node) => INodeType) | undefined;
 
-  getIssue(runtime: Runtime, node: Node): Issue<StandardTypeIssue>[] {
-    const issue: Issue<StandardTypeIssue>[] = [];
+  getIssue(runtime: Runtime, node: Node): FileDiagnostic[] {
+    const issue: FileDiagnostic[] = [];
 
     const statusProperty = node.getProperty("status");
     const value = statusProperty?.ast.values?.values.at(0)?.value;
@@ -58,7 +58,7 @@ export class DevicetreeOrgNodeType extends INodeType {
       if (value.value === "disabled") {
         [...node.definitions, ...node.referencedBy].forEach((n) =>
           issue.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.NODE_DISABLED,
               n,
               DiagnosticSeverity.Hint,
@@ -150,7 +150,7 @@ const convertToError = (
   error: ErrorObject<string, Record<string, any>, unknown>,
   node: Node,
   schemaKey: string
-): Issue<StandardTypeIssue>[] => {
+): FileDiagnostic[] => {
   const meta = getMeta(node, error.instancePath);
 
   const intanceNode = meta.node;
@@ -162,7 +162,7 @@ const convertToError = (
       return [];
     }
     return [
-      genIssue<StandardTypeIssue>(
+      genStandardTypeDiagnostic(
         StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
         property.ast,
         DiagnosticSeverity.Error,
@@ -189,7 +189,7 @@ const convertToError = (
     }
 
     return [
-      genIssue<StandardTypeIssue>(
+      genStandardTypeDiagnostic(
         StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
         prop.ast,
         DiagnosticSeverity.Error,
@@ -207,7 +207,7 @@ const convertToError = (
     return childOrRefNode.map((node, i) => {
       const token = node.openScope ?? orderedTree[i].lastToken;
 
-      return genIssue<StandardTypeIssue>(
+      return genStandardTypeDiagnostic(
         StandardTypeIssue.REQUIRED,
         orderedTree[i],
         DiagnosticSeverity.Error,
@@ -230,7 +230,7 @@ const convertToError = (
     }
 
     return [
-      genIssue<StandardTypeIssue>(
+      genStandardTypeDiagnostic(
         StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
         property.ast,
         DiagnosticSeverity.Error,
@@ -248,7 +248,7 @@ const convertToError = (
     }
 
     return [
-      genIssue<StandardTypeIssue>(
+      genStandardTypeDiagnostic(
         StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
         property.ast,
         DiagnosticSeverity.Error,
@@ -271,7 +271,7 @@ const convertToError = (
     }
 
     return [
-      genIssue<StandardTypeIssue>(
+      genStandardTypeDiagnostic(
         StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
         property.ast,
         DiagnosticSeverity.Error,
@@ -284,7 +284,7 @@ const convertToError = (
   // fallback
   if (meta.property) {
     return [
-      genIssue(
+      genStandardTypeDiagnostic(
         StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
         meta.property.ast,
         undefined,
@@ -300,7 +300,7 @@ const convertToError = (
   }
 
   return [
-    genIssue(
+    genStandardTypeDiagnostic(
       StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
       meta.node.definitions[0] instanceof DtcRootNode
         ? meta.node.definitions[0]
