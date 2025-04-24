@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
+import { BindingPropertyType } from "../../types/index";
 import { FileDiagnostic, StandardTypeIssue } from "../../types";
-import { PropertyNodeType, PropertyType } from "../types";
+import { PropertyNodeType } from "../types";
 import {
   flatNumberValues,
   generateOrTypeObj,
@@ -28,7 +29,7 @@ import { DiagnosticSeverity } from "vscode-languageserver";
 export default () => {
   const prop = new PropertyNodeType(
     "interrupts-extended",
-    generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY),
+    generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
     "optional",
     undefined,
     [],

@@ -1,9 +1,5 @@
 import { getStandardType } from "../../../dtsTypes/standardTypes";
-import {
-  NodeType,
-  PropertyNodeType,
-  PropertyType,
-} from "../../../dtsTypes/types";
+import { NodeType, PropertyNodeType } from "../../../dtsTypes/types";
 import { Node } from "../../../context/node";
 import yaml from "yaml";
 import { glob } from "glob";
@@ -20,6 +16,7 @@ import { FileDiagnostic, Issue, StandardTypeIssue } from "../../../types";
 import { genStandardTypeDiagnostic } from "../../../helpers";
 import { DiagnosticSeverity, DiagnosticTag } from "vscode-languageserver";
 import { Property } from "../../../context/property";
+import { BindingPropertyType } from "../../../types/index";
 
 type ZephyrPropertyType =
   | "string"
@@ -63,27 +60,30 @@ type CellSpecifier = `${string}-cells`;
 const ZephyrTypeToDTSType = (type: ZephyrPropertyType) => {
   switch (type) {
     case "string":
-      return generateOrTypeObj(PropertyType.STRING);
+      return generateOrTypeObj(BindingPropertyType.STRING);
     case "int":
-      return generateOrTypeObj(PropertyType.U32);
+      return generateOrTypeObj(BindingPropertyType.U32);
     case "boolean":
-      return generateOrTypeObj(PropertyType.EMPTY);
+      return generateOrTypeObj(BindingPropertyType.EMPTY);
     case "array":
-      return generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY);
+      return generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY);
     case "uint8-array":
-      return generateOrTypeObj(PropertyType.BYTESTRING);
+      return generateOrTypeObj(BindingPropertyType.BYTESTRING);
     case "string-array":
-      return generateOrTypeObj(PropertyType.STRINGLIST);
+      return generateOrTypeObj(BindingPropertyType.STRINGLIST);
     case "phandle":
-      return generateOrTypeObj(PropertyType.U32);
+      return generateOrTypeObj(BindingPropertyType.U32);
     case "phandles":
-      return generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY);
+      return generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY);
     case "phandle-array":
-      return generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY);
+      return generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY);
     case "path":
-      return generateOrTypeObj([PropertyType.STRING, PropertyType.U32]);
+      return generateOrTypeObj([
+        BindingPropertyType.STRING,
+        BindingPropertyType.U32,
+      ]);
     case "compound":
-      return generateOrTypeObj(PropertyType.ANY);
+      return generateOrTypeObj(BindingPropertyType.ANY);
   }
 };
 

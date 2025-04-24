@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
+import { BindingPropertyType } from "../../../../types/index";
 import {
   genStandardTypeDiagnostic,
   toRangeWithTokenIndex,
 } from "../../../../helpers";
-import { NodeType, PropertyNodeType, PropertyType } from "../../../types";
+import { NodeType, PropertyNodeType } from "../../../types";
 import { generateOrTypeObj } from "../../helpers";
 import { FileDiagnostic, StandardTypeIssue } from "../../../../types";
 import { DiagnosticSeverity, TextEdit } from "vscode-languageserver";
@@ -71,7 +72,7 @@ export function getAliasesNodeType() {
     (name) => {
       return !!name.match(/^[-A-Za-z0-9]+$/);
     },
-    generateOrTypeObj([PropertyType.STRING, PropertyType.U32]),
+    generateOrTypeObj([BindingPropertyType.STRING, BindingPropertyType.U32]),
     undefined,
     undefined,
     undefined,

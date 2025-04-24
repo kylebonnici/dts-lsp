@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-import { PropertyNodeType, PropertyType } from "../types";
+import { BindingPropertyType } from "../../types/index";
+import { PropertyNodeType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 
 export default () => {
   const prop = new PropertyNodeType(
     "#address-cells",
-    generateOrTypeObj(PropertyType.U32),
+    generateOrTypeObj(BindingPropertyType.U32),
     "optional",
     2
   );

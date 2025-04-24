@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
+import { BindingPropertyType } from "../../types/index";
 import { genStandardTypeDiagnostic } from "../../helpers";
-import { PropertyNodeType, PropertyType } from "../types";
+import { PropertyNodeType } from "../types";
 import {
   flatNumberValues,
   generateOrTypeObj,
@@ -27,7 +28,10 @@ import { DiagnosticSeverity } from "vscode-languageserver";
 export default () => {
   const prop = new PropertyNodeType(
     "ranges",
-    generateOrTypeObj([PropertyType.EMPTY, PropertyType.PROP_ENCODED_ARRAY]),
+    generateOrTypeObj([
+      BindingPropertyType.EMPTY,
+      BindingPropertyType.PROP_ENCODED_ARRAY,
+    ]),
     "optional",
     undefined,
     [],

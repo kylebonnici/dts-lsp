@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
+import { BindingPropertyType } from "../../types/index";
 import { FileDiagnostic, StandardTypeIssue } from "../../types";
-import { PropertyNodeType, PropertyType } from "../types";
+import { PropertyNodeType } from "../types";
 import {
   flatNumberValues,
   generateOrTypeObj,
@@ -34,7 +35,7 @@ export default () => {
 
       return !!name.endsWith("-map");
     },
-    generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY),
+    generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
     "optional",
     undefined,
     [],

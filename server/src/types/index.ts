@@ -278,6 +278,39 @@ export class SerializableNodeName extends SerializableASTBase {
   }
 }
 
+export enum BindingPropertyType {
+  EMPTY = "EMPTY",
+  U32 = "U32",
+  U64 = "U64",
+  STRING = "STRING",
+  PROP_ENCODED_ARRAY = "PROP_ENCODED_ARRAY",
+  STRINGLIST = "STRINGLIST",
+  BYTESTRING = "BYTESTRING",
+  UNKNOWN = "UNKNOWN",
+  ANY = "ANY",
+}
+
+export type TypeConfig = { types: BindingPropertyType[] };
+
+export abstract class SerializedBinding {
+  onBus?: string;
+  bus?: string[];
+  description?: string;
+  maintainers?: string[];
+  examples?: string[];
+  cellsValues?: {
+    specifier: string;
+    values: string[];
+  }[];
+  bindingsPath?: string;
+  compatible?: string;
+  properties?: {
+    name: string;
+    allowedValues: (number | string)[];
+    type: TypeConfig[];
+  }[];
+}
+
 export abstract class SerializableNodeBase extends SerializableASTBase {
   constructor(
     readonly type: NodeType,
@@ -331,6 +364,7 @@ export class SerializableChildNode extends SerializableNodeBase {
 }
 
 export type SerializedNode = {
+  nodeType?: SerializedBinding;
   issues: Diagnostic[];
   path: string;
   name: string;

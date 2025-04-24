@@ -21,7 +21,7 @@ import {
 } from "../helpers";
 import { type Node } from "../context/node";
 import { Property } from "../context/property";
-import { FileDiagnostic, Issue, StandardTypeIssue } from "../types";
+import { FileDiagnostic, StandardTypeIssue } from "../types";
 import { Runtime } from "../context/runtime";
 import {
   CompletionItem,
@@ -42,6 +42,10 @@ import { NodePathRef } from "../ast/dtc/values/nodePath";
 import { getNodeNameOrNodeLabelRef } from "../ast/helpers";
 import { countParent } from "../getDocumentFormatting";
 import { DtcProperty } from "src/ast/dtc/property";
+import {
+  BindingPropertyType as PropertyType,
+  TypeConfig,
+} from "../types/index";
 
 function propertyTypeToString(type: PropertyType): string {
   switch (type) {
@@ -85,23 +89,11 @@ function propertyTypeToExample(type: PropertyType): string | undefined {
   }
 }
 
-export enum PropertyType {
-  EMPTY,
-  U32,
-  U64,
-  STRING,
-  PROP_ENCODED_ARRAY,
-  STRINGLIST,
-  BYTESTRING,
-  UNKNOWN,
-  ANY,
-}
-
 export type RequirementStatus = "required" | "omitted" | "optional";
 
-export type TypeConfig = { types: PropertyType[] };
 export class PropertyNodeType<T = string | number> {
   public required: (node: Node) => RequirementStatus;
+  public allowedValues?: T[];
   public values: (property: Property) => T[];
   public hideAutoComplete = false;
   public list = false;
@@ -164,6 +156,7 @@ export class PropertyNodeType<T = string | number> {
     }
 
     if (typeof values !== "function") {
+      this.allowedValues = values;
       this.values = () =>
         def && values.indexOf(def) === -1 ? [def, ...values] : values;
     } else {

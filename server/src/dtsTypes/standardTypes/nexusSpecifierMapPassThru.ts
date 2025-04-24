@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import { PropertyNodeType, PropertyType } from "../types";
+import { BindingPropertyType } from "../../types/index";
+import { PropertyNodeType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 
 export default () => {
@@ -24,7 +25,7 @@ export default () => {
     }
 
     return !!name.endsWith("-map-pass-thru");
-  }, generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY));
+  }, generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY));
   prop.description = [
     "A `<specifier>-map-pass-thru` property may be specified for a nexus node. This property specifies a mask that is applied to the child unit specifier being looked up in the table specified in the `<specifier>-map` property. Any matching bits in the child unit specifier are copied over to the parent specifier. If this property is not specified, the mask isassumedtobe amaskwithno bits set.",
   ];

@@ -53,9 +53,8 @@ import { ArrayValues } from "../ast/dtc/values/arrayValue";
 import { getNodeNameOrNodeLabelRef } from "../ast/helpers";
 import { getStandardType } from "../dtsTypes/standardTypes";
 import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
-import { INodeType } from "../dtsTypes/types";
-import { SerializedNode } from "../types/index";
-import { map } from "yaml/dist/schema/common/map";
+import { INodeType, NodeType } from "../dtsTypes/types";
+import { SerializedBinding, SerializedNode } from "../types/index";
 
 export class Node {
   public referencedBy: DtcRefNode[] = [];
@@ -618,7 +617,19 @@ ${"\t".repeat(level - 1)}}; ${isOmmited ? " */" : ""}`;
 
   serialize(macros: Map<string, MacroRegistryItem>): SerializedNode {
     const nodeAsts = [...this.definitions, ...this.referencedBy];
+    const nodeType = this.nodeType;
     return {
+      nodeType:
+        nodeType instanceof NodeType
+          ? {
+              ...this.nodeType,
+              properties: nodeType.properties.map((p) => ({
+                name: typeof p.name === "string" ? p.name : "REGEX",
+                allowedValues: p.allowedValues ?? [],
+                type: p.type,
+              })),
+            }
+          : undefined,
       issues: nodeAsts.flatMap((n) => n.serializeIssues),
       path: this.pathString,
       name: this.fullName,

@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import { PropertyNodeType, PropertyType } from "../types";
+import { BindingPropertyType } from "../../types/index";
+import { PropertyNodeType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 
 export default () => {
@@ -28,7 +29,7 @@ export default () => {
     }
 
     return name.startsWith("#") && !!name.endsWith("-cells");
-  }, generateOrTypeObj(PropertyType.U32));
+  }, generateOrTypeObj(BindingPropertyType.U32));
   prop.list = true;
   prop.description = [
     "The `#<specifier>-cells` propertydefines the number of cells required to encode a specifier for adomain.",

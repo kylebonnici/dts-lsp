@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-import { FileDiagnostic, Issue, StandardTypeIssue } from "../../types";
-import { PropertyNodeType, PropertyType } from "../types";
+import { BindingPropertyType } from "../../types/index";
+import { FileDiagnostic, StandardTypeIssue } from "../../types";
+import { PropertyNodeType } from "../types";
 import { generateOrTypeObj, resolvePhandleNode } from "./helpers";
 import { genStandardTypeDiagnostic } from "../../helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
@@ -23,7 +24,7 @@ import { DiagnosticSeverity } from "vscode-languageserver";
 export default () => {
   const prop = new PropertyNodeType(
     "interrupts",
-    generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY),
+    generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
     "optional",
     undefined,
     [],

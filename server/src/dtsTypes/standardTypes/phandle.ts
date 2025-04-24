@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
+import { BindingPropertyType } from "../../types/index";
 import { StandardTypeIssue } from "../../types";
 import { genStandardTypeDiagnostic } from "../../helpers";
-import { PropertyNodeType, PropertyType } from "../types";
+import { PropertyNodeType } from "../types";
 import { generateOrTypeObj, getU32ValueFromProperty } from "./helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { ASTBase } from "../../ast/base";
@@ -24,7 +25,7 @@ import { ASTBase } from "../../ast/base";
 export default () => {
   const prop = new PropertyNodeType(
     "phandle",
-    generateOrTypeObj(PropertyType.U32),
+    generateOrTypeObj(BindingPropertyType.U32),
     "optional",
     undefined,
     [],

@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-import { FileDiagnostic, Issue, StandardTypeIssue } from "../../types";
+import { BindingPropertyType } from "../../types/index";
+import { FileDiagnostic, StandardTypeIssue } from "../../types";
 import { genStandardTypeDiagnostic } from "../../helpers";
-import { PropertyNodeType, PropertyType } from "../types";
+import { PropertyNodeType } from "../types";
 import {
   flatNumberValues,
   generateOrTypeObj,
@@ -27,7 +28,7 @@ import { DiagnosticSeverity } from "vscode-languageserver";
 export default () => {
   const prop = new PropertyNodeType(
     "reg",
-    generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY),
+    generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
     (node) => {
       return node.address !== undefined ? "required" : "omitted";
     },

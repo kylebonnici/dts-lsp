@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
+import { BindingPropertyType } from "../../types/index";
 import { genStandardTypeDiagnostic } from "../../helpers";
-import { PropertyNodeType, PropertyType } from "../types";
+import { PropertyNodeType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 import { StandardTypeIssue } from "../../types";
 import { DiagnosticSeverity, DiagnosticTag } from "vscode-languageserver";
@@ -23,7 +24,7 @@ import { DiagnosticSeverity, DiagnosticTag } from "vscode-languageserver";
 export default () => {
   const prop = new PropertyNodeType(
     "name",
-    generateOrTypeObj(PropertyType.STRING),
+    generateOrTypeObj(BindingPropertyType.STRING),
     "optional",
     undefined,
     [],

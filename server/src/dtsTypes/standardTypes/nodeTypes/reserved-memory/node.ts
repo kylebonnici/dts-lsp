@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import { NodeType, PropertyType } from "../../../types";
+import { BindingPropertyType } from "../../../../types/index";
+import { NodeType } from "../../../types";
 import { generateOrTypeObj, getU32ValueFromProperty } from "../../helpers";
 import { genStandardTypeDiagnostic } from "../../../../helpers";
 import { FileDiagnostic, StandardTypeIssue } from "../../../../types";
@@ -74,7 +75,7 @@ export function getReservedMemoryNodeType() {
 
   const rangesProp = ranges();
   rangesProp!.required = () => "required";
-  rangesProp!.type = generateOrTypeObj(PropertyType.EMPTY);
+  rangesProp!.type = generateOrTypeObj(BindingPropertyType.EMPTY);
   rangesProp!.additionalTypeCheck = undefined;
 
   nodeType.addProperty([addressCellsProp, sizeCellsProp, rangesProp]);
