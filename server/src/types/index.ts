@@ -60,12 +60,15 @@ export interface Settings {
   allowAdhocContexts?: boolean;
 }
 
+export type ContextType = "Ad Hoc" | "User" | "3rd Party";
 export interface ContextListItem {
   ctxNames: string[];
   id: string;
   mainDtsPath: File;
   overlays: File[];
   settings: Settings;
+  active: boolean;
+  type: ContextType;
 }
 
 export interface File {
