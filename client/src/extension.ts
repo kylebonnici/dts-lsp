@@ -27,18 +27,26 @@ import { API } from "./api";
 import { ContextListItem } from "devicetree-language-server-types";
 
 const SelectContext = async (api: API): Promise<ContextListItem | null> => {
+  const quickPick = vscode.window.createQuickPick<
+    vscode.QuickPickItem & {
+      id: string;
+      ctx: ContextListItem;
+    }
+  >();
+
   const contexts = await api.getContexts();
+  const activeContexts = contexts.filter((c) => c.active);
+
   if (contexts.length === 1) {
     return contexts[0];
   }
-  const options: (vscode.QuickPickItem & {
-    id: string;
-    ctx: ContextListItem;
-  })[] = contexts.map((context) => ({
+  quickPick.items = contexts.map((context) => ({
     id: context.id,
     ctx: context,
     label: `[${context.ctxNames.join(",")}]`,
-    description: `dts: ${path.basename(context.mainDtsPath.file)}`,
+    description: `[${context.type} context] dts: ${path.basename(
+      context.mainDtsPath.file
+    )}`,
     detail: context.overlays.length
       ? ` overlays: ${context.overlays
           .map((overlay) => path.basename(overlay.file))
@@ -46,17 +54,28 @@ const SelectContext = async (api: API): Promise<ContextListItem | null> => {
       : "",
   }));
 
+  quickPick.activeItems = quickPick.items.filter((i) =>
+    activeContexts.includes(i.ctx)
+  );
+  quickPick.placeholder = "Select devicetree context";
+
+  quickPick.show();
+
+  quickPick;
   return new Promise<ContextListItem | null>((resolve, reject) => {
-    vscode.window
-      .showQuickPick(options, {
-        placeHolder: "Select devicetree context",
-      })
-      .then(async (selected) => {
-        if (selected) {
-          resolve(selected.ctx);
-        }
-        resolve(null);
-      }, reject);
+    quickPick.show();
+
+    const hideDisposable = quickPick.onDidHide(() => {
+      resolve(null);
+    });
+
+    quickPick.onDidAccept(() => {
+      if (quickPick.selectedItems.length === 1) {
+        hideDisposable.dispose();
+        resolve(quickPick.selectedItems[0].ctx);
+      }
+      quickPick.dispose();
+    });
   });
 };
 
