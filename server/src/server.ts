@@ -78,6 +78,7 @@ import { FileWatcher } from "./fileWatcher";
 import type {
   Context,
   ContextListItem,
+  ContextType,
   IntegrationSettings,
   ResolvedContext,
   Settings,
@@ -123,11 +124,15 @@ const deleteContext = async (context: ContextAware) => {
     `(ID: ${context.id}) cleaning Context for [${context.ctxNames.join(",")}]`
   );
 
+  const meta = await contexMeta(context);
+
   connection.sendNotification("devicetree/contextDeleted", {
     ctxNames: context.ctxNames.map((c) => c.toString()),
     id: context.id,
     ...(await context.getFileTree()),
     settings: context.settings,
+    active: activeContext === context,
+    type: meta.type,
   } satisfies ContextListItem);
   contextAware.splice(index, 1);
 
@@ -454,12 +459,15 @@ const createContext = async (context: ResolvedContext) => {
   watchContextFiles(newContext);
 
   await newContext.stable();
+  const meta = await contexMeta(newContext);
 
   connection.sendNotification("devicetree/contextCreated", {
     ctxNames: newContext.ctxNames.map((c) => c.toString()),
     id: newContext.id,
     ...(await newContext.getFileTree()),
     settings: newContext.settings,
+    active: newContext === activeContext,
+    type: meta.type,
   } satisfies ContextListItem);
 
   await cleanUpAdHocContext(newContext);
@@ -1120,31 +1128,26 @@ async function getDiagnostics(
 }
 
 const reportContexList = async () => {
-  const forLogs = await Promise.all(
-    contextAware.map(async (ctx) => {
-      const adHoc = await isAdHocContext(ctx);
-      const userCtx = !adHoc && (await isUserSettingsContext(ctx));
-      const intergatorCtx = !adHoc && !userCtx;
-      return {
-        ctx,
-        adHoc,
-        userCtx,
-        intergatorCtx,
-      };
-    })
-  );
+  const forLogs = await Promise.all(contextAware.map(contexMeta));
 
   console.log("======== Context List ========");
   forLogs.forEach((c) => {
     console.log(
       `(ID: ${c.ctx.id}) [${c.ctx.ctxNames.join(",")}]`,
-      c.adHoc ? "[Ad Hoc]" : "",
-      c.userCtx ? "[user]" : "",
-      c.intergatorCtx ? "[3rd Party]" : "",
+      `[${c.type}]`,
       activeContext === c.ctx ? " [ACTIVE]" : ""
     );
   });
   console.log("==============================");
+};
+
+const contexMeta = async (ctx: ContextAware) => {
+  const adHoc = await isAdHocContext(ctx);
+  const userCtx = !adHoc && (await isUserSettingsContext(ctx));
+  return {
+    ctx,
+    type: (adHoc ? "Ad Hoc" : userCtx ? "User" : "3rd Party") as ContextType,
+  };
 };
 
 const updateActiveContext = async (id: ContextId, force = false) => {
@@ -1177,19 +1180,18 @@ const updateActiveContext = async (id: ContextId, force = false) => {
     }
     activeContext = newContext;
 
-    connection.sendNotification(
-      "devicetree/newActiveContext",
-      newContext
-        ? ({
-            ctxNames: newContext.ctxNames.map((c) => c.toString()),
-            id: newContext.id,
-            ...(await newContext.getFileTree()),
-            settings: newContext.settings,
-          } satisfies ContextListItem)
-        : undefined
-    );
-
     if (newContext) {
+      const meta = await contexMeta(newContext);
+
+      connection.sendNotification("devicetree/newActiveContext", {
+        ctxNames: newContext.ctxNames.map((c) => c.toString()),
+        id: newContext.id,
+        ...(await newContext.getFileTree()),
+        settings: newContext.settings,
+        active: activeContext === newContext,
+        type: meta.type,
+      } satisfies ContextListItem);
+
       reportWorkspaceDiagnostics(newContext).then((d) => {
         d.items
           .map(
@@ -1206,6 +1208,8 @@ const updateActiveContext = async (id: ContextId, force = false) => {
       });
 
       await reportContexList();
+    } else {
+      connection.sendNotification("devicetree/newActiveContext", undefined);
     }
   }
 
@@ -1506,15 +1510,17 @@ connection.onRequest(
   async (): Promise<ContextListItem[]> => {
     await allStable();
     return Promise.all(
-      contextAware.map(
-        async (c) =>
-          ({
-            ctxNames: c.ctxNames.map((n) => n.toString()),
-            id: c.id,
-            ...(await c.getFileTree()),
-            settings: c.settings,
-          } satisfies ContextListItem)
-      )
+      contextAware.map(async (c) => {
+        const meta = await contexMeta(c);
+        return {
+          ctxNames: c.ctxNames.map((n) => n.toString()),
+          id: c.id,
+          ...(await c.getFileTree()),
+          settings: c.settings,
+          active: activeContext === c,
+          type: meta.type,
+        } satisfies ContextListItem;
+      })
     );
   }
 );
@@ -1534,13 +1540,18 @@ connection.onRequest(
   async (id: string): Promise<ContextListItem | undefined> => {
     await allStable();
     console.log("devicetree/getActiveContext", id);
-    const result = await updateActiveContext({ id }, true);
+    await updateActiveContext({ id }, true);
+    if (!activeContext) return;
+
+    const meta = await contexMeta(activeContext);
     return activeContext
       ? {
           ctxNames: activeContext.ctxNames.map((c) => c.toString()),
           id: id,
           ...(await activeContext.getFileTree()),
           settings: activeContext.settings,
+          active: true,
+          type: meta.type,
         }
       : undefined;
   }
@@ -1591,11 +1602,14 @@ connection.onRequest(
       throw new Error("Failed to create context");
     }
 
+    const meta = await contexMeta(context);
     return {
       ctxNames: context.ctxNames.map((c) => c.toString()),
       id: id,
       ...(await context.getFileTree()),
       settings: context.settings,
+      active: true,
+      type: meta.type,
     };
   }
 );
