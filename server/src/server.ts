@@ -962,7 +962,7 @@ const clearWorkspaceDiagnostics = async (
   if (context !== activeContext) {
     return;
   }
-  return await Promise.all(
+  await Promise.all(
     items.map((item) => {
       return connection.sendDiagnostics({
         uri: item.uri,
@@ -1176,21 +1176,23 @@ const updateActiveContext = async (id: ContextId, force = false) => {
 
   if (oldContext !== newContext) {
     if (oldContext) {
-      await clearWorkspaceDiagnostics(oldContext);
+      clearWorkspaceDiagnostics(oldContext);
     }
     activeContext = newContext;
 
     if (newContext) {
-      const meta = await contexMeta(newContext);
-
-      connection.sendNotification("devicetree/newActiveContext", {
-        ctxNames: newContext.ctxNames.map((c) => c.toString()),
-        id: newContext.id,
-        ...(await newContext.getFileTree()),
-        settings: newContext.settings,
-        active: activeContext === newContext,
-        type: meta.type,
-      } satisfies ContextListItem);
+      contexMeta(newContext).then(async (meta) => {
+        const fileTree = await newContext.getFileTree();
+        if (newContext !== activeContext) return;
+        connection.sendNotification("devicetree/newActiveContext", {
+          ctxNames: newContext.ctxNames.map((c) => c.toString()),
+          id: newContext.id,
+          ...fileTree,
+          settings: newContext.settings,
+          active: activeContext === newContext,
+          type: meta.type,
+        } satisfies ContextListItem);
+      });
 
       reportWorkspaceDiagnostics(newContext).then((d) => {
         d.items
