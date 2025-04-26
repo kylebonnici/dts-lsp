@@ -21,10 +21,14 @@ import {
   LanguageClient,
   LanguageClientOptions,
   ServerOptions,
+  TextDocumentPositionParams,
   TransportKind,
 } from "vscode-languageclient/node";
 import { API } from "./api";
-import { ContextListItem } from "devicetree-language-server-types";
+import {
+  ClipboardActions,
+  ContextListItem,
+} from "devicetree-language-server-types";
 
 const SelectContext = async (api: API): Promise<ContextListItem | null> => {
   const quickPick = vscode.window.createQuickPick<
@@ -78,6 +82,25 @@ const SelectContext = async (api: API): Promise<ContextListItem | null> => {
     });
   });
 };
+
+async function getCurrentTextDocumentPositionParams(): Promise<
+  TextDocumentPositionParams | undefined
+> {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    return undefined;
+  }
+
+  return {
+    textDocument: {
+      uri: editor.document.uri.toString(),
+    },
+    position: {
+      line: editor.selection.active.line,
+      character: editor.selection.active.character,
+    },
+  };
+}
 
 let client: LanguageClient;
 let api: API;
@@ -152,11 +175,73 @@ export async function activate(context: vscode.ExtensionContext) {
           )
         )
         .then(vscode.window.showTextDocument);
-    })
+    }),
+    vscode.commands.registerCommand(
+      "devicetree.clipboard.dtMacro",
+      async () => {
+        const actions = (
+          await api.getAllowedActions(
+            await getCurrentTextDocumentPositionParams()
+          )
+        ).filter(
+          (a): a is ClipboardActions =>
+            a.type === "dt_zephyr_macro_prop_node_label" ||
+            a.type === "dt_zephyr_macro_prop_node_path" ||
+            a.type === "dt_zephyr_macro_node_path" ||
+            a.type === "dt_zephyr_macro_node_label" ||
+            a.type === "dt_zephyr_macro_prop_node_alias"
+        );
+
+        copyClibboardAction(actions, "Pick a macro to copy...");
+      }
+    ),
+    vscode.commands.registerCommand(
+      "devicetree.clipboard.nodePath",
+      async () => {
+        const actions = (
+          await api.getAllowedActions(
+            await getCurrentTextDocumentPositionParams()
+          )
+        ).filter((a): a is ClipboardActions => a.type === "path");
+
+        copyClibboardAction(actions, "Pick a path to copy...");
+      }
+    )
   );
+
+  api.onActiveContextChange((ctx) => {
+    vscode.commands.executeCommand(
+      "setContext",
+      "devicetree.context.type",
+      ctx.settings.bindingType
+    );
+  });
 
   return api;
 }
+
+const copyClibboardAction = async (
+  actions: ClipboardActions[],
+  placeHolder: string
+) => {
+  if (!actions.length) {
+    vscode.window.showWarningMessage("Nothing was coppied");
+    return;
+  }
+
+  const picked =
+    actions.length > 1
+      ? await vscode.window.showQuickPick(
+          actions.map((a) => a.data),
+          { placeHolder }
+        )
+      : actions[0].data;
+
+  if (!picked) return;
+
+  vscode.env.clipboard.writeText(picked);
+  vscode.window.showInformationMessage(`Coppied to clipboard: "${picked}"`);
+};
 
 export function deactivate(): Thenable<void> | undefined {
   if (!client) {

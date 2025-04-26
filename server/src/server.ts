@@ -89,6 +89,7 @@ import {
   resolveSettings,
 } from "./settings";
 import { basename } from "path";
+import { getActions } from "./getActions";
 
 const contextAware: ContextAware[] = [];
 let activeContext: ContextAware | undefined;
@@ -1648,5 +1649,13 @@ connection.onRequest(
     }
     const ctx = findContext(contextAware, { id });
     return ctx?.toFullString();
+  }
+);
+
+connection.onRequest(
+  "devicetree/customActions",
+  async (location: TextDocumentPositionParams) => {
+    await allStable();
+    return getActions(location, activeContext);
   }
 );
