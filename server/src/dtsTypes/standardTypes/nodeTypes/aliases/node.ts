@@ -69,9 +69,7 @@ export function getAliasesNodeType() {
   nodeType.noMismatchPropertiesAllowed = true;
 
   const prop = new PropertyNodeType<string | number>(
-    (name) => {
-      return !!name.match(/^[-A-Za-z0-9]+$/);
-    },
+    /^[-A-Za-z0-9]+$/,
     generateOrTypeObj([BindingPropertyType.STRING, BindingPropertyType.U32]),
     undefined,
     undefined,

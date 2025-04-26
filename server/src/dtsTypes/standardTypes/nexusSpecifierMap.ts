@@ -28,13 +28,7 @@ import { DiagnosticSeverity } from "vscode-languageserver";
 
 export default () => {
   const prop = new PropertyNodeType(
-    (name) => {
-      if (name.startsWith("interrupt-")) {
-        return false;
-      }
-
-      return !!name.endsWith("-map");
-    },
+    /^(?!interrupt-).*?-map$/,
     generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
     "optional",
     undefined,

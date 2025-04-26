@@ -140,7 +140,7 @@ export class PropertyNodeType<T = string | number> {
   };
 
   constructor(
-    public readonly name: string | ((n: string) => boolean),
+    public readonly name: string | RegExp,
     public type: TypeConfig[],
     required:
       | RequirementStatus
@@ -165,7 +165,9 @@ export class PropertyNodeType<T = string | number> {
   }
 
   getNameMatch(name: string): boolean {
-    return typeof this.name === "string" ? this.name === name : this.name(name);
+    return typeof this.name === "string"
+      ? this.name === name
+      : this.name.test(name);
   }
 
   validateProperty(
