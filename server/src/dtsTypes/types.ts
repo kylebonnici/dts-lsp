@@ -492,9 +492,9 @@ export abstract class INodeType {
 }
 
 export class NodeType extends INodeType {
-  private _properties: PropertyNodeType[] = [];
+  #properties: PropertyNodeType[] = [];
   public noMismatchPropertiesAllowed = false;
-  _childNodeType?: (node: Node) => NodeType;
+  #childNodeType?: (node: Node) => NodeType;
 
   constructor(
     public additionalValidations: (
@@ -598,16 +598,16 @@ export class NodeType extends INodeType {
   }
 
   get properties() {
-    return this._properties;
+    return this.#properties;
   }
 
   addProperty(property: PropertyNodeType | PropertyNodeType[]) {
     if (Array.isArray(property)) {
-      property.forEach((p) => this._properties.push(p));
+      property.forEach((p) => this.#properties.push(p));
     } else {
-      this._properties.push(property);
+      this.#properties.push(property);
     }
-    this._properties.sort((a, b) => {
+    this.#properties.sort((a, b) => {
       if (typeof a.name === "string" && typeof b.name === "string") return 0;
       if (typeof a.name !== "string" && typeof b.name !== "string") return 0;
       if (typeof a.name === "string") return -1;
@@ -616,7 +616,7 @@ export class NodeType extends INodeType {
   }
 
   get childNodeType() {
-    return this._childNodeType;
+    return this.#childNodeType;
   }
 
   set childNodeType(nodeType: ((node: Node) => NodeType) | undefined) {
@@ -624,7 +624,7 @@ export class NodeType extends INodeType {
       return;
     }
 
-    this._childNodeType = (node: Node) => {
+    this.#childNodeType = (node: Node) => {
       const type = nodeType(node);
       type.bindingsPath = this.bindingsPath;
       return type;
