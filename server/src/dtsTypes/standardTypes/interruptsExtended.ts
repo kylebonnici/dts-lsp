@@ -27,12 +27,12 @@ import { genStandardTypeDiagnostic } from "../../helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
 
 export default () => {
-  const prop = new PropertyNodeType(
+  const prop = new PropertyNodeType<number>(
     "interrupts-extended",
     generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
     "optional",
     undefined,
-    [],
+    undefined,
     (property) => {
       const issues: FileDiagnostic[] = [];
 

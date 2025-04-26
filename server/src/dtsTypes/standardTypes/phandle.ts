@@ -23,12 +23,12 @@ import { DiagnosticSeverity } from "vscode-languageserver";
 import { ASTBase } from "../../ast/base";
 
 export default () => {
-  const prop = new PropertyNodeType(
+  const prop = new PropertyNodeType<number>(
     "phandle",
     generateOrTypeObj(BindingPropertyType.U32),
     "optional",
     undefined,
-    [],
+    undefined,
     (property) => {
       const phandelValue = getU32ValueFromProperty(property, 0, 0);
       if (phandelValue) {

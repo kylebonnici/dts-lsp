@@ -93,7 +93,7 @@ export type RequirementStatus = "required" | "omitted" | "optional";
 
 export class PropertyNodeType<T = string | number> {
   public required: (node: Node) => RequirementStatus;
-  public allowedValues?: T[];
+  public readonly allowedValues: T[] | undefined;
   public values: (property: Property) => T[];
   public hideAutoComplete = false;
   public list = false;
@@ -146,7 +146,7 @@ export class PropertyNodeType<T = string | number> {
       | RequirementStatus
       | ((node: Node) => RequirementStatus) = "optional",
     public readonly def: T | undefined = undefined,
-    values: T[] | ((property: Property) => T[]) = [],
+    values?: T[] | ((property: Property) => T[]),
     public additionalTypeCheck?: (property: Property) => FileDiagnostic[]
   ) {
     if (typeof required !== "function") {
@@ -157,8 +157,13 @@ export class PropertyNodeType<T = string | number> {
 
     if (typeof values !== "function") {
       this.allowedValues = values;
-      this.values = () =>
-        def && values.indexOf(def) === -1 ? [def, ...values] : values;
+      this.values = () => {
+        if (values === undefined) {
+          return def ? [def] : [];
+        }
+
+        return def && values.indexOf(def) === -1 ? [def, ...values] : values;
+      };
     } else {
       this.values = values;
     }

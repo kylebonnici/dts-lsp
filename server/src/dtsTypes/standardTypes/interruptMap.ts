@@ -28,12 +28,12 @@ import { DiagnosticSeverity } from "vscode-languageserver";
 import { ArrayValues } from "../../ast/dtc/values/arrayValue";
 
 export default () => {
-  const prop = new PropertyNodeType(
+  const prop = new PropertyNodeType<number>(
     "interrupt-map",
     generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
     "optional",
     undefined,
-    [],
+    undefined,
     (property) => {
       const issues: FileDiagnostic[] = [];
       const node = property.parent;

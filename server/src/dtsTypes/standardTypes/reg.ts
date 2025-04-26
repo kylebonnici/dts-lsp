@@ -26,14 +26,14 @@ import {
 import { DiagnosticSeverity } from "vscode-languageserver";
 
 export default () => {
-  const prop = new PropertyNodeType(
+  const prop = new PropertyNodeType<number>(
     "reg",
     generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
     (node) => {
       return node.address !== undefined ? "required" : "omitted";
     },
     undefined,
-    [],
+    undefined,
     (property) => {
       const issues: FileDiagnostic[] = [];
 

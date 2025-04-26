@@ -22,12 +22,12 @@ import { StandardTypeIssue } from "../../types";
 import { DiagnosticSeverity, DiagnosticTag } from "vscode-languageserver";
 
 export default () => {
-  const prop = new PropertyNodeType(
+  const prop = new PropertyNodeType<string>(
     "name",
     generateOrTypeObj(BindingPropertyType.STRING),
     "optional",
     undefined,
-    [],
+    undefined,
     (property) => [
       genStandardTypeDiagnostic(
         StandardTypeIssue.DEPRECATED,

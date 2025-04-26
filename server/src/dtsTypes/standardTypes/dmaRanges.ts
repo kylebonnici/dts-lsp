@@ -26,7 +26,7 @@ import { FileDiagnostic, Issue, StandardTypeIssue } from "../../types";
 import { DiagnosticSeverity } from "vscode-languageserver";
 
 export default () => {
-  const prop = new PropertyNodeType(
+  const prop = new PropertyNodeType<number>(
     "dma-ranges",
     generateOrTypeObj([
       BindingPropertyType.EMPTY,
@@ -34,7 +34,7 @@ export default () => {
     ]),
     "optional",
     undefined,
-    [],
+    undefined,
     (property) => {
       const issues: FileDiagnostic[] = [];
 

@@ -27,12 +27,12 @@ import { genStandardTypeDiagnostic } from "../../helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
 
 export default () => {
-  const prop = new PropertyNodeType(
+  const prop = new PropertyNodeType<number>(
     /^(?!interrupt-).*?-map$/,
     generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
     "optional",
     undefined,
-    [],
+    undefined,
     (property) => {
       const specifier = property.name.split("-map", 1)[0];
 
