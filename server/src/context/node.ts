@@ -624,7 +624,7 @@ ${"\t".repeat(level - 1)}}; ${isOmmited ? " */" : ""}`;
           ? {
               ...this.nodeType,
               properties: nodeType.properties.map((p) => ({
-                name: typeof p.name === "string" ? p.name : "REGEX",
+                name: typeof p.name === "string" ? p.name : p.name.toString(),
                 allowedValues: p.allowedValues ?? [],
                 type: p.type,
               })),
