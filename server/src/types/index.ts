@@ -78,7 +78,7 @@ export interface File {
   includes: File[];
 }
 
-export type Actions = ClipboardActions | TextEditActions;
+export type Actions = ClipboardActions;
 
 export type ClipboardActions = {
   type:
@@ -89,9 +89,4 @@ export type ClipboardActions = {
     | "dt_zephyr_macro_node_label"
     | "path";
   data: string;
-};
-
-export type TextEditActions = {
-  type: "edit";
-  data: TextEdit;
 };
