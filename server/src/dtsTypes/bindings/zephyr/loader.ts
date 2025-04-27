@@ -358,10 +358,10 @@ const addToNodeType = (
   name: string,
   property: ZephyrBindingsProperty
 ) => {
-  const existingProperty = nodeType.properties.find(
-    (p) => typeof p.name === "string" && p.getNameMatch(name)
+  const existingProperty = nodeType.properties.find((p) =>
+    p.getNameMatch(name)
   );
-  if (existingProperty) {
+  if (existingProperty && typeof existingProperty.name === "string") {
     existingProperty.required = () =>
       property.required ? "required" : "optional";
     existingProperty.values = () => property.enum ?? [];
@@ -374,22 +374,34 @@ const addToNodeType = (
     const additionalTypeCheck = existingProperty.additionalTypeCheck;
     existingProperty.additionalTypeCheck = (p) => {
       return [
-        ...generateZephyrTypeCheck(property, name)(p),
+        ...generateZephyrTypeCheck(property, name, existingProperty)(p),
         ...(additionalTypeCheck?.(p) ?? []),
       ];
     };
   } else {
+    let type =
+      property.type === "compound"
+        ? existingProperty?.type
+        : ZephyrTypeToDTSType(property.type);
+    type ??= ZephyrTypeToDTSType(property.type);
     const prop = new PropertyNodeType(
       name,
-      ZephyrTypeToDTSType(property.type),
+      type,
       property.required ? "required" : "optional",
       undefined, // TODO property.default ?,
-      property.enum,
-      generateZephyrTypeCheck(property, name)
+      property.enum
     );
+    prop.additionalTypeCheck = (p) => {
+      const issues = [
+        ...(existingProperty?.additionalTypeCheck?.(p) ?? []),
+        ...generateZephyrTypeCheck(property, name, prop)(p),
+      ];
+      prop.typeExample ??= existingProperty?.typeExample;
+      return issues;
+    };
     prop.description = property.description
       ? [property.description]
-      : undefined;
+      : existingProperty?.description;
     prop.bindingType = property.type;
     prop.constValue = ZephyrDefaultTypeDefault(property.type, property.const);
 
@@ -399,7 +411,8 @@ const addToNodeType = (
 
 const generateZephyrTypeCheck = (
   property: ZephyrBindingsProperty,
-  name: string
+  name: string,
+  type: PropertyNodeType
 ) => {
   const myProperty = property;
   return (p: Property) => {
@@ -548,10 +561,21 @@ const generateZephyrTypeCheck = (
           ? getU32ValueFromProperty(sizeCellProperty, 0, 0) ?? 0
           : 0;
 
+        const cellNames = phandelValue.nodeType?.cellsValues?.find(
+          (i) => i.specifier === parentName
+        )?.values;
+        type.typeExample = `<${[
+          "phandel",
+          ...(cellNames ?? []),
+          ...Array.from(
+            {
+              length: sizeCellValue - (cellNames?.length ?? 0),
+            },
+            () => "cell"
+          ),
+        ].join(" ")}>`;
+
         if (1 + sizeCellValue > values.length - i) {
-          const cellNames = phandelValue.nodeType?.cellsValues?.find(
-            (i) => i.specifier === parentName
-          )?.values;
           issues.push(
             genIssue(
               StandardTypeIssue.CELL_MISS_MATCH,
@@ -559,19 +583,7 @@ const generateZephyrTypeCheck = (
               DiagnosticSeverity.Error,
               [],
               [],
-              [
-                p.name,
-                `<${[
-                  "phandel",
-                  ...(cellNames ?? []),
-                  ...Array.from(
-                    {
-                      length: sizeCellValue - (cellNames?.length ?? 0),
-                    },
-                    () => "cell"
-                  ),
-                ].join(" ")}>`,
-              ]
+              [p.name, type.typeExample]
             )
           );
           break;

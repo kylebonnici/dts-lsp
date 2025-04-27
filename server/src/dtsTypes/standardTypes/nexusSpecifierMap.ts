@@ -83,6 +83,14 @@ export default () => {
       let entryEndIndex = 0;
       while (i < values.length) {
         i += childSpecifierCellsValue;
+        prop.typeExample ??= "";
+        prop.typeExample += `<${[
+          ...Array.from(
+            { length: childSpecifierCellsValue },
+            () => "ChildSpecifier"
+          ),
+          "SpecifierParent ParentSpecifier",
+        ].join(" ")}> `;
 
         if (values.length < i + 1) {
           const expLen = childSpecifierCellsValue + 1;
@@ -195,6 +203,14 @@ export default () => {
         }
         entryEndIndex = i;
       }
+
+      prop.typeExample ??= `<${[
+        ...Array.from(
+          { length: childSpecifierCellsValue },
+          () => "ChildSpecifier"
+        ),
+        "SpecifierParent ParentSpecifier",
+      ].join(" ")}>`;
 
       return issues;
     }

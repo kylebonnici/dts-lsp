@@ -53,6 +53,11 @@ export default () => {
         ? getU32ValueFromProperty(addressCellProperty, 0, 0) ?? 2
         : 2;
 
+      prop.typeExample = `<${[
+        ...Array.from({ length: addressCell }, () => "address"),
+        ...Array.from({ length: sizeCell }, () => "cell"),
+      ].join(" ")}>`;
+
       if (
         values.length === 0 ||
         values.length % (sizeCell + addressCell) !== 0
@@ -66,13 +71,7 @@ export default () => {
             DiagnosticSeverity.Error,
             [],
             [],
-            [
-              property.name,
-              `<${[
-                ...Array.from({ length: addressCell }, () => "address"),
-                ...Array.from({ length: sizeCell }, () => "cell"),
-              ].join(" ")}>`,
-            ]
+            [property.name, prop.typeExample]
           )
         );
         return issues;

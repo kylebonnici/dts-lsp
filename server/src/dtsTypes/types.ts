@@ -38,29 +38,45 @@ import { NodePathRef } from "../ast/dtc/values/nodePath";
 import { getNodeNameOrNodeLabelRef } from "../ast/helpers";
 import { countParent } from "../getDocumentFormatting";
 
-function propertyTypeToString(
-  type: PropertyType,
-  name: string = "prop"
-): string {
+function propertyTypeToString(type: PropertyType): string {
   switch (type) {
     case PropertyType.EMPTY:
-      return `EMPTY // ${name};`;
+      return `EMPTY`;
     case PropertyType.U32:
-      return `U32 // ${name} = <x>`;
+      return `U32`;
     case PropertyType.U64:
-      return `U64 // ${name} = <x y>`;
+      return `U64`;
     case PropertyType.STRING:
-      return `STRING // ${name} = "..."`;
+      return `STRING`;
     case PropertyType.PROP_ENCODED_ARRAY:
-      return `PROP_ENCODED_ARRAY // ${name} = <x y ...>`;
+      return `PROP_ENCODED_ARRAY`;
     case PropertyType.STRINGLIST:
-      return `STRINGLIST // ${name} = "str1" "str2"`;
+      return `STRINGLIST`;
     case PropertyType.BYTESTRING:
-      return `BYTESTRING // ${name} = [00 11 .. ..]`;
+      return `BYTESTRING`;
     case PropertyType.ANY:
-      return `ANY // ${name} = <...> "" [00]`;
+      return `ANY`;
     case PropertyType.UNKNOWN:
-      return `UNKNOWN // ${name}`;
+      return `UNKNOWN`;
+  }
+}
+
+function propertyTypeToExample(type: PropertyType): string | undefined {
+  switch (type) {
+    case PropertyType.EMPTY:
+      return `;`;
+    case PropertyType.U32:
+      return ` = <10>`;
+    case PropertyType.U64:
+      return ` = <10 20>`;
+    case PropertyType.STRING:
+      return ` = "str"`;
+    case PropertyType.PROP_ENCODED_ARRAY:
+      return ` = <10 20 30 ...>`;
+    case PropertyType.STRINGLIST:
+      return ` = "str1" "str2"`;
+    case PropertyType.BYTESTRING:
+      return ` = [10 20 .. ..]`;
   }
 }
 
@@ -85,6 +101,7 @@ export class PropertyNodeType<T = string | number> {
   public hideAutoComplete = false;
   public list = false;
   public bindingType?: string;
+  public typeExample?: string;
   public description?: string[];
   public examples?: string[];
   public constValue?: number | string | number[] | string[];
@@ -93,22 +110,30 @@ export class PropertyNodeType<T = string | number> {
       kind: MarkupKind.Markdown,
       value: [
         "### Type",
-        `DTS native type:`,
-        "```",
+        `**DTS native type**  `,
         `${this.type
-          .map((t) =>
-            t.types
-              .map((t) =>
-                propertyTypeToString(
-                  t,
-                  typeof this.name === "string" ? this.name : undefined
-                )
-              )
-              .join(" or ")
-          )
-          .join(",")}`,
+          .map((t) => t.types.map(propertyTypeToString).join(" or "))
+          .join(",")}
+          
+          `,
+        ...(this.bindingType
+          ? [
+              `**Binding type**  `,
+              `${this.bindingType}
+        
+        `,
+            ]
+          : []),
+        "**Example**  ",
         "```",
-        ...(this.bindingType ? [`Binding type:`, this.bindingType] : []),
+        `${typeof this.name === "string" ? this.name : "prop"}${
+          this.typeExample
+            ? ` = ${this.typeExample}`
+            : `${this.type
+                .map((t) => t.types.map(propertyTypeToExample).join(" || "))
+                .join(" ")}`
+        };`,
+        "```",
         ...(this.description
           ? ["### Description", this.description.join("\n\n")]
           : []),
@@ -586,8 +611,11 @@ export class NodeType extends INodeType {
     } else {
       this._properties.push(property);
     }
-    this._properties.sort((a) => {
-      return typeof a.name === "string" ? 1 : 0;
+    this._properties.sort((a, b) => {
+      if (typeof a.name === "string" && typeof b.name === "string") return 0;
+      if (typeof a.name !== "string" && typeof b.name !== "string") return 0;
+      if (typeof a.name === "string") return -1;
+      return 1;
     });
   }
 

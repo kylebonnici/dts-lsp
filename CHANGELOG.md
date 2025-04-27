@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Performace degradation when LSP searches for a node for completing, on hover etc...
 - Unhandled error on VSCode command when context selection is aborted
+- Type checking on nexusSpecifierMap when Zephyr binding were also loded on node
 
 # 0.3.0 - 2025-04-19
 

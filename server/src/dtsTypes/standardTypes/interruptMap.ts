@@ -87,9 +87,22 @@ export default () => {
 
         i += childAddressCellsValue + childInterruptSpecifierValue;
 
+        const expLen =
+          childAddressCellsValue + childInterruptSpecifierValue + 1;
+        prop.typeExample ??= "";
+        prop.typeExample += `<${[
+          ...Array.from(
+            { length: childAddressCellsValue },
+            () => "ChildAddress"
+          ),
+          ...Array.from(
+            { length: childInterruptSpecifierValue },
+            () => "ChildInterruptSpecifier"
+          ),
+          "InterruptParent ParentUnitAddress... ParentInterruptSpecifier...",
+        ].join(" ")}> `;
+
         if (values.length < i + 1) {
-          const expLen =
-            childAddressCellsValue + childInterruptSpecifierValue + 1;
           issues.push(
             genIssue(
               StandardTypeIssue.MAP_ENTRY_INCOMPLETE,
