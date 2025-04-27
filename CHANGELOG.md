@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 # 0.3.1 - Unreleased
 
+### Added
+
+- LPS API to get actions for a location:
+  - Generate C Identifers macros for nodes and properties
+  - Generate node path
+- Added context menu item to copy to clipboard C Identifiers.
+- Added context menu item to copy to clipboard node path.
+
 ### Fixed
 
 - Performace degradation when LSP searches for a node for completing, on hover etc...
