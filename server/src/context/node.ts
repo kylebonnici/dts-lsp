@@ -538,6 +538,8 @@ export class Node {
     return {
       kind: MarkupKind.Markdown,
       value: [
+        "### Path",
+        this.pathString,
         "### Current State",
         "```devicetree",
         this.toTooltipString(macros),

@@ -38,6 +38,32 @@ import { NodePathRef } from "../ast/dtc/values/nodePath";
 import { getNodeNameOrNodeLabelRef } from "../ast/helpers";
 import { countParent } from "../getDocumentFormatting";
 
+function propertyTypeToString(
+  type: PropertyType,
+  name: string = "prop"
+): string {
+  switch (type) {
+    case PropertyType.EMPTY:
+      return `EMPTY // ${name};`;
+    case PropertyType.U32:
+      return `U32 // ${name} = <x>`;
+    case PropertyType.U64:
+      return `U64 // ${name} = <x y>`;
+    case PropertyType.STRING:
+      return `STRING // ${name} = "..."`;
+    case PropertyType.PROP_ENCODED_ARRAY:
+      return `PROP_ENCODED_ARRAY // ${name} = <x y ...>`;
+    case PropertyType.STRINGLIST:
+      return `STRINGLIST // ${name} = "str1" "str2"`;
+    case PropertyType.BYTESTRING:
+      return `BYTESTRING // ${name} = [00 11 .. ..]`;
+    case PropertyType.ANY:
+      return `ANY // ${name} = <...> "" [00]`;
+    case PropertyType.UNKNOWN:
+      return `UNKNOWN // ${name}`;
+  }
+}
+
 export enum PropertyType {
   EMPTY,
   U32,
@@ -58,6 +84,7 @@ export class PropertyNodeType<T = string | number> {
   public values: (property: Property) => T[];
   public hideAutoComplete = false;
   public list = false;
+  public bindingType?: string;
   public description?: string[];
   public examples?: string[];
   public constValue?: number | string | number[] | string[];
@@ -65,6 +92,23 @@ export class PropertyNodeType<T = string | number> {
     return {
       kind: MarkupKind.Markdown,
       value: [
+        "### Type",
+        `DTS native type:`,
+        "```",
+        `${this.type
+          .map((t) =>
+            t.types
+              .map((t) =>
+                propertyTypeToString(
+                  t,
+                  typeof this.name === "string" ? this.name : undefined
+                )
+              )
+              .join(" or ")
+          )
+          .join(",")}`,
+        "```",
+        ...(this.bindingType ? [`Binding type:`, this.bindingType] : []),
         ...(this.description
           ? ["### Description", this.description.join("\n\n")]
           : []),

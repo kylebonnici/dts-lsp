@@ -369,6 +369,8 @@ const addToNodeType = (
       property.type,
       property.const
     );
+    existingProperty.bindingType = property.type;
+
     const additionalTypeCheck = existingProperty.additionalTypeCheck;
     existingProperty.additionalTypeCheck = (p) => {
       return [
@@ -388,7 +390,7 @@ const addToNodeType = (
     prop.description = property.description
       ? [property.description]
       : undefined;
-
+    prop.bindingType = property.type;
     prop.constValue = ZephyrDefaultTypeDefault(property.type, property.const);
 
     nodeType.addProperty(prop);
