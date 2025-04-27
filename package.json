@@ -40,6 +40,11 @@
         "command": "devicetree.clipboard.nodePath",
         "title": "Devicetree: Copy node path",
         "enablement": "editorLangId == devicetree"
+      },
+      {
+        "command": "devicetree.edit.addAlias",
+        "title": "Devicetree: Add alias",
+        "enablement": "editorLangId == devicetree"
       }
     ],
     "languages": [
@@ -70,6 +75,10 @@
         {
           "command": "devicetree.clipboard.nodePath",
           "when": "false"
+        },
+        {
+          "command": "devicetree.edit.addAlias",
+          "when": "false"
         }
       ],
       "editor/context": [
@@ -82,6 +91,11 @@
           "command": "devicetree.clipboard.nodePath",
           "when": "editorLangId == devicetree",
           "group": "9_cutcopypaste"
+        },
+        {
+          "command": "devicetree.edit.addAlias",
+          "when": "editorLangId == devicetree",
+          "group": "editor.action.refactor"
         }
       ]
     },

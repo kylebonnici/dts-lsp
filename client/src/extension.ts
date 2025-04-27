@@ -195,6 +195,17 @@ export async function activate(context: vscode.ExtensionContext) {
         copyClibboardAction(actions, "Pick a macro to copy...");
       }
     ),
+    vscode.commands.registerCommand("devicetree.edit.addAlias", async () => {
+      const a = await vscode.window.showInputBox({
+        title: "Alias name",
+        validateInput: (alias) => {
+          if (/^[a-z0-9-]+$/.test(alias)) {
+            return;
+          }
+          return "Alias name must match '^[a-z0-9-]+$'";
+        },
+      });
+    }),
     vscode.commands.registerCommand(
       "devicetree.clipboard.nodePath",
       async () => {
