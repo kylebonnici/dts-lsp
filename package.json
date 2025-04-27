@@ -30,6 +30,16 @@
       {
         "command": "devicetree.context.output",
         "title": "Devicetree: Generate context output"
+      },
+      {
+        "command": "devicetree.clipboard.dtMacro",
+        "title": "Devicetree: Copy C Identifier",
+        "enablement": "editorLangId == devicetree  && devicetree.context.type == 'Zephyr'"
+      },
+      {
+        "command": "devicetree.clipboard.nodePath",
+        "title": "Devicetree: Copy node path",
+        "enablement": "editorLangId == devicetree"
       }
     ],
     "languages": [
@@ -51,6 +61,30 @@
         "path": "syntax/dts.tmLanguage.json"
       }
     ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "devicetree.clipboard.dtMacro",
+          "when": "false"
+        },
+        {
+          "command": "devicetree.clipboard.nodePath",
+          "when": "false"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "devicetree.clipboard.dtMacro",
+          "when": "editorLangId == devicetree && devicetree.context.type == 'Zephyr'",
+          "group": "9_cutcopypaste"
+        },
+        {
+          "command": "devicetree.clipboard.nodePath",
+          "when": "editorLangId == devicetree",
+          "group": "9_cutcopypaste"
+        }
+      ]
+    },
     "configuration": {
       "type": "object",
       "title": "Devicetree LSP Configuration",

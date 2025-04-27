@@ -15,12 +15,17 @@
  */
 
 import type {
+  Actions,
   Context,
   ContextListItem,
   IntegrationSettings,
   ResolvedSettings,
 } from "devicetree-language-server-types";
-import { LanguageClient, NotificationType } from "vscode-languageclient/node";
+import {
+  LanguageClient,
+  NotificationType,
+  TextDocumentPositionParams,
+} from "vscode-languageclient/node";
 import { IDeviceTreeAPI as IDeviceTreeAPI } from "./types";
 import { EventEmitter } from "events";
 
@@ -130,5 +135,12 @@ export class API implements IDeviceTreeAPI {
     return () => {
       this.event.removeListener("onSettingsChanged", listener);
     };
+  }
+
+  getAllowedActions(location: TextDocumentPositionParams) {
+    return this.client.sendRequest(
+      "devicetree/customActions",
+      location
+    ) as Promise<Actions[]>;
   }
 }

@@ -332,6 +332,10 @@ export class Node {
     return this.parent ? [...this.parent.path, this.fullName] : [this.fullName];
   }
 
+  get pathString(): string {
+    return `/${this.path.slice(1).join("/")}`;
+  }
+
   get property() {
     return this._properties;
   }

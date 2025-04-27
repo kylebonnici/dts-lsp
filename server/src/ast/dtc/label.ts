@@ -36,7 +36,7 @@ export class LabelAssign extends ASTBase {
   }
 
   toString() {
-    return `${this.label.value}:`;
+    return `${this.label.toString()}:`;
   }
 }
 
@@ -62,5 +62,9 @@ export class Label extends ASTBase {
       start: this.firstToken,
       end: this.lastToken,
     });
+  }
+
+  toString() {
+    return `${this.value}`;
   }
 }

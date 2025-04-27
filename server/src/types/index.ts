@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import { TextEdit } from "vscode-languageserver-types";
+
 export type BindingType = "Zephyr" | "DevicetreeOrg";
 
 export type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
@@ -66,7 +68,7 @@ export interface ContextListItem {
   id: string;
   mainDtsPath: File;
   overlays: File[];
-  settings: Settings;
+  settings: PartialBy<Context, "ctxName">;
   active: boolean;
   type: ContextType;
 }
@@ -75,3 +77,16 @@ export interface File {
   file: string;
   includes: File[];
 }
+
+export type Actions = ClipboardActions;
+
+export type ClipboardActions = {
+  type:
+    | "dt_zephyr_macro_prop_node_alias"
+    | "dt_zephyr_macro_prop_node_path"
+    | "dt_zephyr_macro_prop_node_label"
+    | "dt_zephyr_macro_node_path"
+    | "dt_zephyr_macro_node_label"
+    | "path";
+  data: string;
+};
