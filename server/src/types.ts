@@ -248,7 +248,6 @@ export interface Token {
   pos: Position;
   value: string;
   uri: string;
-  sortKey?: number;
 }
 
 export interface TokenIndexes {

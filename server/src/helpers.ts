@@ -262,15 +262,20 @@ export const genIssue = <T extends IssueTypes>(
   codeActionTitle,
 });
 
-export const sortAstForScope = <T extends ASTBase>(ast: T[]) => {
+export const sortAstForScope = <T extends ASTBase>(
+  ast: T[],
+  context: ContextAware
+) => {
   const arrayCopy = [...ast];
   return arrayCopy.sort((a, b) => {
-    if (a.sortKey === undefined || b.sortKey === undefined) {
+    const aSortKey = context.getSortKey(a);
+    const bSortKey = context.getSortKey(b);
+    if (aSortKey === undefined || bSortKey === undefined) {
       throw new Error("Sort keys must be set");
     }
 
-    if (a.sortKey !== b.sortKey) {
-      return a.sortKey - b.sortKey;
+    if (aSortKey !== bSortKey) {
+      return aSortKey - bSortKey;
     }
 
     if (!a.tokenIndexes?.end || !b.tokenIndexes?.end) {
@@ -302,7 +307,7 @@ export async function nodeFinder<T>(
   console.time("search");
   const runtime = await context.getRuntime();
   const locationMeta = runtime.getDeepestAstNode(uri, location.position);
-  const sortKey = locationMeta?.ast?.firstToken.sortKey;
+  const sortKey = context.getSortKey(locationMeta?.ast);
   console.timeEnd("search");
 
   const inScope = (ast: ASTBase) => {
@@ -316,7 +321,7 @@ export async function nodeFinder<T>(
       );
     }
 
-    return sortKey !== undefined && ast.sortKey <= sortKey;
+    return sortKey !== undefined && (context.getSortKey(ast) ?? -1) <= sortKey;
   };
 
   return action(locationMeta, inScope);

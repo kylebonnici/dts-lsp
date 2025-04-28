@@ -23,7 +23,7 @@ import {
   NodeName,
 } from "./ast/dtc/node";
 import { DtcProperty } from "./ast/dtc/property";
-import { ContextIssues, Issue } from "./types";
+import { ContextIssues, Issue, Token } from "./types";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
 import { DeleteNode } from "./ast/dtc/deleteNode";
 import { LabelRef } from "./ast/dtc/labelRef";
@@ -60,6 +60,7 @@ export class ContextAware {
   public overlays: string[] = [];
   public readonly id: string;
   private readonly ctxNames_ = new Set<string | number>();
+  private sortKeys = new WeakMap<Token, number>();
 
   constructor(
     readonly settings: PartialBy<Context, "ctxName">,
@@ -318,10 +319,17 @@ export class ContextAware {
     const parser = this.getUriParser(uri);
     if (!parser) return this._runtime;
 
+    this.sortKeys = new WeakMap<Token, number>();
     await parser.reparse();
 
     this._runtime = this.evaluate();
     return this._runtime;
+  }
+
+  public getSortKey(obj: ASTBase | undefined) {
+    if (!obj) return undefined;
+
+    return this.sortKeys.get(obj.firstToken);
   }
 
   public async evaluate() {
@@ -343,7 +351,7 @@ export class ContextAware {
 
     (await this.getAllParsers())
       .flatMap((p) => p.tokens)
-      .forEach((t, i) => (t.sortKey = i));
+      .forEach((t, i) => this.sortKeys.set(t, i));
 
     this.linkPropertiesLabelsAndNodePaths(runtime);
 

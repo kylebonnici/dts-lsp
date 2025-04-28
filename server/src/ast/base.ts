@@ -52,10 +52,6 @@ export class ASTBase {
     this._lastToken = _tokenIndexes?.end;
   }
 
-  get sortKey(): number {
-    return this.firstToken.sortKey ?? this.parentNode?.sortKey ?? -1;
-  }
-
   get firstToken(): Token {
     return this._fisrtToken ?? this._children[0].tokenIndexes.start;
   }

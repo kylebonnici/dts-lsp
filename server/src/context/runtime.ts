@@ -238,6 +238,9 @@ export class Runtime implements Searchable {
   }
 
   getOrderedNodeAst(node: Node) {
-    return sortAstForScope([...node.definitions, ...node.referencedBy]);
+    return sortAstForScope(
+      [...node.definitions, ...node.referencedBy],
+      this.context
+    );
   }
 }
