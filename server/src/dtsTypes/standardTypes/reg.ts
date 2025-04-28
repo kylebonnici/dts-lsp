@@ -42,10 +42,21 @@ export default () => {
         return [];
       }
 
-      const sizeCellProperty =
+      const parentSizeCellProperty =
         property.parent.parent?.getProperty("#size-cells");
-      const addressCellProperty =
+      const parentAddressCellProperty =
         property.parent.parent?.getProperty("#address-cells");
+
+      const addressCellProperty =
+        property.parent?.getProperty("#address-cells");
+      const sizeCellProperty = property.parent?.getProperty("#size-cells");
+
+      const parentSizeCell = parentSizeCellProperty
+        ? getU32ValueFromProperty(parentSizeCellProperty, 0, 0) ?? 1
+        : 1;
+      const parentAddressCell = parentAddressCellProperty
+        ? getU32ValueFromProperty(parentAddressCellProperty, 0, 0) ?? 2
+        : 2;
 
       const sizeCell = sizeCellProperty
         ? getU32ValueFromProperty(sizeCellProperty, 0, 0) ?? 1
@@ -55,19 +66,20 @@ export default () => {
         : 2;
 
       prop.typeExample = `<${[
-        ...Array.from({ length: addressCell }, () => "address"),
-        ...Array.from({ length: sizeCell }, () => "cell"),
+        ...Array.from({ length: parentAddressCell }, () => "address"),
+        ...Array.from({ length: parentSizeCell }, () => "cell"),
       ].join(" ")}>`;
 
       if (
         values.length === 0 ||
-        values.length % (sizeCell + addressCell) !== 0
+        values.length % (parentSizeCell + parentAddressCell) !== 0
       ) {
         issues.push(
           genStandardTypeDiagnostic(
             StandardTypeIssue.CELL_MISS_MATCH,
             values.at(
-              values.length - (values.length % (sizeCell + addressCell))
+              values.length -
+                (values.length % (parentSizeCell + parentAddressCell))
             ) ?? property.ast,
             DiagnosticSeverity.Error,
             [],
@@ -78,18 +90,20 @@ export default () => {
         return issues;
       }
 
-      for (let i = 0; i < values.length; i += sizeCell + addressCell) {
-        const buffer = new ArrayBuffer(addressCell * 4);
+      for (
+        let i = 0;
+        i < values.length;
+        i += parentSizeCell + parentAddressCell
+      ) {
+        const buffer = new ArrayBuffer(parentAddressCell * 4);
         const view = new DataView(buffer);
 
         values
-          .slice(0, addressCell)
+          .slice(0, parentAddressCell)
           .map((_, i) => getU32ValueFromProperty(property, 0, i) ?? 0)
           .forEach((c, i) => {
             view.setUint32(i * 4, c);
           });
-
-        // TODO consider adding check and warn if property.parent.address?.length > 1 && property.parent.address?.length !== addressCell
 
         if (property.parent.address && property.parent.address?.length > 1) {
           property.parent.address?.forEach((a, i) => {
@@ -108,9 +122,9 @@ export default () => {
           });
         } else if (
           property.parent.address?.length === 1 &&
-          ((addressCell === 2 &&
+          ((parentAddressCell === 2 &&
             view.getBigUint64(0) !== BigInt(property.parent.address[0])) ||
-            (addressCell === 1 &&
+            (parentAddressCell === 1 &&
               view.getUint32(0) !== property.parent.address[0]))
         ) {
           issues.push(

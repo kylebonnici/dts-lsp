@@ -17,12 +17,14 @@
 import { BindingPropertyType } from "../../types/index";
 import { genStandardTypeDiagnostic } from "../../helpers";
 import { PropertyNodeType } from "../types";
+import { addWords, compareWords } from "../../helpers";
 import {
   flatNumberValues,
   generateOrTypeObj,
   getU32ValueFromProperty,
 } from "./helpers";
-import { FileDiagnostic, Issue, StandardTypeIssue } from "../../types";
+
+import { FileDiagnostic, StandardTypeIssue } from "../../types";
 import { DiagnosticSeverity } from "vscode-languageserver";
 
 export default () => {
@@ -43,13 +45,13 @@ export default () => {
         return [];
       }
 
-      const sizeCellProperty = property.parent?.getProperty("#size-cells");
+      const childSizeCellProperty = property.parent?.getProperty("#size-cells");
       const childBusAddress = property.parent?.getProperty("#address-cells");
       const parentdBusAddress =
         property.parent.parent?.getProperty("#address-cells");
 
-      const sizeCellValue = sizeCellProperty
-        ? getU32ValueFromProperty(sizeCellProperty, 0, 0) ?? 1
+      const sizeCellValue = childSizeCellProperty
+        ? getU32ValueFromProperty(childSizeCellProperty, 0, 0) ?? 1
         : 1;
 
       const childBusAddressValue = childBusAddress
@@ -58,6 +60,18 @@ export default () => {
       const parentdBusAddressValue = parentdBusAddress
         ? getU32ValueFromProperty(parentdBusAddress, 0, 0) ?? 2
         : 2;
+
+      prop.typeExample = `<${[
+        ...Array.from(
+          { length: childBusAddressValue },
+          () => "child-bus-address"
+        ),
+        ...Array.from(
+          { length: parentdBusAddressValue },
+          () => "parent-bus-address"
+        ),
+        ...Array.from({ length: parentdBusAddressValue }, () => "length"),
+      ].join(" ")}>`;
 
       if (
         values.length === 0 ||
@@ -78,25 +92,70 @@ export default () => {
             DiagnosticSeverity.Error,
             [],
             [],
-            [
-              property.name,
-              `<${[
-                ...Array.from(
-                  { length: childBusAddressValue },
-                  () => "child-bus-address"
-                ),
-                ...Array.from(
-                  { length: parentdBusAddressValue },
-                  () => "parent-bus-address"
-                ),
-                ...Array.from(
-                  { length: parentdBusAddressValue },
-                  () => "length"
-                ),
-              ].join(" ")}>`,
-            ]
+            [property.name, prop.typeExample]
           )
         );
+      }
+
+      if (issues.length === 0) {
+        const mappings = property.parent.rangeMap(new Map());
+        const thisNodeReg = property.parent.reg();
+        if (thisNodeReg) {
+          mappings?.forEach((m) => {
+            if (
+              compareWords(
+                thisNodeReg.endAddress,
+                addWords(m.parentAddress, m.length)
+              ) < 0
+            ) {
+              issues.push(
+                genStandardTypeDiagnostic(
+                  StandardTypeIssue.RANGE_EXCEEDS_ADDRESS_SPACE,
+                  m.ast,
+                  DiagnosticSeverity.Warning,
+                  [thisNodeReg.ast],
+                  [],
+                  [
+                    property.name,
+                    m.parentAddress.map((c) => `0x${c.toString(16)}`).join(","),
+                    thisNodeReg.endAddress
+                      .map((c) => `0x${c.toString(16)}`)
+                      .join(","),
+                  ]
+                )
+              );
+            }
+          });
+        }
+
+        property.parent.nodes.forEach((childNode) => {
+          const reg = childNode.getProperty("reg");
+          if (!reg) return;
+
+          const mappedAddress = childNode.mappedReg(new Map()); // TODO
+          if (!mappedAddress?.mappingEnd || !mappedAddress.mappedAst) return;
+
+          if (!mappedAddress.inMappingRange) {
+            issues.push(
+              genStandardTypeDiagnostic(
+                StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS,
+                reg.ast.values ?? reg.ast,
+                DiagnosticSeverity.Warning,
+                [mappedAddress.mappedAst], // map better?
+                [],
+                [
+                  reg.name,
+                  mappedAddress.endEddress
+                    .map((c) => `0x${c.toString(16)}`)
+                    .join(","),
+                  mappedAddress.mappingEnd
+                    .map((c) => `0x${c.toString(16)}`)
+                    .join(","),
+                ]
+              )
+            );
+          }
+        });
       }
 
       return issues;

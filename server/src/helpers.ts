@@ -41,6 +41,7 @@ import {
   StandardTypeIssue,
   CodeActionDiagnosticData,
   FileDiagnostic,
+  Mapping,
 } from "./types";
 import { ContextAware } from "./runtimeEvaluator";
 import url from "url";
@@ -939,4 +940,91 @@ export const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
     default:
       return `TODO`;
   }
+};
+
+export const compareWords = (a: number[], b: number[]): number => {
+  const n = Math.max(a.length, b.length);
+  for (let i = 0; i < n; i++) {
+    const ai = a[a.length - n + i] ?? 0;
+    const bi = b[b.length - n + i] ?? 0;
+    if (ai < bi) return -1;
+    if (ai > bi) return 1;
+  }
+  return 0;
+};
+
+export const addWords = (a: number[], b: number[]): number[] => {
+  const n = Math.max(a.length, b.length);
+  const result: number[] = new Array(n).fill(0);
+  let carry = 0;
+  for (let i = 0; i < n; i++) {
+    const ai = a[a.length - 1 - i] ?? 0;
+    const bi = b[b.length - 1 - i] ?? 0;
+    const sum = ai + bi + carry;
+    result[n - 1 - i] = sum >>> 0;
+    carry = sum > 0xffffffff ? 1 : 0;
+  }
+  if (carry) {
+    result.unshift(1);
+  }
+  return result;
+};
+
+export const subtractWords = (a: number[], b: number[]): number[] => {
+  const n = Math.max(a.length, b.length);
+  const result: number[] = new Array(n).fill(0);
+  let borrow = 0;
+  for (let i = 0; i < n; i++) {
+    let ai = a[a.length - 1 - i] ?? 0;
+    const bi = b[b.length - 1 - i] ?? 0;
+    ai -= borrow;
+    if (ai < bi) {
+      ai += 0x100000000;
+      borrow = 1;
+    } else {
+      borrow = 0;
+    }
+    result[n - 1 - i] = (ai - bi) >>> 0;
+  }
+  while (result.length > 1 && result[0] === 0) result.shift();
+  return result;
+};
+
+export const addOffset = (base: number[], offset: number[]): number[] => {
+  return addWords(base, offset);
+};
+
+type MappedAddress = {
+  start: number[];
+  end: number[];
+  ast: ASTBase;
+};
+
+export const findMappedAddress = (
+  mappings: Mapping[],
+  address: number[]
+): MappedAddress | null => {
+  for (const mapping of mappings) {
+    const childStart = mapping.childAddress;
+    const size = mapping.length;
+    const childEnd = addWords(childStart, size);
+
+    if (
+      compareWords(address, childStart) >= 0 &&
+      compareWords(address, childEnd) < 0
+    ) {
+      const offset = subtractWords(address, childStart);
+      const parentStart = mapping.parentAddress;
+      const mappedStart = addOffset(parentStart, offset);
+      const mappedEnd = addWords(parentStart, size);
+
+      return {
+        start: mappedStart,
+        end: mappedEnd,
+        ast: mapping.ast,
+      };
+    }
+  }
+
+  return null;
 };

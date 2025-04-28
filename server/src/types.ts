@@ -67,6 +67,8 @@ export enum StandardTypeIssue {
   NODE_LOCATION,
   PROPERTY_NOT_ALLOWED,
   INVALID_VALUE,
+  EXCEEDS_MAPPING_ADDRESS,
+  RANGE_EXCEEDS_ADDRESS_SPACE,
 }
 
 export enum SyntaxIssue {
@@ -301,4 +303,11 @@ export type ContextId = { uri: string } | { id: string } | { name: string };
 export type FileDiagnostic = {
   raw: Issue<IssueTypes>;
   diagnostic: () => Diagnostic;
+};
+
+export type Mapping = {
+  childAddress: number[];
+  parentAddress: number[];
+  length: number[];
+  ast: ASTBase;
 };
