@@ -46,21 +46,9 @@ export default () => {
         return [];
       }
 
-      const childSizeCellProperty = property.parent?.getProperty("#size-cells");
-      const childBusAddress = property.parent?.getProperty("#address-cells");
-      const parentdBusAddress =
-        property.parent.parent?.getProperty("#address-cells");
-
-      const sizeCellValue = childSizeCellProperty
-        ? getU32ValueFromProperty(childSizeCellProperty, 0, 0) ?? 1
-        : 1;
-
-      const childBusAddressValue = childBusAddress
-        ? getU32ValueFromProperty(childBusAddress, 0, 0) ?? 2
-        : 2;
-      const parentdBusAddressValue = parentdBusAddress
-        ? getU32ValueFromProperty(parentdBusAddress, 0, 0) ?? 2
-        : 2;
+      const sizeCellValue = property.parent.sizeCells();
+      const childBusAddressValue = property.parent.addressCells();
+      const parentdBusAddressValue = property.parent.parentAddressCells();
 
       prop.typeExample = `<${[
         ...Array.from(

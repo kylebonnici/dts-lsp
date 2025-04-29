@@ -48,8 +48,8 @@ export default () => {
         return [];
       }
 
-      const parentSizeCell = property.parent.sizeCells();
-      const parentAddressCell = property.parent.addressCells();
+      const parentSizeCell = property.parent.parentSizeCells();
+      const parentAddressCell = property.parent.parentAddressCells();
 
       prop.typeExample = `<${[
         ...Array.from({ length: parentAddressCell }, () => "address"),

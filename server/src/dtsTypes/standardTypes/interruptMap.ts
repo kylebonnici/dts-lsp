@@ -44,7 +44,6 @@ export default () => {
         return [];
       }
 
-      const childAddressCells = node.getProperty("#address-cells");
       const childInterruptSpecifier = node.getProperty("#interrupt-cells");
 
       if (!childInterruptSpecifier) {
@@ -66,21 +65,17 @@ export default () => {
         return issues;
       }
 
+      const childAddressCellsValue = node.addressCells();
+
+      const childInterruptSpecifierValue = getU32ValueFromProperty(
+        childInterruptSpecifier,
+        0,
+        0
+      );
+
       let i = 0;
       while (i < values.length) {
-        const childAddressCellsValue = childAddressCells
-          ? getU32ValueFromProperty(childAddressCells, 0, 0)
-          : 2;
-
-        const childInterruptSpecifierValue = getU32ValueFromProperty(
-          childInterruptSpecifier,
-          0,
-          0
-        );
-        if (
-          childAddressCellsValue == null ||
-          childInterruptSpecifierValue == null
-        ) {
+        if (childInterruptSpecifierValue == null) {
           return issues;
         }
 
@@ -253,22 +248,7 @@ export default () => {
           return issues;
         }
 
-        const childAddressCellsValue = getU32ValueFromProperty(
-          childAddressCells!,
-          0,
-          0
-        );
-
-        const childInterruptSpecifierValue = getU32ValueFromProperty(
-          childInterruptSpecifier!,
-          0,
-          0
-        );
-
-        if (
-          childAddressCellsValue == null ||
-          childInterruptSpecifierValue == null
-        ) {
+        if (childInterruptSpecifierValue == null) {
           return issues;
         }
 

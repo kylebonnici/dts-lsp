@@ -558,20 +558,9 @@ export class Node {
       return;
     }
 
-    const childSizeCellProperty = this.getProperty("#size-cells");
-    const childBusAddress = this.getProperty("#address-cells");
-    const parentdBusAddress = this.parent?.getProperty("#address-cells");
-
-    const childSizeCell = childSizeCellProperty
-      ? getU32ValueFromProperty(childSizeCellProperty, 0, 0) ?? 1
-      : 1;
-
-    const childAddressCell = childBusAddress
-      ? getU32ValueFromProperty(childBusAddress, 0, 0) ?? 2
-      : 2;
-    const parentAddressCell = parentdBusAddress
-      ? getU32ValueFromProperty(parentdBusAddress, 0, 0) ?? 2
-      : 2;
+    const childSizeCell = this.sizeCells();
+    const childAddressCell = this.addressCells();
+    const parentAddressCell = this.parentAddressCells();
 
     const mapping: Mapping[] = [];
     const values = flatNumberValues(rangeProperty.ast.values)?.reverse();
@@ -623,10 +612,18 @@ export class Node {
     return this.#rangeMappingsCache;
   }
 
+  public parentAddressCells(): number {
+    return this.parent?.addressCells() ?? 2;
+  }
+
+  public parentSizeCells(): number {
+    return this.parent?.sizeCells() ?? 1;
+  }
+
   #addressCellsCache?: number;
   public addressCells(): number {
     if (this.#addressCellsCache !== undefined) return this.#addressCellsCache;
-    const addressCells = this.parent?.getProperty("#address-cells");
+    const addressCells = this?.getProperty("#address-cells");
     this.#addressCellsCache = addressCells
       ? getU32ValueFromProperty(addressCells, 0, 0) ?? 2
       : 2;
@@ -636,7 +633,7 @@ export class Node {
   #sizeCellsCache?: number;
   public sizeCells(): number {
     if (this.#sizeCellsCache !== undefined) return this.#sizeCellsCache;
-    const sizeCells = this.parent?.getProperty("#size-cells");
+    const sizeCells = this.getProperty("#size-cells");
     this.#sizeCellsCache = sizeCells
       ? getU32ValueFromProperty(sizeCells, 0, 0) ?? 1
       : 1;
@@ -647,14 +644,14 @@ export class Node {
     const reg = this.getProperty("reg");
     if (!reg) return;
 
-    const addressCells = this.addressCells();
+    const addressCells = this.parentAddressCells();
     const startAddress = Array.from({
       length: addressCells,
     }).map(
       (_, i) => getU32ValueFromProperty(reg, 0, i) ?? 1 // TODO do not fallback to 1
     );
 
-    const sizeCells = this.sizeCells();
+    const sizeCells = this.parentSizeCells();
     const size = Array.from({
       length: sizeCells,
     }).map(
@@ -677,14 +674,14 @@ export class Node {
     const reg = this.getProperty("reg");
     if (!reg) return;
 
-    const addressCells = this.addressCells();
+    const addressCells = this.parentAddressCells();
     const startAddress = Array.from({
       length: addressCells,
     }).map(
       (_, i) => getU32ValueFromProperty(reg, 0, i) ?? 1 // TODO do not fallback to 1
     );
 
-    const sizeCells = this.sizeCells();
+    const sizeCells = this.parentSizeCells();
     const size = Array.from({
       length: sizeCells,
     }).map(
