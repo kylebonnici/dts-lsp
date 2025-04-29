@@ -99,6 +99,11 @@ export class ContextAware {
     });
   }
 
+  get macros() {
+    return [this.parser, ...this.overlayParsers].at(-1)!.cPreprocessorParser
+      .macros;
+  }
+
   get ctxNames() {
     return Array.from(this.ctxNames_);
   }

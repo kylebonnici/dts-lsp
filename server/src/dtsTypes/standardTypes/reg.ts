@@ -48,28 +48,8 @@ export default () => {
         return [];
       }
 
-      const parentSizeCellProperty =
-        property.parent.parent?.getProperty("#size-cells");
-      const parentAddressCellProperty =
-        property.parent.parent?.getProperty("#address-cells");
-
-      const addressCellProperty =
-        property.parent?.getProperty("#address-cells");
-      const sizeCellProperty = property.parent?.getProperty("#size-cells");
-
-      const parentSizeCell = parentSizeCellProperty
-        ? getU32ValueFromProperty(parentSizeCellProperty, 0, 0) ?? 1
-        : 1;
-      const parentAddressCell = parentAddressCellProperty
-        ? getU32ValueFromProperty(parentAddressCellProperty, 0, 0) ?? 2
-        : 2;
-
-      const sizeCell = sizeCellProperty
-        ? getU32ValueFromProperty(sizeCellProperty, 0, 0) ?? 1
-        : 1;
-      const addressCell = addressCellProperty
-        ? getU32ValueFromProperty(addressCellProperty, 0, 0) ?? 2
-        : 2;
+      const parentSizeCell = property.parent.sizeCells();
+      const parentAddressCell = property.parent.addressCells();
 
       prop.typeExample = `<${[
         ...Array.from({ length: parentAddressCell }, () => "address"),

@@ -53,8 +53,8 @@ export function getCpusNodeType() {
   };
 
   const sizeCellsAdditionalTypeCheck = sizeCellsProp?.additionalTypeCheck;
-  sizeCellsProp!.additionalTypeCheck = (property) => {
-    const issues = sizeCellsAdditionalTypeCheck?.(property) ?? [];
+  sizeCellsProp!.additionalTypeCheck = (property, macros) => {
+    const issues = sizeCellsAdditionalTypeCheck?.(property, macros) ?? [];
 
     const node = property.parent.getProperty(property.name);
     const nodeValue = node ? getU32ValueFromProperty(node, 0, 0) : undefined;

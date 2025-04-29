@@ -624,7 +624,7 @@ export class Node {
   }
 
   #addressCellsCache?: number;
-  private addressCells(): number {
+  public addressCells(): number {
     if (this.#addressCellsCache !== undefined) return this.#addressCellsCache;
     const addressCells = this.parent?.getProperty("#address-cells");
     this.#addressCellsCache = addressCells
@@ -634,7 +634,7 @@ export class Node {
   }
 
   #sizeCellsCache?: number;
-  private sizeCells(): number {
+  public sizeCells(): number {
     if (this.#sizeCellsCache !== undefined) return this.#sizeCellsCache;
     const sizeCells = this.parent?.getProperty("#size-cells");
     this.#sizeCellsCache = sizeCells
