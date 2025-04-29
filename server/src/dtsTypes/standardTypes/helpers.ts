@@ -38,7 +38,6 @@ export const flatNumberValues = (value: PropertyValues | null | undefined) => {
   );
 };
 
-// TODO resole with macros !!
 export const getU32ValueFromProperty = (
   property: Property,
   valueIndex: number,

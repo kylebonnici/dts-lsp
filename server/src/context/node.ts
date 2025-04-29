@@ -647,16 +647,20 @@ export class Node {
     const addressCells = this.parentAddressCells(macros);
     const startAddress = Array.from({
       length: addressCells,
-    }).map(
-      (_, i) => getU32ValueFromProperty(reg, 0, i, macros) ?? 1 // TODO do not fallback to 1
-    );
+    }).map((_, i) => getU32ValueFromProperty(reg, 0, i, macros));
+
+    if (!startAddress.every((a) => typeof a === "number")) {
+      return;
+    }
 
     const sizeCells = this.parentSizeCells(macros);
     const size = Array.from({
       length: sizeCells,
-    }).map(
-      (_, i) => getU32ValueFromProperty(reg, 0, addressCells + i, macros) ?? 1 // TODO do not fallback to 1
-    );
+    }).map((_, i) => getU32ValueFromProperty(reg, 0, addressCells + i, macros));
+
+    if (!size.every((a) => typeof a === "number")) {
+      return;
+    }
 
     return {
       startAddress,
@@ -677,16 +681,20 @@ export class Node {
     const addressCells = this.parentAddressCells(macros);
     const startAddress = Array.from({
       length: addressCells,
-    }).map(
-      (_, i) => getU32ValueFromProperty(reg, 0, i, macros) ?? 1 // TODO do not fallback to 1
-    );
+    }).map((_, i) => getU32ValueFromProperty(reg, 0, i, macros));
+
+    if (!startAddress.every((a) => typeof a === "number")) {
+      return;
+    }
 
     const sizeCells = this.parentSizeCells(macros);
     const size = Array.from({
       length: sizeCells,
-    }).map(
-      (_, i) => getU32ValueFromProperty(reg, 0, addressCells + i, macros) ?? 1 // TODO do not fallback to 1
-    );
+    }).map((_, i) => getU32ValueFromProperty(reg, 0, addressCells + i, macros));
+
+    if (!size.every((a) => typeof a === "number")) {
+      return;
+    }
 
     const mappings = this.parent?.rangeMap(macros);
 

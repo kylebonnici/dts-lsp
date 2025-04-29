@@ -39,7 +39,6 @@ export default () => {
     undefined,
     (property, macros) => {
       const issues: FileDiagnostic[] = [];
-      console.log(property.parent.name);
 
       const values = flatNumberValues(property.ast.values);
       if (!values?.length) {
@@ -117,7 +116,7 @@ export default () => {
           const reg = childNode.getProperty("reg");
           if (!reg) return;
 
-          const mappedAddress = childNode.mappedReg(new Map()); // TODO
+          const mappedAddress = childNode.mappedReg(macros);
           if (!mappedAddress?.mappingEnd || !mappedAddress.mappedAst) return;
 
           if (!mappedAddress.inMappingRange) {
