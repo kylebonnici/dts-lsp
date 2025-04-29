@@ -70,8 +70,8 @@ type MappedReg = {
   startAddress: number[];
   startAddressRaw: number[];
   size: number[];
-  endEddress: number[];
-  endEddressRaw: number[];
+  endAddress: number[];
+  endAddressRaw: number[];
   inRange: boolean;
   inMappingRange: boolean;
   parentEnd?: number[];
@@ -694,14 +694,14 @@ export class Node {
     const mappings = this.parent?.rangeMap(macros);
 
     const endEddress = addWords(startAddress, size);
-    const parentEnd = this.parent?.mappedReg(macros)?.endEddress;
+    const parentEnd = this.parent?.mappedReg(macros)?.endAddress;
 
     this.#mappedRegCache = {
       startAddress,
       startAddressRaw: startAddress,
       size,
-      endEddress,
-      endEddressRaw: endEddress,
+      endAddress: endEddress,
+      endAddressRaw: endEddress,
       inRange: !parentEnd || compareWords(endEddress, parentEnd) <= 0,
       inMappingRange: false,
       parentEnd,
@@ -720,12 +720,12 @@ export class Node {
 
     this.#mappedRegCache.mappedAst = mappedAddress.ast;
     this.#mappedRegCache.startAddress = mappedAddress.start;
-    this.#mappedRegCache.endEddress = addWords(mappedAddress.start, size);
+    this.#mappedRegCache.endAddress = addWords(mappedAddress.start, size);
     this.#mappedRegCache.inRange =
       !parentEnd ||
-      compareWords(this.#mappedRegCache.endEddress, parentEnd) <= 0;
+      compareWords(this.#mappedRegCache.endAddress, parentEnd) <= 0;
     this.#mappedRegCache.inMappingRange =
-      compareWords(this.#mappedRegCache.endEddress, mappedAddress.end) <= 0;
+      compareWords(this.#mappedRegCache.endAddress, mappedAddress.end) <= 0;
     this.#mappedRegCache.mappingEnd = mappedAddress.end;
 
     return this.#mappedRegCache;
@@ -823,6 +823,7 @@ ${"\t".repeat(level - 1)}}; ${isOmmited ? " */" : ""}`;
   }
 
   serialize(macros: Map<string, MacroRegistryItem>): SerializedNode {
+    const mappedReg = this.mappedReg(macros);
     const nodeAsts = [...this.definitions, ...this.referencedBy];
     const nodeType = this.nodeType;
     return {
@@ -843,6 +844,15 @@ ${"\t".repeat(level - 1)}}; ${isOmmited ? " */" : ""}`;
       nodes: nodeAsts.map((d) => d.serialize(macros)),
       properties: this.property.map((p) => p.ast.serialize(macros)),
       childNodes: this.nodes.map((n) => n.serialize(macros)),
+      reg: {
+        mappedStartAddress: mappedReg?.startAddress,
+        mappedEndAddress: mappedReg?.endAddress,
+        startAddress: mappedReg?.startAddressRaw,
+        endAddress: mappedReg?.endAddressRaw,
+        size: mappedReg?.size,
+        inRange: mappedReg?.inRange,
+        inMappingRange: mappedReg?.inMappingRange,
+      },
     };
   }
 }

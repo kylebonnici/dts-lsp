@@ -142,7 +142,7 @@ export default () => {
                 [],
                 [
                   reg.name,
-                  mappedAddress.endEddress
+                  mappedAddress.endAddress
                     .map((c) => `0x${c.toString(16)}`)
                     .join(","),
                   mappedAddress.mappingEnd
