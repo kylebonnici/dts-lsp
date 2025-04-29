@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-# 0.3.1 - Unreleased
+# 0.3.1 - 2025-04-29
 
 ### Added
 
@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- LSP High CPU usage; constanly changing the active context when using a split view
 - Performace degradation when LSP searches for a node for completing, on hover etc...
 - Unhandled error on VSCode command when context selection is aborted
 - Type checking on nexusSpecifierMap when Zephyr binding were also loded on node
