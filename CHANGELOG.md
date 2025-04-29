@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+# 0.3.2 - Unreleased
+
+### Added
+
+- Validation of ranges proprty to ensure that it does not exceed the reg property range when defined.
+- Validation of reg proprty to ensure if mapped it does not exeed the mapping range.
+- Validation of reg proprty to ensure that it does not exceed the reg property of parent node when defined.
+
 # 0.3.1 - 2025-04-29
 
 ### Added
