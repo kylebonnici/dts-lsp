@@ -25,7 +25,6 @@ import {
 import type { ASTBase } from "./ast/base";
 import {
   Issue,
-  IssueTypes,
   SearchableResult,
   SemanticTokenModifiers,
   SemanticTokenType,
@@ -915,6 +914,10 @@ export const standardTypeIssueIssuesToMessage = (
           return issue.templateStrings[0];
         case StandardTypeIssue.INVALID_VALUE:
           return issue.templateStrings[0];
+        case StandardTypeIssue.RANGE_EXCEEDS_ADDRESS_SPACE:
+          return `INTRO exceeds address space of this node. The range ends at ${issue.templateStrings[1]}, the node ends at ${issue.templateStrings[2]}`;
+        case StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS:
+          return `INTRO address space avalable for this mapping. The range ends at ${issue.templateStrings[1]}, the node ends at ${issue.templateStrings[2]}`;
       }
     })
     .join(" or ")
@@ -937,6 +940,10 @@ export const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
       return "Additional value";
     case StandardTypeIssue.NODE_DISABLED:
       return "Disabled by";
+    case StandardTypeIssue.RANGE_EXCEEDS_ADDRESS_SPACE:
+      return "Address space";
+    case StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS:
+      return "Mapping range";
     default:
       return `TODO`;
   }

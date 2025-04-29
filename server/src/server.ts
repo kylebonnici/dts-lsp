@@ -810,7 +810,8 @@ const updateActiveContext = async (id: ContextId, force = false) => {
     if (newContext) {
       contexMeta(newContext).then(async (meta) => {
         const fileTree = await newContext.getFileTree();
-        if (newContext !== activeContext) return;
+        if (newContext !== activeContext && !contextAware.includes(newContext))
+          return;
         connection.sendNotification("devicetree/newActiveContext", {
           ctxNames: newContext.ctxNames.map((c) => c.toString()),
           id: newContext.id,

@@ -39,6 +39,7 @@ export default () => {
     undefined,
     (property) => {
       const issues: FileDiagnostic[] = [];
+      console.log(property.parent.name);
 
       const values = flatNumberValues(property.ast.values);
       if (!values?.length) {
@@ -102,12 +103,8 @@ export default () => {
         const thisNodeReg = property.parent.reg();
         if (thisNodeReg) {
           mappings?.forEach((m) => {
-            if (
-              compareWords(
-                thisNodeReg.endAddress,
-                addWords(m.parentAddress, m.length)
-              ) < 0
-            ) {
+            const ends = addWords(m.parentAddress, m.length);
+            if (compareWords(thisNodeReg.endAddress, ends) < 0) {
               issues.push(
                 genStandardTypeDiagnostic(
                   StandardTypeIssue.RANGE_EXCEEDS_ADDRESS_SPACE,
@@ -117,7 +114,7 @@ export default () => {
                   [],
                   [
                     property.name,
-                    m.parentAddress.map((c) => `0x${c.toString(16)}`).join(","),
+                    ends.map((c) => `0x${c.toString(16)}`).join(","),
                     thisNodeReg.endAddress
                       .map((c) => `0x${c.toString(16)}`)
                       .join(","),
