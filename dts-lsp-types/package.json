@@ -1,7 +1,7 @@
 {
   "name": "devicetree-language-server-types",
   "package-name": "devicetree-language-server-types",
-  "version": "0.0.2-alpha.5",
+  "version": "0.0.2-alpha.6",
   "description": "Type definitions devicetree-lsp",
   "main": "./dist/index.d.ts",
   "types": "./dist/index.d.ts",
@@ -17,5 +17,8 @@
     "typescript": "^4.0.0"
   },
   "author": "Kyle Micallef Bonnici",
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "dependencies": {
+    "vscode-languageserver-types": "^3.17.5"
+  }
 }

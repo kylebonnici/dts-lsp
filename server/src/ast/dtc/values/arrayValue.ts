@@ -22,6 +22,7 @@ import { NumberValue } from "./number";
 import { LabeledValue } from "./labeledValue";
 import { Expression } from "../../cPreprocessors/expression";
 import { MacroRegistryItem, Token } from "../../../types";
+import { SerializableArrayValue } from "../../../types/index";
 
 export class ArrayValues extends ASTBase {
   public openBracket?: Token;
@@ -68,5 +69,15 @@ export class ArrayValues extends ASTBase {
     }
 
     return this.values.map((v) => v.value?.toJson() ?? NaN);
+  }
+
+  serialize(macros: Map<string, MacroRegistryItem>): SerializableArrayValue {
+    const a = this.values.map((v) => v.value?.serialize(macros) ?? null);
+    return new SerializableArrayValue(
+      a,
+      this.uri,
+      this.range,
+      this.serializeIssues
+    );
   }
 }

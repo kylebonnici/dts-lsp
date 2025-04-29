@@ -14,19 +14,23 @@
  * limitations under the License.
  */
 
-import { genIssue, toRange, toRangeWithTokenIndex } from "../../../../helpers";
-import { NodeType, PropertyNodeType, PropertyType } from "../../../types";
+import { BindingPropertyType } from "../../../../types/index";
+import {
+  genStandardTypeDiagnostic,
+  toRangeWithTokenIndex,
+} from "../../../../helpers";
+import { NodeType, PropertyNodeType } from "../../../types";
 import { generateOrTypeObj } from "../../helpers";
-import { Issue, StandardTypeIssue } from "../../../../types";
+import { FileDiagnostic, StandardTypeIssue } from "../../../../types";
 import { DiagnosticSeverity, TextEdit } from "vscode-languageserver";
 import { Node } from "../../../../context/node";
 
 export function getAliasesNodeType() {
   const nodeType = new NodeType((_, node) => {
-    const issues: Issue<StandardTypeIssue>[] = [];
+    const issues: FileDiagnostic[] = [];
     if (node.parent?.name !== "/") {
       issues.push(
-        genIssue(
+        genStandardTypeDiagnostic(
           StandardTypeIssue.NODE_LOCATION,
           node.definitions[0],
           DiagnosticSeverity.Error,
@@ -40,7 +44,7 @@ export function getAliasesNodeType() {
     node.nodes.forEach((n) => {
       n.definitions.forEach((ast) => {
         issues.push(
-          genIssue(
+          genStandardTypeDiagnostic(
             StandardTypeIssue.NODE_LOCATION,
             ast,
             DiagnosticSeverity.Error,
@@ -65,20 +69,18 @@ export function getAliasesNodeType() {
   nodeType.noMismatchPropertiesAllowed = true;
 
   const prop = new PropertyNodeType<string | number>(
-    (name) => {
-      return !!name.match(/^[-A-Za-z0-9]+$/);
-    },
-    generateOrTypeObj([PropertyType.STRING, PropertyType.U32]),
+    /^[-A-Za-z0-9]+$/,
+    generateOrTypeObj([BindingPropertyType.STRING, BindingPropertyType.U32]),
     undefined,
     undefined,
     undefined,
     (property) => {
-      const issues: Issue<StandardTypeIssue>[] = [];
+      const issues: FileDiagnostic[] = [];
       const values = property.ast.quickValues;
       if (values?.length === 1 && typeof values[0] === "string") {
         if (!values[0].startsWith("/")) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.UNABLE_TO_RESOLVE_PATH,
               property.ast.values ?? property.ast,
               DiagnosticSeverity.Error,
@@ -91,7 +93,7 @@ export function getAliasesNodeType() {
         }
         if (values[0].trim().endsWith("/")) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.UNABLE_TO_RESOLVE_PATH,
               property.ast.values ?? property.ast,
               DiagnosticSeverity.Error,
@@ -114,7 +116,7 @@ export function getAliasesNodeType() {
           node = name ? lastNode.getNode(name, address, false) : undefined;
           if (!node) {
             issues.push(
-              genIssue(
+              genStandardTypeDiagnostic(
                 StandardTypeIssue.UNABLE_TO_RESOLVE_PATH,
                 property.ast.values ?? property.ast,
                 DiagnosticSeverity.Error,

@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-import { PropertyNodeType, PropertyType } from "../types";
+import { BindingPropertyType } from "../../types/index";
+import { PropertyNodeType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 
 export default () => {
   const prop = new PropertyNodeType(
     "model",
-    generateOrTypeObj(PropertyType.STRING)
+    generateOrTypeObj(BindingPropertyType.STRING)
   );
   prop.description = [
     `The model property value is a <string> that specifies the manufacturer's model number of the device.`,

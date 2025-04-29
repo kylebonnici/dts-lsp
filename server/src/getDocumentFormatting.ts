@@ -95,7 +95,7 @@ export async function getDocumentFormatting(
   const result: TextEdit[] = [];
   const uri = fileURLToPath(documentFormattingParams.textDocument.uri);
 
-  const fileRootAsts = (await contextAware.getRuntime()).fileTopMostAst(uri);
+  const fileRootAsts = (await contextAware.getRuntime()).fileTopMostAsts(uri);
 
   result.push(
     ...(

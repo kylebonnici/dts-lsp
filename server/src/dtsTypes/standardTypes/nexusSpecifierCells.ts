@@ -14,21 +14,15 @@
  * limitations under the License.
  */
 
-import { PropertyNodeType, PropertyType } from "../types";
+import { BindingPropertyType } from "../../types/index";
+import { PropertyNodeType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 
 export default () => {
-  const prop = new PropertyNodeType((name) => {
-    if (
-      name.startsWith("#address-") ||
-      name.startsWith("#interrupt-") ||
-      name.startsWith("#size-")
-    ) {
-      return false;
-    }
-
-    return name.startsWith("#") && !!name.endsWith("-cells");
-  }, generateOrTypeObj(PropertyType.U32));
+  const prop = new PropertyNodeType(
+    /^(?!#(?:address-|interrupt-|size-)).*-cells$/,
+    generateOrTypeObj(BindingPropertyType.U32)
+  );
   prop.list = true;
   prop.description = [
     "The `#<specifier>-cells` propertydefines the number of cells required to encode a specifier for adomain.",

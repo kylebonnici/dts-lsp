@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
+import { BindingPropertyType } from "../../types/index";
 import { StringValue } from "../../ast/dtc/values/string";
-import { PropertyNodeType, PropertyType } from "../types";
+import { PropertyNodeType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 import { StandardTypeIssue } from "../../types";
-import { genIssue } from "../../helpers";
+import { genStandardTypeDiagnostic } from "../../helpers";
 import { DiagnosticSeverity, DiagnosticTag } from "vscode-languageserver";
 
 export default () => {
   const prop = new PropertyNodeType(
     "device_type",
-    generateOrTypeObj(PropertyType.STRING),
+    generateOrTypeObj(BindingPropertyType.STRING),
     "optional",
     undefined,
     (property) => {
@@ -42,7 +43,7 @@ export default () => {
         ) {
           return property.parent.name === "cpu"
             ? [
-                genIssue(
+                genStandardTypeDiagnostic(
                   StandardTypeIssue.EXPECTED_DEVICE_TYPE_CPU,
                   property.ast,
                   DiagnosticSeverity.Error,
@@ -52,7 +53,7 @@ export default () => {
                 ),
               ]
             : [
-                genIssue(
+                genStandardTypeDiagnostic(
                   StandardTypeIssue.EXPECTED_DEVICE_TYPE_MEMORY,
                   property.ast,
                   DiagnosticSeverity.Error,
@@ -66,7 +67,7 @@ export default () => {
 
       if (prop.required(property.parent) !== "required") {
         return [
-          genIssue(
+          genStandardTypeDiagnostic(
             StandardTypeIssue.DEPRECATED,
             property.ast,
             DiagnosticSeverity.Hint,

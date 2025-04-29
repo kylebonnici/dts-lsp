@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { SerializableASTBase } from "../types/index";
 import {
   getTokenModifiers,
   getTokenTypes,
@@ -30,8 +31,11 @@ import type {
   TokenIndexes,
 } from "../types";
 import {
+  Diagnostic,
   DocumentSymbol,
   Location,
+  Position,
+  Range,
   SymbolKind,
   WorkspaceSymbol,
 } from "vscode-languageserver";
@@ -46,6 +50,17 @@ export class ASTBase {
   private _lastToken?: Token;
   private _fisrtToken?: Token;
   private allDescendantsCache?: ASTBase[];
+
+  public issues: (() => Diagnostic)[] = [];
+
+  addIssue(issue: () => Diagnostic) {
+    this.issues.push(issue);
+  }
+
+  // all issues we want to this item to show when serialized
+  get serializeIssues() {
+    return this.issues.map((i) => i());
+  }
 
   constructor(_tokenIndexes?: TokenIndexes) {
     this._fisrtToken = _tokenIndexes?.start;
@@ -184,5 +199,16 @@ export class ASTBase {
 
   toString(radix?: number) {
     return "TODO";
+  }
+
+  get range(): Range {
+    return Range.create(
+      Position.create(this.firstToken.pos.line, this.firstToken.pos.col),
+      Position.create(this.lastToken.pos.line, this.lastToken.pos.colEnd)
+    );
+  }
+
+  serialize(macros: Map<string, MacroRegistryItem>): SerializableASTBase {
+    return new SerializableASTBase(this.uri, this.range, this.serializeIssues);
   }
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { genIssue } from "../../../../../helpers";
+import { genStandardTypeDiagnostic } from "../../../../../helpers";
 import { StandardTypeIssue } from "../../../../../types";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { getStandardDefaultType } from "../../../../../dtsTypes/standardDefaultType";
@@ -24,7 +24,7 @@ export function getCpuNodeType() {
   nodeType.additionalValidations = (_, node) => {
     if (node.parent?.name !== "cpus") {
       return [
-        genIssue(
+        genStandardTypeDiagnostic(
           StandardTypeIssue.NODE_LOCATION,
           node.definitions[0],
           DiagnosticSeverity.Error,

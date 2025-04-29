@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-import { genIssue } from "../../../../helpers";
-import { PropertyNodeType, PropertyType } from "../../../types";
+import { BindingPropertyType } from "../../../../types/index";
+import { genStandardTypeDiagnostic } from "../../../../helpers";
+import { PropertyNodeType } from "../../../types";
 import { generateOrTypeObj } from "../../helpers";
 import { StandardTypeIssue } from "../../../../types";
 import { DiagnosticSeverity } from "vscode-languageserver";
@@ -26,7 +27,7 @@ export function getChosenNodeType() {
   nodeType.additionalValidations = (_, node) => {
     if (node.parent?.name !== "/") {
       return [
-        genIssue(
+        genStandardTypeDiagnostic(
           StandardTypeIssue.NODE_LOCATION,
           node.definitions[0],
           DiagnosticSeverity.Error,
@@ -41,7 +42,7 @@ export function getChosenNodeType() {
 
   const bootargsProp = new PropertyNodeType(
     "bootargs",
-    generateOrTypeObj(PropertyType.STRING)
+    generateOrTypeObj(BindingPropertyType.STRING)
   );
   bootargsProp.description = [
     `A string that specifies the boot arguments for
@@ -52,7 +53,7 @@ quired.`,
 
   const stdoutPathProp = new PropertyNodeType(
     "stdout-path ",
-    generateOrTypeObj(PropertyType.STRING)
+    generateOrTypeObj(BindingPropertyType.STRING)
   );
   stdoutPathProp.description = [
     `A string that specifies the full path to the node
@@ -66,7 +67,7 @@ theinput device.`,
 
   const stdinPathProp = new PropertyNodeType(
     "stdin-path ",
-    generateOrTypeObj(PropertyType.STRING)
+    generateOrTypeObj(BindingPropertyType.STRING)
   );
   stdinPathProp.description = [
     `A string that specifies the boot arguments for

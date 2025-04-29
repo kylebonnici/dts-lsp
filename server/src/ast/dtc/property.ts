@@ -23,6 +23,10 @@ import { StringValue } from "./values/string";
 import { ArrayValues } from "./values/arrayValue";
 import { NumberValue } from "./values/number";
 import { ByteStringValue } from "./values/byteString";
+import {
+  SerializableDtcProperty,
+  SerializablePropertyName,
+} from "../../types/index";
 
 export class PropertyName extends ASTBase {
   constructor(public readonly name: string, tokenIndex: TokenIndexes) {
@@ -33,6 +37,15 @@ export class PropertyName extends ASTBase {
 
   toString() {
     return this.name;
+  }
+
+  serialize(): SerializablePropertyName {
+    return new SerializablePropertyName(
+      this.name,
+      this.uri,
+      this.range,
+      this.serializeIssues
+    );
   }
 }
 
@@ -108,5 +121,16 @@ export class DtcProperty extends ASTBase {
           }`
         : ""
     };`;
+  }
+
+  serialize(macros: Map<string, MacroRegistryItem>): SerializableDtcProperty {
+    return new SerializableDtcProperty(
+      this.propertyName?.serialize() ?? null,
+      this.values?.values.map((v) => v?.value?.serialize(macros) ?? null) ??
+        null,
+      this.uri,
+      this.range,
+      this.serializeIssues
+    );
   }
 }

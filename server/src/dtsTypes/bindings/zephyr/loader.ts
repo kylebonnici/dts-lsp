@@ -1,9 +1,5 @@
 import { getStandardType } from "../../../dtsTypes/standardTypes";
-import {
-  NodeType,
-  PropertyNodeType,
-  PropertyType,
-} from "../../../dtsTypes/types";
+import { NodeType, PropertyNodeType } from "../../../dtsTypes/types";
 import { Node } from "../../../context/node";
 import yaml from "yaml";
 import { glob } from "glob";
@@ -16,10 +12,11 @@ import {
   getU32ValueFromProperty,
   resolvePhandleNode,
 } from "../../../dtsTypes/standardTypes/helpers";
-import { Issue, StandardTypeIssue } from "../../../types";
-import { genIssue } from "../../../helpers";
+import { FileDiagnostic, Issue, StandardTypeIssue } from "../../../types";
+import { genStandardTypeDiagnostic } from "../../../helpers";
 import { DiagnosticSeverity, DiagnosticTag } from "vscode-languageserver";
 import { Property } from "../../../context/property";
+import { BindingPropertyType } from "../../../types/index";
 
 type ZephyrPropertyType =
   | "string"
@@ -63,27 +60,30 @@ type CellSpecifier = `${string}-cells`;
 const ZephyrTypeToDTSType = (type: ZephyrPropertyType) => {
   switch (type) {
     case "string":
-      return generateOrTypeObj(PropertyType.STRING);
+      return generateOrTypeObj(BindingPropertyType.STRING);
     case "int":
-      return generateOrTypeObj(PropertyType.U32);
+      return generateOrTypeObj(BindingPropertyType.U32);
     case "boolean":
-      return generateOrTypeObj(PropertyType.EMPTY);
+      return generateOrTypeObj(BindingPropertyType.EMPTY);
     case "array":
-      return generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY);
+      return generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY);
     case "uint8-array":
-      return generateOrTypeObj(PropertyType.BYTESTRING);
+      return generateOrTypeObj(BindingPropertyType.BYTESTRING);
     case "string-array":
-      return generateOrTypeObj(PropertyType.STRINGLIST);
+      return generateOrTypeObj(BindingPropertyType.STRINGLIST);
     case "phandle":
-      return generateOrTypeObj(PropertyType.U32);
+      return generateOrTypeObj(BindingPropertyType.U32);
     case "phandles":
-      return generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY);
+      return generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY);
     case "phandle-array":
-      return generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY);
+      return generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY);
     case "path":
-      return generateOrTypeObj([PropertyType.STRING, PropertyType.U32]);
+      return generateOrTypeObj([
+        BindingPropertyType.STRING,
+        BindingPropertyType.U32,
+      ]);
     case "compound":
-      return generateOrTypeObj(PropertyType.ANY);
+      return generateOrTypeObj(BindingPropertyType.ANY);
   }
 };
 
@@ -417,7 +417,7 @@ const generateZephyrTypeCheck = (
   const myProperty = property;
   return (p: Property) => {
     const root = p.parent.root;
-    const issues: Issue<StandardTypeIssue>[] = [];
+    const issues: FileDiagnostic[] = [];
 
     if (myProperty.const) {
       const quickValues = p.ast.quickValues;
@@ -436,7 +436,7 @@ const generateZephyrTypeCheck = (
 
         if (!equal) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.EXPECTED_VALUE,
               p.ast.values ?? p.ast,
               DiagnosticSeverity.Error,
@@ -453,7 +453,7 @@ const generateZephyrTypeCheck = (
 
     if (myProperty.deprecated) {
       issues.push(
-        genIssue(
+        genStandardTypeDiagnostic(
           StandardTypeIssue.DEPRECATED,
           p.ast,
           DiagnosticSeverity.Warning,
@@ -474,7 +474,7 @@ const generateZephyrTypeCheck = (
         const phandelValue = resolvePhandleNode(v, root);
         if (!phandelValue) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.UNABLE_TO_RESOLVE_PHANDLE,
               v,
               DiagnosticSeverity.Error
@@ -495,7 +495,7 @@ const generateZephyrTypeCheck = (
         const node = root.getNode(p);
         if (!node) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.UNABLE_TO_RESOLVE_PATH,
               path,
               DiagnosticSeverity.Error,
@@ -519,7 +519,7 @@ const generateZephyrTypeCheck = (
         const phandelValue = resolvePhandleNode(v, root);
         if (!phandelValue) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.UNABLE_TO_RESOLVE_PHANDLE,
               v ?? p.ast,
               DiagnosticSeverity.Error
@@ -541,7 +541,7 @@ const generateZephyrTypeCheck = (
 
         if (!sizeCellProperty) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
               p.ast,
               DiagnosticSeverity.Error,
@@ -577,7 +577,7 @@ const generateZephyrTypeCheck = (
 
         if (1 + sizeCellValue > values.length - i) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.CELL_MISS_MATCH,
               v ?? p.ast,
               DiagnosticSeverity.Error,

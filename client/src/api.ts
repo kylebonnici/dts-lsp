@@ -20,6 +20,7 @@ import type {
   ContextListItem,
   IntegrationSettings,
   ResolvedSettings,
+  SerializedNode,
 } from "devicetree-language-server-types";
 import {
   LanguageClient,
@@ -105,6 +106,13 @@ export class API implements IDeviceTreeAPI {
       "devicetree/compiledDtsOutput",
       id
     ) as Promise<string | undefined>;
+  }
+
+  serializedContext(id: string) {
+    return this.client.sendRequest(
+      "devicetree/serializedContext",
+      id
+    ) as Promise<SerializedNode | undefined>;
   }
 
   onActiveContextChange(listener: (ctx: ContextListItem | undefined) => void) {

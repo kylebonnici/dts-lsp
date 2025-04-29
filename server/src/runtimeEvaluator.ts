@@ -23,7 +23,7 @@ import {
   NodeName,
 } from "./ast/dtc/node";
 import { DtcProperty } from "./ast/dtc/property";
-import { ContextIssues, Issue, Token } from "./types";
+import { ContextIssues, FileDiagnostic, Token } from "./types";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
 import { DeleteNode } from "./ast/dtc/deleteNode";
 import { LabelRef } from "./ast/dtc/labelRef";
@@ -32,7 +32,7 @@ import { Property } from "./context/property";
 import { Runtime } from "./context/runtime";
 import {
   generateContextId,
-  genIssue,
+  genContextDiagnostic,
   isPathEqual,
   pathToFileURL,
   positionInBetween,
@@ -40,6 +40,7 @@ import {
 } from "./helpers";
 import { Parser } from "./parser";
 import {
+  Diagnostic,
   DiagnosticSeverity,
   DocumentLink,
   Position,
@@ -53,7 +54,7 @@ import { basename } from "path";
 import type { File, Context, PartialBy, ResolvedContext } from "./types/index";
 
 export class ContextAware {
-  _issues: Issue<ContextIssues>[] = [];
+  _issues: FileDiagnostic[] = [];
   private _runtime?: Promise<Runtime>;
   public parser: Parser;
   public overlayParsers: Parser[] = [];
@@ -260,7 +261,7 @@ export class ContextAware {
             node?.linkedRefLabels.push(c);
           } else if (c.value) {
             this._issues.push(
-              genIssue(
+              genContextDiagnostic(
                 ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
                 c,
                 DiagnosticSeverity.Error,
@@ -288,7 +289,7 @@ export class ContextAware {
                 issueFound = true;
 
                 this._issues.push(
-                  genIssue(
+                  genContextDiagnostic(
                     ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH,
                     nodePath,
                     DiagnosticSeverity.Error,
@@ -415,7 +416,7 @@ export class ContextAware {
           )
         ) {
           this._issues.push(
-            genIssue(ContextIssues.DUPLICATE_NODE_NAME, child.name)
+            genContextDiagnostic(ContextIssues.DUPLICATE_NODE_NAME, child.name)
           );
         }
 
@@ -520,7 +521,7 @@ export class ContextAware {
           : undefined);
       if (!resolvedPath) {
         this._issues.push(
-          genIssue(
+          genContextDiagnostic(
             ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
             element.labelReference,
             DiagnosticSeverity.Error,
@@ -599,7 +600,10 @@ export class ContextAware {
           )
         ) {
           this._issues.push(
-            genIssue(ContextIssues.NODE_DOES_NOT_EXIST, element.nodeNameOrRef)
+            genContextDiagnostic(
+              ContextIssues.NODE_DOES_NOT_EXIST,
+              element.nodeNameOrRef
+            )
           );
         } else {
           runtimeNodeParent.deletes.push(element);
@@ -631,7 +635,7 @@ export class ContextAware {
       if (!resolvedPath) {
         runtime.unlinkedDeletes.push(element);
         this._issues.push(
-          genIssue(
+          genContextDiagnostic(
             ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
             element.nodeNameOrRef,
             DiagnosticSeverity.Error,
@@ -705,7 +709,7 @@ export class ContextAware {
         runtime.unlinkedDeletes.push(element);
         if (unresolvedNodeName) {
           this._issues.push(
-            genIssue(
+            genContextDiagnostic(
               ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH,
               unresolvedNodeName,
               DiagnosticSeverity.Error,
@@ -758,7 +762,10 @@ export class ContextAware {
       !runtimeNodeParent.hasProperty(element.propertyName.name)
     ) {
       this._issues.push(
-        genIssue(ContextIssues.PROPERTY_DOES_NOT_EXIST, element.propertyName)
+        genContextDiagnostic(
+          ContextIssues.PROPERTY_DOES_NOT_EXIST,
+          element.propertyName
+        )
       );
     } else if (element.propertyName?.name) {
       runtimeNodeParent.deletes.push(element);
@@ -770,9 +777,47 @@ export class ContextAware {
     );
   }
 
+  async getDiagnostics(): Promise<Map<string, Diagnostic[]>> {
+    const result = new Map<string, Diagnostic[]>();
+    const add = (diagnostic: Diagnostic, uri: string) => {
+      let list: Diagnostic[] | undefined = result.get(uri);
+      if (!list) {
+        list = [];
+        result.set(uri, list);
+      }
+      list.push(diagnostic);
+    };
+    try {
+      (await this.getAllParsers()).forEach((parser) => {
+        parser.issues.forEach((issue) =>
+          add(issue.diagnostic(), issue.raw.astElement.uri)
+        );
+      });
+
+      const contextIssues = (await this.getContextIssues()) ?? [];
+      contextIssues.forEach((issue) =>
+        add(issue.diagnostic(), issue.raw.astElement.uri)
+      );
+
+      const runtime = await this.getRuntime();
+      runtime?.typesIssues.forEach((issue) =>
+        add(issue.diagnostic(), issue.raw.astElement.uri)
+      );
+      return result;
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  }
+
   async toFullString() {
     return `/dts-v1/;\n${(await this.getRuntime()).rootNode.toFullString(
       (await this.getAllParsers()).at(-1)!.cPreprocessorParser.macros
     )}`;
+  }
+  async serialize() {
+    return (await this?.getRuntime())?.rootNode.serialize(
+      (await this.getAllParsers()).at(-1)!.cPreprocessorParser.macros
+    );
   }
 }

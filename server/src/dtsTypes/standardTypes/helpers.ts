@@ -22,8 +22,8 @@ import { NumberValue } from "../../ast/dtc/values/number";
 import { PropertyValue } from "../../ast/dtc/values/value";
 import { Node } from "../../context/node";
 import { Property } from "../../context/property";
-import { PropertyType, TypeConfig } from "../types";
 import { Expression } from "../../ast/cPreprocessors/expression";
+import { BindingPropertyType, TypeConfig } from "../../types/index";
 
 export const flatNumberValues = (value: PropertyValues | null | undefined) => {
   if (value?.values.some((v) => !(v?.value instanceof ArrayValues))) {
@@ -114,7 +114,7 @@ export const getInterruptInfo = (
 };
 
 export const generateOrTypeObj = (
-  type: PropertyType | PropertyType[]
+  type: BindingPropertyType | BindingPropertyType[]
 ): TypeConfig[] => {
   if (Array.isArray(type)) {
     return [{ types: type }];

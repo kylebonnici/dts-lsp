@@ -14,14 +14,18 @@
  * limitations under the License.
  */
 
-import { BuildSemanticTokensPush, Token, TokenIndexes } from "../../types";
+import {
+  BuildSemanticTokensPush,
+  MacroRegistryItem,
+  Token,
+  TokenIndexes,
+} from "../../types";
 import { ASTBase } from "../base";
-import { SymbolKind } from "vscode-languageserver";
+import { Position, Range, SymbolKind } from "vscode-languageserver";
 import {
   createTokenIndex,
   getTokenModifiers,
   getTokenTypes,
-  toRange,
 } from "../../helpers";
 import { DtcProperty } from "./property";
 import { DeleteNode } from "./deleteNode";
@@ -31,6 +35,14 @@ import { LabelRef } from "./labelRef";
 import { Node } from "../../context/node";
 import { Keyword } from "../keyword";
 import { Include } from "../cPreprocessors/include";
+import {
+  SerializableNodeAddress,
+  SerializableFullNodeName,
+  SerializableNodeName,
+  SerializableChildNode,
+  SerializableNodeRef as SerializableRefNode,
+  SerializableRootNode,
+} from "../../types/index";
 
 export class DtcBaseNode extends ASTBase {
   public openScope?: Token;
@@ -99,6 +111,16 @@ export class DtcRootNode extends DtcBaseNode {
   get pathName() {
     return "/";
   }
+
+  serialize(macros: Map<string, MacroRegistryItem>): SerializableRootNode {
+    return new SerializableRootNode(
+      this.properties.map((p) => p.serialize(macros)),
+      this.nodes.map((n) => n.serialize(macros)),
+      this.uri,
+      this.range,
+      this.serializeIssues
+    );
+  }
 }
 
 export class DtcRefNode extends DtcBaseNode {
@@ -114,6 +136,12 @@ export class DtcRefNode extends DtcBaseNode {
     labels.forEach((label) => {
       super.addChild(label);
     });
+  }
+
+  get serializeIssues() {
+    return [...this.issues, ...(this.labelReference?.issues ?? [])].map((i) =>
+      i()
+    );
   }
 
   set labelReference(labelReference: LabelRef | null) {
@@ -156,6 +184,17 @@ export class DtcRefNode extends DtcBaseNode {
   get deleteProperties() {
     return this.children.filter((child) => child instanceof DeleteProperty);
   }
+
+  serialize(macros: Map<string, MacroRegistryItem>): SerializableRefNode {
+    return new SerializableRefNode(
+      this.labelReference?.serialize() ?? null,
+      this.properties.map((p) => p.serialize(macros)),
+      this.nodes.map((n) => n.serialize(macros)),
+      this.uri,
+      this.range,
+      this.serializeIssues
+    );
+  }
 }
 
 export class DtcChildNode extends DtcBaseNode {
@@ -178,6 +217,10 @@ export class DtcChildNode extends DtcBaseNode {
     labels.forEach((label) => {
       this.addChild(label);
     });
+  }
+
+  get serializeIssues() {
+    return [...this.issues, ...(this.name?.issues ?? [])].map((i) => i());
   }
 
   set name(name: NodeName | null) {
@@ -210,6 +253,17 @@ export class DtcChildNode extends DtcBaseNode {
   get deleteProperties() {
     return this.children.filter((child) => child instanceof DeleteProperty);
   }
+
+  serialize(macros: Map<string, MacroRegistryItem>): SerializableChildNode {
+    return new SerializableChildNode(
+      this.name?.serialize() ?? null,
+      this.properties.map((p) => p.serialize(macros)),
+      this.nodes.map((n) => n.serialize(macros)),
+      this.uri,
+      this.range,
+      this.serializeIssues
+    );
+  }
 }
 
 export class NodeAddress extends ASTBase {
@@ -221,6 +275,15 @@ export class NodeAddress extends ASTBase {
 
   toString() {
     return this.address.toString(16);
+  }
+
+  serialize(): SerializableNodeAddress {
+    return new SerializableNodeAddress(
+      this.address,
+      this.uri,
+      this.range,
+      this.serializeIssues
+    );
   }
 }
 
@@ -286,5 +349,37 @@ export class NodeName extends ASTBase {
         a.buildSemanticTokens(push);
       });
     }
+  }
+
+  get serializeIssues() {
+    return [
+      ...this.issues,
+      ...(this._address?.flatMap((add) => add.issues) ?? []),
+    ].map((i) => i());
+  }
+
+  serialize(): SerializableFullNodeName {
+    return new SerializableFullNodeName(
+      this.toString(),
+      new SerializableNodeName(
+        this.name,
+        this.uri,
+        Range.create(
+          Position.create(
+            this.tokenIndexes.start.pos.line,
+            this.tokenIndexes.start.pos.col
+          ),
+          Position.create(
+            this.tokenIndexes.start.pos.line,
+            this.tokenIndexes.start.pos.colEnd
+          )
+        ),
+        []
+      ),
+      this.address?.map((add) => add.serialize()) ?? null,
+      this.uri,
+      this.range,
+      this.serializeIssues
+    );
   }
 }

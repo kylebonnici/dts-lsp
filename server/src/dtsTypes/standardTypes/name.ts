@@ -14,21 +14,22 @@
  * limitations under the License.
  */
 
-import { genIssue } from "../../helpers";
-import { PropertyNodeType, PropertyType } from "../types";
+import { BindingPropertyType } from "../../types/index";
+import { genStandardTypeDiagnostic } from "../../helpers";
+import { PropertyNodeType } from "../types";
 import { generateOrTypeObj } from "./helpers";
 import { StandardTypeIssue } from "../../types";
 import { DiagnosticSeverity, DiagnosticTag } from "vscode-languageserver";
 
 export default () => {
-  const prop = new PropertyNodeType(
+  const prop = new PropertyNodeType<string>(
     "name",
-    generateOrTypeObj(PropertyType.STRING),
+    generateOrTypeObj(BindingPropertyType.STRING),
     "optional",
     undefined,
-    [],
+    undefined,
     (property) => [
-      genIssue(
+      genStandardTypeDiagnostic(
         StandardTypeIssue.DEPRECATED,
         property.ast,
         DiagnosticSeverity.Warning,

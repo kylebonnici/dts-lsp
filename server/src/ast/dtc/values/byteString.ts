@@ -18,7 +18,8 @@ import { ASTBase } from "../../base";
 import { SymbolKind } from "vscode-languageserver";
 import { LabeledValue } from "./labeledValue";
 import { NumberValue } from "./number";
-import { Token } from "../../../types";
+import type { Token } from "../../../types";
+import { SerializableByteString } from "../../../types/index";
 
 export class ByteStringValue extends ASTBase {
   public openBracket?: Token;
@@ -41,5 +42,22 @@ export class ByteStringValue extends ASTBase {
 
   toJson() {
     return this.values.map((v) => v.value?.toJson() ?? NaN);
+  }
+
+  serialize(): SerializableByteString {
+    return new SerializableByteString(
+      this.values.map((v) =>
+        v.value
+          ? {
+              value: v.value.toString(16),
+              range: v.value.range,
+              evaluated: v.value.value,
+            }
+          : null
+      ),
+      this.uri,
+      this.range,
+      this.serializeIssues
+    );
   }
 }

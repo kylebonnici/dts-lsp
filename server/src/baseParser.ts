@@ -20,7 +20,7 @@ import {
   WorkspaceSymbol,
 } from "vscode-languageserver";
 import {
-  Issue,
+  FileDiagnostic,
   LexerToken,
   MacroRegistryItem,
   SyntaxIssue,
@@ -30,7 +30,7 @@ import {
 import {
   adjacentTokens,
   createTokenIndex,
-  genIssue,
+  genSyntaxDiagnostic,
   isPathEqual,
   validateToken,
   validateValue,
@@ -46,7 +46,7 @@ import { NumberValue } from "./ast/dtc/values/number";
 
 export abstract class BaseParser {
   positionStack: number[] = [];
-  protected _issues: Issue<SyntaxIssue>[] = [];
+  protected _issues: FileDiagnostic[] = [];
 
   protected parsing: Promise<void>;
 
@@ -71,7 +71,7 @@ export abstract class BaseParser {
     this._issues = [];
   }
 
-  get issues(): Issue<SyntaxIssue>[] {
+  get issues(): FileDiagnostic[] {
     return this._issues;
   }
 
@@ -300,7 +300,9 @@ export abstract class BaseParser {
     if (!skippingIssueChecking && identifier.name !== "defined") {
       const macro = macros.get(identifier.name);
       if (!macro) {
-        this._issues.push(genIssue(SyntaxIssue.UNKNOWN_MACRO, identifier));
+        this._issues.push(
+          genSyntaxDiagnostic(SyntaxIssue.UNKNOWN_MACRO, identifier)
+        );
       }
     }
 
@@ -480,11 +482,11 @@ export abstract class BaseParser {
     if (identifier.name === "defined") {
       if (params.length > 1) {
         this._issues.push(
-          genIssue(SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS, identifier)
+          genSyntaxDiagnostic(SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS, identifier)
         );
       } else if (params.length < 1) {
         this._issues.push(
-          genIssue(SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS, identifier)
+          genSyntaxDiagnostic(SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS, identifier)
         );
       }
     } else {
@@ -492,11 +494,11 @@ export abstract class BaseParser {
       if (macro) {
         if (!(macro?.identifier instanceof FunctionDefinition)) {
           this._issues.push(
-            genIssue(SyntaxIssue.EXPECTED_FUNCTION_LIKE, identifier)
+            genSyntaxDiagnostic(SyntaxIssue.EXPECTED_FUNCTION_LIKE, identifier)
           );
         } else if (params.length > macro.identifier.params.length) {
           this._issues.push(
-            genIssue(
+            genSyntaxDiagnostic(
               SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS,
               identifier,
               undefined,
@@ -505,7 +507,7 @@ export abstract class BaseParser {
           );
         } else if (params.length < macro.identifier.params.length) {
           this._issues.push(
-            genIssue(
+            genSyntaxDiagnostic(
               SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS,
               identifier,
               undefined,
@@ -594,7 +596,7 @@ export abstract class BaseParser {
       }
       if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
         this._issues.push(
-          genIssue(
+          genSyntaxDiagnostic(
             SyntaxIssue.MISSING_ROUND_CLOSE,
             new ASTBase(createTokenIndex(start!))
           )
@@ -638,7 +640,7 @@ export abstract class BaseParser {
 
         if (!nextExpression) {
           this._issues.push(
-            genIssue(SyntaxIssue.EXPECTED_EXPRESSION, operator)
+            genSyntaxDiagnostic(SyntaxIssue.EXPECTED_EXPRESSION, operator)
           );
         } else {
           if (expression instanceof ComplexExpression) {
@@ -714,7 +716,7 @@ export abstract class BaseParser {
 
     if (report) {
       const node = new ASTBase(createTokenIndex(start, end));
-      this._issues.push(genIssue(SyntaxIssue.UNKNOWN, node));
+      this._issues.push(genSyntaxDiagnostic(SyntaxIssue.UNKNOWN, node));
     }
 
     return end;

@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-import { Issue, StandardTypeIssue } from "../../types";
-import { genIssue } from "../../helpers";
-import { PropertyNodeType, PropertyType } from "../types";
+import { BindingPropertyType } from "../../types/index";
+import { FileDiagnostic, StandardTypeIssue } from "../../types";
+import { genStandardTypeDiagnostic } from "../../helpers";
+import { PropertyNodeType } from "../types";
 import {
   flatNumberValues,
   generateOrTypeObj,
@@ -25,16 +26,16 @@ import {
 import { DiagnosticSeverity } from "vscode-languageserver";
 
 export default () => {
-  const prop = new PropertyNodeType(
+  const prop = new PropertyNodeType<number>(
     "reg",
-    generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY),
+    generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
     (node) => {
       return node.address !== undefined ? "required" : "omitted";
     },
     undefined,
-    [],
+    undefined,
     (property) => {
-      const issues: Issue<StandardTypeIssue>[] = [];
+      const issues: FileDiagnostic[] = [];
 
       const values = flatNumberValues(property.ast.values);
       if (!values) {
@@ -63,7 +64,7 @@ export default () => {
         values.length % (sizeCell + addressCell) !== 0
       ) {
         issues.push(
-          genIssue(
+          genStandardTypeDiagnostic(
             StandardTypeIssue.CELL_MISS_MATCH,
             values.at(
               values.length - (values.length % (sizeCell + addressCell))
@@ -94,7 +95,7 @@ export default () => {
           property.parent.address?.forEach((a, i) => {
             if (view.getUint32(i * 4) !== a) {
               issues.push(
-                genIssue(
+                genStandardTypeDiagnostic(
                   StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_FIRST_VALUE,
                   property.ast,
                   DiagnosticSeverity.Error,
@@ -113,7 +114,7 @@ export default () => {
               view.getUint32(0) !== property.parent.address[0]))
         ) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_FIRST_VALUE,
               property.ast,
               DiagnosticSeverity.Error,

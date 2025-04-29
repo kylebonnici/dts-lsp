@@ -15,6 +15,7 @@
  */
 
 import {
+  FileDiagnostic,
   Issue,
   LexerToken,
   MacroRegistryItem,
@@ -24,7 +25,7 @@ import {
 import {
   adjacentTokens,
   createTokenIndex,
-  genIssue,
+  genSyntaxDiagnostic,
   normalizePath,
   sameLine,
   validateToken,
@@ -61,7 +62,7 @@ import { CPreprocessorParser } from "./cPreprocessorParser";
 import { Include } from "./ast/cPreprocessors/include";
 import { DtsMemreserveNode } from "./ast/dtc/memreserveNode";
 import { DtsBitsNode } from "./ast/dtc/bitsNode";
-import { DiagnosticSeverity } from "vscode-languageserver";
+import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 
 type AllowNodeRef = "Ref" | "Name";
 
@@ -86,7 +87,7 @@ export class Parser extends BaseParser {
     );
   }
 
-  get issues(): Issue<SyntaxIssue>[] {
+  get issues(): FileDiagnostic[] {
     return [...this._issues, ...this.cPreprocessorParser.issues];
   }
 
@@ -151,7 +152,7 @@ export class Parser extends BaseParser {
         const token = this.moveToNextToken;
         if (token) {
           const node = new ASTBase(createTokenIndex(token));
-          this._issues.push(genIssue(SyntaxIssue.UNKNOWN, node));
+          this._issues.push(genSyntaxDiagnostic(SyntaxIssue.UNKNOWN, node));
           this.reportExtraEndStatements();
         }
       }
@@ -162,12 +163,17 @@ export class Parser extends BaseParser {
     }
 
     this.unhandledStatements.properties.forEach((prop) => {
-      this._issues.push(genIssue(SyntaxIssue.PROPERTY_MUST_BE_IN_NODE, prop));
+      this._issues.push(
+        genSyntaxDiagnostic(SyntaxIssue.PROPERTY_MUST_BE_IN_NODE, prop)
+      );
     });
 
     this.unhandledStatements.deleteProperties.forEach((delProp) => {
       this._issues.push(
-        genIssue(SyntaxIssue.PROPERTY_DELETE_MUST_BE_IN_NODE, delProp)
+        genSyntaxDiagnostic(
+          SyntaxIssue.PROPERTY_DELETE_MUST_BE_IN_NODE,
+          delProp
+        )
       );
     });
 
@@ -214,7 +220,7 @@ export class Parser extends BaseParser {
       const prevToken = this.prevToken;
       if (prevToken) {
         const node = new ASTBase(createTokenIndex(prevToken));
-        this._issues.push(genIssue(SyntaxIssue.CURLY_CLOSE, node));
+        this._issues.push(genSyntaxDiagnostic(SyntaxIssue.CURLY_CLOSE, node));
       }
 
       return this.endStatement(false);
@@ -242,7 +248,7 @@ export class Parser extends BaseParser {
       const token = this.prevToken;
       if (token && report) {
         const node = new ASTBase(createTokenIndex(this.prevToken));
-        this._issues.push(genIssue(SyntaxIssue.END_STATEMENT, node));
+        this._issues.push(genSyntaxDiagnostic(SyntaxIssue.END_STATEMENT, node));
         return token;
       }
     }
@@ -259,7 +265,7 @@ export class Parser extends BaseParser {
       const token = this.moveToNextToken;
       if (token) {
         const node = new ASTBase(createTokenIndex(token));
-        this._issues.push(genIssue(SyntaxIssue.NO_STATEMENT, node));
+        this._issues.push(genSyntaxDiagnostic(SyntaxIssue.NO_STATEMENT, node));
       }
     }
   }
@@ -280,7 +286,7 @@ export class Parser extends BaseParser {
         const token = this.moveToNextToken;
         if (token) {
           const node = new ASTBase(createTokenIndex(token));
-          this._issues.push(genIssue(SyntaxIssue.UNKNOWN, node));
+          this._issues.push(genSyntaxDiagnostic(SyntaxIssue.UNKNOWN, node));
           this.reportExtraEndStatements();
         }
       } else {
@@ -341,7 +347,7 @@ export class Parser extends BaseParser {
         child.firstToken = this.currentToken;
 
         this._issues.push(
-          genIssue(
+          genSyntaxDiagnostic(
             allow === "Name"
               ? [SyntaxIssue.NODE_NAME]
               : [SyntaxIssue.NODE_REF, SyntaxIssue.ROOT_NODE_NAME],
@@ -364,7 +370,9 @@ export class Parser extends BaseParser {
       if (expectedNode) {
         const refOrName = ref ?? name;
         if (refOrName)
-          this._issues.push(genIssue(SyntaxIssue.CURLY_OPEN, refOrName));
+          this._issues.push(
+            genSyntaxDiagnostic(SyntaxIssue.CURLY_OPEN, refOrName)
+          );
       } else {
         // this could be a property
         this.popStack();
@@ -403,7 +411,9 @@ export class Parser extends BaseParser {
     if (prevToken) {
       if (Number.isNaN(address)) {
         const astNode = new ASTBase(createTokenIndex(prevToken));
-        this._issues.push(genIssue(SyntaxIssue.NODE_ADDRESS, astNode));
+        this._issues.push(
+          genSyntaxDiagnostic(SyntaxIssue.NODE_ADDRESS, astNode)
+        );
       } else if (
         !Number.isNaN(address) &&
         !adjacentTokens(prevToken, addressValid[0])
@@ -411,7 +421,9 @@ export class Parser extends BaseParser {
         const whiteSpace = new ASTBase(
           createTokenIndex(prevToken, addressValid.at(0))
         );
-        this._issues.push(genIssue(SyntaxIssue.WHITE_SPACE, whiteSpace));
+        this._issues.push(
+          genSyntaxDiagnostic(SyntaxIssue.WHITE_SPACE, whiteSpace)
+        );
       }
     }
 
@@ -432,7 +444,9 @@ export class Parser extends BaseParser {
         const whiteSpace = new ASTBase(
           createTokenIndex(nodeName.lastToken!, atValid[0])
         );
-        this._issues.push(genIssue(SyntaxIssue.WHITE_SPACE, whiteSpace));
+        this._issues.push(
+          genSyntaxDiagnostic(SyntaxIssue.WHITE_SPACE, whiteSpace)
+        );
       }
 
       const addresses: NodeAddress[] = [];
@@ -447,7 +461,9 @@ export class Parser extends BaseParser {
             const whiteSpace = new ASTBase(
               createTokenIndex(this.prevToken, this.currentToken)
             );
-            this._issues.push(genIssue(SyntaxIssue.WHITE_SPACE, whiteSpace));
+            this._issues.push(
+              genSyntaxDiagnostic(SyntaxIssue.WHITE_SPACE, whiteSpace)
+            );
           }
           this.moveToNextToken;
           consumeAllAddresses();
@@ -581,7 +597,7 @@ export class Parser extends BaseParser {
     if (!hasColon) {
       if (acceptLabelName) {
         this._issues.push(
-          genIssue(SyntaxIssue.LABEL_ASSIGN_MISSING_COLON, node)
+          genSyntaxDiagnostic(SyntaxIssue.LABEL_ASSIGN_MISSING_COLON, node)
         );
       } else {
         this.popStack();
@@ -595,7 +611,7 @@ export class Parser extends BaseParser {
           token.pos.col !== lastNameToken.pos.colEnd)
       ) {
         this._issues.push(
-          genIssue(
+          genSyntaxDiagnostic(
             SyntaxIssue.WHITE_SPACE,
             new ASTBase(createTokenIndex(lastNameToken, token))
           )
@@ -638,7 +654,7 @@ export class Parser extends BaseParser {
       result = this.processValue(node);
 
       if (!result?.values.filter((v) => !!v).length) {
-        this._issues.push(genIssue(SyntaxIssue.VALUE, node));
+        this._issues.push(genSyntaxDiagnostic(SyntaxIssue.VALUE, node));
       }
       node.values = result ?? null;
     } else {
@@ -683,7 +699,9 @@ export class Parser extends BaseParser {
 
     if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
       keyword.lastToken = valid.at(-1);
-      this._issues.push(genIssue(SyntaxIssue.MISSING_FORWARD_SLASH_END, node));
+      this._issues.push(
+        genSyntaxDiagnostic(SyntaxIssue.MISSING_FORWARD_SLASH_END, node)
+      );
       this.mergeStack();
       return true;
     } else {
@@ -722,7 +740,7 @@ export class Parser extends BaseParser {
     } else {
       keyword.lastToken = valid.at(-1);
       this._issues.push(
-        genIssue(SyntaxIssue.MISSING_FORWARD_SLASH_END, keyword)
+        genSyntaxDiagnostic(SyntaxIssue.MISSING_FORWARD_SLASH_END, keyword)
       );
     }
 
@@ -735,12 +753,17 @@ export class Parser extends BaseParser {
     this.others.push(node);
 
     if (!startValue) {
-      this._issues.push(genIssue(SyntaxIssue.EXPECTED_START_ADDRESS, keyword));
+      this._issues.push(
+        genSyntaxDiagnostic(SyntaxIssue.EXPECTED_START_ADDRESS, keyword)
+      );
     }
 
     if (!endValue) {
       this._issues.push(
-        genIssue(SyntaxIssue.EXPECTED_END_ADDRESS, startValue ?? keyword)
+        genSyntaxDiagnostic(
+          SyntaxIssue.EXPECTED_END_ADDRESS,
+          startValue ?? keyword
+        )
       );
     }
 
@@ -775,7 +798,7 @@ export class Parser extends BaseParser {
     } else {
       keyword.lastToken = valid.at(-1);
       this._issues.push(
-        genIssue(SyntaxIssue.MISSING_FORWARD_SLASH_END, keyword)
+        genSyntaxDiagnostic(SyntaxIssue.MISSING_FORWARD_SLASH_END, keyword)
       );
     }
 
@@ -785,18 +808,22 @@ export class Parser extends BaseParser {
     this.others.push(node);
 
     if (!bitsSize) {
-      this._issues.push(genIssue(SyntaxIssue.EXPECTED_BITS_SIZE, keyword));
+      this._issues.push(
+        genSyntaxDiagnostic(SyntaxIssue.EXPECTED_BITS_SIZE, keyword)
+      );
     } else if (
       bitsSize.value !== 8 &&
       bitsSize.value !== 16 &&
       bitsSize.value !== 32 &&
       bitsSize.value !== 64
     ) {
-      this._issues.push(genIssue(SyntaxIssue.INVALID_BITS_SIZE, bitsSize));
+      this._issues.push(
+        genSyntaxDiagnostic(SyntaxIssue.INVALID_BITS_SIZE, bitsSize)
+      );
     }
 
     this._issues.push(
-      genIssue(
+      genSyntaxDiagnostic(
         SyntaxIssue.BITS_NON_OFFICIAL_SYNTAX,
         node,
         DiagnosticSeverity.Warning
@@ -858,7 +885,9 @@ export class Parser extends BaseParser {
       valid.length === 1 &&
       !validToken(this.currentToken, LexerToken.CURLY_OPEN)
     ) {
-      this._issues.push(genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
+      this._issues.push(
+        genSyntaxDiagnostic(SyntaxIssue.DELETE_INCOMPLETE, keyword)
+      );
       keyword.lastToken = valid.at(-1);
       const node = new DeleteNode(keyword);
       parent.addNodeChild(node);
@@ -876,7 +905,7 @@ export class Parser extends BaseParser {
     keyword.lastToken = valid.at(-1);
     if ("/delete-node" !== stringValue) {
       this._issues.push(
-        genIssue(
+        genSyntaxDiagnostic(
           stringValue.startsWith("/delete-n")
             ? SyntaxIssue.DELETE_NODE_INCOMPLETE
             : SyntaxIssue.DELETE_INCOMPLETE,
@@ -886,7 +915,7 @@ export class Parser extends BaseParser {
     } else {
       if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
         this._issues.push(
-          genIssue(SyntaxIssue.MISSING_FORWARD_SLASH_END, keyword)
+          genSyntaxDiagnostic(SyntaxIssue.MISSING_FORWARD_SLASH_END, keyword)
         );
       } else {
         token = this.moveToNextToken;
@@ -898,30 +927,35 @@ export class Parser extends BaseParser {
     if (sameLine(keyword.tokenIndexes?.end, firstToken)) {
       const nodePathRef = this.processNodePathRef();
       if (nodePathRef && allow === "Name") {
-        this._issues.push(genIssue(SyntaxIssue.NODE_NAME, nodePathRef));
+        this._issues.push(
+          genSyntaxDiagnostic(SyntaxIssue.NODE_NAME, nodePathRef)
+        );
       }
 
       const labelRef = nodePathRef ? undefined : this.isLabelRef();
       if (labelRef && allow === "Name") {
-        this._issues.push(genIssue(SyntaxIssue.NODE_NAME, labelRef));
+        this._issues.push(genSyntaxDiagnostic(SyntaxIssue.NODE_NAME, labelRef));
       }
 
       const nodeName = nodePathRef || labelRef ? undefined : this.isNodeName();
       if (nodeName && allow === "Ref") {
-        this._issues.push(genIssue(SyntaxIssue.NODE_REF, nodeName));
+        this._issues.push(genSyntaxDiagnostic(SyntaxIssue.NODE_REF, nodeName));
       }
 
       if (!nodePathRef && !nodeName && !labelRef) {
         this._issues.push(
-          genIssue([SyntaxIssue.NODE_NAME, SyntaxIssue.NODE_REF], node)
+          genSyntaxDiagnostic(
+            [SyntaxIssue.NODE_NAME, SyntaxIssue.NODE_REF],
+            node
+          )
         );
       }
       node.nodeNameOrRef = nodePathRef ?? labelRef ?? nodeName ?? null;
     } else {
       if (allow === "Name") {
-        this._issues.push(genIssue(SyntaxIssue.NODE_NAME, keyword));
+        this._issues.push(genSyntaxDiagnostic(SyntaxIssue.NODE_NAME, keyword));
       } else if (allow === "Ref") {
-        this._issues.push(genIssue(SyntaxIssue.NODE_REF, keyword));
+        this._issues.push(genSyntaxDiagnostic(SyntaxIssue.NODE_REF, keyword));
       }
     }
     const lastToken = this.endStatement();
@@ -959,7 +993,9 @@ export class Parser extends BaseParser {
       valid.length === 1 &&
       !validToken(this.currentToken, LexerToken.CURLY_OPEN)
     ) {
-      this._issues.push(genIssue(SyntaxIssue.DELETE_INCOMPLETE, keyword));
+      this._issues.push(
+        genSyntaxDiagnostic(SyntaxIssue.DELETE_INCOMPLETE, keyword)
+      );
       keyword.lastToken = valid.at(-1);
       const node = new DeleteProperty(keyword);
       parent.addNodeChild(node);
@@ -980,7 +1016,7 @@ export class Parser extends BaseParser {
     keyword.lastToken = valid.at(-1);
     if ("/delete-property" !== stringValue) {
       this._issues.push(
-        genIssue(
+        genSyntaxDiagnostic(
           stringValue.startsWith("/delete-p")
             ? SyntaxIssue.DELETE_PROPERTY_INCOMPLETE
             : SyntaxIssue.DELETE_INCOMPLETE,
@@ -990,7 +1026,7 @@ export class Parser extends BaseParser {
     } else {
       if (!validToken(this.currentToken, LexerToken.FORWARD_SLASH)) {
         this._issues.push(
-          genIssue(SyntaxIssue.MISSING_FORWARD_SLASH_END, keyword)
+          genSyntaxDiagnostic(SyntaxIssue.MISSING_FORWARD_SLASH_END, keyword)
         );
       } else {
         token = this.moveToNextToken;
@@ -1003,12 +1039,14 @@ export class Parser extends BaseParser {
     if (sameLine(keyword.tokenIndexes?.end, firstToken)) {
       const propertyName = this.isPropertyName();
       if (!propertyName) {
-        this._issues.push(genIssue(SyntaxIssue.PROPERTY_NAME, node));
+        this._issues.push(genSyntaxDiagnostic(SyntaxIssue.PROPERTY_NAME, node));
       }
 
       node.propertyName = propertyName ?? null;
     } else {
-      this._issues.push(genIssue(SyntaxIssue.PROPERTY_NAME, keyword));
+      this._issues.push(
+        genSyntaxDiagnostic(SyntaxIssue.PROPERTY_NAME, keyword)
+      );
     }
 
     const lastToken = this.endStatement();
@@ -1075,14 +1113,16 @@ export class Parser extends BaseParser {
         const next = getValue();
         if (end && next === null && shouldHaveValue) {
           const node = new ASTBase(createTokenIndex(end, this.currentToken));
-          this._issues.push(genIssue(SyntaxIssue.VALUE, node));
+          this._issues.push(genSyntaxDiagnostic(SyntaxIssue.VALUE, node));
         }
         if (!shouldHaveValue && next === null) {
           break;
         }
         if (start && !shouldHaveValue && next) {
           const node = new ASTBase(createTokenIndex(start));
-          this._issues.push(genIssue(SyntaxIssue.MISSING_COMMA, node));
+          this._issues.push(
+            genSyntaxDiagnostic(SyntaxIssue.MISSING_COMMA, node)
+          );
         }
         values.push(next!);
       }
@@ -1126,7 +1166,7 @@ export class Parser extends BaseParser {
 
     if (!token.value.match(/["']$/)) {
       this._issues.push(
-        genIssue(
+        genSyntaxDiagnostic(
           token.value.startsWith('"')
             ? SyntaxIssue.DOUBLE_QUOTE
             : SyntaxIssue.SINGLE_QUOTE,
@@ -1169,7 +1209,7 @@ export class Parser extends BaseParser {
     const node = new PropertyValue(startLabels, value, endLabels1, bits);
 
     if (!validToken(this.currentToken, LexerToken.GT_SYM)) {
-      this._issues.push(genIssue(SyntaxIssue.GT_SYM, node));
+      this._issues.push(genSyntaxDiagnostic(SyntaxIssue.GT_SYM, node));
     } else {
       if (value) {
         value.closeBracket = this.currentToken;
@@ -1218,7 +1258,9 @@ export class Parser extends BaseParser {
       }
 
       if (len % 2 !== 0) {
-        this._issues.push(genIssue(SyntaxIssue.BYTESTRING_EVEN, value));
+        this._issues.push(
+          genSyntaxDiagnostic(SyntaxIssue.BYTESTRING_EVEN, value)
+        );
       }
     });
 
@@ -1226,13 +1268,15 @@ export class Parser extends BaseParser {
     byteString.openBracket = openBracket;
     if (byteString.values.length === 0) {
       byteString.firstToken = firstToken;
-      this._issues.push(genIssue(SyntaxIssue.BYTESTRING, byteString));
+      this._issues.push(
+        genSyntaxDiagnostic(SyntaxIssue.BYTESTRING, byteString)
+      );
     }
 
     const node = new PropertyValue(startLabels, byteString, endLabels);
 
     if (!validToken(this.currentToken, LexerToken.SQUARE_CLOSE)) {
-      this._issues.push(genIssue(SyntaxIssue.SQUARE_CLOSE, node));
+      this._issues.push(genSyntaxDiagnostic(SyntaxIssue.SQUARE_CLOSE, node));
     } else {
       byteString.openBracket = this.moveToNextToken;
     }
@@ -1415,7 +1459,9 @@ export class Parser extends BaseParser {
     const labelName = this.isLabelName();
     if (!labelName) {
       const node = new LabelRef(null);
-      this._issues.push(genIssue(SyntaxIssue.LABEL_NAME, slxBase ?? node));
+      this._issues.push(
+        genSyntaxDiagnostic(SyntaxIssue.LABEL_NAME, slxBase ?? node)
+      );
       node.firstToken = ampersandToken;
       this.mergeStack();
       return node;
@@ -1427,7 +1473,7 @@ export class Parser extends BaseParser {
         labelName.firstToken.pos.col !== ampersandToken.pos.colEnd)
     ) {
       this._issues.push(
-        genIssue(
+        genSyntaxDiagnostic(
           SyntaxIssue.WHITE_SPACE,
           new ASTBase(createTokenIndex(ampersandToken, labelName.firstToken))
         )
@@ -1487,7 +1533,10 @@ export class Parser extends BaseParser {
     const labelRef = this.isLabelRef(dtcProperty);
     if (labelRef === undefined) {
       this._issues.push(
-        genIssue([SyntaxIssue.LABEL_NAME, SyntaxIssue.NODE_PATH], dtcProperty)
+        genSyntaxDiagnostic(
+          [SyntaxIssue.LABEL_NAME, SyntaxIssue.NODE_PATH],
+          dtcProperty
+        )
       );
 
       const node = new LabeledValue<LabelRef>(null, labels);
@@ -1517,7 +1566,7 @@ export class Parser extends BaseParser {
       }
       if (this.prevToken) {
         this._issues.push(
-          genIssue(
+          genSyntaxDiagnostic(
             SyntaxIssue.FORWARD_SLASH_START_PATH,
             new ASTBase(createTokenIndex(this.prevToken))
           )
@@ -1530,7 +1579,7 @@ export class Parser extends BaseParser {
     const nodeName = this.isNodeName();
     if (!nodeName) {
       this._issues.push(
-        genIssue(
+        genSyntaxDiagnostic(
           SyntaxIssue.NODE_NAME,
           new ASTBase(createTokenIndex(firstToken ?? this.prevToken!))
         )
@@ -1588,7 +1637,7 @@ export class Parser extends BaseParser {
         !adjacentTokens(p.lastToken, afterPath)
       ) {
         this._issues.push(
-          genIssue(
+          genSyntaxDiagnostic(
             SyntaxIssue.WHITE_SPACE,
             new ASTBase(createTokenIndex(p.lastToken, afterPath))
           )
@@ -1597,7 +1646,7 @@ export class Parser extends BaseParser {
       }
       if (i === 0 && beforePath && !adjacentTokens(beforePath, p?.firstToken)) {
         this._issues.push(
-          genIssue(
+          genSyntaxDiagnostic(
             SyntaxIssue.WHITE_SPACE,
             new ASTBase(createTokenIndex(beforePath, p?.firstToken))
           )
@@ -1607,7 +1656,7 @@ export class Parser extends BaseParser {
       const nextPart = nodePath?.children[i + 1];
       if (p && nextPart && !adjacentTokens(p.lastToken, nextPart.firstToken)) {
         this._issues.push(
-          genIssue(
+          genSyntaxDiagnostic(
             SyntaxIssue.WHITE_SPACE,
             new ASTBase(createTokenIndex(p.lastToken, nextPart?.firstToken))
           )
@@ -1618,7 +1667,7 @@ export class Parser extends BaseParser {
     if (!validToken(lastToken, LexerToken.CURLY_CLOSE)) {
       if (this.prevToken) {
         this._issues.push(
-          genIssue(
+          genSyntaxDiagnostic(
             SyntaxIssue.CURLY_CLOSE,
             new ASTBase(createTokenIndex(this.prevToken))
           )

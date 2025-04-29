@@ -22,7 +22,7 @@ import {
 } from "../ast/dtc/node";
 import {
   ContextIssues,
-  Issue,
+  FileDiagnostic,
   MacroRegistryItem,
   SearchableResult,
 } from "../types";
@@ -30,7 +30,7 @@ import { Property } from "./property";
 import { DeleteProperty } from "../ast/dtc/deleteProperty";
 import { DeleteNode } from "../ast/dtc/deleteNode";
 import {
-  genIssue,
+  genContextDiagnostic,
   getDeepestAstNodeAfter,
   getDeepestAstNodeBefore,
   getDeepestAstNodeInBetween,
@@ -53,7 +53,8 @@ import { ArrayValues } from "../ast/dtc/values/arrayValue";
 import { getNodeNameOrNodeLabelRef } from "../ast/helpers";
 import { getStandardType } from "../dtsTypes/standardTypes";
 import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
-import { INodeType } from "../dtsTypes/types";
+import { INodeType, NodeType } from "../dtsTypes/types";
+import { SerializedBinding, SerializedNode } from "../types/index";
 
 export class Node {
   public referencedBy: DtcRefNode[] = [];
@@ -244,7 +245,7 @@ export class Node {
     ];
   }
 
-  get issues(): Issue<ContextIssues>[] {
+  get issues(): FileDiagnostic[] {
     const issues = [
       ...this.property.flatMap((p) => p.issues),
       ...this._nodes.flatMap((n) => n.issues),
@@ -255,7 +256,7 @@ export class Node {
     if (this.name === "/" && this.definitions.length) {
       if (!this._nodes.some((n) => n.name === "cpus")) {
         issues.push(
-          genIssue(
+          genContextDiagnostic(
             ContextIssues.MISSING_NODE,
             this.definitions.at(-1)!,
             DiagnosticSeverity.Error,
@@ -282,49 +283,53 @@ export class Node {
     return issues;
   }
 
-  get deletedPropertiesIssues(): Issue<ContextIssues>[] {
+  get deletedPropertiesIssues(): FileDiagnostic[] {
     return [
       ...this._deletedProperties.flatMap((meta) => [
-        {
-          issues: [ContextIssues.DELETE_PROPERTY],
-          severity: DiagnosticSeverity.Hint,
-          astElement: meta.property.ast,
-          linkedTo: [meta.by],
-          tags: [DiagnosticTag.Deprecated],
-          templateStrings: [meta.property.name],
-        },
-        ...meta.property.allReplaced.map((p) => ({
-          issues: [ContextIssues.DELETE_PROPERTY],
-          severity: DiagnosticSeverity.Hint,
-          astElement: p.ast,
-          linkedTo: [meta.by],
-          tags: [DiagnosticTag.Deprecated],
-          templateStrings: [meta.property.name],
-        })),
+        genContextDiagnostic(
+          ContextIssues.DELETE_PROPERTY,
+          meta.property.ast,
+          DiagnosticSeverity.Hint,
+          [meta.by],
+          [DiagnosticTag.Deprecated],
+          [meta.property.name]
+        ),
+        ...meta.property.allReplaced.map((p) =>
+          genContextDiagnostic(
+            ContextIssues.DELETE_PROPERTY,
+            p.ast,
+            DiagnosticSeverity.Hint,
+            [meta.by],
+            [DiagnosticTag.Deprecated],
+            [meta.property.name]
+          )
+        ),
         ...meta.property.issues,
       ]),
     ];
   }
 
-  get deletedNodesIssues(): Issue<ContextIssues>[] {
+  get deletedNodesIssues(): FileDiagnostic[] {
     return this._deletedNodes.flatMap((meta) => [
       ...[
         ...(meta.node.definitions.filter(
           (node) => node instanceof DtcChildNode
         ) as DtcChildNode[]),
         ...meta.node.referencedBy,
-      ].flatMap((node) => ({
-        issues: [ContextIssues.DELETE_NODE],
-        severity: DiagnosticSeverity.Hint,
-        astElement: node,
-        linkedTo: [meta.by],
-        tags: [DiagnosticTag.Deprecated],
-        templateStrings: [
-          node instanceof DtcChildNode
-            ? node.name!.toString()
-            : node.labelReference!.label!.value,
-        ],
-      })),
+      ].flatMap((node) =>
+        genContextDiagnostic(
+          ContextIssues.DELETE_NODE,
+          node,
+          DiagnosticSeverity.Hint,
+          [meta.by],
+          [DiagnosticTag.Deprecated],
+          [
+            node instanceof DtcChildNode
+              ? node.name!.toString()
+              : node.labelReference!.label!.value,
+          ]
+        )
+      ),
     ]);
   }
 
@@ -608,5 +613,29 @@ ${"\t".repeat(level - 1)}}; */`;
         : ""
     } 
 ${"\t".repeat(level - 1)}}; ${isOmmited ? " */" : ""}`;
+  }
+
+  serialize(macros: Map<string, MacroRegistryItem>): SerializedNode {
+    const nodeAsts = [...this.definitions, ...this.referencedBy];
+    const nodeType = this.nodeType;
+    return {
+      nodeType:
+        nodeType instanceof NodeType
+          ? {
+              ...this.nodeType,
+              properties: nodeType.properties.map((p) => ({
+                name: typeof p.name === "string" ? p.name : p.name.toString(),
+                allowedValues: p.allowedValues,
+                type: p.type,
+              })),
+            }
+          : undefined,
+      issues: nodeAsts.flatMap((n) => n.serializeIssues),
+      path: this.pathString,
+      name: this.fullName,
+      nodes: nodeAsts.map((d) => d.serialize(macros)),
+      properties: this.property.map((p) => p.ast.serialize(macros)),
+      childNodes: this.nodes.map((n) => n.serialize(macros)),
+    };
   }
 }

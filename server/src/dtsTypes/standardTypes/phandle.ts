@@ -14,27 +14,28 @@
  * limitations under the License.
  */
 
+import { BindingPropertyType } from "../../types/index";
 import { StandardTypeIssue } from "../../types";
-import { genIssue } from "../../helpers";
-import { PropertyNodeType, PropertyType } from "../types";
+import { genStandardTypeDiagnostic } from "../../helpers";
+import { PropertyNodeType } from "../types";
 import { generateOrTypeObj, getU32ValueFromProperty } from "./helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { ASTBase } from "../../ast/base";
 
 export default () => {
-  const prop = new PropertyNodeType(
+  const prop = new PropertyNodeType<number>(
     "phandle",
-    generateOrTypeObj(PropertyType.U32),
+    generateOrTypeObj(BindingPropertyType.U32),
     "optional",
     undefined,
-    [],
+    undefined,
     (property) => {
       const phandelValue = getU32ValueFromProperty(property, 0, 0);
       if (phandelValue) {
         const nodes = property.parent.root.getAllPhandle(phandelValue);
         if (nodes.length > 1 && nodes.at(-1) === property.parent) {
           return [
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.EXPECTED_UNIQUE_PHANDLE,
               property.ast.values?.values.at(0) ?? property.ast,
               DiagnosticSeverity.Error,

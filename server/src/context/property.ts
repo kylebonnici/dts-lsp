@@ -17,6 +17,7 @@
 import { DtcProperty } from "../ast/dtc/property";
 import {
   ContextIssues,
+  FileDiagnostic,
   Issue,
   MacroRegistryItem,
   SearchableResult,
@@ -27,6 +28,7 @@ import {
   Position,
 } from "vscode-languageserver";
 import {
+  genContextDiagnostic,
   getDeepestAstNodeAfter,
   getDeepestAstNodeBefore,
   getDeepestAstNodeInBetween,
@@ -83,23 +85,23 @@ export class Property {
     }));
   }
 
-  get issues(): Issue<ContextIssues>[] {
+  get issues(): FileDiagnostic[] {
     return this.replacedIssues;
   }
 
-  get replacedIssues(): Issue<ContextIssues>[] {
+  get replacedIssues(): FileDiagnostic[] {
     return [
       ...(this.replaces?.replacedIssues ?? []),
       ...(this.replaces
         ? [
-            {
-              issues: [ContextIssues.DUPLICATE_PROPERTY_NAME],
-              severity: DiagnosticSeverity.Hint,
-              astElement: this.replaces.ast,
-              linkedTo: [this.ast],
-              tags: [DiagnosticTag.Unnecessary],
-              templateStrings: [this.name],
-            },
+            genContextDiagnostic(
+              ContextIssues.DUPLICATE_PROPERTY_NAME,
+              this.replaces.ast,
+              DiagnosticSeverity.Hint,
+              [this.ast],
+              [DiagnosticTag.Unnecessary],
+              [this.name]
+            ),
           ]
         : []),
     ];

@@ -15,6 +15,7 @@
  */
 
 import {
+  Diagnostic,
   DiagnosticSeverity,
   DiagnosticTag,
   TextEdit,
@@ -296,3 +297,8 @@ export interface MacroRegistryItem {
 }
 
 export type ContextId = { uri: string } | { id: string } | { name: string };
+
+export type FileDiagnostic = {
+  raw: Issue<IssueTypes>;
+  diagnostic: () => Diagnostic;
+};

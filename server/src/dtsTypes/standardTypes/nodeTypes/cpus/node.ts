@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { genIssue } from "../../../../helpers";
+import { genStandardTypeDiagnostic } from "../../../../helpers";
 import { getU32ValueFromProperty } from "../../helpers";
 import { StandardTypeIssue } from "../../../../types";
 import { DiagnosticSeverity } from "vscode-languageserver";
@@ -25,7 +25,7 @@ export function getCpusNodeType() {
   nodeType.additionalValidations = (_, node) => {
     if (node.parent?.name !== "/") {
       return [
-        genIssue(
+        genStandardTypeDiagnostic(
           StandardTypeIssue.NODE_LOCATION,
           node.definitions[0],
           DiagnosticSeverity.Error,
@@ -61,7 +61,7 @@ export function getCpusNodeType() {
 
     if (nodeValue !== 0) {
       issues.push(
-        genIssue(
+        genStandardTypeDiagnostic(
           StandardTypeIssue.INVALID_VALUE,
           property.ast,
           DiagnosticSeverity.Error,

@@ -22,6 +22,7 @@ import {
 } from "../ast/dtc/node";
 import {
   ContextIssues,
+  FileDiagnostic,
   Issue,
   Searchable,
   SearchableResult,
@@ -30,7 +31,7 @@ import {
 import { Property } from "./property";
 import { DeleteNode } from "../ast/dtc/deleteNode";
 import {
-  genIssue,
+  genContextDiagnostic,
   getDeepestAstNodeInBetween,
   isLastTokenOnLine,
   positionInBetween,
@@ -61,7 +62,7 @@ export class Runtime implements Searchable {
 
   private fileTopMostAstCache = new Map<string, ASTBase[]>();
 
-  fileTopMostAst(file: string) {
+  fileTopMostAsts(file: string) {
     const cache = this.fileTopMostAstCache.get(file);
     if (cache) return cache;
     // TODO consider a different way to optain this as this is costly
@@ -85,7 +86,7 @@ export class Runtime implements Searchable {
     file: string,
     position: Position
   ): SearchableResult | undefined {
-    const fileAsts = this.fileTopMostAst(file);
+    const fileAsts = this.fileTopMostAsts(file);
 
     const dtcNode = fileAsts.find(
       (i) =>
@@ -169,12 +170,12 @@ export class Runtime implements Searchable {
     return label?.lastLinkedTo?.path;
   }
 
-  get issues(): Issue<ContextIssues>[] {
+  get issues(): FileDiagnostic[] {
     return [...this.labelIssues(), ...this.rootNode.issues];
   }
 
   private labelIssues() {
-    const issues: Issue<ContextIssues>[] = [];
+    const issues: FileDiagnostic[] = [];
 
     const labelsUsed = new Map<
       string,
@@ -206,7 +207,7 @@ export class Runtime implements Searchable {
 
         if (!allSameOwner || !firstLabeledNode) {
           issues.push(
-            genIssue(
+            genContextDiagnostic(
               ContextIssues.LABEL_ALREADY_IN_USE,
               otherOwners.at(0)!.label,
               DiagnosticSeverity.Error,
@@ -222,10 +223,10 @@ export class Runtime implements Searchable {
     return issues;
   }
 
-  private typesIssuesCache?: Issue<StandardTypeIssue>[];
+  private typesIssuesCache?: FileDiagnostic[];
 
   get typesIssues() {
-    const getIssue = (node: Node): Issue<StandardTypeIssue>[] => {
+    const getIssue = (node: Node): FileDiagnostic[] => {
       return [
         ...(node.nodeType?.getIssue(this, node) ?? []),
         ...node.nodes.flatMap((n) => getIssue(n)),

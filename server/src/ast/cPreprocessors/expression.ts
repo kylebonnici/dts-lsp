@@ -18,6 +18,10 @@ import { ASTBase } from "../base";
 import { Operator } from "./operator";
 import type { MacroRegistryItem } from "../../types";
 import { expandMacros } from "../../helpers";
+import {
+  SerializableExpression,
+  SerializableExpressionBase,
+} from "../../types/index";
 
 function sanitizeCExpression(expr: string) {
   return expr
@@ -57,6 +61,18 @@ export abstract class Expression extends ASTBase {
     return `${value.toString()} /* ${this.toString()}${
       typeof value === "number" ? ` = 0x${value.toString(16)}` : ""
     } */`;
+  }
+
+  serialize(
+    macros: Map<string, MacroRegistryItem>
+  ): SerializableExpressionBase {
+    return new SerializableExpression(
+      this.toString(),
+      this.evaluate(macros),
+      this.uri,
+      this.range,
+      this.serializeIssues
+    );
   }
 }
 

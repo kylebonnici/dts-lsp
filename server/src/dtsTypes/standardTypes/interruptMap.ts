@@ -14,27 +14,28 @@
  * limitations under the License.
  */
 
-import { Issue, StandardTypeIssue } from "../../types";
-import { PropertyNodeType, PropertyType as PropertyType } from "../types";
+import { BindingPropertyType } from "../../types/index";
+import { FileDiagnostic, StandardTypeIssue } from "../../types";
+import { PropertyNodeType } from "../types";
 import {
   flatNumberValues,
   generateOrTypeObj,
   resolvePhandleNode,
   getU32ValueFromProperty,
 } from "./helpers";
-import { genIssue } from "../../helpers";
+import { genStandardTypeDiagnostic } from "../../helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { ArrayValues } from "../../ast/dtc/values/arrayValue";
 
 export default () => {
-  const prop = new PropertyNodeType(
+  const prop = new PropertyNodeType<number>(
     "interrupt-map",
-    generateOrTypeObj(PropertyType.PROP_ENCODED_ARRAY),
+    generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
     "optional",
     undefined,
-    [],
+    undefined,
     (property) => {
-      const issues: Issue<StandardTypeIssue>[] = [];
+      const issues: FileDiagnostic[] = [];
       const node = property.parent;
       const root = property.parent.root;
 
@@ -48,7 +49,7 @@ export default () => {
 
       if (!childInterruptSpecifier) {
         issues.push(
-          genIssue(
+          genStandardTypeDiagnostic(
             StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
             property.ast,
             DiagnosticSeverity.Error,
@@ -104,7 +105,7 @@ export default () => {
 
         if (values.length < i + 1) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.MAP_ENTRY_INCOMPLETE,
               values[values.length - 1],
               DiagnosticSeverity.Error,
@@ -137,7 +138,7 @@ export default () => {
         const interruptParent = resolvePhandleNode(values[i], root);
         if (!interruptParent) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
               values[i],
               DiagnosticSeverity.Error
@@ -152,7 +153,7 @@ export default () => {
 
         if (!parentInterruptSpecifier) {
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
               values[i],
               DiagnosticSeverity.Error,
@@ -196,7 +197,7 @@ export default () => {
             parentUnitAddressValue +
             parentInterruptSpecifierValue;
           issues.push(
-            genIssue(
+            genStandardTypeDiagnostic(
               StandardTypeIssue.MAP_ENTRY_INCOMPLETE,
               values[values.length - 1],
               DiagnosticSeverity.Error,
