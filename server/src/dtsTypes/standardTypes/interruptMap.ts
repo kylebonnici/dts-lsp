@@ -34,7 +34,7 @@ export default () => {
     "optional",
     undefined,
     undefined,
-    (property) => {
+    (property, macros) => {
       const issues: FileDiagnostic[] = [];
       const node = property.parent;
       const root = property.parent.root;
@@ -65,12 +65,13 @@ export default () => {
         return issues;
       }
 
-      const childAddressCellsValue = node.addressCells();
+      const childAddressCellsValue = node.addressCells(macros);
 
       const childInterruptSpecifierValue = getU32ValueFromProperty(
         childInterruptSpecifier,
         0,
-        0
+        0,
+        macros
       );
 
       let i = 0;
@@ -142,7 +143,7 @@ export default () => {
           break;
         }
 
-        const parentUnitAddress = interruptParent.getProperty("#address-cells");
+        const parentUnitAddressValue = interruptParent.addressCells(macros);
         const parentInterruptSpecifier =
           interruptParent.getProperty("#interrupt-cells");
 
@@ -167,13 +168,11 @@ export default () => {
 
         i++;
 
-        const parentUnitAddressValue = parentUnitAddress
-          ? getU32ValueFromProperty(parentUnitAddress, 0, 0)
-          : 2;
         const parentInterruptSpecifierValue = getU32ValueFromProperty(
           parentInterruptSpecifier,
           0,
-          0
+          0,
+          macros
         );
 
         if (

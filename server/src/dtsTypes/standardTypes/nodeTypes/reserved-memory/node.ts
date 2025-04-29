@@ -43,11 +43,13 @@ const matchRootNode = (
 
   const rootNode = property.parent.root.getProperty(property.name);
   const rootNodeValue = rootNode
-    ? getU32ValueFromProperty(rootNode, 0, 0)
+    ? getU32ValueFromProperty(rootNode, 0, 0, macros)
     : undefined;
 
   const node = property.parent.getProperty(property.name);
-  const nodeValue = node ? getU32ValueFromProperty(node, 0, 0) : undefined;
+  const nodeValue = node
+    ? getU32ValueFromProperty(node, 0, 0, macros)
+    : undefined;
 
   if (nodeValue !== rootNodeValue) {
     issues.push(

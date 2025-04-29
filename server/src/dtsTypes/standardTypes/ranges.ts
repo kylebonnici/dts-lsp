@@ -37,7 +37,7 @@ export default () => {
     "optional",
     undefined,
     undefined,
-    (property) => {
+    (property, macros) => {
       const issues: FileDiagnostic[] = [];
       console.log(property.parent.name);
 
@@ -46,9 +46,9 @@ export default () => {
         return [];
       }
 
-      const sizeCellValue = property.parent.sizeCells();
-      const childBusAddressValue = property.parent.addressCells();
-      const parentdBusAddressValue = property.parent.parentAddressCells();
+      const sizeCellValue = property.parent.sizeCells(macros);
+      const childBusAddressValue = property.parent.addressCells(macros);
+      const parentdBusAddressValue = property.parent.parentAddressCells(macros);
 
       prop.typeExample = `<${[
         ...Array.from(
@@ -87,8 +87,8 @@ export default () => {
       }
 
       if (issues.length === 0) {
-        const mappings = property.parent.rangeMap(new Map());
-        const thisNodeReg = property.parent.reg();
+        const mappings = property.parent.rangeMap(macros);
+        const thisNodeReg = property.parent.reg(macros);
         if (thisNodeReg) {
           mappings?.forEach((m) => {
             const ends = addWords(m.parentAddress, m.length);

@@ -35,7 +35,7 @@ export default () => {
     "optional",
     undefined,
     undefined,
-    (property) => {
+    (property, macros) => {
       const issues: FileDiagnostic[] = [];
 
       const values = flatNumberValues(property.ast.values);
@@ -43,9 +43,9 @@ export default () => {
         return [];
       }
 
-      const sizeCellValue = property.parent.sizeCells();
-      const childBusAddressValue = property.parent.addressCells();
-      const parentdBusAddressValue = property.parent.parentAddressCells();
+      const sizeCellValue = property.parent.sizeCells(macros);
+      const childBusAddressValue = property.parent.addressCells(macros);
+      const parentdBusAddressValue = property.parent.parentAddressCells(macros);
 
       if (
         values.length === 0 ||

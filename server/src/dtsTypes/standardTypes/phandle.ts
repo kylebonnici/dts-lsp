@@ -29,8 +29,8 @@ export default () => {
     "optional",
     undefined,
     undefined,
-    (property) => {
-      const phandelValue = getU32ValueFromProperty(property, 0, 0);
+    (property, macros) => {
+      const phandelValue = getU32ValueFromProperty(property, 0, 0, macros);
       if (phandelValue) {
         const nodes = property.parent.root.getAllPhandle(phandelValue);
         if (nodes.length > 1 && nodes.at(-1) === property.parent) {

@@ -558,9 +558,9 @@ export class Node {
       return;
     }
 
-    const childSizeCell = this.sizeCells();
-    const childAddressCell = this.addressCells();
-    const parentAddressCell = this.parentAddressCells();
+    const childSizeCell = this.sizeCells(macros);
+    const childAddressCell = this.addressCells(macros);
+    const parentAddressCell = this.parentAddressCells(macros);
 
     const mapping: Mapping[] = [];
     const values = flatNumberValues(rangeProperty.ast.values)?.reverse();
@@ -612,50 +612,50 @@ export class Node {
     return this.#rangeMappingsCache;
   }
 
-  public parentAddressCells(): number {
-    return this.parent?.addressCells() ?? 2;
+  public parentAddressCells(macros: Map<string, MacroRegistryItem>): number {
+    return this.parent?.addressCells(macros) ?? 2;
   }
 
-  public parentSizeCells(): number {
-    return this.parent?.sizeCells() ?? 1;
+  public parentSizeCells(macros: Map<string, MacroRegistryItem>): number {
+    return this.parent?.sizeCells(macros) ?? 1;
   }
 
   #addressCellsCache?: number;
-  public addressCells(): number {
+  public addressCells(macros: Map<string, MacroRegistryItem>): number {
     if (this.#addressCellsCache !== undefined) return this.#addressCellsCache;
     const addressCells = this?.getProperty("#address-cells");
     this.#addressCellsCache = addressCells
-      ? getU32ValueFromProperty(addressCells, 0, 0) ?? 2
+      ? getU32ValueFromProperty(addressCells, 0, 0, macros) ?? 2
       : 2;
     return this.#addressCellsCache;
   }
 
   #sizeCellsCache?: number;
-  public sizeCells(): number {
+  public sizeCells(macros: Map<string, MacroRegistryItem>): number {
     if (this.#sizeCellsCache !== undefined) return this.#sizeCellsCache;
     const sizeCells = this.getProperty("#size-cells");
     this.#sizeCellsCache = sizeCells
-      ? getU32ValueFromProperty(sizeCells, 0, 0) ?? 1
+      ? getU32ValueFromProperty(sizeCells, 0, 0, macros) ?? 1
       : 1;
     return this.#sizeCellsCache;
   }
 
-  public reg() {
+  public reg(macros: Map<string, MacroRegistryItem>) {
     const reg = this.getProperty("reg");
     if (!reg) return;
 
-    const addressCells = this.parentAddressCells();
+    const addressCells = this.parentAddressCells(macros);
     const startAddress = Array.from({
       length: addressCells,
     }).map(
-      (_, i) => getU32ValueFromProperty(reg, 0, i) ?? 1 // TODO do not fallback to 1
+      (_, i) => getU32ValueFromProperty(reg, 0, i, macros) ?? 1 // TODO do not fallback to 1
     );
 
-    const sizeCells = this.parentSizeCells();
+    const sizeCells = this.parentSizeCells(macros);
     const size = Array.from({
       length: sizeCells,
     }).map(
-      (_, i) => getU32ValueFromProperty(reg, 0, addressCells + i) ?? 1 // TODO do not fallback to 1
+      (_, i) => getU32ValueFromProperty(reg, 0, addressCells + i, macros) ?? 1 // TODO do not fallback to 1
     );
 
     return {
@@ -674,18 +674,18 @@ export class Node {
     const reg = this.getProperty("reg");
     if (!reg) return;
 
-    const addressCells = this.parentAddressCells();
+    const addressCells = this.parentAddressCells(macros);
     const startAddress = Array.from({
       length: addressCells,
     }).map(
-      (_, i) => getU32ValueFromProperty(reg, 0, i) ?? 1 // TODO do not fallback to 1
+      (_, i) => getU32ValueFromProperty(reg, 0, i, macros) ?? 1 // TODO do not fallback to 1
     );
 
-    const sizeCells = this.parentSizeCells();
+    const sizeCells = this.parentSizeCells(macros);
     const size = Array.from({
       length: sizeCells,
     }).map(
-      (_, i) => getU32ValueFromProperty(reg, 0, addressCells + i) ?? 1 // TODO do not fallback to 1
+      (_, i) => getU32ValueFromProperty(reg, 0, addressCells + i, macros) ?? 1 // TODO do not fallback to 1
     );
 
     const mappings = this.parent?.rangeMap(macros);

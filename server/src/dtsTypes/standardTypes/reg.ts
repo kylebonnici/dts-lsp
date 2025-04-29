@@ -40,7 +40,7 @@ export default () => {
     },
     undefined,
     undefined,
-    (property) => {
+    (property, macros) => {
       const issues: FileDiagnostic[] = [];
 
       const values = flatNumberValues(property.ast.values);
@@ -48,8 +48,8 @@ export default () => {
         return [];
       }
 
-      const parentSizeCell = property.parent.parentSizeCells();
-      const parentAddressCell = property.parent.parentAddressCells();
+      const parentSizeCell = property.parent.parentSizeCells(macros);
+      const parentAddressCell = property.parent.parentAddressCells(macros);
 
       prop.typeExample = `<${[
         ...Array.from({ length: parentAddressCell }, () => "address"),
@@ -83,7 +83,7 @@ export default () => {
       ) {
         const refAddress = values
           .slice(0, parentAddressCell)
-          .map((_, i) => getU32ValueFromProperty(property, 0, i) ?? 0);
+          .map((_, i) => getU32ValueFromProperty(property, 0, i, macros) ?? 0);
 
         if (
           property.parent.address &&
