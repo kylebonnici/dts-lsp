@@ -684,7 +684,7 @@ describe("Type Issues", () => {
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
         expect(issues[0].raw.issues).toEqual([
-          StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_FIRST_VALUE,
+          StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_ADDRESS_VALUE,
         ]);
       });
 
@@ -701,7 +701,7 @@ describe("Type Issues", () => {
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
         expect(issues[0].raw.issues).toEqual([
-          StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_FIRST_VALUE,
+          StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_ADDRESS_VALUE,
         ]);
       });
     });

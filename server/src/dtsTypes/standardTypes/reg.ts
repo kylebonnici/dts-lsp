@@ -16,7 +16,11 @@
 
 import { BindingPropertyType } from "../../types/index";
 import { FileDiagnostic, StandardTypeIssue } from "../../types";
-import { genStandardTypeDiagnostic } from "../../helpers";
+import {
+  compareWords,
+  createTokenIndex,
+  genStandardTypeDiagnostic,
+} from "../../helpers";
 import { PropertyNodeType } from "../types";
 import {
   flatNumberValues,
@@ -24,6 +28,8 @@ import {
   getU32ValueFromProperty,
 } from "./helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
+import { ASTBase } from "../../ast/base";
+import { ArrayValues } from "../../ast/dtc/values/arrayValue";
 
 export default () => {
   const prop = new PropertyNodeType<number>(
@@ -95,42 +101,30 @@ export default () => {
         i < values.length;
         i += parentSizeCell + parentAddressCell
       ) {
-        const buffer = new ArrayBuffer(parentAddressCell * 4);
-        const view = new DataView(buffer);
-
-        values
+        const refAddress = values
           .slice(0, parentAddressCell)
-          .map((_, i) => getU32ValueFromProperty(property, 0, i) ?? 0)
-          .forEach((c, i) => {
-            view.setUint32(i * 4, c);
-          });
+          .map((_, i) => getU32ValueFromProperty(property, 0, i) ?? 0);
 
-        if (property.parent.address && property.parent.address?.length > 1) {
-          property.parent.address?.forEach((a, i) => {
-            if (view.getUint32(i * 4) !== a) {
-              issues.push(
-                genStandardTypeDiagnostic(
-                  StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_FIRST_VALUE,
-                  property.ast,
-                  DiagnosticSeverity.Error,
-                  [],
-                  [],
-                  [property.name]
-                )
-              );
-            }
-          });
-        } else if (
-          property.parent.address?.length === 1 &&
-          ((parentAddressCell === 2 &&
-            view.getBigUint64(0) !== BigInt(property.parent.address[0])) ||
-            (parentAddressCell === 1 &&
-              view.getUint32(0) !== property.parent.address[0]))
+        if (
+          property.parent.address &&
+          compareWords(property.parent.address, refAddress) !== 0
         ) {
+          const startValue = (
+            property.ast.values?.values.at(0)?.value as ArrayValues | undefined
+          )?.values?.at(0);
+          const endValue = (
+            property.ast.values?.values.at(0)?.value as ArrayValues | undefined
+          )?.values?.at(parentAddressCell - 1);
+          const addressValues =
+            startValue && endValue
+              ? new ASTBase(
+                  createTokenIndex(startValue.firstToken, endValue.lastToken)
+                )
+              : undefined;
           issues.push(
             genStandardTypeDiagnostic(
-              StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_FIRST_VALUE,
-              property.ast,
+              StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_ADDRESS_VALUE,
+              addressValues ?? property.ast.values ?? property.ast,
               DiagnosticSeverity.Error,
               [],
               [],
