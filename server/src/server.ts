@@ -600,6 +600,11 @@ const onSettingsChanged = async () => {
   connection.sendNotification("devicetree/settingsChanged", newSettings);
 
   await loadSettings();
+  allStable().then(() => {
+    if (hasDiagnosticRefreshCapability) {
+      connection.languages.diagnostics.refresh();
+    }
+  });
 };
 
 connection.onDidChangeConfiguration(async (change) => {
@@ -865,7 +870,7 @@ const reportNoContextFiles = () => {
           {
             severity: DiagnosticSeverity.Warning,
             range: Range.create(Position.create(0, 0), Position.create(0, 0)),
-            message: "File has no context",
+            message: "File not in active context",
             source: "devicetree",
           },
         ],
@@ -1216,14 +1221,9 @@ const updateActiveContext = async (id: ContextId, force = false) => {
     }
   }
 
-  if (hasDiagnosticRefreshCapability) {
-    connection.languages.diagnostics.refresh();
-  }
-
   if (hasFoldingRangesRefreshCapability) {
     connection.languages.foldingRange.refresh();
   }
-
   if (hasSemanticTokensRefreshCapability) {
     connection.languages.semanticTokens.refresh();
   }
@@ -1325,14 +1325,17 @@ connection.onDidChangeWatchedFiles((_change) => {
 
 connection.onCompletion(
   async (
-    _textDocumentPosition: TextDocumentPositionParams
+    textDocumentPosition: TextDocumentPositionParams
   ): Promise<CompletionItem[]> => {
     await allStable();
+    const uri = fileURLToPath(textDocumentPosition.textDocument.uri);
+    updateActiveContext({ uri });
+    const context = quickFindContext(uri);
 
-    if (contextAware) {
+    if (context) {
       return [
-        ...(await getCompletions(_textDocumentPosition, activeContext)),
-        ...(await getTypeCompletions(_textDocumentPosition, activeContext)),
+        ...(await getCompletions(textDocumentPosition, context)),
+        ...(await getTypeCompletions(textDocumentPosition, context)),
       ];
     }
 
@@ -1344,12 +1347,21 @@ connection.onCompletionResolve((item: CompletionItem): CompletionItem => {
   return item;
 });
 
+const quickFindContext = (uri: string) => {
+  const settings = getUnresolvedAdhocContextSettings();
+  return findContext(
+    contextAware,
+    { uri },
+    activeContext,
+    settings?.preferredContext
+  );
+};
+
 connection.onDocumentSymbol(async (h) => {
   await allStable();
   const uri = fileURLToPath(h.textDocument.uri);
-  await updateActiveContext({ uri });
-
-  const context = activeContext;
+  updateActiveContext({ uri });
+  const context = quickFindContext(uri);
 
   if (!context) return [];
   return context.getUriParser(uri)?.getDocumentSymbols(uri);
@@ -1369,25 +1381,16 @@ connection.languages.semanticTokens.on(async (h) => {
   try {
     await allStable();
     const uri = fileURLToPath(h.textDocument.uri);
-    await updateActiveContext({ uri });
+    const context = quickFindContext(uri);
 
     const tokensBuilder = new SemanticTokensBuilder();
 
-    const contextMeta = await findContext(
-      contextAware,
-      { uri },
-      activeContext,
-      (
-        await getResolvedAllContextSettings()
-      ).preferredContext
-    );
-
-    const isInContext = contextMeta?.isInContext(uri);
-    if (!contextMeta || !isInContext) {
+    const isInContext = context?.isInContext(uri);
+    if (!context || !isInContext) {
       return { data: [] };
     }
 
-    (await contextMeta.getAllParsers()).forEach((parser) =>
+    (await context.getAllParsers()).forEach((parser) =>
       parser.buildSemanticTokens(tokensBuilder, uri)
     );
 
@@ -1401,59 +1404,63 @@ connection.languages.semanticTokens.on(async (h) => {
 connection.onDocumentLinks(async (event) => {
   await allStable();
   const uri = fileURLToPath(event.textDocument.uri);
-  const contextMeta = await findContext(
-    contextAware,
-    { uri },
-    activeContext,
-    (
-      await getResolvedAllContextSettings()
-    ).preferredContext
-  );
+  updateActiveContext({ uri });
+  const context = quickFindContext(uri);
 
-  return contextMeta?.getDocumentLinks(uri);
+  return context?.getDocumentLinks(uri);
 });
 
 connection.onPrepareRename(async (event) => {
   await allStable();
-  return getPrepareRenameRequest(event, activeContext);
+  const uri = fileURLToPath(event.textDocument.uri);
+  updateActiveContext({ uri });
+  const context = quickFindContext(uri);
+
+  return getPrepareRenameRequest(event, context);
 });
 
 connection.onRenameRequest(async (event) => {
   await allStable();
-  return getRenameRequest(event, activeContext);
+  const uri = fileURLToPath(event.textDocument.uri);
+  updateActiveContext({ uri });
+  const context = quickFindContext(uri);
+
+  return getRenameRequest(event, context);
 });
 
 connection.onReferences(async (event) => {
   await allStable();
-  return getReferences(event, activeContext);
+  const uri = fileURLToPath(event.textDocument.uri);
+  updateActiveContext({ uri });
+  const context = quickFindContext(uri);
+
+  return getReferences(event, context);
 });
 
 connection.onDefinition(async (event) => {
-  const uri = fileURLToPath(event.textDocument.uri);
   await allStable();
 
-  const contextMeta = await findContext(
-    contextAware,
-    { uri },
-    activeContext,
-    (
-      await getResolvedAllContextSettings()
-    ).preferredContext
-  );
+  const uri = fileURLToPath(event.textDocument.uri);
+  updateActiveContext({ uri });
+  const context = quickFindContext(uri);
 
   const documentLinkDefinition =
-    (await contextMeta?.getDocumentLinks(uri, event.position))
+    (await context?.getDocumentLinks(uri, event.position))
       ?.filter((docLink) => docLink.target)
       .map((docLink) => Location.create(docLink.target!, docLink.range)) ?? [];
 
   if (documentLinkDefinition.length) return documentLinkDefinition;
 
-  return getDefinitions(event, activeContext);
+  return getDefinitions(event, context);
 });
 
 connection.onDeclaration(async (event) => {
   await allStable();
-  return getDeclaration(event, activeContext);
+  const uri = fileURLToPath(event.textDocument.uri);
+  updateActiveContext({ uri });
+  const context = quickFindContext(uri);
+
+  return getDeclaration(event, context);
 });
 
 connection.onCodeAction(async (event) => {
@@ -1461,34 +1468,31 @@ connection.onCodeAction(async (event) => {
 });
 
 connection.onDocumentFormatting(async (event) => {
-  const uri = fileURLToPath(event.textDocument.uri);
   await allStable();
-  const contextMeta = await findContext(
-    contextAware,
-    { uri },
-    activeContext,
-    (
-      await getResolvedAllContextSettings()
-    ).preferredContext
-  );
-  if (!contextMeta) {
+  const uri = fileURLToPath(event.textDocument.uri);
+  updateActiveContext({ uri });
+  const context = quickFindContext(uri);
+
+  if (!context) {
     return [];
   }
 
-  return getDocumentFormatting(event, contextMeta);
+  return getDocumentFormatting(event, context);
 });
 
 connection.onHover(async (event) => {
   await allStable();
-  return (await getHover(event, activeContext)).at(0);
+  const uri = fileURLToPath(event.textDocument.uri);
+  const context = quickFindContext(uri);
+
+  return (await getHover(event, context)).at(0);
 });
 
 connection.onFoldingRanges(async (event) => {
   await allStable();
   const uri = fileURLToPath(event.textDocument.uri);
-  await updateActiveContext({ uri });
 
-  const context = activeContext;
+  const context = quickFindContext(uri);
 
   const isInContext = context?.isInContext(uri);
   if (!context || !isInContext) {
@@ -1505,7 +1509,11 @@ connection.onFoldingRanges(async (event) => {
 
 connection.onTypeDefinition(async (event) => {
   await allStable();
-  return typeDefinition(event, contextAware, activeContext);
+  const uri = fileURLToPath(event.textDocument.uri);
+  updateActiveContext({ uri });
+  const context = quickFindContext(uri);
+
+  return typeDefinition(event, context);
 });
 
 connection.onRequest(
