@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Validation of ranges proprty to ensure that it does not exceed the reg property range when defined.
+- Validation of ranges proprty to ensure that ranges do not overlap.
+- Validation of dma-ranges proprty to ensure that ranges do not overlap.
 - Validation of reg proprty to ensure if mapped it does not exeed the mapping range.
 - Validation of reg proprty to ensure that it does not exceed the reg property of parent node when defined.
 
