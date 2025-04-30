@@ -1,76 +1,74 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-# 0.3.2 - 2025-04-30
+## [0.3.2] - 2025-04-30
 
 ### Added
 
-- Validation of ranges proprty to ensure that it does not exceed the reg property address range.
-- Validation of ranges proprty to ensure that ranges do not overlap.
-- Validation of dma-ranges proprty to ensure that ranges do not overlap.
-- Validation of reg proprty to ensure if mapped it does not exeed the mapping address range.
-- Validation of reg proprty to ensure that it does not exceed the reg property of parent node when mapped and defined.
+- Validation of `ranges` property to ensure it does not exceed the `reg` property address range.
+- Validation of `ranges` property to ensure ranges do not overlap.
+- Validation of `dma-ranges` property to ensure ranges do not overlap.
+- Validation of `reg` property to ensure it does not exceed the mapping address range, if mapped.
+- Validation of `reg` property to ensure it does not exceed the parent node's `reg` range when mapped and defined.
 
 ### Fixed
 
-- More stability imporvments to multi tab view usage
+- Stability improvements for multi-tab view usage.
 
-# 0.3.1 - 2025-04-29
+## [0.3.1] - 2025-04-29
 
 ### Added
 
-- Node path to hover
-- Property DTS native type and binding type to hover
-- LPS API to get actions for a location:
-  - Generate C Identifers macros for nodes and properties
-  - Generate node path
-- Added context menu item to copy to clipboard C Identifiers.
-- Added context menu item to copy to clipboard node path.
+- Display node path on hover.
+- Show DTS native type and binding type on hover for properties.
+- LSP API to get actions for a location:
+  - Generate C Identifier macros for nodes and properties.
+  - Generate node path.
+- Context menu options:
+  - Copy C Identifiers to clipboard.
+  - Copy node path to clipboard.
 
 ### Fixed
 
-- LSP High CPU usage; constanly changing the active context when using a split view
-- Performace degradation when LSP searches for a node for completing, on hover etc...
-- Unhandled error on VSCode command when context selection is aborted
-- Type checking on nexusSpecifierMap when Zephyr binding were also loded on node
+- High CPU usage due to constant context switching in split view.
+- Performance degradation during LSP-based node resolution for completion/hover/etc.
+- Unhandled error when context selection is aborted.
+- Type checking on `nexusSpecifierMap` when Zephyr bindings were also loaded.
 
-# 0.3.0 - 2025-04-19
+## [0.3.0] - 2025-04-19
 
 ### Added
 
-- VSCode extension API support.
-- onHover over macro now returns both decimal and hex value for the computed result
-- lockRenameEdits to context settings
+- VS Code extension API support.
+- On-hover over macro shows both decimal and hex values.
+- `lockRenameEdits` added to context settings.
 - VS Code commands:
-  - Devicetree: Generate context output
-  - Devicetree: Set active context
+  - Devicetree: Generate context output.
+  - Devicetree: Set active context.
 
 ### Changed
 
-- Renamed lockRenameEdits to defaultLockRenameEdits in the root settings
+- Renamed `lockRenameEdits` to `defaultLockRenameEdits` in root settings.
 
 ### Fixed
 
-- Changes to overlays files where not being repassed
-- No semantic tokens for overlays files
-- No syntax diagnostics for overlays files
-- No document symbols for overlays files
-- Exception when parsing zephyr binding with no include property
-- Parsing issue when a node path is `prop = &{}`
-- Issue with `setting` path case sensitivity on windows
-- toString output for bytestring is now shown as hexadecimal not decimal
-- Issue where in some cases diagnostics disappear when typing when two context share the same file.
+- Overlay file changes not being processed.
+- Missing semantic tokens, syntax diagnostics, and document symbols for overlay files.
+- Parsing issues with certain malformed Zephyr bindings or malformed node paths.
+- Case sensitivity issues with the `setting` path on Windows.
+- Byte string `toString` now outputs hex instead of decimal.
+- Diagnostics disappearing when typing in files shared by multiple contexts.
 
-# 0.2.5 - 2025-04-08
+# [0.2.5] - 2025-04-08
 
 ### Fixed
 
 - Performance improvements
 
-# 0.2.4 - 2025-04-06
+# [0.2.4] - 2025-04-06
 
 ### Added
 
@@ -95,13 +93,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 };
 ```
 
-# 0.2.3 - 2025-04-02
+# [0.2.3] - 2025-04-02
 
 ### Fixed
 
 - Issue with folding ranges not showing in all context files
 
-# 0.2.2 - 2025-04-01
+# [0.2.2] - 2025-04-01
 
 ### Added
 
@@ -123,7 +121,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   the first created context would take precedence. Now the active content takes precedence if files
   is in it.
 
-# 0.2.1 - 2025-03-23
+# [0.2.1] - 2025-03-23
 
 ### Added
 
@@ -133,7 +131,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Folding ranges for context with multiple dts files/overlays
 
-# 0.2.0 - 2025-03-23
+# [0.2.0] - 2025-03-23
 
 ### Added
 
@@ -174,13 +172,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Find reference on a delete node now also include the `/delete-node/ <nodeName>` for when delete is done by node name.
 - Refactoring/renaming on a delete node now also refactors/renames the `/delete-node/ <nodeName>` for when delete is done by node name.
 
-# 0.1.2 - 2025-03-13
+# [0.1.2] - 2025-03-13
 
 ### Added
 
 - Hook '.dtso' file format in language server [Contribution by [SpieringsAE](https://github.com/SpieringsAE)]
 
-# 0.1.1 - 2025-03-09
+# [0.1.1] - 2025-03-09
 
 ### Added
 
@@ -194,7 +192,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Clean up diagnostics of all files when all files are closed
 - Removing adHoc context from memory on all files closed.
 
-# 0.1.0 - 2025-02-09
+# [0.1.0] - 2025-02-09
 
 ### Added
 
@@ -223,13 +221,13 @@ node1@1,0 {}
 - Issue with providing folding ranges on startup
 - Clean up diagnostics from inactive context
 
-# 0.0.9 - 2025-01-26
+# [0.0.9] - 2025-01-26
 
 ### Fixed
 
 - Support for `/include/` syntax
 
-# 0.0.8 - 2025-01-26
+# [0.0.8] - 2025-01-26
 
 ### Added
 
@@ -239,7 +237,7 @@ node1@1,0 {}
 
 - Diagnostics cleared on each `onDidChangeContent` event before new diagnostics are generated.
 
-# 0.0.7 - 2025-01-21
+# [0.0.7] - 2025-01-21
 
 ### Added
 
@@ -253,7 +251,7 @@ node1@1,0 {}
 - Server crash if import is a directory
 - Report diagnostics issues from CPreProcessor
 
-# 0.0.6 - 2025-01-18
+# [0.0.6] - 2025-01-18
 
 ### Changed
 
@@ -263,7 +261,7 @@ node1@1,0 {}
 
 - 'File not in context' were not clearing in some cases
 
-# 0.0.5 - 2025-01-15
+# [0.0.5] - 2025-01-15
 
 ### Added
 
@@ -287,7 +285,7 @@ prop = FOO()
 prop = FOO(10,)
 ```
 
-## 0.0.4 - 2025-01-14
+## [0.0.4] - 2025-01-14
 
 ### Fixed
 
@@ -298,7 +296,7 @@ reg = <536870912 DT_SIZE_K([object object])>;  -> issue
 reg = <536870912 DT_SIZE_K(448)>; -> fix
 ```
 
-## 0.0.3 - 2025-01-13
+## [0.0.3] - 2025-01-13
 
 ### Added
 
@@ -309,7 +307,7 @@ reg = <536870912 DT_SIZE_K(448)>; -> fix
 
 - Formatting of includes statement in files that where included inside a DTC node
 
-## 0.0.2 - 2025-01-10
+## [0.0.2] - 2025-01-10
 
 ### Added
 
@@ -345,7 +343,7 @@ reg = <536870912 DT_SIZE_K(448)>; -> fix
 };
 ```
 
-## 0.0.1 - 2025-01-07
+## [0.0.1] - 2025-01-07
 
 ### Added
 
