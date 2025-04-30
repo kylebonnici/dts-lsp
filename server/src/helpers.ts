@@ -25,7 +25,6 @@ import {
 import type { ASTBase } from "./ast/base";
 import {
   Issue,
-  IssueTypes,
   SearchableResult,
   SemanticTokenModifiers,
   SemanticTokenType,
@@ -41,6 +40,7 @@ import {
   StandardTypeIssue,
   CodeActionDiagnosticData,
   FileDiagnostic,
+  Mapping,
 } from "./types";
 import { ContextAware } from "./runtimeEvaluator";
 import url from "url";
@@ -878,8 +878,8 @@ export const standardTypeIssueIssuesToMessage = (
           return `INTRO should be omitted`;
         case StandardTypeIssue.PROPERTY_NOT_ALLOWED:
           return `INTRO name is not permitted under this node`;
-        case StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_FIRST_VALUE:
-          return `INTRO first value must match node address`;
+        case StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_ADDRESS_VALUE:
+          return `INTRO address value must match node address`;
         case StandardTypeIssue.EXPECTED_DEVICE_TYPE_CPU:
           return `INTRO should be 'cpu'`;
         case StandardTypeIssue.EXPECTED_DEVICE_TYPE_MEMORY:
@@ -914,6 +914,12 @@ export const standardTypeIssueIssuesToMessage = (
           return issue.templateStrings[0];
         case StandardTypeIssue.INVALID_VALUE:
           return issue.templateStrings[0];
+        case StandardTypeIssue.RANGE_EXCEEDS_ADDRESS_SPACE:
+          return `INTRO exceeds address space of this node. Range: ${issue.templateStrings[1]}-${issue.templateStrings[2]}, reg: ${issue.templateStrings[3]}-${issue.templateStrings[4]}`;
+        case StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS:
+          return `INTRO exceeds address space avalable for this mapping. The range ends at ${issue.templateStrings[1]}, the node ends at ${issue.templateStrings[2]}`;
+        case StandardTypeIssue.RANGES_OVERLAP:
+          return `Range overlaps with other range on ${issue.templateStrings[0]} address range`;
       }
     })
     .join(" or ")
@@ -936,7 +942,154 @@ export const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
       return "Additional value";
     case StandardTypeIssue.NODE_DISABLED:
       return "Disabled by";
+    case StandardTypeIssue.RANGE_EXCEEDS_ADDRESS_SPACE:
+      return "Address space";
+    case StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS:
+      return "Mapping range";
+    case StandardTypeIssue.RANGES_OVERLAP:
+      return "Overlapping range";
     default:
       return `TODO`;
   }
+};
+
+export const compareWords = (a: number[], b: number[]): number => {
+  const n = Math.max(a.length, b.length);
+  for (let i = 0; i < n; i++) {
+    const ai = a[a.length - n + i] ?? 0;
+    const bi = b[b.length - n + i] ?? 0;
+    if (ai < bi) return -1;
+    if (ai > bi) return 1;
+  }
+  return 0;
+};
+
+export const addWords = (a: number[], b: number[]): number[] => {
+  const n = Math.max(a.length, b.length);
+  const result: number[] = new Array(n).fill(0);
+  let carry = 0;
+  for (let i = 0; i < n; i++) {
+    const ai = a[a.length - 1 - i] ?? 0;
+    const bi = b[b.length - 1 - i] ?? 0;
+    const sum = ai + bi + carry;
+    result[n - 1 - i] = sum >>> 0;
+    carry = sum > 0xffffffff ? 1 : 0;
+  }
+  if (carry) {
+    result.unshift(1);
+  }
+  return result;
+};
+
+export const subtractWords = (a: number[], b: number[]): number[] => {
+  const n = Math.max(a.length, b.length);
+  const result: number[] = new Array(n).fill(0);
+  let borrow = 0;
+  for (let i = 0; i < n; i++) {
+    let ai = a[a.length - 1 - i] ?? 0;
+    const bi = b[b.length - 1 - i] ?? 0;
+    ai -= borrow;
+    if (ai < bi) {
+      ai += 0x100000000;
+      borrow = 1;
+    } else {
+      borrow = 0;
+    }
+    result[n - 1 - i] = (ai - bi) >>> 0;
+  }
+  while (result.length > 1 && result[0] === 0) result.shift();
+  return result;
+};
+
+export const addOffset = (base: number[], offset: number[]): number[] => {
+  return addWords(base, offset);
+};
+
+type MappedAddress = {
+  start: number[];
+  end: number[];
+  ast: ASTBase;
+};
+
+export const findMappedAddress = (
+  mappings: Mapping[],
+  address: number[]
+): MappedAddress | null => {
+  for (const mapping of mappings) {
+    const childStart = mapping.childAddress;
+    const size = mapping.length;
+    const childEnd = addWords(childStart, size);
+
+    if (
+      compareWords(address, childStart) >= 0 &&
+      compareWords(address, childEnd) < 0
+    ) {
+      const offset = subtractWords(address, childStart);
+      const parentStart = mapping.parentAddress;
+      const mappedStart = addOffset(parentStart, offset);
+      const mappedEnd = addWords(parentStart, size);
+
+      return {
+        start: mappedStart,
+        end: mappedEnd,
+        ast: mapping.ast,
+      };
+    }
+  }
+
+  return null;
+};
+
+type OverlappingMapping = {
+  mappingA: Mapping;
+  mappingB: Mapping;
+  overlapOn: "child" | "parent" | "child and parent";
+};
+
+export const findUniqueMappingOverlaps = (
+  mappings: Mapping[]
+): OverlappingMapping[] => {
+  const overlaps: OverlappingMapping[] = [];
+
+  for (let i = 0; i < mappings.length; i++) {
+    for (let j = i + 1; j < mappings.length; j++) {
+      const a = mappings[i];
+      const b = mappings[j];
+
+      const aChildStart = a.childAddress;
+      const aChildEnd = addWords(aChildStart, a.length);
+
+      const bChildStart = b.childAddress;
+      const bChildEnd = addWords(bChildStart, b.length);
+
+      const aParentStart = a.parentAddress;
+      const aParentEnd = addWords(aParentStart, a.length);
+
+      const bParentStart = b.parentAddress;
+      const bParentEnd = addWords(bParentStart, b.length);
+
+      const childOverlap =
+        compareWords(aChildStart, bChildEnd) < 0 &&
+        compareWords(bChildStart, aChildEnd) < 0;
+
+      const parentOverlap =
+        compareWords(aParentStart, bParentEnd) < 0 &&
+        compareWords(bParentStart, aParentEnd) < 0;
+
+      if (childOverlap || parentOverlap) {
+        overlaps.push({
+          mappingA: a,
+          mappingB: b,
+          overlapOn:
+            childOverlap && parentOverlap
+              ? "child and parent"
+              : childOverlap
+              ? "child"
+              : "parent",
+        });
+      }
+    }
+  }
+
+  return overlaps;
 };

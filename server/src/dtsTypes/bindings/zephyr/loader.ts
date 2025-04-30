@@ -12,7 +12,11 @@ import {
   getU32ValueFromProperty,
   resolvePhandleNode,
 } from "../../../dtsTypes/standardTypes/helpers";
-import { FileDiagnostic, Issue, StandardTypeIssue } from "../../../types";
+import {
+  FileDiagnostic,
+  MacroRegistryItem,
+  StandardTypeIssue,
+} from "../../../types";
 import { genStandardTypeDiagnostic } from "../../../helpers";
 import { DiagnosticSeverity, DiagnosticTag } from "vscode-languageserver";
 import { Property } from "../../../context/property";
@@ -372,10 +376,10 @@ const addToNodeType = (
     existingProperty.bindingType = property.type;
 
     const additionalTypeCheck = existingProperty.additionalTypeCheck;
-    existingProperty.additionalTypeCheck = (p) => {
+    existingProperty.additionalTypeCheck = (p, macros) => {
       return [
-        ...generateZephyrTypeCheck(property, name, existingProperty)(p),
-        ...(additionalTypeCheck?.(p) ?? []),
+        ...generateZephyrTypeCheck(property, name, existingProperty)(p, macros),
+        ...(additionalTypeCheck?.(p, macros) ?? []),
       ];
     };
   } else {
@@ -391,10 +395,10 @@ const addToNodeType = (
       undefined, // TODO property.default ?,
       property.enum
     );
-    prop.additionalTypeCheck = (p) => {
+    prop.additionalTypeCheck = (p, macros) => {
       const issues = [
-        ...(existingProperty?.additionalTypeCheck?.(p) ?? []),
-        ...generateZephyrTypeCheck(property, name, prop)(p),
+        ...(existingProperty?.additionalTypeCheck?.(p, macros) ?? []),
+        ...generateZephyrTypeCheck(property, name, prop)(p, macros),
       ];
       prop.typeExample ??= existingProperty?.typeExample;
       return issues;
@@ -415,7 +419,7 @@ const generateZephyrTypeCheck = (
   type: PropertyNodeType
 ) => {
   const myProperty = property;
-  return (p: Property) => {
+  return (p: Property, macros: Map<string, MacroRegistryItem>) => {
     const root = p.parent.root;
     const issues: FileDiagnostic[] = [];
 
@@ -558,7 +562,7 @@ const generateZephyrTypeCheck = (
         }
 
         const sizeCellValue = sizeCellProperty
-          ? getU32ValueFromProperty(sizeCellProperty, 0, 0) ?? 0
+          ? getU32ValueFromProperty(sizeCellProperty, 0, 0, macros) ?? 0
           : 0;
 
         const cellNames = phandelValue.nodeType?.cellsValues?.find(

@@ -24,6 +24,7 @@ import { Node } from "../../context/node";
 import { Property } from "../../context/property";
 import { Expression } from "../../ast/cPreprocessors/expression";
 import { BindingPropertyType, TypeConfig } from "../../types/index";
+import { MacroRegistryItem } from "src/types";
 
 export const flatNumberValues = (value: PropertyValues | null | undefined) => {
   if (value?.values.some((v) => !(v?.value instanceof ArrayValues))) {
@@ -40,15 +41,17 @@ export const flatNumberValues = (value: PropertyValues | null | undefined) => {
 export const getU32ValueFromProperty = (
   property: Property,
   valueIndex: number,
-  arrayValueIndex: number
+  arrayValueIndex: number,
+  macros: Map<string, MacroRegistryItem>
 ) => {
   const value = property.ast.values?.values.at(valueIndex)?.value;
 
   if (value instanceof ArrayValues) {
     const labeledValue = value.values.at(arrayValueIndex);
 
-    if (labeledValue?.value instanceof NumberValue) {
-      return labeledValue.value.value;
+    if (labeledValue?.value instanceof Expression) {
+      const evaluted = labeledValue.value.evaluate(macros);
+      if (typeof evaluted === "number") return evaluted;
     }
   }
 };

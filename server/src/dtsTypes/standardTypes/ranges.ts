@@ -15,14 +15,15 @@
  */
 
 import { BindingPropertyType } from "../../types/index";
-import { genStandardTypeDiagnostic } from "../../helpers";
-import { PropertyNodeType } from "../types";
 import {
-  flatNumberValues,
-  generateOrTypeObj,
-  getU32ValueFromProperty,
-} from "./helpers";
-import { FileDiagnostic, Issue, StandardTypeIssue } from "../../types";
+  findUniqueMappingOverlaps,
+  genStandardTypeDiagnostic,
+} from "../../helpers";
+import { PropertyNodeType } from "../types";
+import { addWords, compareWords } from "../../helpers";
+import { flatNumberValues, generateOrTypeObj } from "./helpers";
+
+import { FileDiagnostic, StandardTypeIssue } from "../../types";
 import { DiagnosticSeverity } from "vscode-languageserver";
 
 export default () => {
@@ -35,7 +36,7 @@ export default () => {
     "optional",
     undefined,
     undefined,
-    (property) => {
+    (property, macros) => {
       const issues: FileDiagnostic[] = [];
 
       const values = flatNumberValues(property.ast.values);
@@ -43,21 +44,21 @@ export default () => {
         return [];
       }
 
-      const sizeCellProperty = property.parent?.getProperty("#size-cells");
-      const childBusAddress = property.parent?.getProperty("#address-cells");
-      const parentdBusAddress =
-        property.parent.parent?.getProperty("#address-cells");
+      const sizeCellValue = property.parent.sizeCells(macros);
+      const childBusAddressValue = property.parent.addressCells(macros);
+      const parentdBusAddressValue = property.parent.parentAddressCells(macros);
 
-      const sizeCellValue = sizeCellProperty
-        ? getU32ValueFromProperty(sizeCellProperty, 0, 0) ?? 1
-        : 1;
-
-      const childBusAddressValue = childBusAddress
-        ? getU32ValueFromProperty(childBusAddress, 0, 0) ?? 2
-        : 2;
-      const parentdBusAddressValue = parentdBusAddress
-        ? getU32ValueFromProperty(parentdBusAddress, 0, 0) ?? 2
-        : 2;
+      prop.typeExample = `<${[
+        ...Array.from(
+          { length: childBusAddressValue },
+          () => "child-bus-address"
+        ),
+        ...Array.from(
+          { length: parentdBusAddressValue },
+          () => "parent-bus-address"
+        ),
+        ...Array.from({ length: parentdBusAddressValue }, () => "length"),
+      ].join(" ")}>`;
 
       if (
         values.length === 0 ||
@@ -78,25 +79,91 @@ export default () => {
             DiagnosticSeverity.Error,
             [],
             [],
-            [
-              property.name,
-              `<${[
-                ...Array.from(
-                  { length: childBusAddressValue },
-                  () => "child-bus-address"
-                ),
-                ...Array.from(
-                  { length: parentdBusAddressValue },
-                  () => "parent-bus-address"
-                ),
-                ...Array.from(
-                  { length: parentdBusAddressValue },
-                  () => "length"
-                ),
-              ].join(" ")}>`,
-            ]
+            [property.name, prop.typeExample]
           )
         );
+      }
+
+      if (issues.length === 0) {
+        const mappings = property.parent.rangeMap(macros);
+        mappings &&
+          findUniqueMappingOverlaps(mappings).forEach((overlap) => {
+            issues.push(
+              genStandardTypeDiagnostic(
+                StandardTypeIssue.RANGES_OVERLAP,
+                overlap.mappingA.ast,
+                DiagnosticSeverity.Error,
+                [overlap.mappingB.ast],
+                [],
+                [overlap.overlapOn]
+              )
+            );
+          });
+
+        const thisNodeReg = property.parent.reg(macros);
+        if (thisNodeReg) {
+          mappings?.forEach((m) => {
+            const ends = addWords(m.parentAddress, m.length);
+            if (
+              compareWords(thisNodeReg.endAddress, ends) < 0 ||
+              compareWords(thisNodeReg.startAddress, m.parentAddress) > 0
+            ) {
+              issues.push(
+                genStandardTypeDiagnostic(
+                  StandardTypeIssue.RANGE_EXCEEDS_ADDRESS_SPACE,
+                  m.ast,
+                  DiagnosticSeverity.Warning,
+                  [thisNodeReg.ast],
+                  [],
+                  [
+                    property.name,
+                    m.parentAddress
+                      .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
+                      .join(""),
+                    ends
+                      .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
+                      .join(""),
+                    thisNodeReg.startAddress
+                      .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
+                      .join(""),
+                    thisNodeReg.endAddress
+                      .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
+                      .join(""),
+                  ]
+                )
+              );
+            }
+          });
+        }
+
+        property.parent.nodes.forEach((childNode) => {
+          const reg = childNode.getProperty("reg");
+          if (!reg) return;
+
+          const mappedAddress = childNode.mappedReg(macros);
+          if (!mappedAddress?.mappingEnd || !mappedAddress.mappedAst) return;
+
+          if (!mappedAddress.inMappingRange) {
+            issues.push(
+              genStandardTypeDiagnostic(
+                StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS,
+                reg.ast.values ?? reg.ast,
+                DiagnosticSeverity.Warning,
+                [mappedAddress.mappedAst],
+                [],
+                [
+                  reg.name,
+                  mappedAddress.endAddress
+                    .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
+                    .join(""),
+                  mappedAddress.mappingEnd
+                    .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
+                    .join(""),
+                ]
+              )
+            );
+          }
+        });
       }
 
       return issues;

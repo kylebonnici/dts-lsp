@@ -34,7 +34,7 @@ export default () => {
     "optional",
     undefined,
     undefined,
-    (property) => {
+    (property, macros) => {
       const issues: FileDiagnostic[] = [];
       const node = property.parent;
       const root = property.parent.root;
@@ -44,7 +44,6 @@ export default () => {
         return [];
       }
 
-      const childAddressCells = node.getProperty("#address-cells");
       const childInterruptSpecifier = node.getProperty("#interrupt-cells");
 
       if (!childInterruptSpecifier) {
@@ -66,21 +65,18 @@ export default () => {
         return issues;
       }
 
+      const childAddressCellsValue = node.addressCells(macros);
+
+      const childInterruptSpecifierValue = getU32ValueFromProperty(
+        childInterruptSpecifier,
+        0,
+        0,
+        macros
+      );
+
       let i = 0;
       while (i < values.length) {
-        const childAddressCellsValue = childAddressCells
-          ? getU32ValueFromProperty(childAddressCells, 0, 0)
-          : 2;
-
-        const childInterruptSpecifierValue = getU32ValueFromProperty(
-          childInterruptSpecifier,
-          0,
-          0
-        );
-        if (
-          childAddressCellsValue == null ||
-          childInterruptSpecifierValue == null
-        ) {
+        if (childInterruptSpecifierValue == null) {
           return issues;
         }
 
@@ -147,7 +143,7 @@ export default () => {
           break;
         }
 
-        const parentUnitAddress = interruptParent.getProperty("#address-cells");
+        const parentUnitAddressValue = interruptParent.addressCells(macros);
         const parentInterruptSpecifier =
           interruptParent.getProperty("#interrupt-cells");
 
@@ -172,13 +168,11 @@ export default () => {
 
         i++;
 
-        const parentUnitAddressValue = parentUnitAddress
-          ? getU32ValueFromProperty(parentUnitAddress, 0, 0)
-          : 2;
         const parentInterruptSpecifierValue = getU32ValueFromProperty(
           parentInterruptSpecifier,
           0,
-          0
+          0,
+          macros
         );
 
         if (
@@ -253,22 +247,7 @@ export default () => {
           return issues;
         }
 
-        const childAddressCellsValue = getU32ValueFromProperty(
-          childAddressCells!,
-          0,
-          0
-        );
-
-        const childInterruptSpecifierValue = getU32ValueFromProperty(
-          childInterruptSpecifier!,
-          0,
-          0
-        );
-
-        if (
-          childAddressCellsValue == null ||
-          childInterruptSpecifierValue == null
-        ) {
+        if (childInterruptSpecifierValue == null) {
           return issues;
         }
 

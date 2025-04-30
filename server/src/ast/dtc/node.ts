@@ -267,14 +267,18 @@ export class DtcChildNode extends DtcBaseNode {
 }
 
 export class NodeAddress extends ASTBase {
-  constructor(public readonly address: number, tokenIndex: TokenIndexes) {
+  constructor(public readonly address: number[], tokenIndex: TokenIndexes) {
     super(tokenIndex);
     this.semanticTokenType = "variable";
     this.semanticTokenModifiers = "declaration";
   }
 
   toString() {
-    return this.address.toString(16);
+    return (
+      this.address
+        ?.map((v, i) => v.toString(16).padStart(i ? 8 : 0, "0"))
+        .join("") ?? "NaN"
+    );
   }
 
   serialize(): SerializableNodeAddress {
@@ -318,6 +322,12 @@ export class NodeName extends ASTBase {
       this._address = nodeAddress;
       nodeAddress.forEach((a) => this.addChild(a));
     }
+  }
+
+  get fullAddress() {
+    return this._address
+      ? [...this._address.flatMap((a) => a.address)]
+      : undefined;
   }
 
   toString() {

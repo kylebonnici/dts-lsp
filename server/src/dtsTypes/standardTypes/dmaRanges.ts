@@ -16,13 +16,12 @@
 
 import { BindingPropertyType } from "../../types/index";
 import { PropertyNodeType } from "../types";
+import { flatNumberValues, generateOrTypeObj } from "./helpers";
 import {
-  flatNumberValues,
-  generateOrTypeObj,
-  getU32ValueFromProperty,
-} from "./helpers";
-import { genStandardTypeDiagnostic } from "../../helpers";
-import { FileDiagnostic, Issue, StandardTypeIssue } from "../../types";
+  findUniqueMappingOverlaps,
+  genStandardTypeDiagnostic,
+} from "../../helpers";
+import { FileDiagnostic, StandardTypeIssue } from "../../types";
 import { DiagnosticSeverity } from "vscode-languageserver";
 
 export default () => {
@@ -35,7 +34,7 @@ export default () => {
     "optional",
     undefined,
     undefined,
-    (property) => {
+    (property, macros) => {
       const issues: FileDiagnostic[] = [];
 
       const values = flatNumberValues(property.ast.values);
@@ -43,21 +42,21 @@ export default () => {
         return [];
       }
 
-      const sizeCellProperty = property.parent?.getProperty("#size-cells");
-      const childBusAddress = property.parent?.getProperty("#address-cells");
-      const parentdBusAddress =
-        property.parent.parent?.getProperty("#address-cells");
+      const sizeCellValue = property.parent.sizeCells(macros);
+      const childBusAddressValue = property.parent.addressCells(macros);
+      const parentdBusAddressValue = property.parent.parentAddressCells(macros);
 
-      const sizeCellValue = sizeCellProperty
-        ? getU32ValueFromProperty(sizeCellProperty, 0, 0) ?? 1
-        : 1;
-
-      const childBusAddressValue = childBusAddress
-        ? getU32ValueFromProperty(childBusAddress, 0, 0) ?? 2
-        : 2;
-      const parentdBusAddressValue = parentdBusAddress
-        ? getU32ValueFromProperty(parentdBusAddress, 0, 0) ?? 2
-        : 2;
+      prop.typeExample = `<${[
+        ...Array.from(
+          { length: childBusAddressValue },
+          () => "child-bus-address"
+        ),
+        ...Array.from(
+          { length: parentdBusAddressValue },
+          () => "parent-bus-address"
+        ),
+        ...Array.from({ length: parentdBusAddressValue }, () => "length"),
+      ].join(" ")}>`;
 
       if (
         values.length === 0 ||
@@ -78,25 +77,26 @@ export default () => {
             DiagnosticSeverity.Error,
             [],
             [],
-            [
-              property.name,
-              `<${[
-                ...Array.from(
-                  { length: childBusAddressValue },
-                  () => "child-bus-address"
-                ),
-                ...Array.from(
-                  { length: parentdBusAddressValue },
-                  () => "parent-bus-address"
-                ),
-                ...Array.from(
-                  { length: parentdBusAddressValue },
-                  () => "length"
-                ),
-              ].join(" ")}>`,
-            ]
+            [property.name, prop.typeExample]
           )
         );
+      }
+
+      if (issues.length === 0) {
+        const mappings = property.parent.dmaRangeMap(macros);
+        mappings &&
+          findUniqueMappingOverlaps(mappings).forEach((overlap) => {
+            issues.push(
+              genStandardTypeDiagnostic(
+                StandardTypeIssue.RANGES_OVERLAP,
+                overlap.mappingA.ast,
+                DiagnosticSeverity.Error,
+                [overlap.mappingB.ast],
+                [],
+                [overlap.overlapOn]
+              )
+            );
+          });
       }
 
       return issues;

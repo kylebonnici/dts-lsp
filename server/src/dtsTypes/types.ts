@@ -21,7 +21,7 @@ import {
 } from "../helpers";
 import { type Node } from "../context/node";
 import { Property } from "../context/property";
-import { FileDiagnostic, StandardTypeIssue } from "../types";
+import { FileDiagnostic, MacroRegistryItem, StandardTypeIssue } from "../types";
 import { Runtime } from "../context/runtime";
 import {
   CompletionItem,
@@ -147,7 +147,10 @@ export class PropertyNodeType<T = string | number> {
       | ((node: Node) => RequirementStatus) = "optional",
     public readonly def: T | undefined = undefined,
     values?: T[] | ((property: Property) => T[]),
-    public additionalTypeCheck?: (property: Property) => FileDiagnostic[]
+    public additionalTypeCheck?: (
+      property: Property,
+      macros: Map<string, MacroRegistryItem>
+    ) => FileDiagnostic[]
   ) {
     if (typeof required !== "function") {
       this.required = () => required;
@@ -379,7 +382,10 @@ export class PropertyNodeType<T = string | number> {
       const values = this.values(property);
       // we have the right type
       if (issues.length === 0) {
-        issues.push(...(this.additionalTypeCheck?.(property) ?? []));
+        issues.push(
+          ...(this.additionalTypeCheck?.(property, runtime.context.macros) ??
+            [])
+        );
         if (
           values.length &&
           this.type[0].types.some((tt) => tt === PropertyType.STRING)

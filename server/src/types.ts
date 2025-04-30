@@ -47,7 +47,7 @@ export enum StandardTypeIssue {
   EXPECTED_PROP_ENCODED_ARRAY,
   EXPECTED_ONE,
   EXPECTED_ENUM,
-  MISMATCH_NODE_ADDRESS_REF_FIRST_VALUE,
+  MISMATCH_NODE_ADDRESS_REF_ADDRESS_VALUE,
   OMITTED,
   EXPECTED_DEVICE_TYPE_CPU,
   EXPECTED_DEVICE_TYPE_MEMORY,
@@ -67,6 +67,9 @@ export enum StandardTypeIssue {
   NODE_LOCATION,
   PROPERTY_NOT_ALLOWED,
   INVALID_VALUE,
+  EXCEEDS_MAPPING_ADDRESS,
+  RANGE_EXCEEDS_ADDRESS_SPACE,
+  RANGES_OVERLAP,
 }
 
 export enum SyntaxIssue {
@@ -301,4 +304,11 @@ export type ContextId = { uri: string } | { id: string } | { name: string };
 export type FileDiagnostic = {
   raw: Issue<IssueTypes>;
   diagnostic: () => Diagnostic;
+};
+
+export type Mapping = {
+  childAddress: number[];
+  parentAddress: number[];
+  length: number[];
+  ast: ASTBase;
 };

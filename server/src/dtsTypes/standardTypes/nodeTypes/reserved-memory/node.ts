@@ -18,7 +18,11 @@ import { BindingPropertyType } from "../../../../types/index";
 import { NodeType } from "../../../types";
 import { generateOrTypeObj, getU32ValueFromProperty } from "../../helpers";
 import { genStandardTypeDiagnostic } from "../../../../helpers";
-import { FileDiagnostic, StandardTypeIssue } from "../../../../types";
+import {
+  FileDiagnostic,
+  MacroRegistryItem,
+  StandardTypeIssue,
+} from "../../../../types";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { Property } from "../../../../context/property";
 import addressCells from "../../addressCells";
@@ -26,18 +30,26 @@ import sizeCells from "../../sizeCells";
 import ranges from "../../ranges";
 
 const matchRootNode = (
-  additionalTypeCheck: ((property: Property) => FileDiagnostic[]) | undefined,
-  property: Property
+  additionalTypeCheck:
+    | ((
+        property: Property,
+        macros: Map<string, MacroRegistryItem>
+      ) => FileDiagnostic[])
+    | undefined,
+  property: Property,
+  macros: Map<string, MacroRegistryItem>
 ) => {
-  const issues = additionalTypeCheck?.(property) ?? [];
+  const issues = additionalTypeCheck?.(property, macros) ?? [];
 
   const rootNode = property.parent.root.getProperty(property.name);
   const rootNodeValue = rootNode
-    ? getU32ValueFromProperty(rootNode, 0, 0)
+    ? getU32ValueFromProperty(rootNode, 0, 0, macros)
     : undefined;
 
   const node = property.parent.getProperty(property.name);
-  const nodeValue = node ? getU32ValueFromProperty(node, 0, 0) : undefined;
+  const nodeValue = node
+    ? getU32ValueFromProperty(node, 0, 0, macros)
+    : undefined;
 
   if (nodeValue !== rootNodeValue) {
     issues.push(
@@ -61,15 +73,15 @@ export function getReservedMemoryNodeType() {
 
   const addressCellsProp = addressCells();
   const addressAdditionalTypeCheck = addressCellsProp?.additionalTypeCheck;
-  addressCellsProp!.additionalTypeCheck = (property) => {
-    return matchRootNode(addressAdditionalTypeCheck, property);
+  addressCellsProp!.additionalTypeCheck = (property, macros) => {
+    return matchRootNode(addressAdditionalTypeCheck, property, macros);
   };
   addressCellsProp!.required = () => "required";
 
   const sizeCellsProp = sizeCells();
   const sizeCellsAdditionalTypeCheck = sizeCellsProp?.additionalTypeCheck;
-  sizeCellsProp!.additionalTypeCheck = (property) => {
-    return matchRootNode(sizeCellsAdditionalTypeCheck, property);
+  sizeCellsProp!.additionalTypeCheck = (property, macros) => {
+    return matchRootNode(sizeCellsAdditionalTypeCheck, property, macros);
   };
   sizeCellsProp!.required = () => "required";
 

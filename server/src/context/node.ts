@@ -24,6 +24,7 @@ import {
   ContextIssues,
   FileDiagnostic,
   MacroRegistryItem,
+  Mapping,
   SearchableResult,
 } from "../types";
 import { Property } from "./property";
@@ -31,6 +32,10 @@ import { DeleteProperty } from "../ast/dtc/deleteProperty";
 import { DeleteNode } from "../ast/dtc/deleteNode";
 import {
   genContextDiagnostic,
+  addWords,
+  compareWords,
+  createTokenIndex,
+  findMappedAddress,
   getDeepestAstNodeAfter,
   getDeepestAstNodeBefore,
   getDeepestAstNodeInBetween,
@@ -54,7 +59,26 @@ import { getNodeNameOrNodeLabelRef } from "../ast/helpers";
 import { getStandardType } from "../dtsTypes/standardTypes";
 import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
 import { INodeType, NodeType } from "../dtsTypes/types";
-import { SerializedBinding, SerializedNode } from "../types/index";
+import { SerializedNode } from "../types/index";
+import {
+  flatNumberValues,
+  getU32ValueFromProperty,
+} from "../dtsTypes/standardTypes/helpers";
+import { Expression } from "../ast/cPreprocessors/expression";
+
+type MappedReg = {
+  startAddress: number[];
+  startAddressRaw: number[];
+  size: number[];
+  endAddress: number[];
+  endAddressRaw: number[];
+  inRange: boolean;
+  inMappingRange: boolean;
+  parentEnd?: number[];
+  mappingEnd?: number[];
+  mappedAst?: ASTBase;
+  regAst: ASTBase;
+};
 
 export class Node {
   public referencedBy: DtcRefNode[] = [];
@@ -524,6 +548,259 @@ export class Node {
     return this.name;
   }
 
+  #rangeMappingsCache?: Mapping[] | null;
+  public rangeMap(macros: Map<string, MacroRegistryItem>) {
+    if (this.#rangeMappingsCache !== undefined) return this.#rangeMappingsCache;
+
+    const rangeProperty = this.getProperty("ranges");
+    if (!rangeProperty) {
+      this.#rangeMappingsCache = null;
+      return;
+    }
+
+    const childSizeCell = this.sizeCells(macros);
+    const childAddressCell = this.addressCells(macros);
+    const parentAddressCell = this.parentAddressCells(macros);
+
+    const mapping: Mapping[] = [];
+    const values = flatNumberValues(rangeProperty.ast.values)?.reverse();
+    while (values?.length) {
+      const childAddressAst = Array.from({ length: childAddressCell }).map(() =>
+        values.pop()
+      );
+      const parentAddressAst = Array.from({ length: parentAddressCell }).map(
+        () => values.pop()
+      );
+      const lengthAst = Array.from({ length: childSizeCell }).map(() =>
+        values.pop()
+      );
+
+      [...childAddressAst, ...parentAddressAst, ...lengthAst].every(
+        (item) => item instanceof Expression
+      );
+
+      const childAddress = childAddressAst.map((v) =>
+        (v as Expression).evaluate(macros)
+      );
+      const parentAddress = parentAddressAst.map((v) =>
+        (v as Expression).evaluate(macros)
+      );
+      const length = lengthAst.map((v) => (v as Expression).evaluate(macros));
+
+      if (
+        ![...childAddress, ...parentAddress, ...length].every(
+          (item) => typeof item == "number"
+        )
+      ) {
+        continue;
+      }
+
+      mapping.push({
+        childAddress: childAddress as number[],
+        parentAddress: parentAddress as number[],
+        length: length as number[],
+        ast: new ASTBase(
+          createTokenIndex(
+            childAddressAst[0]!.firstToken,
+            lengthAst.at(-1)!.lastToken
+          )
+        ),
+      });
+    }
+
+    this.#rangeMappingsCache = mapping;
+    return this.#rangeMappingsCache;
+  }
+
+  #dmaRangeMappingsCache?: Mapping[] | null;
+  public dmaRangeMap(macros: Map<string, MacroRegistryItem>) {
+    if (this.#dmaRangeMappingsCache !== undefined)
+      return this.#dmaRangeMappingsCache;
+
+    const rangeProperty = this.getProperty("dma-ranges");
+    if (!rangeProperty) {
+      this.#dmaRangeMappingsCache = null;
+      return;
+    }
+
+    const childSizeCell = this.sizeCells(macros);
+    const childAddressCell = this.addressCells(macros);
+    const parentAddressCell = this.parentAddressCells(macros);
+
+    const mapping: Mapping[] = [];
+    const values = flatNumberValues(rangeProperty.ast.values)?.reverse();
+    while (values?.length) {
+      const childAddressAst = Array.from({ length: childAddressCell }).map(() =>
+        values.pop()
+      );
+      const parentAddressAst = Array.from({ length: parentAddressCell }).map(
+        () => values.pop()
+      );
+      const lengthAst = Array.from({ length: childSizeCell }).map(() =>
+        values.pop()
+      );
+
+      [...childAddressAst, ...parentAddressAst, ...lengthAst].every(
+        (item) => item instanceof Expression
+      );
+
+      const childAddress = childAddressAst.map((v) =>
+        (v as Expression).evaluate(macros)
+      );
+      const parentAddress = parentAddressAst.map((v) =>
+        (v as Expression).evaluate(macros)
+      );
+      const length = lengthAst.map((v) => (v as Expression).evaluate(macros));
+
+      if (
+        ![...childAddress, ...parentAddress, ...length].every(
+          (item) => typeof item == "number"
+        )
+      ) {
+        continue;
+      }
+
+      mapping.push({
+        childAddress: childAddress as number[],
+        parentAddress: parentAddress as number[],
+        length: length as number[],
+        ast: new ASTBase(
+          createTokenIndex(
+            childAddressAst[0]!.firstToken,
+            lengthAst.at(-1)!.lastToken
+          )
+        ),
+      });
+    }
+
+    this.#dmaRangeMappingsCache = mapping;
+    return this.#dmaRangeMappingsCache;
+  }
+
+  public parentAddressCells(macros: Map<string, MacroRegistryItem>): number {
+    return this.parent?.addressCells(macros) ?? 2;
+  }
+
+  public parentSizeCells(macros: Map<string, MacroRegistryItem>): number {
+    return this.parent?.sizeCells(macros) ?? 1;
+  }
+
+  #addressCellsCache?: number;
+  public addressCells(macros: Map<string, MacroRegistryItem>): number {
+    if (this.#addressCellsCache !== undefined) return this.#addressCellsCache;
+    const addressCells = this?.getProperty("#address-cells");
+    this.#addressCellsCache = addressCells
+      ? getU32ValueFromProperty(addressCells, 0, 0, macros) ?? 2
+      : 2;
+    return this.#addressCellsCache;
+  }
+
+  #sizeCellsCache?: number;
+  public sizeCells(macros: Map<string, MacroRegistryItem>): number {
+    if (this.#sizeCellsCache !== undefined) return this.#sizeCellsCache;
+    const sizeCells = this.getProperty("#size-cells");
+    this.#sizeCellsCache = sizeCells
+      ? getU32ValueFromProperty(sizeCells, 0, 0, macros) ?? 1
+      : 1;
+    return this.#sizeCellsCache;
+  }
+
+  public reg(macros: Map<string, MacroRegistryItem>) {
+    const reg = this.getProperty("reg");
+    if (!reg) return;
+
+    const addressCells = this.parentAddressCells(macros);
+    const startAddress = Array.from({
+      length: addressCells,
+    }).map((_, i) => getU32ValueFromProperty(reg, 0, i, macros));
+
+    if (!startAddress.every((a) => typeof a === "number")) {
+      return;
+    }
+
+    const sizeCells = this.parentSizeCells(macros);
+    const size = Array.from({
+      length: sizeCells,
+    }).map((_, i) => getU32ValueFromProperty(reg, 0, addressCells + i, macros));
+
+    if (!size.every((a) => typeof a === "number")) {
+      return;
+    }
+
+    return {
+      startAddress,
+      size,
+      endAddress: addWords(startAddress, size),
+      ast: reg.ast,
+    };
+  }
+
+  #mappedRegCache?: MappedReg;
+  public mappedReg(
+    macros: Map<string, MacroRegistryItem>
+  ): MappedReg | undefined {
+    if (this.#mappedRegCache !== undefined) return this.#mappedRegCache;
+    const reg = this.getProperty("reg");
+    if (!reg) return;
+
+    const addressCells = this.parentAddressCells(macros);
+    const startAddress = Array.from({
+      length: addressCells,
+    }).map((_, i) => getU32ValueFromProperty(reg, 0, i, macros));
+
+    if (!startAddress.every((a) => typeof a === "number")) {
+      return;
+    }
+
+    const sizeCells = this.parentSizeCells(macros);
+    const size = Array.from({
+      length: sizeCells,
+    }).map((_, i) => getU32ValueFromProperty(reg, 0, addressCells + i, macros));
+
+    if (!size.every((a) => typeof a === "number")) {
+      return;
+    }
+
+    const mappings = this.parent?.rangeMap(macros);
+
+    const endEddress = addWords(startAddress, size);
+    const parentEnd = this.parent?.mappedReg(macros)?.endAddress;
+
+    this.#mappedRegCache = {
+      startAddress,
+      startAddressRaw: startAddress,
+      size,
+      endAddress: endEddress,
+      endAddressRaw: endEddress,
+      inRange: !parentEnd || compareWords(endEddress, parentEnd) <= 0,
+      inMappingRange: false,
+      parentEnd,
+      regAst: reg.ast,
+    };
+
+    if (!mappings) {
+      return this.#mappedRegCache;
+    }
+
+    const mappedAddress = findMappedAddress(mappings, startAddress);
+
+    if (!mappedAddress) {
+      return this.#mappedRegCache;
+    }
+
+    this.#mappedRegCache.mappedAst = mappedAddress.ast;
+    this.#mappedRegCache.startAddress = mappedAddress.start;
+    this.#mappedRegCache.endAddress = addWords(mappedAddress.start, size);
+    this.#mappedRegCache.inRange =
+      !parentEnd ||
+      compareWords(this.#mappedRegCache.endAddress, parentEnd) <= 0;
+    this.#mappedRegCache.inMappingRange =
+      compareWords(this.#mappedRegCache.endAddress, mappedAddress.end) <= 0;
+    this.#mappedRegCache.mappingEnd = mappedAddress.end;
+
+    return this.#mappedRegCache;
+  }
+
   toTooltipString(macros: Map<string, MacroRegistryItem>) {
     return `${this.labels.map((l) => l.toString()).join(" ")}${
       this.labels.length ? " " : ""
@@ -616,6 +893,7 @@ ${"\t".repeat(level - 1)}}; ${isOmmited ? " */" : ""}`;
   }
 
   serialize(macros: Map<string, MacroRegistryItem>): SerializedNode {
+    const mappedReg = this.mappedReg(macros);
     const nodeAsts = [...this.definitions, ...this.referencedBy];
     const nodeType = this.nodeType;
     return {
@@ -636,6 +914,15 @@ ${"\t".repeat(level - 1)}}; ${isOmmited ? " */" : ""}`;
       nodes: nodeAsts.map((d) => d.serialize(macros)),
       properties: this.property.map((p) => p.ast.serialize(macros)),
       childNodes: this.nodes.map((n) => n.serialize(macros)),
+      reg: {
+        mappedStartAddress: mappedReg?.startAddress,
+        mappedEndAddress: mappedReg?.endAddress,
+        startAddress: mappedReg?.startAddressRaw,
+        endAddress: mappedReg?.endAddressRaw,
+        size: mappedReg?.size,
+        inRange: mappedReg?.inRange,
+        inMappingRange: mappedReg?.inMappingRange,
+      },
     };
   }
 }

@@ -245,7 +245,7 @@ export type NodeType = "ROOT" | "REF" | "CHILD";
 
 export class SerializableNodeAddress extends SerializableASTBase {
   constructor(
-    readonly address: number,
+    readonly address: number[],
     uri: string,
     range: Range,
     issues: Diagnostic[]
@@ -363,6 +363,16 @@ export class SerializableChildNode extends SerializableNodeBase {
   }
 }
 
+type SerializedMappedReg = {
+  mappedStartAddress?: number[];
+  startAddress?: number[];
+  size?: number[];
+  mappedEndAddress?: number[];
+  endAddress?: number[];
+  inRange?: boolean;
+  inMappingRange?: boolean;
+};
+
 export type SerializedNode = {
   nodeType?: SerializedBinding;
   issues: Diagnostic[];
@@ -371,6 +381,7 @@ export type SerializedNode = {
   nodes: SerializableNodeBase[];
   properties: SerializableDtcProperty[];
   childNodes: SerializedNode[];
+  reg: SerializedMappedReg;
 };
 
 export type Actions = ClipboardActions;

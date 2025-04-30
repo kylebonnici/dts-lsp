@@ -33,7 +33,7 @@ export default () => {
     "optional",
     undefined,
     undefined,
-    (property) => {
+    (property, macros) => {
       const specifier = property.name.split("-map", 1)[0];
 
       const issues: FileDiagnostic[] = [];
@@ -62,7 +62,8 @@ export default () => {
       const childSpecifierCellsValue = getU32ValueFromProperty(
         childSpecifierCells,
         0,
-        0
+        0,
+        macros
       );
 
       if (childSpecifierCellsValue == null) {
@@ -155,7 +156,8 @@ export default () => {
         const parentUnitAddressValue = getU32ValueFromProperty(
           parentSpecifierAddress,
           0,
-          0
+          0,
+          macros
         );
 
         if (parentUnitAddressValue == null) {
