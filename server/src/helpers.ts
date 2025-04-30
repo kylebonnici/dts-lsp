@@ -917,7 +917,7 @@ export const standardTypeIssueIssuesToMessage = (
         case StandardTypeIssue.RANGE_EXCEEDS_ADDRESS_SPACE:
           return `INTRO exceeds address space of this node. Range: ${issue.templateStrings[1]}-${issue.templateStrings[2]}, reg: ${issue.templateStrings[3]}-${issue.templateStrings[4]}`;
         case StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS:
-          return `INTRO exceeds address space avalable for this mapping. The range ends at ${issue.templateStrings[1]}, the node ends at ${issue.templateStrings[2]}`;
+          return `INTRO exceeds address space avalable for this mapping. The range ends at ${issue.templateStrings[2]}, the node ends at ${issue.templateStrings[1]}`;
         case StandardTypeIssue.RANGES_OVERLAP:
           return `Range overlaps with other range on ${issue.templateStrings[0]} address range`;
       }
