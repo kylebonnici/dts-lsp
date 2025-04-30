@@ -780,6 +780,7 @@ const contexMeta = async (ctx: ContextAware) => {
 const updateActiveContext = async (id: ContextId, force = false) => {
   if ("uri" in id) {
     activeFileUri = id.uri;
+    console.log("Active File Uri", activeFileUri);
   }
 
   const resolvedSettings = await getResolvedAllContextSettings();
@@ -982,7 +983,6 @@ const quickFindContext = (uri: string) => {
 connection.onDocumentSymbol(async (h) => {
   await allStable();
   const uri = fileURLToPath(h.textDocument.uri);
-  updateActiveContext({ uri });
   const context = quickFindContext(uri);
 
   if (!context) return [];
@@ -1026,7 +1026,6 @@ connection.languages.semanticTokens.on(async (h) => {
 connection.onDocumentLinks(async (event) => {
   await allStable();
   const uri = fileURLToPath(event.textDocument.uri);
-  updateActiveContext({ uri });
   const context = quickFindContext(uri);
 
   return context?.getDocumentLinks(uri);
@@ -1301,3 +1300,8 @@ connection.onRequest(
     return getActions(location, activeContext);
   }
 );
+
+connection.onRequest("devicetree/activeFileUri", async (uri: string) => {
+  await allStable();
+  updateActiveContext({ uri });
+});

@@ -151,4 +151,11 @@ export class API implements IDeviceTreeAPI {
       location
     ) as Promise<Actions[]>;
   }
+
+  setActiveFileUri(path: string) {
+    return this.client.sendRequest(
+      "devicetree/activeFileUri",
+      path
+    ) as Promise<void>;
+  }
 }

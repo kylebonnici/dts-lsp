@@ -150,6 +150,11 @@ export async function activate(context: vscode.ExtensionContext) {
   api = new API(client);
 
   context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+      if (editor) {
+        api.setActiveFileUri(editor.document.uri.fsPath);
+      }
+    }),
     vscode.workspace.registerTextDocumentContentProvider(
       "devicetree-context-output",
       {
