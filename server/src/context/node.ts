@@ -614,12 +614,12 @@ export class Node {
 
   #dmaRangeMappingsCache?: Mapping[] | null;
   public dmaRangeMap(macros: Map<string, MacroRegistryItem>) {
-    if (this.#rangeMappingsCache !== undefined)
+    if (this.#dmaRangeMappingsCache !== undefined)
       return this.#dmaRangeMappingsCache;
 
     const rangeProperty = this.getProperty("dma-ranges");
     if (!rangeProperty) {
-      this.#rangeMappingsCache = null;
+      this.#dmaRangeMappingsCache = null;
       return;
     }
 
