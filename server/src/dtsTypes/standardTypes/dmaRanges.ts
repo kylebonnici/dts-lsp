@@ -16,13 +16,12 @@
 
 import { BindingPropertyType } from "../../types/index";
 import { PropertyNodeType } from "../types";
+import { flatNumberValues, generateOrTypeObj } from "./helpers";
 import {
-  flatNumberValues,
-  generateOrTypeObj,
-  getU32ValueFromProperty,
-} from "./helpers";
-import { genStandardTypeDiagnostic } from "../../helpers";
-import { FileDiagnostic, Issue, StandardTypeIssue } from "../../types";
+  findUniqueMappingOverlaps,
+  genStandardTypeDiagnostic,
+} from "../../helpers";
+import { FileDiagnostic, StandardTypeIssue } from "../../types";
 import { DiagnosticSeverity } from "vscode-languageserver";
 
 export default () => {
@@ -47,6 +46,18 @@ export default () => {
       const childBusAddressValue = property.parent.addressCells(macros);
       const parentdBusAddressValue = property.parent.parentAddressCells(macros);
 
+      prop.typeExample = `<${[
+        ...Array.from(
+          { length: childBusAddressValue },
+          () => "child-bus-address"
+        ),
+        ...Array.from(
+          { length: parentdBusAddressValue },
+          () => "parent-bus-address"
+        ),
+        ...Array.from({ length: parentdBusAddressValue }, () => "length"),
+      ].join(" ")}>`;
+
       if (
         values.length === 0 ||
         values.length %
@@ -66,25 +77,26 @@ export default () => {
             DiagnosticSeverity.Error,
             [],
             [],
-            [
-              property.name,
-              `<${[
-                ...Array.from(
-                  { length: childBusAddressValue },
-                  () => "child-bus-address"
-                ),
-                ...Array.from(
-                  { length: parentdBusAddressValue },
-                  () => "parent-bus-address"
-                ),
-                ...Array.from(
-                  { length: parentdBusAddressValue },
-                  () => "length"
-                ),
-              ].join(" ")}>`,
-            ]
+            [property.name, prop.typeExample]
           )
         );
+      }
+
+      if (issues.length === 0) {
+        const mappings = property.parent.dmaRangeMap(macros);
+        mappings &&
+          findUniqueMappingOverlaps(mappings).forEach((overlap) => {
+            issues.push(
+              genStandardTypeDiagnostic(
+                StandardTypeIssue.RANGES_OVERLAP,
+                overlap.mappingA.ast,
+                DiagnosticSeverity.Error,
+                [overlap.mappingB.ast],
+                [],
+                [overlap.overlapOn]
+              )
+            );
+          });
       }
 
       return issues;

@@ -69,6 +69,7 @@ export enum StandardTypeIssue {
   INVALID_VALUE,
   EXCEEDS_MAPPING_ADDRESS,
   RANGE_EXCEEDS_ADDRESS_SPACE,
+  RANGES_OVERLAP,
 }
 
 export enum SyntaxIssue {

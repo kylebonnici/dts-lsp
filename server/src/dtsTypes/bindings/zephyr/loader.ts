@@ -14,7 +14,6 @@ import {
 } from "../../../dtsTypes/standardTypes/helpers";
 import {
   FileDiagnostic,
-  Issue,
   MacroRegistryItem,
   StandardTypeIssue,
 } from "../../../types";

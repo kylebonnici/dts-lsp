@@ -915,9 +915,11 @@ export const standardTypeIssueIssuesToMessage = (
         case StandardTypeIssue.INVALID_VALUE:
           return issue.templateStrings[0];
         case StandardTypeIssue.RANGE_EXCEEDS_ADDRESS_SPACE:
-          return `INTRO exceeds address space of this node. The range ends at ${issue.templateStrings[1]}, the node ends at ${issue.templateStrings[2]}`;
+          return `INTRO exceeds address space of this node. Range: ${issue.templateStrings[1]}-${issue.templateStrings[2]}, reg: ${issue.templateStrings[3]}-${issue.templateStrings[4]}`;
         case StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS:
-          return `INTRO address space avalable for this mapping. The range ends at ${issue.templateStrings[1]}, the node ends at ${issue.templateStrings[2]}`;
+          return `INTRO exceeds address space avalable for this mapping. The range ends at ${issue.templateStrings[1]}, the node ends at ${issue.templateStrings[2]}`;
+        case StandardTypeIssue.RANGES_OVERLAP:
+          return `Range overlaps with other range on ${issue.templateStrings[0]} address range`;
       }
     })
     .join(" or ")
@@ -944,6 +946,8 @@ export const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
       return "Address space";
     case StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS:
       return "Mapping range";
+    case StandardTypeIssue.RANGES_OVERLAP:
+      return "Overlapping range";
     default:
       return `TODO`;
   }
@@ -1034,4 +1038,58 @@ export const findMappedAddress = (
   }
 
   return null;
+};
+
+type OverlappingMapping = {
+  mappingA: Mapping;
+  mappingB: Mapping;
+  overlapOn: "child" | "parent" | "child and parent";
+};
+
+export const findUniqueMappingOverlaps = (
+  mappings: Mapping[]
+): OverlappingMapping[] => {
+  const overlaps: OverlappingMapping[] = [];
+
+  for (let i = 0; i < mappings.length; i++) {
+    for (let j = i + 1; j < mappings.length; j++) {
+      const a = mappings[i];
+      const b = mappings[j];
+
+      const aChildStart = a.childAddress;
+      const aChildEnd = addWords(aChildStart, a.length);
+
+      const bChildStart = b.childAddress;
+      const bChildEnd = addWords(bChildStart, b.length);
+
+      const aParentStart = a.parentAddress;
+      const aParentEnd = addWords(aParentStart, a.length);
+
+      const bParentStart = b.parentAddress;
+      const bParentEnd = addWords(bParentStart, b.length);
+
+      const childOverlap =
+        compareWords(aChildStart, bChildEnd) < 0 &&
+        compareWords(bChildStart, aChildEnd) < 0;
+
+      const parentOverlap =
+        compareWords(aParentStart, bParentEnd) < 0 &&
+        compareWords(bParentStart, aParentEnd) < 0;
+
+      if (childOverlap || parentOverlap) {
+        overlaps.push({
+          mappingA: a,
+          mappingB: b,
+          overlapOn:
+            childOverlap && parentOverlap
+              ? "child and parent"
+              : childOverlap
+              ? "child"
+              : "parent",
+        });
+      }
+    }
+  }
+
+  return overlaps;
 };

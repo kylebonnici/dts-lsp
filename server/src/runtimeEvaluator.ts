@@ -37,6 +37,7 @@ import {
   pathToFileURL,
   positionInBetween,
   toRange,
+  compareWords,
 } from "./helpers";
 import { Parser } from "./parser";
 import {
@@ -286,7 +287,7 @@ export class ContextAware {
             if (nodePath) {
               const child: Node | undefined = node?.getNode(
                 nodePath.name,
-                nodePath.address?.map((a) => a.address),
+                nodePath.fullAddress,
                 false
               );
               nodePath.linksTo = child;
@@ -397,8 +398,8 @@ export class ContextAware {
         (i) =>
           i.name === nodeName.name &&
           (i.address === undefined ||
-            nodeName.address === undefined ||
-            i.address.every((a, i) => nodeName.address?.at(i)?.address === a))
+            nodeName.fullAddress === undefined ||
+            compareWords(i.address, nodeName.fullAddress) === 0)
       );
     };
     const fullNames: { name: string; address?: number[] }[] =
@@ -415,7 +416,7 @@ export class ContextAware {
           checkMatch(
             names.map((n) => ({
               name: n.name,
-              address: n.address?.map((add) => add.address),
+              address: n.fullAddress,
             })),
             child.name
           )
@@ -436,7 +437,7 @@ export class ContextAware {
             checkMatch(
               names.map((n) => ({
                 name: n.name,
-                address: n.address?.map((add) => add.address),
+                address: n.fullAddress,
               })),
               i
             )
@@ -496,7 +497,7 @@ export class ContextAware {
         new Node(
           this.bindingLoader,
           element.name.name,
-          element.name.address?.map((a) => a.address),
+          element.name.fullAddress,
           runtimeNodeParent
         );
       child.definitions.push(element);
@@ -601,7 +602,7 @@ export class ContextAware {
         if (
           !runtimeNodeParent.hasNode(
             element.nodeNameOrRef.name,
-            element.nodeNameOrRef.address?.map((a) => a.address)
+            element.nodeNameOrRef.fullAddress
           )
         ) {
           this._issues.push(
@@ -614,13 +615,13 @@ export class ContextAware {
           runtimeNodeParent.deletes.push(element);
           const nodeToBeDeleted = runtimeNodeParent.getNode(
             element.nodeNameOrRef.name,
-            element.nodeNameOrRef.address?.map((a) => a.address)
+            element.nodeNameOrRef.fullAddress
           );
           element.nodeNameOrRef.linksTo = nodeToBeDeleted;
           runtimeNodeParent.deleteNode(
             element.nodeNameOrRef.name,
             element,
-            element.nodeNameOrRef.address?.map((a) => a.address)
+            element.nodeNameOrRef.fullAddress
           );
 
           nodeToBeDeleted?.labels.forEach((label) => {
@@ -692,7 +693,7 @@ export class ContextAware {
         if (nodePath) {
           const child: Node | undefined = node?.getNode(
             nodePath.name,
-            nodePath.address?.map((a) => a.address),
+            nodePath.fullAddress,
             false
           );
           nodePath.linksTo = child;

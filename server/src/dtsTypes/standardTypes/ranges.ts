@@ -15,14 +15,13 @@
  */
 
 import { BindingPropertyType } from "../../types/index";
-import { genStandardTypeDiagnostic } from "../../helpers";
+import {
+  findUniqueMappingOverlaps,
+  genStandardTypeDiagnostic,
+} from "../../helpers";
 import { PropertyNodeType } from "../types";
 import { addWords, compareWords } from "../../helpers";
-import {
-  flatNumberValues,
-  generateOrTypeObj,
-  getU32ValueFromProperty,
-} from "./helpers";
+import { flatNumberValues, generateOrTypeObj } from "./helpers";
 
 import { FileDiagnostic, StandardTypeIssue } from "../../types";
 import { DiagnosticSeverity } from "vscode-languageserver";
@@ -87,11 +86,28 @@ export default () => {
 
       if (issues.length === 0) {
         const mappings = property.parent.rangeMap(macros);
+        mappings &&
+          findUniqueMappingOverlaps(mappings).forEach((overlap) => {
+            issues.push(
+              genStandardTypeDiagnostic(
+                StandardTypeIssue.RANGES_OVERLAP,
+                overlap.mappingA.ast,
+                DiagnosticSeverity.Error,
+                [overlap.mappingB.ast],
+                [],
+                [overlap.overlapOn]
+              )
+            );
+          });
+
         const thisNodeReg = property.parent.reg(macros);
         if (thisNodeReg) {
           mappings?.forEach((m) => {
             const ends = addWords(m.parentAddress, m.length);
-            if (compareWords(thisNodeReg.endAddress, ends) < 0) {
+            if (
+              compareWords(thisNodeReg.endAddress, ends) < 0 ||
+              compareWords(thisNodeReg.startAddress, m.parentAddress) > 0
+            ) {
               issues.push(
                 genStandardTypeDiagnostic(
                   StandardTypeIssue.RANGE_EXCEEDS_ADDRESS_SPACE,
@@ -101,10 +117,18 @@ export default () => {
                   [],
                   [
                     property.name,
-                    ends.map((c) => `0x${c.toString(16)}`).join(","),
+                    m.parentAddress
+                      .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
+                      .join(""),
+                    ends
+                      .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
+                      .join(""),
+                    thisNodeReg.startAddress
+                      .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
+                      .join(""),
                     thisNodeReg.endAddress
-                      .map((c) => `0x${c.toString(16)}`)
-                      .join(","),
+                      .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
+                      .join(""),
                   ]
                 )
               );
@@ -125,16 +149,16 @@ export default () => {
                 StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS,
                 reg.ast.values ?? reg.ast,
                 DiagnosticSeverity.Warning,
-                [mappedAddress.mappedAst], // map better?
+                [mappedAddress.mappedAst],
                 [],
                 [
                   reg.name,
                   mappedAddress.endAddress
-                    .map((c) => `0x${c.toString(16)}`)
-                    .join(","),
+                    .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
+                    .join(""),
                   mappedAddress.mappingEnd
-                    .map((c) => `0x${c.toString(16)}`)
-                    .join(","),
+                    .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
+                    .join(""),
                 ]
               )
             );

@@ -421,9 +421,9 @@ describe("Parser", () => {
       expect(node1 instanceof DtcChildNode).toBeTruthy();
       expect(node1.children[0] instanceof NodeName).toBeTruthy();
       expect((node1.children[0] as NodeName).name).toBe("node1");
-      expect((node1.children[0] as NodeName).address?.at(0)?.address).toBe(
-        0x20
-      );
+      expect(
+        (node1.children[0] as NodeName).address?.at(0)?.address
+      ).toStrictEqual([0x20]);
       expect(node1.firstToken.pos.col).toEqual(2);
       expect(node1.lastToken.pos.col).toEqual(13);
     });
@@ -444,9 +444,9 @@ describe("Parser", () => {
       expect(node1 instanceof DtcChildNode).toBeTruthy();
       expect(node1.children[0] instanceof NodeName).toBeTruthy();
       expect((node1.children[0] as NodeName).name).toBe("node1");
-      expect((node1.children[0] as NodeName).address?.at(0)?.address).toBe(
-        0x20
-      );
+      expect(
+        (node1.children[0] as NodeName).address?.at(0)?.address
+      ).toStrictEqual([0x20]);
       expect(node1.firstToken.pos.col).toEqual(2);
       expect(node1.lastToken.pos.col).toEqual(13);
     });
@@ -1613,9 +1613,9 @@ describe("Parser", () => {
       expect(node1 instanceof DtcChildNode).toBeTruthy();
       expect(node1.children[0] instanceof NodeName).toBeTruthy();
       expect((node1.children[0] as NodeName).name).toBe("node1");
-      expect((node1.children[0] as NodeName).address?.at(0)?.address).toBe(
-        0x20
-      );
+      expect(
+        (node1.children[0] as NodeName).address?.at(0)?.address
+      ).toStrictEqual([0x20]);
       expect(node1.firstToken.pos.col).toEqual(2);
       expect(node1.lastToken.pos.col).toEqual(12);
     });
@@ -1632,12 +1632,12 @@ describe("Parser", () => {
       expect(node1 instanceof DtcChildNode).toBeTruthy();
       expect(node1.children[0] instanceof NodeName).toBeTruthy();
       expect((node1.children[0] as NodeName).name).toBe("node1");
-      expect((node1.children[0] as NodeName).address?.at(0)?.address).toBe(
-        0x20
-      );
-      expect((node1.children[0] as NodeName).address?.at(1)?.address).toBe(
-        0x30
-      );
+      expect(
+        (node1.children[0] as NodeName).address?.at(0)?.address
+      ).toStrictEqual([0x20]);
+      expect(
+        (node1.children[0] as NodeName).address?.at(1)?.address
+      ).toStrictEqual([0x30]);
       expect(node1.firstToken.pos.col).toEqual(2);
       expect(node1.lastToken.pos.col).toEqual(15);
     });
@@ -1654,7 +1654,7 @@ describe("Parser", () => {
       const node1 = rootDtc.children[0] as DtcChildNode;
       expect(node1.name?.name).toEqual("node1");
       expect(node1.name?.name);
-      expect(node1.name?.address?.at(0)?.address).toEqual(0x20);
+      expect(node1.name?.address?.at(0)?.address).toEqual([0x20]);
 
       expect(node1.labels.length).toEqual(2);
       expect(node1.labels[0].label.value).toEqual("l1");
@@ -1687,9 +1687,9 @@ describe("Parser", () => {
       const node1 = rootDtc.children[0] as DtcChildNode;
 
       expect(node1.name?.address?.length).toEqual(3);
-      expect(node1.name?.address?.at(0)?.address).toEqual(0x20);
-      expect(node1.name?.address?.at(1)?.address).toEqual(NaN);
-      expect(node1.name?.address?.at(2)?.address).toEqual(NaN);
+      expect(node1.name?.address?.at(0)?.address).toEqual([0x20]);
+      expect(node1.name?.address?.at(1)?.address).toEqual([NaN]);
+      expect(node1.name?.address?.at(2)?.address).toEqual([NaN]);
       expect(parser.issues[0].raw.astElement.lastToken.pos).toEqual({
         line: 0,
         col: 10,
@@ -1800,7 +1800,7 @@ describe("Parser", () => {
         expect(
           (rootDts.deleteNodes[0].nodeNameOrRef as NodeName).address?.at(0)
             ?.address
-        ).toEqual(0x200);
+        ).toEqual([0x200]);
       });
 
       test("with node path ref in root node - expects node name", async () => {

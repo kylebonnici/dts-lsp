@@ -245,7 +245,7 @@ export type NodeType = "ROOT" | "REF" | "CHILD";
 
 export class SerializableNodeAddress extends SerializableASTBase {
   constructor(
-    readonly address: number,
+    readonly address: number[],
     uri: string,
     range: Range,
     issues: Diagnostic[]

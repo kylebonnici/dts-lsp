@@ -404,12 +404,30 @@ export class Parser extends BaseParser {
       [LexerToken.DIGIT, LexerToken.HEX].map(validateToken)
     );
 
+    const hexTo32BitArray = (hexStr: string) => {
+      // Remove whitespace and 0x if present
+      hexStr = hexStr.replace(/^0x/, "").replace(/\s+/g, "");
+
+      // Pad the string to make its length a multiple of 8
+      if (hexStr.length % 8 !== 0) {
+        hexStr = hexStr.padStart(Math.ceil(hexStr.length / 8) * 8, "0");
+      }
+
+      const result = [];
+      for (let i = 0; i < hexStr.length; i += 8) {
+        const chunk = hexStr.slice(i, i + 8);
+        result.push(parseInt(chunk, 16) >>> 0); // Ensure 32-bit unsigned
+      }
+
+      return result;
+    };
+
     const address = addressValid.length
-      ? Number.parseInt(addressValid.map((v) => v.value).join(""), 16)
-      : NaN;
+      ? hexTo32BitArray(addressValid.map((v) => v.value).join(""))
+      : [NaN];
 
     if (prevToken) {
-      if (Number.isNaN(address)) {
+      if (address.some((n) => Number.isNaN(n))) {
         const astNode = new ASTBase(createTokenIndex(prevToken));
         this._issues.push(
           genSyntaxDiagnostic(SyntaxIssue.NODE_ADDRESS, astNode)

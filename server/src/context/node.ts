@@ -59,7 +59,7 @@ import { getNodeNameOrNodeLabelRef } from "../ast/helpers";
 import { getStandardType } from "../dtsTypes/standardTypes";
 import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
 import { INodeType, NodeType } from "../dtsTypes/types";
-import { SerializedBinding, SerializedNode } from "../types/index";
+import { SerializedNode } from "../types/index";
 import {
   flatNumberValues,
   getU32ValueFromProperty,
@@ -610,6 +610,71 @@ export class Node {
 
     this.#rangeMappingsCache = mapping;
     return this.#rangeMappingsCache;
+  }
+
+  #dmaRangeMappingsCache?: Mapping[] | null;
+  public dmaRangeMap(macros: Map<string, MacroRegistryItem>) {
+    if (this.#rangeMappingsCache !== undefined)
+      return this.#dmaRangeMappingsCache;
+
+    const rangeProperty = this.getProperty("dma-ranges");
+    if (!rangeProperty) {
+      this.#rangeMappingsCache = null;
+      return;
+    }
+
+    const childSizeCell = this.sizeCells(macros);
+    const childAddressCell = this.addressCells(macros);
+    const parentAddressCell = this.parentAddressCells(macros);
+
+    const mapping: Mapping[] = [];
+    const values = flatNumberValues(rangeProperty.ast.values)?.reverse();
+    while (values?.length) {
+      const childAddressAst = Array.from({ length: childAddressCell }).map(() =>
+        values.pop()
+      );
+      const parentAddressAst = Array.from({ length: parentAddressCell }).map(
+        () => values.pop()
+      );
+      const lengthAst = Array.from({ length: childSizeCell }).map(() =>
+        values.pop()
+      );
+
+      [...childAddressAst, ...parentAddressAst, ...lengthAst].every(
+        (item) => item instanceof Expression
+      );
+
+      const childAddress = childAddressAst.map((v) =>
+        (v as Expression).evaluate(macros)
+      );
+      const parentAddress = parentAddressAst.map((v) =>
+        (v as Expression).evaluate(macros)
+      );
+      const length = lengthAst.map((v) => (v as Expression).evaluate(macros));
+
+      if (
+        ![...childAddress, ...parentAddress, ...length].every(
+          (item) => typeof item == "number"
+        )
+      ) {
+        continue;
+      }
+
+      mapping.push({
+        childAddress: childAddress as number[],
+        parentAddress: parentAddress as number[],
+        length: length as number[],
+        ast: new ASTBase(
+          createTokenIndex(
+            childAddressAst[0]!.firstToken,
+            lengthAst.at(-1)!.lastToken
+          )
+        ),
+      });
+    }
+
+    this.#dmaRangeMappingsCache = mapping;
+    return this.#dmaRangeMappingsCache;
   }
 
   public parentAddressCells(macros: Map<string, MacroRegistryItem>): number {
