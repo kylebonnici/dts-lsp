@@ -26,7 +26,7 @@ import {
 import { createTokenIndex, genStandardTypeDiagnostic } from "../../helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { ASTBase } from "../../ast/base";
-import { Expression } from "src/ast/cPreprocessors/expression";
+import { Expression } from "../../ast/cPreprocessors/expression";
 
 export default () => {
   const prop = new PropertyNodeType<number>(
