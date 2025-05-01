@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - `reserved-memory` child node types.
 - Validation of `interrupt-map-mask` has the correct number of `U32` values.
+- Validation of `interrupt-map` entries that none overlap.
 - Validation of `nexus-map-mask` has the correct number of `U32` values.
 - Validation of `nexus-map-pass-thru` has the correct number of `U32` values.
 - Validation of `nexus-map` entries that none overlap.

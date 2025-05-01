@@ -23,9 +23,11 @@ import {
   resolvePhandleNode,
   getU32ValueFromProperty,
 } from "./helpers";
-import { genStandardTypeDiagnostic } from "../../helpers";
+import { createTokenIndex, genStandardTypeDiagnostic } from "../../helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { ArrayValues } from "../../ast/dtc/values/arrayValue";
+import { ASTBase } from "../../ast/base";
+import { Expression } from "src/ast/cPreprocessors/expression";
 
 export default () => {
   const prop = new PropertyNodeType<number>(
@@ -74,11 +76,39 @@ export default () => {
         macros
       );
 
+      const keys: { [key: string]: ASTBase[] } = {};
+
+      if (childInterruptSpecifierValue == null) {
+        return issues;
+      }
+
       let i = 0;
       while (i < values.length) {
-        if (childInterruptSpecifierValue == null) {
-          return issues;
+        const keyItem = new ASTBase(
+          createTokenIndex(
+            values.at(i)!.firstToken,
+            values.at(
+              childAddressCellsValue + childInterruptSpecifierValue + i - 1
+            )!.lastToken
+          )
+        );
+
+        let key = "";
+        for (
+          let j = i;
+          j < childAddressCellsValue + childInterruptSpecifierValue + i;
+          j++
+        ) {
+          const value = values[j];
+          key += `${
+            value instanceof Expression
+              ? value.evaluate(macros).toString()
+              : value.toString()
+          }:`;
         }
+
+        keys[key] ??= [];
+        keys[key].push(keyItem);
 
         let entryEndIndex = 0;
 
@@ -256,6 +286,18 @@ export default () => {
         }
       }
 
+      Object.values(keys).forEach((v) => {
+        if (v.length > 1) {
+          issues.push(
+            genStandardTypeDiagnostic(
+              StandardTypeIssue.DUPLICATE_MAP_ENTRY,
+              v[v.length - 1],
+              DiagnosticSeverity.Error,
+              v.slice(0, -1)
+            )
+          );
+        }
+      });
       return issues;
     }
   );
