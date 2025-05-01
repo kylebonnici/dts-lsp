@@ -17,10 +17,12 @@ import {
   MacroRegistryItem,
   StandardTypeIssue,
 } from "../../../types";
-import { genStandardTypeDiagnostic } from "../../../helpers";
+import { createTokenIndex, genStandardTypeDiagnostic } from "../../../helpers";
 import { DiagnosticSeverity, DiagnosticTag } from "vscode-languageserver";
 import { Property } from "../../../context/property";
 import { BindingPropertyType } from "../../../types/index";
+import { Expression } from "src/ast/cPreprocessors/expression";
+import { ASTBase } from "src/ast/base";
 
 type ZephyrPropertyType =
   | "string"
@@ -539,6 +541,8 @@ const generateZephyrTypeCheck = (
           parentName = myProperty["specifier-space"] ?? name.slice(0, -1);
         }
 
+        console.log("phandle-array", parentName, p.parent.pathString);
+
         const sizeCellProperty = phandelValue.getProperty(
           `#${parentName}-cells`
         );
@@ -593,6 +597,48 @@ const generateZephyrTypeCheck = (
           break;
         }
         i += 1 + sizeCellValue;
+
+        const nexusMap = phandelValue.getNexusMap(parentName, macros);
+        if (nexusMap) {
+          // TODO use mask-map ...
+          const mappingValuesAst = values.slice(i - sizeCellValue, i);
+          const mappingValues = values
+            .slice(i - sizeCellValue, i)
+            .map<string>((v, i) => {
+              const value = v instanceof Expression ? v.evaluate(macros) : v;
+              return (
+                typeof value === "number"
+                  ? value & (nexusMap.mapMask.at(i) ?? 0xffffffff)
+                  : value
+              ).toString();
+            })
+            .join(":");
+          const match = nexusMap.map.find(
+            (m) =>
+              m.mappingValues
+                .map((v) =>
+                  (v instanceof Expression ? v.evaluate(macros) : v).toString()
+                )
+                .join(":") === mappingValues
+          );
+
+          if (!match) {
+            const mapProperty = phandelValue.getProperty(`${parentName}-map`)!;
+            issues.push(
+              genStandardTypeDiagnostic(
+                StandardTypeIssue.NO_NEXUS_MAP_MATCH,
+                new ASTBase(
+                  createTokenIndex(
+                    v!.firstToken,
+                    mappingValuesAst.at(-1)!.lastToken
+                  )
+                ),
+                DiagnosticSeverity.Error,
+                [mapProperty.ast]
+              )
+            );
+          }
+        }
       }
     }
 

@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Validation of `nexus-map-mask` has the correct number of `U32` values.
 - Validation of `nexus-map-pass-thru` has the correct number of `U32` values.
 - Validation of `nexus-map` entries that none overlap.
+- Validation in `Zephyr` bindings when a property is linking to a nexus-map entry.
 
 ### Fixed
 

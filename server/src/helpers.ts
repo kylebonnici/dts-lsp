@@ -922,6 +922,8 @@ export const standardTypeIssueIssuesToMessage = (
           return `Range overlaps with other range on ${issue.templateStrings[0]} address range`;
         case StandardTypeIssue.DUPLICATE_MAP_ENTRY:
           return `Map entry overlaps with others entries`;
+        case StandardTypeIssue.NO_NEXUS_MAP_MATCH:
+          return `Unable to match to a nexus map entry`;
       }
     })
     .join(" or ")
@@ -952,6 +954,8 @@ export const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
       return "Overlapping range";
     case StandardTypeIssue.DUPLICATE_MAP_ENTRY:
       return `Map entry`;
+    case StandardTypeIssue.NO_NEXUS_MAP_MATCH:
+      return `Nexus map entries`;
     default:
       return `TODO`;
   }

@@ -71,6 +71,7 @@ export enum StandardTypeIssue {
   RANGE_EXCEEDS_ADDRESS_SPACE,
   RANGES_OVERLAP,
   DUPLICATE_MAP_ENTRY,
+  NO_NEXUS_MAP_MATCH,
 }
 
 export enum SyntaxIssue {

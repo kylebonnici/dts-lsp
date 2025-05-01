@@ -18,7 +18,6 @@ import { DtcProperty } from "../ast/dtc/property";
 import {
   ContextIssues,
   FileDiagnostic,
-  Issue,
   MacroRegistryItem,
   SearchableResult,
 } from "../types";
@@ -35,7 +34,7 @@ import {
   positionAfter,
 } from "../helpers";
 import { LabelAssign } from "../ast/dtc/label";
-import { type Node } from "./node";
+import type { Node } from "./node";
 
 export class Property {
   replaces?: Property;

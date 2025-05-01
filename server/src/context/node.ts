@@ -63,8 +63,10 @@ import { SerializedNode } from "../types/index";
 import {
   flatNumberValues,
   getU32ValueFromProperty,
+  resolvePhandleNode,
 } from "../dtsTypes/standardTypes/helpers";
 import { Expression } from "../ast/cPreprocessors/expression";
+import { NodePathRef } from "../ast/dtc/values/nodePath";
 
 type MappedReg = {
   startAddress: number[];
@@ -799,6 +801,99 @@ export class Node {
     this.#mappedRegCache.mappingEnd = mappedAddress.end;
 
     return this.#mappedRegCache;
+  }
+
+  getNexusMap(specifier: string, macros: Map<string, MacroRegistryItem>) {
+    const nexusMap = this.getProperty(`${specifier}-map`);
+    const values = flatNumberValues(nexusMap?.ast.values);
+    if (!values?.length) {
+      return;
+    }
+
+    const root = this.root;
+    const childSpecifierCells = this.getProperty(`#${specifier}-cells`);
+
+    if (!childSpecifierCells) {
+      return;
+    }
+
+    const childSpecifierCellsValue = getU32ValueFromProperty(
+      childSpecifierCells,
+      0,
+      0,
+      macros
+    );
+
+    if (childSpecifierCellsValue == null) {
+      return;
+    }
+
+    const map: {
+      mappingValues: (LabelRef | NodePathRef | NumberValue | Expression)[];
+      node: Node;
+      parentValues: (LabelRef | NodePathRef | NumberValue | Expression)[];
+    }[] = [];
+
+    let i = 0;
+    let entryEndIndex = 0;
+    while (i < values.length) {
+      const mappingValues = values.slice(i, childSpecifierCellsValue + i);
+
+      i += childSpecifierCellsValue;
+
+      if (values.length < i + 1) {
+        break;
+      }
+      const specifierParent = resolvePhandleNode(values[i], root);
+      if (!specifierParent) {
+        break;
+      }
+
+      const parentSpecifierAddress = specifierParent.getProperty(
+        `#${specifier}-cells`
+      );
+
+      if (!parentSpecifierAddress) {
+        return;
+      }
+
+      i++;
+
+      const parentUnitAddressValue = getU32ValueFromProperty(
+        parentSpecifierAddress,
+        0,
+        0,
+        macros
+      );
+
+      if (parentUnitAddressValue == null) {
+        break;
+      }
+
+      i += parentUnitAddressValue;
+      if (values.length < i) {
+        break;
+      }
+      const parentValues = values.slice(i - parentUnitAddressValue, i);
+      map.push({
+        mappingValues,
+        node: specifierParent,
+        parentValues,
+      });
+      entryEndIndex = i;
+    }
+
+    const mapMaskProperty = this.getProperty(`${specifier}-map-mask`);
+    const mapMask = Array.from({
+      length: childSpecifierCellsValue,
+    }).map(
+      (_, i) =>
+        (mapMaskProperty
+          ? getU32ValueFromProperty(mapMaskProperty, 0, i, macros)
+          : undefined) ?? 0xffffffff
+    );
+
+    return { mapMask, map };
   }
 
   toTooltipString(macros: Map<string, MacroRegistryItem>) {
