@@ -920,6 +920,8 @@ export const standardTypeIssueIssuesToMessage = (
           return `INTRO exceeds address space avalable for this mapping. The range ends at ${issue.templateStrings[2]}, the node ends at ${issue.templateStrings[1]}`;
         case StandardTypeIssue.RANGES_OVERLAP:
           return `Range overlaps with other range on ${issue.templateStrings[0]} address range`;
+        case StandardTypeIssue.DUPLICATE_MAP_ENTRY:
+          return `Map entry overlaps with others entries`;
       }
     })
     .join(" or ")
@@ -948,6 +950,8 @@ export const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
       return "Mapping range";
     case StandardTypeIssue.RANGES_OVERLAP:
       return "Overlapping range";
+    case StandardTypeIssue.DUPLICATE_MAP_ENTRY:
+      return `Map entry`;
     default:
       return `TODO`;
   }
