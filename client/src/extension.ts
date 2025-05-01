@@ -151,7 +151,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
-      if (editor) {
+      if (editor && ["devicetree"].includes(editor.document.languageId)) {
         api.setActiveFileUri(editor.document.uri.fsPath);
       }
     }),
