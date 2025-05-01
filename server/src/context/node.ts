@@ -25,6 +25,7 @@ import {
   FileDiagnostic,
   MacroRegistryItem,
   Mapping,
+  NexusMapEnty,
   SearchableResult,
 } from "../types";
 import { Property } from "./property";
@@ -803,7 +804,10 @@ export class Node {
     return this.#mappedRegCache;
   }
 
-  getNexusMap(specifier: string, macros: Map<string, MacroRegistryItem>) {
+  getNexusMap(
+    specifier: string,
+    macros: Map<string, MacroRegistryItem>
+  ): { map: NexusMapEnty[]; mapMask: number[] } | undefined {
     const nexusMap = this.getProperty(`${specifier}-map`);
     const values = flatNumberValues(nexusMap?.ast.values);
     if (!values?.length) {

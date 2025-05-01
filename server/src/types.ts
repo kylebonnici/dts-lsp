@@ -26,6 +26,10 @@ import { Node } from "./context/node";
 import { Property } from "./context/property";
 import { Runtime } from "./context/runtime";
 import { CMacro } from "./ast/cPreprocessors/macro";
+import { LabelRef } from "./ast/dtc/labelRef";
+import { NodePathRef } from "./ast/dtc/values/nodePath";
+import { NumberValue } from "./ast/dtc/values/number";
+import { Expression } from "./ast/cPreprocessors/expression";
 
 export type CodeActionDiagnosticData = {
   issues: { edit?: TextEdit; codeActionTitle?: string } & (
@@ -313,4 +317,10 @@ export type Mapping = {
   parentAddress: number[];
   length: number[];
   ast: ASTBase;
+};
+
+export type NexusMapEnty = {
+  mappingValues: (LabelRef | NodePathRef | NumberValue | Expression)[];
+  node: Node;
+  parentValues: (LabelRef | NodePathRef | NumberValue | Expression)[];
 };

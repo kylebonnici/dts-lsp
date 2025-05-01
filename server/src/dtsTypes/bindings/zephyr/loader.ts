@@ -622,21 +622,24 @@ const generateZephyrTypeCheck = (
                 .join(":") === mappingValues
           );
 
+          const entry = new ASTBase(
+            createTokenIndex(v!.firstToken, mappingValuesAst.at(-1)!.lastToken)
+          );
           if (!match) {
             const mapProperty = phandelValue.getProperty(`${parentName}-map`)!;
             issues.push(
               genStandardTypeDiagnostic(
                 StandardTypeIssue.NO_NEXUS_MAP_MATCH,
-                new ASTBase(
-                  createTokenIndex(
-                    v!.firstToken,
-                    mappingValuesAst.at(-1)!.lastToken
-                  )
-                ),
+                entry,
                 DiagnosticSeverity.Error,
                 [mapProperty.ast]
               )
             );
+          } else {
+            p.nexusMapsTo.push({
+              mappingValuesAst,
+              mapItem: match,
+            });
           }
         }
       }
