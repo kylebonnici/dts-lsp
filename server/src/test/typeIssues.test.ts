@@ -894,6 +894,34 @@ describe("Type Issues", () => {
         expect(issues.length).toEqual(0);
       });
 
+      test("Mapped reg fits mapping size - 64 bit - 1", async () => {
+        mockReadFileSync(
+          `/{${rootDefaults} #address-cells=<2>;  node@AAAAAAAABBBBBBBB {reg=<0xAAAAAAAA 0xBBBBBBBB 0x20>;#address-cells=<1>; #size-cells=<1>; ranges= <0x10 0xAAAAAAAA 0xBBBBBBBB 0x20>; mapped@10 {reg=<0x10 0x20>;};};`
+        );
+        const context = new ContextAware(
+          { dtsFile: "file:///folder/dts.dts" },
+          getFakeBindingLoader()
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
+      });
+
+      test("Mapped reg fits mapping size - 64 bit - 2", async () => {
+        mockReadFileSync(
+          `/{${rootDefaults} #address-cells=<2>;  node@AABBBBBBBB {reg=<0xAA 0xBBBBBBBB 0x20>;#address-cells=<1>; #size-cells=<1>; ranges= <0x10 0xAA 0xBBBBBBBB 0x20>; mapped@10 {reg=<0x10 0x20>;};};`
+        );
+        const context = new ContextAware(
+          { dtsFile: "file:///folder/dts.dts" },
+          getFakeBindingLoader()
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
+      });
+
       test("Overlapping ranges - child", async () => {
         mockReadFileSync(
           `/{${rootDefaults} #address-cells=<1>;  node@30 {reg=<0x30 0x20>;#address-cells=<1>; #size-cells=<1>; ranges= <0x10 0x30 0x10> <0x15 0x40 0x10>;};`
