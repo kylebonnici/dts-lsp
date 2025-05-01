@@ -125,7 +125,7 @@ export class Property {
             .map((a) => a.toString())
             .join(" ")} ...> maps to <... ${m.mapItem.mappingValues
             .map((a) => a.toString())
-            .join(" ")}...>;`,
+            .join(" ")} ...>;`,
           "```",
           `[Mapping (${m.mappingValuesAst
             .map((a) => a.toString())

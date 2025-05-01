@@ -1615,5 +1615,187 @@ describe("Type Issues", () => {
         expect(issues.length).toEqual(0);
       });
     });
+
+    describe("interrupts-map-mask", () => {
+      test("correct number of cells", async () => {
+        mockReadFileSync(
+          `/{${rootDefaults} node {#interrupt-cells = <2>; interrupt-map-mask = <0x10 0x20 0x30 0x40>; };};`
+        );
+        const context = new ContextAware(
+          { dtsFile: "file:///folder/dts.dts" },
+          getFakeBindingLoader()
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
+      });
+
+      test("wrong number of cells - interrupt-cells", async () => {
+        mockReadFileSync(
+          `/{${rootDefaults} node {#interrupt-cells = <1>; interrupt-map-mask = <0x10 0x20 0x30 0x40>; };};`
+        );
+        const context = new ContextAware(
+          { dtsFile: "file:///folder/dts.dts" },
+          getFakeBindingLoader()
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].raw.issues).toEqual([
+          StandardTypeIssue.CELL_MISS_MATCH,
+        ]);
+      });
+
+      test("wrong number of cells - address-cells", async () => {
+        mockReadFileSync(
+          `/{${rootDefaults} node {#address-cells = <1>; #interrupt-cells = <2>; interrupt-map-mask = <0x10 0x20 0x30 0x40>; };};`
+        );
+        const context = new ContextAware(
+          { dtsFile: "file:///folder/dts.dts" },
+          getFakeBindingLoader()
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].raw.issues).toEqual([
+          StandardTypeIssue.CELL_MISS_MATCH,
+        ]);
+      });
+    });
+
+    describe("interrupts-map", () => {
+      test("correct number of cells", async () => {
+        mockReadFileSync(
+          `/{${rootDefaults} n1: node1{#interrupt-cells = <1>;}; node {#interrupt-cells = <1>; interrupt-map = <0x10 0x20 0x30 &n1 0x40 0x50 0x60> <0x20 0x20 0x30 &n1 0x40 0x50 0x60>; };};`
+        );
+        const context = new ContextAware(
+          { dtsFile: "file:///folder/dts.dts" },
+          getFakeBindingLoader()
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
+      });
+
+      test("overlapping maps", async () => {
+        mockReadFileSync(
+          `/{${rootDefaults} n1: node1{#interrupt-cells = <1>;}; node {#interrupt-cells = <1>; interrupt-map = <0x10 0x20 0x30 &n1 0x40 0x50 0x60>, <0x10 0x20 0x30 &n1 0x40 0x50 0x60>; };};`
+        );
+        const context = new ContextAware(
+          { dtsFile: "file:///folder/dts.dts" },
+          getFakeBindingLoader()
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].raw.issues).toEqual([
+          StandardTypeIssue.DUPLICATE_MAP_ENTRY,
+        ]);
+      });
+    });
+
+    describe("nexus-map-mask", () => {
+      test("correct number of cells", async () => {
+        mockReadFileSync(
+          `/{${rootDefaults} node {#gpiot-cells = <2>; gpio-map-mask = <0x10 0x20>; };};`
+        );
+        const context = new ContextAware(
+          { dtsFile: "file:///folder/dts.dts" },
+          getFakeBindingLoader()
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
+      });
+
+      test("wrong number of cells", async () => {
+        mockReadFileSync(
+          `/{${rootDefaults} node {#gpio-cells = <1>; gpio-map-mask = <0x10 0x20>; };`
+        );
+        const context = new ContextAware(
+          { dtsFile: "file:///folder/dts.dts" },
+          getFakeBindingLoader()
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].raw.issues).toEqual([
+          StandardTypeIssue.CELL_MISS_MATCH,
+        ]);
+      });
+    });
+
+    describe("nexus-map-pass-thru", () => {
+      test("correct number of cells", async () => {
+        mockReadFileSync(
+          `/{${rootDefaults} node {#gpiot-cells = <2>; gpio-map-pass-thru = <0x10 0x20>; };};`
+        );
+        const context = new ContextAware(
+          { dtsFile: "file:///folder/dts.dts" },
+          getFakeBindingLoader()
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
+      });
+
+      test("wrong number of cells", async () => {
+        mockReadFileSync(
+          `/{${rootDefaults} node {#gpio-cells = <1>; gpio-map-pass-thru= <0x10 0x20>; };`
+        );
+        const context = new ContextAware(
+          { dtsFile: "file:///folder/dts.dts" },
+          getFakeBindingLoader()
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].raw.issues).toEqual([
+          StandardTypeIssue.CELL_MISS_MATCH,
+        ]);
+      });
+    });
+
+    describe("nexus-map", () => {
+      test("correct number of cells", async () => {
+        mockReadFileSync(
+          `/{${rootDefaults} n1: node1{#gpio-cells = <1>;}; node {#gpio-cells = <1>; gpio-map = <0x10 &n1 0x20> <0x20 &n1 0x30>; };};`
+        );
+        const context = new ContextAware(
+          { dtsFile: "file:///folder/dts.dts" },
+          getFakeBindingLoader()
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(0);
+      });
+
+      test("overlapping maps", async () => {
+        mockReadFileSync(
+          `/{${rootDefaults} n1: node1{#gpio-cells = <1>;}; node {#gpio-cells = <1>; gpio-map = <0x10 &n1 0x20> <0x10 &n1 0x30>; };};`
+        );
+        const context = new ContextAware(
+          { dtsFile: "file:///folder/dts.dts" },
+          getFakeBindingLoader()
+        );
+        await context.parser.stable;
+        const runtime = await context.getRuntime();
+        const issues = runtime.typesIssues;
+        expect(issues.length).toEqual(1);
+        expect(issues[0].raw.issues).toEqual([
+          StandardTypeIssue.DUPLICATE_MAP_ENTRY,
+        ]);
+      });
+    });
   });
 });
