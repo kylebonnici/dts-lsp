@@ -78,6 +78,20 @@ export default () => {
 
       prop.typeExample = ``;
 
+      const addressCellsProperty = node.getProperty(`#address-cells`);
+      if (!addressCellsProperty) {
+        issues.push(
+          genStandardTypeDiagnostic(
+            StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+            property.ast,
+            DiagnosticSeverity.Error,
+            [...property.parent.nodeNameOrLabelRef],
+            [],
+            [property.name, "#address-cells", node.pathString]
+          )
+        );
+      }
+
       let i = 0;
       while (i < values.length) {
         const phandleNode = resolvePhandleNode(values[i], root);

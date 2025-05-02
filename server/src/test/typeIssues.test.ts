@@ -1441,7 +1441,7 @@ describe("Type Issues", () => {
 
       test("ignore interrupt", async () => {
         mockReadFileSync(
-          `/{ node1: node1{#interrupt-cells = <1>; interrupt-controller; node2{interrupts = <0x10 0x20 0x30>; interrupts-extended= <&node1 0x10 0x20 0x30>;};}; ${rootDefaults}};`
+          `/{ node1: node1{#address-cells=<2>; #interrupt-cells = <1>; interrupt-controller; node2{#address-cells=<2>; interrupts = <0x10 0x20 0x30>; interrupts-extended= <&node1 0x10 0x20 0x30>;};}; ${rootDefaults}};`
         );
         const context = new ContextAware(
           { dtsFile: "file:///folder/dts.dts" },
@@ -1452,15 +1452,15 @@ describe("Type Issues", () => {
         const issues = runtime.typesIssues;
         expect(issues.length).toEqual(1);
         expect(issues[0].raw.issues).toEqual([StandardTypeIssue.IGNORED]);
-        expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(68);
-        expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(98);
-        expect(issues[0].raw.linkedTo[0].firstToken.pos.col).toEqual(99);
-        expect(issues[0].raw.linkedTo[0].lastToken.pos.colEnd).toEqual(144);
+        expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(108);
+        expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(138);
+        expect(issues[0].raw.linkedTo[0].firstToken.pos.col).toEqual(139);
+        expect(issues[0].raw.linkedTo[0].lastToken.pos.colEnd).toEqual(184);
       });
 
       test("valid type single cell - label ref", async () => {
         mockReadFileSync(
-          `/{ ${rootDefaults} node1: node1{interrupt-controller; #interrupt-cells = <1>;}; node2{interrupts-extended= <&node1 0x10 0x20 0x30>;};};`
+          `/{ ${rootDefaults} node1: node1{#address-cells=<2>; interrupt-controller; #interrupt-cells = <1>;}; node2{#address-cells=<2>; interrupts-extended= <&node1 0x10 0x20 0x30>;};};`
         );
         const context = new ContextAware(
           { dtsFile: "file:///folder/dts.dts" },
@@ -1474,7 +1474,7 @@ describe("Type Issues", () => {
 
       test("valid type two cells  - label ref", async () => {
         mockReadFileSync(
-          `/{ ${rootDefaults} #address-cells=<1>; #size-cells=<1>; model=''; compatible='';  node1: node1{interrupt-controller; #interrupt-cells = <2>;}; node2{interrupts-extended= <&node1 0x10 0x20 0x30 0x40>;};};`
+          `/{ ${rootDefaults} #address-cells=<1>; #size-cells=<1>; model=''; compatible='';  node1: node1{#address-cells=<2>; interrupt-controller; #interrupt-cells = <2>;}; node2{#address-cells=<2>; interrupts-extended= <&node1 0x10 0x20 0x30 0x40>;};};`
         );
         const context = new ContextAware(
           { dtsFile: "file:///folder/dts.dts" },
@@ -1488,7 +1488,7 @@ describe("Type Issues", () => {
 
       test("valid type single cell - node path ref", async () => {
         mockReadFileSync(
-          `/{${rootDefaults} node1{interrupt-controller; #interrupt-cells = <1>;}; node2{interrupts-extended= <&{/node1} 0x10 0x20 0x30>;};};`
+          `/{${rootDefaults} node1{#address-cells=<2>; interrupt-controller; #interrupt-cells = <1>;}; node2{#address-cells=<2>; interrupts-extended= <&{/node1} 0x10 0x20 0x30>;};};`
         );
         const context = new ContextAware(
           { dtsFile: "file:///folder/dts.dts" },
@@ -1502,7 +1502,7 @@ describe("Type Issues", () => {
 
       test("valid type two cells  - node path ref", async () => {
         mockReadFileSync(
-          `/{ ${rootDefaults} node1{interrupt-controller; #interrupt-cells = <2>;}; node2{interrupts-extended= <&{/node1} 0x10 0x20 0x30 0x40>;};};`
+          `/{ ${rootDefaults} node1{#address-cells=<2>; interrupt-controller; #interrupt-cells = <2>;}; node2{#address-cells=<2>; interrupts-extended= <&{/node1} 0x10 0x20 0x30 0x40>;};};`
         );
         const context = new ContextAware(
           { dtsFile: "file:///folder/dts.dts" },
@@ -1516,7 +1516,7 @@ describe("Type Issues", () => {
 
       test("valid type single cell - phandle", async () => {
         mockReadFileSync(
-          `/{ ${rootDefaults} node1{phandle= <1>; interrupt-controller; #interrupt-cells = <1>;}; node2{interrupts-extended= <1 0x10 0x20 0x30>;};};`
+          `/{ ${rootDefaults} node1{#address-cells=<2>; phandle= <1>; interrupt-controller; #interrupt-cells = <1>;}; node2{#address-cells=<2>; interrupts-extended= <1 0x10 0x20 0x30>;};};`
         );
         const context = new ContextAware(
           { dtsFile: "file:///folder/dts.dts" },
@@ -1530,7 +1530,7 @@ describe("Type Issues", () => {
 
       test("valid type two cells  - phandle", async () => {
         mockReadFileSync(
-          `/{ ${rootDefaults} node1{phandle= <1>; interrupt-controller; #interrupt-cells = <2>;}; node2{interrupts-extended= <1 0x10 0x20 0x30 0x40>;};};`
+          `/{ ${rootDefaults} node1{#address-cells=<2>; phandle= <1>; interrupt-controller; #interrupt-cells = <2>;}; node2{#address-cells=<2>; interrupts-extended= <1 0x10 0x20 0x30 0x40>;};};`
         );
         const context = new ContextAware(
           { dtsFile: "file:///folder/dts.dts" },
@@ -1544,7 +1544,7 @@ describe("Type Issues", () => {
 
       test("unable to find phandle", async () => {
         mockReadFileSync(
-          `/{  node2{interrupts-extended= <1 10>;}; ${rootDefaults}};`
+          `/{  node2{#address-cells=<2>; interrupts-extended= <1 10>;}; ${rootDefaults}};`
         );
         const context = new ContextAware(
           { dtsFile: "file:///folder/dts.dts" },
@@ -1557,13 +1557,13 @@ describe("Type Issues", () => {
         expect(issues[0].raw.issues).toEqual([
           StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
         ]);
-        expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(32);
-        expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(33);
+        expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(52);
+        expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(53);
       });
 
       test("valid type invalid cell count ", async () => {
         mockReadFileSync(
-          `/{  node1{phandle= <1>; interrupt-controller; #interrupt-cells = <3>;}; node2{interrupts-extended= <1 10 20>;}; ${rootDefaults}};`
+          `/{  node1{#address-cells=<2>; phandle= <1>; interrupt-controller; #interrupt-cells = <3>;}; node2{#address-cells=<2>; interrupts-extended= <1 10 20>;}; ${rootDefaults}};`
         );
         const context = new ContextAware(
           { dtsFile: "file:///folder/dts.dts" },
@@ -1576,13 +1576,13 @@ describe("Type Issues", () => {
         expect(issues[0].raw.issues).toEqual([
           StandardTypeIssue.CELL_MISS_MATCH,
         ]);
-        expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(105);
-        expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(107);
+        expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(145);
+        expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(147);
       });
 
       test("missing cell size", async () => {
         mockReadFileSync(
-          `/{node1{phandle= <1>; }; node2{interrupts-extended= <1 10>;}; ${rootDefaults}};`
+          `/{node1{#address-cells=<2>; phandle= <1>; }; node2{#address-cells=<2>; interrupts-extended= <1 10>;}; ${rootDefaults}};`
         );
         const context = new ContextAware(
           { dtsFile: "file:///folder/dts.dts" },
@@ -1602,7 +1602,7 @@ describe("Type Issues", () => {
 
       test("Multiple interrupts", async () => {
         mockReadFileSync(
-          `/{  node1{interrupt-controller; #interrupt-cells = <2>;};  node2{interrupt-controller; #interrupt-cells = <3>;}; node3{interrupts-extended= <&{/node1} 0x10 0x20 0x30 0x40>, <&{/node2} 0x10 0x20 0x30 0x40 0x50>;}; ${rootDefaults}};`
+          `/{  node1{#address-cells=<2>; interrupt-controller; #interrupt-cells = <2>;};  node2{#address-cells=<2>; interrupt-controller; #interrupt-cells = <3>;}; node3{#address-cells=<2>; interrupts-extended= <&{/node1} 0x10 0x20 0x30 0x40>, <&{/node2} 0x10 0x20 0x30 0x40 0x50>;}; ${rootDefaults}};`
         );
         const context = new ContextAware(
           { dtsFile: "file:///folder/dts.dts" },
@@ -1668,7 +1668,7 @@ describe("Type Issues", () => {
     describe("interrupts-map", () => {
       test("correct number of cells", async () => {
         mockReadFileSync(
-          `/{${rootDefaults} n1: node1{#interrupt-cells = <1>;}; node {#interrupt-cells = <1>; interrupt-map = <0x10 0x20 0x30 &n1 0x40 0x50 0x60> <0x20 0x20 0x30 &n1 0x40 0x50 0x60>; };};`
+          `/{${rootDefaults} n1: node1{#address-cells=<2>; #interrupt-cells = <1>;}; node {#address-cells=<2>; #interrupt-cells = <1>; interrupt-map = <0x10 0x20 0x30 &n1 0x40 0x50 0x60> <0x20 0x20 0x30 &n1 0x40 0x50 0x60>; };};`
         );
         const context = new ContextAware(
           { dtsFile: "file:///folder/dts.dts" },
@@ -1682,7 +1682,7 @@ describe("Type Issues", () => {
 
       test("overlapping maps", async () => {
         mockReadFileSync(
-          `/{${rootDefaults} n1: node1{#interrupt-cells = <1>;}; node {#interrupt-cells = <1>; interrupt-map = <0x10 0x20 0x30 &n1 0x40 0x50 0x60>, <0x10 0x20 0x30 &n1 0x40 0x50 0x60>; };};`
+          `/{${rootDefaults} n1: node1{#address-cells=<2>; #interrupt-cells = <1>;}; node {#address-cells=<2>; #interrupt-cells = <1>; interrupt-map = <0x10 0x20 0x30 &n1 0x40 0x50 0x60>, <0x10 0x20 0x30 &n1 0x40 0x50 0x60>; };};`
         );
         const context = new ContextAware(
           { dtsFile: "file:///folder/dts.dts" },
@@ -1699,7 +1699,7 @@ describe("Type Issues", () => {
 
       test("map resolution valid - interrupt", async () => {
         mockReadFileSync(
-          `/{${rootDefaults} node {interrupt-parent= <&p>; interrupts=<0x10 0x20 0x30>;}; n1: node1{#interrupt-cells = <1>;}; p: node {#interrupt-cells = <1>; interrupt-map = <0x10 0x20 0x30 &n1 0x40 0x50 0x60> <0x20 0x20 0x30 &n1 0x40 0x50 0x60>; };};`
+          `/{${rootDefaults} node {#address-cells=<2>; interrupt-parent= <&p>; interrupts=<0x10 0x20 0x30>;}; n1: node1{#address-cells=<2>; #interrupt-cells = <1>;}; p: node {#address-cells=<2>; #interrupt-cells = <1>; interrupt-map = <0x10 0x20 0x30 &n1 0x40 0x50 0x60> <0x20 0x20 0x30 &n1 0x40 0x50 0x60>; };};`
         );
         const context = new ContextAware(
           { dtsFile: "file:///folder/dts.dts" },
@@ -1713,7 +1713,7 @@ describe("Type Issues", () => {
 
       test("map resolution invalid - interrupt", async () => {
         mockReadFileSync(
-          `/{${rootDefaults} node {interrupt-parent= <&p>; interrupts=<0x50 0x20 0x30>;}; n1: node1{#interrupt-cells = <1>;}; p: node {#interrupt-cells = <1>; interrupt-map = <0x10 0x20 0x30 &n1 0x40 0x50 0x60> <0x20 0x20 0x30 &n1 0x40 0x50 0x60>; };};`
+          `/{${rootDefaults} node {#address-cells=<2>; interrupt-parent= <&p>; interrupts=<0x50 0x20 0x30>;}; n1: node1{#address-cells=<2>; #interrupt-cells = <1>;}; p: node {#interrupt-cells = <1>; interrupt-map = <0x10 0x20 0x30 &n1 0x40 0x50 0x60> <0x20 0x20 0x30 &n1 0x40 0x50 0x60>; };};`
         );
         const context = new ContextAware(
           { dtsFile: "file:///folder/dts.dts" },
@@ -1730,7 +1730,7 @@ describe("Type Issues", () => {
 
       test("map resolution valid - extended interrupt", async () => {
         mockReadFileSync(
-          `/{${rootDefaults} node {interrupts-extended= <&p 0x10 0x20 0x30>;}; n1: node1{#interrupt-cells = <1>;}; p: node {#interrupt-cells = <1>; interrupt-map = <0x10 0x20 0x30 &n1 0x40 0x50 0x60> <0x20 0x20 0x30 &n1 0x40 0x50 0x60>; };};`
+          `/{${rootDefaults} node {interrupts-extended= <&p 0x10 0x20 0x30>;}; n1: node1{#interrupt-cells = <1>;}; p: node {#address-cells=<2>; #interrupt-cells = <1>; interrupt-map = <0x10 0x20 0x30 &n1 0x40 0x50 0x60> <0x20 0x20 0x30 &n1 0x40 0x50 0x60>; };};`
         );
         const context = new ContextAware(
           { dtsFile: "file:///folder/dts.dts" },
@@ -1744,7 +1744,7 @@ describe("Type Issues", () => {
 
       test("map resolution invalid - extended interrupt", async () => {
         mockReadFileSync(
-          `/{${rootDefaults} node {interrupts-extended= <&p 0x50 0x20 0x30>;}; n1: node1{#interrupt-cells = <1>;}; p: node {#interrupt-cells = <1>; interrupt-map = <0x10 0x20 0x30 &n1 0x40 0x50 0x60> <0x20 0x20 0x30 &n1 0x40 0x50 0x60>; };};`
+          `/{${rootDefaults} node {interrupts-extended= <&p 0x50 0x20 0x30>;}; n1: node1{#interrupt-cells = <1>;}; p: node {#address-cells=<2>; #interrupt-cells = <1>; interrupt-map = <0x10 0x20 0x30 &n1 0x40 0x50 0x60> <0x20 0x20 0x30 &n1 0x40 0x50 0x60>; };};`
         );
         const context = new ContextAware(
           { dtsFile: "file:///folder/dts.dts" },

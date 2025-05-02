@@ -46,6 +46,20 @@ export default () => {
         return [];
       }
 
+      const addressCellsProperty = node.getProperty(`#address-cells`);
+      if (!addressCellsProperty) {
+        issues.push(
+          genStandardTypeDiagnostic(
+            StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+            property.ast,
+            DiagnosticSeverity.Error,
+            [...property.parent.nodeNameOrLabelRef],
+            [],
+            [property.name, "#address-cells", node.pathString]
+          )
+        );
+      }
+
       const childInterruptSpecifier = node.getProperty("#interrupt-cells");
 
       if (!childInterruptSpecifier) {
