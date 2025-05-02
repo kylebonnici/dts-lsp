@@ -541,8 +541,6 @@ const generateZephyrTypeCheck = (
           parentName = myProperty["specifier-space"] ?? name.slice(0, -1);
         }
 
-        console.log("phandle-array", parentName, p.parent.pathString);
-
         const sizeCellProperty = phandelValue.getProperty(
           `#${parentName}-cells`
         );
@@ -599,26 +597,28 @@ const generateZephyrTypeCheck = (
         i += 1 + sizeCellValue;
 
         const mappingValuesAst = values.slice(i - sizeCellValue, i);
-        const match = phandelValue.getNexusMapEntyMatch(
-          parentName,
-          macros,
-          mappingValuesAst
-        );
-        if (!match?.match) {
-          const mapProperty = phandelValue.getProperty(`${parentName}-map`)!;
-          issues.push(
-            genStandardTypeDiagnostic(
-              StandardTypeIssue.NO_NEXUS_MAP_MATCH,
-              match.entry,
-              DiagnosticSeverity.Error,
-              [mapProperty.ast]
-            )
+        const mapProperty = phandelValue.getProperty(`${parentName}-map`);
+        if (mapProperty) {
+          const match = phandelValue.getNexusMapEntyMatch(
+            parentName,
+            macros,
+            mappingValuesAst
           );
-        } else {
-          p.nexusMapsTo.push({
-            mappingValuesAst,
-            mapItem: match.match,
-          });
+          if (!match?.match) {
+            issues.push(
+              genStandardTypeDiagnostic(
+                StandardTypeIssue.NO_NEXUS_MAP_MATCH,
+                match.entry,
+                DiagnosticSeverity.Error,
+                [mapProperty.ast]
+              )
+            );
+          } else {
+            p.nexusMapsTo.push({
+              mappingValuesAst,
+              mapItem: match.match,
+            });
+          }
         }
       }
     }
