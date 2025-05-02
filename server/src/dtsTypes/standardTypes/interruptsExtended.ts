@@ -78,7 +78,7 @@ export default () => {
 
       prop.typeExample = ``;
 
-      const addressCellsProperty = node.getProperty(`#address-cells`);
+      const addressCellsProperty = node.parent?.getProperty(`#address-cells`);
       if (!addressCellsProperty) {
         issues.push(
           genStandardTypeDiagnostic(
@@ -135,18 +135,10 @@ export default () => {
           return issues;
         }
 
-        const addressValues = phandleNode.addressCells(macros);
-
         const remaining = values.length - i - 1;
 
         const expectedPattern = `<${[
           "phandel",
-          ...Array.from(
-            {
-              length: addressValues,
-            },
-            () => "address"
-          ),
           ...Array.from(
             {
               length: cellsPropertyValue,
@@ -157,7 +149,7 @@ export default () => {
 
         prop.typeExample += expectedPattern;
 
-        if (addressValues + cellsPropertyValue > remaining) {
+        if (cellsPropertyValue > remaining) {
           issues.push(
             genStandardTypeDiagnostic(
               StandardTypeIssue.CELL_MISS_MATCH,
@@ -173,14 +165,16 @@ export default () => {
 
         const mappingValuesAst = values.slice(
           i + 1,
-          i + 1 + addressValues + cellsPropertyValue
+          i + 1 + cellsPropertyValue
         );
-        const mapProperty = node.getProperty(`interrupt-map`);
-        if (mapProperty) {
+        const mapProperty = phandleNode.getProperty(`interrupt-map`);
+        const startAddress = node.mappedReg(macros)?.startAddress;
+        if (mapProperty && startAddress) {
           const match = phandleNode.getNexusMapEntyMatch(
             "interrupt",
             macros,
-            mappingValuesAst
+            mappingValuesAst,
+            startAddress
           );
           if (!match?.match) {
             issues.push(
@@ -199,7 +193,7 @@ export default () => {
           }
         }
 
-        i += addressValues + cellsPropertyValue + 1;
+        i += cellsPropertyValue + 1;
       }
 
       return issues;

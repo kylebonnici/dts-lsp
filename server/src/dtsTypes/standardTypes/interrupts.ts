@@ -79,8 +79,6 @@ export default () => {
         return issues;
       }
 
-      const childAddressCellsValue = parentInterruptNode.addressCells(macros);
-
       const childInterruptSpecifierValue = getU32ValueFromProperty(
         childInterruptSpecifier,
         0,
@@ -94,68 +92,93 @@ export default () => {
 
       prop.typeExample = `<${[
         ...Array.from(
-          { length: childAddressCellsValue },
-          () => "childUnitAddress"
-        ),
-        ...Array.from(
           { length: childInterruptSpecifierValue },
-          () => "childInterruptSpecifier"
+          () => "Interrupt"
         ),
       ].join(" ")}> `;
 
-      if (
-        values.length !==
-        childAddressCellsValue + childInterruptSpecifierValue
-      ) {
+      const addressCellsProperty = node.parent?.getProperty(`#address-cells`);
+      if (!addressCellsProperty) {
         issues.push(
           genStandardTypeDiagnostic(
-            StandardTypeIssue.CELL_MISS_MATCH,
-            property.ast.values ?? property.ast,
+            StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+            property.ast,
             DiagnosticSeverity.Error,
+            [...property.parent.nodeNameOrLabelRef],
             [],
-            [],
-            [property.name, prop.typeExample]
+            [property.name, "#address-cells", node.pathString]
           )
         );
-        return issues;
       }
 
-      const mapProperty = node.getProperty(`interrupt-map`);
-      if (mapProperty) {
-        const addressCellsProperty = node.getProperty(`#address-cells`);
-        if (!addressCellsProperty) {
+      let i = 0;
+      while (i < values.length) {
+        if (!childInterruptSpecifier) {
           issues.push(
             genStandardTypeDiagnostic(
               StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
               property.ast,
               DiagnosticSeverity.Error,
-              [...property.parent.nodeNameOrLabelRef],
+              [...parentInterruptNode.nodeNameOrLabelRef],
               [],
-              [property.name, "#address-cells", node.pathString]
+              [
+                property.name,
+                "#interrupt-cells",
+                parentInterruptNode.pathString,
+              ]
             )
           );
+
+          break;
         }
 
-        const match = parentInterruptNode.getNexusMapEntyMatch(
-          "interrupt",
-          macros,
-          values
-        );
-        if (!match?.match) {
+        const remaining = values.length - i;
+
+        if (childInterruptSpecifierValue > remaining) {
           issues.push(
             genStandardTypeDiagnostic(
-              StandardTypeIssue.NO_NEXUS_MAP_MATCH,
-              match.entry,
+              StandardTypeIssue.CELL_MISS_MATCH,
+              values.at(-1)!,
               DiagnosticSeverity.Error,
-              [mapProperty.ast]
+              [],
+              [],
+              [property.name, prop.typeExample]
             )
           );
-        } else {
-          property.nexusMapsTo.push({
-            mappingValuesAst: values,
-            mapItem: match.match,
-          });
+          return issues;
         }
+
+        const mappingValuesAst = values.slice(
+          i,
+          i + childInterruptSpecifierValue
+        );
+        const mapProperty = parentInterruptNode.getProperty(`interrupt-map`);
+        const startAddress = node.mappedReg(macros)?.startAddress;
+        if (mapProperty && startAddress) {
+          const match = parentInterruptNode.getNexusMapEntyMatch(
+            "interrupt",
+            macros,
+            mappingValuesAst,
+            startAddress
+          );
+          if (!match?.match) {
+            issues.push(
+              genStandardTypeDiagnostic(
+                StandardTypeIssue.NO_NEXUS_MAP_MATCH,
+                match.entry,
+                DiagnosticSeverity.Error,
+                [mapProperty.ast]
+              )
+            );
+          } else {
+            property.nexusMapsTo.push({
+              mappingValuesAst,
+              mapItem: match.match,
+            });
+          }
+        }
+
+        i += childInterruptSpecifierValue;
       }
 
       return issues;

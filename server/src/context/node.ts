@@ -807,7 +807,8 @@ export class Node {
   getNexusMapEntyMatch(
     specifier: string,
     macros: Map<string, MacroRegistryItem>,
-    mappingValuesAst: (LabelRef | NodePathRef | Expression | NumberValue)[]
+    mappingValuesAst: (LabelRef | NodePathRef | Expression | NumberValue)[],
+    address: number[] = [] // interrups only
   ) {
     const entry = new ASTBase(
       createTokenIndex(
@@ -817,16 +818,17 @@ export class Node {
     );
     const nexusMap = this.getNexusMap(specifier, macros);
     if (nexusMap) {
-      const mappingValues = mappingValuesAst
-        .map<string>((v, i) => {
+      const mappingValues = [
+        ...address.map((a, i) => a & (nexusMap.mapMask.at(i) ?? 0xffffffff)),
+        ...mappingValuesAst.map<string>((v, i) => {
           const value = v instanceof Expression ? v.evaluate(macros) : v;
           return (
             typeof value === "number"
-              ? value & (nexusMap.mapMask.at(i) ?? 0xffffffff)
+              ? value & (nexusMap.mapMask.at(i + address.length) ?? 0xffffffff)
               : value
           ).toString();
-        })
-        .join(":");
+        }),
+      ].join(":");
       const match = nexusMap.map.find(
         (m) =>
           m.mappingValues

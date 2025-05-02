@@ -57,7 +57,7 @@ export default () => {
           { length: parentdBusAddressValue },
           () => "parent-bus-address"
         ),
-        ...Array.from({ length: parentdBusAddressValue }, () => "length"),
+        ...Array.from({ length: parentdBusAddressValue }, () => "size"),
       ].join(" ")}>`;
 
       if (
@@ -117,18 +117,18 @@ export default () => {
                   [],
                   [
                     property.name,
-                    m.parentAddress
-                      .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
-                      .join(""),
-                    ends
-                      .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
-                      .join(""),
-                    thisNodeReg.startAddress
-                      .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
-                      .join(""),
-                    thisNodeReg.endAddress
-                      .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
-                      .join(""),
+                    `0x${m.parentAddress
+                      .map((c, i) => c.toString(16).padStart(i ? 8 : 0))
+                      .join("")}`,
+                    `0x${ends
+                      .map((c, i) => c.toString(16).padStart(i ? 8 : 0))
+                      .join("")}`,
+                    `0x${thisNodeReg.startAddress
+                      .map((c, i) => c.toString(16).padStart(i ? 8 : 0))
+                      .join("")}`,
+                    `0x${thisNodeReg.endAddress
+                      .map((c, i) => c.toString(16).padStart(i ? 8 : 0))
+                      .join("")}`,
                   ]
                 )
               );
@@ -153,12 +153,12 @@ export default () => {
                 [],
                 [
                   reg.name,
-                  mappedAddress.endAddress
-                    .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
-                    .join(""),
-                  mappedAddress.mappingEnd
-                    .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
-                    .join(""),
+                  `0x${mappedAddress.endAddress
+                    .map((c, i) => c.toString(16).padStart(i ? 8 : 0))
+                    .join("")}`,
+                  `0x${mappedAddress.mappingEnd
+                    .map((c, i) => c.toString(16).padStart(i ? 8 : 0))
+                    .join("")}`,
                 ]
               )
             );

@@ -43,29 +43,6 @@ export function getChosenNodeType() {
       );
     }
 
-    node.nodes.forEach((n) => {
-      n.definitions.forEach((ast) => {
-        issues.push(
-          genStandardTypeDiagnostic(
-            StandardTypeIssue.NODE_LOCATION,
-            ast,
-            DiagnosticSeverity.Error,
-            [],
-            [],
-            ["Chosen node can not have child nodes"],
-            TextEdit.del(
-              toRangeWithTokenIndex(
-                ast.firstToken.prevToken,
-                ast.lastToken,
-                false
-              )
-            ),
-            "Delete Node"
-          )
-        );
-      });
-    });
-
     return issues;
   };
 

@@ -53,7 +53,7 @@ export default () => {
 
       prop.typeExample = `<${[
         ...Array.from({ length: parentAddressCell }, () => "address"),
-        ...Array.from({ length: parentSizeCell }, () => "cell"),
+        ...Array.from({ length: parentSizeCell }, () => "size"),
       ].join(" ")}>`;
 
       if (
@@ -76,42 +76,36 @@ export default () => {
         return issues;
       }
 
-      for (
-        let i = 0;
-        i < values.length;
-        i += parentSizeCell + parentAddressCell
-      ) {
-        const refAddress = values
-          .slice(0, parentAddressCell)
-          .map((_, i) => getU32ValueFromProperty(property, 0, i, macros) ?? 0);
+      const refAddress = values
+        .slice(0, parentAddressCell)
+        .map((_, i) => getU32ValueFromProperty(property, 0, i, macros) ?? 0);
 
-        if (
-          property.parent.address &&
-          compareWords(property.parent.address, refAddress) !== 0
-        ) {
-          const startValue = (
-            property.ast.values?.values.at(0)?.value as ArrayValues | undefined
-          )?.values?.at(0);
-          const endValue = (
-            property.ast.values?.values.at(0)?.value as ArrayValues | undefined
-          )?.values?.at(parentAddressCell - 1);
-          const addressValues =
-            startValue && endValue
-              ? new ASTBase(
-                  createTokenIndex(startValue.firstToken, endValue.lastToken)
-                )
-              : undefined;
-          issues.push(
-            genStandardTypeDiagnostic(
-              StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_ADDRESS_VALUE,
-              addressValues ?? property.ast.values ?? property.ast,
-              DiagnosticSeverity.Error,
-              [],
-              [],
-              [property.name]
-            )
-          );
-        }
+      if (
+        property.parent.address &&
+        compareWords(property.parent.address, refAddress) !== 0
+      ) {
+        const startValue = (
+          property.ast.values?.values.at(0)?.value as ArrayValues | undefined
+        )?.values?.at(0);
+        const endValue = (
+          property.ast.values?.values.at(0)?.value as ArrayValues | undefined
+        )?.values?.at(parentAddressCell - 1);
+        const addressValues =
+          startValue && endValue
+            ? new ASTBase(
+                createTokenIndex(startValue.firstToken, endValue.lastToken)
+              )
+            : undefined;
+        issues.push(
+          genStandardTypeDiagnostic(
+            StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_ADDRESS_VALUE,
+            addressValues ?? property.ast.values ?? property.ast,
+            DiagnosticSeverity.Error,
+            [],
+            [],
+            [property.name]
+          )
+        );
       }
 
       return issues;

@@ -59,11 +59,7 @@
       "beginCaptures": {
         "1": { "name": "variable.language" }
       },
-      "patterns": [
-        { "include": "#alias-node" },
-        { "include": "#chosen-node" },
-        { "include": "#node-contents" }
-      ]
+      "patterns": [{ "include": "#node-contents" }]
     },
     "comment": {
       "match": "//.*",
@@ -113,32 +109,6 @@
         "4": { "name": "support.class.node-ref-prop" }
       },
       "patterns": [{ "include": "#ref" }]
-    },
-    "alias-node": {
-      "begin": "(aliases)\\s+{",
-      "end": "}",
-      "beginCaptures": {
-        "1": { "name": "support.class.alias-node" }
-      },
-      "patterns": [
-        { "include": "#node-ref-property" },
-        { "include": "#node-string-property" },
-        { "include": "#block-comment" },
-        { "include": "#comment" }
-      ]
-    },
-    "chosen-node": {
-      "begin": "(chosen)\\s+{",
-      "end": "}",
-      "beginCaptures": {
-        "1": { "name": "support.class.chosen-node" }
-      },
-      "patterns": [
-        { "include": "#node-ref-property" },
-        { "include": "#node-string-property" },
-        { "include": "#block-comment" },
-        { "include": "#comment" }
-      ]
     },
     "cpus-node": {
       "begin": "(cpus)\\s+{",
