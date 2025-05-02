@@ -15,18 +15,23 @@
  */
 
 import { BindingPropertyType } from "../../../../types/index";
-import { genStandardTypeDiagnostic } from "../../../../helpers";
+import {
+  genStandardTypeDiagnostic,
+  toRangeWithTokenIndex,
+} from "../../../../helpers";
 import { PropertyNodeType } from "../../../types";
 import { generateOrTypeObj } from "../../helpers";
-import { StandardTypeIssue } from "../../../../types";
-import { DiagnosticSeverity } from "vscode-languageserver";
+import { FileDiagnostic, StandardTypeIssue } from "../../../../types";
+import { DiagnosticSeverity, TextEdit } from "vscode-languageserver";
 import { getStandardDefaultType } from "../../../../dtsTypes/standardDefaultType";
 
 export function getChosenNodeType() {
   const nodeType = getStandardDefaultType();
   nodeType.additionalValidations = (_, node) => {
+    const issues: FileDiagnostic[] = [];
+
     if (node.parent?.name !== "/") {
-      return [
+      issues.push(
         genStandardTypeDiagnostic(
           StandardTypeIssue.NODE_LOCATION,
           node.definitions[0],
@@ -34,10 +39,34 @@ export function getChosenNodeType() {
           node.definitions.slice(1),
           [],
           ["Chosen node can only be added to a root node"]
-        ),
-      ];
+        )
+      );
     }
-    return [];
+
+    node.nodes.forEach((n) => {
+      n.definitions.forEach((ast) => {
+        issues.push(
+          genStandardTypeDiagnostic(
+            StandardTypeIssue.NODE_LOCATION,
+            ast,
+            DiagnosticSeverity.Error,
+            [],
+            [],
+            ["Chosen node can not have child nodes"],
+            TextEdit.del(
+              toRangeWithTokenIndex(
+                ast.firstToken.prevToken,
+                ast.lastToken,
+                false
+              )
+            ),
+            "Delete Node"
+          )
+        );
+      });
+    });
+
+    return issues;
   };
 
   const bootargsProp = new PropertyNodeType(
