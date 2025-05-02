@@ -598,49 +598,27 @@ const generateZephyrTypeCheck = (
         }
         i += 1 + sizeCellValue;
 
-        const nexusMap = phandelValue.getNexusMap(parentName, macros);
-        if (nexusMap) {
-          // TODO use mask-map ...
-          const mappingValuesAst = values.slice(i - sizeCellValue, i);
-          const mappingValues = values
-            .slice(i - sizeCellValue, i)
-            .map<string>((v, i) => {
-              const value = v instanceof Expression ? v.evaluate(macros) : v;
-              return (
-                typeof value === "number"
-                  ? value & (nexusMap.mapMask.at(i) ?? 0xffffffff)
-                  : value
-              ).toString();
-            })
-            .join(":");
-          const match = nexusMap.map.find(
-            (m) =>
-              m.mappingValues
-                .map((v) =>
-                  (v instanceof Expression ? v.evaluate(macros) : v).toString()
-                )
-                .join(":") === mappingValues
+        const mappingValuesAst = values.slice(i - sizeCellValue, i);
+        const match = phandelValue.getNexusMapEntyMatch(
+          parentName,
+          macros,
+          mappingValuesAst
+        );
+        if (!match?.match) {
+          const mapProperty = phandelValue.getProperty(`${parentName}-map`)!;
+          issues.push(
+            genStandardTypeDiagnostic(
+              StandardTypeIssue.NO_NEXUS_MAP_MATCH,
+              match.entry,
+              DiagnosticSeverity.Error,
+              [mapProperty.ast]
+            )
           );
-
-          const entry = new ASTBase(
-            createTokenIndex(v!.firstToken, mappingValuesAst.at(-1)!.lastToken)
-          );
-          if (!match) {
-            const mapProperty = phandelValue.getProperty(`${parentName}-map`)!;
-            issues.push(
-              genStandardTypeDiagnostic(
-                StandardTypeIssue.NO_NEXUS_MAP_MATCH,
-                entry,
-                DiagnosticSeverity.Error,
-                [mapProperty.ast]
-              )
-            );
-          } else {
-            p.nexusMapsTo.push({
-              mappingValuesAst,
-              mapItem: match,
-            });
-          }
+        } else {
+          p.nexusMapsTo.push({
+            mappingValuesAst,
+            mapItem: match.match,
+          });
         }
       }
     }

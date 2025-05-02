@@ -92,30 +92,6 @@ export const resolvePhandleNode = (
   }
 };
 
-export const getInterruptInfo = (
-  node: Node
-): {
-  node: Node;
-  value?: number;
-  cellsProperty?: Property;
-} => {
-  const cellsProperty = node.getProperty("#interrupt-cells");
-  const cellsValue = cellsProperty?.ast.values?.values.at(0)?.value;
-
-  if (cellsValue instanceof ArrayValues) {
-    const value = cellsValue.values.at(0)?.value;
-    if (value instanceof NumberValue) {
-      return {
-        cellsProperty,
-        node,
-        value: value.value,
-      };
-    }
-  }
-
-  return { cellsProperty, node };
-};
-
 export const generateOrTypeObj = (
   type: BindingPropertyType | BindingPropertyType[]
 ): TypeConfig[] => {

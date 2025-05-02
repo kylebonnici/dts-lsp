@@ -20,7 +20,7 @@ import { PropertyNodeType } from "../types";
 import {
   flatNumberValues,
   generateOrTypeObj,
-  getInterruptInfo,
+  getU32ValueFromProperty,
   resolvePhandleNode,
 } from "./helpers";
 import { genStandardTypeDiagnostic } from "../../helpers";
@@ -33,7 +33,7 @@ export default () => {
     "optional",
     undefined,
     undefined,
-    (property) => {
+    (property, macros) => {
       const issues: FileDiagnostic[] = [];
 
       const node = property.parent;
@@ -76,6 +76,8 @@ export default () => {
         return [];
       }
 
+      prop.typeExample = ``;
+
       let i = 0;
       while (i < values.length) {
         const phandleNode = resolvePhandleNode(values[i], root);
@@ -91,47 +93,99 @@ export default () => {
           return issues;
         }
 
-        const interruptCells = getInterruptInfo(phandleNode);
+        const cellsProperty = phandleNode.getProperty("#interrupt-cells");
 
-        if (!interruptCells.cellsProperty) {
+        if (!cellsProperty) {
           issues.push(
             genStandardTypeDiagnostic(
               StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
               property.ast,
               DiagnosticSeverity.Error,
-              [...interruptCells.node.nodeNameOrLabelRef],
+              [...phandleNode.nodeNameOrLabelRef],
               [],
-              [
-                property.name,
-                "#interrupt-cells",
-                `/${interruptCells.node.path.slice(1).join("/")}`,
-              ]
+              [property.name, "#interrupt-cells", phandleNode.pathString]
             )
           );
+
+          break;
+        }
+
+        const cellsPropertyValue = getU32ValueFromProperty(
+          cellsProperty,
+          0,
+          0,
+          macros
+        );
+
+        if (cellsPropertyValue == null) {
           return issues;
         }
+
+        const addressValues = phandleNode.addressCells(macros);
 
         const remaining = values.length - i - 1;
 
-        if (interruptCells.value == null) {
-          return issues;
-        }
+        const expectedPattern = `<${[
+          "phandel",
+          ...Array.from(
+            {
+              length: addressValues,
+            },
+            () => "address"
+          ),
+          ...Array.from(
+            {
+              length: cellsPropertyValue,
+            },
+            () => "interrupt"
+          ),
+        ].join(" ")}>`;
 
-        if (interruptCells.value != null && interruptCells.value > remaining) {
+        prop.typeExample += expectedPattern;
+
+        if (addressValues + cellsPropertyValue > remaining) {
           issues.push(
             genStandardTypeDiagnostic(
-              StandardTypeIssue.INTERRUPTS_VALUE_CELL_MISS_MATCH,
-              values[i],
+              StandardTypeIssue.CELL_MISS_MATCH,
+              values.at(-1)!,
               DiagnosticSeverity.Error,
-              [interruptCells.cellsProperty.ast],
               [],
-              [property.name, interruptCells.value.toString()]
+              [],
+              [property.name, expectedPattern]
             )
           );
           return issues;
         }
 
-        i += interruptCells.value + 1;
+        const mappingValuesAst = values.slice(
+          i + 1,
+          i + 1 + addressValues + cellsPropertyValue
+        );
+        const mapProperty = node.getProperty(`interrupt-map`);
+        if (mapProperty) {
+          const match = phandleNode.getNexusMapEntyMatch(
+            "interrupt",
+            macros,
+            mappingValuesAst
+          );
+          if (!match?.match) {
+            issues.push(
+              genStandardTypeDiagnostic(
+                StandardTypeIssue.NO_NEXUS_MAP_MATCH,
+                match.entry,
+                DiagnosticSeverity.Error,
+                [mapProperty.ast]
+              )
+            );
+          } else {
+            property.nexusMapsTo.push({
+              mappingValuesAst,
+              mapItem: match.match,
+            });
+          }
+        }
+
+        i += addressValues + cellsPropertyValue + 1;
       }
 
       return issues;

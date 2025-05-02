@@ -896,8 +896,6 @@ export const standardTypeIssueIssuesToMessage = (
           return `INTRO requires property "${issue.templateStrings[1]}" in node path "${issue.templateStrings[2]}"`;
         case StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND:
           return `Unable to resolve interrupt parent node`;
-        case StandardTypeIssue.INTERRUPTS_VALUE_CELL_MISS_MATCH:
-          return `INTRO expects ${issue.templateStrings[1]} interrupt cells`;
         case StandardTypeIssue.MAP_ENTRY_INCOMPLETE:
           return `INTRO should have format ${issue.templateStrings[1]}`;
         case StandardTypeIssue.NODE_DISABLED:
@@ -936,8 +934,6 @@ export const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
     case StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE:
     case StandardTypeIssue.REQUIRED:
       return `Node`;
-    case StandardTypeIssue.INTERRUPTS_VALUE_CELL_MISS_MATCH:
-      return "Property";
     case StandardTypeIssue.IGNORED:
       return "Ignored reason";
     case StandardTypeIssue.EXPECTED_UNIQUE_PHANDLE:

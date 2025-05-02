@@ -804,6 +804,48 @@ export class Node {
     return this.#mappedRegCache;
   }
 
+  getNexusMapEntyMatch(
+    specifier: string,
+    macros: Map<string, MacroRegistryItem>,
+    mappingValuesAst: (LabelRef | NodePathRef | Expression | NumberValue)[]
+  ) {
+    const entry = new ASTBase(
+      createTokenIndex(
+        mappingValuesAst[0].firstToken,
+        mappingValuesAst.at(-1)!.lastToken
+      )
+    );
+    const nexusMap = this.getNexusMap(specifier, macros);
+    if (nexusMap) {
+      const mappingValues = mappingValuesAst
+        .map<string>((v, i) => {
+          const value = v instanceof Expression ? v.evaluate(macros) : v;
+          return (
+            typeof value === "number"
+              ? value & (nexusMap.mapMask.at(i) ?? 0xffffffff)
+              : value
+          ).toString();
+        })
+        .join(":");
+      const match = nexusMap.map.find(
+        (m) =>
+          m.mappingValues
+            .map((v) =>
+              (v instanceof Expression ? v.evaluate(macros) : v).toString()
+            )
+            .join(":") === mappingValues
+      );
+
+      return {
+        entry,
+        match,
+      };
+    }
+    return {
+      entry,
+    };
+  }
+
   getNexusMap(
     specifier: string,
     macros: Map<string, MacroRegistryItem>
@@ -821,7 +863,7 @@ export class Node {
       return;
     }
 
-    const childSpecifierCellsValue = getU32ValueFromProperty(
+    let childSpecifierCellsValue = getU32ValueFromProperty(
       childSpecifierCells,
       0,
       0,
@@ -832,6 +874,10 @@ export class Node {
       return;
     }
 
+    if (specifier === "interrupt") {
+      childSpecifierCellsValue += this.addressCells(macros);
+    }
+
     const map: {
       mappingValues: (LabelRef | NodePathRef | NumberValue | Expression)[];
       node: Node;
@@ -839,7 +885,6 @@ export class Node {
     }[] = [];
 
     let i = 0;
-    let entryEndIndex = 0;
     while (i < values.length) {
       const mappingValues = values.slice(i, childSpecifierCellsValue + i);
 
@@ -863,7 +908,7 @@ export class Node {
 
       i++;
 
-      const parentUnitAddressValue = getU32ValueFromProperty(
+      let parentUnitAddressValue = getU32ValueFromProperty(
         parentSpecifierAddress,
         0,
         0,
@@ -872,6 +917,10 @@ export class Node {
 
       if (parentUnitAddressValue == null) {
         break;
+      }
+
+      if (specifier === "interrupt") {
+        parentUnitAddressValue += specifierParent.addressCells(macros);
       }
 
       i += parentUnitAddressValue;
@@ -884,7 +933,6 @@ export class Node {
         node: specifierParent,
         parentValues,
       });
-      entryEndIndex = i;
     }
 
     const mapMaskProperty = this.getProperty(`${specifier}-map-mask`);
