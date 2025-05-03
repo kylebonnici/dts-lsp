@@ -369,7 +369,6 @@ type SerializedMappedReg = {
   size?: number[];
   mappedEndAddress?: number[];
   endAddress?: number[];
-  inRange?: boolean;
   inMappingRange?: boolean;
 };
 

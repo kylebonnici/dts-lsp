@@ -64,7 +64,6 @@ import { INodeType, NodeType } from "../dtsTypes/types";
 import { SerializedNode } from "../types/index";
 import {
   flatNumberValues,
-  getU32ValueFromFlatProperty,
   getU32ValueFromProperty,
   resolvePhandleNode,
 } from "../dtsTypes/standardTypes/helpers";
@@ -77,7 +76,6 @@ type MappedReg = {
   size: number[];
   endAddress: number[];
   endAddressRaw: number[];
-  inRange: boolean;
   inMappingRange: boolean;
   mappingEnd?: number[];
   mappedAst?: ASTBase;
@@ -794,11 +792,6 @@ export class Node {
             size,
             endAddress: endEddress,
             endAddressRaw: endEddress,
-            inRange:
-              !parentEndMapReg ||
-              parentEndMapReg.some(
-                (pReg) => compareWords(endEddress, pReg.endAddress) <= 0
-              ),
             inMappingRange: false,
             regAst: reg.ast,
           };
@@ -1101,7 +1094,6 @@ ${"\t".repeat(level - 1)}}; ${isOmmited ? " */" : ""}`;
         startAddress: mappedReg?.startAddressRaw,
         endAddress: mappedReg?.endAddressRaw,
         size: mappedReg?.size,
-        inRange: mappedReg?.inRange,
         inMappingRange: mappedReg?.inMappingRange,
       })),
     };
