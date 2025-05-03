@@ -188,10 +188,14 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
       throw new Error("remove new LinesEdit must be defined");
     }
     return [
-      TextEdit.insert(
-        Position.create(token.pos.line, token.pos.colEnd),
-        "".padEnd(expectedSpaces, " ")
-      ),
+      ...(expectedSpaces
+        ? [
+            TextEdit.insert(
+              Position.create(token.pos.line, token.pos.colEnd),
+              "".padEnd(expectedSpaces, " ")
+            ),
+          ]
+        : []),
       removeNewLinesEdit,
     ];
   }
@@ -311,8 +315,10 @@ const formatLabeledValue = <T extends ASTBase>(
 
   if (value.firstToken.pos.line !== value.firstToken.prevToken?.pos.line) {
     const edit = removeNewLinesBetweenTokenAndPrev(value.firstToken);
-    if (edit) result.push(edit);
-    result.push(createIndentEdit(value.firstToken, level + 1, indentString));
+    if (edit) {
+      result.push(edit);
+      result.push(createIndentEdit(value.firstToken, level + 1, indentString));
+    }
   }
   value.value;
 

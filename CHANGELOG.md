@@ -13,6 +13,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Chassis Type description
+- Formating not working when document has
+
+```devicetree
+prop1 = <
+				10>;
+```
 
 ## [0.3.3] - 2025-05-01
 
