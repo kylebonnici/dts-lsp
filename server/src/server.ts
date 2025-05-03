@@ -899,6 +899,16 @@ documents.onDidClose(async (e) => {
         } else {
           clearWorkspaceDiagnostics(context);
         }
+      } else {
+        if (
+          !activeContext?.getContextFiles().some((f) => isPathEqual(f, uri))
+        ) {
+          connection.sendDiagnostics({
+            uri: e.document.uri,
+            version: documents.get(e.document.uri)?.version,
+            diagnostics: [],
+          } satisfies PublishDiagnosticsParams);
+        }
       }
     })
   );
