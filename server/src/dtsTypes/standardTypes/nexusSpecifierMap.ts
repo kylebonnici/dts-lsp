@@ -81,6 +81,7 @@ export default () => {
 
       let i = 0;
       let entryEndIndex = 0;
+      const typeExamples: string[][] = [];
       while (i < values.length) {
         const keyItem = new ASTBase(
           createTokenIndex(
@@ -104,13 +105,13 @@ export default () => {
 
         i += childSpecifierCellsValue;
         prop.typeExample ??= "";
-        prop.typeExample += `<${[
+        typeExamples.push([
           ...Array.from(
             { length: childSpecifierCellsValue },
             () => "ChildSpecifier"
           ),
-          "SpecifierParent ParentSpecifier",
-        ].join(" ")}> `;
+          "SpecifierParent ParentSpecifier...",
+        ]);
 
         if (values.length < i + 1) {
           const expLen = childSpecifierCellsValue + 1;
@@ -123,13 +124,8 @@ export default () => {
               [],
               [
                 property.name,
-                `after the last value of ${[
-                  ...Array.from(
-                    { length: childSpecifierCellsValue },
-                    () => "ChildSpecifier"
-                  ),
-                  "SpecifierParent ParentSpecifier...",
-                ]
+                `after the last value of ${typeExamples
+                  .at(-1)!
                   .slice(
                     (values.length - entryEndIndex) % expLen === 0
                       ? expLen
@@ -188,6 +184,18 @@ export default () => {
           break;
         }
 
+        typeExamples.splice(-1, 1, [
+          ...Array.from(
+            { length: childSpecifierCellsValue },
+            () => "ChildSpecifier"
+          ),
+          "SpecifierParent",
+          ...Array.from(
+            { length: parentUnitAddressValue },
+            () => "ParentSpecifier"
+          ),
+        ]);
+
         i += parentUnitAddressValue;
         if (values.length < i) {
           const expLen = childSpecifierCellsValue + 1 + parentUnitAddressValue;
@@ -200,17 +208,8 @@ export default () => {
               [],
               [
                 property.name,
-                `after the last value of ${[
-                  ...Array.from(
-                    { length: childSpecifierCellsValue },
-                    () => "ChildSpecifier"
-                  ),
-                  "InterruptParent",
-                  ...Array.from(
-                    { length: parentUnitAddressValue },
-                    () => "ParentSpecifier"
-                  ),
-                ]
+                `after the last value of ${typeExamples
+                  .at(-1)!
                   .slice(
                     (values.length - entryEndIndex) % expLen === 0
                       ? expLen
@@ -225,13 +224,9 @@ export default () => {
         entryEndIndex = i;
       }
 
-      prop.typeExample ??= `<${[
-        ...Array.from(
-          { length: childSpecifierCellsValue },
-          () => "ChildSpecifier"
-        ),
-        "SpecifierParent ParentSpecifier",
-      ].join(" ")}>`;
+      prop.typeExample = typeExamples
+        .map((t) => `<${t.join(" ")}>`)
+        .join("\n\t\t");
 
       Object.values(keys).forEach((v) => {
         if (v.length > 1) {

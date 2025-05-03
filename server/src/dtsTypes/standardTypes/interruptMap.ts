@@ -97,6 +97,7 @@ export default () => {
       }
 
       let i = 0;
+      const typeExamples: string[][] = [];
       while (i < values.length) {
         const keyItem = new ASTBase(
           createTokenIndex(
@@ -131,17 +132,14 @@ export default () => {
         const expLen =
           childAddressCellsValue + childInterruptSpecifierValue + 1;
         prop.typeExample ??= "";
-        prop.typeExample += `<${[
-          ...Array.from(
-            { length: childAddressCellsValue },
-            () => "ChildAddress"
-          ),
+        typeExamples.push([
+          ...Array.from({ length: childAddressCellsValue }, () => "ChildAddr"),
           ...Array.from(
             { length: childInterruptSpecifierValue },
-            () => "ChildInterruptSpecifier"
+            () => "ChildIntrpt"
           ),
-          "InterruptParent ParentUnitAddress... ParentInterruptSpecifier...",
-        ].join(" ")}> `;
+          "IntrptParent ParentAddr... ParentIntrpt...",
+        ]);
 
         if (values.length < i + 1) {
           issues.push(
@@ -153,17 +151,8 @@ export default () => {
               [],
               [
                 property.name,
-                `after the last value of ${[
-                  ...Array.from(
-                    { length: childAddressCellsValue },
-                    () => "ChildAddress"
-                  ),
-                  ...Array.from(
-                    { length: childInterruptSpecifierValue },
-                    () => "ChildInterruptSpecifier"
-                  ),
-                  "InterruptParent ParentUnitAddress... ParentInterruptSpecifier...",
-                ]
+                `after the last value of ${typeExamples
+                  .at(-1)!
                   .slice(
                     (values.length - entryEndIndex) % expLen === 0
                       ? expLen
@@ -219,12 +208,23 @@ export default () => {
           macros
         );
 
-        if (
-          parentUnitAddressValue == null ||
-          parentInterruptSpecifierValue == null
-        ) {
+        if (parentInterruptSpecifierValue == null) {
           break;
         }
+
+        typeExamples.splice(-1, 1, [
+          ...Array.from({ length: childAddressCellsValue }, () => "ChildAddr"),
+          ...Array.from(
+            { length: childInterruptSpecifierValue },
+            () => "ChildIntrpt"
+          ),
+          "IntrptParent",
+          ...Array.from({ length: parentUnitAddressValue }, () => "ParentAddr"),
+          ...Array.from(
+            { length: parentInterruptSpecifierValue },
+            () => "ParentIntrpt"
+          ),
+        ]);
 
         i += parentUnitAddressValue + parentInterruptSpecifierValue;
         if (values.length < i) {
@@ -243,25 +243,8 @@ export default () => {
               [],
               [
                 property.name,
-                `after the last value of ${[
-                  ...Array.from(
-                    { length: childAddressCellsValue },
-                    () => "ChildAddress"
-                  ),
-                  ...Array.from(
-                    { length: childInterruptSpecifierValue },
-                    () => "ChildInterruptSpecifier"
-                  ),
-                  "InterruptParent",
-                  ...Array.from(
-                    { length: parentUnitAddressValue },
-                    () => "ParentUnitAddress"
-                  ),
-                  ...Array.from(
-                    { length: parentInterruptSpecifierValue },
-                    () => "ParentInterruptSpecifier"
-                  ),
-                ]
+                `after the last value of ${typeExamples
+                  .at(-1)!
                   .slice(
                     (values.length - entryEndIndex) % expLen === 0
                       ? expLen
@@ -275,6 +258,10 @@ export default () => {
         }
         entryEndIndex = i;
       }
+
+      prop.typeExample = typeExamples
+        .map((t) => `<${t.join(" ")}>`)
+        .join("\n\t\t");
 
       if (!property.ast.values) {
         return [];
