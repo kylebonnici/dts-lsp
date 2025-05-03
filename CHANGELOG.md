@@ -32,6 +32,13 @@ prop1 = <
 				10>;
 ```
 
+### Removed
+
+- Validation of `ranges` property to ensure it does not exceed the `reg` property address range.
+- Validation of `ranges` property to ensure ranges do not overlap.
+- Validation of `dma-ranges` property to ensure ranges do not overlap.
+- Validation of `reg` property to ensure it does not exceed the parent node's `reg` range when mapped and defined.
+
 ## [0.3.3] - 2025-05-01
 
 ### Fixed
