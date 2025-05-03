@@ -25,7 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Chassis Type description
-- Formating not working when document has
+- Formatting not working when document has
 
 ```devicetree
 prop1 = <
@@ -44,7 +44,7 @@ prop1 = <
 ### Fixed
 
 - Warning message when reg exceeds range for address mapping.
-- Flickr when selecting a text editor that does not have 'devicetree' languageId
+- Flicker when selecting a text editor that does not have 'devicetree' languageId
 
 ## [0.3.2] - 2025-04-30
 
