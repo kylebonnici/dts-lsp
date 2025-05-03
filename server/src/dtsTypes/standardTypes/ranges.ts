@@ -104,33 +104,31 @@ export default () => {
           const reg = childNode.getProperty("reg");
           if (!reg) return;
 
-          const mappedAddress = childNode
-            .mappedReg(macros)
-            ?.forEach((mappedAddress) => {
-              if (!mappedAddress?.mappingEnd || !mappedAddress.mappedAst)
-                return;
+          childNode.mappedReg(macros)?.forEach((mappedAddress) => {
+            if (!mappedAddress?.mappingEnd || !mappedAddress.mappedAst) return;
 
-              if (!mappedAddress.inMappingRange) {
-                issues.push(
-                  genStandardTypeDiagnostic(
-                    StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS,
-                    reg.ast.values ?? reg.ast,
-                    DiagnosticSeverity.Warning,
-                    [mappedAddress.mappedAst],
-                    [],
-                    [
-                      reg.name,
-                      `0x${mappedAddress.endAddress
-                        .map((c, i) => c.toString(16).padStart(i ? 8 : 0, "0"))
-                        .join("")}`,
-                      `0x${mappedAddress.mappingEnd
-                        .map((c, i) => c.toString(16).padStart(i ? 8 : 0, "0"))
-                        .join("")}`,
-                    ]
-                  )
-                );
-              }
-            });
+            if (!mappedAddress.inMappingRange) {
+              mappedAddress.regAst;
+              issues.push(
+                genStandardTypeDiagnostic(
+                  StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS,
+                  mappedAddress.regAst,
+                  DiagnosticSeverity.Warning,
+                  [mappedAddress.mappedAst],
+                  [],
+                  [
+                    reg.name,
+                    `0x${mappedAddress.endAddress
+                      .map((c, i) => c.toString(16).padStart(i ? 8 : 0, "0"))
+                      .join("")}`,
+                    `0x${mappedAddress.mappingEnd
+                      .map((c, i) => c.toString(16).padStart(i ? 8 : 0, "0"))
+                      .join("")}`,
+                  ]
+                )
+              );
+            }
+          });
         });
       }
 
