@@ -109,7 +109,7 @@ const deleteContext = async (context: ContextAware) => {
     return;
   }
 
-  clearWorkspaceDiagnostics(context);
+  clearWorkspaceDiagnostics(context, undefined, true);
   debounce.delete(context);
   console.log(
     `(ID: ${context.id}) cleaning Context for [${context.ctxNames.join(",")}]`
@@ -715,19 +715,30 @@ const generateClearWorkspaceDiagnostics = (context: ContextAware) =>
 
 const clearWorkspaceDiagnostics = async (
   context: ContextAware,
-  items: PublishDiagnosticsParams[] = generateClearWorkspaceDiagnostics(context)
+  items: PublishDiagnosticsParams[] = generateClearWorkspaceDiagnostics(
+    context
+  ),
+  force = false
 ) => {
-  if (context !== activeContext) {
+  if (!force && context !== activeContext) {
     return;
   }
   await Promise.all(
-    items.map((item) => {
-      return connection.sendDiagnostics({
-        uri: item.uri,
-        version: documents.get(item.uri)?.version,
-        diagnostics: [],
-      } satisfies PublishDiagnosticsParams);
-    })
+    items
+      .filter(
+        (item) =>
+          context === activeContext ||
+          !activeContext
+            ?.getContextFiles()
+            .some((f) => isPathEqual(fileURLToPath(item.uri), f))
+      )
+      .map((item) => {
+        return connection.sendDiagnostics({
+          uri: item.uri,
+          version: documents.get(item.uri)?.version,
+          diagnostics: [],
+        } satisfies PublishDiagnosticsParams);
+      })
   );
 };
 
@@ -887,6 +898,16 @@ documents.onDidClose(async (e) => {
           adHocContextSettings.delete(context.settings.dtsFile);
         } else {
           clearWorkspaceDiagnostics(context);
+        }
+      } else {
+        if (
+          !activeContext?.getContextFiles().some((f) => isPathEqual(f, uri))
+        ) {
+          connection.sendDiagnostics({
+            uri: e.document.uri,
+            version: documents.get(e.document.uri)?.version,
+            diagnostics: [],
+          } satisfies PublishDiagnosticsParams);
         }
       }
     })

@@ -26,6 +26,10 @@ import { Node } from "./context/node";
 import { Property } from "./context/property";
 import { Runtime } from "./context/runtime";
 import { CMacro } from "./ast/cPreprocessors/macro";
+import { LabelRef } from "./ast/dtc/labelRef";
+import { NodePathRef } from "./ast/dtc/values/nodePath";
+import { NumberValue } from "./ast/dtc/values/number";
+import { Expression } from "./ast/cPreprocessors/expression";
 
 export type CodeActionDiagnosticData = {
   issues: { edit?: TextEdit; codeActionTitle?: string } & (
@@ -54,7 +58,6 @@ export enum StandardTypeIssue {
   DEPRECATED,
   IGNORED,
   PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
-  INTERRUPTS_VALUE_CELL_MISS_MATCH,
   INTERRUPTS_PARENT_NODE_NOT_FOUND,
   EXPECTED_UNIQUE_PHANDLE,
   CELL_MISS_MATCH,
@@ -68,8 +71,8 @@ export enum StandardTypeIssue {
   PROPERTY_NOT_ALLOWED,
   INVALID_VALUE,
   EXCEEDS_MAPPING_ADDRESS,
-  RANGE_EXCEEDS_ADDRESS_SPACE,
-  RANGES_OVERLAP,
+  DUPLICATE_MAP_ENTRY,
+  NO_NEXUS_MAP_MATCH,
 }
 
 export enum SyntaxIssue {
@@ -306,9 +309,22 @@ export type FileDiagnostic = {
   diagnostic: () => Diagnostic;
 };
 
-export type Mapping = {
+export type RegMapping = {
+  startAddress: number[];
+  size: number[];
+  endAddress: number[];
+  ast: ASTBase;
+};
+
+export type RangeMapping = {
   childAddress: number[];
   parentAddress: number[];
   length: number[];
   ast: ASTBase;
+};
+
+export type NexusMapEnty = {
+  mappingValues: (LabelRef | NodePathRef | NumberValue | Expression)[];
+  node: Node;
+  parentValues: (LabelRef | NodePathRef | NumberValue | Expression)[];
 };

@@ -57,7 +57,7 @@ export default () => {
           { length: parentdBusAddressValue },
           () => "parent-bus-address"
         ),
-        ...Array.from({ length: parentdBusAddressValue }, () => "length"),
+        ...Array.from({ length: parentdBusAddressValue }, () => "size"),
       ].join(" ")}>`;
 
       if (
@@ -85,84 +85,35 @@ export default () => {
       }
 
       if (issues.length === 0) {
-        const mappings = property.parent.rangeMap(macros);
-        mappings &&
-          findUniqueMappingOverlaps(mappings).forEach((overlap) => {
-            issues.push(
-              genStandardTypeDiagnostic(
-                StandardTypeIssue.RANGES_OVERLAP,
-                overlap.mappingA.ast,
-                DiagnosticSeverity.Error,
-                [overlap.mappingB.ast],
-                [],
-                [overlap.overlapOn]
-              )
-            );
-          });
+        property.parent.nodes.forEach((childNode) => {
+          const reg = childNode.getProperty("reg");
+          if (!reg) return;
 
-        const thisNodeReg = property.parent.reg(macros);
-        if (thisNodeReg) {
-          mappings?.forEach((m) => {
-            const ends = addWords(m.parentAddress, m.length);
-            if (
-              compareWords(thisNodeReg.endAddress, ends) < 0 ||
-              compareWords(thisNodeReg.startAddress, m.parentAddress) > 0
-            ) {
+          childNode.mappedReg(macros)?.forEach((mappedAddress) => {
+            if (!mappedAddress?.mappingEnd || !mappedAddress.mappedAst) return;
+
+            if (!mappedAddress.inMappingRange) {
+              mappedAddress.regAst;
               issues.push(
                 genStandardTypeDiagnostic(
-                  StandardTypeIssue.RANGE_EXCEEDS_ADDRESS_SPACE,
-                  m.ast,
+                  StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS,
+                  mappedAddress.regAst,
                   DiagnosticSeverity.Warning,
-                  [thisNodeReg.ast],
+                  [mappedAddress.mappedAst],
                   [],
                   [
-                    property.name,
-                    m.parentAddress
-                      .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
-                      .join(""),
-                    ends
-                      .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
-                      .join(""),
-                    thisNodeReg.startAddress
-                      .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
-                      .join(""),
-                    thisNodeReg.endAddress
-                      .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
-                      .join(""),
+                    reg.name,
+                    `0x${mappedAddress.endAddress
+                      .map((c, i) => c.toString(16).padStart(i ? 8 : 0, "0"))
+                      .join("")}`,
+                    `0x${mappedAddress.mappingEnd
+                      .map((c, i) => c.toString(16).padStart(i ? 8 : 0, "0"))
+                      .join("")}`,
                   ]
                 )
               );
             }
           });
-        }
-
-        property.parent.nodes.forEach((childNode) => {
-          const reg = childNode.getProperty("reg");
-          if (!reg) return;
-
-          const mappedAddress = childNode.mappedReg(macros);
-          if (!mappedAddress?.mappingEnd || !mappedAddress.mappedAst) return;
-
-          if (!mappedAddress.inMappingRange) {
-            issues.push(
-              genStandardTypeDiagnostic(
-                StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS,
-                reg.ast.values ?? reg.ast,
-                DiagnosticSeverity.Warning,
-                [mappedAddress.mappedAst],
-                [],
-                [
-                  reg.name,
-                  mappedAddress.endAddress
-                    .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
-                    .join(""),
-                  mappedAddress.mappingEnd
-                    .map((c, i) => `0x${c.toString(16).padStart(i ? 8 : 0)}`)
-                    .join(""),
-                ]
-              )
-            );
-          }
         });
       }
 

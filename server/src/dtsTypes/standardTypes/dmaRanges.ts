@@ -82,23 +82,6 @@ export default () => {
         );
       }
 
-      if (issues.length === 0) {
-        const mappings = property.parent.dmaRangeMap(macros);
-        mappings &&
-          findUniqueMappingOverlaps(mappings).forEach((overlap) => {
-            issues.push(
-              genStandardTypeDiagnostic(
-                StandardTypeIssue.RANGES_OVERLAP,
-                overlap.mappingA.ast,
-                DiagnosticSeverity.Error,
-                [overlap.mappingB.ast],
-                [],
-                [overlap.overlapOn]
-              )
-            );
-          });
-      }
-
       return issues;
     }
   );

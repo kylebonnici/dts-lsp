@@ -9,6 +9,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - `reserved-memory` child node types.
+- Require of `#address-cells` to be defined on node parent when using `interrupt` property.
+- Require of `#address-cells` to be defined when using `interrupt-map` property.
+- Require of `#address-cells` to be defined on node parent when using `interrupts-extended` property.
+- Validation of `interrupt` property is linking to a `interrupt-map` entry.
+- Validation of `interrupts-extended` property is linking to a `interrupt-map` entry.
+- Validation of `interrupt-map-mask` has the correct number of `U32` values.
+- Validation of `interrupt-map` entries that none overlap.
+- Validation of `nexus-map-mask` has the correct number of `U32` values.
+- Validation of `nexus-map-pass-thru` has the correct number of `U32` values.
+- Validation of `nexus-map` entries that none overlap.
+- Validation in `Zephyr` bindings when a property is linking to a nexus-map entry.
+- OnHover information for nexus-map entry for links.
 
 ### Fixed
 
@@ -19,6 +31,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 prop1 = <
 				10>;
 ```
+
+### Removed
+
+- Validation of `ranges` property to ensure it does not exceed the `reg` property address range.
+- Validation of `ranges` property to ensure ranges do not overlap.
+- Validation of `dma-ranges` property to ensure ranges do not overlap.
+- Validation of `reg` property to ensure it does not exceed the parent node's `reg` range when mapped and defined.
 
 ## [0.3.3] - 2025-05-01
 

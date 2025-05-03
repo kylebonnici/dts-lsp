@@ -40,7 +40,7 @@ import {
   StandardTypeIssue,
   CodeActionDiagnosticData,
   FileDiagnostic,
-  Mapping,
+  RangeMapping,
 } from "./types";
 import { ContextAware } from "./runtimeEvaluator";
 import url from "url";
@@ -896,8 +896,6 @@ export const standardTypeIssueIssuesToMessage = (
           return `INTRO requires property "${issue.templateStrings[1]}" in node path "${issue.templateStrings[2]}"`;
         case StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND:
           return `Unable to resolve interrupt parent node`;
-        case StandardTypeIssue.INTERRUPTS_VALUE_CELL_MISS_MATCH:
-          return `INTRO expects ${issue.templateStrings[1]} interrupt cells`;
         case StandardTypeIssue.MAP_ENTRY_INCOMPLETE:
           return `INTRO should have format ${issue.templateStrings[1]}`;
         case StandardTypeIssue.NODE_DISABLED:
@@ -914,12 +912,12 @@ export const standardTypeIssueIssuesToMessage = (
           return issue.templateStrings[0];
         case StandardTypeIssue.INVALID_VALUE:
           return issue.templateStrings[0];
-        case StandardTypeIssue.RANGE_EXCEEDS_ADDRESS_SPACE:
-          return `INTRO exceeds address space of this node. Range: ${issue.templateStrings[1]}-${issue.templateStrings[2]}, reg: ${issue.templateStrings[3]}-${issue.templateStrings[4]}`;
         case StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS:
           return `INTRO exceeds address space avalable for this mapping. The range ends at ${issue.templateStrings[2]}, the node ends at ${issue.templateStrings[1]}`;
-        case StandardTypeIssue.RANGES_OVERLAP:
-          return `Range overlaps with other range on ${issue.templateStrings[0]} address range`;
+        case StandardTypeIssue.DUPLICATE_MAP_ENTRY:
+          return `Map entry overlaps with others entries`;
+        case StandardTypeIssue.NO_NEXUS_MAP_MATCH:
+          return `Unable to match to a nexus map entry`;
       }
     })
     .join(" or ")
@@ -932,8 +930,6 @@ export const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
     case StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE:
     case StandardTypeIssue.REQUIRED:
       return `Node`;
-    case StandardTypeIssue.INTERRUPTS_VALUE_CELL_MISS_MATCH:
-      return "Property";
     case StandardTypeIssue.IGNORED:
       return "Ignored reason";
     case StandardTypeIssue.EXPECTED_UNIQUE_PHANDLE:
@@ -942,12 +938,12 @@ export const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
       return "Additional value";
     case StandardTypeIssue.NODE_DISABLED:
       return "Disabled by";
-    case StandardTypeIssue.RANGE_EXCEEDS_ADDRESS_SPACE:
-      return "Address space";
     case StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS:
       return "Mapping range";
-    case StandardTypeIssue.RANGES_OVERLAP:
-      return "Overlapping range";
+    case StandardTypeIssue.DUPLICATE_MAP_ENTRY:
+      return `Map entry`;
+    case StandardTypeIssue.NO_NEXUS_MAP_MATCH:
+      return `Nexus map entries`;
     default:
       return `TODO`;
   }
@@ -1012,9 +1008,10 @@ type MappedAddress = {
 };
 
 export const findMappedAddress = (
-  mappings: Mapping[],
+  mappings: RangeMapping[],
   address: number[]
-): MappedAddress | null => {
+): MappedAddress[] => {
+  const matches: MappedAddress[] = [];
   for (const mapping of mappings) {
     const childStart = mapping.childAddress;
     const size = mapping.length;
@@ -1029,25 +1026,25 @@ export const findMappedAddress = (
       const mappedStart = addOffset(parentStart, offset);
       const mappedEnd = addWords(parentStart, size);
 
-      return {
+      matches.push({
         start: mappedStart,
         end: mappedEnd,
         ast: mapping.ast,
-      };
+      });
     }
   }
 
-  return null;
+  return matches;
 };
 
 type OverlappingMapping = {
-  mappingA: Mapping;
-  mappingB: Mapping;
+  mappingA: RangeMapping;
+  mappingB: RangeMapping;
   overlapOn: "child" | "parent" | "child and parent";
 };
 
 export const findUniqueMappingOverlaps = (
-  mappings: Mapping[]
+  mappings: RangeMapping[]
 ): OverlappingMapping[] => {
   const overlaps: OverlappingMapping[] = [];
 

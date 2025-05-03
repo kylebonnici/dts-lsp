@@ -14,14 +14,71 @@
  * limitations under the License.
  */
 
+import { genStandardTypeDiagnostic } from "../../helpers";
+import { FileDiagnostic, StandardTypeIssue } from "../../types";
 import { BindingPropertyType } from "../../types/index";
 import { PropertyNodeType } from "../types";
-import { generateOrTypeObj } from "./helpers";
+import {
+  flatNumberValues,
+  generateOrTypeObj,
+  getU32ValueFromProperty,
+} from "./helpers";
+import { DiagnosticSeverity } from "vscode-languageserver-types";
 
 export default () => {
-  const prop = new PropertyNodeType(
+  const prop = new PropertyNodeType<number>(
     /^(?!interrupt-).*?-map-mask$/,
-    generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY)
+    generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
+    "optional",
+    undefined,
+    undefined,
+    (property, macros) => {
+      const issues: FileDiagnostic[] = [];
+      const node = property.parent;
+
+      const values = flatNumberValues(property.ast.values);
+      if (!values?.length) {
+        return [];
+      }
+
+      const specifier = property.name.split("-map", 1)[0];
+      const childSpecifierCells = node.getProperty(`#${specifier}-cells`);
+
+      if (!childSpecifierCells) {
+        return issues;
+      }
+
+      const childInterruptSpecifierValue = getU32ValueFromProperty(
+        childSpecifierCells,
+        0,
+        0,
+        macros
+      );
+
+      if (childInterruptSpecifierValue == null) {
+        return issues;
+      }
+
+      prop.typeExample = `<${[
+        ...Array.from({ length: childInterruptSpecifierValue }, () => "mask"),
+      ].join(" ")}> `;
+
+      if (values.length !== childInterruptSpecifierValue) {
+        issues.push(
+          genStandardTypeDiagnostic(
+            StandardTypeIssue.CELL_MISS_MATCH,
+            property.ast.values ?? property.ast,
+            DiagnosticSeverity.Error,
+            [],
+            [],
+            [property.name, prop.typeExample]
+          )
+        );
+        return issues;
+      }
+
+      return issues;
+    }
   );
 
   prop.description = [

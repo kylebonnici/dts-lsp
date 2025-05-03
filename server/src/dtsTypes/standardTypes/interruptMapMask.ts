@@ -14,14 +14,79 @@
  * limitations under the License.
  */
 
+import { FileDiagnostic, StandardTypeIssue } from "../../types";
 import { BindingPropertyType } from "../../types/index";
 import { PropertyNodeType } from "../types";
-import { generateOrTypeObj } from "./helpers";
+import {
+  flatNumberValues,
+  generateOrTypeObj,
+  getU32ValueFromProperty,
+} from "./helpers";
+import { genStandardTypeDiagnostic } from "../../helpers";
+import { DiagnosticSeverity } from "vscode-languageserver-types";
 
 export default () => {
-  const prop = new PropertyNodeType(
+  const prop = new PropertyNodeType<number>(
     "interrupt-map-mask",
-    generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY)
+    generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
+    "optional",
+    undefined,
+    undefined,
+    (property, macros) => {
+      const issues: FileDiagnostic[] = [];
+      const node = property.parent;
+
+      const values = flatNumberValues(property.ast.values);
+      if (!values?.length) {
+        return [];
+      }
+
+      const childInterruptSpecifier = node.getProperty("#interrupt-cells");
+
+      if (!childInterruptSpecifier) {
+        return issues;
+      }
+
+      const childAddressCellsValue = node.addressCells(macros);
+
+      const childInterruptSpecifierValue = getU32ValueFromProperty(
+        childInterruptSpecifier,
+        0,
+        0,
+        macros
+      );
+
+      if (childInterruptSpecifierValue == null) {
+        return issues;
+      }
+
+      prop.typeExample = `<${[
+        ...Array.from({ length: childAddressCellsValue }, () => "AddressMask"),
+        ...Array.from(
+          { length: childInterruptSpecifierValue },
+          () => "InterruptMask"
+        ),
+      ].join(" ")}> `;
+
+      if (
+        values.length !==
+        childAddressCellsValue + childInterruptSpecifierValue
+      ) {
+        issues.push(
+          genStandardTypeDiagnostic(
+            StandardTypeIssue.CELL_MISS_MATCH,
+            property.ast.values ?? property.ast,
+            DiagnosticSeverity.Error,
+            [],
+            [],
+            [property.name, prop.typeExample]
+          )
+        );
+        return issues;
+      }
+
+      return issues;
+    }
   );
   prop.description = [
     "An interrupt-map-mask property is specified for a nexus node in the interrupt tree. This property specifies a mask that is ANDed with the incoming unit interrupt specifier being looked up in the table specified in the interrupt-mapproperty.",

@@ -23,8 +23,10 @@ import {
   resolvePhandleNode,
   getU32ValueFromProperty,
 } from "./helpers";
-import { genStandardTypeDiagnostic } from "../../helpers";
+import { createTokenIndex, genStandardTypeDiagnostic } from "../../helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
+import { ASTBase } from "../../ast/base";
+import { Expression } from "../../ast/cPreprocessors/expression";
 
 export default () => {
   const prop = new PropertyNodeType<number>(
@@ -75,18 +77,41 @@ export default () => {
         return [];
       }
 
+      const keys: { [key: string]: ASTBase[] } = {};
+
       let i = 0;
       let entryEndIndex = 0;
+      const typeExamples: string[][] = [];
       while (i < values.length) {
+        const keyItem = new ASTBase(
+          createTokenIndex(
+            values.at(i)!.firstToken,
+            values.at(childSpecifierCellsValue + i - 1)!.lastToken
+          )
+        );
+
+        let key = "";
+        for (let j = i; j < childSpecifierCellsValue + i; j++) {
+          const value = values[j];
+          key += `${
+            value instanceof Expression
+              ? value.evaluate(macros).toString()
+              : value.toString()
+          }:`;
+        }
+
+        keys[key] ??= [];
+        keys[key].push(keyItem);
+
         i += childSpecifierCellsValue;
         prop.typeExample ??= "";
-        prop.typeExample += `<${[
+        typeExamples.push([
           ...Array.from(
             { length: childSpecifierCellsValue },
             () => "ChildSpecifier"
           ),
-          "SpecifierParent ParentSpecifier",
-        ].join(" ")}> `;
+          "SpecifierParent ParentSpecifier...",
+        ]);
 
         if (values.length < i + 1) {
           const expLen = childSpecifierCellsValue + 1;
@@ -99,13 +124,8 @@ export default () => {
               [],
               [
                 property.name,
-                `after the last value of ${[
-                  ...Array.from(
-                    { length: childSpecifierCellsValue },
-                    () => "ChildSpecifier"
-                  ),
-                  "SpecifierParent ParentSpecifier...",
-                ]
+                `after the last value of ${typeExamples
+                  .at(-1)!
                   .slice(
                     (values.length - entryEndIndex) % expLen === 0
                       ? expLen
@@ -164,6 +184,18 @@ export default () => {
           break;
         }
 
+        typeExamples.splice(-1, 1, [
+          ...Array.from(
+            { length: childSpecifierCellsValue },
+            () => "ChildSpecifier"
+          ),
+          "SpecifierParent",
+          ...Array.from(
+            { length: parentUnitAddressValue },
+            () => "ParentSpecifier"
+          ),
+        ]);
+
         i += parentUnitAddressValue;
         if (values.length < i) {
           const expLen = childSpecifierCellsValue + 1 + parentUnitAddressValue;
@@ -176,17 +208,8 @@ export default () => {
               [],
               [
                 property.name,
-                `after the last value of ${[
-                  ...Array.from(
-                    { length: childSpecifierCellsValue },
-                    () => "ChildSpecifier"
-                  ),
-                  "InterruptParent",
-                  ...Array.from(
-                    { length: parentUnitAddressValue },
-                    () => "ParentSpecifier"
-                  ),
-                ]
+                `after the last value of ${typeExamples
+                  .at(-1)!
                   .slice(
                     (values.length - entryEndIndex) % expLen === 0
                       ? expLen
@@ -201,14 +224,22 @@ export default () => {
         entryEndIndex = i;
       }
 
-      prop.typeExample ??= `<${[
-        ...Array.from(
-          { length: childSpecifierCellsValue },
-          () => "ChildSpecifier"
-        ),
-        "SpecifierParent ParentSpecifier",
-      ].join(" ")}>`;
+      prop.typeExample = typeExamples
+        .map((t) => `<${t.join(" ")}>`)
+        .join("\n\t\t");
 
+      Object.values(keys).forEach((v) => {
+        if (v.length > 1) {
+          issues.push(
+            genStandardTypeDiagnostic(
+              StandardTypeIssue.DUPLICATE_MAP_ENTRY,
+              v[v.length - 1],
+              DiagnosticSeverity.Error,
+              v.slice(0, -1)
+            )
+          );
+        }
+      });
       return issues;
     }
   );

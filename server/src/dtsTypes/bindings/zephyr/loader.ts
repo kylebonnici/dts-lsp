@@ -17,10 +17,12 @@ import {
   MacroRegistryItem,
   StandardTypeIssue,
 } from "../../../types";
-import { genStandardTypeDiagnostic } from "../../../helpers";
+import { createTokenIndex, genStandardTypeDiagnostic } from "../../../helpers";
 import { DiagnosticSeverity, DiagnosticTag } from "vscode-languageserver";
 import { Property } from "../../../context/property";
 import { BindingPropertyType } from "../../../types/index";
+import { Expression } from "src/ast/cPreprocessors/expression";
+import { ASTBase } from "src/ast/base";
 
 type ZephyrPropertyType =
   | "string"
@@ -593,6 +595,31 @@ const generateZephyrTypeCheck = (
           break;
         }
         i += 1 + sizeCellValue;
+
+        const mappingValuesAst = values.slice(i - sizeCellValue, i);
+        const mapProperty = phandelValue.getProperty(`${parentName}-map`);
+        if (mapProperty) {
+          const match = phandelValue.getNexusMapEntyMatch(
+            parentName,
+            macros,
+            mappingValuesAst
+          );
+          if (!match?.match) {
+            issues.push(
+              genStandardTypeDiagnostic(
+                StandardTypeIssue.NO_NEXUS_MAP_MATCH,
+                match.entry,
+                DiagnosticSeverity.Error,
+                [mapProperty.ast]
+              )
+            );
+          } else {
+            p.nexusMapsTo.push({
+              mappingValuesAst,
+              mapItem: match.match,
+            });
+          }
+        }
       }
     }
 

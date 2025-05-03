@@ -23,9 +23,11 @@ import {
   resolvePhandleNode,
   getU32ValueFromProperty,
 } from "./helpers";
-import { genStandardTypeDiagnostic } from "../../helpers";
+import { createTokenIndex, genStandardTypeDiagnostic } from "../../helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { ArrayValues } from "../../ast/dtc/values/arrayValue";
+import { ASTBase } from "../../ast/base";
+import { Expression } from "../../ast/cPreprocessors/expression";
 
 export default () => {
   const prop = new PropertyNodeType<number>(
@@ -42,6 +44,20 @@ export default () => {
       const values = flatNumberValues(property.ast.values);
       if (!values?.length) {
         return [];
+      }
+
+      const addressCellsProperty = node.getProperty(`#address-cells`);
+      if (!addressCellsProperty) {
+        issues.push(
+          genStandardTypeDiagnostic(
+            StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+            property.ast,
+            DiagnosticSeverity.Error,
+            [...property.parent.nodeNameOrLabelRef],
+            [],
+            [property.name, "#address-cells", node.pathString]
+          )
+        );
       }
 
       const childInterruptSpecifier = node.getProperty("#interrupt-cells");
@@ -74,11 +90,40 @@ export default () => {
         macros
       );
 
+      const keys: { [key: string]: ASTBase[] } = {};
+
+      if (childInterruptSpecifierValue == null) {
+        return issues;
+      }
+
       let i = 0;
+      const typeExamples: string[][] = [];
       while (i < values.length) {
-        if (childInterruptSpecifierValue == null) {
-          return issues;
+        const keyItem = new ASTBase(
+          createTokenIndex(
+            values.at(i)!.firstToken,
+            values.at(
+              childAddressCellsValue + childInterruptSpecifierValue + i - 1
+            )!.lastToken
+          )
+        );
+
+        let key = "";
+        for (
+          let j = i;
+          j < childAddressCellsValue + childInterruptSpecifierValue + i;
+          j++
+        ) {
+          const value = values[j];
+          key += `${
+            value instanceof Expression
+              ? value.evaluate(macros).toString()
+              : value.toString()
+          }:`;
         }
+
+        keys[key] ??= [];
+        keys[key].push(keyItem);
 
         let entryEndIndex = 0;
 
@@ -87,17 +132,14 @@ export default () => {
         const expLen =
           childAddressCellsValue + childInterruptSpecifierValue + 1;
         prop.typeExample ??= "";
-        prop.typeExample += `<${[
-          ...Array.from(
-            { length: childAddressCellsValue },
-            () => "ChildAddress"
-          ),
+        typeExamples.push([
+          ...Array.from({ length: childAddressCellsValue }, () => "ChildAddr"),
           ...Array.from(
             { length: childInterruptSpecifierValue },
-            () => "ChildInterruptSpecifier"
+            () => "ChildIntrpt"
           ),
-          "InterruptParent ParentUnitAddress... ParentInterruptSpecifier...",
-        ].join(" ")}> `;
+          "IntrptParent ParentAddr... ParentIntrpt...",
+        ]);
 
         if (values.length < i + 1) {
           issues.push(
@@ -109,17 +151,8 @@ export default () => {
               [],
               [
                 property.name,
-                `after the last value of ${[
-                  ...Array.from(
-                    { length: childAddressCellsValue },
-                    () => "ChildAddress"
-                  ),
-                  ...Array.from(
-                    { length: childInterruptSpecifierValue },
-                    () => "ChildInterruptSpecifier"
-                  ),
-                  "InterruptParent ParentUnitAddress... ParentInterruptSpecifier...",
-                ]
+                `after the last value of ${typeExamples
+                  .at(-1)!
                   .slice(
                     (values.length - entryEndIndex) % expLen === 0
                       ? expLen
@@ -175,12 +208,23 @@ export default () => {
           macros
         );
 
-        if (
-          parentUnitAddressValue == null ||
-          parentInterruptSpecifierValue == null
-        ) {
+        if (parentInterruptSpecifierValue == null) {
           break;
         }
+
+        typeExamples.splice(-1, 1, [
+          ...Array.from({ length: childAddressCellsValue }, () => "ChildAddr"),
+          ...Array.from(
+            { length: childInterruptSpecifierValue },
+            () => "ChildIntrpt"
+          ),
+          "IntrptParent",
+          ...Array.from({ length: parentUnitAddressValue }, () => "ParentAddr"),
+          ...Array.from(
+            { length: parentInterruptSpecifierValue },
+            () => "ParentIntrpt"
+          ),
+        ]);
 
         i += parentUnitAddressValue + parentInterruptSpecifierValue;
         if (values.length < i) {
@@ -199,25 +243,8 @@ export default () => {
               [],
               [
                 property.name,
-                `after the last value of ${[
-                  ...Array.from(
-                    { length: childAddressCellsValue },
-                    () => "ChildAddress"
-                  ),
-                  ...Array.from(
-                    { length: childInterruptSpecifierValue },
-                    () => "ChildInterruptSpecifier"
-                  ),
-                  "InterruptParent",
-                  ...Array.from(
-                    { length: parentUnitAddressValue },
-                    () => "ParentUnitAddress"
-                  ),
-                  ...Array.from(
-                    { length: parentInterruptSpecifierValue },
-                    () => "ParentInterruptSpecifier"
-                  ),
-                ]
+                `after the last value of ${typeExamples
+                  .at(-1)!
                   .slice(
                     (values.length - entryEndIndex) % expLen === 0
                       ? expLen
@@ -231,6 +258,10 @@ export default () => {
         }
         entryEndIndex = i;
       }
+
+      prop.typeExample = typeExamples
+        .map((t) => `<${t.join(" ")}>`)
+        .join("\n\t\t");
 
       if (!property.ast.values) {
         return [];
@@ -256,6 +287,18 @@ export default () => {
         }
       }
 
+      Object.values(keys).forEach((v) => {
+        if (v.length > 1) {
+          issues.push(
+            genStandardTypeDiagnostic(
+              StandardTypeIssue.DUPLICATE_MAP_ENTRY,
+              v[v.length - 1],
+              DiagnosticSeverity.Error,
+              v.slice(0, -1)
+            )
+          );
+        }
+      });
       return issues;
     }
   );

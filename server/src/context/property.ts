@@ -18,13 +18,15 @@ import { DtcProperty } from "../ast/dtc/property";
 import {
   ContextIssues,
   FileDiagnostic,
-  Issue,
   MacroRegistryItem,
+  NexusMapEnty,
   SearchableResult,
 } from "../types";
 import {
   DiagnosticSeverity,
   DiagnosticTag,
+  MarkupContent,
+  MarkupKind,
   Position,
 } from "vscode-languageserver";
 import {
@@ -35,11 +37,13 @@ import {
   positionAfter,
 } from "../helpers";
 import { LabelAssign } from "../ast/dtc/label";
-import { type Node } from "./node";
+import type { Node } from "./node";
+import { ASTBase } from "../ast/base";
 
 export class Property {
   replaces?: Property;
   replacedBy?: Property;
+  nexusMapsTo: { mappingValuesAst: ASTBase[]; mapItem: NexusMapEnty }[] = [];
   constructor(public readonly ast: DtcProperty, public readonly parent: Node) {}
 
   getDeepestAstNode(
@@ -105,6 +109,32 @@ export class Property {
           ]
         : []),
     ];
+  }
+
+  onHover(): MarkupContent | undefined {
+    if (!this.nexusMapsTo.length) return;
+
+    return {
+      kind: MarkupKind.Markdown,
+      value: [
+        "### Nexus mappings",
+
+        ...this.nexusMapsTo.flatMap((m) => [
+          "```",
+          `${this.name} = <... ${m.mappingValuesAst
+            .map((a) => a.toString())
+            .join(" ")} ...> maps to <... ${m.mapItem.mappingValues
+            .map((a) => a.toString())
+            .join(" ")} ...>;`,
+          "```",
+          `[Mapping (${m.mappingValuesAst
+            .map((a) => a.toString())
+            .join(
+              " "
+            )})](${`${m.mapItem.mappingValues[0].uri}#L${m.mapItem.mappingValues[0].firstToken.pos.line}`})`,
+        ]),
+      ].join("\n"),
+    };
   }
 
   get allReplaced(): Property[] {

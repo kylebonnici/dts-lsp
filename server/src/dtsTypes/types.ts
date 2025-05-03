@@ -567,7 +567,7 @@ export class NodeType extends INodeType {
 
       if (
         ddd.length &&
-        properties.filter((p) => ddd.some((d) => d.getNameMatch(p.name)))
+        properties.some((p) => ddd.some((d) => d.getNameMatch(p.name)))
       ) {
         return [];
       }

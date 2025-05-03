@@ -17,7 +17,12 @@
 import { BindingPropertyType } from "../../types/index";
 import { FileDiagnostic, StandardTypeIssue } from "../../types";
 import { PropertyNodeType } from "../types";
-import { generateOrTypeObj, resolvePhandleNode } from "./helpers";
+import {
+  flatNumberValues,
+  generateOrTypeObj,
+  getU32ValueFromProperty,
+  resolvePhandleNode,
+} from "./helpers";
 import { genStandardTypeDiagnostic } from "../../helpers";
 import { DiagnosticSeverity } from "vscode-languageserver";
 
@@ -28,8 +33,13 @@ export default () => {
     "optional",
     undefined,
     undefined,
-    (property) => {
+    (property, macros) => {
       const issues: FileDiagnostic[] = [];
+
+      const values = flatNumberValues(property.ast.values);
+      if (!values) {
+        return issues;
+      }
 
       const node = property.parent;
       const interruptParent = node.getProperty("interrupt-parent");
@@ -47,24 +57,129 @@ export default () => {
               DiagnosticSeverity.Error,
               [...property.parent.nodeNameOrLabelRef],
               [],
-              [
-                property.name,
-                "interrupt-parent",
-                `/${property.parent.path.slice(1).join("/")}`,
-              ]
-            )
-          );
-          return issues;
-        } else {
-          issues.push(
-            genStandardTypeDiagnostic(
-              StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
-              interruptParent.ast.values?.values.at(0)?.value ??
-                interruptParent.ast
+              [property.name, "interrupt-parent", property.parent.pathString]
             )
           );
           return issues;
         }
+        issues.push(
+          genStandardTypeDiagnostic(
+            StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
+            interruptParent.ast.values?.values.at(0)?.value ??
+              interruptParent.ast
+          )
+        );
+        return issues;
+      }
+
+      const childInterruptSpecifier =
+        parentInterruptNode.getProperty("#interrupt-cells");
+
+      if (!childInterruptSpecifier) {
+        return issues;
+      }
+
+      const childInterruptSpecifierValue = getU32ValueFromProperty(
+        childInterruptSpecifier,
+        0,
+        0,
+        macros
+      );
+
+      if (!childInterruptSpecifierValue) {
+        return issues;
+      }
+
+      prop.typeExample = `<${[
+        ...Array.from(
+          { length: childInterruptSpecifierValue },
+          () => "Interrupt"
+        ),
+      ].join(" ")}> `;
+
+      const mapProperty = parentInterruptNode.getProperty(`interrupt-map`);
+      const addressCellsProperty = node.parent?.getProperty(`#address-cells`);
+      if (mapProperty && !addressCellsProperty) {
+        issues.push(
+          genStandardTypeDiagnostic(
+            StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+            property.ast.propertyName ?? property.ast,
+            DiagnosticSeverity.Error,
+            [...property.parent.nodeNameOrLabelRef],
+            [],
+            [property.name, "#address-cells", node.parent!.pathString]
+          )
+        );
+      }
+
+      let i = 0;
+      while (i < values.length) {
+        if (!childInterruptSpecifier) {
+          issues.push(
+            genStandardTypeDiagnostic(
+              StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+              property.ast,
+              DiagnosticSeverity.Error,
+              [...parentInterruptNode.nodeNameOrLabelRef],
+              [],
+              [
+                property.name,
+                "#interrupt-cells",
+                parentInterruptNode.pathString,
+              ]
+            )
+          );
+
+          break;
+        }
+
+        const remaining = values.length - i;
+
+        if (childInterruptSpecifierValue > remaining) {
+          issues.push(
+            genStandardTypeDiagnostic(
+              StandardTypeIssue.CELL_MISS_MATCH,
+              values.at(-1)!,
+              DiagnosticSeverity.Error,
+              [],
+              [],
+              [property.name, prop.typeExample]
+            )
+          );
+          return issues;
+        }
+
+        const mappingValuesAst = values.slice(
+          i,
+          i + childInterruptSpecifierValue
+        );
+
+        const startAddress = node.mappedReg(macros)?.at(0)?.startAddress;
+        if (mapProperty && startAddress) {
+          const match = parentInterruptNode.getNexusMapEntyMatch(
+            "interrupt",
+            macros,
+            mappingValuesAst,
+            startAddress
+          );
+          if (!match?.match) {
+            issues.push(
+              genStandardTypeDiagnostic(
+                StandardTypeIssue.NO_NEXUS_MAP_MATCH,
+                match.entry,
+                DiagnosticSeverity.Error,
+                [mapProperty.ast]
+              )
+            );
+          } else {
+            property.nexusMapsTo.push({
+              mappingValuesAst,
+              mapItem: match.match,
+            });
+          }
+        }
+
+        i += childInterruptSpecifierValue;
       }
 
       return issues;

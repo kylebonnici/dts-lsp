@@ -38,6 +38,23 @@ export const flatNumberValues = (value: PropertyValues | null | undefined) => {
   );
 };
 
+export const getU32ValueFromFlatProperty = (
+  property: Property,
+  arrayValueIndex: number,
+  macros: Map<string, MacroRegistryItem>
+) => {
+  const value = flatNumberValues(property.ast.values)?.at(arrayValueIndex);
+
+  if (value instanceof ArrayValues) {
+    const labeledValue = value.values.at(arrayValueIndex);
+
+    if (labeledValue?.value instanceof Expression) {
+      const evaluted = labeledValue.value.evaluate(macros);
+      if (typeof evaluted === "number") return evaluted;
+    }
+  }
+};
+
 export const getU32ValueFromProperty = (
   property: Property,
   valueIndex: number,
@@ -90,30 +107,6 @@ export const resolvePhandleNode = (
       return value.path?.pathParts.at(-1)?.linksTo;
     }
   }
-};
-
-export const getInterruptInfo = (
-  node: Node
-): {
-  node: Node;
-  value?: number;
-  cellsProperty?: Property;
-} => {
-  const cellsProperty = node.getProperty("#interrupt-cells");
-  const cellsValue = cellsProperty?.ast.values?.values.at(0)?.value;
-
-  if (cellsValue instanceof ArrayValues) {
-    const value = cellsValue.values.at(0)?.value;
-    if (value instanceof NumberValue) {
-      return {
-        cellsProperty,
-        node,
-        value: value.value,
-      };
-    }
-  }
-
-  return { cellsProperty, node };
 };
 
 export const generateOrTypeObj = (

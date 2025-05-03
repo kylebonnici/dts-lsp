@@ -140,13 +140,18 @@ function getPropertyName(
   result: SearchableResult | undefined
 ): Hover | undefined {
   if (result?.item instanceof Property && result.ast instanceof PropertyName) {
-    const markup = result.item.parent.nodeType?.getOnPropertyHover(
+    const markup_1 = result.item.onHover();
+
+    const markup_2 = result.item.parent.nodeType?.getOnPropertyHover(
       result.item.name
     );
 
-    if (markup) {
+    if (markup_1 || markup_2) {
       return {
-        contents: markup,
+        contents: {
+          kind: MarkupKind.Markdown,
+          value: `${markup_1?.value ?? ""}\n${markup_2?.value ?? ""}`,
+        },
         range: toRange(result.ast),
       };
     }
