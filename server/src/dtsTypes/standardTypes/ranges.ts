@@ -85,21 +85,6 @@ export default () => {
       }
 
       if (issues.length === 0) {
-        const mappings = property.parent.rangeMap(macros);
-        mappings &&
-          findUniqueMappingOverlaps(mappings).forEach((overlap) => {
-            issues.push(
-              genStandardTypeDiagnostic(
-                StandardTypeIssue.RANGES_OVERLAP,
-                overlap.mappingA.ast,
-                DiagnosticSeverity.Error,
-                [overlap.mappingB.ast],
-                [],
-                [overlap.overlapOn]
-              )
-            );
-          });
-
         property.parent.nodes.forEach((childNode) => {
           const reg = childNode.getProperty("reg");
           if (!reg) return;

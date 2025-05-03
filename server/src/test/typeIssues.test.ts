@@ -888,60 +888,6 @@ describe("Type Issues", () => {
         expect(issues.length).toEqual(0);
       });
 
-      test("Overlapping ranges - child", async () => {
-        mockReadFileSync(
-          `/{${rootDefaults} #address-cells=<1>;  node@30 {reg=<0x30 0x20>;#address-cells=<1>; #size-cells=<1>; ranges= <0x10 0x30 0x10> <0x15 0x40 0x10>;};`
-        );
-        const context = new ContextAware(
-          { dtsFile: "file:///folder/dts.dts" },
-          getFakeBindingLoader()
-        );
-        await context.parser.stable;
-        const runtime = await context.getRuntime();
-        const issues = runtime.typesIssues;
-        expect(issues.length).toEqual(1);
-        expect(issues[0].raw.issues).toEqual([
-          StandardTypeIssue.RANGES_OVERLAP,
-        ]);
-        expect(issues[0].raw.templateStrings[0]).toEqual("child");
-      });
-
-      test("Overlapping ranges - parent", async () => {
-        mockReadFileSync(
-          `/{${rootDefaults} #address-cells=<1>;  node@30 {reg=<0x30 0x20>;#address-cells=<1>; #size-cells=<1>; ranges= <0x10 0x30 0x10> <0x20 0x35 0x10>;};`
-        );
-        const context = new ContextAware(
-          { dtsFile: "file:///folder/dts.dts" },
-          getFakeBindingLoader()
-        );
-        await context.parser.stable;
-        const runtime = await context.getRuntime();
-        const issues = runtime.typesIssues;
-        expect(issues.length).toEqual(1);
-        expect(issues[0].raw.issues).toEqual([
-          StandardTypeIssue.RANGES_OVERLAP,
-        ]);
-        expect(issues[0].raw.templateStrings[0]).toEqual("parent");
-      });
-
-      test("Overlapping ranges - both", async () => {
-        mockReadFileSync(
-          `/{${rootDefaults} #address-cells=<1>;  node@30 {reg=<0x30 0x20>;#address-cells=<1>; #size-cells=<1>; ranges= <0x10 0x30 0x10> <0x15 0x35 0x10>;};`
-        );
-        const context = new ContextAware(
-          { dtsFile: "file:///folder/dts.dts" },
-          getFakeBindingLoader()
-        );
-        await context.parser.stable;
-        const runtime = await context.getRuntime();
-        const issues = runtime.typesIssues;
-        expect(issues.length).toEqual(1);
-        expect(issues[0].raw.issues).toEqual([
-          StandardTypeIssue.RANGES_OVERLAP,
-        ]);
-        expect(issues[0].raw.templateStrings[0]).toEqual("child and parent");
-      });
-
       test("No Overlapping ranges", async () => {
         mockReadFileSync(
           `/{${rootDefaults} #address-cells=<1>;  node@30 {reg=<0x30 0x20>;#address-cells=<1>; #size-cells=<1>; ranges= <0x10 0x30 0x10> <0x20 0x40 0x10>;};`
@@ -1003,56 +949,6 @@ describe("Type Issues", () => {
       test("valid type hex ", async () => {
         mockReadFileSync(
           `/{${rootDefaults} #address-cells=<1>;  node {#address-cells=<1>; #size-cells=<1>; dma-ranges= <0x10 0x20 0x30>;};`
-        );
-        const context = new ContextAware(
-          { dtsFile: "file:///folder/dts.dts" },
-          getFakeBindingLoader()
-        );
-        await context.parser.stable;
-        const runtime = await context.getRuntime();
-        const issues = runtime.typesIssues;
-        expect(issues.length).toEqual(0);
-      });
-
-      test("Overlapping ranges - parent", async () => {
-        mockReadFileSync(
-          `/{${rootDefaults} #address-cells=<1>;  node@30 {reg=<0x30 0x20>;#address-cells=<1>; #size-cells=<1>; dma-ranges= <0x10 0x30 0x10> <0x20 0x35 0x10>;};`
-        );
-        const context = new ContextAware(
-          { dtsFile: "file:///folder/dts.dts" },
-          getFakeBindingLoader()
-        );
-        await context.parser.stable;
-        const runtime = await context.getRuntime();
-        const issues = runtime.typesIssues;
-        expect(issues.length).toEqual(1);
-        expect(issues[0].raw.issues).toEqual([
-          StandardTypeIssue.RANGES_OVERLAP,
-        ]);
-        expect(issues[0].raw.templateStrings[0]).toEqual("parent");
-      });
-
-      test("Overlapping ranges - both", async () => {
-        mockReadFileSync(
-          `/{${rootDefaults} #address-cells=<1>;  node@30 {reg=<0x30 0x20>;#address-cells=<1>; #size-cells=<1>; dma-ranges= <0x10 0x30 0x10> <0x15 0x35 0x10>;};`
-        );
-        const context = new ContextAware(
-          { dtsFile: "file:///folder/dts.dts" },
-          getFakeBindingLoader()
-        );
-        await context.parser.stable;
-        const runtime = await context.getRuntime();
-        const issues = runtime.typesIssues;
-        expect(issues.length).toEqual(1);
-        expect(issues[0].raw.issues).toEqual([
-          StandardTypeIssue.RANGES_OVERLAP,
-        ]);
-        expect(issues[0].raw.templateStrings[0]).toEqual("child and parent");
-      });
-
-      test("No Overlapping ranges", async () => {
-        mockReadFileSync(
-          `/{${rootDefaults} #address-cells=<1>;  node@30 {reg=<0x30 0x20>;#address-cells=<1>; #size-cells=<1>; dma-ranges= <0x10 0x30 0x10> <0x20 0x40 0x10>;};`
         );
         const context = new ContextAware(
           { dtsFile: "file:///folder/dts.dts" },
