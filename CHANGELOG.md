@@ -4,11 +4,21 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.3.4] - Unreleased
+
+### Added
+
+- `reserved-memory` child node types.
+
+### Fixed
+
+- Chassis Type description
+
 ## [0.3.3] - 2025-05-01
 
 ### Fixed
 
-- Warning massage when reg exceeds range for address mapping.
+- Warning message when reg exceeds range for address mapping.
 - Flickr when selecting a text editor that does not have 'devicetree' languageId
 
 ## [0.3.2] - 2025-04-30

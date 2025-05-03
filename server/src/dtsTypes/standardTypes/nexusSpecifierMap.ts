@@ -28,7 +28,7 @@ import { DiagnosticSeverity } from "vscode-languageserver";
 
 export default () => {
   const prop = new PropertyNodeType<number>(
-    /^(?!interrupt-).*?-map$/,
+    /^(?!interrupt-|no-).*?-map$/,
     generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
     "optional",
     undefined,
