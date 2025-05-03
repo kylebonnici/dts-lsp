@@ -36,8 +36,7 @@ export default () => {
     ]
   );
   prop.description = [
-    `Specifiesastringthatidentifiestheform-factor
-of the system.`,
+    `Specifies a string that identifies the form-factor of the system.`,
   ];
 
   return prop;
