@@ -1014,7 +1014,8 @@ type MappedAddress = {
 export const findMappedAddress = (
   mappings: RangeMapping[],
   address: number[]
-): MappedAddress | null => {
+): MappedAddress[] => {
+  const matches: MappedAddress[] = [];
   for (const mapping of mappings) {
     const childStart = mapping.childAddress;
     const size = mapping.length;
@@ -1029,15 +1030,15 @@ export const findMappedAddress = (
       const mappedStart = addOffset(parentStart, offset);
       const mappedEnd = addWords(parentStart, size);
 
-      return {
+      matches.push({
         start: mappedStart,
         end: mappedEnd,
         ast: mapping.ast,
-      };
+      });
     }
   }
 
-  return null;
+  return matches;
 };
 
 type OverlappingMapping = {

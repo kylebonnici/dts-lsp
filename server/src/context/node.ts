@@ -781,7 +781,7 @@ export class Node {
     const regArray = this.regArray(macros);
     this.#mappedRegCache =
       regArray
-        ?.map((reg) => {
+        ?.flatMap((reg) => {
           const startAddress = reg.startAddress;
           const size = reg.size;
 
@@ -804,28 +804,32 @@ export class Node {
           };
 
           if (!mappings) {
-            return mappedReg;
+            return [mappedReg];
           }
 
           const mappedAddress = findMappedAddress(mappings, startAddress);
 
-          if (!mappedAddress) {
-            return mappedReg;
+          if (!mappedAddress.length) {
+            return [mappedReg];
           }
 
-          mappedReg.mappedAst = mappedAddress.ast;
-          mappedReg.startAddress = mappedAddress.start;
-          mappedReg.endAddress = addWords(mappedAddress.start, size);
-          mappedReg.inRange =
-            !parentEndMapReg ||
-            parentEndMapReg.some(
-              (pReg) => compareWords(endEddress, pReg.endAddress) <= 0
-            );
-          mappedReg.inMappingRange =
-            compareWords(mappedReg.endAddress, mappedAddress.end) <= 0;
-          mappedReg.mappingEnd = mappedAddress.end;
+          return mappedAddress.map((m) => {
+            mappedReg.mappedAst = m.ast;
+            mappedReg.startAddress = m.start;
+            mappedReg.endAddress = addWords(m.start, size);
+            mappedReg.inMappingRange =
+              compareWords(mappedReg.endAddress, m.end) <= 0;
+            mappedReg.mappingEnd = m.end;
 
-          return mappedReg;
+            return {
+              ...mappedReg,
+              mappedAst: m.ast,
+              startAddress: m.start,
+              endAddress: addWords(m.start, size),
+              inMappingRange: compareWords(mappedReg.endAddress, m.end) <= 0,
+              mappingEnd: m.end,
+            };
+          });
         })
         .sort((a, b) => compareWords(a.endAddress, b.endAddress)) ?? [];
 
