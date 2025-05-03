@@ -40,7 +40,7 @@ import {
   StandardTypeIssue,
   CodeActionDiagnosticData,
   FileDiagnostic,
-  Mapping,
+  RangeMapping,
 } from "./types";
 import { ContextAware } from "./runtimeEvaluator";
 import url from "url";
@@ -912,8 +912,6 @@ export const standardTypeIssueIssuesToMessage = (
           return issue.templateStrings[0];
         case StandardTypeIssue.INVALID_VALUE:
           return issue.templateStrings[0];
-        case StandardTypeIssue.RANGE_EXCEEDS_ADDRESS_SPACE:
-          return `INTRO exceeds address space of this node. Range: ${issue.templateStrings[1]}-${issue.templateStrings[2]}, reg: ${issue.templateStrings[3]}-${issue.templateStrings[4]}`;
         case StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS:
           return `INTRO exceeds address space avalable for this mapping. The range ends at ${issue.templateStrings[2]}, the node ends at ${issue.templateStrings[1]}`;
         case StandardTypeIssue.RANGES_OVERLAP:
@@ -942,8 +940,6 @@ export const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
       return "Additional value";
     case StandardTypeIssue.NODE_DISABLED:
       return "Disabled by";
-    case StandardTypeIssue.RANGE_EXCEEDS_ADDRESS_SPACE:
-      return "Address space";
     case StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS:
       return "Mapping range";
     case StandardTypeIssue.RANGES_OVERLAP:
@@ -1016,7 +1012,7 @@ type MappedAddress = {
 };
 
 export const findMappedAddress = (
-  mappings: Mapping[],
+  mappings: RangeMapping[],
   address: number[]
 ): MappedAddress | null => {
   for (const mapping of mappings) {
@@ -1045,13 +1041,13 @@ export const findMappedAddress = (
 };
 
 type OverlappingMapping = {
-  mappingA: Mapping;
-  mappingB: Mapping;
+  mappingA: RangeMapping;
+  mappingB: RangeMapping;
   overlapOn: "child" | "parent" | "child and parent";
 };
 
 export const findUniqueMappingOverlaps = (
-  mappings: Mapping[]
+  mappings: RangeMapping[]
 ): OverlappingMapping[] => {
   const overlaps: OverlappingMapping[] = [];
 

@@ -38,6 +38,23 @@ export const flatNumberValues = (value: PropertyValues | null | undefined) => {
   );
 };
 
+export const getU32ValueFromFlatProperty = (
+  property: Property,
+  arrayValueIndex: number,
+  macros: Map<string, MacroRegistryItem>
+) => {
+  const value = flatNumberValues(property.ast.values)?.at(arrayValueIndex);
+
+  if (value instanceof ArrayValues) {
+    const labeledValue = value.values.at(arrayValueIndex);
+
+    if (labeledValue?.value instanceof Expression) {
+      const evaluted = labeledValue.value.evaluate(macros);
+      if (typeof evaluted === "number") return evaluted;
+    }
+  }
+};
+
 export const getU32ValueFromProperty = (
   property: Property,
   valueIndex: number,

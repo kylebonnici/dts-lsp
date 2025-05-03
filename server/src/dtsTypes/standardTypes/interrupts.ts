@@ -97,16 +97,17 @@ export default () => {
         ),
       ].join(" ")}> `;
 
+      const mapProperty = parentInterruptNode.getProperty(`interrupt-map`);
       const addressCellsProperty = node.parent?.getProperty(`#address-cells`);
-      if (!addressCellsProperty) {
+      if (mapProperty && !addressCellsProperty) {
         issues.push(
           genStandardTypeDiagnostic(
             StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
-            property.ast,
+            property.ast.propertyName ?? property.ast,
             DiagnosticSeverity.Error,
             [...property.parent.nodeNameOrLabelRef],
             [],
-            [property.name, "#address-cells", node.pathString]
+            [property.name, "#address-cells", node.parent!.pathString]
           )
         );
       }
@@ -152,8 +153,8 @@ export default () => {
           i,
           i + childInterruptSpecifierValue
         );
-        const mapProperty = parentInterruptNode.getProperty(`interrupt-map`);
-        const startAddress = node.mappedReg(macros)?.startAddress;
+
+        const startAddress = node.mappedReg(macros)?.at(0)?.startAddress;
         if (mapProperty && startAddress) {
           const match = parentInterruptNode.getNexusMapEntyMatch(
             "interrupt",

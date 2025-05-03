@@ -71,7 +71,6 @@ export enum StandardTypeIssue {
   PROPERTY_NOT_ALLOWED,
   INVALID_VALUE,
   EXCEEDS_MAPPING_ADDRESS,
-  RANGE_EXCEEDS_ADDRESS_SPACE,
   RANGES_OVERLAP,
   DUPLICATE_MAP_ENTRY,
   NO_NEXUS_MAP_MATCH,
@@ -311,7 +310,14 @@ export type FileDiagnostic = {
   diagnostic: () => Diagnostic;
 };
 
-export type Mapping = {
+export type RegMapping = {
+  startAddress: number[];
+  size: number[];
+  endAddress: number[];
+  ast: ASTBase;
+};
+
+export type RangeMapping = {
   childAddress: number[];
   parentAddress: number[];
   length: number[];

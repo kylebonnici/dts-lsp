@@ -78,20 +78,6 @@ export default () => {
 
       prop.typeExample = ``;
 
-      const addressCellsProperty = node.parent?.getProperty(`#address-cells`);
-      if (!addressCellsProperty) {
-        issues.push(
-          genStandardTypeDiagnostic(
-            StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
-            property.ast,
-            DiagnosticSeverity.Error,
-            [...property.parent.nodeNameOrLabelRef],
-            [],
-            [property.name, "#address-cells", node.pathString]
-          )
-        );
-      }
-
       let i = 0;
       while (i < values.length) {
         const phandleNode = resolvePhandleNode(values[i], root);
@@ -122,6 +108,20 @@ export default () => {
           );
 
           break;
+        }
+
+        const addressCellsProperty = phandleNode?.getProperty(`#address-cells`);
+        if (!addressCellsProperty) {
+          issues.push(
+            genStandardTypeDiagnostic(
+              StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+              property.ast,
+              DiagnosticSeverity.Error,
+              [...property.parent.nodeNameOrLabelRef],
+              [],
+              [property.name, "#address-cells", phandleNode.pathString]
+            )
+          );
         }
 
         const cellsPropertyValue = getU32ValueFromProperty(
@@ -168,7 +168,7 @@ export default () => {
           i + 1 + cellsPropertyValue
         );
         const mapProperty = phandleNode.getProperty(`interrupt-map`);
-        const startAddress = node.mappedReg(macros)?.startAddress;
+        const startAddress = node.mappedReg(macros)?.at(0)?.startAddress;
         if (mapProperty && startAddress) {
           const match = phandleNode.getNexusMapEntyMatch(
             "interrupt",

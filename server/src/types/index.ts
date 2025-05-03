@@ -381,7 +381,7 @@ export type SerializedNode = {
   nodes: SerializableNodeBase[];
   properties: SerializableDtcProperty[];
   childNodes: SerializedNode[];
-  reg: SerializedMappedReg;
+  reg?: SerializedMappedReg[];
 };
 
 export type Actions = ClipboardActions;

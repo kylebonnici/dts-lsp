@@ -519,7 +519,7 @@ describe("Context Issues", () => {
       expect(issues.length).toEqual(1);
       expect(issues[0].raw.issues).toEqual([ContextIssues.MISSING_NODE]);
       expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(0);
-      expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(13);
+      expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(1);
       expect(issues[0].raw.templateStrings).toEqual(["/", "cpus"]);
     });
 
@@ -534,7 +534,7 @@ describe("Context Issues", () => {
       expect(issues.length).toEqual(1);
       expect(issues[0].raw.issues).toEqual([ContextIssues.MISSING_NODE]);
       expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(0);
-      expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(11);
+      expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(1);
       expect(issues[0].raw.templateStrings).toEqual(["/", "memory"]);
     });
   });
