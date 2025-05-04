@@ -27,6 +27,8 @@ import { PropertyName } from "./ast/dtc/property";
 import {
   getNodeAliasesMacros,
   getNodeLabelMacros,
+  getPropertyWithNodeLabel,
+  getPropertyWithNodePath,
   getZephyrMacroPath,
 } from "./dtsTypes/bindings/zephyr/helpers";
 
@@ -46,21 +48,16 @@ function getPropertyActions(
   if (context.settings.bindingType === "Zephyr") {
     actions.push({
       type: "dt_zephyr_macro_prop_node_path",
-      data: `DT_PROP(${getZephyrMacroPath(
-        result.item.parent
-      )}, ${result.item.name.replaceAll("-", "_")}))`,
+      data: getPropertyWithNodePath(result.item),
     });
 
     const prop = result.item;
-    result.item.parent.labels.forEach((l) =>
+    getPropertyWithNodeLabel(result.item).forEach((macro) => {
       actions.push({
         type: "dt_zephyr_macro_prop_node_label",
-        data: `DT_PROP(DT_NODELABEL(${l.label.toString()}), ${prop.name.replaceAll(
-          "-",
-          "_"
-        )})`,
-      })
-    );
+        data: macro,
+      });
+    });
   }
 
   return actions;

@@ -14,10 +14,42 @@
  * limitations under the License.
  */
 
-import { Runtime } from "src/context/runtime";
+import { Runtime } from "../../../context/runtime";
 import { Node } from "../../../context/node";
-import { LabelRef } from "src/ast/dtc/labelRef";
-import { NodePathRef } from "src/ast/dtc/values/nodePath";
+import { LabelRef } from "../../../ast/dtc/labelRef";
+import { NodePathRef } from "../../../ast/dtc/values/nodePath";
+import { Property } from "../../../context/property";
+
+export const allPropertyMacros = (property: Property): string[] => {
+  return [
+    getPropertyWithNodePath(property),
+    ...getPropertyWithNodeLabel(property),
+  ];
+};
+
+export const getPropertyWithNodePath = (property: Property): string => {
+  return `DT_PROP(${getZephyrMacroPath(
+    property.parent
+  )}, ${property.name.replaceAll("-", "_")}))`;
+};
+
+export const getPropertyWithNodeLabel = (property: Property): string[] => {
+  return property.parent.labels.map(
+    (l) =>
+      `DT_PROP(DT_NODELABEL(${l.label.toString()}), ${property.name.replaceAll(
+        "-",
+        "_"
+      )})`
+  );
+};
+
+export const allNodeMacros = (node: Node): string[] => {
+  return [
+    getZephyrMacroPath(node),
+    ...getNodeLabelMacros(node),
+    ...getNodeAliasesMacros(node),
+  ];
+};
 
 export const getZephyrMacroPath = (node: Node) =>
   `DT_PATH(${node.path
