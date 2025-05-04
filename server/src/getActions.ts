@@ -21,11 +21,14 @@ import { Node } from "./context/node";
 import { nodeFinder } from "./helpers";
 import { Property } from "./context/property";
 import { Actions } from "./types/index";
-import { Runtime } from "./context/runtime";
 import { LabelRef } from "./ast/dtc/labelRef";
-import { NodePathRef } from "./ast/dtc/values/nodePath";
 import { NodeName } from "./ast/dtc/node";
 import { PropertyName } from "./ast/dtc/property";
+import {
+  getNodeAliasesMacros,
+  getNodeLabelMacros,
+  getZephyrMacroPath,
+} from "./dtsTypes/bindings/zephyr/helpers";
 
 function getPropertyActions(
   result: SearchableResult | undefined,
@@ -63,12 +66,6 @@ function getPropertyActions(
   return actions;
 }
 
-const getZephyrMacroPath = (node: Node) =>
-  `DT_PATH(${node.path
-    .slice(1)
-    .map((p) => p.replace("@", "_").replaceAll("-", "_"))
-    .join(",")})`;
-
 function getNodeActions(
   result: SearchableResult | undefined,
   context: ContextAware
@@ -99,10 +96,10 @@ function getNodeActions(
   ];
 
   if (context.settings.bindingType === "Zephyr") {
-    node.labels.forEach((l) => {
+    getNodeLabelMacros(node).forEach((macro) => {
       actions.push({
         type: "dt_zephyr_macro_node_label",
-        data: `DT_NODELABEL(${l.label.toString()})`,
+        data: macro,
       });
     });
 
@@ -111,29 +108,12 @@ function getNodeActions(
       data: getZephyrMacroPath(node),
     });
 
-    const aliases = Runtime.getNodeFromPath(["aliases"], node.root);
-
-    const property = aliases?.property.find((p) => {
-      if (p.ast.quickValues?.at(0) === node.pathString) return true;
-      const value = p.ast.values?.values.at(0)?.value;
-
-      if (value instanceof LabelRef && value.linksTo === node) {
-        return true;
-      }
-
-      if (
-        value instanceof NodePathRef &&
-        value.path?.pathParts.at(-1)?.linksTo === node
-      ) {
-        return true;
-      }
-    });
-    if (property) {
+    getNodeAliasesMacros(node).forEach((macro) => {
       actions.push({
         type: "dt_zephyr_macro_prop_node_alias",
-        data: `DT_ALIAS(${property.name.replaceAll("-", "_")})`,
+        data: macro,
       });
-    }
+    });
   }
 
   return actions;
