@@ -32,6 +32,7 @@ import {
   MarkupContent,
   MarkupKind,
   Position,
+  SignatureHelp,
   TextEdit,
 } from "vscode-languageserver";
 import { getNodeNameOrNodeLabelRef } from "../../../ast/helpers";
@@ -119,6 +120,10 @@ export class DevicetreeOrgNodeType extends INodeType {
     }
 
     return;
+  }
+
+  getSignatureHelp(): SignatureHelp | undefined {
+    return undefined;
   }
 
   getPropertyListCompletionItems(node: Node) {

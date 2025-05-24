@@ -24,7 +24,10 @@ import {
   resolvePhandleNode,
 } from "./helpers";
 import { genStandardTypeDiagnostic } from "../../helpers";
-import { DiagnosticSeverity } from "vscode-languageserver";
+import {
+  DiagnosticSeverity,
+  ParameterInformation,
+} from "vscode-languageserver";
 
 export default () => {
   const prop = new PropertyNodeType<number>(
@@ -76,9 +79,9 @@ export default () => {
         return [];
       }
 
-      prop.typeExample = ``;
-
       let i = 0;
+      let index = 0;
+      const args: string[][] = [];
       while (i < values.length) {
         const phandleNode = resolvePhandleNode(values[i], root);
 
@@ -137,17 +140,13 @@ export default () => {
 
         const remaining = values.length - i - 1;
 
-        const expectedPattern = `<${[
-          "phandel",
+        args.push([
+          `${index}_phandel`,
           ...Array.from(
-            {
-              length: cellsPropertyValue,
-            },
-            () => "interrupt"
+            { length: cellsPropertyValue },
+            (_, j) => `${index}_interrupt${cellsPropertyValue > 1 ? j : ""}`
           ),
-        ].join(" ")}>`;
-
-        prop.typeExample += expectedPattern;
+        ]);
 
         if (cellsPropertyValue > remaining) {
           issues.push(
@@ -157,7 +156,7 @@ export default () => {
               DiagnosticSeverity.Error,
               [],
               [],
-              [property.name, expectedPattern]
+              [property.name, `<${args.at(-1)!.join(" ")}>`]
             )
           );
           return issues;
@@ -194,7 +193,14 @@ export default () => {
         }
 
         i += cellsPropertyValue + 1;
+        index++;
       }
+
+      args.push([`${index}_phandel`, `${index}_interrupt...`]);
+
+      prop.signatureArgs = args.map((arg) =>
+        arg.map((arg) => ParameterInformation.create(arg))
+      );
 
       return issues;
     }

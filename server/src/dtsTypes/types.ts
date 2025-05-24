@@ -17,6 +17,7 @@
 import {
   genStandardTypeDiagnostic,
   getIndentString,
+  isNestedArray,
   toRangeWithTokenIndex,
 } from "../helpers";
 import { type Node } from "../context/node";
@@ -30,7 +31,10 @@ import {
   DiagnosticTag,
   MarkupContent,
   MarkupKind,
+  ParameterInformation,
   Position,
+  SignatureHelp,
+  SignatureInformation,
   TextEdit,
 } from "vscode-languageserver";
 import { PropertyValue } from "../ast/dtc/values/value";
@@ -98,7 +102,6 @@ export class PropertyNodeType<T = string | number> {
   public hideAutoComplete = false;
   public list = false;
   public bindingType?: string;
-  public typeExample?: string;
   public description?: string[];
   public examples?: string[];
   public constValue?: number | string | number[] | string[];
@@ -121,16 +124,6 @@ export class PropertyNodeType<T = string | number> {
         `,
             ]
           : []),
-        "**Example**  ",
-        "```",
-        `${typeof this.name === "string" ? this.name : "prop"}${
-          this.typeExample
-            ? ` = ${this.typeExample}`
-            : `${this.type
-                .map((t) => t.types.map(propertyTypeToExample).join(" || "))
-                .join(" ")}`
-        };`,
-        "```",
         ...(this.description
           ? ["### Description", this.description.join("\n\n")]
           : []),
@@ -138,6 +131,8 @@ export class PropertyNodeType<T = string | number> {
       ].join("\n"),
     };
   };
+
+  public signatureArgs?: ParameterInformation[] | ParameterInformation[][];
 
   constructor(
     public readonly name: string | RegExp,
@@ -489,6 +484,12 @@ const propertyValueToPropertyType = (
 export abstract class INodeType {
   abstract getIssue(runtime: Runtime, node: Node): FileDiagnostic[];
   abstract getOnPropertyHover(name: string): MarkupContent | undefined;
+  abstract getSignatureHelp(
+    property: Property,
+    ast: ASTBase,
+    beforeAst?: ASTBase,
+    afterAst?: ASTBase
+  ): SignatureHelp | undefined;
   abstract childNodeType: ((node: Node) => INodeType) | undefined;
   onBus?: string;
   bus?: string[];
@@ -647,6 +648,91 @@ export class NodeType extends INodeType {
   getOnPropertyHover(name: string) {
     const typeFound = this.properties.find((p) => p.getNameMatch(name));
     return typeFound?.onHover.bind(typeFound)();
+  }
+
+  getSignatureHelp(
+    property: Property,
+    ast: ASTBase,
+    beforeAst?: ASTBase,
+    afterAst?: ASTBase
+  ) {
+    const typeFound = this.properties.find((p) =>
+      p.getNameMatch(property.name)
+    );
+
+    let signatureArgs = typeFound?.signatureArgs;
+
+    if (!typeFound || !signatureArgs) {
+      return;
+    }
+
+    const beforeIndex = property.getArgumentIndex(beforeAst);
+    const afterIndex = property.getArgumentIndex(afterAst);
+    const thisIndex = property.getArgumentIndex(ast);
+
+    let argIndex =
+      thisIndex ??
+      afterIndex ??
+      (beforeIndex !== undefined ? beforeIndex + 1 : undefined);
+
+    if (isNestedArray(signatureArgs)) {
+      let sum = 0;
+      if (argIndex !== undefined) {
+        const argIndexTemp = argIndex;
+        const grpIndex = argIndex
+          ? signatureArgs.findIndex((args) => {
+              if (sum <= argIndexTemp && args.length + sum > argIndexTemp) {
+                return true;
+              }
+
+              sum += args.length;
+              return false;
+            })
+          : undefined;
+
+        if (grpIndex !== undefined) {
+          if (grpIndex > 1) {
+            argIndex =
+              argIndex -
+              signatureArgs
+                .slice(0, grpIndex - 1)
+                .reduce((a, b) => a + b.length, 0);
+          }
+          signatureArgs = signatureArgs.slice(
+            grpIndex ? grpIndex - 1 : 0,
+            grpIndex + 2
+          );
+        }
+      }
+
+      return {
+        signatures: [
+          SignatureInformation.create(
+            `${property.name} = ${signatureArgs
+              .map((t) => `<${t.map((arg) => arg.label).join(" ")}>`)
+              .join(", \n\t\t")};`,
+            this.description,
+            ...signatureArgs.flat()
+          ),
+        ],
+        activeSignature: 0,
+        activeParameter: argIndex,
+      };
+    }
+
+    return {
+      signatures: [
+        SignatureInformation.create(
+          `${property.name} = <${signatureArgs
+            .map((arg) => arg.label)
+            .join(" ")}>;`,
+          this.description,
+          ...signatureArgs
+        ),
+      ],
+      activeSignature: 0,
+      activeParameter: argIndex,
+    };
   }
 
   getPropertyListCompletionItems(node: Node) {

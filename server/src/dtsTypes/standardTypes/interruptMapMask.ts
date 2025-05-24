@@ -23,7 +23,10 @@ import {
   getU32ValueFromProperty,
 } from "./helpers";
 import { genStandardTypeDiagnostic } from "../../helpers";
-import { DiagnosticSeverity } from "vscode-languageserver-types";
+import {
+  DiagnosticSeverity,
+  ParameterInformation,
+} from "vscode-languageserver-types";
 
 export default () => {
   const prop = new PropertyNodeType<number>(
@@ -60,13 +63,17 @@ export default () => {
         return issues;
       }
 
-      prop.typeExample = `<${[
-        ...Array.from({ length: childAddressCellsValue }, () => "AddressMask"),
+      const args = [
+        ...Array.from(
+          { length: childAddressCellsValue },
+          (_, i) => `AddressMask${childAddressCellsValue > 1 ? i : ""}`
+        ),
         ...Array.from(
           { length: childInterruptSpecifierValue },
-          () => "InterruptMask"
+          (_, i) => `InterruptMask${childInterruptSpecifierValue > 1 ? i : ""}`
         ),
-      ].join(" ")}> `;
+      ];
+      prop.signatureArgs = args.map((arg) => ParameterInformation.create(arg));
 
       if (
         values.length !==
@@ -79,7 +86,19 @@ export default () => {
             DiagnosticSeverity.Error,
             [],
             [],
-            [property.name, prop.typeExample]
+            [
+              property.name,
+              `<${[
+                ...Array.from(
+                  { length: childAddressCellsValue },
+                  () => "AddressMask"
+                ),
+                ...Array.from(
+                  { length: childInterruptSpecifierValue },
+                  () => "InterruptMask"
+                ),
+              ].join(" ")}>`,
+            ]
           )
         );
         return issues;

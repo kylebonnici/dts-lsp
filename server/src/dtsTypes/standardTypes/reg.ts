@@ -27,7 +27,11 @@ import {
   generateOrTypeObj,
   getU32ValueFromProperty,
 } from "./helpers";
-import { DiagnosticSeverity } from "vscode-languageserver";
+import {
+  DiagnosticSeverity,
+  ParameterInformation,
+  SignatureInformation,
+} from "vscode-languageserver";
 import { ASTBase } from "../../ast/base";
 import { ArrayValues } from "../../ast/dtc/values/arrayValue";
 
@@ -51,10 +55,17 @@ export default () => {
       const parentSizeCell = property.parent.parentSizeCells(macros);
       const parentAddressCell = property.parent.parentAddressCells(macros);
 
-      prop.typeExample = `<${[
-        ...Array.from({ length: parentAddressCell }, () => "address"),
-        ...Array.from({ length: parentSizeCell }, () => "size"),
-      ].join(" ")}>`;
+      const args = [
+        ...Array.from(
+          { length: parentAddressCell },
+          (_, i) => `address${parentAddressCell > 1 ? i : ""}`
+        ),
+        ...Array.from(
+          { length: parentSizeCell },
+          (_, i) => `size${parentSizeCell > 1 ? i : ""}`
+        ),
+      ];
+      prop.signatureArgs = args.map((arg) => ParameterInformation.create(arg));
 
       if (
         values.length === 0 ||
@@ -70,7 +81,13 @@ export default () => {
             DiagnosticSeverity.Error,
             [],
             [],
-            [property.name, prop.typeExample]
+            [
+              property.name,
+              `<${[
+                ...Array.from({ length: parentAddressCell }, () => "address"),
+                ...Array.from({ length: parentSizeCell }, () => "size"),
+              ].join(" ")}>`,
+            ]
           )
         );
         return issues;

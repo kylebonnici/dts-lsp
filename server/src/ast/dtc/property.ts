@@ -99,6 +99,27 @@ export class DtcProperty extends ASTBase {
     });
   }
 
+  getFlatAstValues() {
+    return this.values?.values.flatMap((v) => {
+      if (!v) {
+        return null;
+      }
+      if (v.value instanceof StringValue) {
+        return v.value;
+      }
+
+      if (v.value instanceof ArrayValues) {
+        return v.value.values.map((v) => v.value);
+      }
+
+      if (v.value instanceof ByteStringValue) {
+        return v.value.values.map((v) => v.value);
+      }
+
+      return v.value;
+    });
+  }
+
   toString() {
     return `${this.propertyName?.toString() ?? "__UNSET__"}${
       this.assignOperatorToken

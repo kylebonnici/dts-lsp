@@ -193,6 +193,10 @@ export class ASTBase {
     this.allDescendantsCache = undefined;
   }
 
+  isAncestorOf(ast: ASTBase): boolean {
+    return this.children.some((c) => c === ast || c.isAncestorOf(ast));
+  }
+
   toPrettyString(macros: Map<string, MacroRegistryItem>) {
     return this.toString();
   }
