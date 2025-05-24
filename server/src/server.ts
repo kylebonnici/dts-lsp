@@ -334,7 +334,7 @@ connection.onInitialize((params: InitializeParams) => {
       documentFormattingProvider: true,
       hoverProvider: true,
       signatureHelpProvider: {
-        triggerCharacters: ["<"],
+        triggerCharacters: ["<", "("],
         retriggerCharacters: [" ", ","],
       },
     },

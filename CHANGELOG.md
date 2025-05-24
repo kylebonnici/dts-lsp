@@ -4,11 +4,15 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.4.1] - Unreleased
+## [0.4.1] - 2025-05-25
+
+### Added
+
+- Support for macros signature help.
 
 ### Changed
 
-- Moved Type Exampels to native lsp signature help.
+- Moved property type exampels to native lsp signature help.
 
 ### Fixed
 
