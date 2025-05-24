@@ -65,6 +65,7 @@ export default () => {
         ),
       ];
       prop.signatureArgs = args.map((arg) => ParameterInformation.create(arg));
+      prop.signatureArgsCyclic = true;
 
       if (
         values.length === 0 ||

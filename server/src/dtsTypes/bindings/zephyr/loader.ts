@@ -421,6 +421,7 @@ const addToNodeType = (
         ...generateZephyrTypeCheck(property, name, prop)(p, macros),
       ];
       prop.signatureArgs ??= existingProperty?.signatureArgs;
+      prop.signatureArgsCyclic ??= !!existingProperty?.signatureArgsCyclic;
       return issues;
     };
     prop.description = property.description

@@ -133,6 +133,7 @@ export class PropertyNodeType<T = string | number> {
   };
 
   public signatureArgs?: ParameterInformation[] | ParameterInformation[][];
+  public signatureArgsCyclic = false;
 
   constructor(
     public readonly name: string | RegExp,
@@ -718,6 +719,10 @@ export class NodeType extends INodeType {
         activeSignature: 0,
         activeParameter: argIndex,
       };
+    }
+
+    if (typeFound.signatureArgsCyclic && argIndex) {
+      argIndex = argIndex % signatureArgs.length;
     }
 
     return {
