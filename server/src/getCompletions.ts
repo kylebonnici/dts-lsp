@@ -415,9 +415,7 @@ function getPropertyAssignMacroItems(
     ).map(([k, v]) => {
       if (v.macro.identifier instanceof FunctionDefinition) {
         return {
-          label: `${v.macro.identifier.toString()} -> ${
-            v.macro.content?.toString() ?? "__UNSET__"
-          }`,
+          label: `${v.macro.identifier.toString()}`,
           insertText: `${v.macro.name}(${v.macro.identifier.params
             .map((p, i) => (p instanceof CIdentifier ? `$${i + 1}` : ""))
             .join(", ")})`,
