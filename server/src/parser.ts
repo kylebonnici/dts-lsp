@@ -1467,7 +1467,7 @@ export class Parser extends BaseParser {
   private isLabelRef(slxBase?: ASTBase): LabelRef | undefined {
     this.enqueueToStack();
     const ampersandToken = this.currentToken;
-    if (!validToken(ampersandToken, LexerToken.AMPERSAND)) {
+    if (!ampersandToken || !validToken(ampersandToken, LexerToken.AMPERSAND)) {
       this.popStack();
       return;
     } else {
@@ -1478,7 +1478,10 @@ export class Parser extends BaseParser {
     if (!labelName) {
       const node = new LabelRef(null);
       this._issues.push(
-        genSyntaxDiagnostic(SyntaxIssue.LABEL_NAME, slxBase ?? node)
+        genSyntaxDiagnostic(
+          SyntaxIssue.LABEL_NAME,
+          new ASTBase(createTokenIndex(ampersandToken))
+        )
       );
       node.firstToken = ampersandToken;
       this.mergeStack();
@@ -1535,7 +1538,7 @@ export class Parser extends BaseParser {
     this.enqueueToStack();
     const labels = this.processOptionalLabelAssign(acceptLabelName);
     const firstToken = this.currentToken;
-    if (!validToken(this.currentToken, LexerToken.AMPERSAND)) {
+    if (!firstToken || !validToken(firstToken, LexerToken.AMPERSAND)) {
       this.popStack();
       return;
     }
@@ -1553,7 +1556,7 @@ export class Parser extends BaseParser {
       this._issues.push(
         genSyntaxDiagnostic(
           [SyntaxIssue.LABEL_NAME, SyntaxIssue.NODE_PATH],
-          dtcProperty
+          new ASTBase(createTokenIndex(firstToken))
         )
       );
 

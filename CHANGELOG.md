@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Only the first `DT_ALIAS` was provided for a node.
+- Diagnostic range when label is missing for a Node reference.
 
 ## [0.4.0] - 2025-05-03
 
