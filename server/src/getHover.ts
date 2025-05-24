@@ -16,7 +16,7 @@
 
 import { Hover, HoverParams, MarkupKind } from "vscode-languageserver";
 import { SearchableResult } from "./types";
-import { nodeFinder, toRange } from "./helpers";
+import { getCMacroCall, nodeFinder, toRange } from "./helpers";
 import { ContextAware } from "./runtimeEvaluator";
 import { Node } from "./context/node";
 import { NodeName } from "./ast/dtc/node";
@@ -25,15 +25,7 @@ import { Property } from "./context/property";
 import { PropertyName } from "./ast/dtc/property";
 import { StringValue } from "./ast/dtc/values/string";
 import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
-import { ASTBase } from "./ast/base";
-import { CMacroCall, CMacroCallParam } from "./ast/cPreprocessors/functionCall";
-
-function getCMacroCall(ast: ASTBase | undefined): CMacroCall | undefined {
-  if (!ast || ast instanceof CMacroCall) {
-    return ast;
-  }
-  return getCMacroCall(ast.parentNode);
-}
+import { CMacroCallParam } from "./ast/cPreprocessors/functionCall";
 
 async function getMacros(
   result: SearchableResult | undefined

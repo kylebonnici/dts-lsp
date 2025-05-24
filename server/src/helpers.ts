@@ -47,6 +47,7 @@ import url from "url";
 import { createHash } from "crypto";
 import { ResolvedContext } from "./types/index";
 import { normalize } from "path";
+import { CMacroCall } from './ast/cPreprocessors/functionCall';
 
 export const toRangeWithTokenIndex = (
   start?: Token,
@@ -1093,4 +1094,11 @@ export const findUniqueMappingOverlaps = (
 
 export function isNestedArray<T>(input: T[] | T[][]): input is T[][] {
   return Array.isArray(input) && Array.isArray(input[0]);
+}
+
+export function getCMacroCall(ast: ASTBase | undefined): CMacroCall | undefined {
+  if (!ast || ast instanceof CMacroCall) {
+    return ast;
+  }
+  return getCMacroCall(ast.parentNode);
 }
