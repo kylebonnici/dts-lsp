@@ -19,7 +19,11 @@ import { FileDiagnostic, StandardTypeIssue } from "../../../../../types";
 import { BindingPropertyType } from "../../../../../types/index";
 import { PropertyNodeType } from "../../../../types";
 import { flatNumberValues, generateOrTypeObj } from "../../../helpers";
-import { DiagnosticSeverity } from "vscode-languageserver-types";
+import {
+  DiagnosticSeverity,
+  ParameterInformation,
+  SignatureInformation,
+} from "vscode-languageserver-types";
 
 export default () => {
   const prop = new PropertyNodeType(
@@ -32,33 +36,47 @@ export default () => {
       const issues: FileDiagnostic[] = [];
 
       const values = flatNumberValues(property.ast.values);
+      if (!values) {
+        return [];
+      }
 
-      prop.typeExample = `<${Array.from(
-        {
-          length: property.parent.addressCells(macros),
-        },
-        () => "address"
-      )} ${Array.from(
-        {
-          length: property.parent.sizeCells(macros),
-        },
-        () => "size"
-      )}>`;
+      const addressCells = property.parent.addressCells(macros);
+      const sizeCells = property.parent.sizeCells(macros);
+      const args = [
+        ...Array.from(
+          { length: addressCells },
+          (_, i) => `address${addressCells > 1 ? i : ""}`
+        ),
+        ...Array.from(
+          { length: sizeCells },
+          (_, i) => `size${sizeCells > 1 ? i : ""}`
+        ),
+      ];
+      prop.signatureArgs = args.map((arg) => ParameterInformation.create(arg));
 
       if (
-        values?.length !==
-        property.parent.addressCells(macros) + property.parent.sizeCells(macros)
+        values.length === 0 ||
+        values.length % (addressCells + sizeCells) !== 0
       ) {
         issues.push(
           genStandardTypeDiagnostic(
             StandardTypeIssue.CELL_MISS_MATCH,
-            property.ast.values ?? property.ast,
+            values.at(
+              values.length - (values.length % (sizeCells + addressCells))
+            ) ?? property.ast,
             DiagnosticSeverity.Error,
             [],
             [],
-            [property.name, prop.typeExample]
+            [
+              property.name,
+              `<${[
+                ...Array.from({ length: addressCells }, () => "address"),
+                ...Array.from({ length: sizeCells }, () => "size"),
+              ].join(" ")}>`,
+            ]
           )
         );
+        return issues;
       }
 
       return issues;

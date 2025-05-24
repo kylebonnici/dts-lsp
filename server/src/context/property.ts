@@ -89,6 +89,15 @@ export class Property {
     }));
   }
 
+  getArgumentIndex(ast: ASTBase | undefined) {
+    if (!ast) return;
+    const index = this.ast
+      .getFlatAstValues()
+      ?.findIndex((item) => item === ast || item?.isAncestorOf(ast) );
+
+    return index === -1 ? undefined : index;
+  }
+
   get issues(): FileDiagnostic[] {
     return this.replacedIssues;
   }

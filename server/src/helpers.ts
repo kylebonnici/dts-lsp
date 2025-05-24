@@ -1090,3 +1090,7 @@ export const findUniqueMappingOverlaps = (
 
   return overlaps;
 };
+
+export function isNestedArray<T>(input: T[] | T[][]): input is T[][] {
+  return Array.isArray(input) && Array.isArray(input[0]);
+}

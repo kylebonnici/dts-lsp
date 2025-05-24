@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.4.1] - Unreleased
 
+### Changed
+
+- Moved Type Exampels to native lsp signature help.
+
 ### Fixed
 
 - Only the first `DT_ALIAS` was provided for a node.

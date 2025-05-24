@@ -24,7 +24,10 @@ import {
   resolvePhandleNode,
 } from "./helpers";
 import { genStandardTypeDiagnostic } from "../../helpers";
-import { DiagnosticSeverity } from "vscode-languageserver";
+import {
+  DiagnosticSeverity,
+  ParameterInformation,
+} from "vscode-languageserver";
 
 export default () => {
   const prop = new PropertyNodeType<number>(
@@ -90,12 +93,13 @@ export default () => {
         return issues;
       }
 
-      prop.typeExample = `<${[
+      const args = [
         ...Array.from(
           { length: childInterruptSpecifierValue },
-          () => "Interrupt"
+          (_, i) => `Interrupt${childInterruptSpecifierValue > 1 ? i : ""}`
         ),
-      ].join(" ")}> `;
+      ];
+      prop.signatureArgs = args.map((arg) => ParameterInformation.create(arg));
 
       const mapProperty = parentInterruptNode.getProperty(`interrupt-map`);
       const addressCellsProperty = node.parent?.getProperty(`#address-cells`);
@@ -143,7 +147,15 @@ export default () => {
               DiagnosticSeverity.Error,
               [],
               [],
-              [property.name, prop.typeExample]
+              [
+                property.name,
+                `<${[
+                  ...Array.from(
+                    { length: childInterruptSpecifierValue },
+                    () => "Interrupt"
+                  ),
+                ].join(" ")}> `,
+              ]
             )
           );
           return issues;

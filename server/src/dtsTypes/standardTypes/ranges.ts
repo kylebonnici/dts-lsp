@@ -24,7 +24,11 @@ import { addWords, compareWords } from "../../helpers";
 import { flatNumberValues, generateOrTypeObj } from "./helpers";
 
 import { FileDiagnostic, StandardTypeIssue } from "../../types";
-import { DiagnosticSeverity } from "vscode-languageserver";
+import {
+  DiagnosticSeverity,
+  ParameterInformation,
+  SignatureInformation,
+} from "vscode-languageserver";
 
 export default () => {
   const prop = new PropertyNodeType<number>(
@@ -48,17 +52,21 @@ export default () => {
       const childBusAddressValue = property.parent.addressCells(macros);
       const parentdBusAddressValue = property.parent.parentAddressCells(macros);
 
-      prop.typeExample = `<${[
+      const args = [
         ...Array.from(
           { length: childBusAddressValue },
-          () => "child-bus-address"
+          (_, i) => `child-bus-address${childBusAddressValue > 1 ? i : ""}`
         ),
         ...Array.from(
           { length: parentdBusAddressValue },
-          () => "parent-bus-address"
+          (_, i) => `parent-bus-address${parentdBusAddressValue > 1 ? i : ""}`
         ),
-        ...Array.from({ length: parentdBusAddressValue }, () => "size"),
-      ].join(" ")}>`;
+        ...Array.from(
+          { length: sizeCellValue },
+          (_, i) => `length${sizeCellValue > 1 ? i : ""}`
+        ),
+      ];
+      prop.signatureArgs = args.map((arg) => ParameterInformation.create(arg));
 
       if (
         values.length === 0 ||
@@ -79,7 +87,23 @@ export default () => {
             DiagnosticSeverity.Error,
             [],
             [],
-            [property.name, prop.typeExample]
+            [
+              property.name,
+              `<${[
+                ...Array.from(
+                  { length: childBusAddressValue },
+                  () => "child-bus-address"
+                ),
+                ...Array.from(
+                  { length: parentdBusAddressValue },
+                  () => "parent-bus-address"
+                ),
+                ...Array.from(
+                  { length: parentdBusAddressValue },
+                  () => "length"
+                ),
+              ].join(" ")}>`,
+            ]
           )
         );
       }

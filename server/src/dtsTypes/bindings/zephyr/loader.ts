@@ -34,7 +34,11 @@ import {
   StandardTypeIssue,
 } from "../../../types";
 import { genStandardTypeDiagnostic } from "../../../helpers";
-import { DiagnosticSeverity, DiagnosticTag } from "vscode-languageserver";
+import {
+  DiagnosticSeverity,
+  DiagnosticTag,
+  ParameterInformation,
+} from "vscode-languageserver";
 import { Property } from "../../../context/property";
 import { BindingPropertyType } from "../../../types/index";
 
@@ -416,7 +420,7 @@ const addToNodeType = (
         ...(existingProperty?.additionalTypeCheck?.(p, macros) ?? []),
         ...generateZephyrTypeCheck(property, name, prop)(p, macros),
       ];
-      prop.typeExample ??= existingProperty?.typeExample;
+      prop.signatureArgs ??= existingProperty?.signatureArgs;
       return issues;
     };
     prop.description = property.description
@@ -534,6 +538,8 @@ const generateZephyrTypeCheck = (
     if (myProperty.type === "phandle-array") {
       const values = flatNumberValues(p.ast.values);
       let i = 0;
+      const args: string[][] = [];
+      let index = 0;
       while (values && i < values.length) {
         const v = values.at(i);
         const phandelValue = resolvePhandleNode(v, root);
@@ -584,16 +590,19 @@ const generateZephyrTypeCheck = (
         const cellNames = phandelValue.nodeType?.cellsValues?.find(
           (i) => i.specifier === parentName
         )?.values;
-        type.typeExample = `<${[
-          "phandel",
-          ...(cellNames ?? []),
+        args.push([
+          `${index}_phandel`,
+          ...(cellNames?.map((c) => `${index}_${c}`) ?? []),
           ...Array.from(
             {
               length: sizeCellValue - (cellNames?.length ?? 0),
             },
-            () => "cell"
+            (_, j) =>
+              `${index}_cell${
+                sizeCellValue - (cellNames?.length ?? 0) ? j : ""
+              }`
           ),
-        ].join(" ")}>`;
+        ]);
 
         if (1 + sizeCellValue > values.length - i) {
           issues.push(
@@ -603,7 +612,7 @@ const generateZephyrTypeCheck = (
               DiagnosticSeverity.Error,
               [],
               [],
-              [p.name, type.typeExample]
+              [p.name, `<${args.at(-1)!.join(" ")}>`]
             )
           );
           break;
@@ -634,7 +643,14 @@ const generateZephyrTypeCheck = (
             });
           }
         }
+        index++;
       }
+
+      args.push([`${index}_phandel`, `${index}_cell...`]);
+
+      type.signatureArgs = args.map((arg) =>
+        arg.map((arg) => ParameterInformation.create(arg))
+      );
     }
 
     return issues;

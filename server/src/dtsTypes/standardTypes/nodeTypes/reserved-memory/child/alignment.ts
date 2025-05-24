@@ -19,7 +19,10 @@ import { FileDiagnostic, StandardTypeIssue } from "../../../../../types";
 import { BindingPropertyType } from "../../../../../types/index";
 import { PropertyNodeType } from "../../../../types";
 import { flatNumberValues, generateOrTypeObj } from "../../../helpers";
-import { DiagnosticSeverity } from "vscode-languageserver-types";
+import {
+  DiagnosticSeverity,
+  ParameterInformation,
+} from "vscode-languageserver-types";
 
 export default () => {
   const prop = new PropertyNodeType(
@@ -33,14 +36,16 @@ export default () => {
 
       const values = flatNumberValues(property.ast.values);
 
-      prop.typeExample = `<${Array.from(
-        {
-          length: property.parent.sizeCells(macros),
-        },
-        () => "size"
-      )}>`;
+      const sizeCells = property.parent.sizeCells(macros);
+      const args = [
+        ...Array.from(
+          { length: sizeCells },
+          (_, i) => `size${sizeCells > 1 ? i : ""}`
+        ),
+      ];
+      prop.signatureArgs = args.map((arg) => ParameterInformation.create(arg));
 
-      if (values?.length !== property.parent.sizeCells(macros)) {
+      if (values?.length !== sizeCells) {
         issues.push(
           genStandardTypeDiagnostic(
             StandardTypeIssue.CELL_MISS_MATCH,
@@ -48,7 +53,15 @@ export default () => {
             DiagnosticSeverity.Error,
             [],
             [],
-            [property.name, prop.typeExample]
+            [
+              property.name,
+              `<${Array.from(
+                {
+                  length: property.parent.sizeCells(macros),
+                },
+                () => "size"
+              )}>`,
+            ]
           )
         );
       }

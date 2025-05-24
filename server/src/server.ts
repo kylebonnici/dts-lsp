@@ -36,6 +36,9 @@ import {
   PublishDiagnosticsParams,
   Location,
   WorkspaceFolder,
+  SignatureHelp,
+  SignatureInformation,
+  ParameterInformation,
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -80,6 +83,7 @@ import {
 } from "./settings";
 import { basename } from "path";
 import { getActions } from "./getActions";
+import { getSignatureHelp } from "./signatureHelp";
 
 const contextAware: ContextAware[] = [];
 let activeContext: ContextAware | undefined;
@@ -329,6 +333,10 @@ connection.onInitialize((params: InitializeParams) => {
       referencesProvider: true,
       documentFormattingProvider: true,
       hoverProvider: true,
+      signatureHelpProvider: {
+        triggerCharacters: ["<"],
+        retriggerCharacters: [" ", ","],
+      },
     },
   };
   if (hasWorkspaceFolderCapability) {
@@ -1156,6 +1164,16 @@ connection.onTypeDefinition(async (event) => {
   const context = quickFindContext(uri);
 
   return typeDefinition(event, context);
+});
+
+connection.onSignatureHelp(async (event) => {
+  await allStable();
+
+  const uri = fileURLToPath(event.textDocument.uri);
+  updateActiveContext({ uri });
+  const context = quickFindContext(uri);
+
+  return getSignatureHelp(event, context);
 });
 
 connection.onRequest(

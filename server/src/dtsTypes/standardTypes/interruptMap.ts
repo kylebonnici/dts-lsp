@@ -24,7 +24,10 @@ import {
   getU32ValueFromProperty,
 } from "./helpers";
 import { createTokenIndex, genStandardTypeDiagnostic } from "../../helpers";
-import { DiagnosticSeverity } from "vscode-languageserver";
+import {
+  DiagnosticSeverity,
+  ParameterInformation,
+} from "vscode-languageserver";
 import { ArrayValues } from "../../ast/dtc/values/arrayValue";
 import { ASTBase } from "../../ast/base";
 import { Expression } from "../../ast/cPreprocessors/expression";
@@ -97,8 +100,54 @@ export default () => {
       }
 
       let i = 0;
-      const typeExamples: string[][] = [];
+      const args: string[][] = [];
+      let index = 0;
+      let entryEndIndex = 0;
       while (i < values.length) {
+        args.push([
+          ...Array.from(
+            { length: childAddressCellsValue },
+            (_, j) => `${index}_ChildAddr${childAddressCellsValue > 1 ? j : ""}`
+          ),
+          ...Array.from(
+            { length: childInterruptSpecifierValue },
+            (_, j) =>
+              `${index}_ChildIntrpt${childInterruptSpecifierValue > 1 ? j : ""}`
+          ),
+          `${index}_IntrptParent`,
+          `${index}_ParentAddr...`,
+          `${index}_ParentIntrpt...`,
+        ]);
+
+        if (
+          i + childAddressCellsValue + childInterruptSpecifierValue >=
+          values.length
+        ) {
+          const expLen =
+            i + childAddressCellsValue + childInterruptSpecifierValue;
+          issues.push(
+            genStandardTypeDiagnostic(
+              StandardTypeIssue.MAP_ENTRY_INCOMPLETE,
+              values[values.length - 1],
+              DiagnosticSeverity.Error,
+              [],
+              [],
+              [
+                property.name,
+                `after the last value of ${args
+                  .at(-1)!
+                  .slice(
+                    (values.length - entryEndIndex) % expLen === 0
+                      ? expLen
+                      : (values.length - entryEndIndex) % expLen
+                  )
+                  .join(" ")}`,
+              ]
+            )
+          );
+          break;
+        }
+
         const keyItem = new ASTBase(
           createTokenIndex(
             values.at(i)!.firstToken,
@@ -125,21 +174,10 @@ export default () => {
         keys[key] ??= [];
         keys[key].push(keyItem);
 
-        let entryEndIndex = 0;
-
         i += childAddressCellsValue + childInterruptSpecifierValue;
 
         const expLen =
           childAddressCellsValue + childInterruptSpecifierValue + 1;
-        prop.typeExample ??= "";
-        typeExamples.push([
-          ...Array.from({ length: childAddressCellsValue }, () => "ChildAddr"),
-          ...Array.from(
-            { length: childInterruptSpecifierValue },
-            () => "ChildIntrpt"
-          ),
-          "IntrptParent ParentAddr... ParentIntrpt...",
-        ]);
 
         if (values.length < i + 1) {
           issues.push(
@@ -151,7 +189,7 @@ export default () => {
               [],
               [
                 property.name,
-                `after the last value of ${typeExamples
+                `after the last value of ${args
                   .at(-1)!
                   .slice(
                     (values.length - entryEndIndex) % expLen === 0
@@ -212,17 +250,28 @@ export default () => {
           break;
         }
 
-        typeExamples.splice(-1, 1, [
-          ...Array.from({ length: childAddressCellsValue }, () => "ChildAddr"),
+        args.splice(-1, 1, [
+          ...Array.from(
+            { length: childAddressCellsValue },
+            (_, j) => `${index}_ChildAddr${childAddressCellsValue > 1 ? j : ""}`
+          ),
           ...Array.from(
             { length: childInterruptSpecifierValue },
-            () => "ChildIntrpt"
+            (_, j) =>
+              `${index}_ChildIntrpt${childInterruptSpecifierValue > 1 ? j : ""}`
           ),
-          "IntrptParent",
-          ...Array.from({ length: parentUnitAddressValue }, () => "ParentAddr"),
+          `${index}_IntrptParent`,
+          ...Array.from(
+            { length: parentUnitAddressValue },
+            (_, j) =>
+              `${index}_ParentAddr${parentUnitAddressValue > 1 ? j : ""}`
+          ),
           ...Array.from(
             { length: parentInterruptSpecifierValue },
-            () => "ParentIntrpt"
+            (_, j) =>
+              `${index}_ParentIntrpt${
+                parentInterruptSpecifierValue > 1 ? j : ""
+              }`
           ),
         ]);
 
@@ -243,7 +292,7 @@ export default () => {
               [],
               [
                 property.name,
-                `after the last value of ${typeExamples
+                `after the last value of ${args
                   .at(-1)!
                   .slice(
                     (values.length - entryEndIndex) % expLen === 0
@@ -257,11 +306,27 @@ export default () => {
           break;
         }
         entryEndIndex = i;
+        index++;
       }
 
-      prop.typeExample = typeExamples
-        .map((t) => `<${t.join(" ")}>`)
-        .join("\n\t\t");
+      args.push([
+        ...Array.from(
+          { length: childAddressCellsValue },
+          (_, j) => `${index}_ChildAddr${childAddressCellsValue > 1 ? j : ""}`
+        ),
+        ...Array.from(
+          { length: childInterruptSpecifierValue },
+          (_, j) =>
+            `${index}_ChildIntrpt${childInterruptSpecifierValue > 1 ? j : ""}`
+        ),
+        `${index}_IntrptParent`,
+        `${index}_ParentAddr...`,
+        `${index}_ParentIntrpt...`,
+      ]);
+
+      prop.signatureArgs = args.map((arg) =>
+        arg.map((arg) => ParameterInformation.create(arg))
+      );
 
       if (!property.ast.values) {
         return [];
