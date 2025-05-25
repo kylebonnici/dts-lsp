@@ -78,6 +78,7 @@ import type {
 } from "./types/index";
 import {
   defaultSettings,
+  fixSettingsTypes,
   resolveContextSetting,
   resolveSettings,
 } from "./settings";
@@ -279,7 +280,7 @@ connection.onInitialize((params: InitializeParams) => {
   // The workspace folder this server is operating on
   workspaceFolder = params.workspaceFolders;
   connection.console.log(
-    `[Server(${process.pid}) ${workspaceFolder?.[0].uri} Version 0.4.1 ] Started and initialize received`
+    `[Server(${process.pid}) ${workspaceFolder?.[0].uri} Version 0.4.2 ] Started and initialize received`
   );
 
   const capabilities = params.capabilities;
@@ -610,9 +611,9 @@ connection.onDidChangeConfiguration(async (change) => {
     return;
   }
 
-  lspConfigurationSettings = deleteTopLevelNulls(
-    change.settings.devicetree
-  ) as Settings;
+  lspConfigurationSettings = fixSettingsTypes(
+    deleteTopLevelNulls(change.settings.devicetree) as Settings
+  );
 
   console.log("Configuration changed", JSON.stringify(change, undefined, "\t"));
 

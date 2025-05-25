@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.4.2] - unreleased
+
+### Fixed
+
+- Resolve default settings `defaultLockRenameEdits` with `cwd`
+
 ## [0.4.1] - 2025-05-25
 
 ### Added

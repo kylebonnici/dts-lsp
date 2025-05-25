@@ -25,6 +25,43 @@ import {
 import { existsSync } from "fs";
 import { normalizePath } from "./helpers";
 
+const fixToArray = <T>(a: T): T | undefined => {
+  if (!a) return;
+  return Array.isArray(a) ? a : ([a] as T);
+};
+
+const fixContextSettings = (context: Context): Context => {
+  return {
+    ...context,
+    deviceOrgBindingsMetaSchema: fixToArray(
+      context.deviceOrgBindingsMetaSchema
+    ),
+    deviceOrgTreeBindings: fixToArray(context.deviceOrgTreeBindings),
+    includePaths: fixToArray(context.includePaths),
+    lockRenameEdits: fixToArray(context.lockRenameEdits),
+    zephyrBindings: fixToArray(context.zephyrBindings),
+    overlays: fixToArray(context.overlays),
+  };
+};
+
+export const fixSettingsTypes = (settings: Settings): Settings => {
+  return {
+    ...settings,
+    defaultDeviceOrgBindingsMetaSchema: fixToArray(
+      settings.defaultDeviceOrgBindingsMetaSchema
+    ),
+    defaultDeviceOrgTreeBindings: fixToArray(
+      settings.defaultDeviceOrgTreeBindings
+    ),
+    defaultIncludePaths: fixToArray(settings.defaultIncludePaths),
+    defaultLockRenameEdits: fixToArray(settings.defaultLockRenameEdits),
+    defaultZephyrBindings: fixToArray(settings.defaultZephyrBindings),
+    contexts: (settings.contexts as Context[] | undefined)?.map(
+      fixContextSettings
+    ) as ResolvedContext[] | undefined,
+  };
+};
+
 const resolvePathVariable = async (
   path: string,
   rootWorkspace?: string
@@ -141,7 +178,7 @@ export const resolveSettings = async (
         resolvePathVariable(v, rootWorkspace)
       )
     ));
-  const defaultDeviceOrgTreeBindings =
+  let defaultDeviceOrgTreeBindings =
     (globalSettings.defaultDeviceOrgTreeBindings = await Promise.all(
       (globalSettings.defaultDeviceOrgTreeBindings ?? []).map((v) =>
         resolvePathVariable(v, rootWorkspace)
@@ -160,7 +197,7 @@ export const resolveSettings = async (
         resolvePathVariable(v, rootWorkspace)
       )
     ));
-  const defaultLockRenameEdits = (globalSettings.defaultLockRenameEdits =
+  let defaultLockRenameEdits = (globalSettings.defaultLockRenameEdits =
     await Promise.all(
       (globalSettings.defaultLockRenameEdits ?? []).map((v) =>
         resolvePathVariable(v, rootWorkspace)
@@ -185,17 +222,13 @@ export const resolveSettings = async (
     defaultDeviceOrgBindingsMetaSchema = defaultDeviceOrgBindingsMetaSchema.map(
       (i) => resolve(cwd, i)
     );
+
+    defaultDeviceOrgTreeBindings = (
+      globalSettings.defaultDeviceOrgTreeBindings ?? []
+    ).map((i) => resolve(cwd, i));
+
+    defaultLockRenameEdits = defaultLockRenameEdits.map((i) => resolve(cwd, i));
   }
-
-  globalSettings.defaultDeviceOrgTreeBindings = (
-    globalSettings.defaultDeviceOrgTreeBindings ?? []
-  ).map((i) => {
-    if (globalSettings.cwd) {
-      return resolve(globalSettings.cwd, i);
-    }
-
-    return i;
-  });
 
   const resolvedGlobalSettings: PartialBy<ResolvedSettings, "contexts"> = {
     cwd,
