@@ -63,11 +63,7 @@ export class DevicetreeOrgNodeType extends INodeType {
               StandardTypeIssue.NODE_DISABLED,
               n,
               DiagnosticSeverity.Hint,
-              [
-                ...(statusProperty?.ast.parentNode
-                  ? [statusProperty?.ast.parentNode]
-                  : []),
-              ],
+              [...(statusProperty?.ast ? [statusProperty?.ast] : [])],
               [DiagnosticTag.Unnecessary]
             )
           )
