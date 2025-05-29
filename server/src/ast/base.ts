@@ -133,7 +133,7 @@ export class ASTBase {
 
     const kind = this.docSymbolsMeta.kind;
     if (
-      ![SymbolKind.File, SymbolKind.Class, SymbolKind.Namespace].some(
+      ![SymbolKind.File, SymbolKind.Class, SymbolKind.Constant].some(
         (k) => k === kind
       )
     ) {
@@ -153,7 +153,7 @@ export class ASTBase {
           (ds) =>
             ds.kind === SymbolKind.File ||
             ds.kind === SymbolKind.Class ||
-            ds.kind === SymbolKind.Namespace
+            ds.kind === SymbolKind.Constant
         ),
     ];
   }
