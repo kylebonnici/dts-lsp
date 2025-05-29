@@ -34,7 +34,7 @@ import { NodePathRef } from "../ast/dtc/values/nodePath";
 import { StringValue } from "../ast/dtc/values/string";
 import { ByteStringValue } from "../ast/dtc/values/byteString";
 import { DeleteNode } from "../ast/dtc/deleteNode";
-import { Comment } from "../ast/dtc/comment";
+import { Comment, CommentBlock } from "../ast/dtc/comment";
 import { IfDefineBlock, IfElIfBlock } from "../ast/cPreprocessors/ifDefine";
 import { CPreprocessorParser } from "../cPreprocessorParser";
 import { DtsDocumentVersion } from "../ast/dtc/dtsDocVersion";
@@ -2008,7 +2008,7 @@ describe("Parser", () => {
       expect(parser.issues.length).toEqual(0);
       expect(parser.allAstItems.length).toEqual(1);
 
-      expect(parser.allAstItems[0] instanceof Comment).toBeTruthy();
+      expect(parser.allAstItems[0] instanceof CommentBlock).toBeTruthy();
 
       const comment = parser.allAstItems[0] as Comment;
       expect(comment.firstToken.pos.col).toEqual(4);
@@ -2021,12 +2021,13 @@ describe("Parser", () => {
       await parser.stable;
 
       expect(parser.issues.length).toEqual(0);
-      expect(parser.allAstItems.length).toEqual(2);
+      expect(parser.allAstItems.length).toEqual(1);
 
-      expect(parser.allAstItems[0] instanceof Comment).toBeTruthy();
+      expect(parser.allAstItems[0] instanceof CommentBlock).toBeTruthy();
 
-      const commentLine1 = parser.allAstItems[0] as Comment;
-      const commentLine2 = parser.allAstItems[1] as Comment;
+      const commentBlock = parser.allAstItems[0] as CommentBlock;
+      const commentLine1 = commentBlock.comments[0] as Comment;
+      const commentLine2 = commentBlock.comments[1] as Comment;
       expect(commentLine1.firstToken.pos.col).toEqual(4);
       expect(commentLine1.firstToken.pos.line).toEqual(0);
       expect(commentLine1.lastToken.pos.colEnd).toEqual(10);
@@ -2044,10 +2045,10 @@ describe("Parser", () => {
 
       expect(parser.issues.length).toEqual(0);
 
-      const comments = parser.allAstItems.filter(
-        (o) => o instanceof Comment
-      ) as Comment[];
-      expect(comments.length).toEqual(1);
+      const commentsBlock = parser.allAstItems.filter(
+        (o) => o instanceof CommentBlock
+      ) as CommentBlock[];
+      expect(commentsBlock.length).toEqual(1);
 
       const comment = parser.allAstItems[0] as Comment;
       expect(comment.firstToken.pos.col).toEqual(8);

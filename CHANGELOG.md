@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.4.2] - unreleased
 
+### Added
+
+- Folding ranges of Block Comments
+
 ### Fixed
 
 - Resolve default settings `defaultLockRenameEdits` with `cwd`

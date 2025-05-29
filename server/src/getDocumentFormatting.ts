@@ -40,7 +40,7 @@ import {
   positionInBetween,
   setIndentString,
 } from "./helpers";
-import { Comment } from "./ast/dtc/comment";
+import { Comment, CommentBlock } from "./ast/dtc/comment";
 
 const findAst = async (token: Token, uri: string, fileRootAsts: ASTBase[]) => {
   const pos = Position.create(token.pos.line, token.pos.col);
@@ -588,6 +588,13 @@ const formatDtcInclude = (
   return result;
 };
 
+const formatCommentBlock = (
+  commentItem: CommentBlock,
+  level: number | undefined,
+  indentString: string
+): TextEdit[] =>
+  commentItem.comments.flatMap((c) => formatComment(c, level, indentString));
+
 const formatComment = (
   commentItem: Comment,
   level: number | undefined,
@@ -683,6 +690,12 @@ const getTextEdit = async (
     );
   } else if (astNode instanceof Comment) {
     return formatComment(astNode, await computeLevel(astNode), singleIndent);
+  } else if (astNode instanceof CommentBlock) {
+    return formatCommentBlock(
+      astNode,
+      await computeLevel(astNode),
+      singleIndent
+    );
   }
 
   return [];

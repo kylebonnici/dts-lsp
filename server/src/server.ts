@@ -36,9 +36,6 @@ import {
   PublishDiagnosticsParams,
   Location,
   WorkspaceFolder,
-  SignatureHelp,
-  SignatureInformation,
-  ParameterInformation,
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";

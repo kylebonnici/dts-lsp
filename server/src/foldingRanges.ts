@@ -20,6 +20,22 @@ import { Parser } from "./parser";
 import { ASTBase } from "./ast/base";
 import { IfDefineBlock, IfElIfBlock } from "./ast/cPreprocessors/ifDefine";
 import { isPathEqual } from "./helpers";
+import { CommentBlock } from "./ast/dtc/comment";
+
+const commentBlockToRange = (comment: CommentBlock): FoldingRange[] => {
+  if (!comment.lastToken.prevToken || !comment.lastToken.prevToken.prevToken) {
+    return [];
+  }
+  return [
+    <FoldingRange>{
+      startLine: comment.firstToken.pos.line,
+      startCharacter: comment.firstToken.pos.col,
+      endLine: comment.lastToken.prevToken.prevToken.pos.line,
+      endCharacter: comment.lastToken.prevToken.prevToken.pos.col,
+      kind: FoldingRangeKind.Comment,
+    },
+  ];
+};
 
 const nodeToRange = (dtcNode: DtcBaseNode): FoldingRange[] => {
   if (!dtcNode.openScope || !dtcNode.closeScope?.prevToken) {
@@ -88,6 +104,10 @@ const toFoldingRange = (ast: ASTBase): FoldingRange[] => {
 
   if (ast instanceof IfElIfBlock) {
     return ifElIfBlockToRange(ast);
+  }
+
+  if (ast instanceof CommentBlock) {
+    return commentBlockToRange(ast);
   }
 
   return [];

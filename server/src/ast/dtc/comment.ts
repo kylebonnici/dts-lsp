@@ -17,6 +17,13 @@
 import { ASTBase } from "../base";
 import { TokenIndexes } from "../../types";
 
+export class CommentBlock extends ASTBase {
+  constructor(readonly comments: Comment[]) {
+    super();
+    comments.forEach(this.addChild.bind(this));
+  }
+}
+
 export class Comment extends ASTBase {
   constructor(tokenIndexes: TokenIndexes) {
     super(tokenIndexes);

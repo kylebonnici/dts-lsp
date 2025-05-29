@@ -16,13 +16,13 @@
 
 import { LexerToken, Token } from "./types";
 import { adjacentTokens, createTokenIndex, validToken } from "./helpers";
-import { Comment } from "./ast/dtc/comment";
+import { Comment, CommentBlock } from "./ast/dtc/comment";
 import { BaseParser } from "./baseParser";
 import { ASTBase } from "./ast/base";
 import { getTokenizedDocumentProvider } from "./providers/tokenizedDocument";
 
 export class CommentsParser extends BaseParser {
-  comments: Comment[] = [];
+  comments: (Comment | CommentBlock)[] = [];
   public tokens: Token[] = [];
 
   constructor(public readonly uri: string) {
@@ -33,12 +33,12 @@ export class CommentsParser extends BaseParser {
     const tokensUsed: number[] = [];
     for (let i = 0; i < this.tokens.length; i++) {
       const result =
-        CommentsParser.processBlockComments(this.tokens, i) ||
-        CommentsParser.processLineComments(this.tokens, i);
+        CommentsParser.processBlockComment(this.tokens, i) ||
+        CommentsParser.processLineComment(this.tokens, i);
       if (result) {
         i = result.index;
         tokensUsed.push(...result.tokenUsed);
-        this.comments.push(...result.comments);
+        this.comments.push(result.comment);
       }
     }
     tokensUsed.reverse().forEach((i) => this.tokens.splice(i, 1));
@@ -63,7 +63,7 @@ export class CommentsParser extends BaseParser {
     this.cleanUpComments();
   }
 
-  private static processBlockComments(tokens: Token[], index: number) {
+  private static processBlockComment(tokens: Token[], index: number) {
     const tokenUsed: number[] = [];
 
     const move = () => {
@@ -129,16 +129,17 @@ export class CommentsParser extends BaseParser {
 
     const node = new Comment(createTokenIndex(start, currentToken()));
     comments.push(node);
+    const comment = new CommentBlock(comments);
 
     move();
     return {
-      comments,
+      comment,
       tokenUsed,
       index: index - 1,
     };
   }
 
-  private static processLineComments(tokens: Token[], index: number) {
+  private static processLineComment(tokens: Token[], index: number) {
     const tokenUsed: number[] = [];
 
     if (
@@ -150,23 +151,18 @@ export class CommentsParser extends BaseParser {
       return;
     }
 
-    const comments: Comment[] = [];
-
     while (tokens[index].pos.line === tokens.at(index + 1)?.pos.line) {
       tokenUsed.push(index++);
     }
 
     tokenUsed.push(index++);
 
-    const lastToken = tokens[tokenUsed.at(-1)!];
-    const node = new Comment(
+    const comment = new Comment(
       createTokenIndex(tokens[tokenUsed[0]], tokens[tokenUsed.at(-1)!])
     );
 
-    comments.push(node);
-
     return {
-      comments,
+      comment,
       tokenUsed,
       index: index - 1,
     };
