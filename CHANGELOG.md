@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Required properties will not show on top of auto completion list
 - Resolve default settings `defaultLockRenameEdits` with `cwd`
 - Node `Disabled by` point to the property with `statues = "disabled"`and not the node this property is in.
 

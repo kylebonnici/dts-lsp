@@ -131,7 +131,7 @@ export class DevicetreeOrgNodeType extends INodeType {
         const hasProperty = !!node.property.some((pp) => p === pp.name);
         let sortLetter = "a";
         if (required) {
-          sortLetter = hasProperty ? "Y" : "A";
+          sortLetter = hasProperty ? "Y" : "!";
         } else {
           sortLetter = hasProperty ? "Z" : "B";
         }

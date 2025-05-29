@@ -751,8 +751,8 @@ export class NodeType extends INodeType {
             p.getNameMatch(pp.name)
           );
           let sortLetter = "a";
-          if (required) {
-            sortLetter = hasProperty ? "Y" : "A";
+          if (required === "required") {
+            sortLetter = hasProperty ? "Y" : "!";
           } else {
             sortLetter = hasProperty ? "Z" : "B";
           }
