@@ -4,16 +4,16 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.4.2] - unreleased
+## [0.4.2] - 2025-06-02
 
 ### Added
 
-- Folding ranges of Block Comments
-- Node `label assign` to Workspace Symbols
+- Folding ranges of Block Comments.
+- Node `label assign` to Workspace Symbols.
 
 ### Fixed
 
-- Required properties will not show on top of auto completion list
+- Unused required properties will now show on top of auto completion list.
 - Resolve default settings `defaultLockRenameEdits` with `cwd`
 - Node `Disabled by` point to the property with `statues = "disabled"`and not the node this property is in.
 
