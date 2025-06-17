@@ -58,7 +58,7 @@ function getPropertyReferences(
       property.ast,
       ...property.allReplaced.map((p) => p.ast),
       ...[
-        property.parent.deletedProperties.find((p) => (p.property = property))
+        property.parent.deletedProperties.find((p) => p.property === property)
           ?.by ?? [],
       ],
     ]

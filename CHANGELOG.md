@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.4.3] - Unreleased
+
+### Fixed
+
+- `Find All References` on properties listed `/delete-property/` not liked to the property in question
+- `Rename Edit` on properties changed `/delete-property/` not linked to the selected in question
+
 ## [0.4.2] - 2025-06-02
 
 ### Added
