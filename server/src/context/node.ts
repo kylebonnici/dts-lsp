@@ -975,8 +975,12 @@ export class Node {
     return { mapMask, map };
   }
 
+  private uniqueLabels() {
+    return Array.from((new Set(this.labels.map((l) => l.toString()))))
+  }
+
   toTooltipString(macros: Map<string, MacroRegistryItem>) {
-    return `${this.labels.map((l) => l.toString()).join(" ")}${
+    return `${this.uniqueLabels().join(" ")}${
       this.labels.length ? " " : ""
     }${this.fullName} {${this.property.length ? "\n\t" : ""}${this.property
       .map((p) => p.toPrettyString(macros))
@@ -1050,7 +1054,7 @@ ${"\t".repeat(level - 1)}}; */`;
         : hasOmitIfNoRef
         ? `/* /omit-if-no-ref/ */\n${"\t".repeat(level - 1)}`
         : ""
-    }${this.labels.map((l) => l.toString()).join(" ")}${
+    }${this.uniqueLabels()}${
       this.labels.length ? " " : ""
     }${this.fullName} {${
       this.property.length ? `\n${"\t".repeat(level)}` : ""
