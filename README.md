@@ -10,7 +10,7 @@ This extension needs a client that supports Configuration Capability. The format
 
 ```typescript
 interface Context {
-  ctxName: string | number;
+  ctxName?: string | number;
   cwd?: string;
   includePaths?: string[];
   dtsFile: string;
