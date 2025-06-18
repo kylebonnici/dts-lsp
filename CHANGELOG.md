@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `Rename Edit` on properties changed `/delete-property/` not linked to the selected in question
 - OnHover now shows uniwque labels for a node.
 - Generated compiled output now shows uniwque labels for a node.
+- Semantic token for node addresses now cover the complete address.
 
 ## [0.4.2] - 2025-06-02
 

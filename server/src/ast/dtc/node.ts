@@ -353,8 +353,8 @@ export class NodeName extends ASTBase {
     if (this.address !== undefined) {
       this.address.forEach((a) => {
         push(getTokenTypes("decorator"), getTokenModifiers("declaration"), {
-          start: a.lastToken.prevToken!,
-          end: a.lastToken.prevToken!,
+          start: a.firstToken,
+          end: a.lastToken,
         });
         a.buildSemanticTokens(push);
       });
