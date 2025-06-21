@@ -146,7 +146,7 @@ const removeNewLinesBetweenTokenAndPrev = (
       return TextEdit.replace(
         Range.create(
           Position.create(token.prevToken.pos.line, token.prevToken.pos.colEnd),
-          Position.create(token.pos.line - expectedNewLines, token.pos.col)
+          Position.create(token.pos.line - expectedNewLines, expectedNewLines ? 0 : token.pos.col)
         ),
         "".padEnd(expectedNewLines - 1, "\n")
       );
@@ -311,6 +311,12 @@ const formatDtcNode = async (
           : [];
       result.push(...nodeNameAndOpenCurlySpacing);
     }
+  } else if (
+    node instanceof DtcRootNode &&
+    node.firstToken.value === "/" &&
+    node.openScope
+  ) {
+    result.push(...fixedNumberOfSpaceBetweenTokensAndNext(node.firstToken, 0));
   }
 
   result.push(

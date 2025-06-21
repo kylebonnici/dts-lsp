@@ -47,7 +47,8 @@ import url from "url";
 import { createHash } from "crypto";
 import { ResolvedContext } from "./types/index";
 import { normalize } from "path";
-import { CMacroCall } from './ast/cPreprocessors/functionCall';
+import { CMacroCall } from "./ast/cPreprocessors/functionCall";
+import { TextDocument } from "vscode-languageserver-textdocument";
 
 export const toRangeWithTokenIndex = (
   start?: Token,
@@ -1096,9 +1097,30 @@ export function isNestedArray<T>(input: T[] | T[][]): input is T[][] {
   return Array.isArray(input) && Array.isArray(input[0]);
 }
 
-export function getCMacroCall(ast: ASTBase | undefined): CMacroCall | undefined {
+export function getCMacroCall(
+  ast: ASTBase | undefined
+): CMacroCall | undefined {
   if (!ast || ast instanceof CMacroCall) {
     return ast;
   }
   return getCMacroCall(ast.parentNode);
+}
+
+export function applyEdits(document: TextDocument, edits: TextEdit[]): string {
+  const text = document.getText();
+  // Sort edits in reverse order so positions don't shift
+  const sorted = edits.slice().sort((a, b) => {
+    const aStart = document.offsetAt(a.range.start);
+    const bStart = document.offsetAt(b.range.start);
+    return bStart - aStart;
+  });
+
+  let result = text;
+  for (const edit of sorted) {
+    const start = document.offsetAt(edit.range.start);
+    const end = document.offsetAt(edit.range.end);
+    result = result.slice(0, start) + edit.newText + result.slice(end);
+  }
+
+  return result;
 }
