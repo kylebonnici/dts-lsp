@@ -39,6 +39,10 @@ class TokenizedDocumentProvider {
     return this.fileMap.get(uri)?.text !== text;
   }
 
+  getDocumentText(uri: string) {
+    return this.fileMap.get(uri)?.text ?? readFileSync(uri).toString();
+  }
+
   renewLexer(uri: string, text?: string): Token[] {
     uri = normalizePath(uri);
     getCachedCPreprocessorParserProvider().reset(uri);

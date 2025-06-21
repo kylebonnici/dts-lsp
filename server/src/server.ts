@@ -1125,7 +1125,11 @@ connection.onDocumentFormatting(async (event) => {
     return [];
   }
 
-  return getDocumentFormatting(event, context);
+  return getDocumentFormatting(
+    event,
+    context,
+    getTokenizedDocumentProvider().getDocumentText(uri).split("\n")
+  );
 });
 
 connection.onHover(async (event) => {
