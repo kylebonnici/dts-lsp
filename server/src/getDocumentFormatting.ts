@@ -164,14 +164,17 @@ const createIndentEdit = (
   level: number,
   indentString: string,
   prefix: string = ""
-): TextEdit => {
-  return TextEdit.replace(
+): TextEdit[] => {
+  const indent = `${"".padStart(level * indentString.length, indentString)}${prefix}`
+  if (indent.length === 0) return [];
+
+  return [TextEdit.replace(
     Range.create(
       Position.create(token.pos.line, 0),
       Position.create(token.pos.line, token.pos.col)
     ),
-    `${"".padStart(level * indentString.length, indentString)}${prefix}`
-  );
+    indent
+  )];
 };
 
 const fixedNumberOfSpaceBetweenTokensAndNext = (
@@ -236,7 +239,7 @@ const formatDtcNode = async (
   if (editToMoveToNewLine) {
     result.push(editToMoveToNewLine);
   } else {
-    result.push(createIndentEdit(node.firstToken, level, indentString));
+    result.push(...createIndentEdit(node.firstToken, level, indentString));
     const edit = removeNewLinesBetweenTokenAndPrev(node.firstToken);
     if (edit) result.push(edit);
   }
@@ -285,7 +288,7 @@ const formatDtcNode = async (
     if (editToMoveToNewLine) {
       result.push(editToMoveToNewLine);
     } else {
-      result.push(createIndentEdit(node.closeScope, level, indentString));
+      result.push(...createIndentEdit(node.closeScope, level, indentString));
       const edit = removeNewLinesBetweenTokenAndPrev(node.closeScope);
       if (edit) result.push(edit);
     }
@@ -317,10 +320,9 @@ const formatLabeledValue = <T extends ASTBase>(
     const edit = removeNewLinesBetweenTokenAndPrev(value.firstToken);
     if (edit) {
       result.push(edit);
-      result.push(createIndentEdit(value.firstToken, level + 1, indentString));
+      result.push(...createIndentEdit(value.firstToken, level + 1, indentString));
     }
   }
-  value.value;
 
   return result;
 };
@@ -440,7 +442,7 @@ const formatPropertyValues = (
         const edit = removeNewLinesBetweenTokenAndPrev(nextValue?.firstToken);
         if (edit) result.push(edit);
         result.push(
-          createIndentEdit(nextValue?.firstToken, level + 1, indentString)
+          ...createIndentEdit(nextValue?.firstToken, level + 1, indentString)
         );
       }
     }
@@ -477,7 +479,7 @@ const formatDtcProperty = (
   if (editToMoveToNewLine) {
     result.push(editToMoveToNewLine);
   } else {
-    result.push(createIndentEdit(property.firstToken, level, indentString));
+    result.push(...createIndentEdit(property.firstToken, level, indentString));
     const edit = removeNewLinesBetweenTokenAndPrev(property.firstToken);
     if (edit) result.push(edit);
   }
@@ -534,7 +536,7 @@ const formatDtcDelete = (
   if (editToMoveToNewLine) {
     result.push(editToMoveToNewLine);
   } else {
-    result.push(createIndentEdit(deleteItem.firstToken, level, indentString));
+    result.push(...createIndentEdit(deleteItem.firstToken, level, indentString));
   }
 
   const keywordAndItemSpacing = fixedNumberOfSpaceBetweenTokensAndNext(
@@ -577,7 +579,7 @@ const formatDtcInclude = (
   if (editToMoveToNewLine) {
     result.push(editToMoveToNewLine);
   } else {
-    result.push(createIndentEdit(includeItem.firstToken, level, indentString));
+    result.push(...createIndentEdit(includeItem.firstToken, level, indentString));
   }
 
   const keywordAndItemSpacing = fixedNumberOfSpaceBetweenTokensAndNext(
@@ -646,7 +648,7 @@ const formatComment = (
     result.push(editToMoveToNewLine);
   } else {
     result.push(
-      createIndentEdit(commentItem.firstToken, level, indentString, prefix)
+      ...createIndentEdit(commentItem.firstToken, level, indentString, prefix)
     );
     const edit = removeNewLinesBetweenTokenAndPrev(commentItem.firstToken);
     if (edit) result.push(edit);
