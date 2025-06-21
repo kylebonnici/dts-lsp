@@ -1118,12 +1118,16 @@ export class Parser extends BaseParser {
         return [];
       }
 
-      const values = [value];
+      const values: (PropertyValue | null)[] = [value];
       while (!validToken(this.currentToken, LexerToken.SEMICOLON)) {
         const start = this.prevToken;
         const end = this.currentToken;
+        let valueSeparator: Token | undefined;
+
         const shouldHaveValue = validToken(this.currentToken, LexerToken.COMMA);
         if (shouldHaveValue) {
+          valueSeparator = this.currentToken;
+
           this.moveToNextToken;
         } else if (!sameLine(this.prevToken, this.currentToken)) {
           break;
@@ -1142,7 +1146,13 @@ export class Parser extends BaseParser {
             genSyntaxDiagnostic(SyntaxIssue.MISSING_COMMA, node)
           );
         }
-        values.push(next!);
+
+        const prevValue = values.at(-1);
+        if (prevValue) {
+          prevValue.nextValueSeparator ??= valueSeparator;
+        }
+
+        values.push(next);
       }
 
       return values;
