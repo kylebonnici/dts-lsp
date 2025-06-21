@@ -121,12 +121,12 @@ const removeNewLinesBetweenTokenAndPrev = (
   expectedNewLines = 1
 ): TextEdit | undefined => {
   if (token.prevToken) {
-    const diffNumberOfLins = token.pos.line - token.prevToken.pos.line;
-    const linesToRemove = diffNumberOfLins - expectedNewLines;
+    const diffNumberOfLines = token.pos.line - token.prevToken.pos.line;
+    const linesToRemove = diffNumberOfLines - expectedNewLines;
 
     if (
       linesToRemove &&
-      ((diffNumberOfLins !== 2 && expectedNewLines !== 0) ||
+      ((diffNumberOfLines !== 2 && expectedNewLines !== 0) ||
         expectedNewLines === 0)
     ) {
       return TextEdit.replace(
