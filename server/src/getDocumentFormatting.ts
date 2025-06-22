@@ -146,7 +146,10 @@ const removeNewLinesBetweenTokenAndPrev = (
       return TextEdit.replace(
         Range.create(
           Position.create(token.prevToken.pos.line, token.prevToken.pos.colEnd),
-          Position.create(token.pos.line - expectedNewLines, expectedNewLines ? 0 : token.pos.col)
+          Position.create(
+            token.pos.line - expectedNewLines,
+            expectedNewLines ? 0 : token.pos.col
+          )
         ),
         "".padEnd(expectedNewLines - 1, "\n")
       );
@@ -297,12 +300,26 @@ const formatDtcNode = async (
     result.push(...formatLabels(node.labels));
 
     if (node instanceof DtcChildNode) {
+      if (node.labels.length && node.name && node.name.firstToken.prevToken) {
+        result.push(
+          ...fixedNumberOfSpaceBetweenTokensAndNext(
+            node.name.firstToken.prevToken
+          )
+        );
+      }
       const nodeNameAndOpenCurlySpacing =
         node.name && node.openScope
           ? fixedNumberOfSpaceBetweenTokensAndNext(node.name.lastToken)
           : [];
       result.push(...nodeNameAndOpenCurlySpacing);
     } else {
+      if (node.labels.length && node.labelReference?.firstToken.prevToken) {
+        result.push(
+          ...fixedNumberOfSpaceBetweenTokensAndNext(
+            node.labelReference.firstToken.prevToken
+          )
+        );
+      }
       const nodeNameAndOpenCurlySpacing =
         node.labelReference && node.openScope
           ? fixedNumberOfSpaceBetweenTokensAndNext(
@@ -373,6 +390,14 @@ const formatLabeledValue = <T extends ASTBase>(
 
   result.push(...formatLabels(value.labels));
 
+  if (value.labels.length && value.value?.firstToken.prevToken) {
+    result.push(
+      ...fixedNumberOfSpaceBetweenTokensAndNext(
+        value.value.firstToken.prevToken
+      )
+    );
+  }
+
   if (openBracket && value.firstToken.prevToken === openBracket) {
     result.push(...fixedNumberOfSpaceBetweenTokensAndNext(openBracket, 0));
   } else {
@@ -390,7 +415,11 @@ const formatLabeledValue = <T extends ASTBase>(
           )
         );
       } else {
-        const edit = removeNewLinesBetweenTokenAndPrev(value.firstToken);
+        const edit = removeNewLinesBetweenTokenAndPrev(
+          value.firstToken,
+          1,
+          true
+        );
         if (edit) result.push(edit);
         result.push(
           ...createIndentEdit(
@@ -445,7 +474,7 @@ const formatValue = (
         result.push(
           ...fixedNumberOfSpaceBetweenTokensAndNext(
             value.closeBracket.prevToken,
-            0
+            1
           )
         );
       }
@@ -465,23 +494,11 @@ const formatPropertyValue = (
 ): TextEdit[] => {
   const result: TextEdit[] = [];
 
-  result.push(
-    ...value.startLabels.flatMap((label, i) =>
-      i + 1 === value.startLabels.length
-        ? []
-        : fixedNumberOfSpaceBetweenTokensAndNext(label.lastToken)
-    )
-  );
+  result.push(...formatLabels(value.startLabels));
 
   result.push(...formatValue(value.value, level, indentString, documentText));
 
-  result.push(
-    ...value.endLabels.flatMap((label, i) =>
-      i + 1 === value.endLabels.length
-        ? []
-        : fixedNumberOfSpaceBetweenTokensAndNext(label.lastToken)
-    )
-  );
+  result.push(...formatLabels(value.endLabels));
 
   return result;
 };
@@ -554,6 +571,14 @@ const formatDtcProperty = (
   );
 
   result.push(...formatLabels(property.labels));
+
+  if (property.labels.length && property.propertyName?.firstToken.prevToken) {
+    result.push(
+      ...fixedNumberOfSpaceBetweenTokensAndNext(
+        property.propertyName.firstToken.prevToken
+      )
+    );
+  }
 
   if (property.values) {
     if (property.propertyName) {
@@ -731,7 +756,9 @@ const formatBlockCommentLine = (
   // e.g. prop = <10 /* abc */ 10>;
   const commentLine = commentItem.firstToken.pos.line;
   if (
-    commentLine === commentItem.firstToken.prevToken?.pos.line // e.g. prop = <10 /* abc */ 10>; or  prop = <10 10>;  /* abc */
+    commentItem.firstToken.prevToken &&
+    (level === undefined ||
+      commentLine === commentItem.firstToken.prevToken?.pos.line) // e.g. prop = <10 /* abc */ 10>; or  prop = <10 10>;  /* abc */
   ) {
     return fixedNumberOfSpaceBetweenTokensAndNext(
       commentItem.firstToken.prevToken

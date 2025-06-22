@@ -1108,11 +1108,31 @@ export function getCMacroCall(
 
 export function applyEdits(document: TextDocument, edits: TextEdit[]): string {
   const text = document.getText();
-  // Sort edits in reverse order so positions don't shift
+
+  // Enhanced sorting logic:
   const sorted = edits.slice().sort((a, b) => {
     const aStart = document.offsetAt(a.range.start);
     const bStart = document.offsetAt(b.range.start);
-    return bStart - aStart;
+
+    if (aStart !== bStart) {
+      return bStart - aStart; // reverse order
+    }
+
+    // If same start offset, sort by end offset descending (longer edits first)
+    const aEnd = document.offsetAt(a.range.end);
+    const bEnd = document.offsetAt(b.range.end);
+    if (aEnd !== bEnd) {
+      return bEnd - aEnd;
+    }
+
+    // Optionally: insertions before deletions (if newText is empty or not)
+    const aIsInsertion = aStart === aEnd && a.newText.length > 0;
+    const bIsInsertion = bStart === bEnd && b.newText.length > 0;
+    if (aIsInsertion !== bIsInsertion) {
+      return aIsInsertion ? 1 : -1; // insertions later
+    }
+
+    return 0; // stable
   });
 
   let result = text;
