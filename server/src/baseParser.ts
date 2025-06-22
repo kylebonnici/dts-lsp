@@ -414,6 +414,7 @@ export abstract class BaseParser {
     };
 
     const items: BlockItem[] = [start];
+    const separatorTokens: Token[] = [];
     const split: { rewind: () => void; tokens: Token[] }[] = [];
     split[0] = { rewind, tokens: [] };
 
@@ -425,6 +426,7 @@ export abstract class BaseParser {
           this.positionStack[this.positionStack.length - 1] = index;
         };
         items.push(token);
+        separatorTokens.push(token);
         split[split.length] = { rewind, tokens: [] };
       } else if (isOpen(token)) {
         const nestedBlock = this.parseScopedBlock(isOpen, isClose, isSplit);
@@ -456,6 +458,7 @@ export abstract class BaseParser {
       items,
       splitTokens: split,
       endToken: end,
+      separatorTokens,
     };
 
     this.mergeStack();
@@ -583,16 +586,15 @@ export abstract class BaseParser {
 
     let start: Token | undefined;
     let token: Token | undefined;
-    let expression: Expression | undefined;
     if (validToken(this.currentToken, LexerToken.ROUND_OPEN)) {
+      let wrapedExpression: ComplexExpression | undefined;
       start = this.moveToNextToken;
       token = start;
-      expression = this.processExpression(macros, true);
+      let expression = this.processExpression(macros, true);
       if (expression) {
-        expression = new ComplexExpression(
-          new ComplexExpression(expression, true),
-          false
-        );
+        wrapedExpression = new ComplexExpression(expression, true);
+        expression = new ComplexExpression(wrapedExpression, false);
+        wrapedExpression.openBracket = start;
       }
       if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
         this._issues.push(
@@ -603,6 +605,9 @@ export abstract class BaseParser {
         );
       } else {
         token = this.moveToNextToken;
+        if (wrapedExpression) {
+          wrapedExpression.closeBracket = token;
+        }
       }
 
       this.mergeStack();
@@ -681,7 +686,7 @@ export abstract class BaseParser {
 
     const result = block?.splitTokens.map((param, i) => {
       if (param.tokens.length === 0) return null;
-      return new CMacroCallParam(
+      const p = new CMacroCallParam(
         param.tokens
           .map((p, i) => {
             let v = p.value;
@@ -694,6 +699,8 @@ export abstract class BaseParser {
         createTokenIndex(param.tokens[0], param.tokens.at(-1)),
         i
       );
+      p.splitToken = block.separatorTokens.at(i);
+      return p;
     });
 
     return result;
@@ -729,4 +736,5 @@ export interface Block {
   items: BlockItem[];
   splitTokens: { rewind: () => void; tokens: Token[] }[];
   endToken?: Token;
+  separatorTokens: Token[];
 }

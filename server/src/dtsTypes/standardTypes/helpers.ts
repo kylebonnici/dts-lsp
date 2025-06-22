@@ -24,7 +24,7 @@ import { Node } from "../../context/node";
 import { Property } from "../../context/property";
 import { Expression } from "../../ast/cPreprocessors/expression";
 import { BindingPropertyType, TypeConfig } from "../../types/index";
-import { MacroRegistryItem } from "src/types";
+import { MacroRegistryItem } from "../../types";
 
 export const flatNumberValues = (value: PropertyValues | null | undefined) => {
   if (value?.values.some((v) => !(v?.value instanceof ArrayValues))) {

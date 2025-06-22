@@ -47,6 +47,8 @@ import {
 } from "./helpers";
 import { Comment, CommentBlock } from "./ast/dtc/comment";
 import { LabelAssign } from "./ast/dtc/label";
+import { ComplexExpression, Expression } from "./ast/cPreprocessors/expression";
+import { CMacroCall, CMacroCallParam } from "./ast/cPreprocessors/functionCall";
 
 const findAst = async (token: Token, uri: string, fileRootAsts: ASTBase[]) => {
   const pos = Position.create(token.pos.line, token.pos.col);
@@ -437,6 +439,10 @@ const formatLabeledValue = <T extends ASTBase>(
     }
   }
 
+  if (value.value instanceof Expression) {
+    result.push(...formatExpression(value.value));
+  }
+
   return result;
 };
 
@@ -479,9 +485,89 @@ const formatValue = (
         );
       }
     }
+  } else if (value instanceof Expression) {
+    result.push(...formatExpression(value));
   }
 
-  // TODO Format expression
+  return result;
+};
+
+const formatExpression = (value: Expression): TextEdit[] => {
+  if (value instanceof CMacroCall) {
+    return formatCMacroCall(value);
+  }
+
+  if (value instanceof ComplexExpression) {
+    return formatComplexExpression(value);
+  }
+
+  return [];
+};
+
+const formatCMacroCall = (value: CMacroCall): TextEdit[] => {
+  const result: TextEdit[] = [];
+
+  result.push(
+    ...fixedNumberOfSpaceBetweenTokensAndNext(value.functionName.lastToken, 0)
+  );
+
+  value.params.forEach((param, i) => {
+    if (param?.firstToken.prevToken) {
+      result.push(
+        ...fixedNumberOfSpaceBetweenTokensAndNext(
+          param?.firstToken.prevToken,
+          i ? 1 : 0
+        )
+      );
+    }
+    if (param?.splitToken) {
+      result.push(...moveNextTo(param.lastToken, param.splitToken));
+    }
+  });
+
+  if (value.lastToken.value === ")" && value.lastToken.prevToken) {
+    result.push(
+      ...fixedNumberOfSpaceBetweenTokensAndNext(value.lastToken.prevToken, 0)
+    );
+  }
+
+  return result;
+};
+
+const formatComplexExpression = (value: ComplexExpression): TextEdit[] => {
+  const result: TextEdit[] = [];
+
+  if (value.openBracket && value.openBracket.nextToken) {
+    result.push(
+      ...fixedNumberOfSpaceBetweenTokensAndNext(value.openBracket, 0)
+    );
+  }
+
+  result.push(...formatExpression(value.expression));
+
+  if (value.join) {
+    if (value.join.operator.firstToken.prevToken) {
+      result.push(
+        ...fixedNumberOfSpaceBetweenTokensAndNext(
+          value.join.operator.firstToken.prevToken
+        )
+      );
+    }
+    if (value.join.expression.firstToken.prevToken) {
+      result.push(
+        ...fixedNumberOfSpaceBetweenTokensAndNext(
+          value.join.expression.firstToken.prevToken
+        )
+      );
+    }
+    result.push(...formatExpression(value.join.expression));
+  }
+
+  if (value.closeBracket && value.closeBracket.prevToken) {
+    result.push(
+      ...fixedNumberOfSpaceBetweenTokensAndNext(value.closeBracket.prevToken, 0)
+    );
+  }
 
   return result;
 };
@@ -650,7 +736,7 @@ const moveNextTo = (token: Token, toMove: Token) => {
           Position.create(token.pos.line, token.pos.colEnd),
           Position.create(toMove.pos.line, toMove.pos.colEnd)
         ),
-        ";"
+        toMove.value
       ),
     ];
   }
