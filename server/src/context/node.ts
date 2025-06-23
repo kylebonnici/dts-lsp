@@ -640,9 +640,13 @@ export class Node {
         values.pop()
       );
 
-      [...childAddressAst, ...parentAddressAst, ...lengthAst].every(
-        (item) => item instanceof Expression
-      );
+      if (
+        ![...childAddressAst, ...parentAddressAst, ...lengthAst].every(
+          (item) => item instanceof Expression
+        )
+      ) {
+        continue;
+      }
 
       const childAddress = childAddressAst.map((v) =>
         (v as Expression).evaluate(macros)
@@ -705,9 +709,13 @@ export class Node {
         values.pop()
       );
 
-      [...childAddressAst, ...parentAddressAst, ...lengthAst].every(
-        (item) => item instanceof Expression
-      );
+      if (
+        ![...childAddressAst, ...parentAddressAst, ...lengthAst].every(
+          (item) => item instanceof Expression
+        )
+      ) {
+        continue;
+      }
 
       const childAddress = childAddressAst.map((v) =>
         (v as Expression).evaluate(macros)
@@ -976,13 +984,13 @@ export class Node {
   }
 
   private uniqueLabels() {
-    return Array.from((new Set(this.labels.map((l) => l.toString()))))
+    return Array.from(new Set(this.labels.map((l) => l.toString())));
   }
 
   toTooltipString(macros: Map<string, MacroRegistryItem>) {
-    return `${this.uniqueLabels().join(" ")}${
-      this.labels.length ? " " : ""
-    }${this.fullName} {${this.property.length ? "\n\t" : ""}${this.property
+    return `${this.uniqueLabels().join(" ")}${this.labels.length ? " " : ""}${
+      this.fullName
+    } {${this.property.length ? "\n\t" : ""}${this.property
       .map((p) => p.toPrettyString(macros))
       .join("\n\t")}${
       this.nodes.length
@@ -1054,9 +1062,7 @@ ${"\t".repeat(level - 1)}}; */`;
         : hasOmitIfNoRef
         ? `/* /omit-if-no-ref/ */\n${"\t".repeat(level - 1)}`
         : ""
-    }${this.uniqueLabels()}${
-      this.labels.length ? " " : ""
-    }${this.fullName} {${
+    }${this.uniqueLabels()}${this.labels.length ? " " : ""}${this.fullName} {${
       this.property.length ? `\n${"\t".repeat(level)}` : ""
     }${this.property
       .map((p) => p.toPrettyString(macros))
