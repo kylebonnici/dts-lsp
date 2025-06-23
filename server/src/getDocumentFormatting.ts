@@ -43,12 +43,14 @@ import {
   getDeepestAstNodeInBetween,
   isPathEqual,
   positionInBetween,
+  rangesOverlap,
   setIndentString,
 } from "./helpers";
 import { Comment, CommentBlock } from "./ast/dtc/comment";
 import { LabelAssign } from "./ast/dtc/label";
 import { ComplexExpression, Expression } from "./ast/cPreprocessors/expression";
-import { CMacroCall, CMacroCallParam } from "./ast/cPreprocessors/functionCall";
+import { CMacroCall } from "./ast/cPreprocessors/functionCall";
+import { TextDocument } from "vscode-languageserver-textdocument";
 
 const findAst = async (token: Token, uri: string, fileRootAsts: ASTBase[]) => {
   const pos = Position.create(token.pos.line, token.pos.col);
@@ -103,8 +105,9 @@ const getAstItemLevel =
 export async function getDocumentFormatting(
   documentFormattingParams: DocumentFormattingParams,
   contextAware: ContextAware,
-  documentText: string[]
+  documentText: TextDocument
 ): Promise<TextEdit[]> {
+  const splitDocument = documentText.getText().split("\n");
   const result: TextEdit[] = [];
   const uri = fileURLToPath(documentFormattingParams.textDocument.uri);
 
@@ -120,18 +123,42 @@ export async function getDocumentFormatting(
               base,
               uri,
               getAstItemLevel(fileRootAsts, uri),
-              documentText
+              splitDocument
             )
         )
       )
     ).flat()
   );
 
+  if (documentFormattingParams.options.trimTrailingWhitespace) {
+    result.push(...removeTrailingWhitespace(splitDocument, result));
+  }
+
   return result;
 }
 
+const removeTrailingWhitespace = (
+  documentText: string[],
+  textEdits: TextEdit[]
+): TextEdit[] => {
+  const result: TextEdit[] = [];
+  documentText.forEach((line, i) => {
+    const endTimmed = line.trimEnd();
+    if (endTimmed.length !== line.length) {
+      const rangeToCover = Range.create(
+        Position.create(i, endTimmed.length),
+        Position.create(i, line.length)
+      );
+      if (!textEdits.some((edit) => rangesOverlap(rangeToCover, edit.range)))
+        result.push(TextEdit.del(rangeToCover));
+    }
+  });
+  return result;
+};
+
 const removeNewLinesBetweenTokenAndPrev = (
   token: Token,
+  documentText: string[],
   expectedNewLines = 1,
   forceExpectedNewLines = false
 ): TextEdit | undefined => {
@@ -150,7 +177,9 @@ const removeNewLinesBetweenTokenAndPrev = (
           Position.create(token.prevToken.pos.line, token.prevToken.pos.colEnd),
           Position.create(
             token.pos.line - expectedNewLines,
-            expectedNewLines ? 0 : token.pos.col
+            expectedNewLines
+              ? documentText[token.pos.line - expectedNewLines].length
+              : token.pos.col
           )
         ),
         "".padEnd(expectedNewLines - 1, "\n")
@@ -216,6 +245,7 @@ const createIndentEdit = (
 
 const fixedNumberOfSpaceBetweenTokensAndNext = (
   token: Token,
+  documentText: string[],
   expectedSpaces = 1,
   keepNewLines = false
 ): TextEdit[] => {
@@ -227,6 +257,7 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
     }
     const removeNewLinesEdit = removeNewLinesBetweenTokenAndPrev(
       token.nextToken,
+      documentText,
       0
     );
     if (!removeNewLinesEdit) {
@@ -266,12 +297,15 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
   ];
 };
 
-const formatLabels = (labels: LabelAssign[]) => {
+const formatLabels = (labels: LabelAssign[], documentText: string[]) => {
   return labels
     .slice(1)
     .flatMap((label) =>
       label.firstToken.prevToken
-        ? fixedNumberOfSpaceBetweenTokensAndNext(label.firstToken.prevToken)
+        ? fixedNumberOfSpaceBetweenTokensAndNext(
+            label.firstToken.prevToken,
+            documentText
+          )
         : []
     );
 };
@@ -299,33 +333,39 @@ const formatDtcNode = async (
   );
 
   if (node instanceof DtcChildNode || node instanceof DtcRefNode) {
-    result.push(...formatLabels(node.labels));
+    result.push(...formatLabels(node.labels, documentText));
 
     if (node instanceof DtcChildNode) {
       if (node.labels.length && node.name && node.name.firstToken.prevToken) {
         result.push(
           ...fixedNumberOfSpaceBetweenTokensAndNext(
-            node.name.firstToken.prevToken
+            node.name.firstToken.prevToken,
+            documentText
           )
         );
       }
       const nodeNameAndOpenCurlySpacing =
         node.name && node.openScope
-          ? fixedNumberOfSpaceBetweenTokensAndNext(node.name.lastToken)
+          ? fixedNumberOfSpaceBetweenTokensAndNext(
+              node.name.lastToken,
+              documentText
+            )
           : [];
       result.push(...nodeNameAndOpenCurlySpacing);
     } else {
       if (node.labels.length && node.labelReference?.firstToken.prevToken) {
         result.push(
           ...fixedNumberOfSpaceBetweenTokensAndNext(
-            node.labelReference.firstToken.prevToken
+            node.labelReference.firstToken.prevToken,
+            documentText
           )
         );
       }
       const nodeNameAndOpenCurlySpacing =
         node.labelReference && node.openScope
           ? fixedNumberOfSpaceBetweenTokensAndNext(
-              node.labelReference.lastToken
+              node.labelReference.lastToken,
+              documentText
             )
           : [];
       result.push(...nodeNameAndOpenCurlySpacing);
@@ -335,7 +375,13 @@ const formatDtcNode = async (
     node.firstToken.value === "/" &&
     node.openScope
   ) {
-    result.push(...fixedNumberOfSpaceBetweenTokensAndNext(node.firstToken, 0));
+    result.push(
+      ...fixedNumberOfSpaceBetweenTokensAndNext(
+        node.firstToken,
+        documentText,
+        1
+      )
+    );
   }
 
   result.push(
@@ -356,21 +402,17 @@ const formatDtcNode = async (
   );
 
   if (node.closeScope) {
-    const editToMoveToNewLine = pushItemToNewLineAndIndent(
-      node.closeScope,
-      level,
-      indentString
+    result.push(
+      ...ensureOnNewLineAndMax1EmptyLineToPrev(
+        node.closeScope,
+        level,
+        indentString,
+        documentText,
+        undefined,
+        1,
+        true
+      )
     );
-
-    if (editToMoveToNewLine) {
-      result.push(editToMoveToNewLine);
-    } else {
-      result.push(
-        ...createIndentEdit(node.closeScope, level, indentString, documentText)
-      );
-      const edit = removeNewLinesBetweenTokenAndPrev(node.closeScope, 1, true);
-      if (edit) result.push(edit);
-    }
   }
 
   if (node.lastToken.value === ";" && node.closeScope) {
@@ -390,57 +432,51 @@ const formatLabeledValue = <T extends ASTBase>(
 ): TextEdit[] => {
   const result: TextEdit[] = [];
 
-  result.push(...formatLabels(value.labels));
+  result.push(...formatLabels(value.labels, documentText));
 
   if (value.labels.length && value.value?.firstToken.prevToken) {
     result.push(
       ...fixedNumberOfSpaceBetweenTokensAndNext(
-        value.value.firstToken.prevToken
+        value.value.firstToken.prevToken,
+        documentText
       )
     );
   }
 
   if (openBracket && value.firstToken.prevToken === openBracket) {
-    result.push(...fixedNumberOfSpaceBetweenTokensAndNext(openBracket, 0));
+    result.push(
+      ...fixedNumberOfSpaceBetweenTokensAndNext(openBracket, documentText, 0)
+    );
   } else {
     if (value.firstToken.pos.line !== value.firstToken.prevToken?.pos.line) {
-      if (
-        value.firstToken.prevToken &&
-        value.firstToken.prevToken === prevValue?.lastToken
-      ) {
-        // no block comment in between
-        //must be on same line one space
-        result.push(
-          ...fixedNumberOfSpaceBetweenTokensAndNext(
-            value.firstToken.prevToken,
-            1
-          )
-        );
-      } else {
-        const edit = removeNewLinesBetweenTokenAndPrev(
+      const edit = removeNewLinesBetweenTokenAndPrev(
+        value.firstToken,
+        documentText,
+        1,
+        true
+      );
+      if (edit) result.push(edit);
+      result.push(
+        ...createIndentEdit(
           value.firstToken,
-          1,
-          true
-        );
-        if (edit) result.push(edit);
-        result.push(
-          ...createIndentEdit(
-            value.firstToken,
-            level + 2,
-            indentString,
-            documentText
-          )
-        );
-      }
+          level + 2,
+          indentString,
+          documentText
+        )
+      );
     } else {
       result.push(
-        ...fixedNumberOfSpaceBetweenTokensAndNext(value.firstToken.prevToken, 1)
+        ...fixedNumberOfSpaceBetweenTokensAndNext(
+          value.firstToken.prevToken,
+          documentText,
+          1
+        )
       );
     }
   }
 
   if (value.value instanceof Expression) {
-    result.push(...formatExpression(value.value));
+    result.push(...formatExpression(value.value, documentText));
   }
 
   return result;
@@ -473,6 +509,7 @@ const formatValue = (
         result.push(
           ...fixedNumberOfSpaceBetweenTokensAndNext(
             value.closeBracket.prevToken,
+            documentText,
             0
           )
         );
@@ -480,35 +517,46 @@ const formatValue = (
         result.push(
           ...fixedNumberOfSpaceBetweenTokensAndNext(
             value.closeBracket.prevToken,
+            documentText,
             1
           )
         );
       }
     }
   } else if (value instanceof Expression) {
-    result.push(...formatExpression(value));
+    result.push(...formatExpression(value, documentText));
   }
 
   return result;
 };
 
-const formatExpression = (value: Expression): TextEdit[] => {
+const formatExpression = (
+  value: Expression,
+  documentText: string[]
+): TextEdit[] => {
   if (value instanceof CMacroCall) {
-    return formatCMacroCall(value);
+    return formatCMacroCall(value, documentText);
   }
 
   if (value instanceof ComplexExpression) {
-    return formatComplexExpression(value);
+    return formatComplexExpression(value, documentText);
   }
 
   return [];
 };
 
-const formatCMacroCall = (value: CMacroCall): TextEdit[] => {
+const formatCMacroCall = (
+  value: CMacroCall,
+  documentText: string[]
+): TextEdit[] => {
   const result: TextEdit[] = [];
 
   result.push(
-    ...fixedNumberOfSpaceBetweenTokensAndNext(value.functionName.lastToken, 0)
+    ...fixedNumberOfSpaceBetweenTokensAndNext(
+      value.functionName.lastToken,
+      documentText,
+      0
+    )
   );
 
   value.params.forEach((param, i) => {
@@ -516,6 +564,7 @@ const formatCMacroCall = (value: CMacroCall): TextEdit[] => {
       result.push(
         ...fixedNumberOfSpaceBetweenTokensAndNext(
           param?.firstToken.prevToken,
+          documentText,
           i ? 1 : 0
         )
       );
@@ -527,45 +576,62 @@ const formatCMacroCall = (value: CMacroCall): TextEdit[] => {
 
   if (value.lastToken.value === ")" && value.lastToken.prevToken) {
     result.push(
-      ...fixedNumberOfSpaceBetweenTokensAndNext(value.lastToken.prevToken, 0)
+      ...fixedNumberOfSpaceBetweenTokensAndNext(
+        value.lastToken.prevToken,
+        documentText,
+        0
+      )
     );
   }
 
   return result;
 };
 
-const formatComplexExpression = (value: ComplexExpression): TextEdit[] => {
+const formatComplexExpression = (
+  value: ComplexExpression,
+  documentText: string[]
+): TextEdit[] => {
   const result: TextEdit[] = [];
 
   if (value.openBracket && value.openBracket.nextToken) {
     result.push(
-      ...fixedNumberOfSpaceBetweenTokensAndNext(value.openBracket, 0)
+      ...fixedNumberOfSpaceBetweenTokensAndNext(
+        value.openBracket,
+        documentText,
+        0
+      )
     );
   }
 
-  result.push(...formatExpression(value.expression));
+  result.push(...formatExpression(value.expression, documentText));
 
   if (value.join) {
     if (value.join.operator.firstToken.prevToken) {
       result.push(
         ...fixedNumberOfSpaceBetweenTokensAndNext(
-          value.join.operator.firstToken.prevToken
+          value.join.operator.firstToken.prevToken,
+          documentText
         )
       );
     }
     if (value.join.expression.firstToken.prevToken) {
       result.push(
         ...fixedNumberOfSpaceBetweenTokensAndNext(
-          value.join.expression.firstToken.prevToken
+          value.join.expression.firstToken.prevToken,
+          documentText
         )
       );
     }
-    result.push(...formatExpression(value.join.expression));
+    result.push(...formatExpression(value.join.expression, documentText));
   }
 
   if (value.closeBracket && value.closeBracket.prevToken) {
     result.push(
-      ...fixedNumberOfSpaceBetweenTokensAndNext(value.closeBracket.prevToken, 0)
+      ...fixedNumberOfSpaceBetweenTokensAndNext(
+        value.closeBracket.prevToken,
+        documentText,
+        0
+      )
     );
   }
 
@@ -580,11 +646,11 @@ const formatPropertyValue = (
 ): TextEdit[] => {
   const result: TextEdit[] = [];
 
-  result.push(...formatLabels(value.startLabels));
+  result.push(...formatLabels(value.startLabels, documentText));
 
   result.push(...formatValue(value.value, level, indentString, documentText));
 
-  result.push(...formatLabels(value.endLabels));
+  result.push(...formatLabels(value.endLabels, documentText));
 
   return result;
 };
@@ -606,12 +672,14 @@ const formatPropertyValues = (
         result.push(
           ...fixedNumberOfSpaceBetweenTokensAndNext(
             value.firstToken.prevToken,
+            documentText,
             1
           )
         );
       } else {
         const edit = removeNewLinesBetweenTokenAndPrev(
           value.firstToken,
+          documentText,
           1,
           true
         );
@@ -656,12 +724,13 @@ const formatDtcProperty = (
     )
   );
 
-  result.push(...formatLabels(property.labels));
+  result.push(...formatLabels(property.labels, documentText));
 
   if (property.labels.length && property.propertyName?.firstToken.prevToken) {
     result.push(
       ...fixedNumberOfSpaceBetweenTokensAndNext(
-        property.propertyName.firstToken.prevToken
+        property.propertyName.firstToken.prevToken,
+        documentText
       )
     );
   }
@@ -671,7 +740,8 @@ const formatDtcProperty = (
       // space before =
       result.push(
         ...fixedNumberOfSpaceBetweenTokensAndNext(
-          property.propertyName?.lastToken
+          property.propertyName?.lastToken,
+          documentText
         )
       );
     }
@@ -699,7 +769,9 @@ const ensureOnNewLineAndMax1EmptyLineToPrev = (
   level: number,
   indentString: string,
   documentText: string[],
-  prefix?: string
+  prefix?: string,
+  expectedNewLines?: number,
+  forceExpectedNewLines?: boolean
 ) => {
   const result: TextEdit[] = [];
 
@@ -713,9 +785,16 @@ const ensureOnNewLineAndMax1EmptyLineToPrev = (
   if (editToMoveToNewLine) {
     result.push(editToMoveToNewLine);
   } else {
-    const edit = removeNewLinesBetweenTokenAndPrev(token);
+    const edit = removeNewLinesBetweenTokenAndPrev(
+      token,
+      documentText,
+      expectedNewLines,
+      forceExpectedNewLines
+    );
     if (edit) result.push(edit);
-    result.push(...createIndentEdit(token, level, indentString, documentText));
+    result.push(
+      ...createIndentEdit(token, level, indentString, documentText, prefix)
+    );
   }
 
   return result;
@@ -776,7 +855,8 @@ const formatDtcDelete = (
   );
 
   const keywordAndItemSpacing = fixedNumberOfSpaceBetweenTokensAndNext(
-    deleteItem.keyword.lastToken
+    deleteItem.keyword.lastToken,
+    documentText
   );
   result.push(...keywordAndItemSpacing);
 
@@ -813,7 +893,8 @@ const formatDtcInclude = (
   );
 
   const keywordAndItemSpacing = fixedNumberOfSpaceBetweenTokensAndNext(
-    includeItem.keyword.lastToken
+    includeItem.keyword.lastToken,
+    documentText
   );
   result.push(...keywordAndItemSpacing);
 
@@ -826,15 +907,22 @@ const formatCommentBlock = (
   indentString: string,
   documentText: string[]
 ): TextEdit[] =>
-  commentItem.comments.flatMap((c) =>
-    formatBlockCommentLine(c, level, indentString, documentText)
+  commentItem.comments.flatMap((c, i) =>
+    formatBlockCommentLine(
+      c,
+      level,
+      indentString,
+      documentText,
+      i ? (i === commentItem.comments.length - 1 ? "last" : "comment") : "first"
+    )
   );
 
 const formatBlockCommentLine = (
   commentItem: Comment,
   level: number | undefined,
   indentString: string,
-  documentText: string[]
+  documentText: string[],
+  lineType: "last" | "first" | "comment"
 ): TextEdit[] => {
   const result: TextEdit[] = [];
 
@@ -847,8 +935,21 @@ const formatBlockCommentLine = (
       commentLine === commentItem.firstToken.prevToken?.pos.line) // e.g. prop = <10 /* abc */ 10>; or  prop = <10 10>;  /* abc */
   ) {
     return fixedNumberOfSpaceBetweenTokensAndNext(
-      commentItem.firstToken.prevToken
+      commentItem.firstToken.prevToken,
+      documentText
     );
+  }
+
+  let prifix: string | undefined;
+  switch (lineType) {
+    case "comment":
+      prifix = commentItem.firstToken.value === "*" ? " " : " * ";
+      break;
+    case "first":
+      break;
+    case "last":
+      prifix = " ";
+      break;
   }
 
   result.push(
@@ -857,7 +958,7 @@ const formatBlockCommentLine = (
       level ?? 0,
       indentString,
       documentText,
-      "*"
+      prifix
     )
   );
 
@@ -875,7 +976,8 @@ const formatComment = (
     commentLine === commentItem.firstToken.prevToken?.pos.line // e.g prop = 10; // foo
   ) {
     return fixedNumberOfSpaceBetweenTokensAndNext(
-      commentItem.firstToken.prevToken
+      commentItem.firstToken.prevToken,
+      documentText
     );
   }
 

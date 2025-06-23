@@ -1306,7 +1306,7 @@ export class Parser extends BaseParser {
     if (!validToken(this.currentToken, LexerToken.SQUARE_CLOSE)) {
       this._issues.push(genSyntaxDiagnostic(SyntaxIssue.SQUARE_CLOSE, node));
     } else {
-      byteString.openBracket = this.moveToNextToken;
+      byteString.closeBracket = this.moveToNextToken;
     }
 
     let endLabels2: LabelAssign[] = [];

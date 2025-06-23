@@ -36,11 +36,13 @@ import {
   PublishDiagnosticsParams,
   Location,
   WorkspaceFolder,
+  DocumentFormattingParams,
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { ContextId, tokenModifiers, tokenTypes } from "./types";
 import {
+  applyEdits,
   fileURLToPath,
   findContext,
   findContexts,
@@ -82,6 +84,7 @@ import {
 import { basename } from "path";
 import { getActions } from "./getActions";
 import { getSignatureHelp } from "./signatureHelp";
+import { createPatch } from "diff";
 
 const contextAware: ContextAware[] = [];
 let activeContext: ContextAware | undefined;
@@ -275,9 +278,11 @@ let hasFoldingRangesRefreshCapability = false;
 let workspaceFolder: WorkspaceFolder[] | null | undefined;
 connection.onInitialize((params: InitializeParams) => {
   // The workspace folder this server is operating on
-  workspaceFolder = params.workspaceFolders;
+  workspaceFolder = params.workspaceFolders ?? [];
   connection.console.log(
-    `[Server(${process.pid}) ${workspaceFolder?.[0].uri} Version 0.4.3 ] Started and initialize received`
+    `[Server(${process.pid}) ${
+      workspaceFolder?.at(0)?.uri
+    } Version 0.4.3 ] Started and initialize received`
   );
 
   const capabilities = params.capabilities;
@@ -1128,7 +1133,7 @@ connection.onDocumentFormatting(async (event) => {
   return getDocumentFormatting(
     event,
     context,
-    getTokenizedDocumentProvider().getDocumentText(uri).split("\n")
+    getTokenizedDocumentProvider().getDocument(uri)
   );
 });
 
@@ -1346,3 +1351,27 @@ connection.onRequest("devicetree/activeFileUri", async (uri: string) => {
   await allStable();
   updateActiveContext({ uri });
 });
+
+connection.onRequest(
+  "devicetree/formatingDiff",
+  async (event: DocumentFormattingParams) => {
+    await allStable();
+    const uri = fileURLToPath(event.textDocument.uri);
+    updateActiveContext({ uri });
+    const context = quickFindContext(uri);
+
+    if (!context) {
+      return [];
+    }
+
+    const documentText = getTokenizedDocumentProvider().getDocument(uri);
+    const edits = await getDocumentFormatting(event, context, documentText);
+
+    if (edits.length === 0) {
+      return;
+    }
+
+    const newText = applyEdits(documentText, edits);
+    return createPatch(documentText.uri, documentText.getText(), newText);
+  }
+);

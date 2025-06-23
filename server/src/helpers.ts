@@ -19,6 +19,7 @@ import {
   DiagnosticSeverity,
   DiagnosticTag,
   Position,
+  Range,
   TextDocumentPositionParams,
   TextEdit,
 } from "vscode-languageserver";
@@ -1143,4 +1144,19 @@ export function applyEdits(document: TextDocument, edits: TextEdit[]): string {
   }
 
   return result;
+}
+
+function comparePosition(a: Position, b: Position): number {
+  if (a.line < b.line) return -1;
+  if (a.line > b.line) return 1;
+  if (a.character < b.character) return -1;
+  if (a.character > b.character) return 1;
+  return 0;
+}
+
+export function rangesOverlap(r1: Range, r2: Range): boolean {
+  return (
+    comparePosition(r1.end, r2.start) > 0 &&
+    comparePosition(r1.start, r2.end) < 0
+  );
 }
