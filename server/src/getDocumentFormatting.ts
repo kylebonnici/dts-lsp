@@ -113,6 +113,7 @@ export async function getDocumentFormatting(
 
   const fileRootAsts = (await contextAware.getRuntime()).fileTopMostAsts(uri);
 
+  const astItemLevel = getAstItemLevel(fileRootAsts, uri);
   result.push(
     ...(
       await Promise.all(
@@ -122,7 +123,7 @@ export async function getDocumentFormatting(
               documentFormattingParams,
               base,
               uri,
-              getAstItemLevel(fileRootAsts, uri),
+              astItemLevel,
               splitDocument
             )
         )
