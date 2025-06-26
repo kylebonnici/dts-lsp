@@ -18,9 +18,11 @@ import { ASTBase } from "../../base";
 import { AllValueType } from "../types";
 import { LabelAssign } from "../label";
 import { DtsBitsNode } from "../bitsNode";
-import type { MacroRegistryItem } from "../../../types";
+import type { MacroRegistryItem, Token } from "../../../types";
 
 export class PropertyValue extends ASTBase {
+  public nextValueSeparator?: Token;
+
   constructor(
     public readonly startLabels: LabelAssign[],
     public readonly value: AllValueType,

@@ -18,9 +18,11 @@ import { DocumentSymbol, SymbolKind } from "vscode-languageserver";
 import { CIdentifier } from "./cIdentifier";
 import { Expression } from "./expression";
 import { isPathEqual, toRange } from "../../helpers";
-import { MacroRegistryItem, TokenIndexes } from "../../types";
+import { MacroRegistryItem, Token, TokenIndexes } from "../../types";
 
 export class CMacroCallParam extends Expression {
+  public splitToken?: Token;
+
   constructor(
     public readonly value: string,
     tokenIndexes: TokenIndexes,

@@ -19,6 +19,7 @@ import {
   DiagnosticSeverity,
   DiagnosticTag,
   Position,
+  Range,
   TextDocumentPositionParams,
   TextEdit,
 } from "vscode-languageserver";
@@ -47,7 +48,8 @@ import url from "url";
 import { createHash } from "crypto";
 import { ResolvedContext } from "./types/index";
 import { normalize } from "path";
-import { CMacroCall } from './ast/cPreprocessors/functionCall';
+import { CMacroCall } from "./ast/cPreprocessors/functionCall";
+import { TextDocument } from "vscode-languageserver-textdocument";
 
 export const toRangeWithTokenIndex = (
   start?: Token,
@@ -473,11 +475,11 @@ export async function nodeFinder<T>(
     return [];
   }
 
-  console.time("search");
+  const t = performance.now();
   const runtime = await context.getRuntime();
   const locationMeta = runtime.getDeepestAstNode(uri, location.position);
   const sortKey = context.getSortKey(locationMeta?.ast);
-  console.timeEnd("search");
+  console.log(`search: ${performance.now() - t}ms`);
 
   const inScope = (ast: ASTBase) => {
     const position = location.position;
@@ -1096,9 +1098,65 @@ export function isNestedArray<T>(input: T[] | T[][]): input is T[][] {
   return Array.isArray(input) && Array.isArray(input[0]);
 }
 
-export function getCMacroCall(ast: ASTBase | undefined): CMacroCall | undefined {
+export function getCMacroCall(
+  ast: ASTBase | undefined
+): CMacroCall | undefined {
   if (!ast || ast instanceof CMacroCall) {
     return ast;
   }
   return getCMacroCall(ast.parentNode);
+}
+
+export function applyEdits(document: TextDocument, edits: TextEdit[]): string {
+  const text = document.getText();
+
+  // Enhanced sorting logic:
+  const sorted = edits.slice().sort((a, b) => {
+    const aStart = document.offsetAt(a.range.start);
+    const bStart = document.offsetAt(b.range.start);
+
+    if (aStart !== bStart) {
+      return bStart - aStart; // reverse order
+    }
+
+    // If same start offset, sort by end offset descending (longer edits first)
+    const aEnd = document.offsetAt(a.range.end);
+    const bEnd = document.offsetAt(b.range.end);
+    if (aEnd !== bEnd) {
+      return bEnd - aEnd;
+    }
+
+    // Optionally: insertions before deletions (if newText is empty or not)
+    const aIsInsertion = aStart === aEnd && a.newText.length > 0;
+    const bIsInsertion = bStart === bEnd && b.newText.length > 0;
+    if (aIsInsertion !== bIsInsertion) {
+      return aIsInsertion ? 1 : -1; // insertions later
+    }
+
+    return 0; // stable
+  });
+
+  let result = text;
+  for (const edit of sorted) {
+    const start = document.offsetAt(edit.range.start);
+    const end = document.offsetAt(edit.range.end);
+    result = result.slice(0, start) + edit.newText + result.slice(end);
+  }
+
+  return result;
+}
+
+function comparePosition(a: Position, b: Position): number {
+  if (a.line < b.line) return -1;
+  if (a.line > b.line) return 1;
+  if (a.character < b.character) return -1;
+  if (a.character > b.character) return 1;
+  return 0;
+}
+
+export function rangesOverlap(r1: Range, r2: Range): boolean {
+  return (
+    comparePosition(r1.end, r2.start) > 0 &&
+    comparePosition(r1.start, r2.end) < 0
+  );
 }

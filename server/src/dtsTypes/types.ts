@@ -45,7 +45,6 @@ import { LabelRef } from "../ast/dtc/labelRef";
 import { NodePathRef } from "../ast/dtc/values/nodePath";
 import { getNodeNameOrNodeLabelRef } from "../ast/helpers";
 import { countParent } from "../getDocumentFormatting";
-import { DtcProperty } from "src/ast/dtc/property";
 import {
   BindingPropertyType as PropertyType,
   TypeConfig,

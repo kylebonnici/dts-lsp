@@ -36,11 +36,13 @@ import {
   PublishDiagnosticsParams,
   Location,
   WorkspaceFolder,
+  DocumentFormattingParams,
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { ContextId, tokenModifiers, tokenTypes } from "./types";
 import {
+  applyEdits,
   fileURLToPath,
   findContext,
   findContexts,
@@ -82,6 +84,8 @@ import {
 import { basename } from "path";
 import { getActions } from "./getActions";
 import { getSignatureHelp } from "./signatureHelp";
+import { createPatch } from "diff";
+import { initHeapMonitor } from "./heapMonitor";
 
 const contextAware: ContextAware[] = [];
 let activeContext: ContextAware | undefined;
@@ -91,6 +95,8 @@ const debounce = new WeakMap<
   { abort: AbortController; promise: Promise<void> }
 >();
 const fileWatchers = new Map<string, FileWatcher>();
+
+initHeapMonitor();
 
 const watchContextFiles = async (context: ContextAware) => {
   await context.stable();
@@ -128,6 +134,10 @@ const deleteContext = async (context: ContextAware) => {
     type: meta.type,
   } satisfies ContextListItem);
   contextAware.splice(index, 1);
+
+  // context
+  //   .getContextFiles()
+  //   .forEach((file) => getTokenizedDocumentProvider().reset(file));
 
   await reportContexList();
 
@@ -275,9 +285,11 @@ let hasFoldingRangesRefreshCapability = false;
 let workspaceFolder: WorkspaceFolder[] | null | undefined;
 connection.onInitialize((params: InitializeParams) => {
   // The workspace folder this server is operating on
-  workspaceFolder = params.workspaceFolders;
+  workspaceFolder = params.workspaceFolders ?? [];
   connection.console.log(
-    `[Server(${process.pid}) ${workspaceFolder?.[0].uri} Version 0.4.3 ] Started and initialize received`
+    `[Server(${process.pid}) ${
+      workspaceFolder?.at(0)?.uri
+    } Version 0.4.3 ] Started and initialize received`
   );
 
   const capabilities = params.capabilities;
@@ -1117,15 +1129,19 @@ connection.onCodeAction(async (event) => {
 
 connection.onDocumentFormatting(async (event) => {
   await allStable();
-  const uri = fileURLToPath(event.textDocument.uri);
-  updateActiveContext({ uri });
-  const context = quickFindContext(uri);
+  const filePath = fileURLToPath(event.textDocument.uri);
+  updateActiveContext({ uri: filePath });
+  const context = quickFindContext(filePath);
 
   if (!context) {
     return [];
   }
 
-  return getDocumentFormatting(event, context);
+  return getDocumentFormatting(
+    event,
+    context,
+    getTokenizedDocumentProvider().getDocument(filePath).getText()
+  );
 });
 
 connection.onHover(async (event) => {
@@ -1342,3 +1358,53 @@ connection.onRequest("devicetree/activeFileUri", async (uri: string) => {
   await allStable();
   updateActiveContext({ uri });
 });
+
+connection.onRequest(
+  "devicetree/formatingDiff",
+  async (event: DocumentFormattingParams) => {
+    await allStable();
+    const filePath = fileURLToPath(event.textDocument.uri);
+    updateActiveContext({ uri: filePath });
+    const context = quickFindContext(filePath);
+
+    if (!context) {
+      return [];
+    }
+
+    const documentText = getTokenizedDocumentProvider().getDocument(filePath);
+    const edits = await getDocumentFormatting(
+      event,
+      context,
+      documentText.getText()
+    );
+
+    if (edits.length === 0) {
+      return;
+    }
+
+    const newText = applyEdits(documentText, edits);
+    return createPatch(documentText.uri, documentText.getText(), newText);
+  }
+);
+
+connection.onRequest(
+  "devicetree/diagnosticIssues",
+  async (data: { uri: string }) => {
+    await allStable();
+    const filePath = fileURLToPath(data.uri);
+    updateActiveContext({ uri: filePath });
+    const context = quickFindContext(filePath);
+
+    if (!context) {
+      return [];
+    }
+
+    const issues = (await context.getDiagnostics()).get(filePath);
+
+    if (!issues?.length) {
+      return;
+    }
+
+    return issues;
+  }
+);

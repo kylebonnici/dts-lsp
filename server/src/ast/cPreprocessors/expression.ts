@@ -16,7 +16,7 @@
 
 import { ASTBase } from "../base";
 import { Operator } from "./operator";
-import type { MacroRegistryItem } from "../../types";
+import type { MacroRegistryItem, Token } from "../../types";
 import { expandMacros } from "../../helpers";
 import {
   SerializableExpression,
@@ -77,6 +77,9 @@ export abstract class Expression extends ASTBase {
 }
 
 export class ComplexExpression extends Expression {
+  public openBracket?: Token;
+  public closeBracket?: Token;
+
   constructor(
     public readonly expression: Expression,
     private wrapped: boolean,
@@ -88,6 +91,16 @@ export class ComplexExpression extends Expression {
       this.addChild(join.operator);
       this.addChild(join.expression);
     }
+  }
+
+  get firstToken() {
+    if (this.openBracket) return this.openBracket;
+    return super.firstToken;
+  }
+
+  get lastToken() {
+    if (this.closeBracket) return this.closeBracket;
+    return super.lastToken;
   }
 
   addExpression(operator: Operator, expression: Expression) {

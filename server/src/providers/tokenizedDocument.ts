@@ -19,6 +19,7 @@ import { Token } from "../types";
 import { Lexer } from "../lexer";
 import { getCachedCPreprocessorParserProvider } from "./cachedCPreprocessorParser";
 import { normalizePath } from "../helpers";
+import { TextDocument } from "vscode-languageserver-textdocument";
 
 let tokenizedDocumentProvider: TokenizedDocumentProvider | undefined;
 
@@ -37,6 +38,15 @@ class TokenizedDocumentProvider {
   needsRenew(uri: string, text: string) {
     uri = normalizePath(uri);
     return this.fileMap.get(uri)?.text !== text;
+  }
+
+  getDocument(uri: string) {
+    return TextDocument.create(
+      uri,
+      "devicetree",
+      0,
+      this.fileMap.get(uri)?.text ?? readFileSync(uri).toString()
+    );
   }
 
   renewLexer(uri: string, text?: string): Token[] {

@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.4.3] - Unreleased
+## [0.4.3] - 2025-06-27
 
 ### Fixed
 
@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - OnHover now shows unique labels for a node.
 - Generated compiled output now shows unique labels for a node.
 - Semantic token for node addresses now cover the complete address.
-- LSP no longer crashs when ranges does not have the correct number or arguments.
+- LSP no longer crashes when ranges does not have the correct number or arguments.
 
 ## [0.4.2] - 2025-06-02
 
