@@ -85,6 +85,7 @@ import { basename } from "path";
 import { getActions } from "./getActions";
 import { getSignatureHelp } from "./signatureHelp";
 import { createPatch } from "diff";
+import { initHeapMonitor } from "./heapMonitor";
 
 const contextAware: ContextAware[] = [];
 let activeContext: ContextAware | undefined;
@@ -94,6 +95,8 @@ const debounce = new WeakMap<
   { abort: AbortController; promise: Promise<void> }
 >();
 const fileWatchers = new Map<string, FileWatcher>();
+
+initHeapMonitor();
 
 const watchContextFiles = async (context: ContextAware) => {
   await context.stable();
@@ -131,6 +134,10 @@ const deleteContext = async (context: ContextAware) => {
     type: meta.type,
   } satisfies ContextListItem);
   contextAware.splice(index, 1);
+
+  // context
+  //   .getContextFiles()
+  //   .forEach((file) => getTokenizedDocumentProvider().reset(file));
 
   await reportContexList();
 
