@@ -1122,9 +1122,9 @@ connection.onCodeAction(async (event) => {
 
 connection.onDocumentFormatting(async (event) => {
   await allStable();
-  const uri = fileURLToPath(event.textDocument.uri);
-  updateActiveContext({ uri });
-  const context = quickFindContext(uri);
+  const filePath = fileURLToPath(event.textDocument.uri);
+  updateActiveContext({ uri: filePath });
+  const context = quickFindContext(filePath);
 
   if (!context) {
     return [];
@@ -1133,7 +1133,7 @@ connection.onDocumentFormatting(async (event) => {
   return getDocumentFormatting(
     event,
     context,
-    getTokenizedDocumentProvider().getDocument(uri)
+    getTokenizedDocumentProvider().getDocument(filePath).getText()
   );
 });
 
@@ -1356,16 +1356,20 @@ connection.onRequest(
   "devicetree/formatingDiff",
   async (event: DocumentFormattingParams) => {
     await allStable();
-    const uri = fileURLToPath(event.textDocument.uri);
-    updateActiveContext({ uri });
-    const context = quickFindContext(uri);
+    const filePath = fileURLToPath(event.textDocument.uri);
+    updateActiveContext({ uri: filePath });
+    const context = quickFindContext(filePath);
 
     if (!context) {
       return [];
     }
 
-    const documentText = getTokenizedDocumentProvider().getDocument(uri);
-    const edits = await getDocumentFormatting(event, context, documentText);
+    const documentText = getTokenizedDocumentProvider().getDocument(filePath);
+    const edits = await getDocumentFormatting(
+      event,
+      context,
+      documentText.getText()
+    );
 
     if (edits.length === 0) {
       return;
@@ -1373,5 +1377,27 @@ connection.onRequest(
 
     const newText = applyEdits(documentText, edits);
     return createPatch(documentText.uri, documentText.getText(), newText);
+  }
+);
+
+connection.onRequest(
+  "devicetree/diagnosticIssues",
+  async (data: { uri: string }) => {
+    await allStable();
+    const filePath = fileURLToPath(data.uri);
+    updateActiveContext({ uri: filePath });
+    const context = quickFindContext(filePath);
+
+    if (!context) {
+      return [];
+    }
+
+    const issues = (await context.getDiagnostics()).get(filePath);
+
+    if (!issues?.length) {
+      return;
+    }
+
+    return issues;
   }
 );

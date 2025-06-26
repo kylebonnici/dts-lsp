@@ -61,7 +61,7 @@ const getEdits = async (document: TextDocument) => {
       },
     },
     context,
-    document
+    document.getText()
   );
 };
 

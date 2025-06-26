@@ -105,9 +105,9 @@ const getAstItemLevel =
 export async function getDocumentFormatting(
   documentFormattingParams: DocumentFormattingParams,
   contextAware: ContextAware,
-  documentText: TextDocument
+  documentText: string
 ): Promise<TextEdit[]> {
-  const splitDocument = documentText.getText().split("\n");
+  const splitDocument = documentText.split("\n");
   const result: TextEdit[] = [];
   const uri = fileURLToPath(documentFormattingParams.textDocument.uri);
 

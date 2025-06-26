@@ -475,11 +475,11 @@ export async function nodeFinder<T>(
     return [];
   }
 
-  console.time("search");
+  const t = performance.now();
   const runtime = await context.getRuntime();
   const locationMeta = runtime.getDeepestAstNode(uri, location.position);
   const sortKey = context.getSortKey(locationMeta?.ast);
-  console.timeEnd("search");
+  console.log(`search: ${performance.now() - t}ms`);
 
   const inScope = (ast: ASTBase) => {
     const position = location.position;

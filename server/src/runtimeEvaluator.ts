@@ -783,31 +783,41 @@ export class ContextAware {
     );
   }
 
+  static #add(
+    diagnostic: Diagnostic,
+    uri: string,
+    map: Map<string, Diagnostic[]>
+  ) {
+    let list: Diagnostic[] | undefined = map.get(uri);
+    if (!list) {
+      list = [];
+      map.set(uri, list);
+    }
+    list.push(diagnostic);
+  }
+
   async getDiagnostics(): Promise<Map<string, Diagnostic[]>> {
     const result = new Map<string, Diagnostic[]>();
-    const add = (diagnostic: Diagnostic, uri: string) => {
-      let list: Diagnostic[] | undefined = result.get(uri);
-      if (!list) {
-        list = [];
-        result.set(uri, list);
-      }
-      list.push(diagnostic);
-    };
+
     try {
       (await this.getAllParsers()).forEach((parser) => {
         parser.issues.forEach((issue) =>
-          add(issue.diagnostic(), issue.raw.astElement.uri)
+          ContextAware.#add(
+            issue.diagnostic(),
+            issue.raw.astElement.uri,
+            result
+          )
         );
       });
 
       const contextIssues = (await this.getContextIssues()) ?? [];
       contextIssues.forEach((issue) =>
-        add(issue.diagnostic(), issue.raw.astElement.uri)
+        ContextAware.#add(issue.diagnostic(), issue.raw.astElement.uri, result)
       );
 
       const runtime = await this.getRuntime();
       runtime?.typesIssues.forEach((issue) =>
-        add(issue.diagnostic(), issue.raw.astElement.uri)
+        ContextAware.#add(issue.diagnostic(), issue.raw.astElement.uri, result)
       );
       return result;
     } catch (e) {
