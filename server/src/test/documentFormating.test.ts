@@ -83,199 +83,216 @@ describe("Document formating", () => {
 
   describe("Root Node", () => {
     test("No space between / and {", async () => {
-      const documentText = "/{\n};";
+      const documentText = "/{ };";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n};");
+      expect(newText).toEqual("/ { };");
     });
     test("Node extra new line from top", async () => {
-      const documentText = "\n/ {\n};";
+      const documentText = "\n/ { };";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n};");
+      expect(newText).toEqual("/ { };");
     });
 
     test("Node two new line from top", async () => {
-      const documentText = "\n\n/ {\n};";
+      const documentText = "\n\n/ { };";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n};");
+      expect(newText).toEqual("/ { };");
     });
 
     test("Node multiple new line from top", async () => {
-      const documentText = "\n\n\n/ {\n};";
+      const documentText = "\n\n\n/ { };";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n};");
+      expect(newText).toEqual("/ { };");
     });
 
     test("Node no new line from other root", async () => {
-      const documentText = "/ {\n};/ {\n};";
+      const documentText = "/ { };/ { };";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n};\n/ {\n};");
+      expect(newText).toEqual("/ { };\n/ { };");
     });
 
     test("Node multiple new line from other root", async () => {
-      const documentText = "/ {\n};\n\n\n/ {\n};";
+      const documentText = "/ { };\n\n\n/ { };";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n};\n/ {\n};");
+      expect(newText).toEqual("/ { };\n/ { };");
     });
 
     test("Node empty new line from other root", async () => {
-      const documentText = "/ {\n};\n\n/ {\n};";
+      const documentText = "/ { };\n\n/ { };";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n};\n\n/ {\n};");
+      expect(newText).toEqual("/ { };\n\n/ { };");
     });
 
-    test("Closing } on same line", async () => {
+    test("Closing } on same line empty node", async () => {
       const documentText = "/ {};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n};");
+      expect(newText).toEqual("/ { };");
     });
-    test("Closing } empty new line", async () => {
+    test("Closing } empty new line empty node", async () => {
       const documentText = "/ {\n\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n};");
+      expect(newText).toEqual("/ { };");
     });
-    test("Closing } multiple new line", async () => {
+    test("Closing } multiple new line empty node", async () => {
       const documentText = "/ {\n\n\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n};");
+      expect(newText).toEqual("/ { };");
     });
+
+    test("Closing } on same line with property node", async () => {
+      const documentText = "/ {\n\tprop;};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/ {\n\tprop;\n};");
+    });
+    test("Closing } empty new line empty node", async () => {
+      const documentText = "/ {\n\tprop;\n\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/ {\n\tprop;\n};");
+    });
+    test("Closing } multiple new line empty node", async () => {
+      const documentText = "/ {\n\tprop;\n\n\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/ {\n\tprop;\n};");
+    });
+
     test("Single space before semicolon", async () => {
       const documentText = "/ {\n} ;";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n};");
+      expect(newText).toEqual("/ { };");
     });
     test("Multiple spaces before semicolon", async () => {
       const documentText = "/ {\n}   ;";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n};");
+      expect(newText).toEqual("/ { };");
     });
     test("Comment before ;", async () => {
       const documentText = "/ {\n} /* abc */  ;";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n}; /* abc */");
+      expect(newText).toEqual("/ { }; /* abc */");
     });
     test("Comments before ;", async () => {
       const documentText = "/ {\n} /* abc1 */     /* abc2 */   ;";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n}; /* abc1 */ /* abc2 */");
+      expect(newText).toEqual("/ { }; /* abc1 */ /* abc2 */");
     });
   });
 
   describe("Child node", () => {
     test("Labels no space", async () => {
-      const documentText = "/ {\n\tn1:n2:n3:node {\n\t};\n};";
+      const documentText = "/ {\n\tn1:n2:n3:node { };\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tn1: n2: n3: node {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\tn1: n2: n3: node { };\n};");
     });
     test("Labels with new lines space", async () => {
-      const documentText = "/ {\n\tn1:\nn2:\n\nn3:node {\n\t};\n};";
+      const documentText = "/ {\n\tn1:\nn2:\n\nn3:node { };\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tn1: n2: n3: node {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\tn1: n2: n3: node { };\n};");
     });
     test("labels with new line before name", async () => {
-      const documentText = "/ {\n\tn1:\nnode {\n\t};\n};";
+      const documentText = "/ {\n\tn1:\nnode { };\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tn1: node {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\tn1: node { };\n};");
     });
     test("No space between name and { no address", async () => {
       const documentText = "/ {\n\tnode{\n\t};\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\tnode { };\n};");
     });
 
     test("No space between name and { with address", async () => {
       const documentText = "/ {\n\tnode@20{\n\t};\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode@20 {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\tnode@20 { };\n};");
     });
     test("Multiple space between name and { no address", async () => {
-      const documentText = "/ {\n\tnode  {\n\t};\n};";
+      const documentText = "/ {\n\tnode  { };\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\tnode { };\n};");
     });
 
     test("Multiple space between name and { with address", async () => {
-      const documentText = "/ {\n\tnode@20  {\n\t};\n};";
+      const documentText = "/ {\n\tnode@20  { };\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode@20 {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\tnode@20 { };\n};");
     });
 
     test("Node no new line from top", async () => {
-      const documentText = "/ {node {\n\t};\n};";
+      const documentText = "/ {node { };\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\tnode { };\n};");
     });
 
     test("Node one new line from top", async () => {
-      const documentText = "/ {\nnode {\n\t};\n};";
+      const documentText = "/ {\nnode { };\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\tnode { };\n};");
     });
 
     test("Node two new line from top", async () => {
-      const documentText = "/ {\n\n\tnode {\n\t};\n};";
+      const documentText = "/ {\n\n\tnode { };\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\n\tnode {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\n\tnode { };\n};");
     });
 
     test("Node more then two new line from top", async () => {
-      const documentText = "/ {\n\n\n\n\tnode {\n\t};\n};";
+      const documentText = "/ {\n\n\n\n\tnode { };\n};";
       const newText = await getNewText(documentText);
       console.log(newText);
-      expect(newText).toEqual("/ {\n\tnode {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\tnode { };\n};");
     });
 
     test("Node no new line from other Child", async () => {
-      const documentText = "/ {\n\tnode {\n\t};node {\n\t};\n};";
+      const documentText = "/ {\n\tnode { };node { };\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode {\n\t};\n\tnode {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\tnode { };\n\tnode { };\n};");
     });
 
     test("Node multiple new line from other Child", async () => {
-      const documentText = "/ {\n\tnode {\n\t};\n\n\nnode {\n\t};\n};";
+      const documentText = "/ {\n\tnode { };\n\n\nnode { };\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode {\n\t};\n\tnode {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\tnode { };\n\tnode { };\n};");
     });
 
     test("Node empty new line from other Child", async () => {
-      const documentText = "/ {\n\tnode {\n\t};\n\nnode {\n\t};\n};";
+      const documentText = "/ {\n\tnode { };\n\nnode { };\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode {\n\t};\n\n\tnode {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\tnode { };\n\n\tnode { };\n};");
     });
 
     test("Closing } on same line", async () => {
       const documentText = "/ {\n\tnode {};\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\tnode { };\n};");
     });
     test("Closing } empty new line", async () => {
       const documentText = "/ {\n\tnode {\n\n};\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\tnode { };\n};");
     });
     test("Closing } multiple new line", async () => {
       const documentText = "/ {\n\tnode {\n\n\n};\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\tnode { };\n};");
     });
     test("Single space before semicolon", async () => {
-      const documentText = "/ {\n\tnode {\n\t} ;\n};";
+      const documentText = "/ {\n\tnode { } ;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\tnode { };\n};");
     });
     test("Multiple spaces before semicolon", async () => {
-      const documentText = "/ {\n\tnode {\n\t}    ;\n};";
+      const documentText = "/ {\n\tnode { }    ;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\tnode { };\n};");
     });
     test("Comment before ;", async () => {
-      const documentText = "/ {\n\tnode {\n\t} /* abc */   ;\n};";
+      const documentText = "/ {\n\tnode { } /* abc */   ;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode {\n\t}; /* abc */\n};");
+      expect(newText).toEqual("/ {\n\tnode { }; /* abc */\n};");
     });
     test("Comments before ;", async () => {
-      const documentText = "/ {\n\tnode {\n\t} /* abc1 */ /* abc2 */   ;\n};";
+      const documentText = "/ {\n\tnode { } /* abc1 */ /* abc2 */   ;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode {\n\t}; /* abc1 */ /* abc2 */\n};");
+      expect(newText).toEqual("/ {\n\tnode { }; /* abc1 */ /* abc2 */\n};");
     });
   });
 
@@ -283,93 +300,93 @@ describe("Document formating", () => {
     test("Labels no space", async () => {
       const documentText = "n1:n2:n3:&n1 {\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("n1: n2: n3: &n1 {\n};");
+      expect(newText).toEqual("n1: n2: n3: &n1 { };");
     });
     test("Labels with new lines space", async () => {
       const documentText = "n1:\nn2:\nn3:&n1 {\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("n1: n2: n3: &n1 {\n};");
+      expect(newText).toEqual("n1: n2: n3: &n1 { };");
     });
     test("labels with new line before referance", async () => {
       const documentText = "n1:\n&n1 {\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("n1: &n1 {\n};");
+      expect(newText).toEqual("n1: &n1 { };");
     });
     test("No space between ref and {", async () => {
       const documentText = "&n1{\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("&n1 {\n};");
+      expect(newText).toEqual("&n1 { };");
     });
     test("Node extra new line from top", async () => {
       const documentText = "\n&n1 {\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("&n1 {\n};");
+      expect(newText).toEqual("&n1 { };");
     });
 
     test("Node two new line from top", async () => {
       const documentText = "\n\n&n1 {\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("&n1 {\n};");
+      expect(newText).toEqual("&n1 { };");
     });
 
     test("Node multiple new line from top", async () => {
       const documentText = "\n\n\n&n1 {\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("&n1 {\n};");
+      expect(newText).toEqual("&n1 { };");
     });
 
     test("Node no new line from other root", async () => {
       const documentText = "/ {\n};&n1 {\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n};\n&n1 {\n};");
+      expect(newText).toEqual("/ { };\n&n1 { };");
     });
 
     test("Node multiple new line from other root", async () => {
       const documentText = "/ {\n};\n\n\n&n1 {\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n};\n&n1 {\n};");
+      expect(newText).toEqual("/ { };\n&n1 { };");
     });
 
     test("Node empty new line from other root", async () => {
       const documentText = "/ {\n};\n\n&n1 {\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n};\n\n&n1 {\n};");
+      expect(newText).toEqual("/ { };\n\n&n1 { };");
     });
 
-    test("Closing } on same line", async () => {
+    test("Closing } on same line empty node", async () => {
       const documentText = "&n1 {};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("&n1 {\n};");
+      expect(newText).toEqual("&n1 { };");
     });
-    test("Closing } empty new line", async () => {
+    test("Closing } empty new line  empty node", async () => {
       const documentText = "&n1 {\n\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("&n1 {\n};");
+      expect(newText).toEqual("&n1 { };");
     });
-    test("Closing } multiple new line", async () => {
+    test("Closing } multiple new line empty node", async () => {
       const documentText = "&n1 {\n\n\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("&n1 {\n};");
+      expect(newText).toEqual("&n1 { };");
     });
     test("Single space before semicolon", async () => {
       const documentText = "&n1 {\n} ;";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("&n1 {\n};");
+      expect(newText).toEqual("&n1 { };");
     });
     test("Multiple spaces before semicolon", async () => {
       const documentText = "&n1 {\n}   ;";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("&n1 {\n};");
+      expect(newText).toEqual("&n1 { };");
     });
     test("Comment before ;", async () => {
       const documentText = "&n1 {\n} /* abc */  ;";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("&n1 {\n}; /* abc */");
+      expect(newText).toEqual("&n1 { }; /* abc */");
     });
     test("Comments before ;", async () => {
       const documentText = "&n1 {\n} /* abc1 */     /* abc2 */   ;";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("&n1 {\n}; /* abc1 */ /* abc2 */");
+      expect(newText).toEqual("&n1 { }; /* abc1 */ /* abc2 */");
     });
   });
 
@@ -393,9 +410,9 @@ describe("Document formating", () => {
     });
 
     test("Correct indentation in level 1", async () => {
-      const documentText = "/ {\n#include <>\n\tnode {\n\t};\n};";
+      const documentText = "/ {\n#include <>\n\tnode { };\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\t#include <>\n\tnode {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\t#include <>\n\tnode { };\n};");
     });
 
     test("Correct indentation in level 2", async () => {
@@ -425,9 +442,9 @@ describe("Document formating", () => {
     });
 
     test("Correct indentation in level 1", async () => {
-      const documentText = "/ {\n/delete-node/ &n1;\n\tnode {\n\t};\n};";
+      const documentText = "/ {\n/delete-node/ &n1;\n\tnode { };\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\t/delete-node/ &n1;\n\tnode {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\t/delete-node/ &n1;\n\tnode { };\n};");
     });
 
     test("Correct indentation in level 2", async () => {
@@ -474,9 +491,9 @@ describe("Document formating", () => {
 
   describe("Line Comment", () => {
     test("Correct indentation in level 1", async () => {
-      const documentText = "/ {\n// foo\n\tnode {\n\t};\n};";
+      const documentText = "/ {\n// foo\n\tnode { };\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\t// foo\n\tnode {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\t// foo\n\tnode { };\n};");
     });
 
     test("Correct indentation in level 2", async () => {
@@ -486,30 +503,30 @@ describe("Document formating", () => {
     });
 
     test("no space", async () => {
-      const documentText = "/ {\n\tnode {\n\t};// foo\n};";
+      const documentText = "/ {\n\tnode { };// foo\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode {\n\t}; // foo\n};");
+      expect(newText).toEqual("/ {\n\tnode { }; // foo\n};");
     });
 
     test("multple spaces", async () => {
-      const documentText = "/ {\n\tnode {\n\t};       // foo\n};";
+      const documentText = "/ {\n\tnode { };       // foo\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode {\n\t}; // foo\n};");
+      expect(newText).toEqual("/ {\n\tnode { }; // foo\n};");
     });
   });
 
   describe("Block Comment", () => {
     test("Correct indentation in level 1 single line", async () => {
-      const documentText = "/ {\n/* foo */\n\tnode {\n\t};\n};";
+      const documentText = "/ {\n/* foo */\n\tnode { };\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\t/* foo */\n\tnode {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\t/* foo */\n\tnode { };\n};");
     });
 
     test("Correct indentation in level 1 multi line", async () => {
-      const documentText = "/ {\n/* foo\n* bar\n*/\n\tnode {\n\t};\n};";
+      const documentText = "/ {\n/* foo\n* bar\n*/\n\tnode { };\n};";
       const newText = await getNewText(documentText);
       expect(newText).toEqual(
-        "/ {\n\t/* foo\n\t * bar\n\t */\n\tnode {\n\t};\n};"
+        "/ {\n\t/* foo\n\t * bar\n\t */\n\tnode { };\n};"
       );
     });
 
@@ -548,11 +565,9 @@ describe("Document formating", () => {
     });
 
     test("Correct indentation in level 1", async () => {
-      const documentText = "/ {\n/delete-property/ n1;\n\tnode {\n\t};\n};";
+      const documentText = "/ {\n/delete-property/ n1;\n\tnode { };\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual(
-        "/ {\n\t/delete-property/ n1;\n\tnode {\n\t};\n};"
-      );
+      expect(newText).toEqual("/ {\n\t/delete-property/ n1;\n\tnode { };\n};");
     });
 
     test("Correct indentation in level 2", async () => {
@@ -770,9 +785,9 @@ describe("Document formating", () => {
       expect(newText).toEqual("/ {\n\tprop1 = <10>;\n};");
     });
     test("Correct indentation in level 1", async () => {
-      const documentText = "/ {\nprop1;\n\tnode {\n\t};\n};";
+      const documentText = "/ {\nprop1;\n\tnode { };\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1;\n\tnode {\n\t};\n};");
+      expect(newText).toEqual("/ {\n\tprop1;\n\tnode { };\n};");
     });
 
     test("Correct indentation in level 2", async () => {
@@ -912,7 +927,7 @@ describe("Document formating", () => {
     test("Clean when remove new lines", async () => {
       const documentText = "{\n    \n}     \n;";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("{\n};");
+      expect(newText).toEqual("{ };");
     });
     test("Clean when remove new lines", async () => {
       const documentText = "{\n\tprop1 = <10>, \n<20>,            \n<30>;\n};";

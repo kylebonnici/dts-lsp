@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.4.4] - 2025-06-27
+
+### Fixed
+
+- Formating now allows empty node `};` to be on the same line like so `&node { };`
+
 ## [0.4.3] - 2025-06-27
 
 ### Fixed

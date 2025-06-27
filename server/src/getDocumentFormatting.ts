@@ -403,17 +403,23 @@ const formatDtcNode = async (
   );
 
   if (node.closeScope) {
-    result.push(
-      ...ensureOnNewLineAndMax1EmptyLineToPrev(
-        node.closeScope,
-        level,
-        indentString,
-        documentText,
-        undefined,
-        1,
-        true
-      )
-    );
+    if (node.openScope && node.closeScope.prevToken === node.openScope) {
+      result.push(
+        ...fixedNumberOfSpaceBetweenTokensAndNext(node.openScope, documentText)
+      );
+    } else {
+      result.push(
+        ...ensureOnNewLineAndMax1EmptyLineToPrev(
+          node.closeScope,
+          level,
+          indentString,
+          documentText,
+          undefined,
+          1,
+          true
+        )
+      );
+    }
   }
 
   if (node.lastToken.value === ";" && node.closeScope) {
