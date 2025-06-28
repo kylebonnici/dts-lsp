@@ -1360,7 +1360,7 @@ connection.onRequest("devicetree/activeFileUri", async (uri: string) => {
 });
 
 connection.onRequest(
-  "devicetree/formatingDiff",
+  "devicetree/formattingDiff",
   async (event: DocumentFormattingParams) => {
     await allStable();
     const filePath = fileURLToPath(event.textDocument.uri);
