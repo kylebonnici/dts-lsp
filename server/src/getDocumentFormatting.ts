@@ -719,8 +719,11 @@ const formatDtcProperty = (
   property: DtcProperty,
   level: number,
   indentString: string,
-  documentText: string[]
+  documentText: string[],
+  uri: string
 ): TextEdit[] => {
+  if (!isPathEqual(property.uri, uri)) return []; //property may have been included!!
+
   const result: TextEdit[] = [];
 
   result.push(
@@ -1022,7 +1025,7 @@ const getTextEdit = async (
       computeLevel
     );
   } else if (astNode instanceof DtcProperty) {
-    return formatDtcProperty(astNode, level, singleIndent, documentText);
+    return formatDtcProperty(astNode, level, singleIndent, documentText, uri);
   } else if (astNode instanceof DeleteBase) {
     return formatDtcDelete(astNode, level, singleIndent, documentText);
   } else if (astNode instanceof Include) {

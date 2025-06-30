@@ -49,6 +49,23 @@ n1& {
 }
 ```
 
+- Formating when properties are included e.g.
+
+```devicetree
+&qspi {
+	nrf70: nrf7002@1 {
+		compatible = "nordic,nrf7002-qspi";
+		status = "okay";
+		reg = <1>;
+		qspi-frequency = <24000000>;
+		qspi-quad-mode;
+
+		#include "nrf70_common.dtsi"
+		#include "nrf70_common_5g.dtsi"
+	};
+};
+```
+
 ## [0.4.4] - 2025-06-27
 
 ### Fixed
