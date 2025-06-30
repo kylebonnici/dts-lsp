@@ -73,7 +73,8 @@ export const countParent = (
   node?: DtcBaseNode,
   count = 0
 ): number => {
-  if (node instanceof DtcRootNode) return count + 1;
+  if (node instanceof DtcRootNode || node instanceof DtcRefNode)
+    return count + 1;
 
   if (!node || !isPathEqual(node.uri, uri)) return count;
 

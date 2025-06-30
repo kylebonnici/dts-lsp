@@ -40,6 +40,14 @@ n1& {
 
 - Semantic tokens for node paths e.g. `...&{/node1/node2@20/node3}`
 - Diagnostic error when node path referance have space between ampersand and open curly e.g. `&  {...}`
+- Comment formating inside a ref node e.g.
+
+```devicetree
+&n1 {
+  /* foo */
+  prop1;
+}
+```
 
 ## [0.4.4] - 2025-06-27
 

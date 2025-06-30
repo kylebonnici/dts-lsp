@@ -566,6 +566,21 @@ describe("Document formating", () => {
         "/ {\n\tnode {\n\t\t/* foo\n\t\t * bar\n\t\t */\n\t};\n};"
       );
     });
+
+    test("in ref node", async () => {
+      const documentText = "&n1 {\n\tprop1;\n\t/* foo */\n\tnode { };\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("&n1 {\n\tprop1;\n\t/* foo */\n\tnode { };\n};");
+    });
+
+    test("in node", async () => {
+      const documentText =
+        "/ {\n\t\t/* foo */\nnode {\n\tprop1;\n\t/* foo */\n\tnode { };\n};\n}";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\t/* foo */\n\tnode {\n\t\tprop1;\n\t\t/* foo */\n\t\tnode { };\n\t};\n}"
+      );
+    });
   });
 
   describe("Delete property", () => {
