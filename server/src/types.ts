@@ -124,6 +124,7 @@ export enum SyntaxIssue {
   MACRO_EXPECTS_MORE_PARAMS,
   MISSING_ENDIF,
   UNUSED_BLOCK,
+  NODE_PATH_REF,
 }
 
 export enum ContextIssues {

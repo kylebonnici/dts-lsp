@@ -323,7 +323,7 @@ export class Parser extends BaseParser {
     const labels = this.processOptionalLabelAssign();
 
     let name: NodeName | undefined;
-    let ref: LabelRef | undefined;
+    let ref: LabelRef | NodePathRef | undefined;
 
     const child =
       allow === "Ref"
@@ -331,7 +331,17 @@ export class Parser extends BaseParser {
         : new DtcChildNode(labels, omitIfNoRef);
 
     if (allow === "Ref") {
-      ref = this.isLabelRef();
+      this.enqueueToStack();
+      ref = this.processNodePathRef();
+
+      if (!ref || !validToken(this.currentToken, LexerToken.CURLY_OPEN)) {
+        this.popStack();
+        ref = undefined;
+      } else {
+        this.mergeStack();
+      }
+
+      ref ??= this.isLabelRef();
     } else if (allow === "Name") {
       name = this.isNodeName();
     }
@@ -350,7 +360,11 @@ export class Parser extends BaseParser {
           genSyntaxDiagnostic(
             allow === "Name"
               ? [SyntaxIssue.NODE_NAME]
-              : [SyntaxIssue.NODE_REF, SyntaxIssue.ROOT_NODE_NAME],
+              : [
+                  SyntaxIssue.NODE_REF,
+                  SyntaxIssue.NODE_PATH_REF,
+                  SyntaxIssue.ROOT_NODE_NAME,
+                ],
             child
           )
         );
@@ -1105,7 +1119,7 @@ export class Parser extends BaseParser {
         return (
           (this.processStringValue() ||
             this.isNodePathRef() ||
-            this.isLabelRefValue(dtcProperty) ||
+            this.isLabelRefValue() ||
             this.arrayValues(dtcProperty) ||
             this.processByteStringValue() ||
             this.isExpressionValue()) ??
@@ -1359,7 +1373,7 @@ export class Parser extends BaseParser {
       ():
         | LabeledValue<NumberValue | LabelRef | NodePathRef | Expression>
         | undefined =>
-        this.processRefValue(false, dtcProperty) ||
+        this.processRefValue(false) ||
         this.processLabeledHex(false) ||
         this.processLabeledDec(false) ||
         this.processLabeledExpression(true, false)
@@ -1474,7 +1488,7 @@ export class Parser extends BaseParser {
     return node;
   }
 
-  private isLabelRef(slxBase?: ASTBase): LabelRef | undefined {
+  private isLabelRef(): LabelRef | undefined {
     this.enqueueToStack();
     const ampersandToken = this.currentToken;
     if (!ampersandToken || !validToken(ampersandToken, LexerToken.AMPERSAND)) {
@@ -1517,12 +1531,12 @@ export class Parser extends BaseParser {
     return node;
   }
 
-  private isLabelRefValue(dtcProperty: DtcProperty): PropertyValue | undefined {
+  private isLabelRefValue(): PropertyValue | undefined {
     this.enqueueToStack();
 
     const startLabels = this.processOptionalLabelAssign(true);
 
-    const labelRef = this.isLabelRef(dtcProperty);
+    const labelRef = this.isLabelRef();
 
     if (!labelRef) {
       this.popStack();
@@ -1542,8 +1556,7 @@ export class Parser extends BaseParser {
   }
 
   private processRefValue(
-    acceptLabelName: boolean,
-    dtcProperty: DtcProperty
+    acceptLabelName: boolean
   ): LabeledValue<LabelRef | NodePathRef> | undefined {
     this.enqueueToStack();
     const labels = this.processOptionalLabelAssign(acceptLabelName);
@@ -1561,7 +1574,7 @@ export class Parser extends BaseParser {
       return node;
     }
 
-    const labelRef = this.isLabelRef(dtcProperty);
+    const labelRef = this.isLabelRef();
     if (labelRef === undefined) {
       this._issues.push(
         genSyntaxDiagnostic(
@@ -1649,6 +1662,13 @@ export class Parser extends BaseParser {
       // might be a node ref such as &nodeLabel
       this.popStack();
       return;
+    }
+
+    if (firstToken && !adjacentTokens(firstToken, beforePath)) {
+      const whiteSpace = new ASTBase(createTokenIndex(firstToken, beforePath));
+      this._issues.push(
+        genSyntaxDiagnostic(SyntaxIssue.WHITE_SPACE, whiteSpace)
+      );
     }
 
     // now we must have a valid path

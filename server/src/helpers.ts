@@ -742,6 +742,8 @@ export const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "Expected node address";
     case SyntaxIssue.NODE_PATH:
       return "Expected node path";
+    case SyntaxIssue.NODE_PATH_REF:
+      return "Expected node path referance";
     case SyntaxIssue.NODE_REF:
       return "Expected node reference";
     case SyntaxIssue.ROOT_NODE_NAME:

@@ -278,48 +278,52 @@ export class ContextAware {
             );
           }
         } else if (c instanceof NodePath) {
-          let node: Node | undefined = runtime.rootNode;
-          const paths = c.pathParts;
-          for (let i = 0; i < paths.length && paths[i]; i++) {
-            let issueFound = false;
-            const nodePath = paths[i];
-
-            if (nodePath) {
-              const child: Node | undefined = node?.getNode(
-                nodePath.name,
-                nodePath.fullAddress,
-                false
-              );
-              nodePath.linksTo = child;
-              if (!issueFound && !child) {
-                issueFound = true;
-
-                this._issues.push(
-                  genContextDiagnostic(
-                    ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH,
-                    nodePath,
-                    DiagnosticSeverity.Error,
-                    [],
-                    [],
-                    [
-                      nodePath.toString(),
-                      `${c.pathParts
-                        .filter((p) => p?.linksTo)
-                        .map((p) => p?.toString())
-                        .join("/")}`,
-                    ]
-                  )
-                );
-              }
-              child?.linkedNodeNamePaths.push(nodePath);
-              node = child;
-            } else {
-              break;
-            }
-          }
+          this.linkNodePath(c, runtime.rootNode);
         }
       })
     );
+  }
+
+  private linkNodePath(nodePath: NodePath, rootNode: Node) {
+    let node: Node | undefined = rootNode;
+    const paths = nodePath.pathParts;
+    for (let i = 0; i < paths.length && paths[i]; i++) {
+      let issueFound = false;
+      const nodeName = paths[i];
+
+      if (nodeName) {
+        const child: Node | undefined = node?.getNode(
+          nodeName.name,
+          nodeName.fullAddress,
+          false
+        );
+        nodeName.linksTo = child;
+        if (!issueFound && !child) {
+          issueFound = true;
+
+          this._issues.push(
+            genContextDiagnostic(
+              ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH,
+              nodeName,
+              DiagnosticSeverity.Error,
+              [],
+              [],
+              [
+                nodeName.toString(),
+                `${nodePath.pathParts
+                  .filter((p) => p?.linksTo)
+                  .map((p) => p?.toString())
+                  .join("/")}`,
+              ]
+            )
+          );
+        }
+        child?.linkedNodeNamePaths.push(nodeName);
+        node = child;
+      } else {
+        break;
+      }
+    }
   }
 
   public async reevaluate(uri: string) {
@@ -548,12 +552,55 @@ export class ContextAware {
     return runtimeNode;
   }
 
+  private processDtcRefNodeNodePathRef(
+    element: DtcRefNode,
+    reference: NodePathRef,
+    runtime: Runtime
+  ) {
+    let runtimeNode: Node | undefined;
+
+    if (reference.path) {
+      this.linkNodePath(reference.path, runtime.rootNode);
+    }
+
+    const linksTo = reference.path?.pathParts.at(-1)?.linksTo;
+    const resolvedPath = linksTo?.path;
+
+    if (!resolvedPath) {
+      runtime.unlinkedRefNodes.push(element);
+    } else {
+      element.resolveNodePath ??= resolvedPath;
+      runtimeNode = runtime.rootNode.getChild(resolvedPath);
+      element.labels.forEach((l) => (l.lastLinkedTo = runtimeNode));
+      runtimeNode?.referencedBy.push(element);
+
+      element.labels.forEach((label) => {
+        runtime.labelsUsedCache.set(label.label.value, resolvedPath);
+      });
+
+      if (runtimeNode) {
+        runtime.references.push(element);
+        this.checkNodeUniqueNames(element, runtimeNode);
+      } else {
+        runtime.unlinkedRefNodes.push(element);
+      }
+    }
+
+    return runtimeNode;
+  }
+
   private processDtcRefNode(element: DtcRefNode, runtime: Runtime) {
     let runtimeNode: Node | undefined;
 
     if (element.reference) {
       if (element.reference instanceof LabelRef) {
         runtimeNode = this.processDtcRefNodeLabelRef(
+          element,
+          element.reference,
+          runtime
+        );
+      } else {
+        runtimeNode = this.processDtcRefNodeNodePathRef(
           element,
           element.reference,
           runtime
@@ -675,13 +722,6 @@ export class ContextAware {
       element.nodeNameOrRef.path &&
       !element.nodeNameOrRef.path.pathParts.some((p) => !p)
     ) {
-      const resolvedPath = [
-        "/",
-        ...(element.nodeNameOrRef.path.pathParts as NodeName[]).map((n) =>
-          n.toString()
-        ),
-      ];
-
       let node: Node | undefined = runtime.rootNode;
       const paths = element.nodeNameOrRef.path.pathParts;
       for (let i = 0; i < paths.length && paths[i]; i++) {

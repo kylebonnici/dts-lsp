@@ -489,6 +489,17 @@ describe("Parser", () => {
       expect(parser.issues[0].raw.astElement.lastToken.pos.col).toEqual(10);
     });
 
+    test("Label ref child node", async () => {
+      mockReadFileSync("&  n1{ };");
+      const parser = new Parser("/folder/dts.dts", []);
+      await parser.stable;
+      expect(parser.issues.length).toEqual(1);
+      expect(parser.issues[0].raw.issues).toEqual([SyntaxIssue.WHITE_SPACE]);
+      expect(parser.issues[0].raw.astElement.firstToken.pos.colEnd).toEqual(1);
+
+      expect(parser.issues[0].raw.astElement.lastToken.pos.col).toEqual(3);
+    });
+
     test("Ref Path end", async () => {
       mockReadFileSync("/{prop=<&{/node1/node2    }>;};");
       const parser = new Parser("/folder/dts.dts", []);
@@ -1543,7 +1554,7 @@ describe("Parser", () => {
       expect(node2.lastToken.pos.col).toEqual(18);
     });
 
-    test("Ref Node", async () => {
+    test("Label Ref Node", async () => {
       mockReadFileSync("&label{};");
       const parser = new Parser("/folder/dts.dts", []);
       await parser.stable;
@@ -1569,6 +1580,41 @@ describe("Parser", () => {
         col: 8,
         len: 1,
         colEnd: 9,
+      });
+    });
+
+    test("Node paths ref Node", async () => {
+      mockReadFileSync("&{/node1/node2}{};");
+      const parser = new Parser("/folder/dts.dts", []);
+      await parser.stable;
+      expect(parser.issues.length).toEqual(0);
+      expect(parser.rootDocument.children.length).toEqual(1);
+      expect(
+        parser.rootDocument.children[0] instanceof DtcRefNode
+      ).toBeTruthy();
+      expect(
+        parser.rootDocument.children[0].children[0] instanceof NodePathRef
+      ).toBeTruthy();
+      expect(
+        (parser.rootDocument.children[0].children[0] as NodePathRef).path
+          ?.pathParts.length
+      ).toBe(2);
+      expect(
+        (
+          parser.rootDocument.children[0].children[0] as NodePathRef
+        ).path?.pathParts.map((p) => p?.name)
+      ).toEqual(["node1", "node2"]);
+      expect(parser.rootDocument.children[0].firstToken.pos).toEqual({
+        line: 0,
+        col: 0,
+        len: 1,
+        colEnd: 1,
+      });
+      expect(parser.rootDocument.children[0].lastToken.pos).toEqual({
+        line: 0,
+        col: 17,
+        len: 1,
+        colEnd: 18,
       });
     });
 
@@ -1717,6 +1763,7 @@ describe("Parser", () => {
       expect(parser.issues.length).toEqual(1);
       expect(parser.issues[0].raw.issues).toEqual([
         SyntaxIssue.NODE_REF,
+        SyntaxIssue.NODE_PATH_REF,
         SyntaxIssue.ROOT_NODE_NAME,
       ]);
       expect(parser.issues[0].raw.astElement.firstToken.pos.col).toEqual(0);
