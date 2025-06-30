@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.4.5] - 2025-07-02
 
+### Added
+
+- Support for node to be refereance by node path e.g
+
+```devicetree
+&{/node1/node2@20/node3}{
+  prop1;
+}
+```
+
 ### Fixed
 
 - Fix issue where `/delete-node/` did not respect order when used inside child node
@@ -27,6 +37,9 @@ n1& {
     node2 { };
 };
 ```
+
+- Semantic tokens for node paths e.g. `...&{/node1/node2@20/node3}`
+- Diagnostic error when node path referance have space between ampersand and open curly e.g. `&  {...}`
 
 ## [0.4.4] - 2025-06-27
 
