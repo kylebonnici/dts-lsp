@@ -358,7 +358,12 @@ describe("Parser", () => {
 
       const refNode = parser.rootDocument.children[0];
       expect(refNode instanceof DtcRefNode).toBeTruthy();
-      expect((refNode as DtcRefNode).labelReference?.value).toBe("label");
+      expect(
+        (refNode as DtcRefNode).reference instanceof LabelRef
+      ).toBeTruthy();
+      expect(((refNode as DtcRefNode).reference as LabelRef).value).toEqual(
+        "label"
+      );
     });
   });
 
@@ -1581,7 +1586,8 @@ describe("Parser", () => {
       expect(refNode.labels.length).toEqual(2);
       expect(refNode.labels[0].label.value).toEqual("l1");
       expect(refNode.labels[1].label.value).toEqual("l2");
-      expect(refNode.labelReference?.value).toEqual("label");
+      expect(refNode.reference instanceof LabelRef).toBeTruthy();
+      expect((refNode.reference as LabelRef).label?.value).toEqual("label");
     });
 
     test("Child node, no address", async () => {

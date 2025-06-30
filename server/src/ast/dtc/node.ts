@@ -43,6 +43,7 @@ import {
   SerializableNodeRef as SerializableRefNode,
   SerializableRootNode,
 } from "../../types/index";
+import { NodePathRef } from "./values/nodePath";
 
 export class DtcBaseNode extends ASTBase {
   public openScope?: Token;
@@ -124,7 +125,7 @@ export class DtcRootNode extends DtcBaseNode {
 }
 
 export class DtcRefNode extends DtcBaseNode {
-  private _labelReference: LabelRef | null = null;
+  private _reference: LabelRef | NodePathRef | null = null;
   public resolveNodePath?: string[];
 
   constructor(public readonly labels: LabelAssign[] = []) {
@@ -139,20 +140,24 @@ export class DtcRefNode extends DtcBaseNode {
   }
 
   get serializeIssues() {
-    return [...this.issues, ...(this.labelReference?.issues ?? [])].map((i) =>
-      i()
-    );
+    return [...this.issues, ...(this.reference?.issues ?? [])].map((i) => i());
   }
 
-  set labelReference(labelReference: LabelRef | null) {
-    if (this._labelReference)
-      throw new Error("Only on label reference is allowed");
-    this._labelReference = labelReference;
+  set reference(reference: LabelRef | NodePathRef | null) {
+    if (this._reference) throw new Error("Only on label reference is allowed");
+
+    this._reference = reference;
+    let name: string | undefined;
+    if (reference instanceof LabelRef) {
+      name = reference.value;
+    } else {
+      name = reference?.path?.pathParts.at(-1)?.name ?? "DTC Name";
+    }
     this.docSymbolsMeta = {
-      name: this.labelReference?.value ?? "DTC Name",
+      name: name ?? "DTC Name",
       kind: SymbolKind.Class,
     };
-    this.addChild(labelReference);
+    this.addChild(reference);
   }
 
   get path(): string[] | undefined {
@@ -163,8 +168,8 @@ export class DtcRefNode extends DtcBaseNode {
     return super.path;
   }
 
-  get labelReference() {
-    return this._labelReference;
+  get reference() {
+    return this._reference;
   }
 
   get nodes() {
@@ -172,9 +177,9 @@ export class DtcRefNode extends DtcBaseNode {
   }
 
   get pathName() {
-    return this.labelReference?.label
-      ? `&${this.labelReference?.label?.value}`
-      : undefined;
+    if (this.reference instanceof LabelRef && this.reference.label?.value) {
+      return `&${this.reference.label.value}`;
+    }
   }
 
   get properties() {
@@ -187,7 +192,7 @@ export class DtcRefNode extends DtcBaseNode {
 
   serialize(macros: Map<string, MacroRegistryItem>): SerializableRefNode {
     return new SerializableRefNode(
-      this.labelReference?.serialize() ?? null,
+      this.reference?.serialize() ?? null,
       this.properties.map((p) => p.serialize(macros)),
       this.nodes.map((n) => n.serialize(macros)),
       this.uri,

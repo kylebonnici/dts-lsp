@@ -503,45 +503,61 @@ export class ContextAware {
     );
   }
 
+  private processDtcRefNodeLabelRef(
+    element: DtcRefNode,
+    reference: LabelRef,
+    runtime: Runtime
+  ) {
+    let runtimeNode: Node | undefined;
+
+    const resolvedPath =
+      element.resolveNodePath ??
+      (element.pathName ? runtime.resolvePath([element.pathName]) : undefined);
+    if (!resolvedPath) {
+      this._issues.push(
+        genContextDiagnostic(
+          ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
+          reference,
+          DiagnosticSeverity.Error,
+          [],
+          [],
+          [reference.label?.value ?? ""]
+        )
+      );
+      runtime.unlinkedRefNodes.push(element);
+    } else {
+      element.resolveNodePath ??= [...resolvedPath];
+      runtimeNode = runtime.rootNode.getChild(resolvedPath);
+      reference.linksTo = runtimeNode;
+      element.labels.forEach((l) => (l.lastLinkedTo = runtimeNode));
+      runtimeNode?.linkedRefLabels.push(reference);
+      runtimeNode?.referencedBy.push(element);
+
+      element.labels.forEach((label) => {
+        runtime.labelsUsedCache.set(label.label.value, resolvedPath);
+      });
+
+      if (runtimeNode) {
+        runtime.references.push(element);
+        this.checkNodeUniqueNames(element, runtimeNode);
+      } else {
+        runtime.unlinkedRefNodes.push(element);
+      }
+    }
+
+    return runtimeNode;
+  }
+
   private processDtcRefNode(element: DtcRefNode, runtime: Runtime) {
     let runtimeNode: Node | undefined;
 
-    if (element.labelReference) {
-      const resolvedPath =
-        element.resolveNodePath ??
-        (element.pathName
-          ? runtime.resolvePath([element.pathName])
-          : undefined);
-      if (!resolvedPath) {
-        this._issues.push(
-          genContextDiagnostic(
-            ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
-            element.labelReference,
-            DiagnosticSeverity.Error,
-            [],
-            [],
-            [element.labelReference.label?.value ?? ""]
-          )
+    if (element.reference) {
+      if (element.reference instanceof LabelRef) {
+        runtimeNode = this.processDtcRefNodeLabelRef(
+          element,
+          element.reference,
+          runtime
         );
-        runtime.unlinkedRefNodes.push(element);
-      } else {
-        element.resolveNodePath ??= [...resolvedPath];
-        runtimeNode = runtime.rootNode.getChild(resolvedPath);
-        element.labelReference.linksTo = runtimeNode;
-        element.labels.forEach((l) => (l.lastLinkedTo = runtimeNode));
-        runtimeNode?.linkedRefLabels.push(element.labelReference);
-        runtimeNode?.referencedBy.push(element);
-
-        element.labels.forEach((label) => {
-          runtime.labelsUsedCache.set(label.label.value, resolvedPath);
-        });
-
-        if (runtimeNode) {
-          runtime.references.push(element);
-          this.checkNodeUniqueNames(element, runtimeNode);
-        } else {
-          runtime.unlinkedRefNodes.push(element);
-        }
       }
     } else {
       runtime.unlinkedRefNodes.push(element);

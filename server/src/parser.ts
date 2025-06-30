@@ -359,7 +359,7 @@ export class Parser extends BaseParser {
 
     let expectedNode = false;
     if (ref && child instanceof DtcRefNode) {
-      child.labelReference = ref;
+      child.reference = ref;
       expectedNode = true;
     } else if (name && child instanceof DtcChildNode) {
       expectedNode = name.address !== undefined;

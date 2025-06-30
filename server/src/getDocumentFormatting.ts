@@ -354,18 +354,18 @@ const formatDtcNode = async (
           : [];
       result.push(...nodeNameAndOpenCurlySpacing);
     } else {
-      if (node.labels.length && node.labelReference?.firstToken.prevToken) {
+      if (node.labels.length && node.reference?.firstToken.prevToken) {
         result.push(
           ...fixedNumberOfSpaceBetweenTokensAndNext(
-            node.labelReference.firstToken.prevToken,
+            node.reference.firstToken.prevToken,
             documentText
           )
         );
       }
       const nodeNameAndOpenCurlySpacing =
-        node.labelReference && node.openScope
+        node.reference && node.openScope
           ? fixedNumberOfSpaceBetweenTokensAndNext(
-              node.labelReference.lastToken,
+              node.reference.lastToken,
               documentText
             )
           : [];

@@ -327,7 +327,7 @@ export abstract class SerializableNodeBase extends SerializableASTBase {
 
 export class SerializableNodeRef extends SerializableNodeBase {
   constructor(
-    name: SerializableLabelRef | null,
+    name: SerializableLabelRef | SerializableNodePath | null,
     properties: SerializableDtcProperty[],
     nodes: SerializableNodeBase[],
     uri: string,
