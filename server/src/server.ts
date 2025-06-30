@@ -86,6 +86,7 @@ import { getActions } from "./getActions";
 import { getSignatureHelp } from "./signatureHelp";
 import { createPatch } from "diff";
 import { initHeapMonitor } from "./heapMonitor";
+import { writeFileSync } from "fs";
 
 const contextAware: ContextAware[] = [];
 let activeContext: ContextAware | undefined;
@@ -1359,33 +1360,48 @@ connection.onRequest("devicetree/activeFileUri", async (uri: string) => {
   updateActiveContext({ uri });
 });
 
-connection.onRequest(
-  "devicetree/formattingDiff",
-  async (event: DocumentFormattingParams) => {
-    await allStable();
-    const filePath = fileURLToPath(event.textDocument.uri);
-    updateActiveContext({ uri: filePath });
-    const context = quickFindContext(filePath);
+const linterFormat = async (
+  event: DocumentFormattingParams & { applyToDocument?: boolean }
+) => {
+  await allStable();
+  const filePath = fileURLToPath(event.textDocument.uri);
+  updateActiveContext({ uri: filePath });
+  const context = quickFindContext(filePath);
 
-    if (!context) {
-      return [];
-    }
-
-    const documentText = getTokenizedDocumentProvider().getDocument(filePath);
-    const edits = await getDocumentFormatting(
-      event,
-      context,
-      documentText.getText()
-    );
-
-    if (edits.length === 0) {
-      return;
-    }
-
-    const newText = applyEdits(documentText, edits);
-    return createPatch(documentText.uri, documentText.getText(), newText);
+  if (!context) {
+    return [];
   }
-);
+
+  const documentText = getTokenizedDocumentProvider().getDocument(filePath);
+  const originalText = documentText.getText();
+  const edits = await getDocumentFormatting(
+    event,
+    context,
+    documentText.getText()
+  );
+
+  if (edits.length === 0) {
+    return;
+  }
+
+  const newText = applyEdits(documentText, edits);
+
+  if (newText === documentText.getText()) {
+    return;
+  }
+
+  if (event.applyToDocument) {
+    writeFileSync(filePath, newText);
+    getTokenizedDocumentProvider().renewLexer(filePath, newText);
+    await onChange(filePath);
+    await linterFormat(event);
+    return createPatch(documentText.uri, originalText, newText);
+  }
+
+  return createPatch(documentText.uri, originalText, newText);
+};
+
+connection.onRequest("devicetree/formattingDiff", linterFormat);
 
 connection.onRequest(
   "devicetree/diagnosticIssues",

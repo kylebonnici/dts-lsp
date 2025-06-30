@@ -490,6 +490,18 @@ describe("Document formating", () => {
   });
 
   describe("Line Comment", () => {
+    test("new line on top of document", async () => {
+      const documentText = "\n// foo";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("// foo");
+    });
+
+    test("multiple new lines on top of document", async () => {
+      const documentText = "\n\n// foo";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("// foo");
+    });
+
     test("Correct indentation in level 1", async () => {
       const documentText = "/ {\n// foo\n\tnode { };\n};";
       const newText = await getNewText(documentText);
@@ -516,6 +528,17 @@ describe("Document formating", () => {
   });
 
   describe("Block Comment", () => {
+    test("new line on top of document", async () => {
+      const documentText = "\n/* foo */";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/* foo */");
+    });
+
+    test("multiple new lines on top of document", async () => {
+      const documentText = "\n\n/* foo */";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/* foo */");
+    });
     test("Correct indentation in level 1 single line", async () => {
       const documentText = "/ {\n/* foo */\n\tnode { };\n};";
       const newText = await getNewText(documentText);
