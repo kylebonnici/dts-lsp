@@ -81,7 +81,7 @@ import {
   resolveContextSetting,
   resolveSettings,
 } from "./settings";
-import { basename } from "path";
+import { basename, relative } from "path";
 import { getActions } from "./getActions";
 import { getSignatureHelp } from "./signatureHelp";
 import { createPatch } from "diff";
@@ -1390,15 +1390,19 @@ const linterFormat = async (
     return;
   }
 
+  const relativePath = relative(
+    context.settings.cwd ?? process.cwd(),
+    filePath
+  );
   if (event.applyToDocument) {
     writeFileSync(filePath, newText);
     getTokenizedDocumentProvider().renewLexer(filePath, newText);
     await onChange(filePath);
     await linterFormat(event);
-    return createPatch(documentText.uri, originalText, newText);
+    return createPatch(`a/${relativePath}`, originalText, newText);
   }
 
-  return createPatch(documentText.uri, originalText, newText);
+  return createPatch(`a/${relativePath}`, originalText, newText);
 };
 
 connection.onRequest("devicetree/formattingDiff", linterFormat);
