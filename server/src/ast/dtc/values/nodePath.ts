@@ -18,6 +18,8 @@ import { SymbolKind } from "vscode-languageserver";
 import { ASTBase } from "../../base";
 import { NodeName } from "../node";
 import { SerializableNodePath } from "../../../types/index";
+import { BuildSemanticTokensPush } from "../../../types";
+import { getTokenModifiers, getTokenTypes } from "../../../helpers";
 
 export class NodePath extends ASTBase {
   private _pathParts: (NodeName | null)[] = [];
@@ -41,6 +43,20 @@ export class NodePath extends ASTBase {
   toString() {
     return this._pathParts.map((p) => p?.toString() ?? "<NULL>").join("/");
   }
+
+  buildSemanticTokens(push: BuildSemanticTokensPush) {
+    this._children.forEach((child) => {
+      if (child instanceof NodeName) {
+        child.buildSemanticTokens(push);
+      } else {
+        push(
+          getTokenTypes("operator"),
+          getTokenModifiers("declaration"),
+          child.tokenIndexes
+        );
+      }
+    });
+  }
 }
 
 export class NodePathRef extends ASTBase {
@@ -50,8 +66,6 @@ export class NodePathRef extends ASTBase {
       name: `/${this.path?.toString() ?? ""}`,
       kind: SymbolKind.Namespace,
     };
-    this.semanticTokenType = "variable";
-    this.semanticTokenModifiers = "declaration";
     this.addChild(path);
   }
 
