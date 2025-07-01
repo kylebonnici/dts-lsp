@@ -413,15 +413,34 @@ export class Parser extends BaseParser {
   }
 
   private processNodeAddress(): NodeAddress {
-    const prevToken = this.prevToken;
+    let prevToken = this.prevToken;
+
+    this.enqueueToStack();
+    let hexStartPrepend = this.checkConcurrentTokens([
+      validateValue("0"),
+      validateValue("x", true),
+    ]);
+
+    if (hexStartPrepend.length !== 2) {
+      hexStartPrepend = [];
+      this.popStack();
+    } else {
+      this._issues.push(
+        genSyntaxDiagnostic(
+          SyntaxIssue.NODE_ADDRERSS_HEX_START,
+          new ASTBase(createTokenIndex(hexStartPrepend[0], hexStartPrepend[1])),
+          DiagnosticSeverity.Warning
+        )
+      );
+      prevToken = hexStartPrepend.at(-1);
+      this.mergeStack();
+    }
+
     const addressValid = this.consumeAnyConcurrentTokens(
       [LexerToken.DIGIT, LexerToken.HEX].map(validateToken)
     );
 
     const hexTo32BitArray = (hexStr: string) => {
-      // Remove whitespace and 0x if present
-      hexStr = hexStr.replace(/^0x/, "").replace(/\s+/g, "");
-
       // Pad the string to make its length a multiple of 8
       if (hexStr.length % 8 !== 0) {
         hexStr = hexStr.padStart(Math.ceil(hexStr.length / 8) * 8, "0");
@@ -461,7 +480,10 @@ export class Parser extends BaseParser {
 
     const nodeAddress = new NodeAddress(
       address,
-      createTokenIndex(addressValid[0] ?? this.prevToken, addressValid.at(-1))
+      createTokenIndex(
+        hexStartPrepend.at(0) ?? addressValid[0] ?? this.prevToken,
+        addressValid.at(-1)
+      )
     );
 
     return nodeAddress;

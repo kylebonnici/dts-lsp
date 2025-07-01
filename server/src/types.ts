@@ -125,6 +125,7 @@ export enum SyntaxIssue {
   MISSING_ENDIF,
   UNUSED_BLOCK,
   NODE_PATH_REF,
+  NODE_ADDRERSS_HEX_START,
 }
 
 export enum ContextIssues {
