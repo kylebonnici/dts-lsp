@@ -62,7 +62,7 @@ import { CPreprocessorParser } from "./cPreprocessorParser";
 import { Include } from "./ast/cPreprocessors/include";
 import { DtsMemreserveNode } from "./ast/dtc/memreserveNode";
 import { DtsBitsNode } from "./ast/dtc/bitsNode";
-import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 type AllowNodeRef = "Ref" | "Name";
 
