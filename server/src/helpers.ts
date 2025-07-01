@@ -747,6 +747,8 @@ export const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "Node name shall start with a lower or upper case character";
     case SyntaxIssue.NODE_ADDRERSS_HEX_START:
       return "Node unit address should not start with 0x";
+    case SyntaxIssue.NODE_ADDRESS_ENDS_ULL:
+      return "Node unit address should not end with with ULL";
     case SyntaxIssue.NODE_ADDRESS:
       return "Expected node address";
     case SyntaxIssue.NODE_PATH:

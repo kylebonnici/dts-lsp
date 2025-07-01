@@ -479,11 +479,22 @@ export class Parser extends BaseParser {
       }
     }
 
+    if (this.currentToken?.value.toUpperCase() === "ULL") {
+      this._issues.push(
+        genSyntaxDiagnostic(
+          SyntaxIssue.NODE_ADDRESS_ENDS_ULL,
+          new ASTBase(createTokenIndex(this.currentToken)),
+          DiagnosticSeverity.Warning
+        )
+      );
+      this.moveToNextToken;
+    }
+
     const nodeAddress = new NodeAddress(
       address,
       createTokenIndex(
         hexStartPrepend.at(0) ?? addressValid[0] ?? this.prevToken,
-        addressValid.at(-1)
+        this.prevToken
       )
     );
 

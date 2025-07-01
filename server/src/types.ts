@@ -127,6 +127,7 @@ export enum SyntaxIssue {
   NODE_PATH_REF,
   NAME_NODE_NAME_START,
   NODE_ADDRERSS_HEX_START,
+  NODE_ADDRESS_ENDS_ULL,
 }
 
 export enum ContextIssues {
