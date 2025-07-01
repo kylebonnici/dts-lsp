@@ -743,6 +743,8 @@ export const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "Expected property name";
     case SyntaxIssue.NODE_NAME:
       return "Expected node name";
+    case SyntaxIssue.NAME_NODE_NAME_START:
+      return "Node name shall start with a lower or upper case character";
     case SyntaxIssue.NODE_ADDRERSS_HEX_START:
       return "Node unit address should not start with 0x";
     case SyntaxIssue.NODE_ADDRESS:

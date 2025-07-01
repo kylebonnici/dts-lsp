@@ -555,14 +555,15 @@ export class Parser extends BaseParser {
 
     const name = valid.map((v) => v.value).join("");
 
-    if (!name.match(/^[A-Za-z]/)) {
-      this.popStack();
-      return;
-    }
-
     const node = new NodeName(name, createTokenIndex(valid[0], valid.at(-1)));
     const addresses = this.processNodeAddresses(node);
     node.address = addresses;
+
+    if (!name.match(/^[A-Za-z]/)) {
+      this._issues.push(
+        genSyntaxDiagnostic(SyntaxIssue.NAME_NODE_NAME_START, node)
+      );
+    }
 
     this.mergeStack();
     return node;
