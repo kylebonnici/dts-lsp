@@ -438,7 +438,9 @@ export class Parser extends BaseParser {
     }
 
     const addressValid = this.consumeAnyConcurrentTokens(
-      [LexerToken.DIGIT, LexerToken.HEX].map(validateToken)
+      [LexerToken.DIGIT, LexerToken.HEX, LexerToken.UNDERSCORE].map(
+        validateToken
+      )
     );
 
     const hexTo32BitArray = (hexStr: string) => {
@@ -457,7 +459,12 @@ export class Parser extends BaseParser {
     };
 
     const address = addressValid.length
-      ? hexTo32BitArray(addressValid.map((v) => v.value).join(""))
+      ? hexTo32BitArray(
+          addressValid
+            .filter((v) => v.value !== "_")
+            .map((v) => v.value)
+            .join("")
+        )
       : [NaN];
 
     if (prevToken) {
