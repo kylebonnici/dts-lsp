@@ -146,7 +146,8 @@ export class Parser extends BaseParser {
           this.isChildNode(this.rootDocument, "Ref") ||
           // not valid syntax but we leave this for the next layer to process
           this.isProperty(this.unhandledStatements) ||
-          this.isDeleteProperty(this.unhandledStatements)
+          this.isDeleteProperty(this.unhandledStatements) ||
+          this.isChildNode(this.unhandledStatements, "Name")
         )
       ) {
         const token = this.moveToNextToken;

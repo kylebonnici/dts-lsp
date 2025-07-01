@@ -841,8 +841,12 @@ const updateActiveContext = async (id: ContextId, force = false) => {
     if (newContext) {
       contexMeta(newContext).then(async (meta) => {
         const fileTree = await newContext.getFileTree();
-        if (newContext !== activeContext && !contextAware.includes(newContext))
+        if (
+          !newContext ||
+          (newContext !== activeContext && !contextAware.includes(newContext))
+        )
           return;
+
         connection.sendNotification("devicetree/newActiveContext", {
           ctxNames: newContext.ctxNames.map((c) => c.toString()),
           id: newContext.id,
@@ -1360,9 +1364,7 @@ connection.onRequest("devicetree/activeFileUri", async (uri: string) => {
   updateActiveContext({ uri });
 });
 
-const linterFormat = async (
-  event: DocumentFormattingParams & { applyToDocument?: boolean }
-) => {
+const linterFormat = async (event: DocumentFormattingParams) => {
   await allStable();
   const filePath = fileURLToPath(event.textDocument.uri);
   updateActiveContext({ uri: filePath });
@@ -1394,13 +1396,6 @@ const linterFormat = async (
     context.settings.cwd ?? process.cwd(),
     filePath
   );
-  if (event.applyToDocument) {
-    writeFileSync(filePath, newText);
-    getTokenizedDocumentProvider().renewLexer(filePath, newText);
-    await onChange(filePath);
-    await linterFormat(event);
-    return createPatch(`a/${relativePath}`, originalText, newText);
-  }
 
   return createPatch(`a/${relativePath}`, originalText, newText);
 };
