@@ -455,11 +455,11 @@ const formatDtcNode = async (
 };
 
 const formatLabeledValue = <T extends ASTBase>(
+  propertyNameWidth: number,
   value: LabeledValue<T>,
   level: number,
   indentString: string,
   openBracket: Token | undefined,
-  prevValue: LabeledValue<T> | undefined,
   documentText: string[]
 ): TextEdit[] => {
   const result: TextEdit[] = [];
@@ -491,9 +491,10 @@ const formatLabeledValue = <T extends ASTBase>(
       result.push(
         ...createIndentEdit(
           value.firstToken,
-          level + 2,
+          level,
           indentString,
-          documentText
+          documentText,
+          "".padStart(propertyNameWidth + 4, " ")
         )
       );
     } else {
@@ -515,6 +516,7 @@ const formatLabeledValue = <T extends ASTBase>(
 };
 
 const formatValue = (
+  propertyNameWidth: number,
   value: AllValueType,
   level: number,
   indentString: string,
@@ -524,13 +526,13 @@ const formatValue = (
 
   if (value instanceof ArrayValues || value instanceof ByteStringValue) {
     result.push(
-      ...value.values.flatMap((v, i) =>
+      ...value.values.flatMap((v) =>
         formatLabeledValue(
+          propertyNameWidth,
           v,
           level,
           indentString,
           value.openBracket,
-          i ? value.values.at(i - 1) : undefined,
           documentText
         )
       )
@@ -671,6 +673,7 @@ const formatComplexExpression = (
 };
 
 const formatPropertyValue = (
+  propertyNameWidth: number,
   value: PropertyValue,
   level: number,
   indentString: string,
@@ -680,7 +683,15 @@ const formatPropertyValue = (
 
   result.push(...formatLabels(value.startLabels, documentText));
 
-  result.push(...formatValue(value.value, level, indentString, documentText));
+  result.push(
+    ...formatValue(
+      propertyNameWidth,
+      value.value,
+      level,
+      indentString,
+      documentText
+    )
+  );
 
   result.push(...formatLabels(value.endLabels, documentText));
 
@@ -688,6 +699,7 @@ const formatPropertyValue = (
 };
 
 const formatPropertyValues = (
+  propertyNameWidth: number,
   values: PropertyValues,
   level: number,
   indentString: string,
@@ -719,16 +731,23 @@ const formatPropertyValues = (
         result.push(
           ...createIndentEdit(
             value.firstToken,
-            level + 2,
+            level,
             indentString,
-            documentText
+            documentText,
+            "".padStart(propertyNameWidth + 3, " ")
           )
         );
       }
     }
 
     result.push(
-      ...formatPropertyValue(value, level, indentString, documentText)
+      ...formatPropertyValue(
+        propertyNameWidth,
+        value,
+        level,
+        indentString,
+        documentText
+      )
     );
 
     if (value.nextValueSeparator) {
@@ -782,6 +801,7 @@ const formatDtcProperty = (
     }
     result.push(
       ...formatPropertyValues(
+        property.propertyName?.name.length ?? 0,
         property.values,
         level,
         indentString,

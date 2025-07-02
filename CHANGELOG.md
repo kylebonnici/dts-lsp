@@ -38,6 +38,10 @@ n1& {
 };
 ```
 
+- Parser can handel node names starting with a number. A diagnostic error is show in this case.
+- Parser can handel node unit addresses starting with `0x`. A diagnostic warning is show in this case.
+- Parser can handel node unit addresses ending with `ULL`. A diagnostic warning is show in this case.
+- Parser can handel node unit addresses with `_` e.g `node@8_000_00`.
 - Semantic tokens for node paths e.g. `...&{/node1/node2@20/node3}`
 - Diagnostic error when node path referance have space between ampersand and open curly e.g. `&  {...}`
 - Comment formating inside a ref node e.g.

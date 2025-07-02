@@ -712,7 +712,7 @@ describe("Document formating", () => {
     test("label with new property array value", async () => {
       const documentText = "/ {\n\tprop1= l1:\n<10>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = l1:\n\t\t\t<10>;\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = l1:\n\t        <10>;\n};");
     });
 
     test("no space before =", async () => {
@@ -759,7 +759,7 @@ describe("Document formating", () => {
     test("single new line between array value", async () => {
       const documentText = "/ {\n\tprop1 =   <10\n20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10\n\t\t\t20>;\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = <10\n\t         20>;\n};");
     });
 
     test("Multi line string", async () => {
@@ -780,17 +780,21 @@ describe("Document formating", () => {
     test("multiple new lines between array value", async () => {
       const documentText = "/ {\n\tprop1 =   <10\n\n20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10\n\t\t\t20>;\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = <10\n\t         20>;\n};");
     });
     test("comment and single new line between array value", async () => {
       const documentText = "/ {\n\tprop1 = <10  /* foo */\n20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10 /* foo */\n\t\t\t20>;\n};");
+      expect(newText).toEqual(
+        "/ {\n\tprop1 = <10 /* foo */\n\t         20>;\n};"
+      );
     });
     test("comment and multiple new lines between array value", async () => {
       const documentText = "/ {\n\tprop1 = <10  /* foo */\n\n20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10 /* foo */\n\t\t\t20>;\n};");
+      expect(newText).toEqual(
+        "/ {\n\tprop1 = <10 /* foo */\n\t         20>;\n};"
+      );
     });
     test("comment after <", async () => {
       const documentText = "/ {\n\tprop1 = <    /* foo */    10>;\n};";
@@ -820,17 +824,17 @@ describe("Document formating", () => {
     test("single new line after comma separated values", async () => {
       const documentText = "/ {\n\tprop1 = <10>,\n<20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10>,\n\t\t\t<20>;\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = <10>,\n\t        <20>;\n};");
     });
     test("two news line after comma separated values", async () => {
       const documentText = "/ {\n\tprop1 = <10>,\n\n<20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10>,\n\t\t\t<20>;\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = <10>,\n\t        <20>;\n};");
     });
     test("muiltple news line after comma separated values", async () => {
       const documentText = "/ {\n\tprop1 = <10>,\n\n\n<20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10>,\n\t\t\t<20>;\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = <10>,\n\t        <20>;\n};");
     });
     test("comment after comma on new line", async () => {
       const documentText = "/ {\n\tprop1 = <10>,\n/* foo */<20>;\n};";
@@ -986,7 +990,7 @@ describe("Document formating", () => {
       const documentText = "/ {\n\tprop1 = [10\n20\n30\n40]   ;\n};";
       const newText = await getNewText(documentText);
       expect(newText).toEqual(
-        "/ {\n\tprop1 = [10\n\t\t\t20\n\t\t\t30\n\t\t\t40];\n};"
+        "/ {\n\tprop1 = [10\n\t         20\n\t         30\n\t         40];\n};"
       );
     });
   });
@@ -1001,7 +1005,7 @@ describe("Document formating", () => {
       const documentText = "{\n\tprop1 = <10>, \n<20>,            \n<30>;\n};";
       const newText = await getNewText(documentText);
       expect(newText).toEqual(
-        "{\n\tprop1 = <10>,\n\t\t\t<20>,\n\t\t\t<30>;\n};"
+        "{\n\tprop1 = <10>,\n\t        <20>,\n\t        <30>;\n};"
       );
     });
 
