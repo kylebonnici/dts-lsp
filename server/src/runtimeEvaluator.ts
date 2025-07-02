@@ -469,7 +469,7 @@ export class ContextAware {
     runtime.roots.push(element);
     runtime.rootNode.definitions.push(element);
     this.checkNodeUniqueNames(element, runtime.rootNode);
-    [...element.children].forEach((child) =>
+    element.children.forEach((child) =>
       this.processChild(child, runtime.rootNode, runtime)
     );
   }
@@ -502,7 +502,7 @@ export class ContextAware {
       this.checkNodeUniqueNames(element, child);
     }
 
-    [...element.children].forEach((child) =>
+    element.children.forEach((child) =>
       this.processChild(child, runtimeNodeParent, runtime)
     );
   }
@@ -610,7 +610,7 @@ export class ContextAware {
       runtime.unlinkedRefNodes.push(element);
     }
 
-    [...element.children].forEach((child) =>
+    element.children.forEach((child) =>
       this.processChild(
         child,
         runtimeNode ?? new Node(this.bindingLoader, ""),
