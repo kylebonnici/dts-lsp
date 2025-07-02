@@ -65,17 +65,19 @@ export class Runtime implements Searchable {
   fileTopMostAsts(file: string) {
     const cache = this.fileTopMostAstCache.get(file);
     if (cache) return cache;
-    // TODO consider a different way to optain this as this is costly
+    // TODO consider a different way to operation this as this is costly
     const result = [
+      ...this.context.parser.cPreprocessorParser.allAstItems,
       ...this.roots,
       ...this.references,
       ...this.unlinkedDeletes,
       ...this.unlinkedRefNodes,
       ...this.globalDeletes,
-      ...this.context.parser.cPreprocessorParser.allAstItems,
-      ...this.context.overlayParsers.flatMap(
-        (op) => op.cPreprocessorParser.allAstItems
-      ),
+      ...this.context.overlayParsers.flatMap((op) => [
+        ...op.cPreprocessorParser.allAstItems,
+        ...op.unhandledStatements.children,
+      ]),
+      ...this.context.parser.unhandledStatements.children,
     ].flatMap((c) => c.getTopMostAstNodeForFile(file));
 
     this.fileTopMostAstCache.set(file, result);

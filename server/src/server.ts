@@ -81,11 +81,12 @@ import {
   resolveContextSetting,
   resolveSettings,
 } from "./settings";
-import { basename } from "path";
+import { basename, relative } from "path";
 import { getActions } from "./getActions";
 import { getSignatureHelp } from "./signatureHelp";
 import { createPatch } from "diff";
 import { initHeapMonitor } from "./heapMonitor";
+import { writeFileSync } from "fs";
 
 const contextAware: ContextAware[] = [];
 let activeContext: ContextAware | undefined;
@@ -840,8 +841,12 @@ const updateActiveContext = async (id: ContextId, force = false) => {
     if (newContext) {
       contexMeta(newContext).then(async (meta) => {
         const fileTree = await newContext.getFileTree();
-        if (newContext !== activeContext && !contextAware.includes(newContext))
+        if (
+          !newContext ||
+          (newContext !== activeContext && !contextAware.includes(newContext))
+        )
           return;
+
         connection.sendNotification("devicetree/newActiveContext", {
           ctxNames: newContext.ctxNames.map((c) => c.toString()),
           id: newContext.id,
@@ -1359,33 +1364,43 @@ connection.onRequest("devicetree/activeFileUri", async (uri: string) => {
   updateActiveContext({ uri });
 });
 
-connection.onRequest(
-  "devicetree/formattingDiff",
-  async (event: DocumentFormattingParams) => {
-    await allStable();
-    const filePath = fileURLToPath(event.textDocument.uri);
-    updateActiveContext({ uri: filePath });
-    const context = quickFindContext(filePath);
+const linterFormat = async (event: DocumentFormattingParams) => {
+  await allStable();
+  const filePath = fileURLToPath(event.textDocument.uri);
+  updateActiveContext({ uri: filePath });
+  const context = quickFindContext(filePath);
 
-    if (!context) {
-      return [];
-    }
-
-    const documentText = getTokenizedDocumentProvider().getDocument(filePath);
-    const edits = await getDocumentFormatting(
-      event,
-      context,
-      documentText.getText()
-    );
-
-    if (edits.length === 0) {
-      return;
-    }
-
-    const newText = applyEdits(documentText, edits);
-    return createPatch(documentText.uri, documentText.getText(), newText);
+  if (!context) {
+    return [];
   }
-);
+
+  const documentText = getTokenizedDocumentProvider().getDocument(filePath);
+  const originalText = documentText.getText();
+  const edits = await getDocumentFormatting(
+    event,
+    context,
+    documentText.getText()
+  );
+
+  if (edits.length === 0) {
+    return;
+  }
+
+  const newText = applyEdits(documentText, edits);
+
+  if (newText === documentText.getText()) {
+    return;
+  }
+
+  const relativePath = relative(
+    context.settings.cwd ?? process.cwd(),
+    filePath
+  );
+
+  return createPatch(`a/${relativePath}`, originalText, newText);
+};
+
+connection.onRequest("devicetree/formattingDiff", linterFormat);
 
 connection.onRequest(
   "devicetree/diagnosticIssues",

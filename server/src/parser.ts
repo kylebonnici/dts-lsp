@@ -62,7 +62,7 @@ import { CPreprocessorParser } from "./cPreprocessorParser";
 import { Include } from "./ast/cPreprocessors/include";
 import { DtsMemreserveNode } from "./ast/dtc/memreserveNode";
 import { DtsBitsNode } from "./ast/dtc/bitsNode";
-import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 type AllowNodeRef = "Ref" | "Name";
 
@@ -146,7 +146,8 @@ export class Parser extends BaseParser {
           this.isChildNode(this.rootDocument, "Ref") ||
           // not valid syntax but we leave this for the next layer to process
           this.isProperty(this.unhandledStatements) ||
-          this.isDeleteProperty(this.unhandledStatements)
+          this.isDeleteProperty(this.unhandledStatements) ||
+          this.isChildNode(this.unhandledStatements, "Name")
         )
       ) {
         const token = this.moveToNextToken;
@@ -323,7 +324,7 @@ export class Parser extends BaseParser {
     const labels = this.processOptionalLabelAssign();
 
     let name: NodeName | undefined;
-    let ref: LabelRef | undefined;
+    let ref: LabelRef | NodePathRef | undefined;
 
     const child =
       allow === "Ref"
@@ -331,7 +332,17 @@ export class Parser extends BaseParser {
         : new DtcChildNode(labels, omitIfNoRef);
 
     if (allow === "Ref") {
-      ref = this.isLabelRef();
+      this.enqueueToStack();
+      ref = this.processNodePathRef();
+
+      if (!ref || !validToken(this.currentToken, LexerToken.CURLY_OPEN)) {
+        this.popStack();
+        ref = undefined;
+      } else {
+        this.mergeStack();
+      }
+
+      ref ??= this.isLabelRef();
     } else if (allow === "Name") {
       name = this.isNodeName();
     }
@@ -350,7 +361,11 @@ export class Parser extends BaseParser {
           genSyntaxDiagnostic(
             allow === "Name"
               ? [SyntaxIssue.NODE_NAME]
-              : [SyntaxIssue.NODE_REF, SyntaxIssue.ROOT_NODE_NAME],
+              : [
+                  SyntaxIssue.NODE_REF,
+                  SyntaxIssue.NODE_PATH_REF,
+                  SyntaxIssue.ROOT_NODE_NAME,
+                ],
             child
           )
         );
@@ -359,7 +374,7 @@ export class Parser extends BaseParser {
 
     let expectedNode = false;
     if (ref && child instanceof DtcRefNode) {
-      child.labelReference = ref;
+      child.reference = ref;
       expectedNode = true;
     } else if (name && child instanceof DtcChildNode) {
       expectedNode = name.address !== undefined;
@@ -399,15 +414,36 @@ export class Parser extends BaseParser {
   }
 
   private processNodeAddress(): NodeAddress {
-    const prevToken = this.prevToken;
+    let prevToken = this.prevToken;
+
+    this.enqueueToStack();
+    let hexStartPrepend = this.checkConcurrentTokens([
+      validateValue("0"),
+      validateValue("x", true),
+    ]);
+
+    if (hexStartPrepend.length !== 2) {
+      hexStartPrepend = [];
+      this.popStack();
+    } else {
+      this._issues.push(
+        genSyntaxDiagnostic(
+          SyntaxIssue.NODE_ADDRERSS_HEX_START,
+          new ASTBase(createTokenIndex(hexStartPrepend[0], hexStartPrepend[1])),
+          DiagnosticSeverity.Warning
+        )
+      );
+      prevToken = hexStartPrepend.at(-1);
+      this.mergeStack();
+    }
+
     const addressValid = this.consumeAnyConcurrentTokens(
-      [LexerToken.DIGIT, LexerToken.HEX].map(validateToken)
+      [LexerToken.DIGIT, LexerToken.HEX, LexerToken.UNDERSCORE].map(
+        validateToken
+      )
     );
 
     const hexTo32BitArray = (hexStr: string) => {
-      // Remove whitespace and 0x if present
-      hexStr = hexStr.replace(/^0x/, "").replace(/\s+/g, "");
-
       // Pad the string to make its length a multiple of 8
       if (hexStr.length % 8 !== 0) {
         hexStr = hexStr.padStart(Math.ceil(hexStr.length / 8) * 8, "0");
@@ -423,7 +459,12 @@ export class Parser extends BaseParser {
     };
 
     const address = addressValid.length
-      ? hexTo32BitArray(addressValid.map((v) => v.value).join(""))
+      ? hexTo32BitArray(
+          addressValid
+            .filter((v) => v.value !== "_")
+            .map((v) => v.value)
+            .join("")
+        )
       : [NaN];
 
     if (prevToken) {
@@ -445,9 +486,23 @@ export class Parser extends BaseParser {
       }
     }
 
+    if (this.currentToken?.value.toUpperCase() === "ULL") {
+      this._issues.push(
+        genSyntaxDiagnostic(
+          SyntaxIssue.NODE_ADDRESS_ENDS_ULL,
+          new ASTBase(createTokenIndex(this.currentToken)),
+          DiagnosticSeverity.Warning
+        )
+      );
+      this.moveToNextToken;
+    }
+
     const nodeAddress = new NodeAddress(
       address,
-      createTokenIndex(addressValid[0] ?? this.prevToken, addressValid.at(-1))
+      createTokenIndex(
+        hexStartPrepend.at(0) ?? addressValid[0] ?? this.prevToken,
+        this.prevToken
+      )
     );
 
     return nodeAddress;
@@ -490,6 +545,30 @@ export class Parser extends BaseParser {
 
       consumeAllAddresses();
 
+      const unknownTokenStart = this.currentToken;
+      while (
+        !validToken(this.currentToken, LexerToken.CURLY_OPEN) &&
+        !validToken(this.currentToken, LexerToken.SEMICOLON) &&
+        !validToken(this.currentToken, LexerToken.CURLY_CLOSE) &&
+        sameLine(this.currentToken, addresses.at(-1)?.lastToken)
+      ) {
+        this.moveToNextToken;
+      }
+
+      if (unknownTokenStart && unknownTokenStart !== this.currentToken) {
+        this._issues.push(
+          genSyntaxDiagnostic(
+            SyntaxIssue.UNKNOWN_NODE_ADDRESS_SYNTAX,
+            new ASTBase(createTokenIndex(unknownTokenStart, this.currentToken))
+          )
+        );
+        const nodeAddress = new NodeAddress(
+          [],
+          createTokenIndex(unknownTokenStart, this.prevToken)
+        );
+        addresses.push(nodeAddress);
+      }
+
       this.mergeStack();
       return addresses;
     }
@@ -519,14 +598,15 @@ export class Parser extends BaseParser {
 
     const name = valid.map((v) => v.value).join("");
 
-    if (!name.match(/^[A-Za-z]/)) {
-      this.popStack();
-      return;
-    }
-
     const node = new NodeName(name, createTokenIndex(valid[0], valid.at(-1)));
     const addresses = this.processNodeAddresses(node);
     node.address = addresses;
+
+    if (!name.match(/^[A-Za-z]/)) {
+      this._issues.push(
+        genSyntaxDiagnostic(SyntaxIssue.NAME_NODE_NAME_START, node)
+      );
+    }
 
     this.mergeStack();
     return node;
@@ -1105,7 +1185,7 @@ export class Parser extends BaseParser {
         return (
           (this.processStringValue() ||
             this.isNodePathRef() ||
-            this.isLabelRefValue(dtcProperty) ||
+            this.isLabelRefValue() ||
             this.arrayValues(dtcProperty) ||
             this.processByteStringValue() ||
             this.isExpressionValue()) ??
@@ -1175,27 +1255,34 @@ export class Parser extends BaseParser {
 
     const startLabels = this.processOptionalLabelAssign(true);
 
-    const token = this.moveToNextToken;
-    if (!validToken(token, LexerToken.STRING)) {
+    const str = this.consumeAnyConcurrentTokens([
+      validateToken(LexerToken.STRING),
+    ]);
+    if (!str.length) {
       this.popStack();
       return;
     }
 
-    if (!token?.value) {
+    if (str.some((token) => !token?.value)) {
       /* istanbul ignore next */
       throw new Error("Token must have value");
     }
 
-    let trimmedValue = token.value;
+    const value = str.map((s) => s.value).join("\n");
+    let trimmedValue = value;
+
     if (trimmedValue.match(/["']$/)) {
       trimmedValue = trimmedValue.slice(1, -1);
     }
-    const propValue = new StringValue(trimmedValue, createTokenIndex(token));
+    const propValue = new StringValue(
+      trimmedValue,
+      createTokenIndex(str[0], str.at(-1))
+    );
 
-    if (!token.value.match(/["']$/)) {
+    if (!value.match(/["']$/)) {
       this._issues.push(
         genSyntaxDiagnostic(
-          token.value.startsWith('"')
+          value.startsWith('"')
             ? SyntaxIssue.DOUBLE_QUOTE
             : SyntaxIssue.SINGLE_QUOTE,
           propValue
@@ -1359,7 +1446,7 @@ export class Parser extends BaseParser {
       ():
         | LabeledValue<NumberValue | LabelRef | NodePathRef | Expression>
         | undefined =>
-        this.processRefValue(false, dtcProperty) ||
+        this.processRefValue(false) ||
         this.processLabeledHex(false) ||
         this.processLabeledDec(false) ||
         this.processLabeledExpression(true, false)
@@ -1474,7 +1561,7 @@ export class Parser extends BaseParser {
     return node;
   }
 
-  private isLabelRef(slxBase?: ASTBase): LabelRef | undefined {
+  private isLabelRef(): LabelRef | undefined {
     this.enqueueToStack();
     const ampersandToken = this.currentToken;
     if (!ampersandToken || !validToken(ampersandToken, LexerToken.AMPERSAND)) {
@@ -1517,12 +1604,12 @@ export class Parser extends BaseParser {
     return node;
   }
 
-  private isLabelRefValue(dtcProperty: DtcProperty): PropertyValue | undefined {
+  private isLabelRefValue(): PropertyValue | undefined {
     this.enqueueToStack();
 
     const startLabels = this.processOptionalLabelAssign(true);
 
-    const labelRef = this.isLabelRef(dtcProperty);
+    const labelRef = this.isLabelRef();
 
     if (!labelRef) {
       this.popStack();
@@ -1542,8 +1629,7 @@ export class Parser extends BaseParser {
   }
 
   private processRefValue(
-    acceptLabelName: boolean,
-    dtcProperty: DtcProperty
+    acceptLabelName: boolean
   ): LabeledValue<LabelRef | NodePathRef> | undefined {
     this.enqueueToStack();
     const labels = this.processOptionalLabelAssign(acceptLabelName);
@@ -1561,7 +1647,7 @@ export class Parser extends BaseParser {
       return node;
     }
 
-    const labelRef = this.isLabelRef(dtcProperty);
+    const labelRef = this.isLabelRef();
     if (labelRef === undefined) {
       this._issues.push(
         genSyntaxDiagnostic(
@@ -1649,6 +1735,13 @@ export class Parser extends BaseParser {
       // might be a node ref such as &nodeLabel
       this.popStack();
       return;
+    }
+
+    if (firstToken && !adjacentTokens(firstToken, beforePath)) {
+      const whiteSpace = new ASTBase(createTokenIndex(firstToken, beforePath));
+      this._issues.push(
+        genSyntaxDiagnostic(SyntaxIssue.WHITE_SPACE, whiteSpace)
+      );
     }
 
     // now we must have a valid path

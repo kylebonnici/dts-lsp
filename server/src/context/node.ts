@@ -345,20 +345,24 @@ export class Node {
           (node) => node instanceof DtcChildNode
         ) as DtcChildNode[]),
         ...meta.node.referencedBy,
-      ].flatMap((node) =>
-        genContextDiagnostic(
+      ].flatMap((node) => {
+        let name: string;
+        if (node instanceof DtcChildNode) {
+          name = node.name!.toString();
+        } else if (node.reference instanceof LabelRef) {
+          name = node.reference!.label!.value;
+        } else {
+          name = node.reference!.path!.pathParts.at(-1)!.name;
+        }
+        return genContextDiagnostic(
           ContextIssues.DELETE_NODE,
           node,
           DiagnosticSeverity.Hint,
           [meta.by],
           [DiagnosticTag.Deprecated],
-          [
-            node instanceof DtcChildNode
-              ? node.name!.toString()
-              : node.labelReference!.label!.value,
-          ]
-        )
-      ),
+          [name]
+        );
+      }),
     ]);
   }
 

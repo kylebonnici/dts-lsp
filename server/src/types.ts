@@ -124,6 +124,11 @@ export enum SyntaxIssue {
   MACRO_EXPECTS_MORE_PARAMS,
   MISSING_ENDIF,
   UNUSED_BLOCK,
+  NODE_PATH_REF,
+  NAME_NODE_NAME_START,
+  NODE_ADDRERSS_HEX_START,
+  NODE_ADDRESS_ENDS_ULL,
+  UNKNOWN_NODE_ADDRESS_SYNTAX,
 }
 
 export enum ContextIssues {
@@ -255,6 +260,7 @@ export interface Token {
   pos: Position;
   value: string;
   uri: string;
+  adjacentToken?: Token;
 }
 
 export interface TokenIndexes {

@@ -62,7 +62,7 @@ export const getNodeNameOrNodeLabelRef = (nodes: DtcBaseNode[]) => {
       }
 
       if (n instanceof DtcRefNode) {
-        return n.labelReference;
+        return n.reference;
       }
     }),
   ].filter((a) => !!a) as (NodeName | LabelRef)[];

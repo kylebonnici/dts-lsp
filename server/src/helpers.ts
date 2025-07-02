@@ -505,10 +505,15 @@ export function createTokenIndex(start: Token, end?: Token): TokenIndexes {
 export const validToken = (token: Token | undefined, expected: LexerToken) =>
   token?.tokens.some((t) => t === expected);
 
-export const validateValue = (expected: string) => (token: Token | undefined) =>
-  token?.value && expected === token.value
-    ? "yes"
-    : validateValueStartsWith(expected)(token);
+export const validateValue =
+  (expected: string, caseInsensitive = false) =>
+  (token: Token | undefined) =>
+    token?.value &&
+    (caseInsensitive
+      ? expected.toLowerCase() === token.value.toLowerCase()
+      : expected === token.value)
+      ? "yes"
+      : validateValueStartsWith(expected)(token);
 export const validateToken =
   (expected: LexerToken) => (token: Token | undefined) =>
     token?.tokens.some((t) => t === expected) ? "yes" : "no";
@@ -526,6 +531,13 @@ export const sameLine = (tokenA?: Token, tokenB?: Token) => {
 };
 
 export const adjacentTokens = (tokenA?: Token, tokenB?: Token) => {
+  if (
+    (tokenA?.adjacentToken && tokenA.adjacentToken.value === tokenB?.value) ||
+    (tokenB?.adjacentToken && tokenB.adjacentToken.value === tokenA?.value)
+  ) {
+    return true;
+  }
+
   return (
     !!tokenA &&
     !!tokenB &&
@@ -738,10 +750,18 @@ export const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "Expected property name";
     case SyntaxIssue.NODE_NAME:
       return "Expected node name";
+    case SyntaxIssue.NAME_NODE_NAME_START:
+      return "Node name shall start with a lower or upper case character";
+    case SyntaxIssue.NODE_ADDRERSS_HEX_START:
+      return "Node unit address should not start with 0x";
+    case SyntaxIssue.NODE_ADDRESS_ENDS_ULL:
+      return "Node unit address should not end with with ULL";
     case SyntaxIssue.NODE_ADDRESS:
       return "Expected node address";
     case SyntaxIssue.NODE_PATH:
       return "Expected node path";
+    case SyntaxIssue.NODE_PATH_REF:
+      return "Expected node path referance";
     case SyntaxIssue.NODE_REF:
       return "Expected node reference";
     case SyntaxIssue.ROOT_NODE_NAME:
