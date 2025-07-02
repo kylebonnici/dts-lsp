@@ -4,6 +4,30 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.4.5] - 2025-07-02
+
+### Fixed
+
+- Fix issue where `/delete-node/` did not respect order when used inside child node
+
+```devicetree
+/ {
+    node1 {
+        /delete-node/ node2; // should not delete the next line
+        node2 { };
+    };
+};
+```
+
+- Fix issue where `/delete-node/` did not respect order when used inside referance node e.g.
+
+```devicetree
+n1& {
+    /delete-node/ node2;
+    node2 { };
+};
+```
+
 ## [0.4.4] - 2025-06-27
 
 ### Fixed
