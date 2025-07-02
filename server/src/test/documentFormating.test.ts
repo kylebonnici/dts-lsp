@@ -55,7 +55,7 @@ const getEdits = async (document: TextDocument) => {
     {
       textDocument,
       options: {
-        tabSize: 2,
+        tabSize: 4,
         insertSpaces: false,
         trimTrailingWhitespace: true,
       },
@@ -175,12 +175,12 @@ describe("Document formating", () => {
     test("Comment before ;", async () => {
       const documentText = "/ {\n} /* abc */  ;";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ { }; /* abc */");
+      expect(newText).toEqual("/ { };\t/* abc */");
     });
     test("Comments before ;", async () => {
       const documentText = "/ {\n} /* abc1 */     /* abc2 */   ;";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ { }; /* abc1 */ /* abc2 */");
+      expect(newText).toEqual("/ { };\t/* abc1 */\t/* abc2 */");
     });
   });
 
@@ -298,15 +298,15 @@ describe("Document formating", () => {
       const newText = await getNewText(documentText);
       expect(newText).toEqual("/ {\n\tnode { };\n};");
     });
-    test("Comment before ;", async () => {
+    test("Comment before ; - case 1", async () => {
       const documentText = "/ {\n\tnode { } /* abc */   ;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode { }; /* abc */\n};");
+      expect(newText).toEqual("/ {\n\tnode { };\t/* abc */\n};");
     });
-    test("Comments before ;", async () => {
-      const documentText = "/ {\n\tnode { } /* abc1 */ /* abc2 */   ;\n};";
+    test("Comments before ; - case 2", async () => {
+      const documentText = "/ {\n\tnode { }/* abc1 */ /* abc2 */   ;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode { }; /* abc1 */ /* abc2 */\n};");
+      expect(newText).toEqual("/ {\n\tnode { };\t/* abc1 */\t/* abc2 */\n};");
     });
   });
 
@@ -395,12 +395,12 @@ describe("Document formating", () => {
     test("Comment before ;", async () => {
       const documentText = "&n1 {\n} /* abc */  ;";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("&n1 { }; /* abc */");
+      expect(newText).toEqual("&n1 { };\t/* abc */");
     });
     test("Comments before ;", async () => {
       const documentText = "&n1 {\n} /* abc1 */     /* abc2 */   ;";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("&n1 { }; /* abc1 */ /* abc2 */");
+      expect(newText).toEqual("&n1 { };\t/* abc1 */\t/* abc2 */");
     });
   });
 
@@ -484,13 +484,13 @@ describe("Document formating", () => {
     test("Single comment between path and ;", async () => {
       const documentText = "/delete-node/ &n1 /* abc */  ;";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/delete-node/ &n1; /* abc */");
+      expect(newText).toEqual("/delete-node/ &n1;\t/* abc */");
     });
 
     test("Multiple comments between path and ;", async () => {
       const documentText = "/delete-node/ &n1 /* abc1 */   /* abc2 */  ;";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/delete-node/ &n1; /* abc1 */ /* abc2 */");
+      expect(newText).toEqual("/delete-node/ &n1;\t/* abc1 */\t/* abc2 */");
     });
 
     test("One comment after ; and multiple comments between path and ;", async () => {
@@ -498,7 +498,7 @@ describe("Document formating", () => {
         "/delete-node/ &n1 /* abc1 */   /* abc2 */  ; /* abc3 */";
       const newText = await getNewText(documentText);
       expect(newText).toEqual(
-        "/delete-node/ &n1; /* abc1 */ /* abc2 */ /* abc3 */"
+        "/delete-node/ &n1;\t/* abc1 */\t/* abc2 */\t/* abc3 */"
       );
     });
   });
@@ -645,7 +645,7 @@ describe("Document formating", () => {
     test("Single comment between path and ;", async () => {
       const documentText = "/ {\n\t/delete-property/ n1 /* abc */;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\t/delete-property/ n1; /* abc */\n};");
+      expect(newText).toEqual("/ {\n\t/delete-property/ n1;\t/* abc */\n};");
     });
 
     test("Multiple comments between path and ;", async () => {
@@ -653,7 +653,7 @@ describe("Document formating", () => {
         "/ {\n\t/delete-property/ n1 /* abc1 */  /* abc2 */;\n};";
       const newText = await getNewText(documentText);
       expect(newText).toEqual(
-        "/ {\n\t/delete-property/ n1; /* abc1 */ /* abc2 */\n};"
+        "/ {\n\t/delete-property/ n1;\t/* abc1 */\t/* abc2 */\n};"
       );
     });
 
@@ -662,7 +662,7 @@ describe("Document formating", () => {
         "/ {\n\t/delete-property/ n1 /* abc1 */  /* abc2 */;   /* abc3 */\n};";
       const newText = await getNewText(documentText);
       expect(newText).toEqual(
-        "/ {\n\t/delete-property/ n1; /* abc1 */ /* abc2 */ /* abc3 */\n};"
+        "/ {\n\t/delete-property/ n1;\t/* abc1 */\t/* abc2 */\t/* abc3 */\n};"
       );
     });
   });
@@ -712,7 +712,7 @@ describe("Document formating", () => {
     test("label with new property array value", async () => {
       const documentText = "/ {\n\tprop1= l1:\n<10>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = l1:\n\t        <10>;\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = l1:\n\t\t\t<10>;\n};");
     });
 
     test("no space before =", async () => {
@@ -754,12 +754,12 @@ describe("Document formating", () => {
     test("comment between array value", async () => {
       const documentText = "/ {\n\tprop1 =   <10  /* foo */  20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10 /* foo */ 20>;\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = <10\t/* foo */ 20>;\n};");
     });
     test("single new line between array value", async () => {
       const documentText = "/ {\n\tprop1 =   <10\n20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10\n\t         20>;\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = <10\n\t\t\t20>;\n};");
     });
 
     test("Multi line string", async () => {
@@ -780,31 +780,27 @@ describe("Document formating", () => {
     test("multiple new lines between array value", async () => {
       const documentText = "/ {\n\tprop1 =   <10\n\n20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10\n\t         20>;\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = <10\n\t\t\t20>;\n};");
     });
     test("comment and single new line between array value", async () => {
       const documentText = "/ {\n\tprop1 = <10  /* foo */\n20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual(
-        "/ {\n\tprop1 = <10 /* foo */\n\t         20>;\n};"
-      );
+      expect(newText).toEqual("/ {\n\tprop1 = <10\t/* foo */\n\t\t\t20>;\n};");
     });
     test("comment and multiple new lines between array value", async () => {
-      const documentText = "/ {\n\tprop1 = <10  /* foo */\n\n20>;\n};";
+      const documentText = "/ {\n\tprop1 = <10/* foo */\n\n20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual(
-        "/ {\n\tprop1 = <10 /* foo */\n\t         20>;\n};"
-      );
+      expect(newText).toEqual("/ {\n\tprop1 = <10\t/* foo */\n\t\t\t20>;\n};");
     });
     test("comment after <", async () => {
       const documentText = "/ {\n\tprop1 = <    /* foo */    10>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = < /* foo */ 10>;\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = <\t/* foo */ 10>;\n};");
     });
     test("comment before >", async () => {
       const documentText = "/ {\n\tprop1 = <10   /* foo */      >;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10 /* foo */ >;\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = <10\t/* foo */ >;\n};");
     });
     test("multiple space before >", async () => {
       const documentText = "/ {\n\tprop1 = <10   >;\n};";
@@ -824,27 +820,27 @@ describe("Document formating", () => {
     test("single new line after comma separated values", async () => {
       const documentText = "/ {\n\tprop1 = <10>,\n<20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10>,\n\t        <20>;\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = <10>,\n\t\t\t<20>;\n};");
     });
     test("two news line after comma separated values", async () => {
       const documentText = "/ {\n\tprop1 = <10>,\n\n<20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10>,\n\t        <20>;\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = <10>,\n\t\t\t<20>;\n};");
     });
     test("muiltple news line after comma separated values", async () => {
       const documentText = "/ {\n\tprop1 = <10>,\n\n\n<20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10>,\n\t        <20>;\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = <10>,\n\t\t\t<20>;\n};");
     });
     test("comment after comma on new line", async () => {
       const documentText = "/ {\n\tprop1 = <10>,\n/* foo */<20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10>, /* foo */ <20>;\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = <10>,\t/* foo */ <20>;\n};");
     });
     test("comment before comma", async () => {
       const documentText = "/ {\n\tprop1 = <10>   /* foo */, <20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10>, /* foo */ <20>;\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = <10>,\t/* foo */ <20>;\n};");
     });
     test("multiple before ;", async () => {
       const documentText = "/ {\n\tprop1 = <10>   ;\n};";
@@ -883,13 +879,13 @@ describe("Document formating", () => {
     test("Single comment between path and ;", async () => {
       const documentText = "/ {\n\tprop1 /* abc */;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1; /* abc */\n};");
+      expect(newText).toEqual("/ {\n\tprop1;\t/* abc */\n};");
     });
 
     test("Multiple comments between path and ;", async () => {
       const documentText = "/ {\n\tprop1 /* abc1 */  /* abc2 */;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1; /* abc1 */ /* abc2 */\n};");
+      expect(newText).toEqual("/ {\n\tprop1;\t/* abc1 */\t/* abc2 */\n};");
     });
 
     test("One comment after ; and multiple comments between path and ;", async () => {
@@ -897,7 +893,7 @@ describe("Document formating", () => {
         "/ {\n\tprop1 /* abc1 */  /* abc2 */;   /* abc3 */\n};";
       const newText = await getNewText(documentText);
       expect(newText).toEqual(
-        "/ {\n\tprop1; /* abc1 */ /* abc2 */ /* abc3 */\n};"
+        "/ {\n\tprop1;\t/* abc1 */\t/* abc2 */\t/* abc3 */\n};"
       );
     });
 
@@ -952,7 +948,7 @@ describe("Document formating", () => {
     test("CMacroCall assign param macro before ,", async () => {
       const documentText = "/ {\n\tprop1 = ADD (10     /* foo */    , 20);\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = ADD(10, /* foo */ 20);\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = ADD(10,\t/* foo */ 20);\n};");
     });
 
     test("Complex Expression extra stapce after (", async () => {
@@ -987,10 +983,10 @@ describe("Document formating", () => {
       expect(newText).toEqual("/ {\n\tprop1 = [10 20 30 40];\n};");
     });
     test("byte string allow on new line", async () => {
-      const documentText = "/ {\n\tprop1 = [10\n20\n30\n40]   ;\n};";
+      const documentText = "/ {\n\tprop11 = [10\n20\n30\n40]   ;\n};";
       const newText = await getNewText(documentText);
       expect(newText).toEqual(
-        "/ {\n\tprop1 = [10\n\t         20\n\t         30\n\t         40];\n};"
+        "/ {\n\tprop11 = [10\n\t\t\t 20\n\t\t\t 30\n\t\t\t 40];\n};"
       );
     });
   });
@@ -1002,10 +998,10 @@ describe("Document formating", () => {
       expect(newText).toEqual("{ };");
     });
     test("Clean when remove new lines", async () => {
-      const documentText = "{\n\tprop1 = <10>, \n<20>,            \n<30>;\n};";
+      const documentText = "{\n\tprop11 = <10>, \n<20>,            \n<30>;\n};";
       const newText = await getNewText(documentText);
       expect(newText).toEqual(
-        "{\n\tprop1 = <10>,\n\t        <20>,\n\t        <30>;\n};"
+        "{\n\tprop11 = <10>,\n\t\t\t <20>,\n\t\t\t <30>;\n};"
       );
     });
 

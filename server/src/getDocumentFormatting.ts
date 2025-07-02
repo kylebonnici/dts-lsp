@@ -273,7 +273,8 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
   token: Token,
   documentText: string[],
   expectedSpaces = 1,
-  keepNewLines = false
+  keepNewLines = false,
+  tab = false
 ): TextEdit[] => {
   if (!token.nextToken) return [];
 
@@ -290,16 +291,13 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
       throw new Error("remove new LinesEdit must be defined");
     }
     if (expectedSpaces) {
-      removeNewLinesEdit.newText = `${"".padEnd(expectedSpaces, " ")}${
-        removeNewLinesEdit.newText
-      }`;
+      removeNewLinesEdit.newText = `${"".padEnd(
+        expectedSpaces,
+        tab ? "\t" : " "
+      )}${removeNewLinesEdit.newText}`;
     }
     return [removeNewLinesEdit];
   }
-
-  const numberOfWhiteSpace = token.nextToken.pos.col - token.pos.colEnd;
-
-  if (numberOfWhiteSpace === expectedSpaces) return [];
 
   if (expectedSpaces === 0) {
     return [
@@ -312,13 +310,25 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
     ];
   }
 
+  if (
+    token.nextToken.pos.line === token.pos.line &&
+    token.pos.colEnd === token.nextToken.pos.col
+  ) {
+    return [
+      TextEdit.insert(
+        Position.create(token.nextToken.pos.line, token.nextToken.pos.col),
+        "".padEnd(expectedSpaces, tab ? "\t" : " ")
+      ),
+    ];
+  }
+
   return [
     TextEdit.replace(
       Range.create(
         Position.create(token.pos.line, token.pos.colEnd),
         Position.create(token.nextToken.pos.line, token.nextToken.pos.col)
       ),
-      "".padEnd(expectedSpaces, " ")
+      "".padEnd(expectedSpaces, tab ? "\t" : " ")
     ),
   ];
 };
@@ -458,7 +468,7 @@ const formatLabeledValue = <T extends ASTBase>(
   propertyNameWidth: number,
   value: LabeledValue<T>,
   level: number,
-  indentString: string,
+  settings: FormatingSettings,
   openBracket: Token | undefined,
   documentText: string[]
 ): TextEdit[] => {
@@ -492,9 +502,9 @@ const formatLabeledValue = <T extends ASTBase>(
         ...createIndentEdit(
           value.firstToken,
           level,
-          indentString,
+          settings.singleIndent,
           documentText,
-          "".padStart(propertyNameWidth + 4, " ")
+          widthToPrefix(settings, propertyNameWidth + 3) // +3 ' = '
         )
       );
     } else {
@@ -519,7 +529,7 @@ const formatValue = (
   propertyNameWidth: number,
   value: AllValueType,
   level: number,
-  indentString: string,
+  settings: FormatingSettings,
   documentText: string[]
 ): TextEdit[] => {
   const result: TextEdit[] = [];
@@ -531,7 +541,7 @@ const formatValue = (
           propertyNameWidth,
           v,
           level,
-          indentString,
+          settings,
           value.openBracket,
           documentText
         )
@@ -676,7 +686,7 @@ const formatPropertyValue = (
   propertyNameWidth: number,
   value: PropertyValue,
   level: number,
-  indentString: string,
+  settings: FormatingSettings,
   documentText: string[]
 ): TextEdit[] => {
   const result: TextEdit[] = [];
@@ -688,7 +698,7 @@ const formatPropertyValue = (
       propertyNameWidth,
       value.value,
       level,
-      indentString,
+      settings,
       documentText
     )
   );
@@ -698,11 +708,21 @@ const formatPropertyValue = (
   return result;
 };
 
+const widthToPrefix = (settings: FormatingSettings, width: number): string => {
+  if (settings.insertSpaces) {
+    return "".padStart(width, " ");
+  }
+
+  const noOfTabs = Math.floor(width / settings.tabSize);
+  const noOfSpace = width % settings.tabSize;
+  return `${"".padStart(noOfTabs, "\t")}${"".padStart(noOfSpace, " ")}`;
+};
+
 const formatPropertyValues = (
   propertyNameWidth: number,
   values: PropertyValues,
   level: number,
-  indentString: string,
+  settings: FormatingSettings,
   documentText: string[]
 ): TextEdit[] => {
   const result: TextEdit[] = [];
@@ -732,9 +752,9 @@ const formatPropertyValues = (
           ...createIndentEdit(
             value.firstToken,
             level,
-            indentString,
+            settings.singleIndent,
             documentText,
-            "".padStart(propertyNameWidth + 3, " ")
+            widthToPrefix(settings, propertyNameWidth + 3) // +3 ' = '
           )
         );
       }
@@ -745,7 +765,7 @@ const formatPropertyValues = (
         propertyNameWidth,
         value,
         level,
-        indentString,
+        settings,
         documentText
       )
     );
@@ -761,7 +781,7 @@ const formatPropertyValues = (
 const formatDtcProperty = (
   property: DtcProperty,
   level: number,
-  indentString: string,
+  settings: FormatingSettings,
   documentText: string[],
   uri: string
 ): TextEdit[] => {
@@ -773,7 +793,7 @@ const formatDtcProperty = (
     ...ensureOnNewLineAndMax1EmptyLineToPrev(
       property.firstToken,
       level,
-      indentString,
+      settings.singleIndent,
       documentText
     )
   );
@@ -804,7 +824,7 @@ const formatDtcProperty = (
         property.propertyName?.name.length ?? 0,
         property.values,
         level,
-        indentString,
+        settings,
         documentText
       )
     );
@@ -991,7 +1011,10 @@ const formatBlockCommentLine = (
   ) {
     return fixedNumberOfSpaceBetweenTokensAndNext(
       commentItem.firstToken.prevToken,
-      documentText
+      documentText,
+      1,
+      undefined,
+      true
     );
   }
 
@@ -1044,6 +1067,12 @@ const formatComment = (
   );
 };
 
+type FormatingSettings = {
+  tabSize: number;
+  insertSpaces: boolean;
+  singleIndent: string;
+};
+
 const getTextEdit = async (
   documentFormattingParams: DocumentFormattingParams,
   astNode: ASTBase,
@@ -1055,6 +1084,11 @@ const getTextEdit = async (
   const delta = documentFormattingParams.options.tabSize;
   const insertSpaces = documentFormattingParams.options.insertSpaces;
   const singleIndent = insertSpaces ? "".padStart(delta, " ") : "\t";
+  const settings: FormatingSettings = {
+    tabSize: delta,
+    insertSpaces,
+    singleIndent,
+  };
 
   setIndentString(singleIndent);
 
@@ -1069,7 +1103,7 @@ const getTextEdit = async (
       computeLevel
     );
   } else if (astNode instanceof DtcProperty) {
-    return formatDtcProperty(astNode, level, singleIndent, documentText, uri);
+    return formatDtcProperty(astNode, level, settings, documentText, uri);
   } else if (astNode instanceof DeleteBase) {
     return formatDtcDelete(astNode, level, singleIndent, documentText);
   } else if (astNode instanceof Include) {

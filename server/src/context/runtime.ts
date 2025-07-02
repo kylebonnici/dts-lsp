@@ -67,12 +67,12 @@ export class Runtime implements Searchable {
     if (cache) return cache;
     // TODO consider a different way to operation this as this is costly
     const result = [
+      ...this.context.parser.cPreprocessorParser.allAstItems,
       ...this.roots,
       ...this.references,
       ...this.unlinkedDeletes,
       ...this.unlinkedRefNodes,
       ...this.globalDeletes,
-      ...this.context.parser.cPreprocessorParser.allAstItems,
       ...this.context.overlayParsers.flatMap((op) => [
         ...op.cPreprocessorParser.allAstItems,
         ...op.unhandledStatements.children,
