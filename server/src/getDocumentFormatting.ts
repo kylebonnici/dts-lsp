@@ -504,7 +504,7 @@ const formatLabeledValue = <T extends ASTBase>(
           level,
           settings.singleIndent,
           documentText,
-          widthToPrefix(settings, propertyNameWidth + 3) // +3 ' = '
+          widthToPrefix(settings, propertyNameWidth + 4) // +4 ' = <'
         )
       );
     } else {

@@ -759,7 +759,7 @@ describe("Document formating", () => {
     test("single new line between array value", async () => {
       const documentText = "/ {\n\tprop1 =   <10\n20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10\n\t\t\t20>;\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = <10\n\t\t\t 20>;\n};");
     });
 
     test("Multi line string", async () => {
@@ -780,17 +780,17 @@ describe("Document formating", () => {
     test("multiple new lines between array value", async () => {
       const documentText = "/ {\n\tprop1 =   <10\n\n20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10\n\t\t\t20>;\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = <10\n\t\t\t 20>;\n};");
     });
     test("comment and single new line between array value", async () => {
-      const documentText = "/ {\n\tprop1 = <10  /* foo */\n20>;\n};";
+      const documentText = "/ {\n\tprop1 = <10  /* foo */\n 20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10\t/* foo */\n\t\t\t20>;\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = <10\t/* foo */\n\t\t\t 20>;\n};");
     });
     test("comment and multiple new lines between array value", async () => {
       const documentText = "/ {\n\tprop1 = <10/* foo */\n\n20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10\t/* foo */\n\t\t\t20>;\n};");
+      expect(newText).toEqual("/ {\n\tprop1 = <10\t/* foo */\n\t\t\t 20>;\n};");
     });
     test("comment after <", async () => {
       const documentText = "/ {\n\tprop1 = <    /* foo */    10>;\n};";
@@ -986,7 +986,7 @@ describe("Document formating", () => {
       const documentText = "/ {\n\tprop11 = [10\n20\n30\n40]   ;\n};";
       const newText = await getNewText(documentText);
       expect(newText).toEqual(
-        "/ {\n\tprop11 = [10\n\t\t\t 20\n\t\t\t 30\n\t\t\t 40];\n};"
+        "/ {\n\tprop11 = [10\n\t\t\t  20\n\t\t\t  30\n\t\t\t  40];\n};"
       );
     });
   });
