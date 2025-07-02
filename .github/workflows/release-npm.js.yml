@@ -22,9 +22,12 @@ jobs:
           node-version: "20.x"
           registry-url: "https://registry.npmjs.org"
           cache: "npm"
+          always-auth: true
+          provenance: true
       - run: npm ci
       - run: npm --prefix server ci
       - run: npm run compile:server:prod
-      - run: cd server && npm publish --provenance --access public
+      - run: npm publish --provenance --access public
+        working-directory: server
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
