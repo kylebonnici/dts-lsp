@@ -84,14 +84,6 @@ async function getNode(
   }
 
   const lastParser = (await result.runtime.context.getAllParsers()).at(-1)!;
-  if (result?.item instanceof Node) {
-    return {
-      contents: result.item.toMarkupContent(
-        lastParser.cPreprocessorParser.macros
-      ),
-      range: toRange(result.ast),
-    };
-  }
 
   if (result?.ast instanceof NodeName) {
     const node = result.ast.linksTo;
@@ -125,6 +117,15 @@ async function getNode(
         range: toRange(result.ast),
       };
     }
+  }
+
+  if (result?.item instanceof Node) {
+    return {
+      contents: result.item.toMarkupContent(
+        lastParser.cPreprocessorParser.macros
+      ),
+      range: toRange(result.ast),
+    };
   }
 }
 
