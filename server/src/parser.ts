@@ -545,6 +545,30 @@ export class Parser extends BaseParser {
 
       consumeAllAddresses();
 
+      const unknownTokenStart = this.currentToken;
+      while (
+        !validToken(this.currentToken, LexerToken.CURLY_OPEN) &&
+        !validToken(this.currentToken, LexerToken.SEMICOLON) &&
+        !validToken(this.currentToken, LexerToken.CURLY_CLOSE) &&
+        sameLine(this.currentToken, addresses.at(-1)?.lastToken)
+      ) {
+        this.moveToNextToken;
+      }
+
+      if (unknownTokenStart && unknownTokenStart !== this.currentToken) {
+        this._issues.push(
+          genSyntaxDiagnostic(
+            SyntaxIssue.UNKNOWN_NODE_ADDRESS_SYNTAX,
+            new ASTBase(createTokenIndex(unknownTokenStart, this.currentToken))
+          )
+        );
+        const nodeAddress = new NodeAddress(
+          [],
+          createTokenIndex(unknownTokenStart, this.prevToken)
+        );
+        addresses.push(nodeAddress);
+      }
+
       this.mergeStack();
       return addresses;
     }
@@ -1231,27 +1255,34 @@ export class Parser extends BaseParser {
 
     const startLabels = this.processOptionalLabelAssign(true);
 
-    const token = this.moveToNextToken;
-    if (!validToken(token, LexerToken.STRING)) {
+    const str = this.consumeAnyConcurrentTokens([
+      validateToken(LexerToken.STRING),
+    ]);
+    if (!str.length) {
       this.popStack();
       return;
     }
 
-    if (!token?.value) {
+    if (str.some((token) => !token?.value)) {
       /* istanbul ignore next */
       throw new Error("Token must have value");
     }
 
-    let trimmedValue = token.value;
+    const value = str.map((s) => s.value).join("\n");
+    let trimmedValue = value;
+
     if (trimmedValue.match(/["']$/)) {
       trimmedValue = trimmedValue.slice(1, -1);
     }
-    const propValue = new StringValue(trimmedValue, createTokenIndex(token));
+    const propValue = new StringValue(
+      trimmedValue,
+      createTokenIndex(str[0], str.at(-1))
+    );
 
-    if (!token.value.match(/["']$/)) {
+    if (!value.match(/["']$/)) {
       this._issues.push(
         genSyntaxDiagnostic(
-          token.value.startsWith('"')
+          value.startsWith('"')
             ? SyntaxIssue.DOUBLE_QUOTE
             : SyntaxIssue.SINGLE_QUOTE,
           propValue

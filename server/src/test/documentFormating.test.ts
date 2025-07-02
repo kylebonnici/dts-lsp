@@ -87,6 +87,13 @@ describe("Document formating", () => {
       const newText = await getNewText(documentText);
       expect(newText).toEqual("/ { };");
     });
+
+    test("new line and tab state of doc", async () => {
+      const documentText = `\n\tn1: node {\n\t\tprop1;\n\t\tprop2;\n\t};`;
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(`n1: node {\n\tprop1;\n\tprop2;\n};`);
+    });
+
     test("Node extra new line from top", async () => {
       const documentText = "\n/ { };";
       const newText = await getNewText(documentText);
@@ -204,6 +211,13 @@ describe("Document formating", () => {
       const newText = await getNewText(documentText);
       expect(newText).toEqual("/ {\n\tnode@20 { };\n};");
     });
+
+    test("Node address with unknown value", async () => {
+      const documentText = "/{node1@FOO_BAR{};};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/ {\n\tnode1@FOO_BAR { };\n};");
+    });
+
     test("Multiple space between name and { no address", async () => {
       const documentText = "/ {\n\tnode  { };\n};";
       const newText = await getNewText(documentText);
@@ -747,6 +761,22 @@ describe("Document formating", () => {
       const newText = await getNewText(documentText);
       expect(newText).toEqual("/ {\n\tprop1 = <10\n\t\t\t20>;\n};");
     });
+
+    test("Multi line string", async () => {
+      const documentText = '/ {\n\tprop1 = "FOO\nBAR";\n};';
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual('/ {\n\tprop1 = "FOO\nBAR";\n};');
+    });
+
+    test("Escaped string", async () => {
+      const documentText =
+        '/ {\n\tval = "XA\nXPLUS\nXB", "XSTR1 \\" plus \\" XSTR2";\n\tprop = <10>;\n};';
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        '/ {\n\tval = "XA\nXPLUS\nXB", "XSTR1 \\" plus \\" XSTR2";\n\tprop = <10>;\n};'
+      );
+    });
+
     test("multiple new lines between array value", async () => {
       const documentText = "/ {\n\tprop1 =   <10\n\n20>;\n};";
       const newText = await getNewText(documentText);
@@ -972,6 +1002,38 @@ describe("Document formating", () => {
       const newText = await getNewText(documentText);
       expect(newText).toEqual(
         "{\n\tprop1 = <10>,\n\t\t\t<20>,\n\t\t\t<30>;\n};"
+      );
+    });
+
+    test("move to new lines", async () => {
+      const documentText = '&spi1_nss_pa4 { slew-rate = "very-high-speed"; };';
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        '&spi1_nss_pa4 {\n\tslew-rate = "very-high-speed";\n};'
+      );
+    });
+
+    test("empty node", async () => {
+      const documentText = `arduino_i2c: &i2c1 {};\narduino_spi: &spi1 {};`;
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        `arduino_i2c: &i2c1 { };\narduino_spi: &spi1 { };`
+      );
+    });
+
+    test("move to new lines", async () => {
+      const documentText = `sysclk: system-clock {
+	compatible = "fixed-clock";
+	clock-frequency = <25000000>;
+	#clock-cells = <0>;
+};`;
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        `sysclk: system-clock {
+	compatible = "fixed-clock";
+	clock-frequency = <25000000>;
+	#clock-cells = <0>;
+};`
       );
     });
   });

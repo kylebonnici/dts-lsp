@@ -50,7 +50,6 @@ import { Comment, CommentBlock } from "./ast/dtc/comment";
 import { LabelAssign } from "./ast/dtc/label";
 import { ComplexExpression, Expression } from "./ast/cPreprocessors/expression";
 import { CMacroCall } from "./ast/cPreprocessors/functionCall";
-import { TextDocument } from "vscode-languageserver-textdocument";
 
 const findAst = async (token: Token, uri: string, fileRootAsts: ASTBase[]) => {
   const pos = Position.create(token.pos.line, token.pos.col);
@@ -73,10 +72,8 @@ export const countParent = (
   node?: DtcBaseNode,
   count = 0
 ): number => {
-  if (node instanceof DtcRootNode || node instanceof DtcRefNode)
-    return count + 1;
-
-  if (!node || !isPathEqual(node.uri, uri)) return count;
+  if (!node || !isPathEqual(node.uri, uri) || !node.parentNode?.uri)
+    return count;
 
   const closeAst = getClosestAstNode(node.parentNode);
   return countParent(uri, closeAst, count + 1);
@@ -84,7 +81,13 @@ export const countParent = (
 
 const getAstItemLevel =
   (fileRootAsts: ASTBase[], uri: string) => async (astNode: ASTBase) => {
-    const parentAst = await findAst(astNode.firstToken, uri, fileRootAsts);
+    const rootItem = fileRootAsts.filter(
+      (ast) =>
+        !(ast instanceof Include) &&
+        !(ast instanceof Comment) &&
+        !(ast instanceof CommentBlock)
+    );
+    const parentAst = await findAst(astNode.firstToken, uri, rootItem);
 
     if (
       !parentAst ||
@@ -112,7 +115,31 @@ export async function getDocumentFormatting(
   const result: TextEdit[] = [];
   const uri = fileURLToPath(documentFormattingParams.textDocument.uri);
 
-  const fileRootAsts = (await contextAware.getRuntime()).fileTopMostAsts(uri);
+  const runtime = await contextAware.getRuntime();
+  let fileRootAsts = runtime.fileTopMostAsts(uri);
+
+  const fileIncludes = runtime.includes.filter((i) =>
+    isPathEqual(i.resolvedPath, uri)
+  );
+
+  if (fileIncludes.length > 1) {
+    const tmp: ASTBase[] = [];
+
+    fileRootAsts.forEach((ast) => {
+      if (
+        tmp.some(
+          (r) =>
+            r.firstToken.pos.line === ast.firstToken.pos.line &&
+            r.firstToken.pos.col === ast.firstToken.pos.col
+        )
+      ) {
+        return;
+      }
+      tmp.push(ast);
+    });
+
+    fileRootAsts = tmp;
+  }
 
   const astItemLevel = getAstItemLevel(fileRootAsts, uri);
   result.push(
@@ -189,10 +216,7 @@ const removeNewLinesBetweenTokenAndPrev = (
     }
   } else if (token.pos.line) {
     return TextEdit.del(
-      Range.create(
-        Position.create(0, 0),
-        Position.create(token.pos.line, token.pos.col)
-      )
+      Range.create(Position.create(0, 0), Position.create(token.pos.line, 0))
     );
   }
 };
@@ -205,10 +229,10 @@ const pushItemToNewLineAndIndent = (
 ): TextEdit | undefined => {
   const newLine = token.pos.line === token.prevToken?.pos.line;
 
-  if (newLine) {
+  if (token.prevToken && newLine) {
     return TextEdit.replace(
       Range.create(
-        Position.create(token.pos.line, token.pos.col),
+        Position.create(token.prevToken.pos.line, token.prevToken.pos.colEnd),
         Position.create(token.pos.line, token.pos.col)
       ),
       `\n${prefix}${"".padStart(level * indentString.length, indentString)}`

@@ -531,6 +531,13 @@ export const sameLine = (tokenA?: Token, tokenB?: Token) => {
 };
 
 export const adjacentTokens = (tokenA?: Token, tokenB?: Token) => {
+  if (
+    (tokenA?.adjacentToken && tokenA.adjacentToken.value === tokenB?.value) ||
+    (tokenB?.adjacentToken && tokenB.adjacentToken.value === tokenA?.value)
+  ) {
+    return true;
+  }
+
   return (
     !!tokenA &&
     !!tokenB &&

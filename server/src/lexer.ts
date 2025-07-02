@@ -21,8 +21,6 @@ export class Lexer {
   lineNumber = 0;
   columnNumber = 0;
   lines: string[];
-  lineNumberOfEscapedChars = 0;
-  numberOfEscapedCharsLastString = 0;
   private _tokens: Token[] = [];
 
   get tokens() {
@@ -64,7 +62,6 @@ export class Lexer {
     if (this.isOnLastLine) return false;
 
     this.columnNumber = 0;
-    this.lineNumberOfEscapedChars = 0;
     this.lineNumber++;
 
     if (this.lines[this.lineNumber].length === 0) {
@@ -159,36 +156,67 @@ export class Lexer {
     return word;
   }
 
-  private getString(quote: string): string {
-    let string = quote;
-    this.numberOfEscapedCharsLastString = 0;
+  private getString(quote: string) {
+    let strLine = quote;
 
+    let prevToken: Token | undefined;
     while (this.currentChar !== quote) {
-      string += this.currentChar ?? "";
-      if (this.currentChar === "\\") {
+      if (this.currentChar === "\n") {
+        const line = this.lineNumber;
+        const colEnd = this.columnNumber;
+        const len = strLine.length;
+        this.pushToken({
+          tokens: [LexerToken.STRING],
+          value: strLine,
+          pos: {
+            col: colEnd - len,
+            line,
+            len,
+            colEnd,
+          },
+          adjacentToken: prevToken,
+        });
+        prevToken = this._tokens.at(-1);
+
+        strLine = "";
+      } else if (this.currentChar === "\\") {
         const prevLine = this.lineNumber;
+        strLine += this.currentChar ?? "";
         if (this.move()) {
-          this.lineNumberOfEscapedChars++;
-          this.numberOfEscapedCharsLastString++;
           if (prevLine === this.lineNumber) {
             // escaped char
-            string += this.currentChar ?? "";
+
+            strLine += this.currentChar ?? "";
           }
         } else {
-          return string;
+          break;
         }
+      } else {
+        strLine += this.currentChar ?? "";
       }
 
       if (!this.move()) {
-        // EOF
-        return string;
+        break;
       }
     }
 
-    this.move();
+    strLine += quote;
+    const line = this.lineNumber;
+    const colEnd = this.columnNumber + 1;
+    const len = strLine.length;
+    this.pushToken({
+      tokens: [LexerToken.STRING],
+      value: strLine,
+      pos: {
+        col: colEnd - len,
+        line,
+        len,
+        colEnd,
+      },
+      adjacentToken: prevToken,
+    });
 
-    string += quote;
-    return string;
+    this.move();
   }
 
   private lexIt() {
@@ -597,20 +625,7 @@ export class Lexer {
     if (match?.[0]) {
       // rewind to beginning of string just after "
       this.rewind(word.slice(1));
-      const line = this.lineNumber;
-      const col = this.columnNumber - 1; // we have already moved ....
-      const string = this.getString(match[0]);
-      const len = string.length + this.numberOfEscapedCharsLastString;
-      this.pushToken({
-        tokens: [LexerToken.STRING],
-        value: string,
-        pos: {
-          col,
-          line,
-          len,
-          colEnd: col + len,
-        },
-      });
+      this.getString(match[0]);
 
       return true;
     }
@@ -943,7 +958,7 @@ export class Lexer {
   }
 
   private generatePos(word: string, expected: string): Position {
-    const col = this.columnNumber - word.length + this.lineNumberOfEscapedChars;
+    const col = this.columnNumber - word.length;
     return {
       line: this.lineNumber,
       col,
