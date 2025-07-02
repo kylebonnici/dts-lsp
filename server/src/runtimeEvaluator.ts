@@ -465,18 +465,9 @@ export class ContextAware {
     runtime.roots.push(element);
     runtime.rootNode.definitions.push(element);
     this.checkNodeUniqueNames(element, runtime.rootNode);
-    [...element.children]
-      .sort((a, b) => {
-        if (
-          (a instanceof DtcProperty && b instanceof DeleteProperty) ||
-          (b instanceof DtcProperty && a instanceof DeleteProperty)
-        )
-          return 0;
-
-        if (b instanceof DtcProperty) return 1;
-        return 0;
-      })
-      .forEach((child) => this.processChild(child, runtime.rootNode, runtime));
+    [...element.children].forEach((child) =>
+      this.processChild(child, runtime.rootNode, runtime)
+    );
   }
 
   private processDtcChildNode(
@@ -507,13 +498,9 @@ export class ContextAware {
       this.checkNodeUniqueNames(element, child);
     }
 
-    [...element.children]
-      .sort((a, b) => {
-        if (a instanceof DtcBaseNode && b instanceof DtcBaseNode) return 0;
-        if (a instanceof DtcBaseNode) return -1;
-        return 0;
-      })
-      .forEach((child) => this.processChild(child, runtimeNodeParent, runtime));
+    [...element.children].forEach((child) =>
+      this.processChild(child, runtimeNodeParent, runtime)
+    );
   }
 
   private processDtcRefNode(element: DtcRefNode, runtime: Runtime) {
@@ -560,19 +547,13 @@ export class ContextAware {
       runtime.unlinkedRefNodes.push(element);
     }
 
-    [...element.children]
-      .sort((a, b) => {
-        if (a instanceof DtcBaseNode && b instanceof DtcBaseNode) return 0;
-        if (a instanceof DtcBaseNode) return -1;
-        return 0;
-      })
-      .forEach((child) =>
-        this.processChild(
-          child,
-          runtimeNode ?? new Node(this.bindingLoader, ""),
-          runtime
-        )
-      );
+    [...element.children].forEach((child) =>
+      this.processChild(
+        child,
+        runtimeNode ?? new Node(this.bindingLoader, ""),
+        runtime
+      )
+    );
   }
 
   private processDtcProperty(
