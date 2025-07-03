@@ -25,6 +25,7 @@ import {
   NodeName,
 } from "./dtc/node";
 import { DtcProperty } from "./dtc/property";
+import { PropertyValue } from "./dtc/values/value";
 
 export const isDeleteChild = (ast: ASTBase): boolean => {
   if (ast instanceof DeleteBase) {
@@ -39,15 +40,27 @@ export const isDeleteChild = (ast: ASTBase): boolean => {
 };
 
 export const isPropertyChild = (ast: ASTBase): boolean => {
+  return !!getPropertyFromChild(ast);
+};
+
+export const getPropertyFromChild = (ast: ASTBase): DtcProperty | undefined => {
   if (ast instanceof DtcProperty) {
-    return true;
+    return ast;
   }
 
   if (ast instanceof DtcBaseNode) {
-    return false;
+    return;
   }
 
-  return ast.parentNode ? isPropertyChild(ast.parentNode) : false;
+  return ast.parentNode ? getPropertyFromChild(ast.parentNode) : undefined;
+};
+
+export const isPropertyValueChild = (astBase?: ASTBase): boolean => {
+  if (!astBase || astBase instanceof DtcProperty) return false;
+
+  return (
+    astBase instanceof PropertyValue || isPropertyValueChild(astBase.parentNode)
+  );
 };
 
 export const getNodeNameOrNodeLabelRef = (nodes: DtcBaseNode[]) => {

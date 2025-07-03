@@ -531,13 +531,13 @@ describe("Document formating", () => {
     test("no space", async () => {
       const documentText = "/ {\n\tnode { };// foo\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode { }; // foo\n};");
+      expect(newText).toEqual("/ {\n\tnode { };\t// foo\n};");
     });
 
     test("multple spaces", async () => {
       const documentText = "/ {\n\tnode { };       // foo\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode { }; // foo\n};");
+      expect(newText).toEqual("/ {\n\tnode { };\t// foo\n};");
     });
   });
 
@@ -593,6 +593,24 @@ describe("Document formating", () => {
       const newText = await getNewText(documentText);
       expect(newText).toEqual(
         "/ {\n\t/* foo */\n\tnode {\n\t\tprop1;\n\t\t/* foo */\n\t\tnode { };\n\t};\n}"
+      );
+    });
+
+    test("in property values", async () => {
+      const documentText =
+        "/ {\n\tprop11 = <10> /* foo*/,\n<20>\n/* foo*/,\n<30> /* foo*/;\n}";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tprop11 = <10>,\t/* foo*/\n\t\t\t <20>,\n\t\t\t /* foo*/\n\t\t\t <30>;\t/* foo*/\n}"
+      );
+    });
+
+    test("in property value", async () => {
+      const documentText =
+        "/ {\n\tprop11 = </* foo*/10 /* foo*/\n20\n/* foo*/\n30 /* foo*/>;\n}";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tprop11 = <\t/* foo*/ 10\t/* foo*/\n\t\t\t  20\n\t\t\t  /* foo*/\n\t\t\t  30\t/* foo*/ >;\n}"
       );
     });
   });
@@ -835,7 +853,9 @@ describe("Document formating", () => {
     test("comment after comma on new line", async () => {
       const documentText = "/ {\n\tprop1 = <10>,\n/* foo */<20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10>,\t/* foo */ <20>;\n};");
+      expect(newText).toEqual(
+        "/ {\n\tprop1 = <10>,\n\t\t\t/* foo */ <20>;\n};"
+      );
     });
     test("comment before comma", async () => {
       const documentText = "/ {\n\tprop1 = <10>   /* foo */, <20>;\n};";
@@ -987,6 +1007,15 @@ describe("Document formating", () => {
       const newText = await getNewText(documentText);
       expect(newText).toEqual(
         "/ {\n\tprop11 = [10\n\t\t\t  20\n\t\t\t  30\n\t\t\t  40];\n};"
+      );
+    });
+
+    test("Comments stays between property", async () => {
+      const documentText =
+        "/ {\n\tprop1 = <10>,\n\t\t\t/* abc2 */\n\t\t\t<20>;\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tprop1 = <10>,\n\t\t\t/* abc2 */\n\t\t\t<20>;\n};"
       );
     });
   });
