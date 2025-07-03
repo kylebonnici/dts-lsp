@@ -39,7 +39,7 @@ import { Property } from "./context/property";
 import { LabelRef } from "./ast/dtc/labelRef";
 import { nodeFinder } from "./helpers";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
-import { isDeleteChild } from "./ast/helpers";
+import { isDeleteChild, isPropertyValueChild } from "./ast/helpers";
 import { IncludePath } from "./ast/cPreprocessors/include";
 import { readdirSync } from "fs";
 import { dirname, join, relative } from "path";
@@ -379,12 +379,6 @@ function getNodeRefPathsItems(
   }));
 }
 
-const propertyValue = (astBase?: ASTBase): boolean => {
-  if (!astBase || astBase instanceof DtcProperty) return false;
-
-  return astBase instanceof PropertyValue || propertyValue(astBase.parentNode);
-};
-
 function getPropertyAssignMacroItems(
   result: SearchableResult | undefined
 ): CompletionItem[] {
@@ -396,13 +390,13 @@ function getPropertyAssignMacroItems(
     return [];
   }
 
-  const inPorpertyValue = propertyValue(result?.ast);
+  const inPorpertyValue = isPropertyValueChild(result?.ast);
 
   if (
     !inPorpertyValue &&
     !(result.ast instanceof DtcProperty && result.item.ast.values === null) &&
-    !propertyValue(result.beforeAst) &&
-    !propertyValue(result.afterAst)
+    !isPropertyValueChild(result.beforeAst) &&
+    !isPropertyValueChild(result.afterAst)
   ) {
     return [];
   }

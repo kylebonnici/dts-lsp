@@ -50,6 +50,7 @@ import { Comment, CommentBlock } from "./ast/dtc/comment";
 import { LabelAssign } from "./ast/dtc/label";
 import { ComplexExpression, Expression } from "./ast/cPreprocessors/expression";
 import { CMacroCall } from "./ast/cPreprocessors/functionCall";
+import { getPropertyFromChild, isPropertyValueChild } from "./ast/helpers";
 
 const findAst = async (token: Token, uri: string, fileRootAsts: ASTBase[]) => {
   const pos = Position.create(token.pos.line, token.pos.col);
@@ -79,8 +80,13 @@ export const countParent = (
   return countParent(uri, closeAst, count + 1);
 };
 
+type LevelMeta = {
+  level: number;
+  inAst?: ASTBase;
+};
 const getAstItemLevel =
-  (fileRootAsts: ASTBase[], uri: string) => async (astNode: ASTBase) => {
+  (fileRootAsts: ASTBase[], uri: string) =>
+  async (astNode: ASTBase): Promise<LevelMeta | undefined> => {
     const rootItem = fileRootAsts.filter(
       (ast) =>
         !(ast instanceof Include) &&
@@ -94,16 +100,17 @@ const getAstItemLevel =
       parentAst === astNode ||
       astNode.allDescendants.some((a) => a === parentAst)
     ) {
-      return 0;
+      return {
+        level: 0,
+      };
     }
 
-    if (!(parentAst instanceof DtcBaseNode)) {
-      return;
-    }
-
-    const closeAst = getClosestAstNode(parentAst);
-    const count = countParent(uri, closeAst);
-    return count;
+    const closeAst =getClosestAstNode(parentAst);
+    const level = countParent(uri, closeAst);
+    return {
+      level,
+      inAst: parentAst,
+    };
   };
 
 export async function getDocumentFormatting(
@@ -353,7 +360,7 @@ const formatDtcNode = async (
   level: number,
   indentString: string,
   documentText: string[],
-  computeLevel: (astNode: ASTBase) => Promise<number | undefined>
+  computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>
 ): Promise<TextEdit[]> => {
   if (!isPathEqual(node.uri, uri)) return []; // node may have been included!!
 
@@ -947,12 +954,12 @@ const formatDtcDelete = (
 const formatDtcInclude = (
   includeItem: Include,
   uri: string,
-  level: number | undefined,
+  levelMeta: LevelMeta | undefined,
   indentString: string,
   documentText: string[]
 ): TextEdit[] => {
   // we should not format this case
-  if (level === undefined) return [];
+  if (levelMeta === undefined) return [];
 
   if (!isPathEqual(includeItem.uri, uri)) return []; // may be coming from some other include  hence ignore
 
@@ -961,7 +968,7 @@ const formatDtcInclude = (
   result.push(
     ...ensureOnNewLineAndMax1EmptyLineToPrev(
       includeItem.firstToken,
-      level,
+      levelMeta.level,
       indentString,
       documentText
     )
@@ -978,37 +985,64 @@ const formatDtcInclude = (
 
 const formatCommentBlock = (
   commentItem: CommentBlock,
-  level: number | undefined,
+  levelMeta: LevelMeta | undefined,
   indentString: string,
-  documentText: string[]
+  documentText: string[],
+  settings: FormatingSettings
 ): TextEdit[] =>
   commentItem.comments.flatMap((c, i) =>
     formatBlockCommentLine(
       c,
-      level,
+      levelMeta,
       indentString,
       documentText,
-      i ? (i === commentItem.comments.length - 1 ? "last" : "comment") : "first"
+      i
+        ? i === commentItem.comments.length - 1
+          ? "last"
+          : "comment"
+        : "first",
+      settings
     )
   );
 
+const getPropertyIndentPrefix = (
+  settings: FormatingSettings,
+  closestAst?: ASTBase,
+  prifix: string = ""
+) => {
+  const property = closestAst ? getPropertyFromChild(closestAst) : undefined;
+  if (!property) return "";
+  const propertyValueChild = isPropertyValueChild(closestAst);
+  const propertyNameWidth = property.propertyName?.name.length ?? 0;
+  const witdhPrifix = `${widthToPrefix(
+    settings,
+    propertyNameWidth + (propertyValueChild ? 4 : 3) - prifix.length
+  )}`;
+
+  return `${witdhPrifix}${prifix}`; // +3 ' = ' or + 4 ' = <'
+};
+
 const formatBlockCommentLine = (
   commentItem: Comment,
-  level: number | undefined,
+  levelMeta: LevelMeta | undefined,
   indentString: string,
   documentText: string[],
-  lineType: "last" | "first" | "comment"
+  lineType: "last" | "first" | "comment",
+  settings: FormatingSettings
 ): TextEdit[] => {
-  const result: TextEdit[] = [];
+  if (!commentItem.firstToken.prevToken) {
+    return ensureOnNewLineAndMax1EmptyLineToPrev(
+      commentItem.firstToken,
+      levelMeta?.level ?? 0,
+      indentString,
+      documentText
+    );
+  }
 
-  // we should not format further. This case as it is not between node or properties or in root
-  // e.g. prop = <10 /* abc */ 10>;
-  const commentLine = commentItem.firstToken.pos.line;
-  if (
-    commentItem.firstToken.prevToken &&
-    (level === undefined ||
-      commentLine === commentItem.firstToken.prevToken?.pos.line) // e.g. prop = <10 /* abc */ 10>; or  prop = <10 10>;  /* abc */
-  ) {
+  const onSameLine =
+    commentItem.firstToken.pos.line ===
+    commentItem.firstToken.prevToken?.pos.line;
+  if (onSameLine) {
     return fixedNumberOfSpaceBetweenTokensAndNext(
       commentItem.firstToken.prevToken,
       documentText,
@@ -1018,7 +1052,11 @@ const formatBlockCommentLine = (
     );
   }
 
-  let prifix: string | undefined;
+  if (levelMeta === undefined) {
+    return [];
+  }
+
+  let prifix: string = "";
   switch (lineType) {
     case "comment":
       prifix = commentItem.firstToken.value === "*" ? " " : " * ";
@@ -1030,40 +1068,65 @@ const formatBlockCommentLine = (
       break;
   }
 
-  result.push(
-    ...ensureOnNewLineAndMax1EmptyLineToPrev(
+  if (
+    levelMeta?.inAst instanceof DtcBaseNode ||
+    levelMeta.inAst instanceof DtcProperty
+  ) {
+    return ensureOnNewLineAndMax1EmptyLineToPrev(
       commentItem.firstToken,
-      level ?? 0,
+      levelMeta?.level ?? 0,
       indentString,
       documentText,
       prifix
-    )
-  );
-
-  return result;
-};
-
-const formatComment = (
-  commentItem: Comment,
-  level: number | undefined,
-  indentString: string,
-  documentText: string[]
-): TextEdit[] => {
-  const commentLine = commentItem.firstToken.pos.line;
-  if (
-    commentLine === commentItem.firstToken.prevToken?.pos.line // e.g prop = 10; // foo
-  ) {
-    return fixedNumberOfSpaceBetweenTokensAndNext(
-      commentItem.firstToken.prevToken,
-      documentText
     );
   }
 
   return ensureOnNewLineAndMax1EmptyLineToPrev(
     commentItem.firstToken,
-    level ?? 0,
+    levelMeta?.level ?? 0,
     indentString,
-    documentText
+    documentText,
+    getPropertyIndentPrefix(settings, levelMeta?.inAst, prifix)
+  );
+
+  return [];
+};
+
+const formatComment = (
+  commentItem: Comment,
+  levelMeta: LevelMeta | undefined,
+  indentString: string,
+  documentText: string[],
+  settings: FormatingSettings
+): TextEdit[] => {
+  if (!commentItem.firstToken.prevToken) {
+    return ensureOnNewLineAndMax1EmptyLineToPrev(
+      commentItem.firstToken,
+      levelMeta?.level ?? 0,
+      indentString,
+      documentText
+    );
+  }
+
+  const commentLine = commentItem.firstToken.pos.line;
+  if (
+    commentLine === commentItem.firstToken.prevToken.pos.line // e.g prop = 10; // foo
+  ) {
+    return fixedNumberOfSpaceBetweenTokensAndNext(
+      commentItem.firstToken.prevToken,
+      documentText,
+      1,
+      undefined,
+      true
+    );
+  }
+
+  return ensureOnNewLineAndMax1EmptyLineToPrev(
+    commentItem.firstToken,
+    levelMeta?.level ?? 0,
+    indentString,
+    documentText,
+    getPropertyIndentPrefix(settings, levelMeta?.inAst)
   );
 };
 
@@ -1077,7 +1140,7 @@ const getTextEdit = async (
   documentFormattingParams: DocumentFormattingParams,
   astNode: ASTBase,
   uri: string,
-  computeLevel: (astNode: ASTBase) => Promise<number | undefined>,
+  computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
   documentText: string[],
   level = 0
 ): Promise<TextEdit[]> => {
@@ -1119,14 +1182,16 @@ const getTextEdit = async (
       astNode,
       await computeLevel(astNode),
       singleIndent,
-      documentText
+      documentText,
+      settings
     );
   } else if (astNode instanceof CommentBlock) {
     return formatCommentBlock(
       astNode,
       await computeLevel(astNode),
       singleIndent,
-      documentText
+      documentText,
+      settings
     );
   }
 
