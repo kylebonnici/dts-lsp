@@ -4,15 +4,15 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.4.6] - Unreleased
+## [0.4.6] - 2025-07-06
 
 ### Added
 
-- Bindings auto completion.
+- Auto completion for Bindings.
 
 ### Fixed
 
-- More improvements to formating.
+- More improvements and stability to formating.
 - OnHover over Node names.
 - Incorrect macro completion list when inside a string.
 - Parser now support `\` at end of line when calling a macro.
