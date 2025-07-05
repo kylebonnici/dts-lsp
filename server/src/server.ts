@@ -1386,7 +1386,8 @@ const coreSyntaxIssuesFilter = (
     syntaxIssuesToIgnore.push(
       SyntaxIssue.UNKNOWN_NODE_ADDRESS_SYNTAX,
       SyntaxIssue.PROPERTY_MUST_BE_IN_NODE,
-      SyntaxIssue.NODE_ADDRESS
+      SyntaxIssue.NODE_ADDRESS,
+      SyntaxIssue.NAME_NODE_NAME_START
     );
   }
   return (
