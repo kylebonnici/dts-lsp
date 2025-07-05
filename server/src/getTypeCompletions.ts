@@ -73,8 +73,9 @@ function getPropertyAssignItems(
     valueIndex = 0;
   }
 
-  const nodeType = result.item.parent.nodeType;
   if (result.item.name === "compatible") {
+    const nodeTypes = result.item.parent.nodeTypes.filter((t) => t);
+    const nodeType = nodeTypes.at(-1);
     const currentBindings = result.item.ast.quickValues;
     let bindings: string[] | undefined;
     if (nodeType instanceof NodeType && nodeType.extends.size) {
@@ -82,6 +83,11 @@ function getPropertyAssignItems(
         (v) => !currentBindings || !currentBindings.includes(v)
       );
     }
+
+    if (nodeTypes.length && !bindings) {
+      return [];
+    }
+
     bindings ??= result.runtime.context.bindingLoader?.getBindings() ?? [];
     return bindings
       .filter((v) => !currentBindings || !currentBindings.includes(v))
@@ -91,6 +97,7 @@ function getPropertyAssignItems(
       }));
   }
 
+  const nodeType = result.item.parent.nodeType;
   if (nodeType instanceof NodeType) {
     return (
       nodeType.properties
