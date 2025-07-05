@@ -121,7 +121,7 @@ describe("Document formating", () => {
     test("Node multiple new line from other root", async () => {
       const documentText = "/ { };\n\n\n/ { };";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ { };\n/ { };");
+      expect(newText).toEqual("/ { };\n\n/ { };");
     });
 
     test("Node empty new line from other root", async () => {
@@ -252,7 +252,7 @@ describe("Document formating", () => {
       const documentText = "/ {\n\n\n\n\tnode { };\n};";
       const newText = await getNewText(documentText);
       console.log(newText);
-      expect(newText).toEqual("/ {\n\tnode { };\n};");
+      expect(newText).toEqual("/ {\n\n\tnode { };\n};");
     });
 
     test("Node no new line from other Child", async () => {
@@ -264,7 +264,7 @@ describe("Document formating", () => {
     test("Node multiple new line from other Child", async () => {
       const documentText = "/ {\n\tnode { };\n\n\nnode { };\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode { };\n\tnode { };\n};");
+      expect(newText).toEqual("/ {\n\tnode { };\n\n\tnode { };\n};");
     });
 
     test("Node empty new line from other Child", async () => {
@@ -358,7 +358,7 @@ describe("Document formating", () => {
     test("Node multiple new line from other root", async () => {
       const documentText = "/ {\n};\n\n\n&n1 {\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ { };\n&n1 { };");
+      expect(newText).toEqual("/ { };\n\n&n1 { };");
     });
 
     test("Node empty new line from other root", async () => {
@@ -542,6 +542,15 @@ describe("Document formating", () => {
   });
 
   describe("Block Comment", () => {
+    test("multiline block", async () => {
+      const documentText =
+        "/*\n* Copyright (c)\n* Copyright (c)\n* Copyright (c) 2018\n *\n* SPDX-License-Identifier: Apache-2.0\n */";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/*\n * Copyright (c)\n * Copyright (c)\n * Copyright (c) 2018\n *\n * SPDX-License-Identifier: Apache-2.0\n */"
+      );
+    });
+
     test("new line on top of document", async () => {
       const documentText = "\n/* foo */";
       const newText = await getNewText(documentText);
@@ -1010,12 +1019,73 @@ describe("Document formating", () => {
       );
     });
 
+    test("byte string first and last on new line", async () => {
+      const documentText = "/ {\n\tprop11 = [\n\n10\n20\n30\n40\n]   ;\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tprop11 = [\n\t\t\t  10\n\t\t\t  20\n\t\t\t  30\n\t\t\t  40\n\t\t\t ];\n};"
+      );
+    });
+
     test("Comments stays between property", async () => {
       const documentText =
         "/ {\n\tprop1 = <10>,\n\t\t\t/* abc2 */\n\t\t\t<20>;\n};";
       const newText = await getNewText(documentText);
       expect(newText).toEqual(
         "/ {\n\tprop1 = <10>,\n\t\t\t/* abc2 */\n\t\t\t<20>;\n};"
+      );
+    });
+
+    test("values new line commas after comment", async () => {
+      const documentText =
+        "/ {\n\tprop1 = <1 0 &gpio0 0 0> /* D1 */\n\n\n, <0 0 &gpio0 1 0>		/* D0 */\n, <2 0 &gpio0 2 0> /* D2 */;\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tprop1 = <1 0 &gpio0 0 0>,\t/* D1 */\n\t\t\t<0 0 &gpio0 1 0>,\t/* D0 */\n\t\t\t<2 0 &gpio0 2 0>;\t/* D2 */\n};"
+      );
+    });
+
+    test("comma on a new line", async () => {
+      const documentText =
+        "/ {\n\tprop1 = <1 0 &gpio0 0 0>\n\n\n, <0 0 &gpio0 1 0>\n, <2 0 &gpio0 2 0>;\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tprop1 = <1 0 &gpio0 0 0>,\n\t\t\t<0 0 &gpio0 1 0>,\n\t\t\t<2 0 &gpio0 2 0>;\n};"
+      );
+    });
+
+    test("comma and values on a new line with comment before and after value", async () => {
+      const documentText =
+        "/ {\n\tprop1 = <1 0 &gpio0 0 0> /* D1 */\n/* D11 */, <0 0 &gpio0 1 0>		/* D0 */\n/* D00 */, <2 0 &gpio0 2 0> /* D2 */;\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tprop1 = <1 0 &gpio0 0 0>,\t/* D1 */\n\t\t\t/* D11 */ <0 0 &gpio0 1 0>,\t/* D0 */\n\t\t\t/* D00 */ <2 0 &gpio0 2 0>;\t/* D2 */\n};"
+      );
+    });
+
+    test("comma and values on a new line with comment after value", async () => {
+      const documentText =
+        "/ {\n\tgpio-map\n= <1 0 &gpio0 0 0> /* D1 */\n\n\n, <0 0 &gpio0 1 0>		/* D0 */\n\t\t\t, <2 0 &gpio0 2 0> /* D2 */;\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tgpio-map = <1 0 &gpio0 0 0>,\t/* D1 */\n\t\t\t   <0 0 &gpio0 1 0>,\t/* D0 */\n\t\t\t   <2 0 &gpio0 2 0>;\t/* D2 */\n};"
+      );
+    });
+
+    test("Comment after - before value", async () => {
+      const documentText = "/ {\n\tprop1 = \n/* FOO */\n<1 0 &gpio0 0 0>;\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tprop1 =\n\t\t\t/* FOO */\n\t\t\t<1 0 &gpio0 0 0>;\n};"
+      );
+    });
+
+    test("multple comments before and after commas on new line", async () => {
+      const documentText =
+        "/ {\n\tgpio-map\n= <1 0 &gpio0 0 0> /* D1 */ /* D2 */\n/* D3 */ /* D4 */, /* D5 */ /* D6 */ <0 0 &gpio0 1 0>		/* D7 */ /* D8 */\n\t\t\t/* D9 */,/* D10 */ /* D11 */<2 0 &gpio0 2 0> /* D12 */; /* D13 */\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tgpio-map = <1 0 &gpio0 0 0>,\t/* D1 */\t/* D2 */\n\t\t\t   /* D3 */\t/* D4 */\t/* D5 */\t/* D6 */ <0 0 &gpio0 1 0>,\t/* D7 */\t/* D8 */\n\t\t\t   /* D9 */\t/* D10 */\t/* D11 */ <2 0 &gpio0 2 0>;\t/* D12 */\t/* D13 */\n};"
       );
     });
   });

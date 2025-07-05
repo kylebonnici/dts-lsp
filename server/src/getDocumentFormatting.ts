@@ -105,7 +105,7 @@ const getAstItemLevel =
       };
     }
 
-    const closeAst =getClosestAstNode(parentAst);
+    const closeAst = getClosestAstNode(parentAst);
     const level = countParent(uri, closeAst);
     return {
       level,
@@ -196,10 +196,11 @@ const removeNewLinesBetweenTokenAndPrev = (
   token: Token,
   documentText: string[],
   expectedNewLines = 1,
-  forceExpectedNewLines = false
+  forceExpectedNewLines = false,
+  prevToken = token.prevToken
 ): TextEdit | undefined => {
-  if (token.prevToken) {
-    const diffNumberOfLines = token.pos.line - token.prevToken.pos.line;
+  if (prevToken) {
+    const diffNumberOfLines = token.pos.line - prevToken.pos.line;
     const linesToRemove = diffNumberOfLines - expectedNewLines;
 
     if (
@@ -210,7 +211,7 @@ const removeNewLinesBetweenTokenAndPrev = (
     ) {
       return TextEdit.replace(
         Range.create(
-          Position.create(token.prevToken.pos.line, token.prevToken.pos.colEnd),
+          Position.create(prevToken.pos.line, prevToken.pos.colEnd),
           Position.create(
             token.pos.line - expectedNewLines,
             expectedNewLines
@@ -218,7 +219,7 @@ const removeNewLinesBetweenTokenAndPrev = (
               : token.pos.col
           )
         ),
-        "".padEnd(expectedNewLines - 1, "\n")
+        "".padEnd(expectedNewLines - (forceExpectedNewLines ? 1 : 0), "\n")
       );
     }
   } else if (token.pos.line) {
@@ -242,7 +243,7 @@ const pushItemToNewLineAndIndent = (
         Position.create(token.prevToken.pos.line, token.prevToken.pos.colEnd),
         Position.create(token.pos.line, token.pos.col)
       ),
-      `\n${prefix}${"".padStart(level * indentString.length, indentString)}`
+      `\n${"".padStart(level * indentString.length, indentString)}${prefix}`
     );
   }
 };
@@ -492,37 +493,31 @@ const formatLabeledValue = <T extends ASTBase>(
     );
   }
 
-  if (openBracket && value.firstToken.prevToken === openBracket) {
+  if (value.firstToken.pos.line !== value.firstToken.prevToken?.pos.line) {
+    const edit = removeNewLinesBetweenTokenAndPrev(
+      value.firstToken,
+      documentText,
+      1,
+      true
+    );
+    if (edit) result.push(edit);
     result.push(
-      ...fixedNumberOfSpaceBetweenTokensAndNext(openBracket, documentText, 0)
+      ...createIndentEdit(
+        value.firstToken,
+        level,
+        settings.singleIndent,
+        documentText,
+        widthToPrefix(settings, propertyNameWidth + 4) // +4 ' = <'
+      )
     );
   } else {
-    if (value.firstToken.pos.line !== value.firstToken.prevToken?.pos.line) {
-      const edit = removeNewLinesBetweenTokenAndPrev(
-        value.firstToken,
+    result.push(
+      ...fixedNumberOfSpaceBetweenTokensAndNext(
+        value.firstToken.prevToken,
         documentText,
-        1,
-        true
-      );
-      if (edit) result.push(edit);
-      result.push(
-        ...createIndentEdit(
-          value.firstToken,
-          level,
-          settings.singleIndent,
-          documentText,
-          widthToPrefix(settings, propertyNameWidth + 4) // +4 ' = <'
-        )
-      );
-    } else {
-      result.push(
-        ...fixedNumberOfSpaceBetweenTokensAndNext(
-          value.firstToken.prevToken,
-          documentText,
-          1
-        )
-      );
-    }
+        openBracket && value.firstToken.prevToken === openBracket ? 0 : 1
+      )
+    );
   }
 
   if (value.value instanceof Expression) {
@@ -556,20 +551,33 @@ const formatValue = (
     );
 
     if (value.closeBracket?.prevToken) {
-      if (value.closeBracket.prevToken === value.values.at(-1)?.lastToken) {
+      if (
+        value.closeBracket.prevToken.pos.line === value.closeBracket.pos.line
+      ) {
         result.push(
           ...fixedNumberOfSpaceBetweenTokensAndNext(
             value.closeBracket.prevToken,
             documentText,
-            0
+            value.closeBracket.prevToken === value.values.at(-1)?.lastToken
+              ? 0
+              : 1
           )
         );
       } else {
+        const edit = removeNewLinesBetweenTokenAndPrev(
+          value.closeBracket,
+          documentText,
+          1,
+          true
+        );
+        if (edit) result.push(edit);
         result.push(
-          ...fixedNumberOfSpaceBetweenTokensAndNext(
-            value.closeBracket.prevToken,
+          ...createIndentEdit(
+            value.closeBracket,
+            level,
+            settings.singleIndent,
             documentText,
-            1
+            widthToPrefix(settings, propertyNameWidth + 3) // +3 ' = '
           )
         );
       }
@@ -734,19 +742,38 @@ const formatPropertyValues = (
 ): TextEdit[] => {
   const result: TextEdit[] = [];
 
-  values.values.forEach((value) => {
+  values.values.forEach((value, i) => {
     if (!value) return [];
 
     // ensure sameline or newline between  `< 10...` and what is before it
-    if (value.firstToken.prevToken) {
-      if (value.firstToken.prevToken.pos.line === value.firstToken.pos.line) {
-        result.push(
-          ...fixedNumberOfSpaceBetweenTokensAndNext(
-            value.firstToken.prevToken,
-            documentText,
-            1
-          )
-        );
+    const prevToken = value.firstToken.prevToken;
+    const prevValue = i ? values.values.at(i - 1) : undefined;
+    if (prevToken) {
+      if (prevToken.pos.line === value.firstToken.pos.line) {
+        if (
+          prevToken.value === "," &&
+          prevValue?.lastToken.pos.line !== value.firstToken.pos.line &&
+          prevToken.prevToken?.pos.line !== value.firstToken.pos.line
+        ) {
+          const editToMoveToNewLine = pushItemToNewLineAndIndent(
+            value.firstToken,
+            level,
+            settings.singleIndent,
+            widthToPrefix(settings, propertyNameWidth + 3) // +3 ' = '
+          );
+
+          if (editToMoveToNewLine) {
+            result.push(editToMoveToNewLine);
+          }
+        } else {
+          result.push(
+            ...fixedNumberOfSpaceBetweenTokensAndNext(
+              prevToken,
+              documentText,
+              1
+            )
+          );
+        }
       } else {
         const edit = removeNewLinesBetweenTokenAndPrev(
           value.firstToken,
@@ -1011,7 +1038,7 @@ const getPropertyIndentPrefix = (
   prifix: string = ""
 ) => {
   const property = closestAst ? getPropertyFromChild(closestAst) : undefined;
-  if (!property) return "";
+  if (!property) return prifix;
   const propertyValueChild = isPropertyValueChild(closestAst);
   const propertyNameWidth = property.propertyName?.name.length ?? 0;
   const witdhPrifix = `${widthToPrefix(
@@ -1068,10 +1095,7 @@ const formatBlockCommentLine = (
       break;
   }
 
-  if (
-    levelMeta?.inAst instanceof DtcBaseNode ||
-    levelMeta.inAst instanceof DtcProperty
-  ) {
+  if (levelMeta?.inAst instanceof DtcBaseNode) {
     return ensureOnNewLineAndMax1EmptyLineToPrev(
       commentItem.firstToken,
       levelMeta?.level ?? 0,
@@ -1088,8 +1112,6 @@ const formatBlockCommentLine = (
     documentText,
     getPropertyIndentPrefix(settings, levelMeta?.inAst, prifix)
   );
-
-  return [];
 };
 
 const formatComment = (
