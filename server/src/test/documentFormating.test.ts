@@ -121,7 +121,7 @@ describe("Document formating", () => {
     test("Node multiple new line from other root", async () => {
       const documentText = "/ { };\n\n\n/ { };";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ { };\n/ { };");
+      expect(newText).toEqual("/ { };\n\n/ { };");
     });
 
     test("Node empty new line from other root", async () => {
@@ -252,7 +252,7 @@ describe("Document formating", () => {
       const documentText = "/ {\n\n\n\n\tnode { };\n};";
       const newText = await getNewText(documentText);
       console.log(newText);
-      expect(newText).toEqual("/ {\n\tnode { };\n};");
+      expect(newText).toEqual("/ {\n\n\tnode { };\n};");
     });
 
     test("Node no new line from other Child", async () => {
@@ -264,7 +264,7 @@ describe("Document formating", () => {
     test("Node multiple new line from other Child", async () => {
       const documentText = "/ {\n\tnode { };\n\n\nnode { };\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode { };\n\tnode { };\n};");
+      expect(newText).toEqual("/ {\n\tnode { };\n\n\tnode { };\n};");
     });
 
     test("Node empty new line from other Child", async () => {
@@ -358,7 +358,7 @@ describe("Document formating", () => {
     test("Node multiple new line from other root", async () => {
       const documentText = "/ {\n};\n\n\n&n1 {\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ { };\n&n1 { };");
+      expect(newText).toEqual("/ { };\n\n&n1 { };");
     });
 
     test("Node empty new line from other root", async () => {
@@ -531,17 +531,26 @@ describe("Document formating", () => {
     test("no space", async () => {
       const documentText = "/ {\n\tnode { };// foo\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode { }; // foo\n};");
+      expect(newText).toEqual("/ {\n\tnode { };\t// foo\n};");
     });
 
     test("multple spaces", async () => {
       const documentText = "/ {\n\tnode { };       // foo\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tnode { }; // foo\n};");
+      expect(newText).toEqual("/ {\n\tnode { };\t// foo\n};");
     });
   });
 
   describe("Block Comment", () => {
+    test("multiline block", async () => {
+      const documentText =
+        "/*\n* Copyright (c)\n* Copyright (c)\n* Copyright (c) 2018\n *\n* SPDX-License-Identifier: Apache-2.0\n */";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/*\n * Copyright (c)\n * Copyright (c)\n * Copyright (c) 2018\n *\n * SPDX-License-Identifier: Apache-2.0\n */"
+      );
+    });
+
     test("new line on top of document", async () => {
       const documentText = "\n/* foo */";
       const newText = await getNewText(documentText);
@@ -593,6 +602,24 @@ describe("Document formating", () => {
       const newText = await getNewText(documentText);
       expect(newText).toEqual(
         "/ {\n\t/* foo */\n\tnode {\n\t\tprop1;\n\t\t/* foo */\n\t\tnode { };\n\t};\n}"
+      );
+    });
+
+    test("in property values", async () => {
+      const documentText =
+        "/ {\n\tprop11 = <10> /* foo*/,\n<20>\n/* foo*/,\n<30> /* foo*/;\n}";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tprop11 = <10>,\t/* foo*/\n\t\t\t <20>,\n\t\t\t /* foo*/\n\t\t\t <30>;\t/* foo*/\n}"
+      );
+    });
+
+    test("in property value", async () => {
+      const documentText =
+        "/ {\n\tprop11 = </* foo*/10 /* foo*/\n20\n/* foo*/\n30 /* foo*/>;\n}";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tprop11 = <\t/* foo*/ 10\t/* foo*/\n\t\t\t  20\n\t\t\t  /* foo*/\n\t\t\t  30\t/* foo*/ >;\n}"
       );
     });
   });
@@ -835,7 +862,9 @@ describe("Document formating", () => {
     test("comment after comma on new line", async () => {
       const documentText = "/ {\n\tprop1 = <10>,\n/* foo */<20>;\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual("/ {\n\tprop1 = <10>,\t/* foo */ <20>;\n};");
+      expect(newText).toEqual(
+        "/ {\n\tprop1 = <10>,\n\t\t\t/* foo */ <20>;\n};"
+      );
     });
     test("comment before comma", async () => {
       const documentText = "/ {\n\tprop1 = <10>   /* foo */, <20>;\n};";
@@ -988,6 +1017,82 @@ describe("Document formating", () => {
       expect(newText).toEqual(
         "/ {\n\tprop11 = [10\n\t\t\t  20\n\t\t\t  30\n\t\t\t  40];\n};"
       );
+    });
+
+    test("byte string first and last on new line", async () => {
+      const documentText = "/ {\n\tprop11 = [\n\n10\n20\n30\n40\n]   ;\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tprop11 = [\n\t\t\t  10\n\t\t\t  20\n\t\t\t  30\n\t\t\t  40\n\t\t\t ];\n};"
+      );
+    });
+
+    test("Comments stays between property", async () => {
+      const documentText =
+        "/ {\n\tprop1 = <10>,\n\t\t\t/* abc2 */\n\t\t\t<20>;\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tprop1 = <10>,\n\t\t\t/* abc2 */\n\t\t\t<20>;\n};"
+      );
+    });
+
+    test("values new line commas after comment", async () => {
+      const documentText =
+        "/ {\n\tprop1 = <1 0 &gpio0 0 0> /* D1 */\n\n\n, <0 0 &gpio0 1 0>		/* D0 */\n, <2 0 &gpio0 2 0> /* D2 */;\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tprop1 = <1 0 &gpio0 0 0>,\t/* D1 */\n\t\t\t<0 0 &gpio0 1 0>,\t/* D0 */\n\t\t\t<2 0 &gpio0 2 0>;\t/* D2 */\n};"
+      );
+    });
+
+    test("comma on a new line", async () => {
+      const documentText =
+        "/ {\n\tprop1 = <1 0 &gpio0 0 0>\n\n\n, <0 0 &gpio0 1 0>\n, <2 0 &gpio0 2 0>;\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tprop1 = <1 0 &gpio0 0 0>,\n\t\t\t<0 0 &gpio0 1 0>,\n\t\t\t<2 0 &gpio0 2 0>;\n};"
+      );
+    });
+
+    test("comma and values on a new line with comment before and after value", async () => {
+      const documentText =
+        "/ {\n\tprop1 = <1 0 &gpio0 0 0> /* D1 */\n/* D11 */, <0 0 &gpio0 1 0>		/* D0 */\n/* D00 */, <2 0 &gpio0 2 0> /* D2 */;\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tprop1 = <1 0 &gpio0 0 0>,\t/* D1 */\n\t\t\t/* D11 */ <0 0 &gpio0 1 0>,\t/* D0 */\n\t\t\t/* D00 */ <2 0 &gpio0 2 0>;\t/* D2 */\n};"
+      );
+    });
+
+    test("comma and values on a new line with comment after value", async () => {
+      const documentText =
+        "/ {\n\tgpio-map\n= <1 0 &gpio0 0 0> /* D1 */\n\n\n, <0 0 &gpio0 1 0>		/* D0 */\n\t\t\t, <2 0 &gpio0 2 0> /* D2 */;\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tgpio-map = <1 0 &gpio0 0 0>,\t/* D1 */\n\t\t\t   <0 0 &gpio0 1 0>,\t/* D0 */\n\t\t\t   <2 0 &gpio0 2 0>;\t/* D2 */\n};"
+      );
+    });
+
+    test("Comment after - before value", async () => {
+      const documentText = "/ {\n\tprop1 = \n/* FOO */\n<1 0 &gpio0 0 0>;\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tprop1 =\n\t\t\t/* FOO */\n\t\t\t<1 0 &gpio0 0 0>;\n};"
+      );
+    });
+
+    test("multple comments before and after commas on new line", async () => {
+      const documentText =
+        "/ {\n\tgpio-map\n= <1 0 &gpio0 0 0> /* D1 */ /* D2 */\n/* D3 */ /* D4 */, /* D5 */ /* D6 */ <0 0 &gpio0 1 0>		/* D7 */ /* D8 */\n\t\t\t/* D9 */,/* D10 */ /* D11 */<2 0 &gpio0 2 0> /* D12 */; /* D13 */\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tgpio-map = <1 0 &gpio0 0 0>,\t/* D1 */\t/* D2 */\n\t\t\t   /* D3 */\t/* D4 */\t/* D5 */\t/* D6 */ <0 0 &gpio0 1 0>,\t/* D7 */\t/* D8 */\n\t\t\t   /* D9 */\t/* D10 */\t/* D11 */ <2 0 &gpio0 2 0>;\t/* D12 */\t/* D13 */\n};"
+      );
+    });
+
+    test("Macro on multiple lines", async () => {
+      const documentText = "/ {\n\tprop1 = <ADD(10, \\\n\t\t20)>;";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/ {\n\tprop1 = <ADD(10, \\\n\t\t20)>;");
     });
   });
 

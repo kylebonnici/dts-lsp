@@ -469,6 +469,14 @@ export abstract class BaseParser {
     macros: Map<string, MacroRegistryItem>
   ): CMacroCall | undefined {
     this.enqueueToStack();
+
+    if (
+      this.currentToken?.value === "\\" &&
+      this.currentToken.pos.line !== this.currentToken.nextToken?.pos.line
+    ) {
+      this.moveToNextToken;
+    }
+
     const identifier = this.processCIdentifier(macros, false);
     if (!identifier) {
       this.popStack();
@@ -584,6 +592,13 @@ export abstract class BaseParser {
   private processEnclosedExpression(macros: Map<string, MacroRegistryItem>) {
     this.enqueueToStack();
 
+    if (
+      this.currentToken?.value === "\\" &&
+      this.currentToken.pos.line !== this.currentToken.nextToken?.pos.line
+    ) {
+      this.moveToNextToken;
+    }
+
     let start: Token | undefined;
     let token: Token | undefined;
     if (validToken(this.currentToken, LexerToken.ROUND_OPEN)) {
@@ -692,6 +707,8 @@ export abstract class BaseParser {
             let v = p.value;
             if (p.pos.line === param.tokens.at(i + 1)?.pos.line) {
               v = v.padEnd(param.tokens[i + 1].pos.col - p.pos.col, " ");
+            } else if (p.value === "\\") {
+              v = v.slice(0, -1);
             }
             return v;
           })

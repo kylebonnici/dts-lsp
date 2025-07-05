@@ -18,6 +18,7 @@ import { LexerToken, Position, Token } from "./types";
 
 export class Lexer {
   inComment = false;
+  inCommentLineStart: number | undefined;
   lineNumber = 0;
   columnNumber = 0;
   lines: string[];
@@ -147,10 +148,22 @@ export class Lexer {
       }
     }
 
-    if (word === "/" && this.currentChar === "*") {
+    if (
+      word === "/" &&
+      (this.currentChar === "*" || this.currentChar === "/")
+    ) {
       this.inComment = true;
-    } else if (this.inComment && word === "*" && this.currentChar === "/") {
+      if (this.currentChar === "/") {
+        // only line comments
+        this.inCommentLineStart = this.lineNumber;
+      }
+    } else if (
+      (this.inComment && word === "*" && this.currentChar === "/") ||
+      (this.inCommentLineStart !== undefined &&
+        this.lineNumber !== this.inCommentLineStart)
+    ) {
       this.inComment = false;
+      this.inCommentLineStart = undefined;
     }
 
     return word;

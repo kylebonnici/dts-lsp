@@ -40,7 +40,14 @@ import {
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { ContextId, tokenModifiers, tokenTypes } from "./types";
+import {
+  ContextId,
+  Issue,
+  IssueTypes,
+  SyntaxIssue,
+  tokenModifiers,
+  tokenTypes,
+} from "./types";
 import {
   applyEdits,
   fileURLToPath,
@@ -86,7 +93,6 @@ import { getActions } from "./getActions";
 import { getSignatureHelp } from "./signatureHelp";
 import { createPatch } from "diff";
 import { initHeapMonitor } from "./heapMonitor";
-import { writeFileSync } from "fs";
 
 const contextAware: ContextAware[] = [];
 let activeContext: ContextAware | undefined;
@@ -1364,6 +1370,33 @@ connection.onRequest("devicetree/activeFileUri", async (uri: string) => {
   updateActiveContext({ uri });
 });
 
+const coreSyntaxIssuesFilter = (
+  issue: Issue<IssueTypes>,
+  filePath: string,
+  fullDiagnostics: boolean
+) => {
+  const syntaxIssuesToIgnore = [
+    SyntaxIssue.UNKNOWN_MACRO,
+    SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS,
+    SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS,
+    SyntaxIssue.UNABLE_TO_RESOLVE_INCLUDE,
+  ];
+
+  if (!fullDiagnostics) {
+    syntaxIssuesToIgnore.push(
+      SyntaxIssue.UNKNOWN_NODE_ADDRESS_SYNTAX,
+      SyntaxIssue.PROPERTY_MUST_BE_IN_NODE,
+      SyntaxIssue.NODE_ADDRESS,
+      SyntaxIssue.NAME_NODE_NAME_START
+    );
+  }
+  return (
+    issue.severity === DiagnosticSeverity.Error &&
+    isPathEqual(issue.astElement.uri, filePath) &&
+    !syntaxIssuesToIgnore.some((i) => issue.issues.includes(i))
+  );
+};
+
 const linterFormat = async (event: DocumentFormattingParams) => {
   await allStable();
   const filePath = fileURLToPath(event.textDocument.uri);
@@ -1372,6 +1405,16 @@ const linterFormat = async (event: DocumentFormattingParams) => {
 
   if (!context) {
     return [];
+  }
+
+  const issues = (
+    await context.getSyntaxIssues(undefined, (issue) =>
+      coreSyntaxIssuesFilter(issue, filePath, false)
+    )
+  ).get(filePath);
+
+  if (issues?.length) {
+    throw new Error("Unable to format. Files has sytnax issues.");
   }
 
   const documentText = getTokenizedDocumentProvider().getDocument(filePath);
@@ -1404,9 +1447,9 @@ connection.onRequest("devicetree/formattingDiff", linterFormat);
 
 connection.onRequest(
   "devicetree/diagnosticIssues",
-  async (data: { uri: string }) => {
+  async ({ uri, full }: { uri: string; full?: boolean }) => {
     await allStable();
-    const filePath = fileURLToPath(data.uri);
+    const filePath = fileURLToPath(uri);
     updateActiveContext({ uri: filePath });
     const context = quickFindContext(filePath);
 
@@ -1414,7 +1457,13 @@ connection.onRequest(
       return [];
     }
 
-    const issues = (await context.getDiagnostics()).get(filePath);
+    const issues = full
+      ? (await context.getDiagnostics()).get(filePath)
+      : (
+          await context.getSyntaxIssues(undefined, (issue) =>
+            coreSyntaxIssuesFilter(issue, filePath, !!full)
+          )
+        ).get(filePath);
 
     if (!issues?.length) {
       return;
