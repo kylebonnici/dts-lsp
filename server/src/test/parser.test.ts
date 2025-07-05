@@ -1102,6 +1102,61 @@ describe("Parser", () => {
               "(2 + 5) * (50 + 1)",
             ]);
           });
+
+          test("Macro on new line with \\", async () => {
+            mockReadFileSync(
+              "#define ADD(x,y,z) x+y+z \n/{prop=<ADD(1,\\\n2,\\\n3)>;};"
+            );
+            const parser = new Parser("/folder/dts.dts", []);
+            await parser.stable;
+            expect(parser.issues.length).toEqual(0);
+            const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+            expect(rootDts.properties.length).toEqual(1);
+            expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+            expect(
+              rootDts.properties[0].values instanceof PropertyValues
+            ).toBeTruthy();
+            expect(rootDts.properties[0].values?.values.length).toEqual(1);
+            expect(
+              rootDts.properties[0].values?.values[0]?.value instanceof
+                ArrayValues
+            ).toBeTruthy();
+            expect(
+              (rootDts.properties[0].values?.values[0]?.value as ArrayValues)
+                .values[0].value instanceof CMacroCall
+            ).toBeTruthy();
+
+            const macro = (
+              rootDts.properties[0].values?.values[0]?.value as ArrayValues
+            ).values[0].value as CMacroCall;
+
+            expect(macro.functionName.name).toEqual("ADD");
+            expect(macro.params.map((p) => p?.value)).toEqual(["1", "2", "3"]);
+          });
+
+          test("Simple Macro in () and on new line with \\", async () => {
+            mockReadFileSync("#define ADD(x,y) \n/{prop=<(ADD(1,\\\n2))>;};");
+            const parser = new Parser("/folder/dts.dts", []);
+            await parser.stable;
+            expect(parser.issues.length).toEqual(0);
+            const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+            expect(rootDts.properties.length).toEqual(1);
+            expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+            expect(
+              rootDts.properties[0].values instanceof PropertyValues
+            ).toBeTruthy();
+            expect(rootDts.properties[0].values?.values.length).toEqual(1);
+            expect(
+              rootDts.properties[0].values?.values[0]?.value instanceof
+                ArrayValues
+            ).toBeTruthy();
+            expect(
+              (rootDts.properties[0].values?.values[0]?.value as ArrayValues)
+                .values[0].value instanceof ComplexExpression
+            ).toBeTruthy();
+          });
         });
 
         test("Labeled expression ", async () => {

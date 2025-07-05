@@ -1088,6 +1088,12 @@ describe("Document formating", () => {
         "/ {\n\tgpio-map = <1 0 &gpio0 0 0>,\t/* D1 */\t/* D2 */\n\t\t\t   /* D3 */\t/* D4 */\t/* D5 */\t/* D6 */ <0 0 &gpio0 1 0>,\t/* D7 */\t/* D8 */\n\t\t\t   /* D9 */\t/* D10 */\t/* D11 */ <2 0 &gpio0 2 0>;\t/* D12 */\t/* D13 */\n};"
       );
     });
+
+    test("Macro on multiple lines", async () => {
+      const documentText = "/ {\n\tprop1 = <ADD(10, \\\n\t\t20)>;";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/ {\n\tprop1 = <ADD(10, \\\n\t\t20)>;");
+    });
   });
 
   describe("trailing White space", () => {
