@@ -84,7 +84,7 @@ function getPropertyAssignItems(
       );
     }
 
-    if (nodeTypes.length && !bindings) {
+    if (currentBindings?.filter((v) => v)?.length && !bindings) {
       return [];
     }
 
