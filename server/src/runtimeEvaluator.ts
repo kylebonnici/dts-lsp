@@ -23,7 +23,13 @@ import {
   NodeName,
 } from "./ast/dtc/node";
 import { DtcProperty } from "./ast/dtc/property";
-import { ContextIssues, FileDiagnostic, Token } from "./types";
+import {
+  ContextIssues,
+  FileDiagnostic,
+  Issue,
+  IssueTypes,
+  Token,
+} from "./types";
 import { DeleteProperty } from "./ast/dtc/deleteProperty";
 import { DeleteNode } from "./ast/dtc/deleteNode";
 import { LabelRef } from "./ast/dtc/labelRef";
@@ -833,11 +839,22 @@ export class ContextAware {
     list.push(diagnostic);
   }
 
-  async getDiagnostics(): Promise<Map<string, Diagnostic[]>> {
-    const result = new Map<string, Diagnostic[]>();
-
-    try {
-      (await this.getAllParsers()).forEach((parser) => {
+  async getSyntaxIssues(
+    result = new Map<string, Diagnostic[]>(),
+    filter?: (issue: Issue<IssueTypes>) => boolean
+  ): Promise<Map<string, Diagnostic[]>> {
+    (await this.getAllParsers()).forEach((parser) => {
+      if (filter) {
+        parser.issues
+          .filter((i) => filter(i.raw))
+          .forEach((issue) =>
+            ContextAware.#add(
+              issue.diagnostic(),
+              issue.raw.astElement.uri,
+              result
+            )
+          );
+      } else {
         parser.issues.forEach((issue) =>
           ContextAware.#add(
             issue.diagnostic(),
@@ -845,7 +862,17 @@ export class ContextAware {
             result
           )
         );
-      });
+      }
+    });
+
+    return result;
+  }
+
+  async getDiagnostics(): Promise<Map<string, Diagnostic[]>> {
+    const result = new Map<string, Diagnostic[]>();
+
+    try {
+      await this.getSyntaxIssues(result);
 
       const contextIssues = (await this.getContextIssues()) ?? [];
       contextIssues.forEach((issue) =>
