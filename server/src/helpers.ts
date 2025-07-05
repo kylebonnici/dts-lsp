@@ -800,6 +800,8 @@ export const syntaxIssueToMessage = (issue: SyntaxIssue) => {
       return "Properties can only be deleted inside a node";
     case SyntaxIssue.UNABLE_TO_RESOLVE_INCLUDE:
       return "Unable to resolve include";
+    case SyntaxIssue.UNKNOWN_NODE_ADDRESS_SYNTAX:
+      return "Unkown Node Address syntax";
     case SyntaxIssue.EXPECTED_START_ADDRESS:
       return "Expected start address";
     case SyntaxIssue.EXPECTED_END_ADDRESS:
