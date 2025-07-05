@@ -86,7 +86,6 @@ import { getActions } from "./getActions";
 import { getSignatureHelp } from "./signatureHelp";
 import { createPatch } from "diff";
 import { initHeapMonitor } from "./heapMonitor";
-import { writeFileSync } from "fs";
 
 const contextAware: ContextAware[] = [];
 let activeContext: ContextAware | undefined;
