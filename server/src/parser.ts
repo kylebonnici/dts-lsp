@@ -749,7 +749,7 @@ export class Parser extends BaseParser {
     if (validToken(this.currentToken, LexerToken.ASSIGN_OPERATOR)) {
       node.assignOperatorToken = this.currentToken;
       this.moveToNextToken;
-      result = this.processValue(node);
+      result = this.processValue();
 
       if (!result?.values.filter((v) => !!v).length) {
         this._issues.push(genSyntaxDiagnostic(SyntaxIssue.VALUE, node));
@@ -1177,7 +1177,7 @@ export class Parser extends BaseParser {
     return node;
   }
 
-  private processValue(dtcProperty: DtcProperty): PropertyValues | undefined {
+  private processValue(): PropertyValues | undefined {
     this.enqueueToStack();
 
     const getValues = (): (PropertyValue | null)[] => {
@@ -1186,7 +1186,7 @@ export class Parser extends BaseParser {
           (this.processStringValue() ||
             this.isNodePathRef() ||
             this.isLabelRefValue() ||
-            this.arrayValues(dtcProperty) ||
+            this.arrayValues() ||
             this.processByteStringValue() ||
             this.isExpressionValue()) ??
           null
@@ -1302,7 +1302,7 @@ export class Parser extends BaseParser {
     return node;
   }
 
-  private arrayValues(dtcProperty: DtcProperty): PropertyValue | undefined {
+  private arrayValues(): PropertyValue | undefined {
     this.enqueueToStack();
 
     const startLabels = this.processOptionalLabelAssign(true);
@@ -1316,7 +1316,7 @@ export class Parser extends BaseParser {
       this.moveToNextToken;
     }
 
-    const value = this.processArrayValues(dtcProperty) ?? null;
+    const value = this.processArrayValues() ?? null;
     value.openBracket = openBracket;
 
     const endLabels1 = this.processOptionalLabelAssign(true) ?? [];
@@ -1439,7 +1439,7 @@ export class Parser extends BaseParser {
     return result;
   }
 
-  private processArrayValues(dtcProperty: DtcProperty): ArrayValues {
+  private processArrayValues(): ArrayValues {
     this.enqueueToStack();
 
     const result = this.processLabeledValue(
