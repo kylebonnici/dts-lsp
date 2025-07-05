@@ -2210,6 +2210,21 @@ describe("Parser", () => {
       expect(comment.lastToken.pos.col).toEqual(18);
     });
 
+    test("with open quote inline ", async () => {
+      mockReadFileSync("    // foo bar's foo    .");
+      const parser = new Parser("/folder/dts.dts", []);
+      await parser.stable;
+
+      expect(parser.issues.length).toEqual(0);
+      expect(parser.allAstItems.length).toEqual(1);
+
+      expect(parser.allAstItems[0] instanceof Comment).toBeTruthy();
+
+      const comment = parser.allAstItems[0] as Comment;
+      expect(comment.firstToken.pos.col).toEqual(4);
+      expect(comment.lastToken.pos.colEnd).toEqual(25);
+    });
+
     test("Multi line on single line ", async () => {
       mockReadFileSync("    /* foo bar */ ");
       const parser = new Parser("/folder/dts.dts", []);
