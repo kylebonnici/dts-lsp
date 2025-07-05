@@ -77,6 +77,7 @@ interface ZephyrBindingYml {
     [key: string]: ZephyrBindingsProperty;
   };
   [key: CellSpecifier]: string[];
+  extends?: string[]; // our entry to collaps include
 }
 
 type CellSpecifier = `${string}-cells`;
@@ -148,10 +149,12 @@ const resolveBinding = (
   bindings: ZephyrBindingYml[],
   binding: ZephyrBindingYml
 ): ZephyrBindingYml | undefined => {
+  binding.extends ??= [];
   binding = binding.include.reduce((p, c) => {
     const toMergeIn = bindings.find((b) => basename(b.filePath) === c.name);
     if (toMergeIn) {
       const propertiesToExclude = c["property-blocklist"];
+      binding.extends?.push(...p.include.map((i) => basename(i.name, ".yaml")));
       p.include = p.include.filter((i) => i !== c);
       return mergeAintoB(bindings, toMergeIn, p, propertiesToExclude) ?? p;
     }
@@ -213,6 +216,8 @@ const mergeAintoB = (
   });
 
   resolvedB.properties = newProperties;
+  resolvedB.extends ??= [];
+  resolvedB.extends.push(...(resolvedA.extends ?? []));
 
   // merge cell specifiers
   const allSpecifierNames = new Set<string>();
@@ -259,9 +264,13 @@ export class ZephyrBindingsLoader {
     const compatible = node.getProperty("compatible");
     const values = compatible?.ast.values;
 
-    if (values?.values.some((v) => !(v?.value instanceof StringValue))) return;
+    const bindings = values?.values.filter(
+      (v) => v && v.value instanceof StringValue
+    );
 
-    return values?.values.map((v) => (v?.value as StringValue).value);
+    if (!bindings?.length) return;
+
+    return bindings.map((v) => (v?.value as StringValue).value);
   }
 
   getNodeTypes(folders: string[], node: Node): NodeType[] {
@@ -321,6 +330,10 @@ export class ZephyrBindingsLoader {
       convertBindingsToType(resolvedBindings, this.typeCache);
     });
   }
+
+  getBindings() {
+    return Array.from(this.typeCache.keys());
+  }
 }
 
 let zephyrBindingsLoader: ZephyrBindingsLoader | undefined;
@@ -336,7 +349,7 @@ const convertBindingsToType = (
   return bindings.forEach((binding) => {
     const compatible =
       binding.compatible ??
-      (binding.filePath ? basename(binding.filePath, "yaml") : undefined);
+      (binding.filePath ? basename(binding.filePath, ".yaml") : undefined);
     if (compatible) {
       map.set(compatible, (node: Node) => convertBindingToType(binding, node));
     }
@@ -347,11 +360,12 @@ const convertBindingToType = (binding: ZephyrBindingYml, node?: Node) => {
   const nodeType = getStandardType(node);
   nodeType.compatible =
     binding.compatible ??
-    (binding.filePath ? basename(binding.filePath, "yaml") : undefined);
+    (binding.filePath ? basename(binding.filePath, ".yaml") : undefined);
   nodeType.description = binding.description;
   nodeType.bindingsPath = binding.filePath;
   nodeType.bus = typeof binding.bus === "string" ? [binding.bus] : binding.bus;
   nodeType.onBus = binding["on-bus"];
+  binding.extends?.forEach((e) => nodeType.extends.add(e));
 
   const cellsKeys = Object.keys(binding).filter((key) =>
     key.endsWith("-cells")

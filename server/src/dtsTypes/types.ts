@@ -502,6 +502,7 @@ export abstract class INodeType {
   }[];
   bindingsPath?: string;
   compatible?: string;
+  extends: Set<string> = new Set();
   abstract getPropertyListCompletionItems(node: Node): CompletionItem[];
 }
 

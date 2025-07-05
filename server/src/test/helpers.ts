@@ -28,4 +28,5 @@ export const getFakeBindingLoader = (): BindingLoader => ({
   getNodeTypes: (node: Node) => {
     return Promise.resolve([getStandardType(node)]);
   },
+  getBindings: () => [],
 });

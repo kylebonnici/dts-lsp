@@ -16,7 +16,7 @@
 
 import type { BindingType } from "../../types/index";
 import { Node } from "../../context/node";
-import { INodeType } from "../types";
+import { INodeType, NodeType } from "../types";
 import { getDevicetreeOrgBindingsLoader } from "./devicetree-org/loader";
 import { getZephyrBindingsLoader } from "./zephyr/loader";
 
@@ -24,6 +24,7 @@ export interface BindingLoader {
   getNodeTypes(node: Node): Promise<INodeType[]>;
   readonly type: BindingType;
   readonly files: BindingLoaderFileType;
+  getBindings(): string[];
 }
 
 export interface BindingLoaderFileType {
@@ -45,12 +46,22 @@ export const getBindingLoader = (
           files.zephyrBindings,
           node
         );
+
       case "DevicetreeOrg":
         return getDevicetreeOrgBindingsLoader().getNodeTypes(
           files.deviceOrgBindingsMetaSchema,
           files.deviceOrgTreeBindings,
           node
         );
+    }
+  },
+  getBindings: () => {
+    switch (type) {
+      case "Zephyr":
+        return getZephyrBindingsLoader().getBindings();
+
+      case "DevicetreeOrg":
+        return getDevicetreeOrgBindingsLoader().getBindings();
     }
   },
 });

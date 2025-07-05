@@ -16,6 +16,7 @@
 
 import {
   CompletionItem,
+  CompletionItemKind,
   TextDocumentPositionParams,
 } from "vscode-languageserver";
 import { ContextAware } from "./runtimeEvaluator";
@@ -46,10 +47,10 @@ function getPropertyAssignItems(
     return [];
   }
 
-  const inPorpertyValue = propertyValue(result?.ast);
+  const inPropertyValue = propertyValue(result?.ast);
 
   if (
-    !inPorpertyValue &&
+    !inPropertyValue &&
     !(result.ast instanceof DtcProperty && result.item.ast.values === null) &&
     !propertyValue(result.beforeAst) &&
     !propertyValue(result.afterAst)
@@ -73,6 +74,23 @@ function getPropertyAssignItems(
   }
 
   const nodeType = result.item.parent.nodeType;
+  if (result.item.name === "compatible") {
+    const currentBindings = result.item.ast.quickValues;
+    let bindings: string[] | undefined;
+    if (nodeType instanceof NodeType && nodeType.extends.size) {
+      bindings = Array.from(nodeType.extends).filter(
+        (v) => !currentBindings || !currentBindings.includes(v)
+      );
+    }
+    bindings ??= result.runtime.context.bindingLoader?.getBindings() ?? [];
+    return bindings
+      .filter((v) => !currentBindings || !currentBindings.includes(v))
+      .map((v) => ({
+        label: inPropertyValue ? `${v}` : `"${v}"`,
+        kind: CompletionItemKind.Variable,
+      }));
+  }
+
   if (nodeType instanceof NodeType) {
     return (
       nodeType.properties
@@ -80,7 +98,7 @@ function getPropertyAssignItems(
         ?.getPropertyCompletionItems(
           result.item,
           valueIndex,
-          inPorpertyValue
+          inPropertyValue
         ) ?? []
     );
   }

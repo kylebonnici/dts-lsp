@@ -120,6 +120,10 @@ export class DevicetreeOrgBindingsLoader {
 
     return types;
   }
+
+  getBindings() {
+    return Array.from(this.schemaIdValidators.keys());
+  }
 }
 
 let devicetreeOrgBindingsLoader: DevicetreeOrgBindingsLoader | undefined;
