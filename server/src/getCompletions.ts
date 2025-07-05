@@ -48,6 +48,7 @@ import { NodeType } from "./dtsTypes/types";
 import { PropertyValue } from "./ast/dtc/values/value";
 import { FunctionDefinition } from "./ast/cPreprocessors/functionDefinition";
 import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
+import { StringValue } from "./ast/dtc/values/string";
 
 function getIncudePathItems(
   result: SearchableResult | undefined
@@ -389,7 +390,8 @@ function getPropertyAssignMacroItems(
 ): CompletionItem[] {
   if (
     !result ||
-    !(result.item instanceof Property && result.item.ast.assignOperatorToken)
+    !(result.item instanceof Property && result.item.ast.assignOperatorToken) ||
+    result.ast instanceof StringValue
   ) {
     return [];
   }
