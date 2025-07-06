@@ -328,7 +328,7 @@ connection.onInitialize((params: InitializeParams) => {
       },
       completionProvider: {
         resolveProvider: true,
-        triggerCharacters: ["&", "=", " "],
+        triggerCharacters: ["&", "=", " ", '"'],
       },
       codeActionProvider: {
         codeActionKinds: [CodeActionKind.QuickFix, CodeActionKind.SourceFixAll],

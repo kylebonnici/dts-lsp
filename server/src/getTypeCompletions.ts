@@ -92,8 +92,9 @@ function getPropertyAssignItems(
     return bindings
       .filter((v) => !currentBindings || !currentBindings.includes(v))
       .map((v) => ({
-        label: inPropertyValue ? `${v}` : `"${v}"`,
+        label: `"${v}"`,
         kind: CompletionItemKind.Variable,
+        insertText: inPropertyValue ? v : `"${v}"`,
       }));
   }
 

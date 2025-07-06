@@ -426,9 +426,10 @@ export class PropertyNodeType<T = string | number> {
       }
 
       return this.values(property).map((v) => ({
-        label: inValue ? `${v}` : `"${v}"`,
+        label: `"${v}"`,
         kind: CompletionItemKind.Variable,
         sortText: v === this.def ? `A${v}` : `Z${v}`,
+        insertText: inValue ? `${v}` : `"${v}"`,
       }));
     }
 
@@ -438,9 +439,10 @@ export class PropertyNodeType<T = string | number> {
       )
     ) {
       return this.values(property).map((v) => ({
-        label: inValue ? `${v}` : `<${v}>`,
+        label: `<${v}>`,
         kind: CompletionItemKind.Variable,
         sortText: v === this.def ? `A${v}` : `Z${v}`,
+        insertText: inValue ? `${v}` : `<${v}>`,
       }));
     }
 
