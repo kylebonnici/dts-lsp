@@ -296,7 +296,7 @@ connection.onInitialize((params: InitializeParams) => {
   connection.console.log(
     `[Server(${process.pid}) ${
       workspaceFolder?.at(0)?.uri
-    } Version 0.4.6 ] Started and initialize received`
+    } Version 0.4.7 ] Started and initialize received`
   );
 
   const capabilities = params.capabilities;

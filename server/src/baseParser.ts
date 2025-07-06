@@ -734,7 +734,10 @@ export abstract class BaseParser {
 
     const start = this.currentToken;
     let end: Token | undefined = start;
-    while (this.currentToken?.pos.line === line) {
+    while (
+      this.currentToken?.pos.line === line &&
+      isPathEqual(this.currentToken?.uri, token.uri)
+    ) {
       end = this.moveToNextToken;
     }
 
