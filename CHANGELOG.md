@@ -9,6 +9,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Parser reporting `Unknown Syntax` in some exeptional cases for no apparent reason.
+- Parser support negative values in expression e.g.
+```
+/ {
+	node {
+		lower-temperature-limit = <(-100)>;
+	};
+};
+```
 
 ## [0.4.6] - 2025-07-06
 

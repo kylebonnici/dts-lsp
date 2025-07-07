@@ -567,8 +567,18 @@ export abstract class BaseParser {
     return numberValue;
   }
 
-  protected processDec(): NumberValue | undefined {
+  protected processDec(allowOperator = false): NumberValue | undefined {
     this.enqueueToStack();
+
+    let operator: Token | undefined;
+    if (
+      allowOperator &&
+      (validToken(this.currentToken, LexerToken.NEG_OPERATOR) ||
+        validToken(this.currentToken, LexerToken.ADD_OPERATOR)) &&
+      adjacentTokens(this.currentToken, this.currentToken?.nextToken)
+    ) {
+      operator = this.moveToNextToken;
+    }
 
     const valid = this.consumeAnyConcurrentTokens(
       [LexerToken.DIGIT].map(validateToken)
@@ -579,10 +589,15 @@ export abstract class BaseParser {
       return;
     }
 
-    const num = Number.parseInt(valid.map((v) => v.value).join(""), 10);
+    let num = Number.parseInt(valid.map((v) => v.value).join(""), 10);
+
+    if (operator && validToken(operator, LexerToken.NEG_OPERATOR)) {
+      num = 0xffffffff - num;
+    }
+
     const numberValue = new NumberValue(
       num,
-      createTokenIndex(valid[0], valid.at(-1))
+      createTokenIndex(operator ?? valid[0], valid.at(-1))
     );
 
     this.mergeStack();
@@ -645,7 +660,7 @@ export abstract class BaseParser {
       this.isFunctionCall(macros) ||
       this.processCIdentifier(macros, false) ||
       this.processHex() ||
-      this.processDec();
+      this.processDec(true);
     if (!expression) {
       this.popStack();
       return;
