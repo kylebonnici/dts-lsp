@@ -54,7 +54,7 @@ export class Comment extends ASTBase {
       );
     }
 
-    const match = str.match(/^\s*(?:\/\/|\/\*+)\s*(.*?)\s*\*?\/?\s*$/s);
+    const match = str.match(/^\s*(?:(?:\/\/|\/\*+)\s*)?(.*?)\s*(?:\*\/)?\s*$/s);
     return match ? match[1] : "";
   }
 }

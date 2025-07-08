@@ -1157,7 +1157,26 @@ const formatBlockCommentLine = (
     return [];
   }
 
+  const result: TextEdit[] = [];
   let prifix: string = "";
+  const commentStr = commentItem.toString();
+  if (
+    lineType === "last" &&
+    commentStr.trim() !== "" &&
+    commentItem.lastToken.prevToken
+  ) {
+    lineType = "comment";
+    result.push(
+      ...ensureOnNewLineAndMax1EmptyLineToPrev(
+        commentItem.lastToken.prevToken,
+        levelMeta?.level ?? 0,
+        indentString,
+        documentText,
+        " "
+      )
+    );
+  }
+
   switch (lineType) {
     case "comment":
       prifix = commentItem.firstToken.value === "*" ? " " : " * ";
@@ -1170,22 +1189,28 @@ const formatBlockCommentLine = (
   }
 
   if (levelMeta?.inAst instanceof DtcBaseNode) {
-    return ensureOnNewLineAndMax1EmptyLineToPrev(
-      commentItem.firstToken,
-      levelMeta?.level ?? 0,
-      indentString,
-      documentText,
-      prifix
+    result.push(
+      ...ensureOnNewLineAndMax1EmptyLineToPrev(
+        commentItem.firstToken,
+        levelMeta?.level ?? 0,
+        indentString,
+        documentText,
+        prifix
+      )
+    );
+  } else {
+    result.push(
+      ...ensureOnNewLineAndMax1EmptyLineToPrev(
+        commentItem.firstToken,
+        levelMeta?.level ?? 0,
+        indentString,
+        documentText,
+        getPropertyIndentPrefix(settings, levelMeta?.inAst, prifix)
+      )
     );
   }
 
-  return ensureOnNewLineAndMax1EmptyLineToPrev(
-    commentItem.firstToken,
-    levelMeta?.level ?? 0,
-    indentString,
-    documentText,
-    getPropertyIndentPrefix(settings, levelMeta?.inAst, prifix)
-  );
+  return result;
 };
 
 const formatComment = (

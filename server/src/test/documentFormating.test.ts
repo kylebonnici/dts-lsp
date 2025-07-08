@@ -557,6 +557,12 @@ describe("Document formating", () => {
       expect(newText).toEqual("/* foo */");
     });
 
+    test("Traling */", async () => {
+      const documentText = "\n/* foo \nbar */";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/* foo\n * bar\n */");
+    });
+
     test("multiple new lines on top of document", async () => {
       const documentText = "\n\n/* foo */";
       const newText = await getNewText(documentText);
