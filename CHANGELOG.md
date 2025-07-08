@@ -4,12 +4,20 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.4.7] - Unreleased
+## [0.4.7] - 2025-07-08
+
+### Added
+
+- Disable formatting from between line where `// dts-format off` is to `// dts-format on`
+- Disable formatting from between line and character where start `/* dts-format off */`
+  is to line and character where `/* dts-format on */` ends
 
 ### Fixed
 
+- Comment Block formating `*/` now wraps to a new line.
 - Parser reporting `Unknown Syntax` in some exeptional cases for no apparent reason.
 - Parser support negative values in expression e.g.
+
 ```
 / {
 	node {

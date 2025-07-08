@@ -170,8 +170,82 @@ export async function getDocumentFormatting(
     result.push(...removeTrailingWhitespace(splitDocument, result));
   }
 
-  return result;
+  const formatOnOffMeta = pairFormatOnOff(fileRootAsts, splitDocument);
+  return formatOnOffMeta.length
+    ? result.filter(
+        (edit) => !isFormattingDisabledAt(edit.range.start, formatOnOffMeta)
+      )
+    : result;
 }
+const pairFormatOnOff = (
+  fileRootAsts: ASTBase[],
+  documentLines: string[]
+): Range[] => {
+  const last = Position.create(
+    documentLines.length - 1,
+    documentLines.at(-1)?.length ?? 0
+  );
+
+  const formatControlRanges: Range[] = [];
+  let pendingOff: { start: Position } | undefined;
+
+  const controlComments = fileRootAsts
+    .filter(
+      (ast) =>
+        (ast instanceof CommentBlock || ast instanceof Comment) &&
+        /^dts-format (on|off)$/.test(ast.toString().trim())
+    )
+
+    .sort((a, b) => a.firstToken.pos.line - b.firstToken.pos.line);
+
+  controlComments.forEach((ast) => {
+    const value = ast.toString().trim();
+
+    if (value === "dts-format off") {
+      pendingOff = {
+        start: Position.create(
+          ast.firstToken.pos.line,
+          ast instanceof CommentBlock ? ast.firstToken.pos.colEnd : 0
+        ),
+      };
+    } else if (value === "dts-format on" && pendingOff) {
+      const end = Position.create(
+        ast.lastToken.pos.line,
+        ast instanceof CommentBlock
+          ? ast.lastToken.pos.colEnd - 1
+          : documentLines[ast.lastToken.pos.line - 1].length
+      );
+      formatControlRanges.push(Range.create(pendingOff.start, end));
+      pendingOff = undefined;
+    }
+  });
+
+  // If still "off" with no "on", use last known AST node as document end
+  if (pendingOff) {
+    formatControlRanges.push(Range.create(pendingOff.start, last));
+  }
+
+  return formatControlRanges;
+};
+
+function comparePositions(a: Position, b: Position): number {
+  if (a.line < b.line) return -1;
+  if (a.line > b.line) return 1;
+  if (a.character < b.character) return -1;
+  if (a.character > b.character) return 1;
+  return 0;
+}
+
+const isFormattingDisabledAt = (
+  pos: Position,
+  disabledRanges: Range[]
+): boolean => {
+  return disabledRanges.some(
+    (range) =>
+      comparePositions(pos, range.start) >= 0 &&
+      comparePositions(pos, range.end) <= 0
+  );
+};
 
 const removeTrailingWhitespace = (
   documentText: string[],
@@ -1083,7 +1157,26 @@ const formatBlockCommentLine = (
     return [];
   }
 
+  const result: TextEdit[] = [];
   let prifix: string = "";
+  const commentStr = commentItem.toString();
+  if (
+    lineType === "last" &&
+    commentStr.trim() !== "" &&
+    commentItem.lastToken.prevToken
+  ) {
+    lineType = "comment";
+    result.push(
+      ...ensureOnNewLineAndMax1EmptyLineToPrev(
+        commentItem.lastToken.prevToken,
+        levelMeta?.level ?? 0,
+        indentString,
+        documentText,
+        " "
+      )
+    );
+  }
+
   switch (lineType) {
     case "comment":
       prifix = commentItem.firstToken.value === "*" ? " " : " * ";
@@ -1096,22 +1189,28 @@ const formatBlockCommentLine = (
   }
 
   if (levelMeta?.inAst instanceof DtcBaseNode) {
-    return ensureOnNewLineAndMax1EmptyLineToPrev(
-      commentItem.firstToken,
-      levelMeta?.level ?? 0,
-      indentString,
-      documentText,
-      prifix
+    result.push(
+      ...ensureOnNewLineAndMax1EmptyLineToPrev(
+        commentItem.firstToken,
+        levelMeta?.level ?? 0,
+        indentString,
+        documentText,
+        prifix
+      )
+    );
+  } else {
+    result.push(
+      ...ensureOnNewLineAndMax1EmptyLineToPrev(
+        commentItem.firstToken,
+        levelMeta?.level ?? 0,
+        indentString,
+        documentText,
+        getPropertyIndentPrefix(settings, levelMeta?.inAst, prifix)
+      )
     );
   }
 
-  return ensureOnNewLineAndMax1EmptyLineToPrev(
-    commentItem.firstToken,
-    levelMeta?.level ?? 0,
-    indentString,
-    documentText,
-    getPropertyIndentPrefix(settings, levelMeta?.inAst, prifix)
-  );
+  return result;
 };
 
 const formatComment = (

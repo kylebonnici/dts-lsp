@@ -557,6 +557,12 @@ describe("Document formating", () => {
       expect(newText).toEqual("/* foo */");
     });
 
+    test("Traling */", async () => {
+      const documentText = "\n/* foo \nbar */";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/* foo\n * bar\n */");
+    });
+
     test("multiple new lines on top of document", async () => {
       const documentText = "\n\n/* foo */";
       const newText = await getNewText(documentText);
@@ -1126,6 +1132,12 @@ describe("Document formating", () => {
       );
     });
 
+    test("after semicolon", async () => {
+      const documentText = `&i2c1 {\n\tprop1;    \n};     \n&spi1 {};     `;
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(`&i2c1 {\n\tprop1;\n};\n&spi1 { };`);
+    });
+
     test("move to new lines", async () => {
       const documentText = `sysclk: system-clock {
 	compatible = "fixed-clock";
@@ -1139,6 +1151,34 @@ describe("Document formating", () => {
 	clock-frequency = <25000000>;
 	#clock-cells = <0>;
 };`
+      );
+    });
+  });
+
+  describe("Format on off", () => {
+    test("line comment off and on", async () => {
+      const documentText =
+        "// dts-format off \n/ {\n    \n};\n// dts-format on\n/ {\n    \n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "// dts-format off \n/ {\n    \n};\n// dts-format on\n/ { };"
+      );
+    });
+
+    test("line comment only off", async () => {
+      const documentText = "// dts-format off \n/ {\n    \n};\n/ {\n    \n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "// dts-format off \n/ {\n    \n};\n/ {\n    \n};"
+      );
+    });
+
+    test("block comment on off", async () => {
+      const documentText =
+        "/ {\n\tprop   =   /* dts-format off  */     <10     20   /* dts-format on  */  30   40>;\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tprop =\t/* dts-format off  */     <10     20   /* dts-format on  */ 30 40>;\n};"
       );
     });
   });
