@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Mark any `zephyr` binding that LSP is unable to be loaded or find with a `hint` diagnostic and `Unnecessary` tag
 
+### Fixed
+
+- Issue with loading `zephyr` bindings with multiple `zephyrBindings` directories in configuration.
+
 ## [0.4.7] - 2025-07-08
 
 ### Added

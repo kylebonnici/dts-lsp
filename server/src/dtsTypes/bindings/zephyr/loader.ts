@@ -325,36 +325,36 @@ export class ZephyrBindingsLoader {
   private loadTypeAndCache(folders: string | string[]) {
     folders = Array.isArray(folders) ? folders : [folders];
 
-    folders.forEach((f) => {
-      if (this.readFolders.indexOf(f) !== -1) {
-        return;
-      }
+    const bindings = folders
+      .filter((f) => !this.readFolders.includes(f))
+      .flatMap((f) => {
+        this.readFolders.push(f);
 
-      this.readFolders.push(f);
+        const g = glob.sync("**/*.yaml", { cwd: f, ignore: "test/*" });
+        return g
+          .map((bindingFile) => {
+            bindingFile = resolve(f, bindingFile);
+            try {
+              const readData = yaml.parse(readFileSync(bindingFile, "utf-8"));
+              return {
+                ...readData,
+                include: simplifiyInclude(readData?.include),
+                filePath: bindingFile,
+              } as ZephyrBindingYml;
+            } catch (e) {
+              console.warn(e);
+            }
+          })
+          .filter((b) => !!b) as ZephyrBindingYml[];
+      });
 
-      const g = glob.sync("**/*.yaml", { cwd: f, ignore: "test/*" });
-      const bindings = g
-        .map((bindingFile) => {
-          bindingFile = resolve(f, bindingFile);
-          try {
-            const readData = yaml.parse(readFileSync(bindingFile, "utf-8"));
-            return {
-              ...readData,
-              include: simplifiyInclude(readData?.include),
-              filePath: bindingFile,
-            } as ZephyrBindingYml;
-          } catch (e) {
-            console.warn(e);
-          }
-        })
-        .filter((b) => !!b) as ZephyrBindingYml[];
+    const resolvedBindings = bindings
+      .map((b) => {
+        return resolveBinding(bindings, b);
+      })
+      .filter((b) => !!b && !b.include.length) as ZephyrBindingYml[];
 
-      const resolvedBindings = bindings
-        .map((b) => resolveBinding(bindings, b))
-        .filter((b) => !!b && !b.include.length) as ZephyrBindingYml[];
-
-      convertBindingsToType(resolvedBindings, this.typeCache);
-    });
+    convertBindingsToType(resolvedBindings, this.typeCache);
   }
 
   getBindings() {
