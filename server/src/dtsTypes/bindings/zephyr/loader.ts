@@ -41,6 +41,7 @@ import {
 } from "vscode-languageserver";
 import { Property } from "../../../context/property";
 import { BindingPropertyType } from "../../../types/index";
+import { ASTBase } from "src/ast/base";
 
 type ZephyrPropertyType =
   | "string"
@@ -270,30 +271,55 @@ export class ZephyrBindingsLoader {
 
     if (!bindings?.length) return;
 
-    return bindings.map((v) => (v?.value as StringValue).value);
+    return bindings.map((v) =>
+      v?.value
+        ? {
+            name: (v.value as StringValue).value,
+            ast: v.value,
+          }
+        : undefined
+    );
   }
 
-  getNodeTypes(folders: string[], node: Node): NodeType[] {
-    const compatible = ZephyrBindingsLoader.getNodeCompatible(node);
+  getNodeTypes(
+    folders: string[],
+    node: Node
+  ): { type: NodeType[]; issues: FileDiagnostic[] } {
+    const compatible = ZephyrBindingsLoader.getNodeCompatible(node)?.filter(
+      (v) => v
+    ) as
+      | {
+          name: string;
+          ast: ASTBase;
+        }[]
+      | undefined;
 
     if (!compatible) {
-      return [getStandardType(node)];
-    }
-
-    const cachedType = compatible
-      .map((c) => this.typeCache.get(c)?.(node))
-      .filter((t) => t) as NodeType[];
-
-    if (cachedType.length) {
-      return cachedType;
+      return { type: [getStandardType(node)], issues: [] };
     }
 
     this.loadTypeAndCache(folders);
+
     const out = compatible
-      .map((c) => this.typeCache.get(c)?.(node))
+      .map((c) => this.typeCache.get(c.name)?.(node))
       .filter((t) => t) as NodeType[];
 
-    return out.length ? out : [getStandardType(node)];
+    const issues = compatible.flatMap((c) =>
+      !c || this.typeCache.has(c.name)
+        ? []
+        : [
+            genStandardTypeDiagnostic(
+              StandardTypeIssue.MISSING_BINDING_FILE,
+              c.ast,
+              DiagnosticSeverity.Hint,
+              [],
+              [DiagnosticTag.Unnecessary],
+              [c.name]
+            ),
+          ]
+    );
+
+    return { type: out.length ? out : [getStandardType(node)], issues };
   }
 
   private loadTypeAndCache(folders: string | string[]) {

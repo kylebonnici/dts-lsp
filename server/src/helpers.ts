@@ -943,6 +943,8 @@ export const standardTypeIssueIssuesToMessage = (
           return `Map entry overlaps with others entries`;
         case StandardTypeIssue.NO_NEXUS_MAP_MATCH:
           return `Unable to match to a nexus map entry`;
+        case StandardTypeIssue.MISSING_BINDING_FILE:
+          return `"Unknown node type "${issue.templateStrings[0]}"`;
       }
     })
     .join(" or ")

@@ -26,7 +26,7 @@ export const getFakeBindingLoader = (): BindingLoader => ({
     deviceOrgTreeBindings: [],
   },
   getNodeTypes: (node: Node) => {
-    return Promise.resolve([getStandardType(node)]);
+    return Promise.resolve({ type: [getStandardType(node)], issues: [] });
   },
   getBindings: () => [],
 });

@@ -73,6 +73,7 @@ export enum StandardTypeIssue {
   EXCEEDS_MAPPING_ADDRESS,
   DUPLICATE_MAP_ENTRY,
   NO_NEXUS_MAP_MATCH,
+  MISSING_BINDING_FILE,
 }
 
 export enum SyntaxIssue {

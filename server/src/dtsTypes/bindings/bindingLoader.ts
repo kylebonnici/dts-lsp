@@ -16,12 +16,15 @@
 
 import type { BindingType } from "../../types/index";
 import { Node } from "../../context/node";
-import { INodeType, NodeType } from "../types";
+import { INodeType } from "../types";
 import { getDevicetreeOrgBindingsLoader } from "./devicetree-org/loader";
 import { getZephyrBindingsLoader } from "./zephyr/loader";
+import { FileDiagnostic } from "src/types";
 
 export interface BindingLoader {
-  getNodeTypes(node: Node): Promise<INodeType[]>;
+  getNodeTypes(
+    node: Node
+  ): Promise<{ type: INodeType[]; issues: FileDiagnostic[] }>;
   readonly type: BindingType;
   readonly files: BindingLoaderFileType;
   getBindings(): string[];
@@ -48,11 +51,14 @@ export const getBindingLoader = (
         );
 
       case "DevicetreeOrg":
-        return getDevicetreeOrgBindingsLoader().getNodeTypes(
-          files.deviceOrgBindingsMetaSchema,
-          files.deviceOrgTreeBindings,
-          node
-        );
+        return {
+          type: getDevicetreeOrgBindingsLoader().getNodeTypes(
+            files.deviceOrgBindingsMetaSchema,
+            files.deviceOrgTreeBindings,
+            node
+          ),
+          issues: [], // TODO
+        };
     }
   },
   getBindings: () => {

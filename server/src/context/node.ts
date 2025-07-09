@@ -271,6 +271,7 @@ export class Node {
     ];
   }
 
+  private missingBinding: FileDiagnostic[] = [];
   get issues(): FileDiagnostic[] {
     const issues = [
       ...this.property.flatMap((p) => p.issues),
@@ -278,6 +279,7 @@ export class Node {
       ...this._deletedNodes.flatMap((n) => n.node.issues),
       ...this.deletedPropertiesIssues,
       ...this.deletedNodesIssues,
+      ...this.missingBinding,
     ];
     if (this.name === "/" && this.definitions.length) {
       if (!this._nodes.some((n) => n.name === "cpus")) {
@@ -508,9 +510,10 @@ export class Node {
 
     if (property.name === "compatible") {
       if (this.bindingLoader) {
-        this.bindingLoader
-          .getNodeTypes(this)
-          .then((t) => (this._nodeTypes = t));
+        this.bindingLoader.getNodeTypes(this).then((t) => {
+          this._nodeTypes = t.type;
+          this.missingBinding.push(...t.issues);
+        });
       } else {
         this._nodeTypes = [getStandardType(this)];
       }

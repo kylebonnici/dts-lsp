@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.4.8] - 2025-07-09
+
+### Added
+
+- Mark any `zephyr` binding that LSP is unable to be loaded or find with a `hint` diagnostic and `Unnecessary` tag
+
 ## [0.4.7] - 2025-07-08
 
 ### Added
