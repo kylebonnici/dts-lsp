@@ -11,11 +11,17 @@
     "url": "https://github.com/kylebonnici/dts-lsp"
   },
   "publisher": "KyleMicallefBonnici",
-  "categories": [],
+  "categories": [
+    "Linters",
+    "Formatters",
+    "Programming Languages",
+    "Snippets"
+  ],
   "keywords": [
     "dts",
     "devicetree",
-    "lsp"
+    "lsp",
+    "formatting"
   ],
   "engines": {
     "vscode": "^1.75.0"

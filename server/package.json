@@ -5,10 +5,17 @@
   "package-name": "devicetree-language-server",
   "main": "dist/server.js",
   "version": "0.4.7",
+  "categories": [
+    "Linters",
+    "Formatters",
+    "Programming Languages",
+    "Snippets"
+  ],
   "keywords": [
     "dts",
     "devicetree",
-    "lsp"
+    "lsp",
+    "formatting"
   ],
   "files": [
     "dist/server.js",
