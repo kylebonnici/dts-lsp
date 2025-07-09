@@ -42,6 +42,7 @@ import {
 import { Property } from "../../../context/property";
 import { BindingPropertyType } from "../../../types/index";
 import { ASTBase } from "src/ast/base";
+import { getSimpleBusType } from "src/dtsTypes/standardTypes/nodeTypes/simpleBus/node";
 
 type ZephyrPropertyType =
   | "string"
@@ -260,6 +261,10 @@ const simplifiyInclude = (
 export class ZephyrBindingsLoader {
   private typeCache: Map<string, (node: Node) => NodeType> = new Map();
   private readFolders: string[] = [];
+
+  constructor() {
+    this.typeCache.set("simple-bus", () => getSimpleBusType());
+  }
 
   static getNodeCompatible(node: Node) {
     const compatible = node.getProperty("compatible");

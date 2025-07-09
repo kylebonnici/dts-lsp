@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Mark any `zephyr` binding that LSP is unable to be loaded or find with a `hint` diagnostic and `Unnecessary` tag
+- Standard `simple-bus` binding from DTS specification
 
 ### Fixed
 
@@ -24,8 +25,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Comment Block formating `*/` now wraps to a new line.
-- Parser reporting `Unknown Syntax` in some exeptional cases for no apparent reason.
+- Comment Block formatting `*/` now wraps to a new line.
+- Parser reporting `Unknown Syntax` in some exceptional cases for no apparent reason.
 - Parser support negative values in expression e.g.
 
 ```
@@ -44,7 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- More improvements and stability to formating.
+- More improvements and stability to formatting.
 - OnHover over Node names.
 - Incorrect macro completion list when inside a string.
 - Parser now support `\` at end of line when calling a macro.
@@ -54,7 +55,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Support for node name by path refereance e.g
+- Support for node name by path reference e.g
 
 ```devicetree
 &{/node1/node2@20/node3}{
@@ -75,7 +76,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 };
 ```
 
-- Fix issue where `/delete-node/` did not respect order when used inside referance node e.g.
+- Fix issue where `/delete-node/` did not respect order when used inside reference node e.g.
 
 ```devicetree
 n1& {
@@ -89,9 +90,9 @@ n1& {
 - Parser can handel node unit addresses ending with `ULL`. A diagnostic warning is show in this case.
 - Parser can handel node unit addresses with `_` e.g `node@8_000_00`.
 - Improve semantic tokens for node paths e.g. `...&{/node1/node2@20/node3}`
-- Diagnostic error when node path referance have space between ampersand and open curly e.g. `&  {...}`
-- Formating issue when the same file is included multiple times.
-- Comment formating inside a ref node e.g.
+- Diagnostic error when node path reference have space between ampersand and open curly e.g. `&  {...}`
+- Formatting issue when the same file is included multiple times.
+- Comment formatting inside a ref node e.g.
 
 ```devicetree
 &n1 {
@@ -100,7 +101,7 @@ n1& {
 }
 ```
 
-- Formating when properties are included e.g.
+- Formatting when properties are included e.g.
 
 ```devicetree
 &qspi {
@@ -121,7 +122,7 @@ n1& {
 
 ### Fixed
 
-- Formating now allows empty node `};` to be on the same line like so `&node { };`
+- Formatting now allows empty node `};` to be on the same line like so `&node { };`
 
 ## [0.4.3] - 2025-06-27
 
@@ -155,7 +156,7 @@ n1& {
 
 ### Changed
 
-- Moved property type exampels to native lsp signature help.
+- Moved property type examples to native lsp signature help.
 
 ### Fixed
 
