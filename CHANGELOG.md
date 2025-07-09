@@ -9,7 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Mark any `zephyr` binding that LSP is unable to be loaded or find with a `hint` diagnostic and `Unnecessary` tag
-- Standard `simple-bus` binding from DTS specification
+- Standard `simple-bus` binding from DTS specification.
+- Automatically look for binding with zephyr bindings next to board file in `boardFile/dtc/bindings`
 
 ### Fixed
 

@@ -88,7 +88,7 @@ import {
   resolveContextSetting,
   resolveSettings,
 } from "./settings";
-import { basename, relative } from "path";
+import { basename, dirname, join, relative } from "path";
 import { getActions } from "./getActions";
 import { getSignatureHelp } from "./signatureHelp";
 import { createPatch } from "diff";
@@ -456,12 +456,19 @@ const createContext = async (context: ResolvedContext) => {
     `(ID: ${id}) Settings: ${JSON.stringify(context, undefined, "\t")}`
   );
 
+  const zephyrBoardBindingPath = join(
+    dirname(context.dtsFile),
+    "dts",
+    "bindings"
+  );
   const newContext = new ContextAware(
     context,
     context.bindingType
       ? getBindingLoader(
           {
-            zephyrBindings: context.zephyrBindings ?? [],
+            zephyrBindings: context.zephyrBindings
+              ? [zephyrBoardBindingPath, ...context.zephyrBindings]
+              : [zephyrBoardBindingPath],
             deviceOrgBindingsMetaSchema:
               context.deviceOrgBindingsMetaSchema ?? [],
             deviceOrgTreeBindings: context.deviceOrgTreeBindings ?? [],
