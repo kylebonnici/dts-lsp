@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.4.9] - Unreleased
+
+### Fixed
+
+- Issue with caching incorrect zephy binding for multiple context with different root binding directories
+
 ## [0.4.8] - 2025-07-09
 
 ### Added

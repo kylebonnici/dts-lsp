@@ -39,35 +39,39 @@ export interface BindingLoaderFileType {
 export const getBindingLoader = (
   files: BindingLoaderFileType,
   type: BindingType
-): BindingLoader => ({
-  files,
-  type,
-  getNodeTypes: async (node: Node) => {
-    switch (type) {
-      case "Zephyr":
-        return getZephyrBindingsLoader().getNodeTypes(
-          files.zephyrBindings,
-          node
-        );
+): BindingLoader => {
+  const zephyrKey = files.zephyrBindings.join(":");
+  return {
+    files,
+    type,
+    getNodeTypes: async (node: Node) => {
+      switch (type) {
+        case "Zephyr":
+          return getZephyrBindingsLoader().getNodeTypes(
+            files.zephyrBindings,
+            node,
+            zephyrKey
+          );
 
-      case "DevicetreeOrg":
-        return {
-          type: getDevicetreeOrgBindingsLoader().getNodeTypes(
-            files.deviceOrgBindingsMetaSchema,
-            files.deviceOrgTreeBindings,
-            node
-          ),
-          issues: [], // TODO
-        };
-    }
-  },
-  getBindings: () => {
-    switch (type) {
-      case "Zephyr":
-        return getZephyrBindingsLoader().getBindings();
+        case "DevicetreeOrg":
+          return {
+            type: getDevicetreeOrgBindingsLoader().getNodeTypes(
+              files.deviceOrgBindingsMetaSchema,
+              files.deviceOrgTreeBindings,
+              node
+            ),
+            issues: [], // TODO
+          };
+      }
+    },
+    getBindings: () => {
+      switch (type) {
+        case "Zephyr":
+          return getZephyrBindingsLoader().getBindings(zephyrKey);
 
-      case "DevicetreeOrg":
-        return getDevicetreeOrgBindingsLoader().getBindings();
-    }
-  },
-});
+        case "DevicetreeOrg":
+          return getDevicetreeOrgBindingsLoader().getBindings();
+      }
+    },
+  };
+};

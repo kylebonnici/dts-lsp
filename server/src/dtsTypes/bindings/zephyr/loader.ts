@@ -259,12 +259,9 @@ const simplifiyInclude = (
 };
 
 export class ZephyrBindingsLoader {
-  private typeCache: Map<string, (node: Node) => NodeType> = new Map();
-  private readFolders: string[] = [];
-
-  constructor() {
-    this.typeCache.set("simple-bus", () => getSimpleBusType());
-  }
+  private typeCache: Map<string, Map<string, (node: Node) => NodeType>> =
+    new Map();
+  private zephyrBindingCache: Map<string, ZephyrBindingYml> = new Map();
 
   static getNodeCompatible(node: Node) {
     const compatible = node.getProperty("compatible");
@@ -288,7 +285,8 @@ export class ZephyrBindingsLoader {
 
   getNodeTypes(
     folders: string[],
-    node: Node
+    node: Node,
+    key: string
   ): { type: NodeType[]; issues: FileDiagnostic[] } {
     const compatible = ZephyrBindingsLoader.getNodeCompatible(node)?.filter(
       (v) => v
@@ -303,14 +301,14 @@ export class ZephyrBindingsLoader {
       return { type: [getStandardType(node)], issues: [] };
     }
 
-    this.loadTypeAndCache(folders);
+    this.loadTypeAndCache(folders, key);
 
     const out = compatible
-      .map((c) => this.typeCache.get(c.name)?.(node))
+      .map((c) => this.typeCache.get(key)?.get(c.name)?.(node))
       .filter((t) => t) as NodeType[];
 
     const issues = compatible.flatMap((c) =>
-      !c || this.typeCache.has(c.name)
+      !c || this.typeCache.get(key)?.has(c.name)
         ? []
         : [
             genStandardTypeDiagnostic(
@@ -327,31 +325,33 @@ export class ZephyrBindingsLoader {
     return { type: out.length ? out : [getStandardType(node)], issues };
   }
 
-  private loadTypeAndCache(folders: string | string[]) {
+  private loadTypeAndCache(folders: string | string[], key: string) {
     folders = Array.isArray(folders) ? folders : [folders];
 
-    const bindings = folders
-      .filter((f) => !this.readFolders.includes(f))
-      .flatMap((f) => {
-        this.readFolders.push(f);
-
-        const g = glob.sync("**/*.yaml", { cwd: f, ignore: "test/*" });
-        return g
-          .map((bindingFile) => {
-            bindingFile = resolve(f, bindingFile);
-            try {
-              const readData = yaml.parse(readFileSync(bindingFile, "utf-8"));
-              return {
-                ...readData,
-                include: simplifiyInclude(readData?.include),
-                filePath: bindingFile,
-              } as ZephyrBindingYml;
-            } catch (e) {
-              console.warn(e);
-            }
-          })
-          .filter((b) => !!b) as ZephyrBindingYml[];
-      });
+    const bindings = folders.flatMap((f) => {
+      const g = glob.sync("**/*.yaml", { cwd: f, ignore: "test/*" });
+      return g
+        .map((bindingFile) => {
+          bindingFile = resolve(f, bindingFile);
+          if (this.zephyrBindingCache.has(bindingFile)) {
+            return this.zephyrBindingCache.get(bindingFile)!;
+          }
+          try {
+            const readData = yaml.parse(readFileSync(bindingFile, "utf-8"));
+            const obj = {
+              ...readData,
+              compatible: readData.compatible ?? basename(bindingFile, ".yaml"),
+              include: simplifiyInclude(readData?.include),
+              filePath: bindingFile,
+            } as ZephyrBindingYml;
+            this.zephyrBindingCache.set(bindingFile, obj);
+            return obj;
+          } catch (e) {
+            console.warn(e);
+          }
+        })
+        .filter((b) => !!b) as ZephyrBindingYml[];
+    });
 
     const resolvedBindings = bindings
       .map((b) => {
@@ -359,11 +359,17 @@ export class ZephyrBindingsLoader {
       })
       .filter((b) => !!b && !b.include.length) as ZephyrBindingYml[];
 
-    convertBindingsToType(resolvedBindings, this.typeCache);
+    let typeCache = this.typeCache.get(key);
+    if (!typeCache) {
+      typeCache = new Map();
+      typeCache.set("simple-bus", () => getSimpleBusType());
+      this.typeCache.set(key, typeCache);
+    }
+    convertBindingsToType(resolvedBindings, typeCache);
   }
 
-  getBindings() {
-    return Array.from(this.typeCache.keys());
+  getBindings(key: string) {
+    return Array.from(this.typeCache.get(key)?.keys() ?? []);
   }
 }
 
@@ -378,20 +384,17 @@ const convertBindingsToType = (
   map: Map<string, (node: Node) => NodeType>
 ) => {
   return bindings.forEach((binding) => {
-    const compatible =
-      binding.compatible ??
-      (binding.filePath ? basename(binding.filePath, ".yaml") : undefined);
-    if (compatible) {
-      map.set(compatible, (node: Node) => convertBindingToType(binding, node));
+    if (binding.compatible) {
+      map.set(binding.compatible, (node: Node) =>
+        convertBindingToType(binding, node)
+      );
     }
   });
 };
 
 const convertBindingToType = (binding: ZephyrBindingYml, node?: Node) => {
   const nodeType = getStandardType(node);
-  nodeType.compatible =
-    binding.compatible ??
-    (binding.filePath ? basename(binding.filePath, ".yaml") : undefined);
+  nodeType.compatible = binding.compatible;
   nodeType.description = binding.description;
   nodeType.bindingsPath = binding.filePath;
   nodeType.bus = typeof binding.bus === "string" ? [binding.bus] : binding.bus;
