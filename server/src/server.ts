@@ -652,7 +652,7 @@ const reportNoContextFiles = () => {
         version: documents.get(u)?.version,
         diagnostics: [
           {
-            severity: DiagnosticSeverity.Warning,
+            severity: DiagnosticSeverity.Information,
             range: Range.create(Position.create(0, 0), Position.create(0, 0)),
             message: "File not in active context",
             source: "devicetree",

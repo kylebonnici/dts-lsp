@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.4.9] - Unreleased
 
+### Changed
+
+- 'File not in context' downgraded from warning to information
+
 ### Fixed
 
 - Issue with caching incorrect zephy binding for multiple context with different root binding directories
