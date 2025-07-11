@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Issue with caching incorrect zephy binding for multiple context with different root binding directories
+- Performance regression introduced in v0.4.8
 
 ## [0.4.8] - 2025-07-09
 
