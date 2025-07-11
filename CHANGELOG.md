@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.4.9] - Unreleased
+## [0.4.9] - 2025-07-11
 
 ### Added
 
@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Warning for zephyr context when using pinctrl and `pinctrl-name` property does not have a name for each pinctrl state
 - Warning for zephyr context when phandel-array and `<space-specifier>-name` property does not have a name for each phandel-array item
 - Warning when parent node has `ranges` defined and child node has `reg` that does not map to any range
-- Warning when child nodes have overlapping reg values
+- Inform when child nodes have overlapping reg values
 
 ### Changed
 

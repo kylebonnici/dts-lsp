@@ -311,7 +311,7 @@ export class Node {
                   new ASTBase(
                     createTokenIndex(node.definitions.at(-1)!.firstToken)
                   ),
-                DiagnosticSeverity.Warning,
+                DiagnosticSeverity.Information,
                 collidingNodes.map((n) => n.reg.ast),
                 undefined,
                 [
