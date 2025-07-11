@@ -69,7 +69,11 @@ type ZephyrBindingsProperty = {
 };
 interface ZephyrBindingYml {
   filePath: string;
-  include: { name: string; "property-blocklist"?: string[] }[];
+  include: {
+    name: string;
+    "property-blocklist"?: string[];
+    "property-allowlist"?: string[];
+  }[];
   description?: string;
   compatible?: string;
   "child-binding"?: ZephyrBindingYml;
@@ -156,9 +160,18 @@ const resolveBinding = (
     const toMergeIn = bindings.find((b) => basename(b.filePath) === c.name);
     if (toMergeIn) {
       const propertiesToExclude = c["property-blocklist"];
+      const propertiesToInclude = c["property-allowlist"];
       binding.extends?.push(...p.include.map((i) => basename(i.name, ".yaml")));
       p.include = p.include.filter((i) => i !== c);
-      return mergeAintoB(bindings, toMergeIn, p, propertiesToExclude) ?? p;
+      return (
+        mergeAintoB(
+          bindings,
+          toMergeIn,
+          p,
+          propertiesToExclude,
+          propertiesToInclude
+        ) ?? p
+      );
     }
     console.warn(`Unable to find ${c}`);
     return p;
@@ -183,7 +196,8 @@ const mergeAintoB = (
   bindings: ZephyrBindingYml[],
   a: ZephyrBindingYml,
   b: ZephyrBindingYml,
-  propertiesToExclude: string[] = []
+  propertiesToExclude: string[] = [],
+  propertiesToInclude?: string[]
 ): ZephyrBindingYml | undefined => {
   const resolvedA = resolveBinding(bindings, a);
   const resolvedB = resolveBinding(bindings, b);
@@ -203,9 +217,11 @@ const mergeAintoB = (
 
   let newProperties = {};
   Array.from(allPropertiesNames).forEach((name) => {
-    const propertyFromA = propertiesToExclude?.some((n) => n === name)
-      ? {}
-      : resolvedA.properties?.[name] ?? {};
+    const propertyFromA =
+      propertiesToExclude?.some((n) => n === name) ||
+      (propertiesToInclude && !propertiesToInclude.some((n) => n === name)) // as per zephyr we cannot have both propertiesToExclude and propertiesToInclude
+        ? {}
+        : resolvedA.properties?.[name] ?? {};
     const propertyFromB = resolvedB.properties?.[name] ?? {};
 
     newProperties = {
@@ -245,9 +261,20 @@ const mergeAintoB = (
 const simplifiyInclude = (
   include:
     | string
-    | (string | { name: string; "property-blocklist"?: string[] })[]
+    | (
+        | string
+        | {
+            name: string;
+            "property-blocklist"?: string[];
+            "property-allowlist"?: string[];
+          }
+      )[]
     | undefined
-): { name: string; "property-blocklist"?: string[] }[] => {
+): {
+  name: string;
+  "property-blocklist"?: string[];
+  "property-allowlist"?: string[];
+}[] => {
   if (!include) {
     return [];
   }
@@ -400,6 +427,7 @@ const convertBindingToType = (binding: ZephyrBindingYml, node?: Node) => {
   nodeType.bus = typeof binding.bus === "string" ? [binding.bus] : binding.bus;
   nodeType.onBus = binding["on-bus"];
   binding.extends?.forEach((e) => nodeType.extends.add(e));
+  nodeType.warnMismatchProperties = true;
 
   const cellsKeys = Object.keys(binding).filter((key) =>
     key.endsWith("-cells")

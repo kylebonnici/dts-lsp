@@ -511,6 +511,7 @@ export abstract class INodeType {
 export class NodeType extends INodeType {
   #properties: PropertyNodeType[] = [];
   public noMismatchPropertiesAllowed = false;
+  public warnMismatchProperties = false;
   #childNodeType?: (node: Node) => NodeType;
 
   constructor(
@@ -579,15 +580,19 @@ export class NodeType extends INodeType {
 
     if (
       machedSet.size !== node.property.length &&
-      this.noMismatchPropertiesAllowed
+      (this.noMismatchPropertiesAllowed || this.warnMismatchProperties)
     ) {
       const mismatch = node.property.filter((p) => !machedSet.has(p));
       mismatch.forEach((p) => {
         issue.push(
           genStandardTypeDiagnostic(
-            StandardTypeIssue.PROPERTY_NOT_ALLOWED,
+            this.warnMismatchProperties
+              ? StandardTypeIssue.PROPERTY_NOT_IN_BINDING
+              : StandardTypeIssue.PROPERTY_NOT_ALLOWED,
             p.ast,
-            DiagnosticSeverity.Error,
+            this.warnMismatchProperties
+              ? DiagnosticSeverity.Warning
+              : DiagnosticSeverity.Error,
             [],
             [],
             [p.name],

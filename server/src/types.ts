@@ -74,6 +74,7 @@ export enum StandardTypeIssue {
   DUPLICATE_MAP_ENTRY,
   NO_NEXUS_MAP_MATCH,
   MISSING_BINDING_FILE,
+  PROPERTY_NOT_IN_BINDING,
 }
 
 export enum SyntaxIssue {

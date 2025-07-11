@@ -903,6 +903,8 @@ export const standardTypeIssueIssuesToMessage = (
           return `INTRO should be omitted`;
         case StandardTypeIssue.PROPERTY_NOT_ALLOWED:
           return `INTRO name is not permitted under this node`;
+        case StandardTypeIssue.PROPERTY_NOT_IN_BINDING:
+          return `INTRO name is not defined in the type binding for this node`;
         case StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_ADDRESS_VALUE:
           return `INTRO address value must match node address`;
         case StandardTypeIssue.EXPECTED_DEVICE_TYPE_CPU:
