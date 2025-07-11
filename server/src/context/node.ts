@@ -306,11 +306,7 @@ export class Node {
             if (collidingNodes.length) {
               return genContextDiagnostic(
                 ContextIssues.ADDRESS_RANGE_COLLIDES,
-                node.getProperty("reg")?.ast.values ??
-                  node.definitions.at(-1)!.name ??
-                  new ASTBase(
-                    createTokenIndex(node.definitions.at(-1)!.firstToken)
-                  ),
+                reg.ast,
                 DiagnosticSeverity.Information,
                 collidingNodes.map((n) => n.reg.ast),
                 undefined,
