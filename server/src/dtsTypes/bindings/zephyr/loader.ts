@@ -357,33 +357,43 @@ export class ZephyrBindingsLoader {
     folders = Array.isArray(folders) ? folders : [folders];
 
     const bindings = folders
-      .filter((f) => !this.processedFolders.has(f))
-      .flatMap((f) => {
-        this.processedFolders.add(f);
-        const g = glob.sync("**/*.yaml", { cwd: f, ignore: "test/*" });
-        return g
-          .map((bindingFile) => {
-            bindingFile = resolve(f, bindingFile);
-            if (this.zephyrBindingCache.has(bindingFile)) {
-              return this.zephyrBindingCache.get(bindingFile)!;
-            }
-            try {
-              const readData = yaml.parse(readFileSync(bindingFile, "utf-8"));
-              const obj = {
-                ...readData,
-                compatible:
-                  readData.compatible ?? basename(bindingFile, ".yaml"),
-                include: simplifiyInclude(readData?.include),
-                filePath: bindingFile,
-              } as ZephyrBindingYml;
-              this.zephyrBindingCache.set(bindingFile, obj);
-              return obj;
-            } catch (e) {
-              console.warn(e);
-            }
-          })
-          .filter((b) => !!b) as ZephyrBindingYml[];
-      });
+      .filter((f) => this.processedFolders.has(f))
+      .flatMap((f) =>
+        Array.from(this.zephyrBindingCache.entries()).flatMap(([ff, binding]) =>
+          ff.startsWith(f) ? [binding] : []
+        )
+      );
+
+    bindings.push(
+      ...folders
+        .filter((f) => !this.processedFolders.has(f))
+        .flatMap((f) => {
+          this.processedFolders.add(f);
+          const g = glob.sync("**/*.yaml", { cwd: f, ignore: "test/*" });
+          return g
+            .map((bindingFile) => {
+              bindingFile = resolve(f, bindingFile);
+              if (this.zephyrBindingCache.has(bindingFile)) {
+                return this.zephyrBindingCache.get(bindingFile)!;
+              }
+              try {
+                const readData = yaml.parse(readFileSync(bindingFile, "utf-8"));
+                const obj = {
+                  ...readData,
+                  compatible:
+                    readData.compatible ?? basename(bindingFile, ".yaml"),
+                  include: simplifiyInclude(readData?.include),
+                  filePath: bindingFile,
+                } as ZephyrBindingYml;
+                this.zephyrBindingCache.set(bindingFile, obj);
+                return obj;
+              } catch (e) {
+                console.warn(e);
+              }
+            })
+            .filter((b) => !!b) as ZephyrBindingYml[];
+        })
+    );
 
     const resolvedBindings = bindings
       .map((b) => {
