@@ -115,10 +115,21 @@ export default () => {
           if (!reg) return;
 
           childNode.mappedReg(macros)?.forEach((mappedAddress) => {
+            if (mappedAddress.missingMapping) {
+              const rangesProperty = childNode.parent?.getProperty("ranges");
+              issues.push(
+                genStandardTypeDiagnostic(
+                  StandardTypeIssue.UNABLE_TO_FIND_MAPPING,
+                  mappedAddress.regAst,
+                  DiagnosticSeverity.Warning,
+                  rangesProperty ? [rangesProperty.ast] : []
+                )
+              );
+              return;
+            }
             if (!mappedAddress?.mappingEnd || !mappedAddress.mappedAst) return;
 
             if (!mappedAddress.inMappingRange) {
-              mappedAddress.regAst;
               issues.push(
                 genStandardTypeDiagnostic(
                   StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS,

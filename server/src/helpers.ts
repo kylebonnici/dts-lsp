@@ -939,6 +939,8 @@ export const standardTypeIssueIssuesToMessage = (
           return issue.templateStrings[0];
         case StandardTypeIssue.INVALID_VALUE:
           return issue.templateStrings[0];
+        case StandardTypeIssue.UNABLE_TO_FIND_MAPPING:
+          return `Unable to find mapping range for address`;
         case StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS:
           return `INTRO exceeds address space avalable for this mapping. The range ends at ${issue.templateStrings[2]}, the node ends at ${issue.templateStrings[1]}`;
         case StandardTypeIssue.DUPLICATE_MAP_ENTRY:
@@ -977,6 +979,8 @@ export const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
       return `Nexus map entries`;
     case StandardTypeIssue.MISSING_VALUE_NAME:
       return `Names property`;
+    case StandardTypeIssue.UNABLE_TO_FIND_MAPPING:
+      return `Range property`;
     default:
       return `TODO`;
   }

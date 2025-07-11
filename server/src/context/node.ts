@@ -80,6 +80,7 @@ type MappedReg = {
   mappingEnd?: number[];
   mappedAst?: ASTBase;
   regAst: ASTBase;
+  missingMapping: boolean;
 };
 
 export class Node {
@@ -799,7 +800,6 @@ export class Node {
           const size = reg.size;
 
           const endEddress = addWords(startAddress, size);
-          const parentEndMapReg = this.parent?.mappedReg(macros);
 
           const mappedReg: MappedReg = {
             startAddress,
@@ -809,6 +809,7 @@ export class Node {
             endAddressRaw: endEddress,
             inMappingRange: false,
             regAst: reg.ast,
+            missingMapping: false,
           };
 
           if (!mappings) {
@@ -818,6 +819,7 @@ export class Node {
           const mappedAddress = findMappedAddress(mappings, startAddress);
 
           if (!mappedAddress.length) {
+            mappedReg.missingMapping = true;
             return [mappedReg];
           }
 

@@ -76,6 +76,7 @@ export enum StandardTypeIssue {
   MISSING_BINDING_FILE,
   MISSING_VALUE_NAME,
   PROPERTY_NOT_IN_BINDING,
+  UNABLE_TO_FIND_MAPPING,
 }
 
 export enum SyntaxIssue {
