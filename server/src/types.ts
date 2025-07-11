@@ -146,6 +146,7 @@ export enum ContextIssues {
   DELETE_NODE,
   UNABLE_TO_RESOLVE_NODE_PATH,
   MISSING_NODE,
+  ADDRESS_RANGE_COLLIDES,
 }
 
 export enum LexerToken {
@@ -284,7 +285,7 @@ export interface Issue<T extends IssueTypes> {
   astElement: ASTBase;
   severity?: DiagnosticSeverity;
   tags?: DiagnosticTag[];
-  linkedTo: ASTBase[];
+  linkedTo: { ast: ASTBase; templateStrings: string[] }[];
   templateStrings: string[];
   edit?: TextEdit;
   codeActionTitle?: string;

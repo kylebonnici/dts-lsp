@@ -265,7 +265,10 @@ export const genSyntaxDiagnostic = (
     issues: Array.isArray(issues) ? issues : [issues],
     astElement: slxBase,
     severity,
-    linkedTo,
+    linkedTo: linkedTo.map((ast) => ({
+      ast,
+      templateStrings: [],
+    })),
     tags,
     templateStrings,
     edit,
@@ -321,13 +324,17 @@ export const genContextDiagnostic = (
   tags: DiagnosticTag[] | undefined = undefined,
   templateStrings: string[] = [],
   edit?: TextEdit,
-  codeActionTitle?: string
+  codeActionTitle?: string,
+  linkedToTemplateStrings: string[][] = []
 ): FileDiagnostic => {
   const issue: Issue<ContextIssues> = {
     issues: Array.isArray(issues) ? issues : [issues],
     astElement: slxBase,
     severity,
-    linkedTo,
+    linkedTo: linkedTo.map((ast, i) => ({
+      ast,
+      templateStrings: linkedToTemplateStrings.at(i) ?? [],
+    })),
     tags,
     templateStrings,
     edit,
@@ -345,10 +352,14 @@ export const genContextDiagnostic = (
       tags: issue.tags,
       relatedInformation: [
         ...issue.linkedTo.map((element) => ({
-          message: issue.issues.map(contextIssuesToLinkedMessage).join(" or "),
+          message: issue.issues
+            .map((i) =>
+              contextIssuesToLinkedMessage(i, element.templateStrings)
+            )
+            .join(" or "),
           location: {
-            uri: pathToFileURL(element.uri!),
-            range: toRange(element),
+            uri: pathToFileURL(element.ast.uri!),
+            range: toRange(element.ast),
           },
         })),
       ],
@@ -378,7 +389,10 @@ export const genStandardTypeDiagnostic = (
     issues: Array.isArray(issues) ? issues : [issues],
     astElement: slxBase,
     severity,
-    linkedTo,
+    linkedTo: linkedTo.map((ast) => ({
+      ast,
+      templateStrings: [],
+    })),
     tags,
     templateStrings,
     edit,
@@ -396,8 +410,8 @@ export const genStandardTypeDiagnostic = (
         ...issue.linkedTo.map((element) => ({
           message: issue.issues.map(standardTypeToLinkedMessage).join(" or "),
           location: {
-            uri: pathToFileURL(element.uri!),
-            range: toRange(element),
+            uri: pathToFileURL(element.ast.uri!),
+            range: toRange(element.ast),
           },
         })),
       ],
@@ -850,12 +864,17 @@ export const contextIssuesToMessage = (issue: Issue<ContextIssues>) => {
           return `Node "${issue.templateStrings[0]}" was deleted`;
         case ContextIssues.MISSING_NODE:
           return `The following node "${issue.templateStrings[1]}" shall be present in "${issue.templateStrings[0]}" node.`;
+        case ContextIssues.ADDRESS_RANGE_COLLIDES:
+          return `The following node "${issue.templateStrings[0]}" address range collides with another node. Address start: "${issue.templateStrings[1]}", end: "${issue.templateStrings[2]}".`;
       }
     })
     .join(" or ");
 };
 
-export const contextIssuesToLinkedMessage = (issue: ContextIssues) => {
+export const contextIssuesToLinkedMessage = (
+  issue: ContextIssues,
+  templateStrings: string[]
+) => {
   switch (issue) {
     case ContextIssues.DUPLICATE_PROPERTY_NAME:
       return "Property name already defined.";
@@ -868,6 +887,8 @@ export const contextIssuesToLinkedMessage = (issue: ContextIssues) => {
       return "Deleted here";
     case ContextIssues.MISSING_NODE:
       return "Node";
+    case ContextIssues.ADDRESS_RANGE_COLLIDES:
+      return `Node "${templateStrings[0]}". Address start: "${templateStrings[1]}", end: "${templateStrings[2]}".`;
     default:
       return "TODO";
   }

@@ -56,8 +56,8 @@ describe("Context Issues", () => {
     expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(2);
     expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(8);
 
-    expect(issues[0].raw.linkedTo[0].firstToken.pos.col).toEqual(8);
-    expect(issues[0].raw.linkedTo[0].lastToken.pos.colEnd).toEqual(14);
+    expect(issues[0].raw.linkedTo[0].ast.firstToken.pos.col).toEqual(8);
+    expect(issues[0].raw.linkedTo[0].ast.lastToken.pos.colEnd).toEqual(14);
   });
 
   test("Delete non existing property", async () => {
@@ -237,8 +237,8 @@ describe("Context Issues", () => {
     expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(2);
     expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(5);
 
-    expect(issues[0].raw.linkedTo[0].firstToken.pos.col).toEqual(15);
-    expect(issues[0].raw.linkedTo[0].lastToken.pos.colEnd).toEqual(18);
+    expect(issues[0].raw.linkedTo[0].ast.firstToken.pos.col).toEqual(15);
+    expect(issues[0].raw.linkedTo[0].ast.lastToken.pos.colEnd).toEqual(18);
   });
 
   test("Delete non existing node", async () => {
@@ -325,8 +325,8 @@ describe("Context Issues", () => {
       expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(2);
       expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(10);
 
-      expect(issues[0].raw.linkedTo[0].firstToken.pos.col).toEqual(11);
-      expect(issues[0].raw.linkedTo[0].lastToken.pos.colEnd).toEqual(30);
+      expect(issues[0].raw.linkedTo[0].ast.firstToken.pos.col).toEqual(11);
+      expect(issues[0].raw.linkedTo[0].ast.lastToken.pos.colEnd).toEqual(30);
     });
 
     test("Delete Node with name with address", async () => {

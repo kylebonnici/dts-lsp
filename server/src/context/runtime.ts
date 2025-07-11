@@ -173,7 +173,10 @@ export class Runtime implements Searchable {
   }
 
   get issues(): FileDiagnostic[] {
-    return [...this.labelIssues(), ...this.rootNode.issues];
+    return [
+      ...this.labelIssues(),
+      ...this.rootNode.getIssues(this.context.macros),
+    ];
   }
 
   private labelIssues() {

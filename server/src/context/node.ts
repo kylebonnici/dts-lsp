@@ -115,6 +115,13 @@ export class Node {
     parent?.addNode(this);
   }
 
+  get disabled() {
+    const statusProperty = this.getProperty("status");
+    const value = statusProperty?.ast.quickValues;
+
+    return value?.at(0) === "disabled";
+  }
+
   get nodeTypes(): INodeType[] {
     if (this._nodeTypes) {
       return this._nodeTypes;
@@ -272,15 +279,80 @@ export class Node {
     ];
   }
 
+  getOverlappinNodeAddressesIssues(
+    macros: Map<string, MacroRegistryItem>
+  ): FileDiagnostic[] {
+    return this._nodes
+      .filter((n) => !n.disabled)
+      .flatMap((node) => {
+        const regs = node.regArray(macros);
+        const otherNodes = this._nodes.filter((n) => n !== node && !n.disabled);
+
+        return (
+          regs?.flatMap((reg) => {
+            const collidingNodes = otherNodes
+              .flatMap((otherNode) =>
+                otherNode
+                  .regArray(macros)
+                  ?.filter(
+                    (r) =>
+                      compareWords(r.startAddress, reg.endAddress) < 0 &&
+                      compareWords(reg.startAddress, r.endAddress) < 0
+                  )
+                  .flatMap((r) => ({ reg: r, node: otherNode }))
+              )
+              .filter((v) => !!v);
+
+            if (collidingNodes.length) {
+              return genContextDiagnostic(
+                ContextIssues.ADDRESS_RANGE_COLLIDES,
+                node.getProperty("reg")?.ast.values ??
+                  node.definitions.at(-1)!.name ??
+                  new ASTBase(
+                    createTokenIndex(node.definitions.at(-1)!.firstToken)
+                  ),
+                DiagnosticSeverity.Warning,
+                collidingNodes.map((n) => n.reg.ast),
+                undefined,
+                [
+                  node.fullName,
+                  `0x${reg.startAddress
+                    .map((c, i) => c.toString(16).padStart(i ? 8 : 0, "0"))
+                    .join("")}`,
+                  `0x${reg.endAddress
+                    .map((c, i) => c.toString(16).padStart(i ? 8 : 0, "0"))
+                    .join("")}`,
+                ],
+                undefined,
+                undefined,
+                collidingNodes.map((n) => [
+                  n.node.fullName,
+                  `0x${n.reg.startAddress
+                    .map((c, i) => c.toString(16).padStart(i ? 8 : 0, "0"))
+                    .join("")}`,
+                  `0x${n.reg.endAddress
+                    .map((c, i) => c.toString(16).padStart(i ? 8 : 0, "0"))
+                    .join("")}`,
+                ])
+              );
+            }
+
+            return [];
+          }) ?? []
+        );
+      });
+  }
+
   private missingBinding: FileDiagnostic[] = [];
-  get issues(): FileDiagnostic[] {
+  getIssues(macros: Map<string, MacroRegistryItem>): FileDiagnostic[] {
     const issues = [
       ...this.property.flatMap((p) => p.issues),
-      ...this._nodes.flatMap((n) => n.issues),
-      ...this._deletedNodes.flatMap((n) => n.node.issues),
+      ...this._nodes.flatMap((n) => n.getIssues(macros)),
+      ...this._deletedNodes.flatMap((n) => n.node.getIssues(macros)),
       ...this.deletedPropertiesIssues,
       ...this.deletedNodesIssues,
       ...this.missingBinding,
+      ...this.getOverlappinNodeAddressesIssues(macros),
     ];
     if (this.name === "/" && this.definitions.length) {
       if (!this._nodes.some((n) => n.name === "cpus")) {

@@ -525,23 +525,21 @@ export class NodeType extends INodeType {
 
   getIssue(runtime: Runtime, node: Node) {
     const issue: FileDiagnostic[] = [];
-    const statusProperty = node.getProperty("status");
-    const value = statusProperty?.ast.values?.values.at(0)?.value;
-    if (value instanceof StringValue) {
-      if (value.value === "disabled") {
-        [...node.definitions, ...node.referencedBy].forEach((n) =>
-          issue.push(
-            genStandardTypeDiagnostic(
-              StandardTypeIssue.NODE_DISABLED,
-              n,
-              DiagnosticSeverity.Hint,
-              [...(statusProperty?.ast ? [statusProperty?.ast] : [])],
-              [DiagnosticTag.Unnecessary]
-            )
+
+    if (node.disabled) {
+      const statusProperty = node.getProperty("status");
+      [...node.definitions, ...node.referencedBy].forEach((n) =>
+        issue.push(
+          genStandardTypeDiagnostic(
+            StandardTypeIssue.NODE_DISABLED,
+            n,
+            DiagnosticSeverity.Hint,
+            [...(statusProperty?.ast ? [statusProperty?.ast] : [])],
+            [DiagnosticTag.Unnecessary]
           )
-        );
-        return issue;
-      }
+        )
+      );
+      return issue;
     }
 
     const machedSet = new Set<Property>();
