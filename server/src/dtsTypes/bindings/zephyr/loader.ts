@@ -33,7 +33,7 @@ import {
   MacroRegistryItem,
   StandardTypeIssue,
 } from "../../../types";
-import { genStandardTypeDiagnostic } from "../../../helpers";
+import { createTokenIndex, genStandardTypeDiagnostic } from "../../../helpers";
 import {
   DiagnosticSeverity,
   DiagnosticTag,
@@ -41,8 +41,8 @@ import {
 } from "vscode-languageserver";
 import { Property } from "../../../context/property";
 import { BindingPropertyType } from "../../../types/index";
-import { ASTBase } from "src/ast/base";
-import { getSimpleBusType } from "src/dtsTypes/standardTypes/nodeTypes/simpleBus/node";
+import { ASTBase } from "../../../ast/base";
+import { getSimpleBusType } from "../../../dtsTypes/standardTypes/nodeTypes/simpleBus/node";
 
 type ZephyrPropertyType =
   | "string"
@@ -617,6 +617,35 @@ const generateZephyrTypeCheck = (
       });
     }
 
+    const match = p.name.match(/^(.*)-(\d+)$/);
+    if (myProperty.type === "phandles" && match) {
+      let parentName = "";
+      if (name.endsWith("-gpios")) {
+        parentName = "gpio";
+      } else {
+        parentName = myProperty["specifier-space"] ?? match[1];
+      }
+
+      const index = Number.parseInt(match[2], 10);
+
+      const nameProperty = p.parent.getProperty(`${parentName}-names`);
+      if (nameProperty) {
+        const names = nameProperty.ast.quickValues;
+        if (!names?.at(index)) {
+          issues.push(
+            genStandardTypeDiagnostic(
+              StandardTypeIssue.MISSING_VALUE_NAME,
+              p.ast,
+              DiagnosticSeverity.Warning,
+              [nameProperty.ast],
+              [],
+              [p.name, index.toString()]
+            )
+          );
+        }
+      }
+    }
+
     if (myProperty.type === "phandle-array") {
       const values = flatNumberValues(p.ast.values);
       let i = 0;
@@ -725,6 +754,26 @@ const generateZephyrTypeCheck = (
             });
           }
         }
+
+        const nameProperty = p.parent.getProperty(`${parentName}-names`);
+        if (v && nameProperty) {
+          const names = nameProperty.ast.quickValues;
+          if (!names?.at(index)) {
+            issues.push(
+              genStandardTypeDiagnostic(
+                StandardTypeIssue.MISSING_VALUE_NAME,
+                new ASTBase(
+                  createTokenIndex(v.firstToken, values.at(i - 1)?.lastToken)
+                ),
+                DiagnosticSeverity.Warning,
+                [nameProperty.ast],
+                [],
+                [p.name, index.toString()]
+              )
+            );
+          }
+        }
+
         index++;
       }
 

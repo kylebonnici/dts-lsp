@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Warning when a property is used and it is not in the binding
 - Support for `property-allowlist` for Zephyr bindings
+- Warning for zephyr context when using pinctrl and `pinctrl-name` property does not have a name for each pinctrl state
+- Warning for zephyr context when phandel-array and `<space-specifier>-name` property does not have a name for each phandel-array item
 
 ### Changed
 

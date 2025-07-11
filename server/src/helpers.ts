@@ -946,7 +946,9 @@ export const standardTypeIssueIssuesToMessage = (
         case StandardTypeIssue.NO_NEXUS_MAP_MATCH:
           return `Unable to match to a nexus map entry`;
         case StandardTypeIssue.MISSING_BINDING_FILE:
-          return `"Unknown node type "${issue.templateStrings[0]}"`;
+          return `Unknown node type "${issue.templateStrings[0]}"`;
+        case StandardTypeIssue.MISSING_VALUE_NAME:
+          return `Missing name for "${issue.templateStrings[0]}" index ${issue.templateStrings[1]}"`;
       }
     })
     .join(" or ")
@@ -973,6 +975,8 @@ export const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
       return `Map entry`;
     case StandardTypeIssue.NO_NEXUS_MAP_MATCH:
       return `Nexus map entries`;
+    case StandardTypeIssue.MISSING_VALUE_NAME:
+      return `Names property`;
     default:
       return `TODO`;
   }
