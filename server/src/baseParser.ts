@@ -470,13 +470,6 @@ export abstract class BaseParser {
   ): CMacroCall | undefined {
     this.enqueueToStack();
 
-    if (
-      this.currentToken?.value === "\\" &&
-      this.currentToken.pos.line !== this.currentToken.nextToken?.pos.line
-    ) {
-      this.moveToNextToken;
-    }
-
     const identifier = this.processCIdentifier(macros, false);
     if (!identifier) {
       this.popStack();
@@ -606,13 +599,6 @@ export abstract class BaseParser {
 
   private processEnclosedExpression(macros: Map<string, MacroRegistryItem>) {
     this.enqueueToStack();
-
-    if (
-      this.currentToken?.value === "\\" &&
-      this.currentToken.pos.line !== this.currentToken.nextToken?.pos.line
-    ) {
-      this.moveToNextToken;
-    }
 
     let start: Token | undefined;
     let token: Token | undefined;
