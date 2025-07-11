@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - 'File not in context' downgraded from warning to information
+- Formating node enforce `<`, `>`, `[`, `]` to be on the same line as the value
 
 ### Fixed
 

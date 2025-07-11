@@ -1029,7 +1029,7 @@ describe("Document formating", () => {
       const documentText = "/ {\n\tprop11 = [\n\n10\n20\n30\n40\n]   ;\n};";
       const newText = await getNewText(documentText);
       expect(newText).toEqual(
-        "/ {\n\tprop11 = [\n\t\t\t  10\n\t\t\t  20\n\t\t\t  30\n\t\t\t  40\n\t\t\t ];\n};"
+        "/ {\n\tprop11 = [10\n\t\t\t  20\n\t\t\t  30\n\t\t\t  40];\n};"
       );
     });
 

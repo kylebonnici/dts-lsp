@@ -567,31 +567,36 @@ const formatLabeledValue = <T extends ASTBase>(
     );
   }
 
-  if (value.firstToken.pos.line !== value.firstToken.prevToken?.pos.line) {
-    const edit = removeNewLinesBetweenTokenAndPrev(
-      value.firstToken,
-      documentText,
-      1,
-      true
-    );
-    if (edit) result.push(edit);
-    result.push(
-      ...createIndentEdit(
+  if (value.firstToken.prevToken) {
+    if (
+      value.firstToken.pos.line !== value.firstToken.prevToken?.pos.line &&
+      value.firstToken.prevToken !== openBracket
+    ) {
+      const edit = removeNewLinesBetweenTokenAndPrev(
         value.firstToken,
-        level,
-        settings.singleIndent,
         documentText,
-        widthToPrefix(settings, propertyNameWidth + 4) // +4 ' = <'
-      )
-    );
-  } else {
-    result.push(
-      ...fixedNumberOfSpaceBetweenTokensAndNext(
-        value.firstToken.prevToken,
-        documentText,
-        openBracket && value.firstToken.prevToken === openBracket ? 0 : 1
-      )
-    );
+        1,
+        true
+      );
+      if (edit) result.push(edit);
+      result.push(
+        ...createIndentEdit(
+          value.firstToken,
+          level,
+          settings.singleIndent,
+          documentText,
+          widthToPrefix(settings, propertyNameWidth + 4) // +4 ' = <'
+        )
+      );
+    } else {
+      result.push(
+        ...fixedNumberOfSpaceBetweenTokensAndNext(
+          value.firstToken.prevToken,
+          documentText,
+          openBracket && value.firstToken.prevToken === openBracket ? 0 : 1
+        )
+      );
+    }
   }
 
   if (value.value instanceof Expression) {
@@ -625,36 +630,15 @@ const formatValue = (
     );
 
     if (value.closeBracket?.prevToken) {
-      if (
-        value.closeBracket.prevToken.pos.line === value.closeBracket.pos.line
-      ) {
-        result.push(
-          ...fixedNumberOfSpaceBetweenTokensAndNext(
-            value.closeBracket.prevToken,
-            documentText,
-            value.closeBracket.prevToken === value.values.at(-1)?.lastToken
-              ? 0
-              : 1
-          )
-        );
-      } else {
-        const edit = removeNewLinesBetweenTokenAndPrev(
-          value.closeBracket,
+      result.push(
+        ...fixedNumberOfSpaceBetweenTokensAndNext(
+          value.closeBracket.prevToken,
           documentText,
-          1,
-          true
-        );
-        if (edit) result.push(edit);
-        result.push(
-          ...createIndentEdit(
-            value.closeBracket,
-            level,
-            settings.singleIndent,
-            documentText,
-            widthToPrefix(settings, propertyNameWidth + 3) // +3 ' = '
-          )
-        );
-      }
+          value.closeBracket.prevToken === value.values.at(-1)?.lastToken
+            ? 0
+            : 1
+        )
+      );
     }
   } else if (value instanceof Expression) {
     result.push(...formatExpression(value, documentText));
