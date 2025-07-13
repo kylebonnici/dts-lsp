@@ -1421,7 +1421,7 @@ const linterFormat = async (event: DocumentFormattingParams) => {
   ).get(filePath);
 
   if (issues?.length) {
-    throw new Error("Unable to format. Files has sytnax issues.");
+    throw new Error("Unable to format. Files has syntax issues.");
   }
 
   const documentText = getTokenizedDocumentProvider().getDocument(filePath);
