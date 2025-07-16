@@ -1162,6 +1162,7 @@ ${"\t".repeat(level - 1)}}; ${isOmmited ? " */" : ""}`;
         nodeType instanceof NodeType
           ? {
               ...this.nodeType,
+              extends: Array.from(this.nodeType?.extends ?? []),
               properties: nodeType.properties.map((p) => ({
                 name: typeof p.name === "string" ? p.name : p.name.toString(),
                 allowedValues: p.allowedValues,

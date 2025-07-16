@@ -304,6 +304,7 @@ export abstract class SerializedBinding {
   }[];
   bindingsPath?: string;
   compatible?: string;
+  extends: string[] = [];
   properties?: {
     name: string;
     allowedValues: (number | string)[] | undefined;
