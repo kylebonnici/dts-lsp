@@ -378,10 +378,12 @@ export type SerializedNode = {
   issues: Diagnostic[];
   path: string;
   name: string;
+  disabled: boolean;
   nodes: SerializableNodeBase[];
   properties: SerializableDtcProperty[];
   childNodes: SerializedNode[];
   reg?: SerializedMappedReg[];
+  labels: string[];
 };
 
 export type Actions = ClipboardActions;
