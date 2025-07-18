@@ -77,7 +77,7 @@ interface ZephyrBindingYml {
   description?: string;
   compatible?: string;
   "child-binding"?: ZephyrBindingYml;
-  bus: string | string[];
+  bus: string[] | undefined;
   "on-bus": string;
   properties?: {
     [key: string]: ZephyrBindingsProperty;
@@ -380,8 +380,11 @@ export class ZephyrBindingsLoader {
                 const readData = yaml.parse(readFileSync(bindingFile, "utf-8"));
                 const obj = {
                   ...readData,
-                  compatible:
-                    readData.compatible ?? basename(bindingFile, ".yaml"),
+                  bus: readData.bus
+                    ? Array.isArray(readData.bus)
+                      ? readData.bus
+                      : [readData.bus]
+                    : undefined,
                   include: simplifiyInclude(readData?.include),
                   filePath: bindingFile,
                 } as ZephyrBindingYml;
