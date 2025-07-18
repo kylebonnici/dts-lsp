@@ -173,7 +173,7 @@ const resolveBinding = (
         ) ?? p
       );
     }
-    console.warn(`Unable to find ${c}`);
+    console.warn(`Unable to find ${c.name}`);
     return p;
   }, binding);
 
