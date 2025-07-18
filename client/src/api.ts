@@ -26,6 +26,7 @@ import {
   LanguageClient,
   NotificationType,
   TextDocumentPositionParams,
+  Disposable,
 } from "vscode-languageclient/node";
 import { IDeviceTreeAPI as IDeviceTreeAPI } from "./types";
 import { EventEmitter } from "events";
@@ -115,33 +116,41 @@ export class API implements IDeviceTreeAPI {
     ) as Promise<SerializedNode | undefined>;
   }
 
-  onActiveContextChange(listener: (ctx: ContextListItem | undefined) => void) {
+  onActiveContextChange(
+    listener: (ctx: ContextListItem | undefined) => void
+  ): Disposable {
     this.event.addListener("onActiveContextChange", listener);
-    return () => {
-      this.event.removeListener("onActiveContextChange", listener);
+    return {
+      dispose: () => {
+        this.event.removeListener("onActiveContextChange", listener);
+      },
     };
   }
 
-  onContextDeleted(listener: (ctx: ContextListItem) => void): () => void {
+  onContextDeleted(listener: (ctx: ContextListItem) => void) {
     this.event.addListener("onContextDeleted", listener);
-    return () => {
-      this.event.removeListener("onContextDeleted", listener);
+    return {
+      dispose: () => {
+        this.event.removeListener("onContextDeleted", listener);
+      },
     };
   }
 
-  onContextCreated(listener: (ctx: ContextListItem) => void): () => void {
+  onContextCreated(listener: (ctx: ContextListItem) => void) {
     this.event.addListener("onContextCreated", listener);
-    return () => {
-      this.event.removeListener("onContextCreated", listener);
+    return {
+      dispose: () => {
+        this.event.removeListener("onContextCreated", listener);
+      },
     };
   }
 
-  onSettingsChanged(
-    listener: (setiings: ResolvedSettings) => void
-  ): () => void {
+  onSettingsChanged(listener: (setiings: ResolvedSettings) => void) {
     this.event.addListener("onSettingsChanged", listener);
-    return () => {
-      this.event.removeListener("onSettingsChanged", listener);
+    return {
+      dispose: () => {
+        this.event.removeListener("onSettingsChanged", listener);
+      },
     };
   }
 
