@@ -81,6 +81,7 @@ import type {
   ResolvedContext,
   SerializedNode,
   Settings,
+  StableResult,
 } from "./types/index";
 import {
   defaultSettings,
@@ -698,6 +699,37 @@ const onChange = async (uri: string) => {
               });
             });
           }
+
+          context.serialize().then(async (node) => {
+            const [meta, fileTree] = await Promise.all([
+              contexMeta(context),
+              context.getFileTree(),
+            ]);
+            
+            const stableResult = {
+              node,
+              ctx: {
+                ctxNames: context.ctxNames.map((c) => c.toString()),
+                id: context.id,
+                ...fileTree,
+                settings: context.settings,
+                active: activeContext === context,
+                type: meta.type,
+              } as ContextListItem,
+            } satisfies StableResult;
+
+            if (activeContext === context) {
+              connection.sendNotification(
+                "devicetree/activeContextStableNotification",
+                stableResult
+              );
+            }
+
+            connection.sendNotification(
+              "devicetree/contextStableNotification",
+              stableResult
+            );
+          });
 
           resolve();
           console.log("reevaluate", performance.now() - t);

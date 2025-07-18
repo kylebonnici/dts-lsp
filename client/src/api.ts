@@ -21,6 +21,7 @@ import type {
   IntegrationSettings,
   ResolvedSettings,
   SerializedNode,
+  StableResult,
 } from "devicetree-language-server-types";
 import {
   LanguageClient,
@@ -40,6 +41,14 @@ const contextCreatedNotification = new NotificationType<ContextListItem>(
 const newActiveContextNotification = new NotificationType<
   ContextListItem | undefined
 >("devicetree/newActiveContext");
+
+const activeContextStableNotification = new NotificationType<StableResult>(
+  "devicetree/activeContextStableNotification"
+);
+const contextStableNotification = new NotificationType<StableResult>(
+  "devicetree/contextStableNotification"
+);
+
 const settingsChangedNotification = new NotificationType<ContextListItem>(
   "devicetree/settingsChanged"
 );
@@ -54,6 +63,12 @@ export class API implements IDeviceTreeAPI {
     );
     this.client.onNotification(newActiveContextNotification, (ctx) =>
       this.event.emit("onActiveContextChange", ctx)
+    );
+    this.client.onNotification(activeContextStableNotification, (result) =>
+      this.event.emit("onActiveContextStable", result)
+    );
+    this.client.onNotification(contextStableNotification, (result) =>
+      this.event.emit("onContextStable", result)
     );
     this.client.onNotification(settingsChangedNotification, (ctx) =>
       this.event.emit("onSettingsChanged", ctx)
@@ -123,6 +138,24 @@ export class API implements IDeviceTreeAPI {
     return {
       dispose: () => {
         this.event.removeListener("onActiveContextChange", listener);
+      },
+    };
+  }
+
+  onActiveContextStable(listener: (result: StableResult) => void) {
+    this.event.addListener("onActiveContextStable", listener);
+    return {
+      dispose: () => {
+        this.event.removeListener("onActiveContextStable", listener);
+      },
+    };
+  }
+
+  onContextStable(listener: (result: StableResult) => void) {
+    this.event.addListener("onContextStable", listener);
+    return {
+      dispose: () => {
+        this.event.removeListener("onContextStable", listener);
       },
     };
   }

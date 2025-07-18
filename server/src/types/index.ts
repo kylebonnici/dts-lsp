@@ -396,3 +396,8 @@ export type ClipboardActions = {
     | "path";
   data: string;
 };
+
+export type StableResult = {
+  ctx: ContextListItem;
+  node: SerializedNode;
+};
