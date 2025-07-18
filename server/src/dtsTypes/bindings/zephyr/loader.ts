@@ -255,6 +255,14 @@ const mergeAintoB = (
     resolvedB[name as CellSpecifier] = Array.from([...fromA, ...fromB]);
   });
 
+  resolvedB["on-bus"] ??= resolvedA["on-bus"];
+
+  if (!resolvedB.bus) {
+    resolvedB.bus = resolvedA.bus;
+  } else {
+    resolvedB.bus.push(...(resolvedA.bus ?? []));
+  }
+
   return resolvedB;
 };
 
