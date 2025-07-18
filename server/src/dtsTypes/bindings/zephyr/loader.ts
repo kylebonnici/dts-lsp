@@ -299,6 +299,17 @@ export class ZephyrBindingsLoader {
   private processedFolders = new Set<string>();
   private zephyrBindingCache: Map<string, ZephyrBindingYml> = new Map();
 
+  static getCompatibleKeys(compatable: string, parent?: Node | null) {
+    if (!parent || !parent.nodeType?.bus?.length) {
+      return [compatable];
+    }
+
+    return [
+      ...parent.nodeType.bus.map((bus) => `${compatable}::${bus}`),
+      compatable,
+    ];
+  }
+
   static getNodeCompatible(node: Node) {
     const compatible = node.getProperty("compatible");
     const values = compatible?.ast.values;
@@ -340,11 +351,18 @@ export class ZephyrBindingsLoader {
     this.loadTypeAndCache(folders, key);
 
     const out = compatible
-      .map((c) => this.typeCache.get(key)?.get(c.name)?.(node))
-      .filter((t) => t) as NodeType[];
+      .flatMap((c) =>
+        ZephyrBindingsLoader.getCompatibleKeys(c.name, node.parent).map(
+          (compatKey) => this.typeCache.get(key)?.get(compatKey)?.(node)
+        )
+      )
+      .filter((t) => !!t);
 
     const issues = compatible.flatMap((c) =>
-      !c || this.typeCache.get(key)?.has(c.name)
+      !c ||
+      ZephyrBindingsLoader.getCompatibleKeys(c.name, node.parent).some(
+        (compatKey) => this.typeCache.get(key)?.has(compatKey)
+      )
         ? []
         : [
             genStandardTypeDiagnostic(
@@ -422,7 +440,9 @@ export class ZephyrBindingsLoader {
   }
 
   getBindings(key: string) {
-    return Array.from(this.typeCache.get(key)?.keys() ?? []);
+    return Array.from(this.typeCache.get(key)?.keys() ?? []).map(
+      (b) => b.split("::", 1)[0]
+    );
   }
 }
 
@@ -438,8 +458,11 @@ const convertBindingsToType = (
 ) => {
   return bindings.forEach((binding) => {
     if (binding.compatible) {
-      map.set(binding.compatible, (node: Node) =>
-        convertBindingToType(binding, node)
+      map.set(
+        binding["on-bus"]
+          ? `${binding.compatible}::${binding["on-bus"]}`
+          : binding.compatible,
+        (node: Node) => convertBindingToType(binding, node)
       );
     }
   });
