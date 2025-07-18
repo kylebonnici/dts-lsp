@@ -579,10 +579,9 @@ export class Node {
 
     if (property.name === "compatible") {
       if (this.bindingLoader) {
-        this.bindingLoader.getNodeTypes(this).then((t) => {
-          this._nodeTypes = t.type;
-          this.missingBinding.push(...t.issues);
-        });
+        const t = this.bindingLoader.getNodeTypes(this);
+        this._nodeTypes = t.type;
+        this.missingBinding.push(...t.issues);
       } else {
         this._nodeTypes = [getStandardType(this)];
       }

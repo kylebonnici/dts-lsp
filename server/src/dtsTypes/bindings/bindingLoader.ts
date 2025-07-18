@@ -22,9 +22,7 @@ import { getZephyrBindingsLoader } from "./zephyr/loader";
 import { FileDiagnostic } from "src/types";
 
 export interface BindingLoader {
-  getNodeTypes(
-    node: Node
-  ): Promise<{ type: INodeType[]; issues: FileDiagnostic[] }>;
+  getNodeTypes(node: Node): { type: INodeType[]; issues: FileDiagnostic[] };
   readonly type: BindingType;
   readonly files: BindingLoaderFileType;
   getBindings(): string[];
@@ -44,7 +42,7 @@ export const getBindingLoader = (
   return {
     files,
     type,
-    getNodeTypes: async (node: Node) => {
+    getNodeTypes: (node: Node) => {
       switch (type) {
         case "Zephyr":
           return getZephyrBindingsLoader().getNodeTypes(
