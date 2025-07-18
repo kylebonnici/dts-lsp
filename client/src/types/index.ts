@@ -20,6 +20,7 @@ import type {
   IntegrationSettings,
   ResolvedSettings,
   SerializedNode,
+  StableResult,
 } from "devicetree-language-server-types";
 import { Disposable } from "vscode-languageclient/node";
 
@@ -39,6 +40,8 @@ export interface IDeviceTreeAPI {
   onActiveContextChange(
     listener: (ctx: ContextListItem | undefined) => void
   ): Disposable;
+  onActiveContextStable(listener: (result: StableResult) => void): Disposable;
+  onContextStable(listener: (result: StableResult) => void): Disposable;
   onContextDeleted(listener: (ctx: ContextListItem) => void): Disposable;
   onContextCreated(listener: (ctx: ContextListItem) => void): Disposable;
   onSettingsChanged(listener: (setiings: ResolvedSettings) => void): Disposable;
