@@ -33,6 +33,7 @@ import {
 } from "vscode-languageclient/node";
 import { IDeviceTreeAPI as IDeviceTreeAPI } from "./types";
 import { EventEmitter } from "events";
+import { getCurrentTextDocumentPositionParams } from "./helpers";
 
 const contextDeletedNotification = new NotificationType<ContextListItem>(
   "devicetree/contextDeleted"
@@ -105,17 +106,25 @@ export class API implements IDeviceTreeAPI {
     >;
   }
 
-  async getActivePath(
-    textDocumentPositionParams: TextDocumentPositionParams
-  ): Promise<LocationResult | undefined> {
-    const result = (await this.client.sendRequest(
-      "devicetree/activePath",
-      textDocumentPositionParams
-    )) as LocationResult | undefined;
+  async getActivePathLocation(): Promise<LocationResult | undefined> {
+    const result = await this.getPathLocation(
+      await getCurrentTextDocumentPositionParams()
+    );
 
-    this.event.emit("onActivePath", result);
+    if (result) {
+      this.event.emit("onActivePath", result);
+    }
 
     return result;
+  }
+
+  async getPathLocation(
+    textDocumentPositionParams: TextDocumentPositionParams
+  ): Promise<LocationResult | undefined> {
+    return await this.client.sendRequest<LocationResult | undefined>(
+      "devicetree/activePath",
+      textDocumentPositionParams
+    );
   }
 
   requestContext(ctx: Context) {

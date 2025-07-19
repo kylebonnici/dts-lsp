@@ -35,11 +35,14 @@ export interface IDeviceTreeAPI {
   getContexts(): Promise<ContextListItem[]>;
   setActiveContextById(id: string): Promise<boolean>;
   setActiveContextByName(name: string): Promise<boolean>;
-  getActivePath(
+  getActivePathLocation(): Promise<LocationResult>;
+  getPathLocation(
     textDocumentPositionParams: TextDocumentPositionParams
   ): Promise<LocationResult>;
   getActiveContext(): Promise<ContextListItem | undefined>;
-  copyZephyrCMacroIdentifier(textDocumentPositionParams: TextDocumentPositionParams): Promise<void>;
+  copyZephyrCMacroIdentifier(
+    textDocumentPositionParams: TextDocumentPositionParams
+  ): Promise<void>;
   requestContext(ctx: Context): Promise<ContextListItem>;
   removeContext(id: string, name: string): Promise<void>;
   compiledOutput(id?: string): Promise<string | undefined>;
