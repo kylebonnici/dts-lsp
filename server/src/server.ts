@@ -44,6 +44,7 @@ import {
   ContextId,
   Issue,
   IssueTypes,
+  SearchableResult,
   SyntaxIssue,
   tokenModifiers,
   tokenTypes,
@@ -55,6 +56,7 @@ import {
   findContexts,
   generateContextId,
   isPathEqual,
+  nodeFinder,
   pathToFileURL,
   resolveContextFiles,
 } from "./helpers";
@@ -78,6 +80,7 @@ import type {
   ContextListItem,
   ContextType,
   IntegrationSettings,
+  LocationResult,
   ResolvedContext,
   SerializedNode,
   Settings,
@@ -94,6 +97,7 @@ import { getActions } from "./getActions";
 import { getSignatureHelp } from "./signatureHelp";
 import { createPatch } from "diff";
 import { initHeapMonitor } from "./heapMonitor";
+import { Node } from "./context/node";
 
 const contextAware: ContextAware[] = [];
 let activeContext: ContextAware | undefined;
@@ -1551,6 +1555,42 @@ connection.onRequest(
     }
     const ctx = findContext(contextAware, { id });
     return ctx?.serialize();
+  }
+);
+
+connection.onRequest(
+  "devicetree/activePath",
+  async (
+    location: TextDocumentPositionParams
+  ): Promise<LocationResult | undefined> => {
+    await allStable();
+
+    if (!activeContext) {
+      return;
+    }
+
+    const action = (
+      locationMeta?: SearchableResult
+    ): LocationResult | undefined => {
+      if (!locationMeta?.item) {
+        return;
+      }
+
+      if (locationMeta.item instanceof Node) {
+        return { nodePath: locationMeta.item.pathString };
+      }
+
+      return {
+        nodePath: locationMeta.item.parent.pathString,
+        propertyName: locationMeta.item.name,
+      };
+    };
+
+    return (
+      await nodeFinder(location, activeContext, (locationMeta) => [
+        action(locationMeta),
+      ])
+    ).at(0);
   }
 );
 
