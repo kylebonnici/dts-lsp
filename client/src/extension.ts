@@ -186,10 +186,11 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand(
       "devicetree.clipboard.dtMacro",
-      async () => {
+      async (textDocumentPositionParams?: TextDocumentPositionParams) => {
         const actions = (
           await api.getAllowedActions(
-            await getCurrentTextDocumentPositionParams()
+            textDocumentPositionParams ??
+              (await getCurrentTextDocumentPositionParams())
           )
         ).filter(
           (a): a is ClipboardActions =>
