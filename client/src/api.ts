@@ -19,6 +19,7 @@ import type {
   Context,
   ContextListItem,
   IntegrationSettings,
+  LocationResult,
   ResolvedSettings,
   SerializedNode,
   StableResult,
@@ -98,9 +99,21 @@ export class API implements IDeviceTreeAPI {
   }
 
   getActiveContext() {
-    return this.client.sendRequest("devicetree/getActiveContext") as Promise<
-      ContextListItem | undefined
-    >;
+    const activePath = this.client.sendRequest(
+      "devicetree/getActiveContext"
+    ) as Promise<ContextListItem | undefined>;
+
+    this.event.emit("onActivePath", activePath);
+    return activePath;
+  }
+
+  getActivePath(
+    textDocumentPositionParams: TextDocumentPositionParams
+  ): Promise<LocationResult> {
+    return this.client.sendRequest(
+      "devicetree/activePath",
+      textDocumentPositionParams
+    ) as Promise<LocationResult | undefined>;
   }
 
   requestContext(ctx: Context) {
@@ -147,6 +160,15 @@ export class API implements IDeviceTreeAPI {
     return {
       dispose: () => {
         this.event.removeListener("onActiveContextStable", listener);
+      },
+    };
+  }
+
+  onActivePath(listener: (path: string) => void) {
+    this.event.addListener("onActivePath", listener);
+    return {
+      dispose: () => {
+        this.event.removeListener("onActivePath", listener);
       },
     };
   }

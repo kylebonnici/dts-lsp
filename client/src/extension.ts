@@ -204,6 +204,18 @@ export async function activate(context: vscode.ExtensionContext) {
         copyClibboardAction(actions, "Pick a macro to copy...");
       }
     ),
+    vscode.window.onDidChangeTextEditorSelection((event) => {
+      const editor = event.textEditor;
+      const position = editor.selection.active;
+      const document = editor.document;
+
+      // Construct TextDocumentPositionParams
+      const textDocumentPositionParams = {
+        textDocument: { uri: document.uri.toString() },
+        position: { line: position.line, character: position.character },
+      };
+      api.getActivePath(textDocumentPositionParams);
+    }),
     vscode.commands.registerCommand(
       "devicetree.clipboard.nodePath",
       async () => {
