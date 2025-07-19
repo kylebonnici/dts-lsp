@@ -39,6 +39,7 @@ export interface IDeviceTreeAPI {
     textDocumentPositionParams: TextDocumentPositionParams
   ): Promise<LocationResult>;
   getActiveContext(): Promise<ContextListItem | undefined>;
+  copyZephyrCMacroIdentifier(textDocumentPositionParams: TextDocumentPositionParams): Promise<void>;
   requestContext(ctx: Context): Promise<ContextListItem>;
   removeContext(id: string, name: string): Promise<void>;
   compiledOutput(id?: string): Promise<string | undefined>;
@@ -48,7 +49,7 @@ export interface IDeviceTreeAPI {
     listener: (ctx: ContextListItem | undefined) => void
   ): Disposable;
   onActiveContextStable(listener: (result: StableResult) => void): Disposable;
-  onActivePath(listener: (nodePath: string) => void): Disposable;
+  onActivePath(listener: (result: LocationResult) => void): Disposable;
   onContextStable(listener: (result: StableResult) => void): Disposable;
   onContextDeleted(listener: (ctx: ContextListItem) => void): Disposable;
   onContextCreated(listener: (ctx: ContextListItem) => void): Disposable;
