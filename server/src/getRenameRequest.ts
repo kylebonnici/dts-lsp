@@ -125,6 +125,7 @@ function getNodeLabelRename(
           (d) => d instanceof DtcChildNode
         ) as DtcChildNode[]
       ).flatMap((d) => d.labels.map((l) => l.label)),
+      ...node.referencedBy.flatMap((d) => d.labels.map((l) => l.label)),
       ...node.linkedRefLabels.map((l) => l.label),
     ]
       .filter((l) => l?.value === labelValue)

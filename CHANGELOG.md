@@ -8,7 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Issue with zephyt bindings when child node should use parent node bus type to find match
+- Issue with zephyt bindings when child node should use parent node bus type to find match.
+- Issue where renaming lables will not effect labels linked to a referanced node.
 
 ## [0.4.9] - 2025-07-11
 
