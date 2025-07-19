@@ -19,7 +19,7 @@ import { Node } from "../../context/node";
 import { INodeType } from "../types";
 import { getDevicetreeOrgBindingsLoader } from "./devicetree-org/loader";
 import { getZephyrBindingsLoader } from "./zephyr/loader";
-import { FileDiagnostic } from "src/types";
+import { FileDiagnostic } from "../../types";
 
 export interface BindingLoader {
   getNodeTypes(node: Node): { type: INodeType[]; issues: FileDiagnostic[] };

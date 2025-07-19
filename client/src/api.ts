@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import * as vscode from "vscode";
 import type {
   Actions,
   Context,
@@ -99,21 +100,22 @@ export class API implements IDeviceTreeAPI {
   }
 
   getActiveContext() {
-    const activePath = this.client.sendRequest(
-      "devicetree/getActiveContext"
-    ) as Promise<ContextListItem | undefined>;
-
-    this.event.emit("onActivePath", activePath);
-    return activePath;
+    return this.client.sendRequest("devicetree/getActiveContext") as Promise<
+      ContextListItem | undefined
+    >;
   }
 
-  getActivePath(
+  async getActivePath(
     textDocumentPositionParams: TextDocumentPositionParams
-  ): Promise<LocationResult> {
-    return this.client.sendRequest(
+  ): Promise<LocationResult | undefined> {
+    const result = (await this.client.sendRequest(
       "devicetree/activePath",
       textDocumentPositionParams
-    ) as Promise<LocationResult | undefined>;
+    )) as LocationResult | undefined;
+
+    this.event.emit("onActivePath", result);
+
+    return result;
   }
 
   requestContext(ctx: Context) {
@@ -135,6 +137,15 @@ export class API implements IDeviceTreeAPI {
       "devicetree/compiledDtsOutput",
       id
     ) as Promise<string | undefined>;
+  }
+
+  async copyZephyrCMacroIdentifier(
+    textDocumentPositionParams: TextDocumentPositionParams
+  ): Promise<void> {
+    await vscode.commands.executeCommand(
+      "devicetree.clipboard.dtMacro",
+      textDocumentPositionParams
+    );
   }
 
   serializedContext(id: string) {
@@ -164,7 +175,7 @@ export class API implements IDeviceTreeAPI {
     };
   }
 
-  onActivePath(listener: (path: string) => void) {
+  onActivePath(listener: (path: LocationResult) => void) {
     this.event.addListener("onActivePath", listener);
     return {
       dispose: () => {
