@@ -15,3 +15,5 @@ server
 !server/dist
 scripts
 bindings-schema.yaml
+dts-lsp-types
+vscode-dts-lsp-types

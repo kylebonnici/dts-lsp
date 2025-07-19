@@ -33,7 +33,7 @@ function evalExp(str: string) {
   try {
     return (0, eval)(sanitizeCExpression(str));
   } catch (e) {
-    console.log(e);
+    console.log(e instanceof Error ? e.message : e);
   }
   return str;
 }
