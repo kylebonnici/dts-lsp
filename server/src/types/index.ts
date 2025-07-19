@@ -403,3 +403,8 @@ export type StableResult = {
   ctx: ContextListItem;
   node: SerializedNode;
 };
+
+export type LocationResult = {
+  nodePath: string;
+  propertyName?: string;
+};
