@@ -69,7 +69,7 @@ export abstract class Expression extends ASTBase {
     return new SerializableExpression(
       this.toString(),
       this.evaluate(macros),
-      this.uri,
+      this.serializeUri,
       this.range,
       this.serializeIssues
     );

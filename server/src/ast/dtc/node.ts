@@ -117,7 +117,7 @@ export class DtcRootNode extends DtcBaseNode {
     return new SerializableRootNode(
       this.properties.map((p) => p.serialize(macros)),
       this.nodes.map((n) => n.serialize(macros)),
-      this.uri,
+      this.serializeUri,
       this.range,
       this.serializeIssues
     );
@@ -195,7 +195,7 @@ export class DtcRefNode extends DtcBaseNode {
       this.reference?.serialize() ?? null,
       this.properties.map((p) => p.serialize(macros)),
       this.nodes.map((n) => n.serialize(macros)),
-      this.uri,
+      this.serializeUri,
       this.range,
       this.serializeIssues
     );
@@ -264,7 +264,7 @@ export class DtcChildNode extends DtcBaseNode {
       this.name?.serialize() ?? null,
       this.properties.map((p) => p.serialize(macros)),
       this.nodes.map((n) => n.serialize(macros)),
-      this.uri,
+      this.serializeUri,
       this.range,
       this.serializeIssues
     );
@@ -289,7 +289,7 @@ export class NodeAddress extends ASTBase {
   serialize(): SerializableNodeAddress {
     return new SerializableNodeAddress(
       this.address,
-      this.uri,
+      this.serializeUri,
       this.range,
       this.serializeIssues
     );
@@ -378,7 +378,7 @@ export class NodeName extends ASTBase {
       this.toString(),
       new SerializableNodeName(
         this.name,
-        this.uri,
+        this.serializeUri,
         Range.create(
           Position.create(
             this.tokenIndexes.start.pos.line,

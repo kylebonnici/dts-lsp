@@ -55,7 +55,7 @@ export class ByteStringValue extends ASTBase {
             }
           : null
       ),
-      this.uri,
+      this.serializeUri,
       this.range,
       this.serializeIssues
     );

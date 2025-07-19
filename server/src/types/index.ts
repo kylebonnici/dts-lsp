@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { pathToFileURL } from "../helpers";
 import { Diagnostic, Range } from "vscode-languageserver-types";
 
 export type BindingType = "Zephyr" | "DevicetreeOrg";
@@ -93,9 +92,7 @@ export class SerializableASTBase {
     public readonly uri: string,
     public readonly range: Range,
     public readonly issues: Diagnostic[]
-  ) {
-    this.uri = pathToFileURL(uri);
-  }
+  ) {}
 }
 
 export class SerializableStringValue extends SerializableASTBase {

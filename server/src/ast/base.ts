@@ -16,6 +16,7 @@
 
 import { SerializableASTBase } from "../types/index";
 import {
+  fileURLToPath,
   getTokenModifiers,
   getTokenTypes,
   isPathEqual,
@@ -212,7 +213,15 @@ export class ASTBase {
     );
   }
 
+  protected get serializeUri() {
+    return pathToFileURL(this.uri);
+  }
+
   serialize(macros: Map<string, MacroRegistryItem>): SerializableASTBase {
-    return new SerializableASTBase(this.uri, this.range, this.serializeIssues);
+    return new SerializableASTBase(
+      this.serializeUri,
+      this.range,
+      this.serializeIssues
+    );
   }
 }

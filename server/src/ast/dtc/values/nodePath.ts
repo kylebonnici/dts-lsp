@@ -80,7 +80,7 @@ export class NodePathRef extends ASTBase {
   serialize(): SerializableNodePath {
     return new SerializableNodePath(
       this.path?.toString() ?? null,
-      this.uri,
+      this.serializeUri,
       this.range,
       this.serializeIssues
     );
