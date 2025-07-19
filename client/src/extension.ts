@@ -186,7 +186,10 @@ export async function activate(context: vscode.ExtensionContext) {
         copyClibboardAction(actions, "Pick a macro to copy...");
       }
     ),
-    vscode.window.onDidChangeTextEditorSelection(() => {
+    vscode.window.onDidChangeTextEditorSelection((e) => {
+      if (!["devicetree"].includes(e.textEditor.document.languageId)) {
+        return;
+      }
       api.getActivePathLocation();
     }),
     vscode.commands.registerCommand(
