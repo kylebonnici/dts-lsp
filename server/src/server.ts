@@ -110,8 +110,7 @@ const fileWatchers = new Map<string, FileWatcher>();
 
 initHeapMonitor();
 
-const watchContextFiles = async (context: ContextAware) => {
-  await context.stable();
+const watchContextFiles = (context: ContextAware) => {
   context.getContextFiles().forEach((file) => {
     if (!fileWatchers.has(file)) {
       fileWatchers.set(
@@ -147,10 +146,6 @@ const deleteContext = async (context: ContextAware) => {
   } satisfies ContextListItem);
   contextAware.splice(index, 1);
 
-  // context
-  //   .getContextFiles()
-  //   .forEach((file) => getTokenizedDocumentProvider().reset(file));
-
   await reportContexList();
 
   if (context === activeContext) {
@@ -165,14 +160,7 @@ const deleteContext = async (context: ContextAware) => {
     }
   }
 
-  unwatchContextFiles(context);
-};
-
-const unwatchContextFiles = async (context: ContextAware) => {
-  await context.stable();
-  context
-    .getContextFiles()
-    .forEach((file) => fileWatchers.get(file)?.unwatch());
+  context.getContextFiles().map((file) => fileWatchers.get(file)?.unwatch());
 };
 
 const isStable = (context: ContextAware) => {
@@ -277,7 +265,7 @@ const cleanUpAdHocContext = async (context: ContextAware) => {
     .map((o) => o.context);
 
   if (contextToClean.length) {
-    contextToClean.forEach(deleteContext);
+    await Promise.all(contextToClean.map(deleteContext));
   }
 };
 
@@ -481,9 +469,8 @@ const createContext = async (context: ResolvedContext) => {
   );
 
   contextAware.push(newContext);
-  watchContextFiles(newContext);
-
   await newContext.stable();
+  watchContextFiles(newContext);
   const meta = await contexMeta(newContext);
 
   connection.sendNotification("devicetree/contextCreated", {
@@ -510,7 +497,7 @@ const loadSettings = async () => {
 
   const allActiveIds = resolvedFullSettings.contexts.map(generateContextId);
   const toDelete = contextAware.filter((c) => !allActiveIds.includes(c.id));
-  toDelete.forEach(deleteContext);
+  await Promise.all(toDelete.map(deleteContext));
 
   await resolvedPersistantSettings.contexts?.reduce((p, c) => {
     return p.then(async () => {
@@ -679,9 +666,11 @@ const onChange = async (uri: string) => {
           const itemsToClear = isActive
             ? generateClearWorkspaceDiagnostics(context)
             : [];
-          unwatchContextFiles(context);
+          const prevFiles = context.getContextFiles();
           await context.reevaluate(uri);
           watchContextFiles(context);
+          prevFiles.forEach((f) => fileWatchers.get(f)?.unwatch());
+
           if (isActive) {
             reportWorkspaceDiagnostics(context).then((d) => {
               const newDiagnostics = d.items.map(
@@ -1035,7 +1024,7 @@ documents.onDidClose(async (e) => {
         .some((f) => fetchDocument(f));
       if (!contextHasFileOpen) {
         if (await isAdHocContext(context)) {
-          deleteContext(context);
+          await deleteContext(context);
           adHocContextSettings.delete(context.settings.dtsFile);
         } else {
           clearWorkspaceDiagnostics(context);

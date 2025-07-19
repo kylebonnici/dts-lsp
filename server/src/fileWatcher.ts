@@ -24,7 +24,7 @@ const onChange = (file: string, cb: (uri: string) => void) => {
 };
 
 export class FileWatcher {
-  private count = 0;
+  #count = 0;
   constructor(
     readonly file: string,
     private cb: (uri: string) => void,
@@ -52,11 +52,23 @@ export class FileWatcher {
   }
 
   unwatch() {
-    this.count--;
-    if (this.count === 0) {
+    if (this.count === 1) {
       console.log("dispose watch for", this.file);
       unwatchFile(this.file, this.onChange);
       this.onChange = undefined;
+    }
+    this.count--;
+  }
+
+  get count() {
+    return this.#count;
+  }
+
+  set count(count: number) {
+    this.#count = count;
+    if (count < 0) {
+      this.#count = 0;
+      console.warn("unwatching an un watched file", this.file);
     }
   }
 }
