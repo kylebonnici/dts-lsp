@@ -22,7 +22,6 @@ import { flatNumberValues, generateOrTypeObj } from "../../../helpers";
 import {
   DiagnosticSeverity,
   ParameterInformation,
-  SignatureInformation,
 } from "vscode-languageserver-types";
 
 export default () => {

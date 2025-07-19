@@ -75,7 +75,7 @@ export class ArrayValues extends ASTBase {
     const a = this.values.map((v) => v.value?.serialize(macros) ?? null);
     return new SerializableArrayValue(
       a,
-      this.uri,
+      this.serializeUri,
       this.range,
       this.serializeIssues
     );

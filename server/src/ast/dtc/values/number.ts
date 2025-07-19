@@ -53,7 +53,7 @@ export class NumberValue extends Expression {
     return new SerializableNumberValue(
       this.value.toString(),
       this.value,
-      this.uri,
+      this.serializeUri,
       this.range,
       this.serializeIssues
     );

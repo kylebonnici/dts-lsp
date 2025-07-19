@@ -42,7 +42,7 @@ export class PropertyName extends ASTBase {
   serialize(): SerializablePropertyName {
     return new SerializablePropertyName(
       this.name,
-      this.uri,
+      this.serializeUri,
       this.range,
       this.serializeIssues
     );
@@ -149,7 +149,7 @@ export class DtcProperty extends ASTBase {
       this.propertyName?.serialize() ?? null,
       this.values?.values.map((v) => v?.value?.serialize(macros) ?? null) ??
         null,
-      this.uri,
+      this.serializeUri,
       this.range,
       this.serializeIssues
     );
