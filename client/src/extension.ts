@@ -29,6 +29,7 @@ import {
   ClipboardActions,
   ContextListItem,
 } from "devicetree-language-server-types";
+import { getCurrentTextDocumentPositionParams } from "./helpers";
 
 const SelectContext = async (api: API): Promise<ContextListItem | null> => {
   const quickPick = vscode.window.createQuickPick<
@@ -82,25 +83,6 @@ const SelectContext = async (api: API): Promise<ContextListItem | null> => {
     });
   });
 };
-
-async function getCurrentTextDocumentPositionParams(): Promise<
-  TextDocumentPositionParams | undefined
-> {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor) {
-    return undefined;
-  }
-
-  return {
-    textDocument: {
-      uri: editor.document.uri.toString(),
-    },
-    position: {
-      line: editor.selection.active.line,
-      character: editor.selection.active.character,
-    },
-  };
-}
 
 let client: LanguageClient;
 let api: API;
@@ -204,17 +186,8 @@ export async function activate(context: vscode.ExtensionContext) {
         copyClibboardAction(actions, "Pick a macro to copy...");
       }
     ),
-    vscode.window.onDidChangeTextEditorSelection((event) => {
-      const editor = event.textEditor;
-      const position = editor.selection.active;
-      const document = editor.document;
-
-      // Construct TextDocumentPositionParams
-      const textDocumentPositionParams = {
-        textDocument: { uri: document.uri.toString() },
-        position: { line: position.line, character: position.character },
-      };
-      api.getActivePath(textDocumentPositionParams);
+    vscode.window.onDidChangeTextEditorSelection(() => {
+      api.getActivePathLocation();
     }),
     vscode.commands.registerCommand(
       "devicetree.clipboard.nodePath",
