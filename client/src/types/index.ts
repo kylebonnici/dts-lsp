@@ -18,11 +18,15 @@ import type {
   Context,
   ContextListItem,
   IntegrationSettings,
+  LocationResult,
   ResolvedSettings,
   SerializedNode,
   StableResult,
 } from "devicetree-language-server-types";
-import { Disposable } from "vscode-languageclient/node";
+import {
+  Disposable,
+  TextDocumentPositionParams,
+} from "vscode-languageclient/node";
 
 export interface IDeviceTreeAPI {
   readonly version: string;
@@ -31,6 +35,9 @@ export interface IDeviceTreeAPI {
   getContexts(): Promise<ContextListItem[]>;
   setActiveContextById(id: string): Promise<boolean>;
   setActiveContextByName(name: string): Promise<boolean>;
+  getActivePath(
+    textDocumentPositionParams: TextDocumentPositionParams
+  ): Promise<LocationResult>;
   getActiveContext(): Promise<ContextListItem | undefined>;
   requestContext(ctx: Context): Promise<ContextListItem>;
   removeContext(id: string, name: string): Promise<void>;
@@ -41,6 +48,7 @@ export interface IDeviceTreeAPI {
     listener: (ctx: ContextListItem | undefined) => void
   ): Disposable;
   onActiveContextStable(listener: (result: StableResult) => void): Disposable;
+  onActivePath(listener: (nodePath: string) => void): Disposable;
   onContextStable(listener: (result: StableResult) => void): Disposable;
   onContextDeleted(listener: (ctx: ContextListItem) => void): Disposable;
   onContextCreated(listener: (ctx: ContextListItem) => void): Disposable;
