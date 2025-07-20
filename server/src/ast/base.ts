@@ -52,7 +52,16 @@ export class ASTBase {
   private _fisrtToken?: Token;
   private allDescendantsCache?: ASTBase[];
 
-  public issues: (() => Diagnostic)[] = [];
+  syntaxIssues: (() => Diagnostic)[] = [];
+  resetableIssues: (() => Diagnostic)[] = [];
+  get issues(): (() => Diagnostic)[] {
+    return [...this.syntaxIssues, ...this.resetableIssues];
+  }
+
+  resetIssues() {
+    this.resetableIssues = [];
+    this.children.forEach((c) => c.resetIssues());
+  }
 
   // all issues we want to this item to show when serialized
   get serializeIssues() {

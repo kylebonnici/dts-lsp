@@ -308,7 +308,7 @@ export const genSyntaxDiagnostic = (
     return diagnostic;
   };
 
-  issue.astElement.issues.push(action);
+  issue.astElement.syntaxIssues.push(action);
 
   return {
     raw: issue,
@@ -367,7 +367,7 @@ export const genContextDiagnostic = (
     return diagnostic;
   };
 
-  issue.astElement.issues.push(action);
+  issue.astElement.resetableIssues.push(action);
 
   return {
     raw: issue,
@@ -439,7 +439,7 @@ export const genStandardTypeDiagnostic = (
     return diagnostic;
   };
 
-  issue.astElement.issues.push(action);
+  issue.astElement.resetableIssues.push(action);
 
   return {
     raw: issue,

@@ -356,8 +356,10 @@ export class ContextAware {
     const runtime = new Runtime(this);
     this._issues = [];
 
+    this.parser.rootDocument.resetIssues();
     this.processRoot(this.parser.rootDocument, runtime);
     for (let i = 0; i < this.overlayParsers.length; i++) {
+      this.overlayParsers[i].rootDocument.resetIssues();
       this.processRoot(this.overlayParsers[i].rootDocument, runtime);
     }
 
@@ -896,6 +898,9 @@ export class ContextAware {
     )}`;
   }
   async serialize() {
+    // make sure we have contexr issues generated
+    await this.stable;
+    await this.getDiagnostics();
     return (await this?.getRuntime())?.rootNode.serialize(
       (await this.getAllParsers()).at(-1)!.cPreprocessorParser.macros
     );
