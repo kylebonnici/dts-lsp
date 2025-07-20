@@ -54,10 +54,6 @@ export class ASTBase {
 
   public issues: (() => Diagnostic)[] = [];
 
-  addIssue(issue: () => Diagnostic) {
-    this.issues.push(issue);
-  }
-
   // all issues we want to this item to show when serialized
   get serializeIssues() {
     return this.issues.map((i) => i());

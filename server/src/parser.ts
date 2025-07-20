@@ -16,7 +16,6 @@
 
 import {
   FileDiagnostic,
-  Issue,
   LexerToken,
   MacroRegistryItem,
   SyntaxIssue,
