@@ -1423,17 +1423,16 @@ connection.onRequest(
 
 connection.onRequest(
   "devicetree/getActiveContext",
-  async (id: string): Promise<ContextListItem | undefined> => {
+  async (): Promise<ContextListItem | undefined> => {
     await allStable();
-    console.log("devicetree/getActiveContext", id);
-    await updateActiveContext({ id }, true);
+    console.log("devicetree/getActiveContext");
     if (!activeContext) return;
 
     const meta = await contexMeta(activeContext);
     return activeContext
       ? {
           ctxNames: activeContext.ctxNames.map((c) => c.toString()),
-          id: id,
+          id: activeContext.id,
           ...(await activeContext.getFileTree()),
           settings: activeContext.settings,
           active: true,
