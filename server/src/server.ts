@@ -706,7 +706,7 @@ const onChange = async (uri: string) => {
                 id: context.id,
                 ...fileTree,
                 settings: context.settings,
-                active: activeContext === context,
+                active: isActive,
                 type: meta.type,
               } as ContextListItem,
             } satisfies StableResult;
