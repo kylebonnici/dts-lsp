@@ -652,85 +652,87 @@ const onChange = async (uri: string) => {
     await loadSettings();
     await updateActiveContext({ uri });
   } else {
-    contexts.forEach((context) => {
-      debounce.get(context)?.abort.abort();
-      const abort = new AbortController();
-      const promise = new Promise<void>((resolve) => {
-        setTimeout(async () => {
-          if (abort.signal.aborted) {
-            resolve();
-            return;
-          }
-          const t = performance.now();
-          const isActive = activeContext === context;
-          const itemsToClear = isActive
-            ? generateClearWorkspaceDiagnostics(context)
-            : [];
-          const prevFiles = context.getContextFiles();
-          await context.reevaluate(uri);
-          watchContextFiles(context);
-          prevFiles.forEach((f) => fileWatchers.get(f)?.unwatch());
+    contexts
+      .sort((a, b) => (a === activeContext ? -1 : b === activeContext ? 1 : 0))
+      .forEach((context) => {
+        debounce.get(context)?.abort.abort();
+        const abort = new AbortController();
+        const promise = new Promise<void>((resolve) => {
+          setTimeout(async () => {
+            if (abort.signal.aborted) {
+              resolve();
+              return;
+            }
+            const t = performance.now();
+            const isActive = activeContext === context;
+            const itemsToClear = isActive
+              ? generateClearWorkspaceDiagnostics(context)
+              : [];
+            const prevFiles = context.getContextFiles();
+            await context.reevaluate(uri);
+            watchContextFiles(context);
+            prevFiles.forEach((f) => fileWatchers.get(f)?.unwatch());
 
-          if (isActive) {
-            reportWorkspaceDiagnostics(context).then((d) => {
-              const newDiagnostics = d.items.map(
-                (i) =>
-                  ({
-                    uri: i.uri,
-                    version: i.version ?? undefined,
-                    diagnostics: i.items,
-                  } satisfies PublishDiagnosticsParams)
-              );
-              clearWorkspaceDiagnostics(
-                context,
-                itemsToClear.filter((i) =>
-                  newDiagnostics.every((nd) => nd.uri !== i.uri)
-                )
-              );
-              newDiagnostics.forEach((ii) => {
-                connection.sendDiagnostics(ii);
+            if (isActive) {
+              reportWorkspaceDiagnostics(context).then((d) => {
+                const newDiagnostics = d.items.map(
+                  (i) =>
+                    ({
+                      uri: i.uri,
+                      version: i.version ?? undefined,
+                      diagnostics: i.items,
+                    } satisfies PublishDiagnosticsParams)
+                );
+                clearWorkspaceDiagnostics(
+                  context,
+                  itemsToClear.filter((i) =>
+                    newDiagnostics.every((nd) => nd.uri !== i.uri)
+                  )
+                );
+                newDiagnostics.forEach((ii) => {
+                  connection.sendDiagnostics(ii);
+                });
               });
-            });
-          }
-
-          context.serialize().then(async (node) => {
-            const [meta, fileTree] = await Promise.all([
-              contexMeta(context),
-              context.getFileTree(),
-            ]);
-            
-            const stableResult = {
-              node,
-              ctx: {
-                ctxNames: context.ctxNames.map((c) => c.toString()),
-                id: context.id,
-                ...fileTree,
-                settings: context.settings,
-                active: isActive,
-                type: meta.type,
-              } as ContextListItem,
-            } satisfies StableResult;
-
-            if (activeContext === context) {
-              connection.sendNotification(
-                "devicetree/activeContextStableNotification",
-                stableResult
-              );
             }
 
-            connection.sendNotification(
-              "devicetree/contextStableNotification",
-              stableResult
-            );
-          });
+            context.serialize().then(async (node) => {
+              const [meta, fileTree] = await Promise.all([
+                contexMeta(context),
+                context.getFileTree(),
+              ]);
 
-          resolve();
-          console.log("reevaluate", performance.now() - t);
-        }, 50);
+              const stableResult = {
+                node,
+                ctx: {
+                  ctxNames: context.ctxNames.map((c) => c.toString()),
+                  id: context.id,
+                  ...fileTree,
+                  settings: context.settings,
+                  active: isActive,
+                  type: meta.type,
+                } as ContextListItem,
+              } satisfies StableResult;
+
+              if (activeContext === context) {
+                connection.sendNotification(
+                  "devicetree/activeContextStableNotification",
+                  stableResult
+                );
+              }
+
+              connection.sendNotification(
+                "devicetree/contextStableNotification",
+                stableResult
+              );
+            });
+
+            resolve();
+            console.log("reevaluate", performance.now() - t);
+          }, 50);
+        });
+
+        debounce.set(context, { abort, promise });
       });
-
-      debounce.set(context, { abort, promise });
-    });
   }
 };
 
