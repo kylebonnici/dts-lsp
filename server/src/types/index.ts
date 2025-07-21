@@ -96,7 +96,7 @@ export class SerializableASTBase {
 }
 
 export class SerializableStringValue extends SerializableASTBase {
-  readonly type: PropertyType = "STRING";
+  readonly type = "STRING";
 
   constructor(
     public readonly value: string,
@@ -109,7 +109,7 @@ export class SerializableStringValue extends SerializableASTBase {
 }
 
 export class SerializableByteString extends SerializableASTBase {
-  readonly type: PropertyType = "BYTESTRING";
+  readonly type = "BYTESTRING";
 
   constructor(
     public readonly values: ({
@@ -126,7 +126,7 @@ export class SerializableByteString extends SerializableASTBase {
 }
 
 export class SerializableArrayValue extends SerializableASTBase {
-  readonly type: PropertyType = "ARRAY_VALUE";
+  readonly type = "ARRAY_VALUE";
 
   constructor(
     public readonly value: (
@@ -144,7 +144,7 @@ export class SerializableArrayValue extends SerializableASTBase {
 }
 
 export class SerializableLabelRef extends SerializableASTBase {
-  readonly type: PropertyType = "LABEL_REF";
+  readonly type = "LABEL_REF";
 
   constructor(
     readonly label: string | null,
@@ -158,7 +158,7 @@ export class SerializableLabelRef extends SerializableASTBase {
 }
 
 export class SerializableNodePath extends SerializableASTBase {
-  readonly type: PropertyType = "NODE_PATH";
+  readonly type = "NODE_PATH";
 
   constructor(
     readonly nodePath: string | null,
@@ -183,7 +183,7 @@ export abstract class SerializableExpressionBase extends SerializableASTBase {
 }
 
 export class SerializableNumberValue extends SerializableExpressionBase {
-  readonly type: PropertyType = "NUMBER_VALUE";
+  readonly type = "NUMBER_VALUE";
 
   constructor(
     value: string,
@@ -197,7 +197,7 @@ export class SerializableNumberValue extends SerializableExpressionBase {
 }
 
 export class SerializableExpression extends SerializableExpressionBase {
-  readonly type: PropertyType = "EXPRESSION";
+  readonly type = "EXPRESSION";
 
   constructor(
     value: string,
@@ -216,7 +216,6 @@ export type SerializablePropertyValue =
   | SerializableArrayValue
   | SerializableLabelRef
   | SerializableNodePath
-  | SerializableExpressionBase
   | null;
 
 export class SerializablePropertyName extends SerializableASTBase {
