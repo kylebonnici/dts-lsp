@@ -20,7 +20,7 @@ import type { MacroRegistryItem, Token } from "../../types";
 import { expandMacros } from "../../helpers";
 import {
   SerializableExpression,
-  SerializableExpressionBase,
+  SerializableNumberValue,
 } from "../../types/index";
 
 function sanitizeCExpression(expr: string) {
@@ -65,7 +65,7 @@ export abstract class Expression extends ASTBase {
 
   serialize(
     macros: Map<string, MacroRegistryItem>
-  ): SerializableExpressionBase {
+  ): SerializableNumberValue | SerializableExpression {
     return new SerializableExpression(
       this.toString(),
       this.evaluate(macros),
