@@ -4,14 +4,14 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.4.10] - Unreleased
+## [0.4.10] - 2025-07-21
 
 ### Fixed
 
-- Issue with zephyt bindings when child node should use parent node bus type to find match.
+- Issue with Zephyr bindings when child node should use parent node bus type to find match.
 - Issue where renaming lables will not effect labels linked to a referanced node.
-- Issue with parser where `...VAL (1 + 2)...` was parsed as a `VAL(1 + 2)`
-  now parser will interpret it as `VAL` and `(1 + 2)`
+- Issue with parser where `...VAL (1 + 2)...` was parsed as a `VAL(1 + 2)`.
+  now parser will interpret it as `VAL` and `(1 + 2)`.
 
 ## [0.4.9] - 2025-07-11
 
