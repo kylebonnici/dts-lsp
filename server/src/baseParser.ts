@@ -476,6 +476,11 @@ export abstract class BaseParser {
       return;
     }
 
+    if (!adjacentTokens(identifier.lastToken, this.currentToken)) {
+      this.popStack();
+      return;
+    }
+
     const params = this.processMacroCallParams();
 
     if (!params) {

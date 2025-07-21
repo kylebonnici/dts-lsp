@@ -39,7 +39,10 @@ import { IfDefineBlock, IfElIfBlock } from "../ast/cPreprocessors/ifDefine";
 import { CPreprocessorParser } from "../cPreprocessorParser";
 import { DtsDocumentVersion } from "../ast/dtc/dtsDocVersion";
 import { CMacroCall } from "../ast/cPreprocessors/functionCall";
-import { ComplexExpression } from "../ast/cPreprocessors/expression";
+import {
+  ComplexExpression,
+  Expression,
+} from "../ast/cPreprocessors/expression";
 import { CIdentifier } from "../ast/cPreprocessors/cIdentifier";
 import { CMacro } from "../ast/cPreprocessors/macro";
 import {
@@ -1001,6 +1004,43 @@ describe("Parser", () => {
 
             expect(macro.functionName.name).toEqual("ADD");
             expect(macro.params.map((p) => p?.value)).toEqual(["1", "2"]);
+          });
+
+          test("With params", async () => {
+            mockReadFileSync("#define VAL 5 \n/{prop=<10 VAL (1 + 2)>;};");
+            const parser = new Parser("/folder/dts.dts", []);
+            await parser.stable;
+            expect(parser.issues.length).toEqual(0);
+            const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+            expect(rootDts.properties.length).toEqual(1);
+            expect(rootDts.properties[0].propertyName?.name).toEqual("prop");
+            expect(
+              rootDts.properties[0].values instanceof PropertyValues
+            ).toBeTruthy();
+            expect(rootDts.properties[0].values?.values.length).toEqual(1);
+            expect(
+              rootDts.properties[0].values?.values[0]?.value instanceof
+                ArrayValues
+            ).toBeTruthy();
+            expect(
+              (rootDts.properties[0].values?.values[0]?.value as ArrayValues)
+                .values[0].value instanceof NumberValue
+            ).toBeTruthy();
+            expect(
+              (rootDts.properties[0].values?.values[0]?.value as ArrayValues)
+                .values[1].value instanceof CIdentifier
+            ).toBeTruthy();
+            expect(
+              (rootDts.properties[0].values?.values[0]?.value as ArrayValues)
+                .values[2].value instanceof Expression
+            ).toBeTruthy();
+
+            const macro = (
+              rootDts.properties[0].values?.values[0]?.value as ArrayValues
+            ).values[1].value as CIdentifier;
+
+            expect(macro.name).toEqual("VAL");
           });
 
           test("C Macro expression missing coma", async () => {

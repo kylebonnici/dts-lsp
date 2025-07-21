@@ -933,55 +933,55 @@ describe("Document formating", () => {
     });
 
     test("CMacroCall assign with space betweeb function name and ( ", async () => {
-      const documentText = "/ {\n\tprop1 = ADD (10, 20);\n};";
+      const documentText = "/ {\n\tprop1 = ADD(10, 20);\n};";
       const newText = await getNewText(documentText);
       expect(newText).toEqual("/ {\n\tprop1 = ADD(10, 20);\n};");
     });
 
     test("CMacroCall assign in Array Value with space between function name and ( ", async () => {
-      const documentText = "/ {\n\tprop1 = <ADD (10, 20)>;\n};";
+      const documentText = "/ {\n\tprop1 = <ADD(10, 20)>;\n};";
       const newText = await getNewText(documentText);
       expect(newText).toEqual("/ {\n\tprop1 = <ADD(10, 20)>;\n};");
     });
 
     test("CMacroCall assign param spacing from (", async () => {
-      const documentText = "/ {\n\tprop1 = ADD (   10, 20);\n};";
+      const documentText = "/ {\n\tprop1 = ADD(   10, 20);\n};";
       const newText = await getNewText(documentText);
       expect(newText).toEqual("/ {\n\tprop1 = ADD(10, 20);\n};");
     });
 
     test("CMacroCall assign in Array param spacing from (", async () => {
-      const documentText = "/ {\n\tprop1 = <ADD (    10, 20)>;\n};";
+      const documentText = "/ {\n\tprop1 = <ADD(    10, 20)>;\n};";
       const newText = await getNewText(documentText);
       expect(newText).toEqual("/ {\n\tprop1 = <ADD(10, 20)>;\n};");
     });
 
     test("CMacroCall assign param spacing from )", async () => {
-      const documentText = "/ {\n\tprop1 = ADD (10, 20    );\n};";
+      const documentText = "/ {\n\tprop1 = ADD(10, 20    );\n};";
       const newText = await getNewText(documentText);
       expect(newText).toEqual("/ {\n\tprop1 = ADD(10, 20);\n};");
     });
 
     test("CMacroCall assign in Array param spacing from )", async () => {
-      const documentText = "/ {\n\tprop1 = <ADD (10, 20     )>;\n};";
+      const documentText = "/ {\n\tprop1 = <ADD(10, 20     )>;\n};";
       const newText = await getNewText(documentText);
       expect(newText).toEqual("/ {\n\tprop1 = <ADD(10, 20)>;\n};");
     });
 
     test("CMacroCall assign param spacing from ,", async () => {
-      const documentText = "/ {\n\tprop1 = ADD (10   ,     20);\n};";
+      const documentText = "/ {\n\tprop1 = ADD(10   ,     20);\n};";
       const newText = await getNewText(documentText);
       expect(newText).toEqual("/ {\n\tprop1 = ADD(10, 20);\n};");
     });
 
     test("CMacroCall assign in Array param spacing from ,", async () => {
-      const documentText = "/ {\n\tprop1 = <ADD (10   ,     20)>;\n};";
+      const documentText = "/ {\n\tprop1 = <ADD(10   ,     20)>;\n};";
       const newText = await getNewText(documentText);
       expect(newText).toEqual("/ {\n\tprop1 = <ADD(10, 20)>;\n};");
     });
 
     test("CMacroCall assign param macro before ,", async () => {
-      const documentText = "/ {\n\tprop1 = ADD (10     /* foo */    , 20);\n};";
+      const documentText = "/ {\n\tprop1 = ADD(10     /* foo */    , 20);\n};";
       const newText = await getNewText(documentText);
       expect(newText).toEqual("/ {\n\tprop1 = ADD(10,\t/* foo */ 20);\n};");
     });
@@ -1006,7 +1006,7 @@ describe("Document formating", () => {
 
     test("Nested Complex Expression", async () => {
       const documentText =
-        "/ {\n\tprop1 = <(10    +     (10    +     (50 - ADD    (  5 ,   50)) * 5  ))>;\n};";
+        "/ {\n\tprop1 = <(10    +     (10    +     (50 - ADD(  5 ,   50)) * 5  ))>;\n};";
       const newText = await getNewText(documentText);
       expect(newText).toEqual(
         "/ {\n\tprop1 = <(10 + (10 + (50 - ADD(5, 50)) * 5))>;\n};"
