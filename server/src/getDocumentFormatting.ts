@@ -1115,33 +1115,69 @@ const formatBlockCommentLine = (
   lineType: "last" | "first" | "comment",
   settings: FormatingSettings
 ): TextEdit[] => {
-  if (!commentItem.firstToken.prevToken) {
-    return ensureOnNewLineAndMax1EmptyLineToPrev(
-      commentItem.firstToken,
-      levelMeta?.level ?? 0,
-      indentString,
-      documentText
+  const result: TextEdit[] = [];
+
+  if (
+    commentItem.firstToken.value === "/" &&
+    commentItem.firstToken.nextToken &&
+    commentItem.firstToken.nextToken.nextToken?.pos.line ===
+      commentItem.firstToken.pos.line
+  ) {
+    result.push(
+      ...fixedNumberOfSpaceBetweenTokensAndNext(
+        commentItem.firstToken.nextToken,
+        documentText
+      )
     );
+  }
+
+  if (
+    commentItem.firstToken.value === "/" &&
+    commentItem.lastToken.value === "/" &&
+    commentItem.lastToken.prevToken?.prevToken &&
+    commentItem.lastToken.prevToken?.prevToken.pos.line ===
+      commentItem.lastToken.pos.line
+  ) {
+    result.push(
+      ...fixedNumberOfSpaceBetweenTokensAndNext(
+        commentItem.lastToken.prevToken.prevToken,
+        documentText
+      )
+    );
+  }
+
+  if (!commentItem.firstToken.prevToken) {
+    return [
+      ...result,
+      ...ensureOnNewLineAndMax1EmptyLineToPrev(
+        commentItem.firstToken,
+        levelMeta?.level ?? 0,
+        indentString,
+        documentText
+      ),
+    ];
   }
 
   const onSameLine =
     commentItem.firstToken.pos.line ===
     commentItem.firstToken.prevToken?.pos.line;
   if (onSameLine) {
-    return fixedNumberOfSpaceBetweenTokensAndNext(
-      commentItem.firstToken.prevToken,
-      documentText,
-      1,
-      undefined,
-      true
-    );
+    return [
+      ...result,
+      ...fixedNumberOfSpaceBetweenTokensAndNext(
+        commentItem.firstToken.prevToken,
+        documentText,
+        1,
+        undefined,
+        true
+      ),
+    ];
   }
 
   if (levelMeta === undefined) {
     return [];
   }
 
-  const result: TextEdit[] = [];
   let prifix: string = "";
   const commentStr = commentItem.toString();
   if (

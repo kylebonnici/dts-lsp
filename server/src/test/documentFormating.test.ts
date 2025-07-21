@@ -616,7 +616,7 @@ describe("Document formating", () => {
         "/ {\n\tprop11 = <10> /* foo*/,\n<20>\n/* foo*/,\n<30> /* foo*/;\n}";
       const newText = await getNewText(documentText);
       expect(newText).toEqual(
-        "/ {\n\tprop11 = <10>,\t/* foo*/\n\t\t\t <20>,\n\t\t\t /* foo*/\n\t\t\t <30>;\t/* foo*/\n}"
+        "/ {\n\tprop11 = <10>,\t/* foo */\n\t\t\t <20>,\n\t\t\t /* foo */\n\t\t\t <30>;\t/* foo */\n}"
       );
     });
 
@@ -625,8 +625,43 @@ describe("Document formating", () => {
         "/ {\n\tprop11 = </* foo*/10 /* foo*/\n20\n/* foo*/\n30 /* foo*/>;\n}";
       const newText = await getNewText(documentText);
       expect(newText).toEqual(
-        "/ {\n\tprop11 = <\t/* foo*/ 10\t/* foo*/\n\t\t\t  20\n\t\t\t  /* foo*/\n\t\t\t  30\t/* foo*/ >;\n}"
+        "/ {\n\tprop11 = <\t/* foo */ 10\t/* foo */\n\t\t\t  20\n\t\t\t  /* foo */\n\t\t\t  30\t/* foo */ >;\n}"
       );
+    });
+
+    test("block in line no spaces", async () => {
+      const documentText = "/*foo*/";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/* foo */");
+    });
+
+    test("new line start block in line no spaces", async () => {
+      const documentText = "/*\nfoo*/";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/*\n * foo\n */");
+    });
+
+    test("new line end block in line no spaces", async () => {
+      const documentText = "/*foo\n*/";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/* foo\n */");
+    });
+
+    test("block in line to many spaces", async () => {
+      const documentText = "/*   foo  */";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/* foo */");
+    });
+    test("new line end block in line to many spaces", async () => {
+      const documentText = "/*   foo\n  */";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/* foo\n */");
+    });
+
+    test("new line start block in line to many spaces", async () => {
+      const documentText = "/*   \nfoo  */";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/*\n * foo\n */");
     });
   });
 
