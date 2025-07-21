@@ -132,7 +132,8 @@ export class SerializableArrayValue extends SerializableASTBase {
     public readonly value: (
       | SerializableLabelRef
       | SerializableNodePath
-      | SerializableExpressionBase
+      | SerializableNumberValue
+      | SerializableExpression
       | null
     )[],
     uri: string,
