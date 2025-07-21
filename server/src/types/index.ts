@@ -217,6 +217,8 @@ export type SerializablePropertyValue =
   | SerializableArrayValue
   | SerializableLabelRef
   | SerializableNodePath
+  | SerializableExpression
+  | SerializableNumberValue
   | null;
 
 export class SerializablePropertyName extends SerializableASTBase {
