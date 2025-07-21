@@ -665,7 +665,9 @@ export class Node {
 
       const length = sizeCellAst.map((v) => (v as Expression).evaluate(macros));
 
+      const firstToken = addressAst.at(0)?.firstToken;
       if (
+        !firstToken ||
         ![...startAddress, ...length].every((item) => typeof item == "number")
       ) {
         continue;
@@ -677,7 +679,7 @@ export class Node {
         size: length,
         ast: new ASTBase(
           createTokenIndex(
-            addressAst[0]!.firstToken,
+            firstToken,
             sizeCellAst.at(-1)?.lastToken ?? addressAst.at(-1)?.lastToken
           )
         ),
@@ -731,7 +733,9 @@ export class Node {
       );
       const length = lengthAst.map((v) => (v as Expression).evaluate(macros));
 
+      const firstToken = childAddressAst.at(0)?.firstToken;
       if (
+        !firstToken ||
         ![...childAddress, ...parentAddress, ...length].every(
           (item) => typeof item == "number"
         )
@@ -744,10 +748,7 @@ export class Node {
         parentAddress: parentAddress as number[],
         length: length as number[],
         ast: new ASTBase(
-          createTokenIndex(
-            childAddressAst[0]!.firstToken,
-            lengthAst.at(-1)!.lastToken
-          )
+          createTokenIndex(firstToken, lengthAst.at(-1)!.lastToken)
         ),
       });
     }
@@ -800,7 +801,9 @@ export class Node {
       );
       const length = lengthAst.map((v) => (v as Expression).evaluate(macros));
 
+      const firstToken = childAddressAst.at(0)?.firstToken;
       if (
+        !firstToken ||
         ![...childAddress, ...parentAddress, ...length].every(
           (item) => typeof item == "number"
         )
@@ -813,10 +816,7 @@ export class Node {
         parentAddress: parentAddress as number[],
         length: length as number[],
         ast: new ASTBase(
-          createTokenIndex(
-            childAddressAst[0]!.firstToken,
-            lengthAst.at(-1)!.lastToken
-          )
+          createTokenIndex(firstToken, lengthAst.at(-1)!.lastToken)
         ),
       });
     }
