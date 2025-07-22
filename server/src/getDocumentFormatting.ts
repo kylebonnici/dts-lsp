@@ -1101,10 +1101,12 @@ const getPropertyIndentPrefix = (
   const propertyNameWidth = property.propertyName?.name.length ?? 0;
   const witdhPrifix = `${widthToPrefix(
     settings,
-    propertyNameWidth + (propertyValueChild ? 4 : 3)
+    propertyNameWidth +
+      (propertyValueChild ? 4 : 3) +
+      (prifix.length - prifix.trimStart().length)
   )}`;
 
-  return `${witdhPrifix}${prifix}`; // +3 ' = ' or + 4 ' = <'
+  return `${witdhPrifix}${prifix.trimStart()}`; // +3 ' = ' or + 4 ' = <'
 };
 
 const formatBlockCommentLine = (
