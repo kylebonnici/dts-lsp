@@ -1117,35 +1117,6 @@ const formatBlockCommentLine = (
 ): TextEdit[] => {
   const result: TextEdit[] = [];
 
-  if (
-    commentItem.firstToken.value === "/" &&
-    commentItem.firstToken.nextToken &&
-    commentItem.firstToken.nextToken.nextToken?.pos.line ===
-      commentItem.firstToken.pos.line
-  ) {
-    result.push(
-      ...fixedNumberOfSpaceBetweenTokensAndNext(
-        commentItem.firstToken.nextToken,
-        documentText
-      )
-    );
-  }
-
-  if (
-    commentItem.firstToken.value === "/" &&
-    commentItem.lastToken.value === "/" &&
-    commentItem.lastToken.prevToken?.prevToken &&
-    commentItem.lastToken.prevToken?.prevToken.pos.line ===
-      commentItem.lastToken.pos.line
-  ) {
-    result.push(
-      ...fixedNumberOfSpaceBetweenTokensAndNext(
-        commentItem.lastToken.prevToken.prevToken,
-        documentText
-      )
-    );
-  }
-
   if (!commentItem.firstToken.prevToken) {
     return [
       ...result,
