@@ -1179,20 +1179,6 @@ const formatBlockCommentLine = (
       break;
   }
 
-  if (
-    lineType === "comment" &&
-    commentItem.firstToken.value === "*" &&
-    commentItem.firstToken.nextToken?.pos.line ===
-      commentItem.firstToken.pos.line
-  ) {
-    result.push(
-      ...fixedNumberOfSpaceBetweenTokensAndNext(
-        commentItem.firstToken,
-        documentText
-      )
-    );
-  }
-
   if (levelMeta?.inAst instanceof DtcBaseNode) {
     result.push(
       ...ensureOnNewLineAndMax1EmptyLineToPrev(
