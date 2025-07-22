@@ -663,6 +663,18 @@ describe("Document formating", () => {
       const newText = await getNewText(documentText);
       expect(newText).toEqual("/*\n * foo\n */");
     });
+
+    test("new line multiple space after *", async () => {
+      const documentText = "/*   \n*    foo  */";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/*\n * foo\n */");
+    });
+
+    test("new line no space after *", async () => {
+      const documentText = "/*   \n*foo  */";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/*\n * foo\n */");
+    });
   });
 
   describe("Delete property", () => {

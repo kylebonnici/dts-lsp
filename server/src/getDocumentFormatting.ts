@@ -1101,7 +1101,7 @@ const getPropertyIndentPrefix = (
   const propertyNameWidth = property.propertyName?.name.length ?? 0;
   const witdhPrifix = `${widthToPrefix(
     settings,
-    propertyNameWidth + (propertyValueChild ? 4 : 3) - prifix.length
+    propertyNameWidth + (propertyValueChild ? 4 : 3)
   )}`;
 
   return `${witdhPrifix}${prifix}`; // +3 ' = ' or + 4 ' = <'
@@ -1206,6 +1206,20 @@ const formatBlockCommentLine = (
     case "last":
       prifix = " ";
       break;
+  }
+
+  if (
+    lineType === "comment" &&
+    commentItem.firstToken.value === "*" &&
+    commentItem.firstToken.nextToken?.pos.line ===
+      commentItem.firstToken.pos.line
+  ) {
+    result.push(
+      ...fixedNumberOfSpaceBetweenTokensAndNext(
+        commentItem.firstToken,
+        documentText
+      )
+    );
   }
 
   if (levelMeta?.inAst instanceof DtcBaseNode) {
