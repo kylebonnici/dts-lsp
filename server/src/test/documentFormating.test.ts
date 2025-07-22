@@ -675,6 +675,65 @@ describe("Document formating", () => {
       const newText = await getNewText(documentText);
       expect(newText).toEqual("/*\n * foo\n */");
     });
+
+    test("Root Doxygen mulltiline", async () => {
+      const documentText = "/**\nfoo\n*/";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/**\n * foo\n */");
+    });
+
+    test("Root Doxygen singleline", async () => {
+      const documentText = "/**foo*/";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/**\n * foo\n */");
+    });
+
+    test("In node Doxygen mulltiline", async () => {
+      const documentText = "/{\n /**\nfoo\n*/\n\tnode{};\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/ {\n\t/**\n\t * foo\n\t */\n\tnode { };\n};");
+    });
+
+    test("In node Doxygen singleline", async () => {
+      const documentText = "/{\n /**foo*/\n\tnode{};\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/ {\n\t/**\n\t * foo\n\t */\n\tnode { };\n};");
+    });
+
+    test("In prop Doxygen mulltiline", async () => {
+      const documentText =
+        "/{\n\tnode{ prop1 = <5>,\n<8>,\n/**\n\t * foo\n\t */\n<10>; };\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tnode {\n\t\tprop1 = <5>,\n\t\t\t\t<8>,\n\t\t\t\t/**\n\t\t\t\t * foo\n\t\t\t\t */\n\t\t\t\t<10>;\n\t};\n};"
+      );
+    });
+
+    test("In prop Doxygen singleline", async () => {
+      const documentText =
+        "/{\n\tnode{ prop1 = <5>,\n<8>,\n/**foo*/\n<10>; };\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tnode {\n\t\tprop1 = <5>,\n\t\t\t\t<8>,\n\t\t\t\t/**\n\t\t\t\t * foo\n\t\t\t\t */\n\t\t\t\t<10>;\n\t};\n};"
+      );
+    });
+
+    test("In prop value Doxygen single line", async () => {
+      const documentText = "/{\n\tnode{ prop1 = <5\n8\n/**foo*/\n\n10>; };\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tnode {\n\t\tprop1 = <5\n\t\t\t\t 8\n\t\t\t\t /**\n\t\t\t\t  * foo\n\t\t\t\t  */\n\t\t\t\t 10>;\n\t};\n};"
+      );
+    });
+
+    test("In prop value Doxygen mulltiline", async () => {
+      const documentText =
+        "/{\n\tnode{ prop1 = <5\n8\n/**\n\t * foo\n\t */\n\n10>; };\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tnode {\n\t\tprop1 = <5\n\t\t\t\t 8\n\t\t\t\t /**\n\t\t\t\t  * foo\n\t\t\t\t  */\n\t\t\t\t 10>;\n\t};\n};"
+      );
+    });
   });
 
   describe("Delete property", () => {

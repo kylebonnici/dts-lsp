@@ -1068,6 +1068,9 @@ const formatDtcInclude = (
   return result;
 };
 
+const isDoxygen = (commentItem?: Comment) =>
+  commentItem?.firstToken.nextToken?.nextToken?.value === "*";
+
 const formatCommentBlock = (
   commentItem: CommentBlock,
   levelMeta: LevelMeta | undefined,
@@ -1075,20 +1078,28 @@ const formatCommentBlock = (
   documentText: string[],
   settings: FormatingSettings
 ): TextEdit[] =>
-  commentItem.comments.flatMap((c, i) =>
-    formatBlockCommentLine(
-      c,
-      levelMeta,
-      indentString,
-      documentText,
-      i
-        ? i === commentItem.comments.length - 1
-          ? "last"
-          : "comment"
-        : "first",
-      settings
-    )
-  );
+  isDoxygen(commentItem.comments.at(0))
+    ? formatDoxygenComentBlock(
+        commentItem,
+        levelMeta,
+        indentString,
+        documentText,
+        settings
+      )
+    : commentItem.comments.flatMap((c, i) =>
+        formatBlockCommentLine(
+          c,
+          levelMeta,
+          indentString,
+          documentText,
+          i
+            ? i === commentItem.comments.length - 1
+              ? "last"
+              : "comment"
+            : "first",
+          settings
+        )
+      );
 
 const getPropertyIndentPrefix = (
   settings: FormatingSettings,
@@ -1105,6 +1116,95 @@ const getPropertyIndentPrefix = (
   )}`;
 
   return `${witdhPrifix}${prifix}`; // +3 ' = ' or + 4 ' = <'
+};
+
+const formatDoxygenComentBlock = (
+  commentBlock: CommentBlock,
+  levelMeta: LevelMeta | undefined,
+  indentString: string,
+  documentText: string[],
+  settings: FormatingSettings
+): TextEdit[] => {
+  const result: TextEdit[] = [];
+
+  const needPropertIndentPreifix = !(levelMeta?.inAst instanceof DtcBaseNode);
+
+  commentBlock.comments.forEach((line, i) => {
+    if (i === 0) {
+      if (!line.firstToken.prevToken) {
+        result.push(
+          ...ensureOnNewLineAndMax1EmptyLineToPrev(
+            commentBlock.firstToken,
+            levelMeta?.level ?? 0,
+            indentString,
+            documentText
+          )
+        );
+      } else if (
+        line.firstToken.pos.line !== line.firstToken.prevToken.pos.line
+      ) {
+        result.push(
+          ...ensureOnNewLineAndMax1EmptyLineToPrev(
+            commentBlock.firstToken,
+            levelMeta?.level ?? 0,
+            indentString,
+            documentText,
+            needPropertIndentPreifix
+              ? getPropertyIndentPrefix(settings, levelMeta?.inAst, "")
+              : ""
+          )
+        );
+      }
+      if (
+        line.firstToken.nextToken?.nextToken?.nextToken?.pos.line ===
+        line.firstToken.pos.line
+      ) {
+        result.push(
+          ...ensureOnNewLineAndMax1EmptyLineToPrev(
+            line.firstToken.nextToken?.nextToken?.nextToken,
+            levelMeta?.level ?? 0,
+            indentString,
+            documentText,
+            needPropertIndentPreifix
+              ? getPropertyIndentPrefix(settings, levelMeta?.inAst, " * ")
+              : " * "
+          )
+        );
+      }
+
+      if (
+        line.lastToken.value === "/" &&
+        line.lastToken.prevToken &&
+        line.lastToken.prevToken !==
+          line.firstToken.nextToken?.nextToken?.nextToken
+      ) {
+        result.push(
+          ...ensureOnNewLineAndMax1EmptyLineToPrev(
+            line.lastToken.prevToken,
+            levelMeta?.level ?? 0,
+            indentString,
+            documentText,
+            needPropertIndentPreifix
+              ? getPropertyIndentPrefix(settings, levelMeta?.inAst, " ")
+              : " "
+          )
+        );
+      }
+    } else {
+      result.push(
+        ...formatBlockCommentLine(
+          line,
+          levelMeta,
+          indentString,
+          documentText,
+          i === commentBlock.comments.length - 1 ? "last" : "comment",
+          settings
+        )
+      );
+    }
+  });
+
+  return result;
 };
 
 const formatBlockCommentLine = (
