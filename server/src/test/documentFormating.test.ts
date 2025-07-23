@@ -1115,6 +1115,12 @@ describe("Document formating", () => {
       );
     });
 
+    test("new line after =", async () => {
+      const documentText = "/ {\n\tprop1 = \n<1 0 &gpio0 0 0>;\n};";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/ {\n\tprop1 = <1 0 &gpio0 0 0>;\n};");
+    });
+
     test("multple comments before and after commas on new line", async () => {
       const documentText =
         "/ {\n\tgpio-map\n= <1 0 &gpio0 0 0> /* D1 */ /* D2 */\n/* D3 */ /* D4 */, /* D5 */ /* D6 */ <0 0 &gpio0 1 0>		/* D7 */ /* D8 */\n\t\t\t/* D9 */,/* D10 */ /* D11 */<2 0 &gpio0 2 0> /* D12 */; /* D13 */\n};";

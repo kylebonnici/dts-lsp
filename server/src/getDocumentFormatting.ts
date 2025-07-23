@@ -796,7 +796,8 @@ const formatPropertyValues = (
   values: PropertyValues,
   level: number,
   settings: FormatingSettings,
-  documentText: string[]
+  documentText: string[],
+  assignOperator: Token | undefined
 ): TextEdit[] => {
   const result: TextEdit[] = [];
 
@@ -833,22 +834,31 @@ const formatPropertyValues = (
           );
         }
       } else {
-        const edit = removeNewLinesBetweenTokenAndPrev(
-          value.firstToken,
-          documentText,
-          1,
-          true
-        );
-        if (edit) result.push(edit);
-        result.push(
-          ...createIndentEdit(
+        if (assignOperator && value.firstToken.prevToken === assignOperator) {
+          result.push(
+            ...fixedNumberOfSpaceBetweenTokensAndNext(
+              assignOperator,
+              documentText
+            )
+          );
+        } else {
+          const edit = removeNewLinesBetweenTokenAndPrev(
             value.firstToken,
-            level,
-            settings.singleIndent,
             documentText,
-            widthToPrefix(settings, propertyNameWidth + 3) // +3 ' = '
-          )
-        );
+            1,
+            true
+          );
+          if (edit) result.push(edit);
+          result.push(
+            ...createIndentEdit(
+              value.firstToken,
+              level,
+              settings.singleIndent,
+              documentText,
+              widthToPrefix(settings, propertyNameWidth + 3) // +3 ' = '
+            )
+          );
+        }
       }
     }
 
@@ -917,7 +927,8 @@ const formatDtcProperty = (
         property.values,
         level,
         settings,
-        documentText
+        documentText,
+        property.assignOperatorToken
       )
     );
   }
