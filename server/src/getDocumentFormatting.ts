@@ -522,7 +522,11 @@ const formatDtcNode = async (
   if (node.closeScope) {
     if (node.openScope && node.closeScope.prevToken === node.openScope) {
       result.push(
-        ...fixedNumberOfSpaceBetweenTokensAndNext(node.openScope, documentText)
+        ...fixedNumberOfSpaceBetweenTokensAndNext(
+          node.openScope,
+          documentText,
+          0
+        )
       );
     } else {
       result.push(
