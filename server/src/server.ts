@@ -424,9 +424,6 @@ const getResolvedAllContextSettings = async () => {
   return resolveSettings(unresolvedSettings, await getRootWorkspace());
 };
 
-// Cache the settings of all open documents
-const documentSettings: Map<string, Thenable<Settings>> = new Map();
-
 const getRootWorkspace = async () => {
   const workspaceFolders = (
     (await connection.workspace.getWorkspaceFolders()) ?? workspaceFolder
@@ -629,20 +626,6 @@ const onSettingsChanged = async () => {
   });
 };
 
-connection.onDidChangeConfiguration(async (change) => {
-  if (!change?.settings?.devicetree) {
-    return;
-  }
-
-  lspConfigurationSettings = fixSettingsTypes(
-    deleteTopLevelNulls(change.settings.devicetree) as Settings
-  );
-
-  console.log("Configuration changed", JSON.stringify(change, undefined, "\t"));
-
-  await onSettingsChanged();
-});
-
 const reportNoContextFiles = () => {
   const activeCtxFiles = activeContext?.getContextFiles();
   Array.from(documents.keys()).forEach((u) => {
@@ -822,6 +805,9 @@ const contexMeta = async (ctx: ContextAware) => {
 
 const updateActiveContext = async (id: ContextId, force = false) => {
   if ("uri" in id) {
+    if (!isDtsFile(id.uri)) {
+      return false;
+    }
     activeFileUri = id.uri;
     console.log("Active File Uri", activeFileUri);
   }
@@ -903,6 +889,82 @@ const updateActiveContext = async (id: ContextId, force = false) => {
   return true;
 };
 
+const coreSyntaxIssuesFilter = (
+  issue: Issue<IssueTypes>,
+  filePath: string,
+  fullDiagnostics: boolean
+) => {
+  const syntaxIssuesToIgnore = [
+    SyntaxIssue.UNKNOWN_MACRO,
+    SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS,
+    SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS,
+    SyntaxIssue.UNABLE_TO_RESOLVE_INCLUDE,
+  ];
+
+  if (!fullDiagnostics) {
+    syntaxIssuesToIgnore.push(
+      SyntaxIssue.UNKNOWN_NODE_ADDRESS_SYNTAX,
+      SyntaxIssue.PROPERTY_MUST_BE_IN_NODE,
+      SyntaxIssue.NODE_ADDRESS,
+      SyntaxIssue.NAME_NODE_NAME_START
+    );
+  }
+  return (
+    issue.severity === DiagnosticSeverity.Error &&
+    isPathEqual(issue.astElement.uri, filePath) &&
+    !syntaxIssuesToIgnore.some((i) => issue.issues.includes(i))
+  );
+};
+
+const linterFormat = async (event: DocumentFormattingParams) => {
+  await allStable();
+  const filePath = fileURLToPath(event.textDocument.uri);
+  updateActiveContext({ uri: filePath });
+  const context = quickFindContext(filePath);
+
+  if (!context) {
+    return [];
+  }
+
+  const issues = (
+    await context.getSyntaxIssues(undefined, (issue) =>
+      coreSyntaxIssuesFilter(issue, filePath, false)
+    )
+  ).get(filePath);
+
+  if (issues?.length) {
+    throw new Error("Unable to format. Files has syntax issues.");
+  }
+
+  const documentText = getTokenizedDocumentProvider().getDocument(filePath);
+  const originalText = documentText.getText();
+  const edits = await getDocumentFormatting(
+    event,
+    context,
+    documentText.getText()
+  );
+
+  if (edits.length === 0) {
+    return;
+  }
+
+  const newText = applyEdits(documentText, edits);
+
+  if (newText === documentText.getText()) {
+    return;
+  }
+
+  const relativePath = relative(
+    context.settings.cwd ?? process.cwd(),
+    filePath
+  );
+
+  return createPatch(`a/${relativePath}`, originalText, newText);
+};
+
+const isDtsFile = (uri: string) =>
+  [".dts", ".dtsi", ".dtso", ".overlay"].some((ext) => uri.endsWith(ext));
+
 // Make the text document manager listen on the connection
 // for open, change and close text document events
 documents.listen(connection);
@@ -910,6 +972,11 @@ documents.listen(connection);
 // Only keep settings for open documents
 documents.onDidClose(async (e) => {
   const uri = fileURLToPath(e.document.uri);
+
+  if (!isDtsFile(uri)) {
+    return;
+  }
+
   const contexts = findContexts(contextAware, uri);
   if (contexts.length === 0) {
     adHocContextSettings.delete(uri);
@@ -948,14 +1015,16 @@ documents.onDidClose(async (e) => {
       }
     })
   );
-
-  documentSettings.delete(e.document.uri);
 });
 
 documents.onDidOpen(async (e) => {
+  const uri = fileURLToPath(e.document.uri);
+  if (!isDtsFile(uri)) {
+    return;
+  }
+
   await allStable();
   reportNoContextFiles();
-  const uri = fileURLToPath(e.document.uri);
 
   const ctx = findContext(contextAware, { uri });
   if (!ctx) {
@@ -974,6 +1043,10 @@ documents.onDidOpen(async (e) => {
 documents.onDidChangeContent(async (change) => {
   const uri = fileURLToPath(change.document.uri);
 
+  if (!isDtsFile(uri)) {
+    return;
+  }
+
   const text = change.document.getText();
   const tokenProvider = getTokenizedDocumentProvider();
   if (!tokenProvider.needsRenew(uri, text)) return;
@@ -981,6 +1054,20 @@ documents.onDidChangeContent(async (change) => {
   console.log("Content changed");
   tokenProvider.renewLexer(uri, text);
   await onChange(uri);
+});
+
+connection.onDidChangeConfiguration(async (change) => {
+  if (!change?.settings?.devicetree) {
+    return;
+  }
+
+  lspConfigurationSettings = fixSettingsTypes(
+    deleteTopLevelNulls(change.settings.devicetree) as Settings
+  );
+
+  console.log("Configuration changed", JSON.stringify(change, undefined, "\t"));
+
+  await onSettingsChanged();
 });
 
 // Listen on the connection
@@ -1007,8 +1094,13 @@ connection.onCompletion(
   async (
     textDocumentPosition: TextDocumentPositionParams
   ): Promise<CompletionItem[]> => {
-    await allStable();
     const uri = fileURLToPath(textDocumentPosition.textDocument.uri);
+    if (!isDtsFile(uri)) {
+      return [];
+    }
+
+    await allStable();
+
     updateActiveContext({ uri });
     const context = quickFindContext(uri);
 
@@ -1038,8 +1130,12 @@ const quickFindContext = (uri: string) => {
 };
 
 connection.onDocumentSymbol(async (h) => {
-  await allStable();
   const uri = fileURLToPath(h.textDocument.uri);
+  if (!isDtsFile(uri)) {
+    return [];
+  }
+
+  await allStable();
   const context = quickFindContext(uri);
 
   if (!context) return [];
@@ -1057,11 +1153,15 @@ connection.onWorkspaceSymbol(async () => {
 });
 
 connection.languages.semanticTokens.on(async (h) => {
+  const uri = fileURLToPath(h.textDocument.uri);
+  if (!isDtsFile(uri)) {
+    return { data: [] };
+  }
+
   try {
     await allStable();
-    const uri = fileURLToPath(h.textDocument.uri);
-    const context = quickFindContext(uri);
 
+    const context = quickFindContext(uri);
     const tokensBuilder = new SemanticTokensBuilder();
 
     const isInContext = context?.isInContext(uri);
@@ -1082,15 +1182,31 @@ connection.languages.semanticTokens.on(async (h) => {
 
 connection.onDocumentLinks(async (event) => {
   await allStable();
+
   const uri = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(uri)) {
+    if (uri.endsWith(".yaml") && activeContext) {
+      return (
+        activeContext.bindingLoader?.getDocumentLinks?.(
+          documents.get(event.textDocument.uri)
+        ) ?? []
+      );
+    }
+
+    return [];
+  }
+
   const context = quickFindContext(uri);
 
   return context?.getDocumentLinks(uri);
 });
 
 connection.onPrepareRename(async (event) => {
-  await allStable();
   const uri = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(uri)) {
+    return;
+  }
+  await allStable();
   updateActiveContext({ uri });
   const context = quickFindContext(uri);
 
@@ -1098,8 +1214,12 @@ connection.onPrepareRename(async (event) => {
 });
 
 connection.onRenameRequest(async (event) => {
-  await allStable();
   const uri = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(uri)) {
+    return;
+  }
+
+  await allStable();
   updateActiveContext({ uri });
   const context = quickFindContext(uri);
 
@@ -1107,8 +1227,12 @@ connection.onRenameRequest(async (event) => {
 });
 
 connection.onReferences(async (event) => {
-  await allStable();
   const uri = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(uri)) {
+    return;
+  }
+
+  await allStable();
   updateActiveContext({ uri });
   const context = quickFindContext(uri);
 
@@ -1116,9 +1240,12 @@ connection.onReferences(async (event) => {
 });
 
 connection.onDefinition(async (event) => {
-  await allStable();
-
   const uri = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(uri)) {
+    return;
+  }
+
+  await allStable();
   updateActiveContext({ uri });
   const context = quickFindContext(uri);
 
@@ -1133,8 +1260,12 @@ connection.onDefinition(async (event) => {
 });
 
 connection.onDeclaration(async (event) => {
-  await allStable();
   const uri = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(uri)) {
+    return;
+  }
+
+  await allStable();
   updateActiveContext({ uri });
   const context = quickFindContext(uri);
 
@@ -1142,12 +1273,20 @@ connection.onDeclaration(async (event) => {
 });
 
 connection.onCodeAction(async (event) => {
+  const uri = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(uri)) {
+    return;
+  }
   return getCodeActions(event);
 });
 
 connection.onDocumentFormatting(async (event) => {
-  await allStable();
   const filePath = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(filePath)) {
+    return;
+  }
+
+  await allStable();
   updateActiveContext({ uri: filePath });
   const context = quickFindContext(filePath);
 
@@ -1163,51 +1302,68 @@ connection.onDocumentFormatting(async (event) => {
 });
 
 connection.onHover(async (event) => {
+  const filePath = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(filePath)) {
+    return;
+  }
+
   await allStable();
-  const uri = fileURLToPath(event.textDocument.uri);
-  const context = quickFindContext(uri);
+  const context = quickFindContext(filePath);
 
   return (await getHover(event, context)).at(0);
 });
 
 connection.onFoldingRanges(async (event) => {
+  const filePath = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(filePath)) {
+    return;
+  }
+
   await allStable();
-  const uri = fileURLToPath(event.textDocument.uri);
 
-  const context = quickFindContext(uri);
+  const context = quickFindContext(filePath);
 
-  const isInContext = context?.isInContext(uri);
+  const isInContext = context?.isInContext(filePath);
   if (!context || !isInContext) {
     return [];
   }
 
   const parser = (await context.getAllParsers()).find((p) =>
-    p.getFiles().some((i) => i === uri)
+    p.getFiles().some((i) => i === filePath)
   );
 
-  if (parser) return getFoldingRanges(uri, parser);
+  if (parser) return getFoldingRanges(filePath, parser);
   return [];
 });
 
 connection.onTypeDefinition(async (event) => {
+  const filePath = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(filePath)) {
+    return;
+  }
+
   await allStable();
-  const uri = fileURLToPath(event.textDocument.uri);
-  updateActiveContext({ uri });
-  const context = quickFindContext(uri);
+  updateActiveContext({ uri: filePath });
+  const context = quickFindContext(filePath);
 
   return typeDefinition(event, context);
 });
 
 connection.onSignatureHelp(async (event) => {
+  const filePath = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(filePath)) {
+    return;
+  }
+
   await allStable();
 
-  const uri = fileURLToPath(event.textDocument.uri);
-  updateActiveContext({ uri });
-  const context = quickFindContext(uri);
+  updateActiveContext({ uri: filePath });
+  const context = quickFindContext(filePath);
 
   return getSignatureHelp(event, context);
 });
 
+// CUSTOME APIS
 connection.onRequest(
   "devicetree/getContexts",
   async (): Promise<ContextListItem[]> => {
@@ -1376,79 +1532,6 @@ connection.onRequest("devicetree/activeFileUri", async (uri: string) => {
   await allStable();
   updateActiveContext({ uri });
 });
-
-const coreSyntaxIssuesFilter = (
-  issue: Issue<IssueTypes>,
-  filePath: string,
-  fullDiagnostics: boolean
-) => {
-  const syntaxIssuesToIgnore = [
-    SyntaxIssue.UNKNOWN_MACRO,
-    SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS,
-    SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS,
-    SyntaxIssue.UNABLE_TO_RESOLVE_INCLUDE,
-  ];
-
-  if (!fullDiagnostics) {
-    syntaxIssuesToIgnore.push(
-      SyntaxIssue.UNKNOWN_NODE_ADDRESS_SYNTAX,
-      SyntaxIssue.PROPERTY_MUST_BE_IN_NODE,
-      SyntaxIssue.NODE_ADDRESS,
-      SyntaxIssue.NAME_NODE_NAME_START
-    );
-  }
-  return (
-    issue.severity === DiagnosticSeverity.Error &&
-    isPathEqual(issue.astElement.uri, filePath) &&
-    !syntaxIssuesToIgnore.some((i) => issue.issues.includes(i))
-  );
-};
-
-const linterFormat = async (event: DocumentFormattingParams) => {
-  await allStable();
-  const filePath = fileURLToPath(event.textDocument.uri);
-  updateActiveContext({ uri: filePath });
-  const context = quickFindContext(filePath);
-
-  if (!context) {
-    return [];
-  }
-
-  const issues = (
-    await context.getSyntaxIssues(undefined, (issue) =>
-      coreSyntaxIssuesFilter(issue, filePath, false)
-    )
-  ).get(filePath);
-
-  if (issues?.length) {
-    throw new Error("Unable to format. Files has syntax issues.");
-  }
-
-  const documentText = getTokenizedDocumentProvider().getDocument(filePath);
-  const originalText = documentText.getText();
-  const edits = await getDocumentFormatting(
-    event,
-    context,
-    documentText.getText()
-  );
-
-  if (edits.length === 0) {
-    return;
-  }
-
-  const newText = applyEdits(documentText, edits);
-
-  if (newText === documentText.getText()) {
-    return;
-  }
-
-  const relativePath = relative(
-    context.settings.cwd ?? process.cwd(),
-    filePath
-  );
-
-  return createPatch(`a/${relativePath}`, originalText, newText);
-};
 
 connection.onRequest("devicetree/formattingDiff", linterFormat);
 

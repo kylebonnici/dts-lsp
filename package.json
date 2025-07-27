@@ -58,6 +58,12 @@
           ".overlay"
         ],
         "configuration": "syntax/devicetree-language.json"
+      },
+      {
+        "id": "yaml",
+        "extensions": [
+          ".yaml"
+        ]
       }
     ],
     "grammars": [

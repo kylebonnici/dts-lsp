@@ -124,7 +124,10 @@ export async function activate(context: vscode.ExtensionContext) {
   // Options to control the language client
   const clientOptions: LanguageClientOptions = {
     // Register the server for plain text documents
-    documentSelector: [{ scheme: "file", language: "devicetree" }],
+    documentSelector: [
+      { scheme: "file", language: "devicetree" },
+      { scheme: "file", language: "yaml" },
+    ],
     synchronize: {
       configurationSection: "devicetree",
       fileEvents: [
