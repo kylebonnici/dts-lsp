@@ -629,20 +629,6 @@ const onSettingsChanged = async () => {
   });
 };
 
-connection.onDidChangeConfiguration(async (change) => {
-  if (!change?.settings?.devicetree) {
-    return;
-  }
-
-  lspConfigurationSettings = fixSettingsTypes(
-    deleteTopLevelNulls(change.settings.devicetree) as Settings
-  );
-
-  console.log("Configuration changed", JSON.stringify(change, undefined, "\t"));
-
-  await onSettingsChanged();
-});
-
 const reportNoContextFiles = () => {
   const activeCtxFiles = activeContext?.getContextFiles();
   Array.from(documents.keys()).forEach((u) => {
@@ -903,6 +889,79 @@ const updateActiveContext = async (id: ContextId, force = false) => {
   return true;
 };
 
+const coreSyntaxIssuesFilter = (
+  issue: Issue<IssueTypes>,
+  filePath: string,
+  fullDiagnostics: boolean
+) => {
+  const syntaxIssuesToIgnore = [
+    SyntaxIssue.UNKNOWN_MACRO,
+    SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS,
+    SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS,
+    SyntaxIssue.UNABLE_TO_RESOLVE_INCLUDE,
+  ];
+
+  if (!fullDiagnostics) {
+    syntaxIssuesToIgnore.push(
+      SyntaxIssue.UNKNOWN_NODE_ADDRESS_SYNTAX,
+      SyntaxIssue.PROPERTY_MUST_BE_IN_NODE,
+      SyntaxIssue.NODE_ADDRESS,
+      SyntaxIssue.NAME_NODE_NAME_START
+    );
+  }
+  return (
+    issue.severity === DiagnosticSeverity.Error &&
+    isPathEqual(issue.astElement.uri, filePath) &&
+    !syntaxIssuesToIgnore.some((i) => issue.issues.includes(i))
+  );
+};
+
+const linterFormat = async (event: DocumentFormattingParams) => {
+  await allStable();
+  const filePath = fileURLToPath(event.textDocument.uri);
+  updateActiveContext({ uri: filePath });
+  const context = quickFindContext(filePath);
+
+  if (!context) {
+    return [];
+  }
+
+  const issues = (
+    await context.getSyntaxIssues(undefined, (issue) =>
+      coreSyntaxIssuesFilter(issue, filePath, false)
+    )
+  ).get(filePath);
+
+  if (issues?.length) {
+    throw new Error("Unable to format. Files has syntax issues.");
+  }
+
+  const documentText = getTokenizedDocumentProvider().getDocument(filePath);
+  const originalText = documentText.getText();
+  const edits = await getDocumentFormatting(
+    event,
+    context,
+    documentText.getText()
+  );
+
+  if (edits.length === 0) {
+    return;
+  }
+
+  const newText = applyEdits(documentText, edits);
+
+  if (newText === documentText.getText()) {
+    return;
+  }
+
+  const relativePath = relative(
+    context.settings.cwd ?? process.cwd(),
+    filePath
+  );
+
+  return createPatch(`a/${relativePath}`, originalText, newText);
+};
+
 // Make the text document manager listen on the connection
 // for open, change and close text document events
 documents.listen(connection);
@@ -981,6 +1040,20 @@ documents.onDidChangeContent(async (change) => {
   console.log("Content changed");
   tokenProvider.renewLexer(uri, text);
   await onChange(uri);
+});
+
+connection.onDidChangeConfiguration(async (change) => {
+  if (!change?.settings?.devicetree) {
+    return;
+  }
+
+  lspConfigurationSettings = fixSettingsTypes(
+    deleteTopLevelNulls(change.settings.devicetree) as Settings
+  );
+
+  console.log("Configuration changed", JSON.stringify(change, undefined, "\t"));
+
+  await onSettingsChanged();
 });
 
 // Listen on the connection
@@ -1376,79 +1449,6 @@ connection.onRequest("devicetree/activeFileUri", async (uri: string) => {
   await allStable();
   updateActiveContext({ uri });
 });
-
-const coreSyntaxIssuesFilter = (
-  issue: Issue<IssueTypes>,
-  filePath: string,
-  fullDiagnostics: boolean
-) => {
-  const syntaxIssuesToIgnore = [
-    SyntaxIssue.UNKNOWN_MACRO,
-    SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS,
-    SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS,
-    SyntaxIssue.UNABLE_TO_RESOLVE_INCLUDE,
-  ];
-
-  if (!fullDiagnostics) {
-    syntaxIssuesToIgnore.push(
-      SyntaxIssue.UNKNOWN_NODE_ADDRESS_SYNTAX,
-      SyntaxIssue.PROPERTY_MUST_BE_IN_NODE,
-      SyntaxIssue.NODE_ADDRESS,
-      SyntaxIssue.NAME_NODE_NAME_START
-    );
-  }
-  return (
-    issue.severity === DiagnosticSeverity.Error &&
-    isPathEqual(issue.astElement.uri, filePath) &&
-    !syntaxIssuesToIgnore.some((i) => issue.issues.includes(i))
-  );
-};
-
-const linterFormat = async (event: DocumentFormattingParams) => {
-  await allStable();
-  const filePath = fileURLToPath(event.textDocument.uri);
-  updateActiveContext({ uri: filePath });
-  const context = quickFindContext(filePath);
-
-  if (!context) {
-    return [];
-  }
-
-  const issues = (
-    await context.getSyntaxIssues(undefined, (issue) =>
-      coreSyntaxIssuesFilter(issue, filePath, false)
-    )
-  ).get(filePath);
-
-  if (issues?.length) {
-    throw new Error("Unable to format. Files has syntax issues.");
-  }
-
-  const documentText = getTokenizedDocumentProvider().getDocument(filePath);
-  const originalText = documentText.getText();
-  const edits = await getDocumentFormatting(
-    event,
-    context,
-    documentText.getText()
-  );
-
-  if (edits.length === 0) {
-    return;
-  }
-
-  const newText = applyEdits(documentText, edits);
-
-  if (newText === documentText.getText()) {
-    return;
-  }
-
-  const relativePath = relative(
-    context.settings.cwd ?? process.cwd(),
-    filePath
-  );
-
-  return createPatch(`a/${relativePath}`, originalText, newText);
-};
 
 connection.onRequest("devicetree/formattingDiff", linterFormat);
 
