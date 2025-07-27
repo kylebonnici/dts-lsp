@@ -805,6 +805,9 @@ const contexMeta = async (ctx: ContextAware) => {
 
 const updateActiveContext = async (id: ContextId, force = false) => {
   if ("uri" in id) {
+    if (!isDtsFile(id.uri)) {
+      return false;
+    }
     activeFileUri = id.uri;
     console.log("Active File Uri", activeFileUri);
   }
@@ -1182,7 +1185,14 @@ connection.onDocumentLinks(async (event) => {
 
   const uri = fileURLToPath(event.textDocument.uri);
   if (!isDtsFile(uri)) {
-    // TODO
+    if (uri.endsWith(".yaml") && activeContext) {
+      return (
+        activeContext.bindingLoader?.getDocumentLinks?.(
+          documents.get(event.textDocument.uri)
+        ) ?? []
+      );
+    }
+
     return [];
   }
 
@@ -1352,7 +1362,6 @@ connection.onSignatureHelp(async (event) => {
 
   return getSignatureHelp(event, context);
 });
-
 
 // CUSTOME APIS
 connection.onRequest(

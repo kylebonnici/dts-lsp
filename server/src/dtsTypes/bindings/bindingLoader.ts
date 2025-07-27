@@ -19,13 +19,16 @@ import { Node } from "../../context/node";
 import { INodeType } from "../types";
 import { getDevicetreeOrgBindingsLoader } from "./devicetree-org/loader";
 import { getZephyrBindingsLoader } from "./zephyr/loader";
-import { FileDiagnostic } from "src/types";
+import { FileDiagnostic } from "../../types";
+import { DocumentLink } from "vscode-languageserver-types";
+import { TextDocument } from "vscode-languageserver-textdocument";
 
 export interface BindingLoader {
   getNodeTypes(node: Node): { type: INodeType[]; issues: FileDiagnostic[] };
   readonly type: BindingType;
   readonly files: BindingLoaderFileType;
   getBindings(): string[];
+  getDocumentLinks?(document?: TextDocument): DocumentLink[];
 }
 
 export interface BindingLoaderFileType {
@@ -69,6 +72,22 @@ export const getBindingLoader = (
 
         case "DevicetreeOrg":
           return getDevicetreeOrgBindingsLoader().getBindings();
+      }
+    },
+    getDocumentLinks(document) {
+      if (!document) {
+        return [];
+      }
+
+      switch (type) {
+        case "Zephyr":
+          return getZephyrBindingsLoader().getDocumentLinks(
+            document,
+            files.zephyrBindings
+          );
+
+        case "DevicetreeOrg":
+          return [];
       }
     },
   };

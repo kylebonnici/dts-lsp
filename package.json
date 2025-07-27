@@ -55,10 +55,15 @@
           ".dts",
           ".dtsi",
           ".dtso",
-          ".overlay",
-          ".yaml"
+          ".overlay"
         ],
         "configuration": "syntax/devicetree-language.json"
+      },
+      {
+        "id": "yaml",
+        "extensions": [
+          ".yaml"
+        ]
       }
     ],
     "grammars": [

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.4.10] - Unreleased
 
+### Added
+
+- Privide document links to included binding files for Zephyr bindings
+
 ### Fixed
 
 - Issue with zephyt bindings when child node should use parent node bus type to find match.

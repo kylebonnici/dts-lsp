@@ -33,16 +33,25 @@ import {
   MacroRegistryItem,
   StandardTypeIssue,
 } from "../../../types";
-import { createTokenIndex, genStandardTypeDiagnostic } from "../../../helpers";
+import {
+  createTokenIndex,
+  fileURLToPath,
+  genStandardTypeDiagnostic,
+  pathToFileURL,
+} from "../../../helpers";
 import {
   DiagnosticSeverity,
   DiagnosticTag,
+  DocumentLink,
   ParameterInformation,
+  Range,
 } from "vscode-languageserver";
 import { Property } from "../../../context/property";
 import { BindingPropertyType } from "../../../types/index";
 import { ASTBase } from "../../../ast/base";
 import { getSimpleBusType } from "../../../dtsTypes/standardTypes/nodeTypes/simpleBus/node";
+import { TextDocument } from "vscode-languageserver-textdocument";
+import p from "path";
 
 type ZephyrPropertyType =
   | "string"
@@ -70,6 +79,11 @@ type ZephyrBindingsProperty = {
 interface ZephyrBindingYml {
   filePath: string;
   include: {
+    name: string;
+    "property-blocklist"?: string[];
+    "property-allowlist"?: string[];
+  }[];
+  rawInclude: {
     name: string;
     "property-blocklist"?: string[];
     "property-allowlist"?: string[];
@@ -404,6 +418,7 @@ export class ZephyrBindingsLoader {
               }
               try {
                 const readData = yaml.parse(readFileSync(bindingFile, "utf-8"));
+                const simplifiyedInclude = simplifiyInclude(readData?.include);
                 const obj = {
                   ...readData,
                   bus: readData.bus
@@ -411,7 +426,8 @@ export class ZephyrBindingsLoader {
                       ? readData.bus
                       : [readData.bus]
                     : undefined,
-                  include: simplifiyInclude(readData?.include),
+                  include: simplifiyedInclude,
+                  rawInclude: [...simplifiyedInclude],
                   filePath: bindingFile,
                 } as ZephyrBindingYml;
                 this.zephyrBindingCache.set(bindingFile, obj);
@@ -443,6 +459,42 @@ export class ZephyrBindingsLoader {
     return Array.from(this.typeCache.get(key)?.keys() ?? []).map(
       (b) => b.split("::", 1)[0]
     );
+  }
+
+  getDocumentLinks(document: TextDocument, folders: string[]): DocumentLink[] {
+    const bindingFile = this.zephyrBindingCache.get(
+      fileURLToPath(document.uri)
+    );
+
+    if (!bindingFile) return [];
+
+    const text = document.getText();
+    const links = bindingFile.rawInclude
+      .map((include) => {
+        const regex = new RegExp(include.name);
+        const match = regex.exec(text);
+        if (match) {
+          const start = document.positionAt(match.index);
+          const end = document.positionAt(match.index + match[0].length);
+          const path = Array.from(this.zephyrBindingCache.keys()).find(
+            (path) =>
+              path.endsWith(`${p.sep}${include.name}`) &&
+              folders.some((f) => path.startsWith(f))
+          );
+
+          if (!path) {
+            return;
+          }
+
+          return {
+            range: Range.create(start, end),
+            target: pathToFileURL(path),
+          };
+        }
+      })
+      .filter((l) => !!l);
+
+    return links;
   }
 }
 
