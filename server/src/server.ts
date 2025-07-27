@@ -959,6 +959,9 @@ const linterFormat = async (event: DocumentFormattingParams) => {
   return createPatch(`a/${relativePath}`, originalText, newText);
 };
 
+const isDtsFile = (uri: string) =>
+  [".dts", ".dtsi", ".dtso", ".overlay"].some((ext) => uri.endsWith(ext));
+
 // Make the text document manager listen on the connection
 // for open, change and close text document events
 documents.listen(connection);
@@ -966,6 +969,11 @@ documents.listen(connection);
 // Only keep settings for open documents
 documents.onDidClose(async (e) => {
   const uri = fileURLToPath(e.document.uri);
+
+  if (!isDtsFile(uri)) {
+    return;
+  }
+
   const contexts = findContexts(contextAware, uri);
   if (contexts.length === 0) {
     adHocContextSettings.delete(uri);
@@ -1007,9 +1015,13 @@ documents.onDidClose(async (e) => {
 });
 
 documents.onDidOpen(async (e) => {
+  const uri = fileURLToPath(e.document.uri);
+  if (!isDtsFile(uri)) {
+    return;
+  }
+
   await allStable();
   reportNoContextFiles();
-  const uri = fileURLToPath(e.document.uri);
 
   const ctx = findContext(contextAware, { uri });
   if (!ctx) {
@@ -1027,6 +1039,10 @@ documents.onDidOpen(async (e) => {
 
 documents.onDidChangeContent(async (change) => {
   const uri = fileURLToPath(change.document.uri);
+
+  if (!isDtsFile(uri)) {
+    return;
+  }
 
   const text = change.document.getText();
   const tokenProvider = getTokenizedDocumentProvider();
@@ -1075,8 +1091,13 @@ connection.onCompletion(
   async (
     textDocumentPosition: TextDocumentPositionParams
   ): Promise<CompletionItem[]> => {
-    await allStable();
     const uri = fileURLToPath(textDocumentPosition.textDocument.uri);
+    if (!isDtsFile(uri)) {
+      return [];
+    }
+
+    await allStable();
+
     updateActiveContext({ uri });
     const context = quickFindContext(uri);
 
@@ -1106,8 +1127,12 @@ const quickFindContext = (uri: string) => {
 };
 
 connection.onDocumentSymbol(async (h) => {
-  await allStable();
   const uri = fileURLToPath(h.textDocument.uri);
+  if (!isDtsFile(uri)) {
+    return [];
+  }
+
+  await allStable();
   const context = quickFindContext(uri);
 
   if (!context) return [];
@@ -1125,11 +1150,15 @@ connection.onWorkspaceSymbol(async () => {
 });
 
 connection.languages.semanticTokens.on(async (h) => {
+  const uri = fileURLToPath(h.textDocument.uri);
+  if (!isDtsFile(uri)) {
+    return { data: [] };
+  }
+
   try {
     await allStable();
-    const uri = fileURLToPath(h.textDocument.uri);
-    const context = quickFindContext(uri);
 
+    const context = quickFindContext(uri);
     const tokensBuilder = new SemanticTokensBuilder();
 
     const isInContext = context?.isInContext(uri);
@@ -1150,15 +1179,24 @@ connection.languages.semanticTokens.on(async (h) => {
 
 connection.onDocumentLinks(async (event) => {
   await allStable();
+
   const uri = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(uri)) {
+    // TODO
+    return [];
+  }
+
   const context = quickFindContext(uri);
 
   return context?.getDocumentLinks(uri);
 });
 
 connection.onPrepareRename(async (event) => {
-  await allStable();
   const uri = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(uri)) {
+    return;
+  }
+  await allStable();
   updateActiveContext({ uri });
   const context = quickFindContext(uri);
 
@@ -1166,8 +1204,12 @@ connection.onPrepareRename(async (event) => {
 });
 
 connection.onRenameRequest(async (event) => {
-  await allStable();
   const uri = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(uri)) {
+    return;
+  }
+
+  await allStable();
   updateActiveContext({ uri });
   const context = quickFindContext(uri);
 
@@ -1175,8 +1217,12 @@ connection.onRenameRequest(async (event) => {
 });
 
 connection.onReferences(async (event) => {
-  await allStable();
   const uri = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(uri)) {
+    return;
+  }
+
+  await allStable();
   updateActiveContext({ uri });
   const context = quickFindContext(uri);
 
@@ -1184,9 +1230,12 @@ connection.onReferences(async (event) => {
 });
 
 connection.onDefinition(async (event) => {
-  await allStable();
-
   const uri = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(uri)) {
+    return;
+  }
+
+  await allStable();
   updateActiveContext({ uri });
   const context = quickFindContext(uri);
 
@@ -1201,8 +1250,12 @@ connection.onDefinition(async (event) => {
 });
 
 connection.onDeclaration(async (event) => {
-  await allStable();
   const uri = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(uri)) {
+    return;
+  }
+
+  await allStable();
   updateActiveContext({ uri });
   const context = quickFindContext(uri);
 
@@ -1210,12 +1263,20 @@ connection.onDeclaration(async (event) => {
 });
 
 connection.onCodeAction(async (event) => {
+  const uri = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(uri)) {
+    return;
+  }
   return getCodeActions(event);
 });
 
 connection.onDocumentFormatting(async (event) => {
-  await allStable();
   const filePath = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(filePath)) {
+    return;
+  }
+
+  await allStable();
   updateActiveContext({ uri: filePath });
   const context = quickFindContext(filePath);
 
@@ -1231,51 +1292,69 @@ connection.onDocumentFormatting(async (event) => {
 });
 
 connection.onHover(async (event) => {
+  const filePath = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(filePath)) {
+    return;
+  }
+
   await allStable();
-  const uri = fileURLToPath(event.textDocument.uri);
-  const context = quickFindContext(uri);
+  const context = quickFindContext(filePath);
 
   return (await getHover(event, context)).at(0);
 });
 
 connection.onFoldingRanges(async (event) => {
+  const filePath = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(filePath)) {
+    return;
+  }
+
   await allStable();
-  const uri = fileURLToPath(event.textDocument.uri);
 
-  const context = quickFindContext(uri);
+  const context = quickFindContext(filePath);
 
-  const isInContext = context?.isInContext(uri);
+  const isInContext = context?.isInContext(filePath);
   if (!context || !isInContext) {
     return [];
   }
 
   const parser = (await context.getAllParsers()).find((p) =>
-    p.getFiles().some((i) => i === uri)
+    p.getFiles().some((i) => i === filePath)
   );
 
-  if (parser) return getFoldingRanges(uri, parser);
+  if (parser) return getFoldingRanges(filePath, parser);
   return [];
 });
 
 connection.onTypeDefinition(async (event) => {
+  const filePath = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(filePath)) {
+    return;
+  }
+
   await allStable();
-  const uri = fileURLToPath(event.textDocument.uri);
-  updateActiveContext({ uri });
-  const context = quickFindContext(uri);
+  updateActiveContext({ uri: filePath });
+  const context = quickFindContext(filePath);
 
   return typeDefinition(event, context);
 });
 
 connection.onSignatureHelp(async (event) => {
+  const filePath = fileURLToPath(event.textDocument.uri);
+  if (!isDtsFile(filePath)) {
+    return;
+  }
+
   await allStable();
 
-  const uri = fileURLToPath(event.textDocument.uri);
-  updateActiveContext({ uri });
-  const context = quickFindContext(uri);
+  updateActiveContext({ uri: filePath });
+  const context = quickFindContext(filePath);
 
   return getSignatureHelp(event, context);
 });
 
+
+// CUSTOME APIS
 connection.onRequest(
   "devicetree/getContexts",
   async (): Promise<ContextListItem[]> => {
