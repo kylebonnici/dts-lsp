@@ -424,9 +424,6 @@ const getResolvedAllContextSettings = async () => {
   return resolveSettings(unresolvedSettings, await getRootWorkspace());
 };
 
-// Cache the settings of all open documents
-const documentSettings: Map<string, Thenable<Settings>> = new Map();
-
 const getRootWorkspace = async () => {
   const workspaceFolders = (
     (await connection.workspace.getWorkspaceFolders()) ?? workspaceFolder
@@ -1007,8 +1004,6 @@ documents.onDidClose(async (e) => {
       }
     })
   );
-
-  documentSettings.delete(e.document.uri);
 });
 
 documents.onDidOpen(async (e) => {
