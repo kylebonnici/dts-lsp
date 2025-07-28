@@ -113,20 +113,6 @@ export default () => {
           break;
         }
 
-        const addressCellsProperty = phandleNode?.getProperty(`#address-cells`);
-        if (!addressCellsProperty) {
-          issues.push(
-            genStandardTypeDiagnostic(
-              StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
-              property.ast,
-              DiagnosticSeverity.Error,
-              [...property.parent.nodeNameOrLabelRef],
-              [],
-              [property.name, "#address-cells", phandleNode.pathString]
-            )
-          );
-        }
-
         const cellsPropertyValue = getU32ValueFromProperty(
           cellsProperty,
           0,
