@@ -21,7 +21,6 @@ import {
   flatNumberValues,
   generateOrTypeObj,
   getU32ValueFromProperty,
-  resolvePhandleNode,
 } from "./helpers";
 import { genStandardTypeDiagnostic } from "../../helpers";
 import {
@@ -45,14 +44,17 @@ export default () => {
       }
 
       const node = property.parent;
-      const interruptParent = node.getProperty("interrupt-parent");
-      const root = node.root;
-      const parentInterruptNode = interruptParent
-        ? resolvePhandleNode(interruptParent?.ast.values?.values.at(0), root)
-        : node.parent;
 
-      if (!parentInterruptNode) {
-        if (!interruptParent) {
+      // in this case we can leve it up to interrupts-extended to validate as this prop
+      // is to be ignored
+      if (node.getProperty("interrupts-extended")) {
+        return issues;
+      }
+
+      const result = node.interruptsParent;
+
+      if (!result?.parentInterruptNode) {
+        if (!result?.interruptParent) {
           issues.push(
             genStandardTypeDiagnostic(
               StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
@@ -68,12 +70,14 @@ export default () => {
         issues.push(
           genStandardTypeDiagnostic(
             StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
-            interruptParent.ast.values?.values.at(0)?.value ??
-              interruptParent.ast
+            result.interruptParent.ast.values?.values.at(0)?.value ??
+              result.interruptParent.ast
           )
         );
         return issues;
       }
+
+      const { parentInterruptNode } = result;
 
       const childInterruptSpecifier =
         parentInterruptNode.getProperty("#interrupt-cells");

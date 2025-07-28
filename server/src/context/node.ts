@@ -913,6 +913,42 @@ export class Node {
     return this.#mappedRegCache;
   }
 
+  get interruptsParent(): {
+    interruptParent?: Property;
+    parentInterruptNode: Node | null;
+  } | null {
+    if (this.getProperty("interrupts-extended")) {
+      return null;
+    }
+
+    const zephyr = this.bindingLoader?.type === "Zephyr";
+
+    const interruptParent = this.getProperty("interrupt-parent");
+    const parentInterruptNode = interruptParent
+      ? resolvePhandleNode(interruptParent?.ast.values?.values.at(0), this.root)
+      : !zephyr
+      ? this.parent
+      : undefined;
+
+    if (!zephyr || interruptParent) {
+      return {
+        interruptParent,
+        parentInterruptNode: parentInterruptNode ?? null,
+      };
+    }
+
+    if (parentInterruptNode) {
+      return {
+        interruptParent,
+        parentInterruptNode: parentInterruptNode ?? null,
+      };
+    }
+
+    return this.parent
+      ? this.parent.interruptsParent
+      : { parentInterruptNode: this };
+  }
+
   getNexusMapEntyMatch(
     specifier: string,
     macros: Map<string, MacroRegistryItem>,
