@@ -79,6 +79,16 @@ export default () => {
         parentInterruptNode.getProperty("#interrupt-cells");
 
       if (!childInterruptSpecifier) {
+        issues.push(
+          genStandardTypeDiagnostic(
+            StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+            property.ast,
+            DiagnosticSeverity.Error,
+            [...parentInterruptNode.nodeNameOrLabelRef],
+            [],
+            [property.name, "#interrupt-cells", parentInterruptNode.pathString]
+          )
+        );
         return issues;
       }
 
