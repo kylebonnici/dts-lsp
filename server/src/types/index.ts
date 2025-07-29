@@ -375,6 +375,11 @@ type SerializedMappedReg = {
   inMappingRange?: boolean;
 };
 
+type InterruptControlerSerializedMapping = {
+  expressions: (SerializableNumberValue | SerializableExpression)[];
+  path: string;
+};
+
 export type SerializedNode = {
   nodeType?: SerializedBinding;
   issues: Diagnostic[];
@@ -386,6 +391,7 @@ export type SerializedNode = {
   childNodes: SerializedNode[];
   reg?: SerializedMappedReg[];
   labels: string[];
+  interruptControllerMappings: InterruptControlerSerializedMapping[];
 };
 
 export type Actions = ClipboardActions;

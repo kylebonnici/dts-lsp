@@ -28,6 +28,7 @@ import {
   DiagnosticSeverity,
   ParameterInformation,
 } from "vscode-languageserver";
+import { Expression } from "../../ast/cPreprocessors/expression";
 
 export default () => {
   const prop = new PropertyNodeType<number>(
@@ -176,6 +177,13 @@ export default () => {
               mapItem: match.match,
             });
           }
+        }
+
+        if (mappingValuesAst.every((ast) => ast instanceof Expression)) {
+          phandleNode.interrupControlerMapping.push({
+            expressions: mappingValuesAst,
+            node,
+          });
         }
 
         i += cellsPropertyValue + 1;

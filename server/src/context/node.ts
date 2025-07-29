@@ -93,6 +93,7 @@ export class Node {
   private _nodes: Node[] = [];
   linkedNodeNamePaths: NodeName[] = [];
   linkedRefLabels: LabelRef[] = [];
+  interrupControlerMapping: { expressions: Expression[]; node: Node }[] = [];
 
   private _nodeTypes: INodeType[] | undefined;
 
@@ -1220,6 +1221,10 @@ ${"\t".repeat(level - 1)}}; ${isOmmited ? " */" : ""}`;
         endAddress: mappedReg?.endAddressRaw,
         size: mappedReg?.size,
         inMappingRange: mappedReg?.inMappingRange,
+      })),
+      interruptControllerMappings: this.interrupControlerMapping.map((m) => ({
+        expressions: m.expressions.map((e) => e.serialize(macros)),
+        path: m.node.pathString,
       })),
     };
   }

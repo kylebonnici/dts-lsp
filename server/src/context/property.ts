@@ -93,7 +93,7 @@ export class Property {
     if (!ast) return;
     const index = this.ast
       .getFlatAstValues()
-      ?.findIndex((item) => item === ast || item?.isAncestorOf(ast) );
+      ?.findIndex((item) => item === ast || item?.isAncestorOf(ast));
 
     return index === -1 ? undefined : index;
   }

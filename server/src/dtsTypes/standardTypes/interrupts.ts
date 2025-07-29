@@ -27,6 +27,7 @@ import {
   DiagnosticSeverity,
   ParameterInformation,
 } from "vscode-languageserver";
+import { Expression } from "../../ast/cPreprocessors/expression";
 
 export default () => {
   const prop = new PropertyNodeType<number>(
@@ -125,32 +126,28 @@ export default () => {
             DiagnosticSeverity.Error,
             [...property.parent.nodeNameOrLabelRef],
             [],
-            [property.name, "#address-cells", node.parent!.pathString]
+            [property.name, "#address-cells", node.parent?.pathString ?? "/"]
           )
         );
       }
 
+      if (!childInterruptSpecifier) {
+        issues.push(
+          genStandardTypeDiagnostic(
+            StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+            property.ast,
+            DiagnosticSeverity.Error,
+            [...parentInterruptNode.nodeNameOrLabelRef],
+            [],
+            [property.name, "#interrupt-cells", parentInterruptNode.pathString]
+          )
+        );
+
+        return issues;
+      }
+
       let i = 0;
       while (i < values.length) {
-        if (!childInterruptSpecifier) {
-          issues.push(
-            genStandardTypeDiagnostic(
-              StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
-              property.ast,
-              DiagnosticSeverity.Error,
-              [...parentInterruptNode.nodeNameOrLabelRef],
-              [],
-              [
-                property.name,
-                "#interrupt-cells",
-                parentInterruptNode.pathString,
-              ]
-            )
-          );
-
-          break;
-        }
-
         const remaining = values.length - i;
 
         if (childInterruptSpecifierValue > remaining) {
@@ -203,6 +200,13 @@ export default () => {
               mapItem: match.match,
             });
           }
+        }
+
+        if (mappingValuesAst.every((ast) => ast instanceof Expression)) {
+          parentInterruptNode.interrupControlerMapping.push({
+            expressions: mappingValuesAst,
+            node,
+          });
         }
 
         i += childInterruptSpecifierValue;
