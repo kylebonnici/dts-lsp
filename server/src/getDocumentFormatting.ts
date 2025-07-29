@@ -51,6 +51,7 @@ import { LabelAssign } from "./ast/dtc/label";
 import { ComplexExpression, Expression } from "./ast/cPreprocessors/expression";
 import { CMacroCall } from "./ast/cPreprocessors/functionCall";
 import { getPropertyFromChild, isPropertyValueChild } from "./ast/helpers";
+import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
 
 const findAst = async (token: Token, uri: string, fileRootAsts: ASTBase[]) => {
   const pos = Position.create(token.pos.line, token.pos.col);
@@ -744,6 +745,44 @@ const formatComplexExpression = (
       );
     }
     result.push(...formatExpression(value.join.expression, documentText));
+  } else if (
+    !(value.expression instanceof ComplexExpression) &&
+    (value.expression instanceof CMacroCall ||
+      value.expression instanceof CIdentifier)
+  ) {
+    if (value.openBracket) {
+      result.push(
+        TextEdit.del(
+          Range.create(
+            Position.create(
+              value.openBracket.pos.line,
+              value.openBracket.pos.col
+            ),
+            Position.create(
+              value.openBracket.pos.line,
+              value.openBracket.pos.colEnd
+            )
+          )
+        )
+      );
+    }
+
+    if (value.closeBracket) {
+      result.push(
+        TextEdit.del(
+          Range.create(
+            Position.create(
+              value.closeBracket.pos.line,
+              value.closeBracket.pos.col
+            ),
+            Position.create(
+              value.closeBracket.pos.line,
+              value.closeBracket.pos.colEnd
+            )
+          )
+        )
+      );
+    }
   }
 
   if (value.closeBracket && value.closeBracket.prevToken) {

@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Privide document links to included binding files for Zephyr bindings
+- Formatting macro in `(...)` example `prop = <(MACRO(x))>;` -> `prop = <MACRO(x)>` but not `prop = <(MACRO(x) + 1)>;`
 
 ### Fixed
 

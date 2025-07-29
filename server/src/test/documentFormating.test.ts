@@ -577,9 +577,7 @@ describe("Document formating", () => {
     test("Correct indentation in level 1 multi line", async () => {
       const documentText = "/ {\n/* foo\n* bar\n*/\n\tnode { };\n};";
       const newText = await getNewText(documentText);
-      expect(newText).toEqual(
-        "/ {\n\t/* foo\n\t * bar\n\t */\n\tnode {};\n};"
-      );
+      expect(newText).toEqual("/ {\n\t/* foo\n\t * bar\n\t */\n\tnode {};\n};");
     });
 
     test("Correct indentation in level 2 single line", async () => {
@@ -1135,6 +1133,33 @@ describe("Document formating", () => {
       const newText = await getNewText(documentText);
       expect(newText).toEqual("/ {\n\tprop1 = <ADD(10, \\\n\t\t20)>;");
     });
+
+    test("Macro expression with ()", async () => {
+      const documentText = "/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) )>;";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/ {\n\tprop1 = <ADD(10, \\\n\t\t20)>;");
+    });
+
+    test("Number expression with ()", async () => {
+      const documentText = "/ {\n\tprop1 = <(-10)>;";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/ {\n\tprop1 = <(-10)>;");
+    });
+
+    test("Multiple Macro expression in ()", async () => {
+      const documentText =
+        "/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) + ADD(10, \\\n\t\t20) )>;";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual(
+        "/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) + ADD(10, \\\n\t\t20))>;"
+      );
+    });
+
+    test("Multiple Macro and number expression in ()", async () => {
+      const documentText = "/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) + 10 )>;";
+      const newText = await getNewText(documentText);
+      expect(newText).toEqual("/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) + 10)>;");
+    });
   });
 
   describe("trailing White space", () => {
@@ -1162,9 +1187,7 @@ describe("Document formating", () => {
     test("empty node", async () => {
       const documentText = `arduino_i2c: &i2c1 {};\narduino_spi: &spi1 {};`;
       const newText = await getNewText(documentText);
-      expect(newText).toEqual(
-        `arduino_i2c: &i2c1 {};\narduino_spi: &spi1 {};`
-      );
+      expect(newText).toEqual(`arduino_i2c: &i2c1 {};\narduino_spi: &spi1 {};`);
     });
 
     test("after semicolon", async () => {
