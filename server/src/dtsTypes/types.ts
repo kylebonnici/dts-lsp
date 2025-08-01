@@ -73,25 +73,6 @@ function propertyTypeToString(type: PropertyType): string {
   }
 }
 
-function propertyTypeToExample(type: PropertyType): string | undefined {
-  switch (type) {
-    case PropertyType.EMPTY:
-      return `;`;
-    case PropertyType.U32:
-      return ` = <10>`;
-    case PropertyType.U64:
-      return ` = <10 20>`;
-    case PropertyType.STRING:
-      return ` = "str"`;
-    case PropertyType.PROP_ENCODED_ARRAY:
-      return ` = <10 20 30 ...>`;
-    case PropertyType.STRINGLIST:
-      return ` = "str1" "str2"`;
-    case PropertyType.BYTESTRING:
-      return ` = [10 20 .. ..]`;
-  }
-}
-
 export type RequirementStatus = "required" | "omitted" | "optional";
 
 export class PropertyNodeType<T = string | number> {
