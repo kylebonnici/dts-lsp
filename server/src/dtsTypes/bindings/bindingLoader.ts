@@ -42,6 +42,9 @@ export const getBindingLoader = (
   type: BindingType
 ): BindingLoader => {
   const zephyrKey = files.zephyrBindings.join(":");
+  if (type === "Zephyr") {
+    getZephyrBindingsLoader().loadTypeAndCache(files.zephyrBindings, zephyrKey);
+  }
   return {
     files,
     type,

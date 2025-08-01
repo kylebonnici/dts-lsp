@@ -359,11 +359,9 @@ export class ZephyrBindingsLoader {
         }[]
       | undefined;
 
-    if (!compatible) {
+    if (!compatible?.length) {
       return { type: [getStandardType(node)], issues: [] };
     }
-
-    this.loadTypeAndCache(folders, key);
 
     const out = compatible
       .flatMap((c) =>
@@ -394,7 +392,7 @@ export class ZephyrBindingsLoader {
     return { type: out.length ? out : [getStandardType(node)], issues };
   }
 
-  private loadTypeAndCache(folders: string | string[], key: string) {
+  loadTypeAndCache(folders: string | string[], key: string) {
     folders = Array.isArray(folders) ? folders : [folders];
 
     const bindings = folders
