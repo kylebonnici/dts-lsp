@@ -356,8 +356,7 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
   token: Token,
   documentText: string[],
   expectedSpaces = 1,
-  keepNewLines = false,
-  tab = false
+  keepNewLines = false
 ): TextEdit[] => {
   if (!token.nextToken) return [];
 
@@ -374,10 +373,9 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
       throw new Error("remove new LinesEdit must be defined");
     }
     if (expectedSpaces) {
-      removeNewLinesEdit.newText = `${"".padEnd(
-        expectedSpaces,
-        tab ? "\t" : " "
-      )}${removeNewLinesEdit.newText}`;
+      removeNewLinesEdit.newText = `${"".padEnd(expectedSpaces, " ")}${
+        removeNewLinesEdit.newText
+      }`;
     }
     return [removeNewLinesEdit];
   }
@@ -400,7 +398,7 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
     return [
       TextEdit.insert(
         Position.create(token.nextToken.pos.line, token.nextToken.pos.col),
-        "".padEnd(expectedSpaces, tab ? "\t" : " ")
+        "".padEnd(expectedSpaces, " ")
       ),
     ];
   }
@@ -411,7 +409,7 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
         Position.create(token.pos.line, token.pos.colEnd),
         Position.create(token.nextToken.pos.line, token.nextToken.pos.col)
       ),
-      "".padEnd(expectedSpaces, tab ? "\t" : " ")
+      "".padEnd(expectedSpaces, " ")
     ),
   ];
 };
@@ -1194,9 +1192,7 @@ const formatBlockCommentLine = (
       ...fixedNumberOfSpaceBetweenTokensAndNext(
         commentItem.firstToken.prevToken,
         documentText,
-        1,
-        undefined,
-        true
+        1
       ),
     ];
   }
@@ -1283,9 +1279,7 @@ const formatComment = (
     return fixedNumberOfSpaceBetweenTokensAndNext(
       commentItem.firstToken.prevToken,
       documentText,
-      1,
-      undefined,
-      true
+      1
     );
   }
 
