@@ -17,6 +17,7 @@
 import type {
   Context,
   ContextListItem,
+  EvaluatedMacro,
   IntegrationSettings,
   LocationResult,
   ResolvedSettings,
@@ -40,6 +41,7 @@ export interface IDeviceTreeAPI {
     textDocumentPositionParams: TextDocumentPositionParams
   ): Promise<LocationResult>;
   getActiveContext(): Promise<ContextListItem | undefined>;
+  evaluateMacros(macros: string[], ctxId: string): Promise<EvaluatedMacro[]>;
   copyZephyrCMacroIdentifier(
     textDocumentPositionParams: TextDocumentPositionParams
   ): Promise<void>;

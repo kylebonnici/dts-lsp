@@ -51,6 +51,8 @@ import {
 } from "./types";
 import {
   applyEdits,
+  evalExp,
+  expandMacros,
   fileURLToPath,
   findContext,
   findContexts,
@@ -79,6 +81,7 @@ import type {
   Context,
   ContextListItem,
   ContextType,
+  EvaluatedMacro,
   IntegrationSettings,
   LocationResult,
   ResolvedContext,
@@ -1624,5 +1627,27 @@ connection.onRequest(
     }
 
     return issues;
+  }
+);
+
+connection.onRequest(
+  "devicetree/evalMacros",
+  async ({ macros, ctxId }: { macros: string[]; ctxId: string }) => {
+    await allStable();
+
+    const context = findContext(contextAware, { id: ctxId });
+
+    if (!context) {
+      return [];
+    }
+
+    return macros.map<EvaluatedMacro>((macro) => {
+      const expanded = expandMacros(macro, context.macros);
+      const evaluated = evalExp(expanded);
+      return {
+        macro,
+        evaluated: typeof evaluated === "number" ? evaluated : expanded,
+      };
+    });
   }
 );

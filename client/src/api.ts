@@ -19,6 +19,7 @@ import type {
   Actions,
   Context,
   ContextListItem,
+  EvaluatedMacro,
   IntegrationSettings,
   LocationResult,
   ResolvedSettings,
@@ -241,5 +242,12 @@ export class API implements IDeviceTreeAPI {
       "devicetree/activeFileUri",
       path
     ) as Promise<void>;
+  }
+
+  evaluateMacros(macros: string[], ctxId: string) {
+    return this.client.sendRequest("devicetree/evalMacros", {
+      macros,
+      ctxId,
+    }) as Promise<EvaluatedMacro[]>;
   }
 }
