@@ -92,8 +92,8 @@ interface ZephyrBindingYml {
   description?: string;
   compatible?: string;
   "child-binding"?: ZephyrBindingYml;
-  bus: string[] | undefined;
-  "on-bus": string;
+  bus?: string[];
+  "on-bus"?: string;
   properties?: {
     [key: string]: ZephyrBindingsProperty;
   };
