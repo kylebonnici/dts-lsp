@@ -17,26 +17,11 @@
 import { ASTBase } from "../base";
 import { Operator } from "./operator";
 import type { MacroRegistryItem, Token } from "../../types";
-import { expandMacros } from "../../helpers";
+import { evalExp, expandMacros } from "../../helpers";
 import {
   SerializableExpression,
   SerializableNumberValue,
 } from "../../types/index";
-
-function sanitizeCExpression(expr: string) {
-  return expr
-    .replace(/'(.)'/g, (_, char: string) => char.charCodeAt(0).toString())
-    .replace(/(0x[a-f\d]+|\d+)[ul]*/gi, "$1");
-}
-
-function evalExp(str: string) {
-  try {
-    return (0, eval)(sanitizeCExpression(str));
-  } catch (e) {
-    console.log(e instanceof Error ? e.message : e);
-  }
-  return str;
-}
 
 export abstract class Expression extends ASTBase {
   toJson() {

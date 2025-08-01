@@ -694,6 +694,21 @@ export const expandMacros = (
   return expandedCode;
 };
 
+export function sanitizeCExpression(expr: string) {
+  return expr
+    .replace(/'(.)'/g, (_, char: string) => char.charCodeAt(0).toString())
+    .replace(/(0x[a-f\d]+|\d+)[ul]*/gi, "$1");
+}
+
+export function evalExp(str: string) {
+  try {
+    return (0, eval)(sanitizeCExpression(str));
+  } catch (e) {
+    console.log(e instanceof Error ? e.message : e);
+  }
+  return str;
+}
+
 export const pathToFileURL = (path: string) => {
   return url.pathToFileURL(path).toString();
 };
