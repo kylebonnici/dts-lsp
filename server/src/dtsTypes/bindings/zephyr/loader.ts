@@ -360,6 +360,27 @@ export class ZephyrBindingsLoader {
       | undefined;
 
     if (!compatible?.length) {
+      if (node.name === "zephyr,user") {
+        const folders = key.split(":");
+        const bindings = Array.from(this.zephyrBindingCache.keys())
+          .filter((p) => folders.some((f) => p.startsWith(f)))
+          .flatMap((path) => this.zephyrBindingCache.get(path)!);
+
+        const base = bindings.find((b) => b.filePath.endsWith(`/base.yaml`));
+        const baseType = base ? convertBindingToType(base, node) : undefined;
+        if (baseType) {
+          baseType.warnMismatchProperties = false;
+          const compat = baseType.properties.find(
+            (p) => p.name === "compatible"
+          );
+          if (compat) {
+            compat.required = () => "optional";
+          }
+        }
+
+        return { type: [baseType ?? getStandardType(node)], issues: [] };
+      }
+
       return { type: [getStandardType(node)], issues: [] };
     }
 

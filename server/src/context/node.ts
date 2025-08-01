@@ -142,7 +142,9 @@ export class Node {
       return this._nodeTypes;
     }
 
-    this._nodeTypes = [getStandardType(this)];
+    this._nodeTypes = this.bindingLoader?.getNodeTypes(this).type ?? [
+      getStandardType(this),
+    ];
     return this._nodeTypes;
   }
 
