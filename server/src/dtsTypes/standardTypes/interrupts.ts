@@ -28,6 +28,7 @@ import {
   ParameterInformation,
 } from "vscode-languageserver";
 import { Expression } from "../../ast/cPreprocessors/expression";
+import { NexuxMapping } from "../../context/property";
 
 export default () => {
   const prop = new PropertyNodeType<number>(
@@ -178,6 +179,13 @@ export default () => {
         );
 
         const startAddress = node.mappedReg(macros)?.at(0)?.startAddress;
+        const nexusMapping: NexuxMapping = {
+          mappingValuesAst,
+          target: parentInterruptNode,
+        };
+
+        property.nexusMapsTo.push(nexusMapping);
+
         if (mapProperty && startAddress) {
           const match = parentInterruptNode.getNexusMapEntyMatch(
             "interrupt",
@@ -195,10 +203,7 @@ export default () => {
               )
             );
           } else {
-            property.nexusMapsTo.push({
-              mappingValuesAst,
-              mapItem: match.match,
-            });
+            nexusMapping.mapItem = match.match;
           }
         }
 
@@ -206,6 +211,7 @@ export default () => {
           parentInterruptNode.interrupControlerMapping.push({
             expressions: mappingValuesAst,
             node,
+            property,
           });
         }
 

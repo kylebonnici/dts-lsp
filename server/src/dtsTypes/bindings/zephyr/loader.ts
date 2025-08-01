@@ -46,12 +46,13 @@ import {
   ParameterInformation,
   Range,
 } from "vscode-languageserver";
-import { Property } from "../../../context/property";
+import { NexuxMapping, Property } from "../../../context/property";
 import { BindingPropertyType } from "../../../types/index";
 import { ASTBase } from "../../../ast/base";
 import { getSimpleBusType } from "../../../dtsTypes/standardTypes/nodeTypes/simpleBus/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import p from "path";
+import { Expression } from "../../../ast/cPreprocessors/expression";
 
 type ZephyrPropertyType =
   | "string"
@@ -827,6 +828,14 @@ const generateZephyrTypeCheck = (
         i += 1 + sizeCellValue;
 
         const mappingValuesAst = values.slice(i - sizeCellValue, i);
+        const nexusMapping: NexuxMapping = {
+          mappingValuesAst,
+          specifierSpace: parentName,
+          target: phandelValue,
+        };
+
+        p.nexusMapsTo.push(nexusMapping);
+
         const mapProperty = phandelValue.getProperty(`${parentName}-map`);
         if (mapProperty) {
           const match = phandelValue.getNexusMapEntyMatch(
@@ -844,11 +853,16 @@ const generateZephyrTypeCheck = (
               )
             );
           } else {
-            p.nexusMapsTo.push({
-              mappingValuesAst,
-              mapItem: match.match,
-            });
+            nexusMapping.mapItem = match.match;
           }
+        }
+
+        if (mappingValuesAst.every((ast) => ast instanceof Expression)) {
+          phandelValue.spesifierNexusMapping.push({
+            expressions: mappingValuesAst,
+            node: p.parent,
+            property: p,
+          });
         }
 
         const nameProperty = p.parent.getProperty(`${parentName}-names`);

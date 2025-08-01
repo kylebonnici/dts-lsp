@@ -39,11 +39,21 @@ import {
 import { LabelAssign } from "../ast/dtc/label";
 import type { Node } from "./node";
 import { ASTBase } from "../ast/base";
+import { LabelRef } from "../ast/dtc/labelRef";
+import { NodePathRef } from "../ast/dtc/values/nodePath";
+import { NumberValue } from "../ast/dtc/values/number";
+import { Expression } from "../ast/cPreprocessors/expression";
 
+export interface NexuxMapping {
+  mappingValuesAst: (LabelRef | NodePathRef | NumberValue | Expression)[];
+  specifierSpace?: string;
+  target: Node;
+  mapItem?: NexusMapEnty;
+}
 export class Property {
   replaces?: Property;
   replacedBy?: Property;
-  nexusMapsTo: { mappingValuesAst: ASTBase[]; mapItem: NexusMapEnty }[] = [];
+  nexusMapsTo: NexuxMapping[] = [];
   constructor(public readonly ast: DtcProperty, public readonly parent: Node) {}
 
   getDeepestAstNode(
@@ -128,20 +138,22 @@ export class Property {
       value: [
         "### Nexus mappings",
 
-        ...this.nexusMapsTo.flatMap((m) => [
-          "```",
-          `${this.name} = <... ${m.mappingValuesAst
-            .map((a) => a.toString())
-            .join(" ")} ...> maps to <... ${m.mapItem.mappingValues
-            .map((a) => a.toString())
-            .join(" ")} ...>;`,
-          "```",
-          `[Mapping (${m.mappingValuesAst
-            .map((a) => a.toString())
-            .join(
-              " "
-            )})](${`${m.mapItem.mappingValues[0].uri}#L${m.mapItem.mappingValues[0].firstToken.pos.line}`})`,
-        ]),
+        ...this.nexusMapsTo
+          .filter((m) => !!m.mapItem)
+          .flatMap((m) => [
+            "```",
+            `${this.name} = <... ${m.mappingValuesAst
+              .map((a) => a.toString())
+              .join(" ")} ...> maps to <... ${m
+              .mapItem!.mappingValues.map((a) => a.toString())
+              .join(" ")} ...>;`,
+            "```",
+            `[Mapping (${m.mappingValuesAst
+              .map((a) => a.toString())
+              .join(" ")})](${`${m.mapItem!.mappingValues[0].uri}#L${
+              m.mapItem!.mappingValues[0].firstToken.pos.line + 1
+            }`})`,
+          ]),
       ].join("\n"),
     };
   }
