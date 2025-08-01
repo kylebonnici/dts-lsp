@@ -223,10 +223,10 @@ export class ASTBase {
   }
 
   serialize(macros: Map<string, MacroRegistryItem>): SerializableASTBase {
-    return new SerializableASTBase(
-      this.serializeUri,
-      this.range,
-      this.serializeIssues
-    );
+    return {
+      uri: this.serializeUri,
+      range: this.range,
+      issues: this.serializeIssues,
+    };
   }
 }

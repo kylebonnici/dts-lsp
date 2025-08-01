@@ -50,14 +50,15 @@ export abstract class Expression extends ASTBase {
 
   serialize(
     macros: Map<string, MacroRegistryItem>
-  ): SerializableNumberValue | SerializableExpression {
-    return new SerializableExpression(
-      this.toString(),
-      this.evaluate(macros),
-      this.serializeUri,
-      this.range,
-      this.serializeIssues
-    );
+  ): SerializableExpression | SerializableNumberValue {
+    return {
+      type: "EXPRESSION",
+      value: this.toString(),
+      evaluated: this.evaluate(macros),
+      uri: this.serializeUri,
+      range: this.range,
+      issues: this.serializeIssues,
+    };
   }
 }
 

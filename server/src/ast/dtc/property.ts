@@ -40,12 +40,12 @@ export class PropertyName extends ASTBase {
   }
 
   serialize(): SerializablePropertyName {
-    return new SerializablePropertyName(
-      this.name,
-      this.serializeUri,
-      this.range,
-      this.serializeIssues
-    );
+    return {
+      value: this.name,
+      uri: this.serializeUri,
+      range: this.range,
+      issues: this.serializeIssues,
+    };
   }
 }
 
@@ -145,13 +145,14 @@ export class DtcProperty extends ASTBase {
   }
 
   serialize(macros: Map<string, MacroRegistryItem>): SerializableDtcProperty {
-    return new SerializableDtcProperty(
-      this.propertyName?.serialize() ?? null,
-      this.values?.values.map((v) => v?.value?.serialize(macros) ?? null) ??
+    return {
+      name: this.propertyName?.serialize() ?? null,
+      values:
+        this.values?.values.map((v) => v?.value?.serialize(macros) ?? null) ??
         null,
-      this.serializeUri,
-      this.range,
-      this.serializeIssues
-    );
+      uri: this.serializeUri,
+      range: this.range,
+      issues: this.serializeIssues,
+    };
   }
 }

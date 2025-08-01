@@ -87,128 +87,60 @@ export type PropertyType =
   | "NUMBER_VALUE"
   | "EXPRESSION";
 
-export class SerializableASTBase {
-  constructor(
-    public readonly uri: string,
-    public readonly range: Range,
-    public readonly issues: Diagnostic[]
-  ) {}
+export interface SerializableASTBase {
+  readonly uri: string;
+  readonly range: Range;
+  readonly issues: Diagnostic[];
 }
 
-export class SerializableStringValue extends SerializableASTBase {
-  readonly type = "STRING";
-
-  constructor(
-    public readonly value: string,
-    uri: string,
-    range: Range,
-    issues: Diagnostic[]
-  ) {
-    super(uri, range, issues);
-  }
+export interface SerializableStringValue extends SerializableASTBase {
+  readonly type: "STRING";
+  readonly value: string;
 }
 
-export class SerializableByteString extends SerializableASTBase {
-  readonly type = "BYTESTRING";
-
-  constructor(
-    public readonly values: ({
-      value: string;
-      range: Range;
-      evaluated: number;
-    } | null)[],
-    uri: string,
-    range: Range,
-    issues: Diagnostic[]
-  ) {
-    super(uri, range, issues);
-  }
+export interface SerializableByteString extends SerializableASTBase {
+  readonly type: "BYTESTRING";
+  readonly values: ({
+    value: string;
+    range: Range;
+    evaluated: number;
+  } | null)[];
 }
 
-export class SerializableArrayValue extends SerializableASTBase {
-  readonly type = "ARRAY_VALUE";
-
-  constructor(
-    public readonly value: (
-      | SerializableLabelRef
-      | SerializableNodePath
-      | SerializableNumberValue
-      | SerializableExpression
-      | null
-    )[],
-    uri: string,
-    range: Range,
-    issues: Diagnostic[]
-  ) {
-    super(uri, range, issues);
-  }
+export interface SerializableArrayValue extends SerializableASTBase {
+  readonly type: "ARRAY_VALUE";
+  readonly value: (
+    | SerializableLabelRef
+    | SerializableNodePath
+    | SerializableNumberValue
+    | SerializableExpression
+    | null
+  )[];
 }
 
-export class SerializableLabelRef extends SerializableASTBase {
-  readonly type = "LABEL_REF";
-
-  constructor(
-    readonly label: string | null,
-    readonly nodePath: string | null,
-    uri: string,
-    range: Range,
-    issues: Diagnostic[]
-  ) {
-    super(uri, range, issues);
-  }
+export interface SerializableLabelRef extends SerializableASTBase {
+  readonly type: "LABEL_REF";
+  readonly label: string | null;
+  readonly nodePath: string | null;
 }
 
-export class SerializableNodePath extends SerializableASTBase {
-  readonly type = "NODE_PATH";
-
-  constructor(
-    readonly nodePath: string | null,
-    uri: string,
-    range: Range,
-    issues: Diagnostic[]
-  ) {
-    super(uri, range, issues);
-  }
+export interface SerializableNodePath extends SerializableASTBase {
+  readonly type: "NODE_PATH";
+  readonly nodePath: string | null;
 }
 
-export abstract class SerializableExpressionBase extends SerializableASTBase {
-  constructor(
-    readonly value: string | null,
-    readonly evaluated: number | string,
-    uri: string,
-    range: Range,
-    issues: Diagnostic[]
-  ) {
-    super(uri, range, issues);
-  }
+export interface SerializableExpressionBase extends SerializableASTBase {
+  readonly value: string | null;
+  readonly evaluated: number | string;
 }
 
-export class SerializableNumberValue extends SerializableExpressionBase {
-  readonly type = "NUMBER_VALUE";
-
-  constructor(
-    value: string,
-    evaluated: number,
-    uri: string,
-    range: Range,
-    issues: Diagnostic[]
-  ) {
-    super(value, evaluated, uri, range, issues);
-  }
+export interface SerializableNumberValue extends SerializableExpressionBase {
+  readonly type: "NUMBER_VALUE";
+  readonly evaluated: number;
 }
 
-export class SerializableExpression extends SerializableExpressionBase {
-  readonly type = "EXPRESSION";
-
-  constructor(
-    value: string,
-    evaluated: number | string,
-    uri: string,
-    range: Range,
-    issues: Diagnostic[]
-  ) {
-    super(value, evaluated, uri, range, issues);
-  }
+export interface SerializableExpression extends SerializableExpressionBase {
+  readonly type: "EXPRESSION";
 }
 
 export type SerializablePropertyValue =
@@ -221,63 +153,61 @@ export type SerializablePropertyValue =
   | SerializableNumberValue
   | null;
 
-export class SerializablePropertyName extends SerializableASTBase {
-  constructor(
-    public readonly value: string,
-    uri: string,
-    range: Range,
-    issues: Diagnostic[]
-  ) {
-    super(uri, range, issues);
-  }
+export interface SerializablePropertyName extends SerializableASTBase {
+  readonly value: string;
 }
-export class SerializableDtcProperty extends SerializableASTBase {
-  constructor(
-    public readonly name: SerializablePropertyName | null,
-    public readonly values: SerializablePropertyValue[] | null,
-    uri: string,
-    range: Range,
-    issues: Diagnostic[]
-  ) {
-    super(uri, range, issues);
-  }
+
+export type SerializableNexusMapEnty = {
+  mappingValuesAst: (
+    | SerializableLabelRef
+    | SerializableNodePath
+    | SerializableNumberValue
+    | SerializableExpression
+  )[];
+  specifierSpace?: string;
+  target: string;
+  mapItem?: {
+    mappingValues: (
+      | SerializableLabelRef
+      | SerializableNodePath
+      | SerializableNumberValue
+      | SerializableExpression
+    )[];
+    target: string;
+    parentValues: (
+      | SerializableLabelRef
+      | SerializableNodePath
+      | SerializableNumberValue
+      | SerializableExpression
+    )[];
+  };
+};
+
+export interface SerializableProperty extends SerializableASTBase {
+  readonly nexusMapEnty: SerializableNexusMapEnty[];
+  readonly name: SerializablePropertyName | null;
+  readonly values: SerializablePropertyValue[] | null;
 }
+
+export type SerializableDtcProperty = Omit<
+  SerializableProperty,
+  "nexusMapEnty"
+>;
 
 export type NodeType = "ROOT" | "REF" | "CHILD";
 
-export class SerializableNodeAddress extends SerializableASTBase {
-  constructor(
-    readonly address: number[],
-    uri: string,
-    range: Range,
-    issues: Diagnostic[]
-  ) {
-    super(uri, range, issues);
-  }
+export interface SerializableNodeAddress extends SerializableASTBase {
+  readonly address: number[];
 }
 
-export class SerializableFullNodeName extends SerializableASTBase {
-  constructor(
-    readonly fullName: string,
-    readonly name: SerializableNodeName,
-    readonly address: SerializableNodeAddress[] | null,
-    uri: string,
-    range: Range,
-    issues: Diagnostic[]
-  ) {
-    super(uri, range, issues);
-  }
+export interface SerializableFullNodeName extends SerializableASTBase {
+  readonly fullName: string;
+  readonly name: SerializableNodeName;
+  readonly address: SerializableNodeAddress[] | null;
 }
 
-export class SerializableNodeName extends SerializableASTBase {
-  constructor(
-    readonly name: string,
-    uri: string,
-    range: Range,
-    issues: Diagnostic[]
-  ) {
-    super(uri, range, issues);
-  }
+export interface SerializableNodeName extends SerializableASTBase {
+  readonly name: string;
 }
 
 export enum BindingPropertyType {
@@ -294,7 +224,13 @@ export enum BindingPropertyType {
 
 export type TypeConfig = { types: BindingPropertyType[] };
 
-export abstract class SerializedBinding {
+export type SerializedBindingProperty = {
+  name: string;
+  allowedValues: (number | string)[] | undefined;
+  type: TypeConfig[];
+  description?: string;
+};
+interface SerializedBinding {
   onBus?: string;
   bus?: string[];
   description?: string;
@@ -306,64 +242,28 @@ export abstract class SerializedBinding {
   }[];
   bindingsPath?: string;
   compatible?: string;
-  extends: string[] = [];
-  properties?: {
-    name: string;
-    allowedValues: (number | string)[] | undefined;
-    type: TypeConfig[];
-  }[];
+  extends: string[];
+  properties?: SerializedBindingProperty[];
 }
 
-export abstract class SerializableNodeBase extends SerializableASTBase {
-  constructor(
-    readonly type: NodeType,
-    public readonly name: SerializableASTBase | null,
-    readonly properties: SerializableDtcProperty[],
-    readonly nodes: SerializableNodeBase[],
-    uri: string,
-    range: Range,
-    issues: Diagnostic[]
-  ) {
-    super(uri, range, issues);
-  }
+export interface SerializableNodeBase extends SerializableASTBase {
+  readonly type: NodeType;
+  readonly properties: SerializableDtcProperty[];
+  readonly nodes: SerializableNodeBase[];
 }
 
-export class SerializableNodeRef extends SerializableNodeBase {
-  constructor(
-    name: SerializableLabelRef | SerializableNodePath | null,
-    properties: SerializableDtcProperty[],
-    nodes: SerializableNodeBase[],
-    uri: string,
-    range: Range,
-    issues: Diagnostic[]
-  ) {
-    super("REF", name, properties, nodes, uri, range, issues);
-  }
+export interface SerializableNodeRef extends SerializableNodeBase {
+  readonly type: "REF";
+  readonly name: SerializableASTBase | null;
 }
 
-export class SerializableRootNode extends SerializableNodeBase {
-  constructor(
-    properties: SerializableDtcProperty[],
-    nodes: SerializableNodeBase[],
-    uri: string,
-    range: Range,
-    issues: Diagnostic[]
-  ) {
-    super("ROOT", null, properties, nodes, uri, range, issues);
-  }
+export interface SerializableRootNode extends SerializableNodeBase {
+  readonly type: "ROOT";
 }
 
-export class SerializableChildNode extends SerializableNodeBase {
-  constructor(
-    name: SerializableFullNodeName | null,
-    properties: SerializableDtcProperty[],
-    nodes: SerializableNodeBase[],
-    uri: string,
-    range: Range,
-    issues: Diagnostic[]
-  ) {
-    super("CHILD", name, properties, nodes, uri, range, issues);
-  }
+export interface SerializableChildNode extends SerializableNodeBase {
+  readonly name: SerializableASTBase | null;
+  readonly type: "CHILD";
 }
 
 type SerializedMappedReg = {
@@ -376,8 +276,15 @@ type SerializedMappedReg = {
 };
 
 type InterruptControlerSerializedMapping = {
-  expressions: (SerializableNumberValue | SerializableExpression)[];
+  cells: (SerializableNumberValue | SerializableExpression)[];
   path: string;
+  property: SerializableDtcProperty;
+};
+
+type SerializableSpecifierNexusMeta = {
+  cells: (SerializableNumberValue | SerializableExpression)[];
+  path: string;
+  property: SerializableDtcProperty;
 };
 
 export type SerializedNode = {
@@ -387,11 +294,12 @@ export type SerializedNode = {
   name: string;
   disabled: boolean;
   nodes: SerializableNodeBase[];
-  properties: SerializableDtcProperty[];
+  properties: SerializableProperty[];
   childNodes: SerializedNode[];
   reg?: SerializedMappedReg[];
   labels: string[];
   interruptControllerMappings: InterruptControlerSerializedMapping[];
+  specifierNexusMappings: SerializableSpecifierNexusMeta[];
 };
 
 export type Actions = ClipboardActions;
@@ -416,3 +324,5 @@ export type LocationResult = {
   nodePath: string;
   propertyName?: string;
 };
+
+export type EvaluatedMacro = { macro: string; evaluated: string | number };

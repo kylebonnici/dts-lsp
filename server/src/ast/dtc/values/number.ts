@@ -47,12 +47,13 @@ export class NumberValue extends Expression {
   }
 
   serialize(): SerializableNumberValue {
-    return new SerializableNumberValue(
-      this.value.toString(),
-      this.value,
-      this.serializeUri,
-      this.range,
-      this.serializeIssues
-    );
+    return {
+      type: "NUMBER_VALUE",
+      value: this.toString(),
+      evaluated: this.value,
+      uri: this.serializeUri,
+      range: this.range,
+      issues: this.serializeIssues,
+    };
   }
 }
