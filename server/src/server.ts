@@ -628,22 +628,24 @@ const onSettingsChanged = async () => {
 
 const reportNoContextFiles = () => {
   const activeCtxFiles = activeContext?.getContextFiles();
-  Array.from(documents.keys()).forEach((u) => {
-    if (!activeCtxFiles?.some((p) => isPathEqual(p, fileURLToPath(u)))) {
-      connection.sendDiagnostics({
-        uri: u,
-        version: documents.get(u)?.version,
-        diagnostics: [
-          {
-            severity: DiagnosticSeverity.Information,
-            range: Range.create(Position.create(0, 0), Position.create(0, 0)),
-            message: "File not in active context",
-            source: "devicetree",
-          },
-        ],
-      });
-    }
-  });
+  Array.from(documents.keys())
+    .filter(isDtsFile)
+    .forEach((u) => {
+      if (!activeCtxFiles?.some((p) => isPathEqual(p, fileURLToPath(u)))) {
+        connection.sendDiagnostics({
+          uri: u,
+          version: documents.get(u)?.version,
+          diagnostics: [
+            {
+              severity: DiagnosticSeverity.Information,
+              range: Range.create(Position.create(0, 0), Position.create(0, 0)),
+              message: "File not in active context",
+              source: "devicetree",
+            },
+          ],
+        });
+      }
+    });
 };
 
 const onChange = async (uri: string) => {
