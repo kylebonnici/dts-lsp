@@ -275,13 +275,13 @@ type SerializedMappedReg = {
   inMappingRange?: boolean;
 };
 
-type InterruptControlerSerializedMapping = {
+export type InterruptControlerSerializedMapping = {
   cells: (SerializableNumberValue | SerializableExpression)[];
   path: string;
   property: SerializableDtcProperty;
 };
 
-type SerializableSpecifierNexusMeta = {
+export type SerializableSpecifierNexusMeta = {
   cells: (SerializableNumberValue | SerializableExpression)[];
   path: string;
   property: SerializableDtcProperty;
