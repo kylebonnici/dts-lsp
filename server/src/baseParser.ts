@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+/* eslint-disable @typescript-eslint/no-unused-expressions */
+
 import {
 	DocumentSymbol,
 	SemanticTokensBuilder,
@@ -197,8 +199,7 @@ export abstract class BaseParser {
 			cmps.some((cmp) => cmp(this.currentToken) === 'yes' && continueLoop)
 		) {
 			tokens.push(this.currentToken!);
-			token = this.currentToken;
-			this.moveToNextToken;
+			token = this.moveToNextToken;
 			continueLoop = adjacentTokens(token, this.currentToken);
 		}
 

@@ -66,7 +66,6 @@ const SelectContext = async (api: API): Promise<ContextListItem | null> => {
 
 	quickPick.show();
 
-	quickPick;
 	return new Promise<ContextListItem | null>((resolve) => {
 		quickPick.show();
 

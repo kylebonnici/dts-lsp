@@ -48,7 +48,7 @@ export class DevicetreeOrgBindingsLoader {
 				const readData = yaml.parse(readFileSync(metaSchema, 'utf-8'));
 				ajv.addMetaSchema(readData);
 				this.schemaIdValidators.set(readData['$id'], metaSchema);
-			} catch (e) {
+			} catch {
 				// console.warn(bindingFile, e);
 			}
 		});

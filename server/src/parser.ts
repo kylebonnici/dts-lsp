@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+/* eslint-disable @typescript-eslint/no-unused-expressions */
+
 import { DiagnosticSeverity } from 'vscode-languageserver';
 import {
 	FileDiagnostic,
@@ -402,8 +404,7 @@ export class Parser extends BaseParser {
 				return false;
 			}
 		} else {
-			this.moveToNextToken;
-			child.openScope = this.prevToken;
+			child.openScope = this.moveToNextToken;
 			// syntax must be a node ....
 
 			let hasChild: boolean = false;
@@ -778,8 +779,7 @@ export class Parser extends BaseParser {
 
 		let result: PropertyValues | undefined;
 		if (validToken(this.currentToken, LexerToken.ASSIGN_OPERATOR)) {
-			node.assignOperatorToken = this.currentToken;
-			this.moveToNextToken;
+			node.assignOperatorToken = this.moveToNextToken;
 			result = this.processValue();
 
 			if (!result?.values.filter((v) => !!v).length) {
@@ -1396,10 +1396,10 @@ export class Parser extends BaseParser {
 		if (!validToken(this.currentToken, LexerToken.GT_SYM)) {
 			this._issues.push(genSyntaxDiagnostic(SyntaxIssue.GT_SYM, node));
 		} else {
+			const t = this.moveToNextToken;
 			if (value) {
-				value.closeBracket = this.currentToken;
+				value.closeBracket = t;
 			}
-			this.moveToNextToken;
 		}
 
 		let endLabels2: LabelAssign[] = [];

@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+/* eslint-disable @typescript-eslint/no-unused-expressions */
+
 import { existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { DiagnosticSeverity, DiagnosticTag } from 'vscode-languageserver';
