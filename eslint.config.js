@@ -53,5 +53,13 @@ export default [
 				},
 			],
 		},
+		ignores: [
+			'node_modules/**',
+			'client/node_modules/**',
+			'client/out/**',
+			'server/node_modules/**',
+			'server/out/**',
+			'server/dist/**',
+		],
 	},
 ];
