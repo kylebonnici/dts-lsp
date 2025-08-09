@@ -6,7 +6,6 @@
 	"license": "Apache-2.0",
 	"icon": "images/icon.png",
 	"version": "0.4.10",
-	"type": "module",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/kylebonnici/dts-lsp"
