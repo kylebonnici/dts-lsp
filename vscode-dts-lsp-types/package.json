@@ -19,6 +19,6 @@
   "author": "Kyle Micallef Bonnici",
   "license": "Apache-2.0",
   "dependencies": {
-    "devicetree-language-server-types": "file:../dts-lsp-types/devicetree-language-server-types-0.0.2-alpha.8.tgz"
+    "devicetree-language-server-types": "^0.0.2-alpha.8"
   }
 }
