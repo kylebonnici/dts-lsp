@@ -1,215 +1,223 @@
 {
-  "name": "dts-lsp",
-  "displayName": "Devicetree LSP",
-  "description": "Devicetree Language Server",
-  "author": "Microsoft Corporation",
-  "license": "Apache-2.0",
-  "icon": "images/icon.png",
-  "version": "0.4.10",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/kylebonnici/dts-lsp"
-  },
-  "publisher": "KyleMicallefBonnici",
-  "categories": [
-    "Linters",
-    "Formatters",
-    "Programming Languages",
-    "Snippets"
-  ],
-  "keywords": [
-    "dts",
-    "devicetree",
-    "lsp",
-    "formatting"
-  ],
-  "engines": {
-    "vscode": "^1.75.0"
-  },
-  "main": "./client/dist/extension",
-  "contributes": {
-    "commands": [
-      {
-        "command": "devicetree.context.set.active",
-        "title": "Devicetree: Set active context"
-      },
-      {
-        "command": "devicetree.context.output",
-        "title": "Devicetree: Generate context output"
-      },
-      {
-        "command": "devicetree.clipboard.dtMacro",
-        "title": "Devicetree: Copy C Identifier",
-        "enablement": "editorLangId == devicetree  && devicetree.context.type == 'Zephyr'"
-      },
-      {
-        "command": "devicetree.clipboard.nodePath",
-        "title": "Devicetree: Copy node path",
-        "enablement": "editorLangId == devicetree"
-      }
-    ],
-    "languages": [
-      {
-        "id": "devicetree",
-        "extensions": [
-          ".dts",
-          ".dtsi",
-          ".dtso",
-          ".overlay",
-          ".dts_compiled",
-          ".dts.pre.tmp"
-        ],
-        "configuration": "syntax/devicetree-language.json"
-      },
-      {
-        "id": "yaml",
-        "extensions": [
-          ".yaml"
-        ]
-      }
-    ],
-    "grammars": [
-      {
-        "language": "devicetree",
-        "scopeName": "source.dts",
-        "path": "syntax/dts.tmLanguage.json"
-      }
-    ],
-    "menus": {
-      "commandPalette": [
-        {
-          "command": "devicetree.clipboard.dtMacro",
-          "when": "false"
-        },
-        {
-          "command": "devicetree.clipboard.nodePath",
-          "when": "false"
-        }
-      ],
-      "editor/context": [
-        {
-          "command": "devicetree.clipboard.dtMacro",
-          "when": "editorLangId == devicetree && devicetree.context.type == 'Zephyr'",
-          "group": "9_cutcopypaste"
-        },
-        {
-          "command": "devicetree.clipboard.nodePath",
-          "when": "editorLangId == devicetree",
-          "group": "9_cutcopypaste"
-        }
-      ]
-    },
-    "configuration": {
-      "type": "object",
-      "title": "Devicetree LSP Configuration",
-      "properties": {
-        "devicetree.preferredContext": {
-          "scope": "resource",
-          "type": [
-            "string",
-            "number"
-          ],
-          "description": "Name of the context to be used when files is used by multiple context."
-        },
-        "devicetree.defaultIncludePaths": {
-          "scope": "resource",
-          "type": "array",
-          "default": null,
-          "description": "Default includes to be used when a file is opened that is not defined in known context"
-        },
-        "devicetree.defaultBindingType": {
-          "scope": "resource",
-          "type": "string",
-          "default": "Zephyr",
-          "description": "Default binding loader"
-        },
-        "devicetree.defaultZephyrBindings": {
-          "scope": "resource",
-          "type": "array",
-          "default": null,
-          "description": "Default Zephyr binding paths"
-        },
-        "devicetree.defaultDeviceOrgTreeBindings": {
-          "scope": "resource",
-          "type": "array",
-          "default": null,
-          "description": "Default devicetree-org binding paths"
-        },
-        "devicetree.defaultDeviceOrgBindingsMetaSchema": {
-          "scope": "resource",
-          "type": "array",
-          "default": null,
-          "description": "Default devicetree-org MetaSchema binding paths"
-        },
-        "devicetree.cwd": {
-          "scope": "resource",
-          "type": "string",
-          "default": null,
-          "description": "Working directorys"
-        },
-        "devicetree.contexts": {
-          "scope": "resource",
-          "type": "array",
-          "default": null,
-          "description": "Known contexts."
-        },
-        "devicetree.defaultLockRenameEdits": {
-          "scope": "resource",
-          "type": "array",
-          "default": null,
-          "description": "Locations that Renaming should not be allowrd if any of the edits is a child node of that directory"
-        },
-        "devicetree.autoChangeContext": {
-          "scope": "resource",
-          "type": "boolean",
-          "default": null,
-          "description": "Auto chnage active context on file change"
-        },
-        "devicetree.allowAdhocContexts": {
-          "scope": "resource",
-          "type": "boolean",
-          "default": null,
-          "description": "Allow LSP to create new context on the file for dts files opened that are not in the context settings"
-        },
-        "devicetree.trace.server": {
-          "scope": "window",
-          "type": "string",
-          "enum": [
-            "off",
-            "messages",
-            "verbose"
-          ],
-          "default": "off",
-          "description": "Traces the communication between VS Code and the language server."
-        }
-      }
-    }
-  },
-  "scripts": {
-    "types:client": "tsc -p client/tsconfig.types.json",
-    "types:server": "tsc -p server/tsconfig.types.json",
-    "compile": "npm run compile:server && npm run types:server && npm run compile:client && npm run types:client",
-    "compile:prod": "npm run compile:server:prod && npm run compile:client:prod",
-    "compile:server": "node ./server/esbuild.js",
-    "compile:client": "node ./client/esbuild.js",
-    "compile:server:prod": "node ./server/esbuild.js --production",
-    "compile:client:prod": "node ./client/esbuild.js --production",
-    "check-types": "tsc --noEmit",
-    "watch": "npm-run-all -p watch:*",
-    "watch:server:esbuild": "node ./server/esbuild.js --watch",
-    "watch:client:esbuild": "node ./client/esbuild.js --watch",
-    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
-    "vscode:prepublish": "npm run package",
-    "package": "npm run check-types && npm run compile:prod"
-  },
-  "devDependencies": {
-    "@types/mocha": "^10.0.6",
-    "@types/node": "^18.14.6",
-    "@typescript-eslint/eslint-plugin": "^7.1.0",
-    "@typescript-eslint/parser": "^7.1.0",
-    "esbuild": "^0.25.0",
-    "eslint": "^8.57.0",
-    "mocha": "^10.3.0",
-    "typescript": "^5.3.3"
-  }
+	"name": "dts-lsp",
+	"displayName": "Devicetree LSP",
+	"description": "Devicetree Language Server",
+	"author": "Microsoft Corporation",
+	"license": "Apache-2.0",
+	"icon": "images/icon.png",
+	"version": "0.4.10",
+	"type": "module",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/kylebonnici/dts-lsp"
+	},
+	"publisher": "KyleMicallefBonnici",
+	"categories": [
+		"Linters",
+		"Formatters",
+		"Programming Languages",
+		"Snippets"
+	],
+	"keywords": [
+		"dts",
+		"devicetree",
+		"lsp",
+		"formatting"
+	],
+	"engines": {
+		"vscode": "^1.75.0"
+	},
+	"main": "./client/dist/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "devicetree.context.set.active",
+				"title": "Devicetree: Set active context"
+			},
+			{
+				"command": "devicetree.context.output",
+				"title": "Devicetree: Generate context output"
+			},
+			{
+				"command": "devicetree.clipboard.dtMacro",
+				"title": "Devicetree: Copy C Identifier",
+				"enablement": "editorLangId == devicetree  && devicetree.context.type == 'Zephyr'"
+			},
+			{
+				"command": "devicetree.clipboard.nodePath",
+				"title": "Devicetree: Copy node path",
+				"enablement": "editorLangId == devicetree"
+			}
+		],
+		"languages": [
+			{
+				"id": "devicetree",
+				"extensions": [
+					".dts",
+					".dtsi",
+					".dtso",
+					".overlay",
+					".dts_compiled",
+					".dts.pre.tmp"
+				],
+				"configuration": "syntax/devicetree-language.json"
+			},
+			{
+				"id": "yaml",
+				"extensions": [
+					".yaml"
+				]
+			}
+		],
+		"grammars": [
+			{
+				"language": "devicetree",
+				"scopeName": "source.dts",
+				"path": "syntax/dts.tmLanguage.json"
+			}
+		],
+		"menus": {
+			"commandPalette": [
+				{
+					"command": "devicetree.clipboard.dtMacro",
+					"when": "false"
+				},
+				{
+					"command": "devicetree.clipboard.nodePath",
+					"when": "false"
+				}
+			],
+			"editor/context": [
+				{
+					"command": "devicetree.clipboard.dtMacro",
+					"when": "editorLangId == devicetree && devicetree.context.type == 'Zephyr'",
+					"group": "9_cutcopypaste"
+				},
+				{
+					"command": "devicetree.clipboard.nodePath",
+					"when": "editorLangId == devicetree",
+					"group": "9_cutcopypaste"
+				}
+			]
+		},
+		"configuration": {
+			"type": "object",
+			"title": "Devicetree LSP Configuration",
+			"properties": {
+				"devicetree.preferredContext": {
+					"scope": "resource",
+					"type": [
+						"string",
+						"number"
+					],
+					"description": "Name of the context to be used when files is used by multiple context."
+				},
+				"devicetree.defaultIncludePaths": {
+					"scope": "resource",
+					"type": "array",
+					"default": null,
+					"description": "Default includes to be used when a file is opened that is not defined in known context"
+				},
+				"devicetree.defaultBindingType": {
+					"scope": "resource",
+					"type": "string",
+					"default": "Zephyr",
+					"description": "Default binding loader"
+				},
+				"devicetree.defaultZephyrBindings": {
+					"scope": "resource",
+					"type": "array",
+					"default": null,
+					"description": "Default Zephyr binding paths"
+				},
+				"devicetree.defaultDeviceOrgTreeBindings": {
+					"scope": "resource",
+					"type": "array",
+					"default": null,
+					"description": "Default devicetree-org binding paths"
+				},
+				"devicetree.defaultDeviceOrgBindingsMetaSchema": {
+					"scope": "resource",
+					"type": "array",
+					"default": null,
+					"description": "Default devicetree-org MetaSchema binding paths"
+				},
+				"devicetree.cwd": {
+					"scope": "resource",
+					"type": "string",
+					"default": null,
+					"description": "Working directorys"
+				},
+				"devicetree.contexts": {
+					"scope": "resource",
+					"type": "array",
+					"default": null,
+					"description": "Known contexts."
+				},
+				"devicetree.defaultLockRenameEdits": {
+					"scope": "resource",
+					"type": "array",
+					"default": null,
+					"description": "Locations that Renaming should not be allowrd if any of the edits is a child node of that directory"
+				},
+				"devicetree.autoChangeContext": {
+					"scope": "resource",
+					"type": "boolean",
+					"default": null,
+					"description": "Auto chnage active context on file change"
+				},
+				"devicetree.allowAdhocContexts": {
+					"scope": "resource",
+					"type": "boolean",
+					"default": null,
+					"description": "Allow LSP to create new context on the file for dts files opened that are not in the context settings"
+				},
+				"devicetree.trace.server": {
+					"scope": "window",
+					"type": "string",
+					"enum": [
+						"off",
+						"messages",
+						"verbose"
+					],
+					"default": "off",
+					"description": "Traces the communication between VS Code and the language server."
+				}
+			}
+		}
+	},
+	"scripts": {
+		"types:client": "tsc -p client/tsconfig.types.json",
+		"types:server": "tsc -p server/tsconfig.types.json",
+		"compile": "npm run compile:server && npm run types:server && npm run compile:client && npm run types:client",
+		"compile:prod": "npm run compile:server:prod && npm run compile:client:prod",
+		"compile:server": "node ./server/esbuild.js",
+		"compile:client": "node ./client/esbuild.js",
+		"compile:server:prod": "node ./server/esbuild.js --production",
+		"compile:client:prod": "node ./client/esbuild.js --production",
+		"check-types": "tsc --noEmit",
+		"watch": "npm-run-all -p watch:*",
+		"watch:server:esbuild": "node ./server/esbuild.js --watch",
+		"watch:client:esbuild": "node ./client/esbuild.js --watch",
+		"watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+		"vscode:prepublish": "npm run package",
+		"package": "npm run check-types && npm run compile:prod",
+		"lint": "npx eslint 'client/src/**/*.{ts,tsx,js}' 'server/src/**/*.{ts,tsx,js}'",
+		"lint:fix": "npx eslint 'client/src/**/*.{ts,tsx,js}' 'server/src/**/*.{ts,tsx,js}' --fix"
+	},
+	"devDependencies": {
+		"@types/mocha": "^10.0.6",
+		"@types/node": "^18.14.6",
+		"@typescript-eslint/eslint-plugin": "^7.18.0",
+		"@typescript-eslint/parser": "^7.18.0",
+		"esbuild": "^0.25.0",
+		"eslint": "^8.57.1",
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-import": "^2.32.0",
+		"eslint-plugin-prettier": "^5.5.3",
+		"eslint-plugin-simple-import-sort": "^12.1.1",
+		"eslint-plugin-unused-imports": "^4.1.4",
+		"mocha": "^10.3.0",
+		"typescript": "^5.3.3"
+	}
 }
