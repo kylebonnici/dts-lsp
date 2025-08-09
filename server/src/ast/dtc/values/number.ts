@@ -14,46 +14,49 @@
  * limitations under the License.
  */
 
-import { SymbolKind } from "vscode-languageserver";
-import { Expression } from "../../cPreprocessors/expression";
-import { MacroRegistryItem, TokenIndexes } from "../../../types";
-import { SerializableNumberValue } from "../../../types/index";
+import { SymbolKind } from 'vscode-languageserver';
+import { Expression } from '../../cPreprocessors/expression';
+import { MacroRegistryItem, TokenIndexes } from '../../../types';
+import { SerializableNumberValue } from '../../../types/index';
 
 export class NumberValue extends Expression {
-  constructor(public readonly value: number, tokenIndexes: TokenIndexes) {
-    super(tokenIndexes);
-    this.docSymbolsMeta = {
-      name: this.value.toString(),
-      kind: SymbolKind.Number,
-    };
-    this.semanticTokenType = "number";
-    this.semanticTokenModifiers = "declaration";
-  }
+	constructor(
+		public readonly value: number,
+		tokenIndexes: TokenIndexes,
+	) {
+		super(tokenIndexes);
+		this.docSymbolsMeta = {
+			name: this.value.toString(),
+			kind: SymbolKind.Number,
+		};
+		this.semanticTokenType = 'number';
+		this.semanticTokenModifiers = 'declaration';
+	}
 
-  toString(radix?: number) {
-    return this.value.toString(radix);
-  }
+	toString(radix?: number) {
+		return this.value.toString(radix);
+	}
 
-  toJson() {
-    return this.value;
-  }
+	toJson() {
+		return this.value;
+	}
 
-  toPrettyString(macros: Map<string, MacroRegistryItem>): string {
-    const value = this.evaluate(macros);
+	toPrettyString(macros: Map<string, MacroRegistryItem>): string {
+		const value = this.evaluate(macros);
 
-    return `${value.toString()} /* ${
-      typeof value === "number" ? `0x${value.toString(16)}` : ""
-    } */`;
-  }
+		return `${value.toString()} /* ${
+			typeof value === 'number' ? `0x${value.toString(16)}` : ''
+		} */`;
+	}
 
-  serialize(): SerializableNumberValue {
-    return {
-      type: "NUMBER_VALUE",
-      value: this.toString(),
-      evaluated: this.value,
-      uri: this.serializeUri,
-      range: this.range,
-      issues: this.serializeIssues,
-    };
-  }
+	serialize(): SerializableNumberValue {
+		return {
+			type: 'NUMBER_VALUE',
+			value: this.toString(),
+			evaluated: this.value,
+			uri: this.serializeUri,
+			range: this.range,
+			issues: this.serializeIssues,
+		};
+	}
 }

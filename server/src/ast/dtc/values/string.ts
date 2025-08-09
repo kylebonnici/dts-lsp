@@ -14,37 +14,40 @@
  * limitations under the License.
  */
 
-import { ASTBase } from "../../base";
-import { SymbolKind } from "vscode-languageserver";
-import { TokenIndexes } from "../../../types";
-import { SerializableStringValue } from "../../../types/index";
+import { SymbolKind } from 'vscode-languageserver';
+import { ASTBase } from '../../base';
+import { TokenIndexes } from '../../../types';
+import { SerializableStringValue } from '../../../types/index';
 
 export class StringValue extends ASTBase {
-  constructor(public readonly value: string, tokenIndexes: TokenIndexes) {
-    super(tokenIndexes);
-    this.semanticTokenType = "string";
-    this.semanticTokenModifiers = "declaration";
-    this.docSymbolsMeta = {
-      name: this.value,
-      kind: SymbolKind.String,
-    };
-  }
+	constructor(
+		public readonly value: string,
+		tokenIndexes: TokenIndexes,
+	) {
+		super(tokenIndexes);
+		this.semanticTokenType = 'string';
+		this.semanticTokenModifiers = 'declaration';
+		this.docSymbolsMeta = {
+			name: this.value,
+			kind: SymbolKind.String,
+		};
+	}
 
-  toString() {
-    return `"${this.value.toString()}"`;
-  }
+	toString() {
+		return `"${this.value.toString()}"`;
+	}
 
-  toJson() {
-    return this.value;
-  }
+	toJson() {
+		return this.value;
+	}
 
-  serialize(): SerializableStringValue {
-    return {
-      type: "STRING",
-      value: this.value,
-      uri: this.serializeUri,
-      range: this.range,
-      issues: this.serializeIssues,
-    };
-  }
+	serialize(): SerializableStringValue {
+		return {
+			type: 'STRING',
+			value: this.value,
+			uri: this.serializeUri,
+			range: this.range,
+			issues: this.serializeIssues,
+		};
+	}
 }

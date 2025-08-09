@@ -14,70 +14,70 @@
  * limitations under the License.
  */
 
-import { ASTBase } from "../../base";
-import { SymbolKind } from "vscode-languageserver";
-import { LabelRef } from "../labelRef";
-import { NodePathRef } from "./nodePath";
-import { NumberValue } from "./number";
-import { LabeledValue } from "./labeledValue";
-import { Expression } from "../../cPreprocessors/expression";
-import { MacroRegistryItem, Token } from "../../../types";
-import { SerializableArrayValue } from "../../../types/index";
+import { SymbolKind } from 'vscode-languageserver';
+import { ASTBase } from '../../base';
+import { LabelRef } from '../labelRef';
+import { Expression } from '../../cPreprocessors/expression';
+import { MacroRegistryItem, Token } from '../../../types';
+import { SerializableArrayValue } from '../../../types/index';
+import { NodePathRef } from './nodePath';
+import { NumberValue } from './number';
+import { LabeledValue } from './labeledValue';
 
 export class ArrayValues extends ASTBase {
-  public openBracket?: Token;
-  public closeBracket?: Token;
+	public openBracket?: Token;
+	public closeBracket?: Token;
 
-  constructor(
-    public readonly values: LabeledValue<
-      NumberValue | LabelRef | NodePathRef | Expression
-    >[]
-  ) {
-    super();
-    this.docSymbolsMeta = {
-      name: "Cell Array",
-      kind: SymbolKind.Array,
-    };
-    this.values.forEach((value) => this.addChild(value));
-  }
+	constructor(
+		public readonly values: LabeledValue<
+			NumberValue | LabelRef | NodePathRef | Expression
+		>[],
+	) {
+		super();
+		this.docSymbolsMeta = {
+			name: 'Cell Array',
+			kind: SymbolKind.Array,
+		};
+		this.values.forEach((value) => this.addChild(value));
+	}
 
-  toString() {
-    return `<${this.values.map((v) => v.toString()).join(" ")}>`;
-  }
+	toString() {
+		return `<${this.values.map((v) => v.toString()).join(' ')}>`;
+	}
 
-  toPrettyString(macros: Map<string, MacroRegistryItem>) {
-    return `<${this.values.map((v) => v.toPrettyString(macros)).join(" ")}>`;
-  }
+	toPrettyString(macros: Map<string, MacroRegistryItem>) {
+		return `<${this.values.map((v) => v.toPrettyString(macros)).join(' ')}>`;
+	}
 
-  toJson() {
-    if (this.values.length === 1) {
-      return this.values[0].value?.toJson();
-    } else if (
-      this.values.length === 2 &&
-      this.values.every((v) => v.value instanceof NumberValue)
-    ) {
-      const buffer = new ArrayBuffer(8);
-      const view = new DataView(buffer);
+	toJson() {
+		if (this.values.length === 1) {
+			return this.values[0].value?.toJson();
+		} else if (
+			this.values.length === 2 &&
+			this.values.every((v) => v.value instanceof NumberValue)
+		) {
+			const buffer = new ArrayBuffer(8);
+			const view = new DataView(buffer);
 
-      this.values
-        .map((v) => (v.value as NumberValue).value)
-        .forEach((c, i) => {
-          view.setUint32(i * 4, c);
-        });
+			this.values
+				.map((v) => (v.value as NumberValue).value)
+				.forEach((c, i) => {
+					view.setUint32(i * 4, c);
+				});
 
-      return view.getBigUint64(0);
-    }
+			return view.getBigUint64(0);
+		}
 
-    return this.values.map((v) => v.value?.toJson() ?? NaN);
-  }
+		return this.values.map((v) => v.value?.toJson() ?? NaN);
+	}
 
-  serialize(macros: Map<string, MacroRegistryItem>): SerializableArrayValue {
-    return {
-      type: "ARRAY_VALUE",
-      value: this.values.map((v) => v.value?.serialize(macros) ?? null),
-      uri: this.serializeUri,
-      range: this.range,
-      issues: this.serializeIssues,
-    };
-  }
+	serialize(macros: Map<string, MacroRegistryItem>): SerializableArrayValue {
+		return {
+			type: 'ARRAY_VALUE',
+			value: this.values.map((v) => v.value?.serialize(macros) ?? null),
+			uri: this.serializeUri,
+			range: this.range,
+			issues: this.serializeIssues,
+		};
+	}
 }

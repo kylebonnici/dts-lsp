@@ -14,30 +14,30 @@
  * limitations under the License.
  */
 
-import { BindingPropertyType } from "../../../../types/index";
-import { PropertyNodeType } from "../../../types";
-import { generateOrTypeObj } from "../../helpers";
+import { BindingPropertyType } from '../../../../types/index';
+import { PropertyNodeType } from '../../../types';
+import { generateOrTypeObj } from '../../helpers';
 
 export default () => {
-  const prop = new PropertyNodeType(
-    "chassis-type",
-    generateOrTypeObj(BindingPropertyType.STRING),
-    "optional",
-    undefined,
-    [
-      "desktop",
-      "laptop",
-      "convertible",
-      "server",
-      "tablet",
-      "handset",
-      "watch",
-      "embedded",
-    ]
-  );
-  prop.description = [
-    `Specifies a string that identifies the form-factor of the system.`,
-  ];
+	const prop = new PropertyNodeType(
+		'chassis-type',
+		generateOrTypeObj(BindingPropertyType.STRING),
+		'optional',
+		undefined,
+		[
+			'desktop',
+			'laptop',
+			'convertible',
+			'server',
+			'tablet',
+			'handset',
+			'watch',
+			'embedded',
+		],
+	);
+	prop.description = [
+		`Specifies a string that identifies the form-factor of the system.`,
+	];
 
-  return prop;
+	return prop;
 };

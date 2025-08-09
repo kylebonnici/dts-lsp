@@ -14,116 +14,115 @@
  * limitations under the License.
  */
 
-import { TextDocumentPositionParams } from "vscode-languageserver";
-import { ContextAware } from "./runtimeEvaluator";
-import { SearchableResult } from "./types";
-import { Node } from "./context/node";
-import { nodeFinder } from "./helpers";
-import { Property } from "./context/property";
-import { Actions } from "./types/index";
-import { LabelRef } from "./ast/dtc/labelRef";
-import { NodeName } from "./ast/dtc/node";
-import { PropertyName } from "./ast/dtc/property";
+import { TextDocumentPositionParams } from 'vscode-languageserver';
+import { ContextAware } from './runtimeEvaluator';
+import { SearchableResult } from './types';
+import { Node } from './context/node';
+import { nodeFinder } from './helpers';
+import { Property } from './context/property';
+import { Actions } from './types/index';
+import { LabelRef } from './ast/dtc/labelRef';
+import { NodeName } from './ast/dtc/node';
+import { PropertyName } from './ast/dtc/property';
 import {
-  getNodeAliasesMacros,
-  getNodeLabelMacros,
-  getPropertyWithNodeLabel,
-  getPropertyWithNodePath,
-  getZephyrMacroPath,
-} from "./dtsTypes/bindings/zephyr/helpers";
+	getNodeAliasesMacros,
+	getNodeLabelMacros,
+	getPropertyWithNodeLabel,
+	getPropertyWithNodePath,
+	getZephyrMacroPath,
+} from './dtsTypes/bindings/zephyr/helpers';
 
 function getPropertyActions(
-  result: SearchableResult | undefined,
-  context: ContextAware
+	result: SearchableResult | undefined,
+	context: ContextAware,
 ): Actions[] {
-  if (
-    !result ||
-    !(result.item instanceof Property) ||
-    !(result.ast instanceof PropertyName)
-  ) {
-    return [];
-  }
+	if (
+		!result ||
+		!(result.item instanceof Property) ||
+		!(result.ast instanceof PropertyName)
+	) {
+		return [];
+	}
 
-  const actions: Actions[] = [];
-  if (context.settings.bindingType === "Zephyr") {
-    actions.push({
-      type: "dt_zephyr_macro_prop_node_path",
-      data: getPropertyWithNodePath(result.item),
-    });
+	const actions: Actions[] = [];
+	if (context.settings.bindingType === 'Zephyr') {
+		actions.push({
+			type: 'dt_zephyr_macro_prop_node_path',
+			data: getPropertyWithNodePath(result.item),
+		});
 
-    const prop = result.item;
-    getPropertyWithNodeLabel(result.item).forEach((macro) => {
-      actions.push({
-        type: "dt_zephyr_macro_prop_node_label",
-        data: macro,
-      });
-    });
-  }
+		getPropertyWithNodeLabel(result.item).forEach((macro) => {
+			actions.push({
+				type: 'dt_zephyr_macro_prop_node_label',
+				data: macro,
+			});
+		});
+	}
 
-  return actions;
+	return actions;
 }
 
 function getNodeActions(
-  result: SearchableResult | undefined,
-  context: ContextAware
+	result: SearchableResult | undefined,
+	context: ContextAware,
 ): Actions[] {
-  if (!result || result.item === null) {
-    return [];
-  }
+	if (!result || result.item === null) {
+		return [];
+	}
 
-  let node: Node | undefined;
-  if (result.item instanceof Node) {
-    node = result.item;
-  } else if (
-    result.ast.parentNode instanceof LabelRef &&
-    result.ast.parentNode.linksTo
-  ) {
-    node = result.ast.parentNode.linksTo;
-  } else if (result.ast instanceof NodeName && result.ast.linksTo) {
-    node = result.ast.linksTo;
-  }
+	let node: Node | undefined;
+	if (result.item instanceof Node) {
+		node = result.item;
+	} else if (
+		result.ast.parentNode instanceof LabelRef &&
+		result.ast.parentNode.linksTo
+	) {
+		node = result.ast.parentNode.linksTo;
+	} else if (result.ast instanceof NodeName && result.ast.linksTo) {
+		node = result.ast.linksTo;
+	}
 
-  if (!node) return [];
+	if (!node) return [];
 
-  const actions: Actions[] = [
-    {
-      type: "path",
-      data: node.pathString,
-    },
-  ];
+	const actions: Actions[] = [
+		{
+			type: 'path',
+			data: node.pathString,
+		},
+	];
 
-  if (context.settings.bindingType === "Zephyr") {
-    getNodeLabelMacros(node).forEach((macro) => {
-      actions.push({
-        type: "dt_zephyr_macro_node_label",
-        data: macro,
-      });
-    });
+	if (context.settings.bindingType === 'Zephyr') {
+		getNodeLabelMacros(node).forEach((macro) => {
+			actions.push({
+				type: 'dt_zephyr_macro_node_label',
+				data: macro,
+			});
+		});
 
-    actions.push({
-      type: "dt_zephyr_macro_node_path",
-      data: getZephyrMacroPath(node),
-    });
+		actions.push({
+			type: 'dt_zephyr_macro_node_path',
+			data: getZephyrMacroPath(node),
+		});
 
-    getNodeAliasesMacros(node).forEach((macro) => {
-      actions.push({
-        type: "dt_zephyr_macro_prop_node_alias",
-        data: macro,
-      });
-    });
-  }
+		getNodeAliasesMacros(node).forEach((macro) => {
+			actions.push({
+				type: 'dt_zephyr_macro_prop_node_alias',
+				data: macro,
+			});
+		});
+	}
 
-  return actions;
+	return actions;
 }
 
 export async function getActions(
-  location: TextDocumentPositionParams,
-  context: ContextAware | undefined
+	location: TextDocumentPositionParams,
+	context: ContextAware | undefined,
 ): Promise<Actions[]> {
-  if (!context) return [];
+	if (!context) return [];
 
-  return nodeFinder(location, context, (locationMeta) => [
-    ...getNodeActions(locationMeta, context),
-    ...getPropertyActions(locationMeta, context),
-  ]);
+	return nodeFinder(location, context, (locationMeta) => [
+		...getNodeActions(locationMeta, context),
+		...getPropertyActions(locationMeta, context),
+	]);
 }

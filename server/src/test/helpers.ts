@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-import { getStandardType } from "../dtsTypes/standardTypes";
-import { BindingLoader } from "../dtsTypes/bindings/bindingLoader";
-import { Node } from "../context/node";
+import { getStandardType } from '../dtsTypes/standardTypes';
+import { BindingLoader } from '../dtsTypes/bindings/bindingLoader';
+import { Node } from '../context/node';
 
 export const getFakeBindingLoader = (): BindingLoader => ({
-  type: "Zephyr",
-  files: {
-    zephyrBindings: [],
-    deviceOrgBindingsMetaSchema: [],
-    deviceOrgTreeBindings: [],
-  },
-  getNodeTypes: (node: Node) => {
-    return { type: [getStandardType(node)], issues: [] };
-  },
-  getBindings: () => [],
+	type: 'Zephyr',
+	files: {
+		zephyrBindings: [],
+		deviceOrgBindingsMetaSchema: [],
+		deviceOrgTreeBindings: [],
+	},
+	getNodeTypes: (node: Node) => {
+		return { type: [getStandardType(node)], issues: [] };
+	},
+	getBindings: () => [],
 });

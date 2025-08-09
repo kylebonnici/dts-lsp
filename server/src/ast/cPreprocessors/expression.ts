@@ -14,98 +14,100 @@
  * limitations under the License.
  */
 
-import { ASTBase } from "../base";
-import { Operator } from "./operator";
-import type { MacroRegistryItem, Token } from "../../types";
-import { evalExp, expandMacros } from "../../helpers";
+import { ASTBase } from '../base';
+import type { MacroRegistryItem, Token } from '../../types';
+import { evalExp, expandMacros } from '../../helpers';
 import {
-  SerializableExpression,
-  SerializableNumberValue,
-} from "../../types/index";
+	SerializableExpression,
+	SerializableNumberValue,
+} from '../../types/index';
+import { Operator } from './operator';
 
 export abstract class Expression extends ASTBase {
-  toJson() {
-    return -1;
-  }
+	toJson() {
+		return -1;
+	}
 
-  resolve(macros: Map<string, MacroRegistryItem>) {
-    return expandMacros(this.toString(), macros);
-  }
+	resolve(macros: Map<string, MacroRegistryItem>) {
+		return expandMacros(this.toString(), macros);
+	}
 
-  evaluate(macros: Map<string, MacroRegistryItem>) {
-    return evalExp(this.resolve(macros));
-  }
+	evaluate(macros: Map<string, MacroRegistryItem>) {
+		return evalExp(this.resolve(macros));
+	}
 
-  isTrue(macros: Map<string, MacroRegistryItem>): boolean {
-    return evalExp(`!!(${this.resolve(macros)})`);
-  }
+	isTrue(macros: Map<string, MacroRegistryItem>): boolean {
+		return evalExp(`!!(${this.resolve(macros)})`);
+	}
 
-  toPrettyString(macros: Map<string, MacroRegistryItem>) {
-    const value = this.evaluate(macros);
+	toPrettyString(macros: Map<string, MacroRegistryItem>) {
+		const value = this.evaluate(macros);
 
-    return `${value.toString()} /* ${this.toString()}${
-      typeof value === "number" ? ` = 0x${value.toString(16)}` : ""
-    } */`;
-  }
+		return `${value.toString()} /* ${this.toString()}${
+			typeof value === 'number' ? ` = 0x${value.toString(16)}` : ''
+		} */`;
+	}
 
-  serialize(
-    macros: Map<string, MacroRegistryItem>
-  ): SerializableExpression | SerializableNumberValue {
-    return {
-      type: "EXPRESSION",
-      value: this.toString(),
-      evaluated: this.evaluate(macros),
-      uri: this.serializeUri,
-      range: this.range,
-      issues: this.serializeIssues,
-    };
-  }
+	serialize(
+		macros: Map<string, MacroRegistryItem>,
+	): SerializableExpression | SerializableNumberValue {
+		return {
+			type: 'EXPRESSION',
+			value: this.toString(),
+			evaluated: this.evaluate(macros),
+			uri: this.serializeUri,
+			range: this.range,
+			issues: this.serializeIssues,
+		};
+	}
 }
 
 export class ComplexExpression extends Expression {
-  public openBracket?: Token;
-  public closeBracket?: Token;
+	public openBracket?: Token;
+	public closeBracket?: Token;
 
-  constructor(
-    public readonly expression: Expression,
-    private wrapped: boolean,
-    public readonly join?: { operator: Operator; expression: Expression }
-  ) {
-    super();
-    this.addChild(expression);
-    if (join) {
-      this.addChild(join.operator);
-      this.addChild(join.expression);
-    }
-  }
+	constructor(
+		public readonly expression: Expression,
+		private wrapped: boolean,
+		public readonly join?: { operator: Operator; expression: Expression },
+	) {
+		super();
+		this.addChild(expression);
+		if (join) {
+			this.addChild(join.operator);
+			this.addChild(join.expression);
+		}
+	}
 
-  get firstToken() {
-    if (this.openBracket) return this.openBracket;
-    return super.firstToken;
-  }
+	get firstToken() {
+		if (this.openBracket) return this.openBracket;
+		return super.firstToken;
+	}
 
-  get lastToken() {
-    if (this.closeBracket) return this.closeBracket;
-    return super.lastToken;
-  }
+	get lastToken() {
+		if (this.closeBracket) return this.closeBracket;
+		return super.lastToken;
+	}
 
-  addExpression(operator: Operator, expression: Expression) {
-    this.addChild(operator);
-    this.addChild(expression);
-  }
+	addExpression(operator: Operator, expression: Expression) {
+		this.addChild(operator);
+		this.addChild(expression);
+	}
 
-  toString() {
-    const exp = this.children.map((c) => c.toString()).join(" ");
-    if (this.wrapped) {
-      return `(${exp})`;
-    }
-    return `${exp}`;
-  }
+	toString() {
+		const exp = this.children.map((c) => c.toString()).join(' ');
+		if (this.wrapped) {
+			return `(${exp})`;
+		}
+		return `${exp}`;
+	}
 
-  isTrue(macros: Map<string, MacroRegistryItem>): boolean {
-    const exp = `(${this.children
-      .map((c) => (c instanceof Expression ? c.resolve(macros) : c.toString()))
-      .join(" ")})`;
-    return evalExp(`!!${exp}`);
-  }
+	isTrue(macros: Map<string, MacroRegistryItem>): boolean {
+		const exp = `(${this.children
+			.map((c) =>
+				c instanceof Expression ? c.resolve(macros) : c.toString(),
+			)
+			.join(' ')})`;
+		return evalExp(`!!${exp}`);
+	}
 }

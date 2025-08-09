@@ -14,62 +14,64 @@
  * limitations under the License.
  */
 
-import { genStandardTypeDiagnostic } from "../../../../../helpers";
-import { FileDiagnostic, StandardTypeIssue } from "../../../../../types";
-import { BindingPropertyType } from "../../../../../types/index";
-import { PropertyNodeType } from "../../../../types";
-import { flatNumberValues, generateOrTypeObj } from "../../../helpers";
 import {
-  DiagnosticSeverity,
-  ParameterInformation,
-} from "vscode-languageserver-types";
+	DiagnosticSeverity,
+	ParameterInformation,
+} from 'vscode-languageserver-types';
+import { genStandardTypeDiagnostic } from '../../../../../helpers';
+import { FileDiagnostic, StandardTypeIssue } from '../../../../../types';
+import { BindingPropertyType } from '../../../../../types/index';
+import { PropertyNodeType } from '../../../../types';
+import { flatNumberValues, generateOrTypeObj } from '../../../helpers';
 
 export default () => {
-  const prop = new PropertyNodeType(
-    "alignment",
-    generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
-    "optional",
-    undefined,
-    [],
-    (property, macros) => {
-      const issues: FileDiagnostic[] = [];
+	const prop = new PropertyNodeType(
+		'alignment',
+		generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
+		'optional',
+		undefined,
+		[],
+		(property, macros) => {
+			const issues: FileDiagnostic[] = [];
 
-      const values = flatNumberValues(property.ast.values);
+			const values = flatNumberValues(property.ast.values);
 
-      const sizeCells = property.parent.sizeCells(macros);
-      const args = [
-        ...Array.from(
-          { length: sizeCells },
-          (_, i) => `size${sizeCells > 1 ? i : ""}`
-        ),
-      ];
-      prop.signatureArgs = args.map((arg) => ParameterInformation.create(arg));
+			const sizeCells = property.parent.sizeCells(macros);
+			const args = [
+				...Array.from(
+					{ length: sizeCells },
+					(_, i) => `size${sizeCells > 1 ? i : ''}`,
+				),
+			];
+			prop.signatureArgs = args.map((arg) =>
+				ParameterInformation.create(arg),
+			);
 
-      if (values?.length !== sizeCells) {
-        issues.push(
-          genStandardTypeDiagnostic(
-            StandardTypeIssue.CELL_MISS_MATCH,
-            property.ast.values ?? property.ast,
-            DiagnosticSeverity.Error,
-            [],
-            [],
-            [
-              property.name,
-              `<${Array.from(
-                {
-                  length: property.parent.sizeCells(macros),
-                },
-                () => "size"
-              )}>`,
-            ]
-          )
-        );
-      }
+			if (values?.length !== sizeCells) {
+				issues.push(
+					genStandardTypeDiagnostic(
+						StandardTypeIssue.CELL_MISS_MATCH,
+						property.ast.values ?? property.ast,
+						DiagnosticSeverity.Error,
+						[],
+						[],
+						[
+							property.name,
+							`<${Array.from(
+								{
+									length: property.parent.sizeCells(macros),
+								},
+								() => 'size',
+							)}>`,
+						],
+					),
+				);
+			}
 
-      return issues;
-    }
-  );
-  prop.description = [`Address boundary for alignment of allocation.`];
+			return issues;
+		},
+	);
+	prop.description = [`Address boundary for alignment of allocation.`];
 
-  return prop;
+	return prop;
 };

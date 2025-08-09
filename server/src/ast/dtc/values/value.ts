@@ -14,47 +14,47 @@
  * limitations under the License.
  */
 
-import { ASTBase } from "../../base";
-import { AllValueType } from "../types";
-import { LabelAssign } from "../label";
-import { DtsBitsNode } from "../bitsNode";
-import type { MacroRegistryItem, Token } from "../../../types";
+import { ASTBase } from '../../base';
+import { AllValueType } from '../types';
+import { LabelAssign } from '../label';
+import { DtsBitsNode } from '../bitsNode';
+import type { MacroRegistryItem, Token } from '../../../types';
 
 export class PropertyValue extends ASTBase {
-  public nextValueSeparator?: Token;
+	public nextValueSeparator?: Token;
 
-  constructor(
-    public readonly startLabels: LabelAssign[],
-    public readonly value: AllValueType,
-    public readonly endLabels: LabelAssign[],
-    public readonly bits?: DtsBitsNode
-  ) {
-    super();
-    this.startLabels.forEach((label) => {
-      this.addChild(label);
-    });
-    this.addChild(bits);
-    this.addChild(value);
-    this.endLabels.forEach((label) => {
-      this.addChild(label);
-    });
-  }
+	constructor(
+		public readonly startLabels: LabelAssign[],
+		public readonly value: AllValueType,
+		public readonly endLabels: LabelAssign[],
+		public readonly bits?: DtsBitsNode,
+	) {
+		super();
+		this.startLabels.forEach((label) => {
+			this.addChild(label);
+		});
+		this.addChild(bits);
+		this.addChild(value);
+		this.endLabels.forEach((label) => {
+			this.addChild(label);
+		});
+	}
 
-  toString() {
-    return `${[
-      this.value?.toString() ?? "NULL",
-      ...this.endLabels.map((l) => l.toString()),
-    ].join(" ")}`;
-  }
+	toString() {
+		return `${[
+			this.value?.toString() ?? 'NULL',
+			...this.endLabels.map((l) => l.toString()),
+		].join(' ')}`;
+	}
 
-  toPrettyString(macros: Map<string, MacroRegistryItem>) {
-    return `${[
-      this.value?.toPrettyString(macros) ?? "NULL",
-      ...this.endLabels.map((l) => l.toString()),
-    ].join(" ")}`;
-  }
+	toPrettyString(macros: Map<string, MacroRegistryItem>) {
+		return `${[
+			this.value?.toPrettyString(macros) ?? 'NULL',
+			...this.endLabels.map((l) => l.toString()),
+		].join(' ')}`;
+	}
 
-  toJson() {
-    return this.value?.toJson();
-  }
+	toJson() {
+		return this.value?.toJson();
+	}
 }

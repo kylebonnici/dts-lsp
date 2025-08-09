@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-import { BindingPropertyType } from "../../types/index";
-import { PropertyNodeType } from "../types";
-import { generateOrTypeObj } from "./helpers";
+import { BindingPropertyType } from '../../types/index';
+import { PropertyNodeType } from '../types';
+import { generateOrTypeObj } from './helpers';
 
 export default () => {
-  const prop = new PropertyNodeType(
-    /^(?!#(?:address-|interrupt-|size-)).*-cells$/,
-    generateOrTypeObj(BindingPropertyType.U32)
-  );
-  prop.list = true;
-  prop.description = [
-    "The `#<specifier>-cells` propertydefines the number of cells required to encode a specifier for adomain.",
-  ];
-  return prop;
+	const prop = new PropertyNodeType(
+		/^(?!#(?:address-|interrupt-|size-)).*-cells$/,
+		generateOrTypeObj(BindingPropertyType.U32),
+	);
+	prop.list = true;
+	prop.description = [
+		'The `#<specifier>-cells` propertydefines the number of cells required to encode a specifier for adomain.',
+	];
+	return prop;
 };

@@ -14,157 +14,160 @@
  * limitations under the License.
  */
 
-import { LexerToken, Token } from "./types";
-import { adjacentTokens, createTokenIndex, validToken } from "./helpers";
-import { Comment, CommentBlock } from "./ast/dtc/comment";
-import { BaseParser } from "./baseParser";
-import { ASTBase } from "./ast/base";
-import { getTokenizedDocumentProvider } from "./providers/tokenizedDocument";
+import { LexerToken, Token } from './types';
+import { adjacentTokens, createTokenIndex, validToken } from './helpers';
+import { Comment, CommentBlock } from './ast/dtc/comment';
+import { BaseParser } from './baseParser';
+import { ASTBase } from './ast/base';
+import { getTokenizedDocumentProvider } from './providers/tokenizedDocument';
 
 export class CommentsParser extends BaseParser {
-  comments: (Comment | CommentBlock)[] = [];
-  public tokens: Token[] = [];
+	comments: (Comment | CommentBlock)[] = [];
+	public tokens: Token[] = [];
 
-  constructor(public readonly uri: string) {
-    super();
-  }
+	constructor(public readonly uri: string) {
+		super();
+	}
 
-  private cleanUpComments() {
-    const tokensUsed: number[] = [];
-    for (let i = 0; i < this.tokens.length; i++) {
-      const result =
-        CommentsParser.processBlockComment(this.tokens, i) ||
-        CommentsParser.processLineComment(this.tokens, i);
-      if (result) {
-        i = result.index;
-        tokensUsed.push(...result.tokenUsed);
-        this.comments.push(result.comment);
-      }
-    }
-    tokensUsed.reverse().forEach((i) => this.tokens.splice(i, 1));
-  }
+	private cleanUpComments() {
+		const tokensUsed: number[] = [];
+		for (let i = 0; i < this.tokens.length; i++) {
+			const result =
+				CommentsParser.processBlockComment(this.tokens, i) ||
+				CommentsParser.processLineComment(this.tokens, i);
+			if (result) {
+				i = result.index;
+				tokensUsed.push(...result.tokenUsed);
+				this.comments.push(result.comment);
+			}
+		}
+		tokensUsed.reverse().forEach((i) => this.tokens.splice(i, 1));
+	}
 
-  get allAstItems(): ASTBase[] {
-    return this.comments;
-  }
+	get allAstItems(): ASTBase[] {
+		return this.comments;
+	}
 
-  protected reset() {
-    super.reset();
-    this.comments = [];
-  }
+	protected reset() {
+		super.reset();
+		this.comments = [];
+	}
 
-  public reparse() {
-    this.reset();
-    return this.parse();
-  }
+	public reparse() {
+		this.reset();
+		return this.parse();
+	}
 
-  protected async parse() {
-    this.tokens = getTokenizedDocumentProvider().requestTokens(this.uri, true);
-    this.cleanUpComments();
-  }
+	protected async parse() {
+		this.tokens = getTokenizedDocumentProvider().requestTokens(
+			this.uri,
+			true,
+		);
+		this.cleanUpComments();
+	}
 
-  private static processBlockComment(tokens: Token[], index: number) {
-    const tokenUsed: number[] = [];
+	private static processBlockComment(tokens: Token[], index: number) {
+		const tokenUsed: number[] = [];
 
-    const move = () => {
-      tokenUsed.push(index++);
-      return tokens[index];
-    };
+		const move = () => {
+			tokenUsed.push(index++);
+			return tokens[index];
+		};
 
-    const currentToken = () => {
-      return tokens[index];
-    };
+		const currentToken = () => {
+			return tokens[index];
+		};
 
-    const prevToken = () => {
-      return tokens[index - 1];
-    };
+		const prevToken = () => {
+			return tokens[index - 1];
+		};
 
-    const firstToken = currentToken();
-    let token = firstToken;
-    if (!firstToken || !validToken(firstToken, LexerToken.FORWARD_SLASH)) {
-      return;
-    }
+		const firstToken = currentToken();
+		let token = firstToken;
+		if (!firstToken || !validToken(firstToken, LexerToken.FORWARD_SLASH)) {
+			return;
+		}
 
-    token = move();
+		token = move();
 
-    if (
-      !validToken(token, LexerToken.MULTI_OPERATOR) ||
-      firstToken.pos.line !== token.pos.line ||
-      firstToken.pos.col + 1 !== token.pos.col
-    ) {
-      return;
-    }
+		if (
+			!validToken(token, LexerToken.MULTI_OPERATOR) ||
+			firstToken.pos.line !== token.pos.line ||
+			firstToken.pos.col + 1 !== token.pos.col
+		) {
+			return;
+		}
 
-    const isEndComment = (): boolean => {
-      if (!validToken(prevToken(), LexerToken.MULTI_OPERATOR)) {
-        return false;
-      }
+		const isEndComment = (): boolean => {
+			if (!validToken(prevToken(), LexerToken.MULTI_OPERATOR)) {
+				return false;
+			}
 
-      if (
-        !validToken(currentToken(), LexerToken.FORWARD_SLASH) ||
-        !adjacentTokens(prevToken(), currentToken())
-      ) {
-        return false;
-      }
+			if (
+				!validToken(currentToken(), LexerToken.FORWARD_SLASH) ||
+				!adjacentTokens(prevToken(), currentToken())
+			) {
+				return false;
+			}
 
-      return true;
-    };
+			return true;
+		};
 
-    // we have a comment start
-    let lastLine = token.pos.line;
-    let start = firstToken;
-    const comments: Comment[] = [];
-    token = move();
-    do {
-      if (currentToken()?.pos.line !== lastLine) {
-        const node = new Comment(createTokenIndex(start, prevToken()));
-        comments.push(node);
+		// we have a comment start
+		let lastLine = token.pos.line;
+		let start = firstToken;
+		const comments: Comment[] = [];
+		token = move();
+		do {
+			if (currentToken()?.pos.line !== lastLine) {
+				const node = new Comment(createTokenIndex(start, prevToken()));
+				comments.push(node);
 
-        lastLine = currentToken().pos.line ?? 0;
+				lastLine = currentToken().pos.line ?? 0;
 
-        start = currentToken();
-      }
-      token = move();
-    } while (index < tokens.length && !isEndComment());
+				start = currentToken();
+			}
+			token = move();
+		} while (index < tokens.length && !isEndComment());
 
-    const node = new Comment(createTokenIndex(start, currentToken()));
-    comments.push(node);
-    const comment = new CommentBlock(comments);
+		const node = new Comment(createTokenIndex(start, currentToken()));
+		comments.push(node);
+		const comment = new CommentBlock(comments);
 
-    move();
-    return {
-      comment,
-      tokenUsed,
-      index: index - 1,
-    };
-  }
+		move();
+		return {
+			comment,
+			tokenUsed,
+			index: index - 1,
+		};
+	}
 
-  private static processLineComment(tokens: Token[], index: number) {
-    const tokenUsed: number[] = [];
+	private static processLineComment(tokens: Token[], index: number) {
+		const tokenUsed: number[] = [];
 
-    if (
-      !validToken(tokens[index], LexerToken.FORWARD_SLASH) ||
-      tokens.length === index + 1 ||
-      !validToken(tokens[index + 1], LexerToken.FORWARD_SLASH) ||
-      !adjacentTokens(tokens[index], tokens[index + 1])
-    ) {
-      return;
-    }
+		if (
+			!validToken(tokens[index], LexerToken.FORWARD_SLASH) ||
+			tokens.length === index + 1 ||
+			!validToken(tokens[index + 1], LexerToken.FORWARD_SLASH) ||
+			!adjacentTokens(tokens[index], tokens[index + 1])
+		) {
+			return;
+		}
 
-    while (tokens[index].pos.line === tokens.at(index + 1)?.pos.line) {
-      tokenUsed.push(index++);
-    }
+		while (tokens[index].pos.line === tokens.at(index + 1)?.pos.line) {
+			tokenUsed.push(index++);
+		}
 
-    tokenUsed.push(index++);
+		tokenUsed.push(index++);
 
-    const comment = new Comment(
-      createTokenIndex(tokens[tokenUsed[0]], tokens[tokenUsed.at(-1)!])
-    );
+		const comment = new Comment(
+			createTokenIndex(tokens[tokenUsed[0]], tokens[tokenUsed.at(-1)!]),
+		);
 
-    return {
-      comment,
-      tokenUsed,
-      index: index - 1,
-    };
-  }
+		return {
+			comment,
+			tokenUsed,
+			index: index - 1,
+		};
+	}
 }

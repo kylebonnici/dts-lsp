@@ -14,57 +14,63 @@
  * limitations under the License.
  */
 
-import { SymbolKind } from "vscode-languageserver";
-import { ASTBase } from "../base";
-import { BuildSemanticTokensPush, TokenIndexes } from "../../types";
-import { LabelRef } from "./labelRef";
-import { getTokenModifiers, getTokenTypes } from "../../helpers";
-import { Node } from "../../context/node";
+import { SymbolKind } from 'vscode-languageserver';
+import { ASTBase } from '../base';
+import { BuildSemanticTokensPush, TokenIndexes } from '../../types';
+import { getTokenModifiers, getTokenTypes } from '../../helpers';
+import { Node } from '../../context/node';
+import { LabelRef } from './labelRef';
 
 export class LabelAssign extends ASTBase {
-  public lastLinkedTo?: Node;
+	public lastLinkedTo?: Node;
 
-  constructor(public readonly label: Label, tokenIndex: TokenIndexes) {
-    super(tokenIndex);
-    this.docSymbolsMeta = {
-      name: this.label.value,
-      kind: SymbolKind.Constant,
-    };
-    this.semanticTokenType = "variable";
-    this.semanticTokenModifiers = "declaration";
-    this.addChild(label);
-  }
+	constructor(
+		public readonly label: Label,
+		tokenIndex: TokenIndexes,
+	) {
+		super(tokenIndex);
+		this.docSymbolsMeta = {
+			name: this.label.value,
+			kind: SymbolKind.Constant,
+		};
+		this.semanticTokenType = 'variable';
+		this.semanticTokenModifiers = 'declaration';
+		this.addChild(label);
+	}
 
-  toString() {
-    return `${this.label.toString()}:`;
-  }
+	toString() {
+		return `${this.label.toString()}:`;
+	}
 }
 
 export class Label extends ASTBase {
-  constructor(public readonly value: string, tokenIndex: TokenIndexes) {
-    super(tokenIndex);
-    this.docSymbolsMeta = {
-      name: this.value,
-      kind: SymbolKind.Variable,
-    };
-    this.semanticTokenType = "variable";
-    this.semanticTokenModifiers = "declaration";
-  }
+	constructor(
+		public readonly value: string,
+		tokenIndex: TokenIndexes,
+	) {
+		super(tokenIndex);
+		this.docSymbolsMeta = {
+			name: this.value,
+			kind: SymbolKind.Variable,
+		};
+		this.semanticTokenType = 'variable';
+		this.semanticTokenModifiers = 'declaration';
+	}
 
-  buildSemanticTokens(push: BuildSemanticTokensPush): void {
-    const parent = this.parentNode;
-    if (!(parent instanceof LabelRef && parent.linksTo)) {
-      super.buildSemanticTokens(push);
-      return;
-    }
+	buildSemanticTokens(push: BuildSemanticTokensPush): void {
+		const parent = this.parentNode;
+		if (!(parent instanceof LabelRef && parent.linksTo)) {
+			super.buildSemanticTokens(push);
+			return;
+		}
 
-    push(getTokenTypes("type"), getTokenModifiers("declaration"), {
-      start: this.firstToken,
-      end: this.lastToken,
-    });
-  }
+		push(getTokenTypes('type'), getTokenModifiers('declaration'), {
+			start: this.firstToken,
+			end: this.lastToken,
+		});
+	}
 
-  toString() {
-    return `${this.value}`;
-  }
+	toString() {
+		return `${this.value}`;
+	}
 }

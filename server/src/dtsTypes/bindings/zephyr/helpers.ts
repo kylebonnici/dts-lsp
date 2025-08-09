@@ -14,75 +14,75 @@
  * limitations under the License.
  */
 
-import { Runtime } from "../../../context/runtime";
-import { Node } from "../../../context/node";
-import { LabelRef } from "../../../ast/dtc/labelRef";
-import { NodePathRef } from "../../../ast/dtc/values/nodePath";
-import { Property } from "../../../context/property";
+import { Runtime } from '../../../context/runtime';
+import { Node } from '../../../context/node';
+import { LabelRef } from '../../../ast/dtc/labelRef';
+import { NodePathRef } from '../../../ast/dtc/values/nodePath';
+import { Property } from '../../../context/property';
 
 export const allPropertyMacros = (property: Property): string[] => {
-  return [
-    getPropertyWithNodePath(property),
-    ...getPropertyWithNodeLabel(property),
-  ];
+	return [
+		getPropertyWithNodePath(property),
+		...getPropertyWithNodeLabel(property),
+	];
 };
 
 export const getPropertyWithNodePath = (property: Property): string => {
-  return `DT_PROP(${getZephyrMacroPath(
-    property.parent
-  )}, ${property.name.replaceAll("-", "_")}))`;
+	return `DT_PROP(${getZephyrMacroPath(
+		property.parent,
+	)}, ${property.name.replaceAll('-', '_')}))`;
 };
 
 export const getPropertyWithNodeLabel = (property: Property): string[] => {
-  return property.parent.labels.map(
-    (l) =>
-      `DT_PROP(DT_NODELABEL(${l.label.toString()}), ${property.name.replaceAll(
-        "-",
-        "_"
-      )})`
-  );
+	return property.parent.labels.map(
+		(l) =>
+			`DT_PROP(DT_NODELABEL(${l.label.toString()}), ${property.name.replaceAll(
+				'-',
+				'_',
+			)})`,
+	);
 };
 
 export const allNodeMacros = (node: Node): string[] => {
-  return [
-    getZephyrMacroPath(node),
-    ...getNodeLabelMacros(node),
-    ...getNodeAliasesMacros(node),
-  ];
+	return [
+		getZephyrMacroPath(node),
+		...getNodeLabelMacros(node),
+		...getNodeAliasesMacros(node),
+	];
 };
 
 export const getZephyrMacroPath = (node: Node) =>
-  `DT_PATH(${node.path
-    .slice(1)
-    .map((p) => p.replace("@", "_").replaceAll("-", "_"))
-    .join(",")})`;
+	`DT_PATH(${node.path
+		.slice(1)
+		.map((p) => p.replace('@', '_').replaceAll('-', '_'))
+		.join(',')})`;
 
 export const getNodeLabelMacros = (node: Node): string[] =>
-  node.labels.map((l) => `DT_NODELABEL(${l.label.toString()})`);
+	node.labels.map((l) => `DT_NODELABEL(${l.label.toString()})`);
 
 export const getNodeAliasesMacros = (node: Node): string[] => {
-  const macros: string[] = [];
-  const aliases = Runtime.getNodeFromPath(["aliases"], node.root);
+	const macros: string[] = [];
+	const aliases = Runtime.getNodeFromPath(['aliases'], node.root);
 
-  const properties = aliases?.property.filter((p) => {
-    if (p.ast.quickValues?.at(0) === node.pathString) return true;
-    const value = p.ast.values?.values.at(0)?.value;
+	const properties = aliases?.property.filter((p) => {
+		if (p.ast.quickValues?.at(0) === node.pathString) return true;
+		const value = p.ast.values?.values.at(0)?.value;
 
-    if (value instanceof LabelRef && value.linksTo === node) {
-      return true;
-    }
+		if (value instanceof LabelRef && value.linksTo === node) {
+			return true;
+		}
 
-    if (
-      value instanceof NodePathRef &&
-      value.path?.pathParts.at(-1)?.linksTo === node
-    ) {
-      return true;
-    }
-  });
+		if (
+			value instanceof NodePathRef &&
+			value.path?.pathParts.at(-1)?.linksTo === node
+		) {
+			return true;
+		}
+	});
 
-  properties?.forEach((property) =>
-    macros.push(`DT_ALIAS(${property.name.replaceAll("-", "_")})`)
-  );
+	properties?.forEach((property) =>
+		macros.push(`DT_ALIAS(${property.name.replaceAll('-', '_')})`),
+	);
 
-  return macros;
+	return macros;
 };

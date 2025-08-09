@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-import { BindingPropertyType } from "../../types/index";
-import { PropertyNodeType } from "../types";
-import { generateOrTypeObj } from "./helpers";
+import { BindingPropertyType } from '../../types/index';
+import { PropertyNodeType } from '../types';
+import { generateOrTypeObj } from './helpers';
 
 export default () => {
-  const prop = new PropertyNodeType(
-    "interrupt-controller",
-    generateOrTypeObj(BindingPropertyType.EMPTY),
-    "optional"
-  );
-  prop.description = [
-    "The presence of an interrupt-controller property defines a node as an interrupt controller node.",
-  ];
-  return prop;
+	const prop = new PropertyNodeType(
+		'interrupt-controller',
+		generateOrTypeObj(BindingPropertyType.EMPTY),
+		'optional',
+	);
+	prop.description = [
+		'The presence of an interrupt-controller property defines a node as an interrupt controller node.',
+	];
+	return prop;
 };

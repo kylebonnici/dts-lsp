@@ -14,47 +14,51 @@
  * limitations under the License.
  */
 
-import { ASTBase } from "../base";
-import { Token, TokenIndexes } from "../../types";
+import { ASTBase } from '../base';
+import { Token, TokenIndexes } from '../../types';
 
 export class CommentBlock extends ASTBase {
-  constructor(readonly comments: Comment[]) {
-    super();
-    comments.forEach(this.addChild.bind(this));
-  }
-  toString(): string {
-    return this.comments.map((c) => c.toString()).join("\n");
-  }
+	constructor(readonly comments: Comment[]) {
+		super();
+		comments.forEach(this.addChild.bind(this));
+	}
+	toString(): string {
+		return this.comments.map((c) => c.toString()).join('\n');
+	}
 }
 
 export class Comment extends ASTBase {
-  constructor(tokenIndexes: TokenIndexes) {
-    super(tokenIndexes);
-    this.semanticTokenType = "comment";
-    this.semanticTokenModifiers = "documentation";
-  }
+	constructor(tokenIndexes: TokenIndexes) {
+		super(tokenIndexes);
+		this.semanticTokenType = 'comment';
+		this.semanticTokenModifiers = 'documentation';
+	}
 
-  toString(): string {
-    let prev: Token | undefined;
-    let token: Token | undefined = this.firstToken;
-    let str = "";
-    while (token !== this.lastToken) {
-      str += token?.value.padStart(
-        token.value.length + (prev ? token.pos.col - prev.pos.colEnd : 0),
-        " "
-      );
-      prev = token;
-      token = token?.nextToken;
-    }
+	toString(): string {
+		let prev: Token | undefined;
+		let token: Token | undefined = this.firstToken;
+		let str = '';
+		while (token !== this.lastToken) {
+			str += token?.value.padStart(
+				token.value.length +
+					(prev ? token.pos.col - prev.pos.colEnd : 0),
+				' ',
+			);
+			prev = token;
+			token = token?.nextToken;
+		}
 
-    if (token) {
-      str += token?.value.padStart(
-        token.value.length + (prev ? token.pos.col - prev.pos.colEnd : 0),
-        " "
-      );
-    }
+		if (token) {
+			str += token?.value.padStart(
+				token.value.length +
+					(prev ? token.pos.col - prev.pos.colEnd : 0),
+				' ',
+			);
+		}
 
-    const match = str.match(/^\s*(?:(?:\/\/|\/\*+)\s*)?(.*?)\s*(?:\*\/)?\s*$/s);
-    return match ? match[1] : "";
-  }
+		const match = str.match(
+			/^\s*(?:(?:\/\/|\/\*+)\s*)?(.*?)\s*(?:\*\/)?\s*$/s,
+		);
+		return match ? match[1] : '';
+	}
 }

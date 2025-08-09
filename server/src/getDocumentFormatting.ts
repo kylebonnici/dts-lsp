@@ -15,1365 +15,1417 @@
  */
 
 import {
-  DocumentFormattingParams,
-  Position,
-  Range,
-  TextEdit,
-} from "vscode-languageserver";
-import { ContextAware } from "./runtimeEvaluator";
+	DocumentFormattingParams,
+	Position,
+	Range,
+	TextEdit,
+} from 'vscode-languageserver';
+import { ContextAware } from './runtimeEvaluator';
 import {
-  DtcBaseNode,
-  DtcChildNode,
-  DtcRefNode,
-  DtcRootNode,
-} from "./ast/dtc/node";
-import { DtcProperty } from "./ast/dtc/property";
-import { DeleteBase } from "./ast/dtc/delete";
-import { ASTBase } from "./ast/base";
-import { Token } from "./types";
-import { PropertyValues } from "./ast/dtc/values/values";
-import { PropertyValue } from "./ast/dtc/values/value";
-import { AllValueType } from "./ast/dtc/types";
-import { ArrayValues } from "./ast/dtc/values/arrayValue";
-import { ByteStringValue } from "./ast/dtc/values/byteString";
-import { LabeledValue } from "./ast/dtc/values/labeledValue";
-import { Include } from "./ast/cPreprocessors/include";
+	DtcBaseNode,
+	DtcChildNode,
+	DtcRefNode,
+	DtcRootNode,
+} from './ast/dtc/node';
+import { DtcProperty } from './ast/dtc/property';
+import { DeleteBase } from './ast/dtc/delete';
+import { ASTBase } from './ast/base';
+import { Token } from './types';
+import { PropertyValues } from './ast/dtc/values/values';
+import { PropertyValue } from './ast/dtc/values/value';
+import { AllValueType } from './ast/dtc/types';
+import { ArrayValues } from './ast/dtc/values/arrayValue';
+import { ByteStringValue } from './ast/dtc/values/byteString';
+import { LabeledValue } from './ast/dtc/values/labeledValue';
+import { Include } from './ast/cPreprocessors/include';
 import {
-  fileURLToPath,
-  getDeepestAstNodeInBetween,
-  isPathEqual,
-  positionInBetween,
-  rangesOverlap,
-  setIndentString,
-} from "./helpers";
-import { Comment, CommentBlock } from "./ast/dtc/comment";
-import { LabelAssign } from "./ast/dtc/label";
-import { ComplexExpression, Expression } from "./ast/cPreprocessors/expression";
-import { CMacroCall } from "./ast/cPreprocessors/functionCall";
-import { getPropertyFromChild, isPropertyValueChild } from "./ast/helpers";
-import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
+	fileURLToPath,
+	getDeepestAstNodeInBetween,
+	isPathEqual,
+	positionInBetween,
+	rangesOverlap,
+	setIndentString,
+} from './helpers';
+import { Comment, CommentBlock } from './ast/dtc/comment';
+import { LabelAssign } from './ast/dtc/label';
+import { ComplexExpression, Expression } from './ast/cPreprocessors/expression';
+import { CMacroCall } from './ast/cPreprocessors/functionCall';
+import { getPropertyFromChild, isPropertyValueChild } from './ast/helpers';
+import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
 
 const findAst = async (token: Token, uri: string, fileRootAsts: ASTBase[]) => {
-  const pos = Position.create(token.pos.line, token.pos.col);
-  const parent = fileRootAsts.find((ast) => positionInBetween(ast, uri, pos));
+	const pos = Position.create(token.pos.line, token.pos.col);
+	const parent = fileRootAsts.find((ast) => positionInBetween(ast, uri, pos));
 
-  if (!parent) return;
+	if (!parent) return;
 
-  return getDeepestAstNodeInBetween(parent, uri, pos);
+	return getDeepestAstNodeInBetween(parent, uri, pos);
 };
 
 const getClosestAstNode = (ast?: ASTBase): DtcBaseNode | undefined => {
-  if (!ast) {
-    return;
-  }
-  return ast instanceof DtcBaseNode ? ast : getClosestAstNode(ast?.parentNode);
+	if (!ast) {
+		return;
+	}
+	return ast instanceof DtcBaseNode
+		? ast
+		: getClosestAstNode(ast?.parentNode);
 };
 
 export const countParent = (
-  uri: string,
-  node?: DtcBaseNode,
-  count = 0
+	uri: string,
+	node?: DtcBaseNode,
+	count = 0,
 ): number => {
-  if (!node || !isPathEqual(node.uri, uri) || !node.parentNode?.uri)
-    return count;
+	if (!node || !isPathEqual(node.uri, uri) || !node.parentNode?.uri)
+		return count;
 
-  const closeAst = getClosestAstNode(node.parentNode);
-  return countParent(uri, closeAst, count + 1);
+	const closeAst = getClosestAstNode(node.parentNode);
+	return countParent(uri, closeAst, count + 1);
 };
 
 type LevelMeta = {
-  level: number;
-  inAst?: ASTBase;
+	level: number;
+	inAst?: ASTBase;
 };
 const getAstItemLevel =
-  (fileRootAsts: ASTBase[], uri: string) =>
-  async (astNode: ASTBase): Promise<LevelMeta | undefined> => {
-    const rootItem = fileRootAsts.filter(
-      (ast) =>
-        !(ast instanceof Include) &&
-        !(ast instanceof Comment) &&
-        !(ast instanceof CommentBlock)
-    );
-    const parentAst = await findAst(astNode.firstToken, uri, rootItem);
+	(fileRootAsts: ASTBase[], uri: string) =>
+	async (astNode: ASTBase): Promise<LevelMeta | undefined> => {
+		const rootItem = fileRootAsts.filter(
+			(ast) =>
+				!(ast instanceof Include) &&
+				!(ast instanceof Comment) &&
+				!(ast instanceof CommentBlock),
+		);
+		const parentAst = await findAst(astNode.firstToken, uri, rootItem);
 
-    if (
-      !parentAst ||
-      parentAst === astNode ||
-      astNode.allDescendants.some((a) => a === parentAst)
-    ) {
-      return {
-        level: 0,
-      };
-    }
+		if (
+			!parentAst ||
+			parentAst === astNode ||
+			astNode.allDescendants.some((a) => a === parentAst)
+		) {
+			return {
+				level: 0,
+			};
+		}
 
-    const closeAst = getClosestAstNode(parentAst);
-    const level = countParent(uri, closeAst);
-    return {
-      level,
-      inAst: parentAst,
-    };
-  };
+		const closeAst = getClosestAstNode(parentAst);
+		const level = countParent(uri, closeAst);
+		return {
+			level,
+			inAst: parentAst,
+		};
+	};
 
 export async function getDocumentFormatting(
-  documentFormattingParams: DocumentFormattingParams,
-  contextAware: ContextAware,
-  documentText: string
+	documentFormattingParams: DocumentFormattingParams,
+	contextAware: ContextAware,
+	documentText: string,
 ): Promise<TextEdit[]> {
-  const splitDocument = documentText.split("\n");
-  const result: TextEdit[] = [];
-  const uri = fileURLToPath(documentFormattingParams.textDocument.uri);
+	const splitDocument = documentText.split('\n');
+	const result: TextEdit[] = [];
+	const uri = fileURLToPath(documentFormattingParams.textDocument.uri);
 
-  const runtime = await contextAware.getRuntime();
-  let fileRootAsts = runtime.fileTopMostAsts(uri);
+	const runtime = await contextAware.getRuntime();
+	let fileRootAsts = runtime.fileTopMostAsts(uri);
 
-  const fileIncludes = runtime.includes.filter((i) =>
-    isPathEqual(i.resolvedPath, uri)
-  );
+	const fileIncludes = runtime.includes.filter((i) =>
+		isPathEqual(i.resolvedPath, uri),
+	);
 
-  if (fileIncludes.length > 1) {
-    const tmp: ASTBase[] = [];
+	if (fileIncludes.length > 1) {
+		const tmp: ASTBase[] = [];
 
-    fileRootAsts.forEach((ast) => {
-      if (
-        tmp.some(
-          (r) =>
-            r.firstToken.pos.line === ast.firstToken.pos.line &&
-            r.firstToken.pos.col === ast.firstToken.pos.col
-        )
-      ) {
-        return;
-      }
-      tmp.push(ast);
-    });
+		fileRootAsts.forEach((ast) => {
+			if (
+				tmp.some(
+					(r) =>
+						r.firstToken.pos.line === ast.firstToken.pos.line &&
+						r.firstToken.pos.col === ast.firstToken.pos.col,
+				)
+			) {
+				return;
+			}
+			tmp.push(ast);
+		});
 
-    fileRootAsts = tmp;
-  }
+		fileRootAsts = tmp;
+	}
 
-  const astItemLevel = getAstItemLevel(fileRootAsts, uri);
-  result.push(
-    ...(
-      await Promise.all(
-        fileRootAsts.flatMap(
-          async (base) =>
-            await getTextEdit(
-              documentFormattingParams,
-              base,
-              uri,
-              astItemLevel,
-              splitDocument
-            )
-        )
-      )
-    ).flat()
-  );
+	const astItemLevel = getAstItemLevel(fileRootAsts, uri);
+	result.push(
+		...(
+			await Promise.all(
+				fileRootAsts.flatMap(
+					async (base) =>
+						await getTextEdit(
+							documentFormattingParams,
+							base,
+							uri,
+							astItemLevel,
+							splitDocument,
+						),
+				),
+			)
+		).flat(),
+	);
 
-  if (documentFormattingParams.options.trimTrailingWhitespace) {
-    result.push(...removeTrailingWhitespace(splitDocument, result));
-  }
+	if (documentFormattingParams.options.trimTrailingWhitespace) {
+		result.push(...removeTrailingWhitespace(splitDocument, result));
+	}
 
-  const formatOnOffMeta = pairFormatOnOff(fileRootAsts, splitDocument);
-  return formatOnOffMeta.length
-    ? result.filter(
-        (edit) => !isFormattingDisabledAt(edit.range.start, formatOnOffMeta)
-      )
-    : result;
+	const formatOnOffMeta = pairFormatOnOff(fileRootAsts, splitDocument);
+	return formatOnOffMeta.length
+		? result.filter(
+				(edit) =>
+					!isFormattingDisabledAt(edit.range.start, formatOnOffMeta),
+			)
+		: result;
 }
 const pairFormatOnOff = (
-  fileRootAsts: ASTBase[],
-  documentLines: string[]
+	fileRootAsts: ASTBase[],
+	documentLines: string[],
 ): Range[] => {
-  const last = Position.create(
-    documentLines.length - 1,
-    documentLines.at(-1)?.length ?? 0
-  );
+	const last = Position.create(
+		documentLines.length - 1,
+		documentLines.at(-1)?.length ?? 0,
+	);
 
-  const formatControlRanges: Range[] = [];
-  let pendingOff: { start: Position } | undefined;
+	const formatControlRanges: Range[] = [];
+	let pendingOff: { start: Position } | undefined;
 
-  const controlComments = fileRootAsts
-    .filter(
-      (ast) =>
-        (ast instanceof CommentBlock || ast instanceof Comment) &&
-        /^dts-format (on|off)$/.test(ast.toString().trim())
-    )
+	const controlComments = fileRootAsts
+		.filter(
+			(ast) =>
+				(ast instanceof CommentBlock || ast instanceof Comment) &&
+				/^dts-format (on|off)$/.test(ast.toString().trim()),
+		)
 
-    .sort((a, b) => a.firstToken.pos.line - b.firstToken.pos.line);
+		.sort((a, b) => a.firstToken.pos.line - b.firstToken.pos.line);
 
-  controlComments.forEach((ast) => {
-    const value = ast.toString().trim();
+	controlComments.forEach((ast) => {
+		const value = ast.toString().trim();
 
-    if (value === "dts-format off") {
-      pendingOff = {
-        start: Position.create(
-          ast.firstToken.pos.line,
-          ast instanceof CommentBlock ? ast.firstToken.pos.colEnd : 0
-        ),
-      };
-    } else if (value === "dts-format on" && pendingOff) {
-      const end = Position.create(
-        ast.lastToken.pos.line,
-        ast instanceof CommentBlock
-          ? ast.lastToken.pos.colEnd - 1
-          : documentLines[ast.lastToken.pos.line - 1].length
-      );
-      formatControlRanges.push(Range.create(pendingOff.start, end));
-      pendingOff = undefined;
-    }
-  });
+		if (value === 'dts-format off') {
+			pendingOff = {
+				start: Position.create(
+					ast.firstToken.pos.line,
+					ast instanceof CommentBlock ? ast.firstToken.pos.colEnd : 0,
+				),
+			};
+		} else if (value === 'dts-format on' && pendingOff) {
+			const end = Position.create(
+				ast.lastToken.pos.line,
+				ast instanceof CommentBlock
+					? ast.lastToken.pos.colEnd - 1
+					: documentLines[ast.lastToken.pos.line - 1].length,
+			);
+			formatControlRanges.push(Range.create(pendingOff.start, end));
+			pendingOff = undefined;
+		}
+	});
 
-  // If still "off" with no "on", use last known AST node as document end
-  if (pendingOff) {
-    formatControlRanges.push(Range.create(pendingOff.start, last));
-  }
+	// If still "off" with no "on", use last known AST node as document end
+	if (pendingOff) {
+		formatControlRanges.push(Range.create(pendingOff.start, last));
+	}
 
-  return formatControlRanges;
+	return formatControlRanges;
 };
 
 function comparePositions(a: Position, b: Position): number {
-  if (a.line < b.line) return -1;
-  if (a.line > b.line) return 1;
-  if (a.character < b.character) return -1;
-  if (a.character > b.character) return 1;
-  return 0;
+	if (a.line < b.line) return -1;
+	if (a.line > b.line) return 1;
+	if (a.character < b.character) return -1;
+	if (a.character > b.character) return 1;
+	return 0;
 }
 
 const isFormattingDisabledAt = (
-  pos: Position,
-  disabledRanges: Range[]
+	pos: Position,
+	disabledRanges: Range[],
 ): boolean => {
-  return disabledRanges.some(
-    (range) =>
-      comparePositions(pos, range.start) >= 0 &&
-      comparePositions(pos, range.end) <= 0
-  );
+	return disabledRanges.some(
+		(range) =>
+			comparePositions(pos, range.start) >= 0 &&
+			comparePositions(pos, range.end) <= 0,
+	);
 };
 
 const removeTrailingWhitespace = (
-  documentText: string[],
-  textEdits: TextEdit[]
+	documentText: string[],
+	textEdits: TextEdit[],
 ): TextEdit[] => {
-  const result: TextEdit[] = [];
-  documentText.forEach((line, i) => {
-    const endTimmed = line.trimEnd();
-    if (endTimmed.length !== line.length) {
-      const rangeToCover = Range.create(
-        Position.create(i, endTimmed.length),
-        Position.create(i, line.length)
-      );
-      if (!textEdits.some((edit) => rangesOverlap(rangeToCover, edit.range)))
-        result.push(TextEdit.del(rangeToCover));
-    }
-  });
-  return result;
+	const result: TextEdit[] = [];
+	documentText.forEach((line, i) => {
+		const endTimmed = line.trimEnd();
+		if (endTimmed.length !== line.length) {
+			const rangeToCover = Range.create(
+				Position.create(i, endTimmed.length),
+				Position.create(i, line.length),
+			);
+			if (
+				!textEdits.some((edit) =>
+					rangesOverlap(rangeToCover, edit.range),
+				)
+			)
+				result.push(TextEdit.del(rangeToCover));
+		}
+	});
+	return result;
 };
 
 const removeNewLinesBetweenTokenAndPrev = (
-  token: Token,
-  documentText: string[],
-  expectedNewLines = 1,
-  forceExpectedNewLines = false,
-  prevToken = token.prevToken
+	token: Token,
+	documentText: string[],
+	expectedNewLines = 1,
+	forceExpectedNewLines = false,
+	prevToken = token.prevToken,
 ): TextEdit | undefined => {
-  if (prevToken) {
-    const diffNumberOfLines = token.pos.line - prevToken.pos.line;
-    const linesToRemove = diffNumberOfLines - expectedNewLines;
+	if (prevToken) {
+		const diffNumberOfLines = token.pos.line - prevToken.pos.line;
+		const linesToRemove = diffNumberOfLines - expectedNewLines;
 
-    if (
-      linesToRemove &&
-      ((diffNumberOfLines !== 2 && expectedNewLines !== 0) ||
-        expectedNewLines === 0 ||
-        forceExpectedNewLines)
-    ) {
-      return TextEdit.replace(
-        Range.create(
-          Position.create(prevToken.pos.line, prevToken.pos.colEnd),
-          Position.create(
-            token.pos.line - expectedNewLines,
-            expectedNewLines
-              ? documentText[token.pos.line - expectedNewLines].length
-              : token.pos.col
-          )
-        ),
-        "".padEnd(expectedNewLines - (forceExpectedNewLines ? 1 : 0), "\n")
-      );
-    }
-  } else if (token.pos.line) {
-    return TextEdit.del(
-      Range.create(Position.create(0, 0), Position.create(token.pos.line, 0))
-    );
-  }
+		if (
+			linesToRemove &&
+			((diffNumberOfLines !== 2 && expectedNewLines !== 0) ||
+				expectedNewLines === 0 ||
+				forceExpectedNewLines)
+		) {
+			return TextEdit.replace(
+				Range.create(
+					Position.create(prevToken.pos.line, prevToken.pos.colEnd),
+					Position.create(
+						token.pos.line - expectedNewLines,
+						expectedNewLines
+							? documentText[token.pos.line - expectedNewLines]
+									.length
+							: token.pos.col,
+					),
+				),
+				''.padEnd(
+					expectedNewLines - (forceExpectedNewLines ? 1 : 0),
+					'\n',
+				),
+			);
+		}
+	} else if (token.pos.line) {
+		return TextEdit.del(
+			Range.create(
+				Position.create(0, 0),
+				Position.create(token.pos.line, 0),
+			),
+		);
+	}
 };
 
 const pushItemToNewLineAndIndent = (
-  token: Token,
-  level: number,
-  indentString: string,
-  prefix: string = ""
+	token: Token,
+	level: number,
+	indentString: string,
+	prefix: string = '',
 ): TextEdit | undefined => {
-  const newLine = token.pos.line === token.prevToken?.pos.line;
+	const newLine = token.pos.line === token.prevToken?.pos.line;
 
-  if (token.prevToken && newLine) {
-    return TextEdit.replace(
-      Range.create(
-        Position.create(token.prevToken.pos.line, token.prevToken.pos.colEnd),
-        Position.create(token.pos.line, token.pos.col)
-      ),
-      `\n${"".padStart(level * indentString.length, indentString)}${prefix}`
-    );
-  }
+	if (token.prevToken && newLine) {
+		return TextEdit.replace(
+			Range.create(
+				Position.create(
+					token.prevToken.pos.line,
+					token.prevToken.pos.colEnd,
+				),
+				Position.create(token.pos.line, token.pos.col),
+			),
+			`\n${''.padStart(level * indentString.length, indentString)}${prefix}`,
+		);
+	}
 };
 
 const createIndentEdit = (
-  token: Token,
-  level: number,
-  indentString: string,
-  documentText: string[],
-  prefix: string = ""
+	token: Token,
+	level: number,
+	indentString: string,
+	documentText: string[],
+	prefix: string = '',
 ): TextEdit[] => {
-  const indent = `${"".padStart(
-    level * indentString.length,
-    indentString
-  )}${prefix}`;
-  const range = Range.create(
-    Position.create(token.pos.line, 0),
-    Position.create(token.pos.line, token.pos.col)
-  );
-  const currentText = getTextFromRange(documentText, range);
-  if (indent === currentText) return [];
+	const indent = `${''.padStart(
+		level * indentString.length,
+		indentString,
+	)}${prefix}`;
+	const range = Range.create(
+		Position.create(token.pos.line, 0),
+		Position.create(token.pos.line, token.pos.col),
+	);
+	const currentText = getTextFromRange(documentText, range);
+	if (indent === currentText) return [];
 
-  return [
-    TextEdit.replace(
-      Range.create(
-        Position.create(token.pos.line, 0),
-        Position.create(token.pos.line, token.pos.col)
-      ),
-      indent
-    ),
-  ];
+	return [
+		TextEdit.replace(
+			Range.create(
+				Position.create(token.pos.line, 0),
+				Position.create(token.pos.line, token.pos.col),
+			),
+			indent,
+		),
+	];
 };
 
 const fixedNumberOfSpaceBetweenTokensAndNext = (
-  token: Token,
-  documentText: string[],
-  expectedSpaces = 1,
-  keepNewLines = false
+	token: Token,
+	documentText: string[],
+	expectedSpaces = 1,
+	keepNewLines = false,
 ): TextEdit[] => {
-  if (!token.nextToken) return [];
+	if (!token.nextToken) return [];
 
-  if (token.nextToken?.pos.line !== token.pos.line) {
-    if (keepNewLines) {
-      return []; // todo remove white space
-    }
-    const removeNewLinesEdit = removeNewLinesBetweenTokenAndPrev(
-      token.nextToken,
-      documentText,
-      0
-    );
-    if (!removeNewLinesEdit) {
-      throw new Error("remove new LinesEdit must be defined");
-    }
-    if (expectedSpaces) {
-      removeNewLinesEdit.newText = `${"".padEnd(expectedSpaces, " ")}${
-        removeNewLinesEdit.newText
-      }`;
-    }
-    return [removeNewLinesEdit];
-  }
+	if (token.nextToken?.pos.line !== token.pos.line) {
+		if (keepNewLines) {
+			return []; // todo remove white space
+		}
+		const removeNewLinesEdit = removeNewLinesBetweenTokenAndPrev(
+			token.nextToken,
+			documentText,
+			0,
+		);
+		if (!removeNewLinesEdit) {
+			throw new Error('remove new LinesEdit must be defined');
+		}
+		if (expectedSpaces) {
+			removeNewLinesEdit.newText = `${''.padEnd(expectedSpaces, ' ')}${
+				removeNewLinesEdit.newText
+			}`;
+		}
+		return [removeNewLinesEdit];
+	}
 
-  if (expectedSpaces === 0) {
-    return [
-      TextEdit.del(
-        Range.create(
-          Position.create(token.pos.line, token.pos.colEnd),
-          Position.create(token.nextToken.pos.line, token.nextToken.pos.col)
-        )
-      ),
-    ];
-  }
+	if (expectedSpaces === 0) {
+		return [
+			TextEdit.del(
+				Range.create(
+					Position.create(token.pos.line, token.pos.colEnd),
+					Position.create(
+						token.nextToken.pos.line,
+						token.nextToken.pos.col,
+					),
+				),
+			),
+		];
+	}
 
-  if (
-    token.nextToken.pos.line === token.pos.line &&
-    token.pos.colEnd === token.nextToken.pos.col
-  ) {
-    return [
-      TextEdit.insert(
-        Position.create(token.nextToken.pos.line, token.nextToken.pos.col),
-        "".padEnd(expectedSpaces, " ")
-      ),
-    ];
-  }
+	if (
+		token.nextToken.pos.line === token.pos.line &&
+		token.pos.colEnd === token.nextToken.pos.col
+	) {
+		return [
+			TextEdit.insert(
+				Position.create(
+					token.nextToken.pos.line,
+					token.nextToken.pos.col,
+				),
+				''.padEnd(expectedSpaces, ' '),
+			),
+		];
+	}
 
-  return [
-    TextEdit.replace(
-      Range.create(
-        Position.create(token.pos.line, token.pos.colEnd),
-        Position.create(token.nextToken.pos.line, token.nextToken.pos.col)
-      ),
-      "".padEnd(expectedSpaces, " ")
-    ),
-  ];
+	return [
+		TextEdit.replace(
+			Range.create(
+				Position.create(token.pos.line, token.pos.colEnd),
+				Position.create(
+					token.nextToken.pos.line,
+					token.nextToken.pos.col,
+				),
+			),
+			''.padEnd(expectedSpaces, ' '),
+		),
+	];
 };
 
 const formatLabels = (labels: LabelAssign[], documentText: string[]) => {
-  return labels
-    .slice(1)
-    .flatMap((label) =>
-      label.firstToken.prevToken
-        ? fixedNumberOfSpaceBetweenTokensAndNext(
-            label.firstToken.prevToken,
-            documentText
-          )
-        : []
-    );
+	return labels
+		.slice(1)
+		.flatMap((label) =>
+			label.firstToken.prevToken
+				? fixedNumberOfSpaceBetweenTokensAndNext(
+						label.firstToken.prevToken,
+						documentText,
+					)
+				: [],
+		);
 };
 
 const formatDtcNode = async (
-  documentFormattingParams: DocumentFormattingParams,
-  node: DtcBaseNode,
-  uri: string,
-  level: number,
-  indentString: string,
-  documentText: string[],
-  computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>
+	documentFormattingParams: DocumentFormattingParams,
+	node: DtcBaseNode,
+	uri: string,
+	level: number,
+	indentString: string,
+	documentText: string[],
+	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
 ): Promise<TextEdit[]> => {
-  if (!isPathEqual(node.uri, uri)) return []; // node may have been included!!
+	if (!isPathEqual(node.uri, uri)) return []; // node may have been included!!
 
-  const result: TextEdit[] = [];
+	const result: TextEdit[] = [];
 
-  result.push(
-    ...ensureOnNewLineAndMax1EmptyLineToPrev(
-      node.firstToken,
-      level,
-      indentString,
-      documentText
-    )
-  );
+	result.push(
+		...ensureOnNewLineAndMax1EmptyLineToPrev(
+			node.firstToken,
+			level,
+			indentString,
+			documentText,
+		),
+	);
 
-  if (node instanceof DtcChildNode || node instanceof DtcRefNode) {
-    result.push(...formatLabels(node.labels, documentText));
+	if (node instanceof DtcChildNode || node instanceof DtcRefNode) {
+		result.push(...formatLabels(node.labels, documentText));
 
-    if (node instanceof DtcChildNode) {
-      if (node.labels.length && node.name && node.name.firstToken.prevToken) {
-        result.push(
-          ...fixedNumberOfSpaceBetweenTokensAndNext(
-            node.name.firstToken.prevToken,
-            documentText
-          )
-        );
-      }
-      const nodeNameAndOpenCurlySpacing =
-        node.name && node.openScope
-          ? fixedNumberOfSpaceBetweenTokensAndNext(
-              node.name.lastToken,
-              documentText
-            )
-          : [];
-      result.push(...nodeNameAndOpenCurlySpacing);
-    } else {
-      if (node.labels.length && node.reference?.firstToken.prevToken) {
-        result.push(
-          ...fixedNumberOfSpaceBetweenTokensAndNext(
-            node.reference.firstToken.prevToken,
-            documentText
-          )
-        );
-      }
-      const nodeNameAndOpenCurlySpacing =
-        node.reference && node.openScope
-          ? fixedNumberOfSpaceBetweenTokensAndNext(
-              node.reference.lastToken,
-              documentText
-            )
-          : [];
-      result.push(...nodeNameAndOpenCurlySpacing);
-    }
-  } else if (
-    node instanceof DtcRootNode &&
-    node.firstToken.value === "/" &&
-    node.openScope
-  ) {
-    result.push(
-      ...fixedNumberOfSpaceBetweenTokensAndNext(
-        node.firstToken,
-        documentText,
-        1
-      )
-    );
-  }
+		if (node instanceof DtcChildNode) {
+			if (
+				node.labels.length &&
+				node.name &&
+				node.name.firstToken.prevToken
+			) {
+				result.push(
+					...fixedNumberOfSpaceBetweenTokensAndNext(
+						node.name.firstToken.prevToken,
+						documentText,
+					),
+				);
+			}
+			const nodeNameAndOpenCurlySpacing =
+				node.name && node.openScope
+					? fixedNumberOfSpaceBetweenTokensAndNext(
+							node.name.lastToken,
+							documentText,
+						)
+					: [];
+			result.push(...nodeNameAndOpenCurlySpacing);
+		} else {
+			if (node.labels.length && node.reference?.firstToken.prevToken) {
+				result.push(
+					...fixedNumberOfSpaceBetweenTokensAndNext(
+						node.reference.firstToken.prevToken,
+						documentText,
+					),
+				);
+			}
+			const nodeNameAndOpenCurlySpacing =
+				node.reference && node.openScope
+					? fixedNumberOfSpaceBetweenTokensAndNext(
+							node.reference.lastToken,
+							documentText,
+						)
+					: [];
+			result.push(...nodeNameAndOpenCurlySpacing);
+		}
+	} else if (
+		node instanceof DtcRootNode &&
+		node.firstToken.value === '/' &&
+		node.openScope
+	) {
+		result.push(
+			...fixedNumberOfSpaceBetweenTokensAndNext(
+				node.firstToken,
+				documentText,
+				1,
+			),
+		);
+	}
 
-  result.push(
-    ...(
-      await Promise.all(
-        node.children.flatMap((c) =>
-          getTextEdit(
-            documentFormattingParams,
-            c,
-            uri,
-            computeLevel,
-            documentText,
-            level + 1
-          )
-        )
-      )
-    ).flat()
-  );
+	result.push(
+		...(
+			await Promise.all(
+				node.children.flatMap((c) =>
+					getTextEdit(
+						documentFormattingParams,
+						c,
+						uri,
+						computeLevel,
+						documentText,
+						level + 1,
+					),
+				),
+			)
+		).flat(),
+	);
 
-  if (node.closeScope) {
-    if (node.openScope && node.closeScope.prevToken === node.openScope) {
-      result.push(
-        ...fixedNumberOfSpaceBetweenTokensAndNext(
-          node.openScope,
-          documentText,
-          0
-        )
-      );
-    } else {
-      result.push(
-        ...ensureOnNewLineAndMax1EmptyLineToPrev(
-          node.closeScope,
-          level,
-          indentString,
-          documentText,
-          undefined,
-          1,
-          true
-        )
-      );
-    }
-  }
+	if (node.closeScope) {
+		if (node.openScope && node.closeScope.prevToken === node.openScope) {
+			result.push(
+				...fixedNumberOfSpaceBetweenTokensAndNext(
+					node.openScope,
+					documentText,
+					0,
+				),
+			);
+		} else {
+			result.push(
+				...ensureOnNewLineAndMax1EmptyLineToPrev(
+					node.closeScope,
+					level,
+					indentString,
+					documentText,
+					undefined,
+					1,
+					true,
+				),
+			);
+		}
+	}
 
-  if (node.lastToken.value === ";" && node.closeScope) {
-    result.push(...moveNextTo(node.closeScope, node.lastToken));
-  }
+	if (node.lastToken.value === ';' && node.closeScope) {
+		result.push(...moveNextTo(node.closeScope, node.lastToken));
+	}
 
-  return result;
+	return result;
 };
 
 const formatLabeledValue = <T extends ASTBase>(
-  propertyNameWidth: number,
-  value: LabeledValue<T>,
-  level: number,
-  settings: FormatingSettings,
-  openBracket: Token | undefined,
-  documentText: string[]
+	propertyNameWidth: number,
+	value: LabeledValue<T>,
+	level: number,
+	settings: FormatingSettings,
+	openBracket: Token | undefined,
+	documentText: string[],
 ): TextEdit[] => {
-  const result: TextEdit[] = [];
+	const result: TextEdit[] = [];
 
-  result.push(...formatLabels(value.labels, documentText));
+	result.push(...formatLabels(value.labels, documentText));
 
-  if (value.labels.length && value.value?.firstToken.prevToken) {
-    result.push(
-      ...fixedNumberOfSpaceBetweenTokensAndNext(
-        value.value.firstToken.prevToken,
-        documentText
-      )
-    );
-  }
+	if (value.labels.length && value.value?.firstToken.prevToken) {
+		result.push(
+			...fixedNumberOfSpaceBetweenTokensAndNext(
+				value.value.firstToken.prevToken,
+				documentText,
+			),
+		);
+	}
 
-  if (value.firstToken.prevToken) {
-    if (
-      value.firstToken.pos.line !== value.firstToken.prevToken?.pos.line &&
-      value.firstToken.prevToken !== openBracket
-    ) {
-      const edit = removeNewLinesBetweenTokenAndPrev(
-        value.firstToken,
-        documentText,
-        1,
-        true
-      );
-      if (edit) result.push(edit);
-      result.push(
-        ...createIndentEdit(
-          value.firstToken,
-          level,
-          settings.singleIndent,
-          documentText,
-          widthToPrefix(settings, propertyNameWidth + 4) // +4 ' = <'
-        )
-      );
-    } else {
-      result.push(
-        ...fixedNumberOfSpaceBetweenTokensAndNext(
-          value.firstToken.prevToken,
-          documentText,
-          openBracket && value.firstToken.prevToken === openBracket ? 0 : 1
-        )
-      );
-    }
-  }
+	if (value.firstToken.prevToken) {
+		if (
+			value.firstToken.pos.line !==
+				value.firstToken.prevToken?.pos.line &&
+			value.firstToken.prevToken !== openBracket
+		) {
+			const edit = removeNewLinesBetweenTokenAndPrev(
+				value.firstToken,
+				documentText,
+				1,
+				true,
+			);
+			if (edit) result.push(edit);
+			result.push(
+				...createIndentEdit(
+					value.firstToken,
+					level,
+					settings.singleIndent,
+					documentText,
+					widthToPrefix(settings, propertyNameWidth + 4), // +4 ' = <'
+				),
+			);
+		} else {
+			result.push(
+				...fixedNumberOfSpaceBetweenTokensAndNext(
+					value.firstToken.prevToken,
+					documentText,
+					openBracket && value.firstToken.prevToken === openBracket
+						? 0
+						: 1,
+				),
+			);
+		}
+	}
 
-  if (value.value instanceof Expression) {
-    result.push(...formatExpression(value.value, documentText));
-  }
+	if (value.value instanceof Expression) {
+		result.push(...formatExpression(value.value, documentText));
+	}
 
-  return result;
+	return result;
 };
 
 const formatValue = (
-  propertyNameWidth: number,
-  value: AllValueType,
-  level: number,
-  settings: FormatingSettings,
-  documentText: string[]
+	propertyNameWidth: number,
+	value: AllValueType,
+	level: number,
+	settings: FormatingSettings,
+	documentText: string[],
 ): TextEdit[] => {
-  const result: TextEdit[] = [];
+	const result: TextEdit[] = [];
 
-  if (value instanceof ArrayValues || value instanceof ByteStringValue) {
-    result.push(
-      ...value.values.flatMap((v) =>
-        formatLabeledValue(
-          propertyNameWidth,
-          v,
-          level,
-          settings,
-          value.openBracket,
-          documentText
-        )
-      )
-    );
+	if (value instanceof ArrayValues || value instanceof ByteStringValue) {
+		result.push(
+			...value.values.flatMap((v) =>
+				formatLabeledValue(
+					propertyNameWidth,
+					v,
+					level,
+					settings,
+					value.openBracket,
+					documentText,
+				),
+			),
+		);
 
-    if (value.closeBracket?.prevToken) {
-      result.push(
-        ...fixedNumberOfSpaceBetweenTokensAndNext(
-          value.closeBracket.prevToken,
-          documentText,
-          value.closeBracket.prevToken === value.values.at(-1)?.lastToken
-            ? 0
-            : 1
-        )
-      );
-    }
-  } else if (value instanceof Expression) {
-    result.push(...formatExpression(value, documentText));
-  }
+		if (value.closeBracket?.prevToken) {
+			result.push(
+				...fixedNumberOfSpaceBetweenTokensAndNext(
+					value.closeBracket.prevToken,
+					documentText,
+					value.closeBracket.prevToken ===
+						value.values.at(-1)?.lastToken
+						? 0
+						: 1,
+				),
+			);
+		}
+	} else if (value instanceof Expression) {
+		result.push(...formatExpression(value, documentText));
+	}
 
-  return result;
+	return result;
 };
 
 const formatExpression = (
-  value: Expression,
-  documentText: string[]
+	value: Expression,
+	documentText: string[],
 ): TextEdit[] => {
-  if (value instanceof CMacroCall) {
-    return formatCMacroCall(value, documentText);
-  }
+	if (value instanceof CMacroCall) {
+		return formatCMacroCall(value, documentText);
+	}
 
-  if (value instanceof ComplexExpression) {
-    return formatComplexExpression(value, documentText);
-  }
+	if (value instanceof ComplexExpression) {
+		return formatComplexExpression(value, documentText);
+	}
 
-  return [];
+	return [];
 };
 
 const formatCMacroCall = (
-  value: CMacroCall,
-  documentText: string[]
+	value: CMacroCall,
+	documentText: string[],
 ): TextEdit[] => {
-  const result: TextEdit[] = [];
+	const result: TextEdit[] = [];
 
-  result.push(
-    ...fixedNumberOfSpaceBetweenTokensAndNext(
-      value.functionName.lastToken,
-      documentText,
-      0
-    )
-  );
+	result.push(
+		...fixedNumberOfSpaceBetweenTokensAndNext(
+			value.functionName.lastToken,
+			documentText,
+			0,
+		),
+	);
 
-  value.params.forEach((param, i) => {
-    if (param?.firstToken.prevToken) {
-      result.push(
-        ...fixedNumberOfSpaceBetweenTokensAndNext(
-          param?.firstToken.prevToken,
-          documentText,
-          i ? 1 : 0
-        )
-      );
-    }
-    if (param?.splitToken) {
-      result.push(...moveNextTo(param.lastToken, param.splitToken));
-    }
-  });
+	value.params.forEach((param, i) => {
+		if (param?.firstToken.prevToken) {
+			result.push(
+				...fixedNumberOfSpaceBetweenTokensAndNext(
+					param?.firstToken.prevToken,
+					documentText,
+					i ? 1 : 0,
+				),
+			);
+		}
+		if (param?.splitToken) {
+			result.push(...moveNextTo(param.lastToken, param.splitToken));
+		}
+	});
 
-  if (value.lastToken.value === ")" && value.lastToken.prevToken) {
-    result.push(
-      ...fixedNumberOfSpaceBetweenTokensAndNext(
-        value.lastToken.prevToken,
-        documentText,
-        0
-      )
-    );
-  }
+	if (value.lastToken.value === ')' && value.lastToken.prevToken) {
+		result.push(
+			...fixedNumberOfSpaceBetweenTokensAndNext(
+				value.lastToken.prevToken,
+				documentText,
+				0,
+			),
+		);
+	}
 
-  return result;
+	return result;
 };
 
 const formatComplexExpression = (
-  value: ComplexExpression,
-  documentText: string[]
+	value: ComplexExpression,
+	documentText: string[],
 ): TextEdit[] => {
-  const result: TextEdit[] = [];
+	const result: TextEdit[] = [];
 
-  if (value.openBracket && value.openBracket.nextToken) {
-    result.push(
-      ...fixedNumberOfSpaceBetweenTokensAndNext(
-        value.openBracket,
-        documentText,
-        0
-      )
-    );
-  }
+	if (value.openBracket && value.openBracket.nextToken) {
+		result.push(
+			...fixedNumberOfSpaceBetweenTokensAndNext(
+				value.openBracket,
+				documentText,
+				0,
+			),
+		);
+	}
 
-  result.push(...formatExpression(value.expression, documentText));
+	result.push(...formatExpression(value.expression, documentText));
 
-  if (value.join) {
-    if (value.join.operator.firstToken.prevToken) {
-      result.push(
-        ...fixedNumberOfSpaceBetweenTokensAndNext(
-          value.join.operator.firstToken.prevToken,
-          documentText
-        )
-      );
-    }
-    if (value.join.expression.firstToken.prevToken) {
-      result.push(
-        ...fixedNumberOfSpaceBetweenTokensAndNext(
-          value.join.expression.firstToken.prevToken,
-          documentText
-        )
-      );
-    }
-    result.push(...formatExpression(value.join.expression, documentText));
-  } else if (
-    !(value.expression instanceof ComplexExpression) &&
-    (value.expression instanceof CMacroCall ||
-      value.expression instanceof CIdentifier)
-  ) {
-    if (value.openBracket) {
-      result.push(
-        TextEdit.del(
-          Range.create(
-            Position.create(
-              value.openBracket.pos.line,
-              value.openBracket.pos.col
-            ),
-            Position.create(
-              value.openBracket.pos.line,
-              value.openBracket.pos.colEnd
-            )
-          )
-        )
-      );
-    }
+	if (value.join) {
+		if (value.join.operator.firstToken.prevToken) {
+			result.push(
+				...fixedNumberOfSpaceBetweenTokensAndNext(
+					value.join.operator.firstToken.prevToken,
+					documentText,
+				),
+			);
+		}
+		if (value.join.expression.firstToken.prevToken) {
+			result.push(
+				...fixedNumberOfSpaceBetweenTokensAndNext(
+					value.join.expression.firstToken.prevToken,
+					documentText,
+				),
+			);
+		}
+		result.push(...formatExpression(value.join.expression, documentText));
+	} else if (
+		!(value.expression instanceof ComplexExpression) &&
+		(value.expression instanceof CMacroCall ||
+			value.expression instanceof CIdentifier)
+	) {
+		if (value.openBracket) {
+			result.push(
+				TextEdit.del(
+					Range.create(
+						Position.create(
+							value.openBracket.pos.line,
+							value.openBracket.pos.col,
+						),
+						Position.create(
+							value.openBracket.pos.line,
+							value.openBracket.pos.colEnd,
+						),
+					),
+				),
+			);
+		}
 
-    if (value.closeBracket) {
-      result.push(
-        TextEdit.del(
-          Range.create(
-            Position.create(
-              value.closeBracket.pos.line,
-              value.closeBracket.pos.col
-            ),
-            Position.create(
-              value.closeBracket.pos.line,
-              value.closeBracket.pos.colEnd
-            )
-          )
-        )
-      );
-    }
-  }
+		if (value.closeBracket) {
+			result.push(
+				TextEdit.del(
+					Range.create(
+						Position.create(
+							value.closeBracket.pos.line,
+							value.closeBracket.pos.col,
+						),
+						Position.create(
+							value.closeBracket.pos.line,
+							value.closeBracket.pos.colEnd,
+						),
+					),
+				),
+			);
+		}
+	}
 
-  if (value.closeBracket && value.closeBracket.prevToken) {
-    result.push(
-      ...fixedNumberOfSpaceBetweenTokensAndNext(
-        value.closeBracket.prevToken,
-        documentText,
-        0
-      )
-    );
-  }
+	if (value.closeBracket && value.closeBracket.prevToken) {
+		result.push(
+			...fixedNumberOfSpaceBetweenTokensAndNext(
+				value.closeBracket.prevToken,
+				documentText,
+				0,
+			),
+		);
+	}
 
-  return result;
+	return result;
 };
 
 const formatPropertyValue = (
-  propertyNameWidth: number,
-  value: PropertyValue,
-  level: number,
-  settings: FormatingSettings,
-  documentText: string[]
+	propertyNameWidth: number,
+	value: PropertyValue,
+	level: number,
+	settings: FormatingSettings,
+	documentText: string[],
 ): TextEdit[] => {
-  const result: TextEdit[] = [];
+	const result: TextEdit[] = [];
 
-  result.push(...formatLabels(value.startLabels, documentText));
+	result.push(...formatLabels(value.startLabels, documentText));
 
-  result.push(
-    ...formatValue(
-      propertyNameWidth,
-      value.value,
-      level,
-      settings,
-      documentText
-    )
-  );
+	result.push(
+		...formatValue(
+			propertyNameWidth,
+			value.value,
+			level,
+			settings,
+			documentText,
+		),
+	);
 
-  result.push(...formatLabels(value.endLabels, documentText));
+	result.push(...formatLabels(value.endLabels, documentText));
 
-  return result;
+	return result;
 };
 
 const widthToPrefix = (settings: FormatingSettings, width: number): string => {
-  if (settings.insertSpaces) {
-    return "".padStart(width, " ");
-  }
+	if (settings.insertSpaces) {
+		return ''.padStart(width, ' ');
+	}
 
-  const noOfTabs = Math.floor(width / settings.tabSize);
-  const noOfSpace = width % settings.tabSize;
-  return `${"".padStart(noOfTabs, "\t")}${"".padStart(noOfSpace, " ")}`;
+	const noOfTabs = Math.floor(width / settings.tabSize);
+	const noOfSpace = width % settings.tabSize;
+	return `${''.padStart(noOfTabs, '\t')}${''.padStart(noOfSpace, ' ')}`;
 };
 
 const formatPropertyValues = (
-  propertyNameWidth: number,
-  values: PropertyValues,
-  level: number,
-  settings: FormatingSettings,
-  documentText: string[],
-  assignOperator: Token | undefined
+	propertyNameWidth: number,
+	values: PropertyValues,
+	level: number,
+	settings: FormatingSettings,
+	documentText: string[],
+	assignOperator: Token | undefined,
 ): TextEdit[] => {
-  const result: TextEdit[] = [];
+	const result: TextEdit[] = [];
 
-  values.values.forEach((value, i) => {
-    if (!value) return [];
+	values.values.forEach((value, i) => {
+		if (!value) return [];
 
-    // ensure sameline or newline between  `< 10...` and what is before it
-    const prevToken = value.firstToken.prevToken;
-    const prevValue = i ? values.values.at(i - 1) : undefined;
-    if (prevToken) {
-      if (prevToken.pos.line === value.firstToken.pos.line) {
-        if (
-          prevToken.value === "," &&
-          prevValue?.lastToken.pos.line !== value.firstToken.pos.line &&
-          prevToken.prevToken?.pos.line !== value.firstToken.pos.line
-        ) {
-          const editToMoveToNewLine = pushItemToNewLineAndIndent(
-            value.firstToken,
-            level,
-            settings.singleIndent,
-            widthToPrefix(settings, propertyNameWidth + 3) // +3 ' = '
-          );
+		// ensure sameline or newline between  `< 10...` and what is before it
+		const prevToken = value.firstToken.prevToken;
+		const prevValue = i ? values.values.at(i - 1) : undefined;
+		if (prevToken) {
+			if (prevToken.pos.line === value.firstToken.pos.line) {
+				if (
+					prevToken.value === ',' &&
+					prevValue?.lastToken.pos.line !==
+						value.firstToken.pos.line &&
+					prevToken.prevToken?.pos.line !== value.firstToken.pos.line
+				) {
+					const editToMoveToNewLine = pushItemToNewLineAndIndent(
+						value.firstToken,
+						level,
+						settings.singleIndent,
+						widthToPrefix(settings, propertyNameWidth + 3), // +3 ' = '
+					);
 
-          if (editToMoveToNewLine) {
-            result.push(editToMoveToNewLine);
-          }
-        } else {
-          result.push(
-            ...fixedNumberOfSpaceBetweenTokensAndNext(
-              prevToken,
-              documentText,
-              1
-            )
-          );
-        }
-      } else {
-        if (assignOperator && value.firstToken.prevToken === assignOperator) {
-          result.push(
-            ...fixedNumberOfSpaceBetweenTokensAndNext(
-              assignOperator,
-              documentText
-            )
-          );
-        } else {
-          const edit = removeNewLinesBetweenTokenAndPrev(
-            value.firstToken,
-            documentText,
-            1,
-            true
-          );
-          if (edit) result.push(edit);
-          result.push(
-            ...createIndentEdit(
-              value.firstToken,
-              level,
-              settings.singleIndent,
-              documentText,
-              widthToPrefix(settings, propertyNameWidth + 3) // +3 ' = '
-            )
-          );
-        }
-      }
-    }
+					if (editToMoveToNewLine) {
+						result.push(editToMoveToNewLine);
+					}
+				} else {
+					result.push(
+						...fixedNumberOfSpaceBetweenTokensAndNext(
+							prevToken,
+							documentText,
+							1,
+						),
+					);
+				}
+			} else {
+				if (
+					assignOperator &&
+					value.firstToken.prevToken === assignOperator
+				) {
+					result.push(
+						...fixedNumberOfSpaceBetweenTokensAndNext(
+							assignOperator,
+							documentText,
+						),
+					);
+				} else {
+					const edit = removeNewLinesBetweenTokenAndPrev(
+						value.firstToken,
+						documentText,
+						1,
+						true,
+					);
+					if (edit) result.push(edit);
+					result.push(
+						...createIndentEdit(
+							value.firstToken,
+							level,
+							settings.singleIndent,
+							documentText,
+							widthToPrefix(settings, propertyNameWidth + 3), // +3 ' = '
+						),
+					);
+				}
+			}
+		}
 
-    result.push(
-      ...formatPropertyValue(
-        propertyNameWidth,
-        value,
-        level,
-        settings,
-        documentText
-      )
-    );
+		result.push(
+			...formatPropertyValue(
+				propertyNameWidth,
+				value,
+				level,
+				settings,
+				documentText,
+			),
+		);
 
-    if (value.nextValueSeparator) {
-      result.push(...moveNextTo(value.lastToken, value.nextValueSeparator));
-    }
-  });
+		if (value.nextValueSeparator) {
+			result.push(
+				...moveNextTo(value.lastToken, value.nextValueSeparator),
+			);
+		}
+	});
 
-  return result;
+	return result;
 };
 
 const formatDtcProperty = (
-  property: DtcProperty,
-  level: number,
-  settings: FormatingSettings,
-  documentText: string[],
-  uri: string
+	property: DtcProperty,
+	level: number,
+	settings: FormatingSettings,
+	documentText: string[],
+	uri: string,
 ): TextEdit[] => {
-  if (!isPathEqual(property.uri, uri)) return []; //property may have been included!!
+	if (!isPathEqual(property.uri, uri)) return []; //property may have been included!!
 
-  const result: TextEdit[] = [];
+	const result: TextEdit[] = [];
 
-  result.push(
-    ...ensureOnNewLineAndMax1EmptyLineToPrev(
-      property.firstToken,
-      level,
-      settings.singleIndent,
-      documentText
-    )
-  );
+	result.push(
+		...ensureOnNewLineAndMax1EmptyLineToPrev(
+			property.firstToken,
+			level,
+			settings.singleIndent,
+			documentText,
+		),
+	);
 
-  result.push(...formatLabels(property.labels, documentText));
+	result.push(...formatLabels(property.labels, documentText));
 
-  if (property.labels.length && property.propertyName?.firstToken.prevToken) {
-    result.push(
-      ...fixedNumberOfSpaceBetweenTokensAndNext(
-        property.propertyName.firstToken.prevToken,
-        documentText
-      )
-    );
-  }
+	if (property.labels.length && property.propertyName?.firstToken.prevToken) {
+		result.push(
+			...fixedNumberOfSpaceBetweenTokensAndNext(
+				property.propertyName.firstToken.prevToken,
+				documentText,
+			),
+		);
+	}
 
-  if (property.values) {
-    if (property.propertyName) {
-      // space before =
-      result.push(
-        ...fixedNumberOfSpaceBetweenTokensAndNext(
-          property.propertyName?.lastToken,
-          documentText
-        )
-      );
-    }
-    result.push(
-      ...formatPropertyValues(
-        property.propertyName?.name.length ?? 0,
-        property.values,
-        level,
-        settings,
-        documentText,
-        property.assignOperatorToken
-      )
-    );
-  }
+	if (property.values) {
+		if (property.propertyName) {
+			// space before =
+			result.push(
+				...fixedNumberOfSpaceBetweenTokensAndNext(
+					property.propertyName?.lastToken,
+					documentText,
+				),
+			);
+		}
+		result.push(
+			...formatPropertyValues(
+				property.propertyName?.name.length ?? 0,
+				property.values,
+				level,
+				settings,
+				documentText,
+				property.assignOperatorToken,
+			),
+		);
+	}
 
-  if (property.lastToken.value === ";") {
-    result.push(
-      ...moveNextTo(property.children.at(-1)!.lastToken, property.lastToken)
-    );
-  }
+	if (property.lastToken.value === ';') {
+		result.push(
+			...moveNextTo(
+				property.children.at(-1)!.lastToken,
+				property.lastToken,
+			),
+		);
+	}
 
-  return result;
+	return result;
 };
 
 const ensureOnNewLineAndMax1EmptyLineToPrev = (
-  token: Token,
-  level: number,
-  indentString: string,
-  documentText: string[],
-  prefix?: string,
-  expectedNewLines?: number,
-  forceExpectedNewLines?: boolean
+	token: Token,
+	level: number,
+	indentString: string,
+	documentText: string[],
+	prefix?: string,
+	expectedNewLines?: number,
+	forceExpectedNewLines?: boolean,
 ) => {
-  const result: TextEdit[] = [];
+	const result: TextEdit[] = [];
 
-  const editToMoveToNewLine = pushItemToNewLineAndIndent(
-    token,
-    level,
-    indentString,
-    prefix
-  );
+	const editToMoveToNewLine = pushItemToNewLineAndIndent(
+		token,
+		level,
+		indentString,
+		prefix,
+	);
 
-  if (editToMoveToNewLine) {
-    result.push(editToMoveToNewLine);
-  } else {
-    const edit = removeNewLinesBetweenTokenAndPrev(
-      token,
-      documentText,
-      expectedNewLines,
-      forceExpectedNewLines
-    );
-    if (edit) result.push(edit);
-    result.push(
-      ...createIndentEdit(token, level, indentString, documentText, prefix)
-    );
-  }
+	if (editToMoveToNewLine) {
+		result.push(editToMoveToNewLine);
+	} else {
+		const edit = removeNewLinesBetweenTokenAndPrev(
+			token,
+			documentText,
+			expectedNewLines,
+			forceExpectedNewLines,
+		);
+		if (edit) result.push(edit);
+		result.push(
+			...createIndentEdit(
+				token,
+				level,
+				indentString,
+				documentText,
+				prefix,
+			),
+		);
+	}
 
-  return result;
+	return result;
 };
 
 const moveNextTo = (token: Token, toMove: Token) => {
-  if (
-    token.pos.line === toMove.pos.line &&
-    token.pos.colEnd + 1 === toMove.pos.colEnd
-  ) {
-    return [];
-  }
+	if (
+		token.pos.line === toMove.pos.line &&
+		token.pos.colEnd + 1 === toMove.pos.colEnd
+	) {
+		return [];
+	}
 
-  if (token.nextToken === toMove) {
-    return [
-      TextEdit.replace(
-        Range.create(
-          Position.create(token.pos.line, token.pos.colEnd),
-          Position.create(toMove.pos.line, toMove.pos.colEnd)
-        ),
-        toMove.value
-      ),
-    ];
-  }
+	if (token.nextToken === toMove) {
+		return [
+			TextEdit.replace(
+				Range.create(
+					Position.create(token.pos.line, token.pos.colEnd),
+					Position.create(toMove.pos.line, toMove.pos.colEnd),
+				),
+				toMove.value,
+			),
+		];
+	}
 
-  return [
-    TextEdit.insert(
-      Position.create(token.pos.line, token.pos.colEnd),
-      toMove.value
-    ),
-    TextEdit.del(
-      Range.create(
-        Position.create(
-          toMove.prevToken?.pos.line ?? toMove.pos.line,
-          toMove.prevToken?.pos.colEnd ?? toMove.pos.col
-        ),
-        Position.create(toMove.pos.line, toMove.pos.colEnd)
-      )
-    ),
-  ];
+	return [
+		TextEdit.insert(
+			Position.create(token.pos.line, token.pos.colEnd),
+			toMove.value,
+		),
+		TextEdit.del(
+			Range.create(
+				Position.create(
+					toMove.prevToken?.pos.line ?? toMove.pos.line,
+					toMove.prevToken?.pos.colEnd ?? toMove.pos.col,
+				),
+				Position.create(toMove.pos.line, toMove.pos.colEnd),
+			),
+		),
+	];
 };
 
 const formatDtcDelete = (
-  deleteItem: DeleteBase,
-  level: number,
-  indentString: string,
-  documentText: string[]
+	deleteItem: DeleteBase,
+	level: number,
+	indentString: string,
+	documentText: string[],
 ): TextEdit[] => {
-  const result: TextEdit[] = [];
+	const result: TextEdit[] = [];
 
-  result.push(
-    ...ensureOnNewLineAndMax1EmptyLineToPrev(
-      deleteItem.firstToken,
-      level,
-      indentString,
-      documentText
-    )
-  );
+	result.push(
+		...ensureOnNewLineAndMax1EmptyLineToPrev(
+			deleteItem.firstToken,
+			level,
+			indentString,
+			documentText,
+		),
+	);
 
-  const keywordAndItemSpacing = fixedNumberOfSpaceBetweenTokensAndNext(
-    deleteItem.keyword.lastToken,
-    documentText
-  );
-  result.push(...keywordAndItemSpacing);
+	const keywordAndItemSpacing = fixedNumberOfSpaceBetweenTokensAndNext(
+		deleteItem.keyword.lastToken,
+		documentText,
+	);
+	result.push(...keywordAndItemSpacing);
 
-  if (deleteItem.lastToken.value === ";") {
-    result.push(
-      ...moveNextTo(deleteItem.children.at(-1)!.lastToken, deleteItem.lastToken)
-    );
-  }
+	if (deleteItem.lastToken.value === ';') {
+		result.push(
+			...moveNextTo(
+				deleteItem.children.at(-1)!.lastToken,
+				deleteItem.lastToken,
+			),
+		);
+	}
 
-  return result;
+	return result;
 };
 
 const formatDtcInclude = (
-  includeItem: Include,
-  uri: string,
-  levelMeta: LevelMeta | undefined,
-  indentString: string,
-  documentText: string[]
+	includeItem: Include,
+	uri: string,
+	levelMeta: LevelMeta | undefined,
+	indentString: string,
+	documentText: string[],
 ): TextEdit[] => {
-  // we should not format this case
-  if (levelMeta === undefined) return [];
+	// we should not format this case
+	if (levelMeta === undefined) return [];
 
-  if (!isPathEqual(includeItem.uri, uri)) return []; // may be coming from some other include  hence ignore
+	if (!isPathEqual(includeItem.uri, uri)) return []; // may be coming from some other include  hence ignore
 
-  const result: TextEdit[] = [];
+	const result: TextEdit[] = [];
 
-  result.push(
-    ...ensureOnNewLineAndMax1EmptyLineToPrev(
-      includeItem.firstToken,
-      levelMeta.level,
-      indentString,
-      documentText
-    )
-  );
+	result.push(
+		...ensureOnNewLineAndMax1EmptyLineToPrev(
+			includeItem.firstToken,
+			levelMeta.level,
+			indentString,
+			documentText,
+		),
+	);
 
-  const keywordAndItemSpacing = fixedNumberOfSpaceBetweenTokensAndNext(
-    includeItem.keyword.lastToken,
-    documentText
-  );
-  result.push(...keywordAndItemSpacing);
+	const keywordAndItemSpacing = fixedNumberOfSpaceBetweenTokensAndNext(
+		includeItem.keyword.lastToken,
+		documentText,
+	);
+	result.push(...keywordAndItemSpacing);
 
-  return result;
+	return result;
 };
 
 const formatCommentBlock = (
-  commentItem: CommentBlock,
-  levelMeta: LevelMeta | undefined,
-  indentString: string,
-  documentText: string[],
-  settings: FormatingSettings
+	commentItem: CommentBlock,
+	levelMeta: LevelMeta | undefined,
+	indentString: string,
+	documentText: string[],
+	settings: FormatingSettings,
 ): TextEdit[] =>
-  commentItem.comments.flatMap((c, i) =>
-    formatBlockCommentLine(
-      c,
-      levelMeta,
-      indentString,
-      documentText,
-      i
-        ? i === commentItem.comments.length - 1
-          ? "last"
-          : "comment"
-        : "first",
-      settings
-    )
-  );
+	commentItem.comments.flatMap((c, i) =>
+		formatBlockCommentLine(
+			c,
+			levelMeta,
+			indentString,
+			documentText,
+			i
+				? i === commentItem.comments.length - 1
+					? 'last'
+					: 'comment'
+				: 'first',
+			settings,
+		),
+	);
 
 const getPropertyIndentPrefix = (
-  settings: FormatingSettings,
-  closestAst?: ASTBase,
-  prifix: string = ""
+	settings: FormatingSettings,
+	closestAst?: ASTBase,
+	prifix: string = '',
 ) => {
-  const property = closestAst ? getPropertyFromChild(closestAst) : undefined;
-  if (!property) return prifix;
-  const propertyValueChild = isPropertyValueChild(closestAst);
-  const propertyNameWidth = property.propertyName?.name.length ?? 0;
-  const witdhPrifix = `${widthToPrefix(
-    settings,
-    propertyNameWidth +
-      (propertyValueChild ? 4 : 3) +
-      (prifix.length - prifix.trimStart().length)
-  )}`;
+	const property = closestAst ? getPropertyFromChild(closestAst) : undefined;
+	if (!property) return prifix;
+	const propertyValueChild = isPropertyValueChild(closestAst);
+	const propertyNameWidth = property.propertyName?.name.length ?? 0;
+	const witdhPrifix = `${widthToPrefix(
+		settings,
+		propertyNameWidth +
+			(propertyValueChild ? 4 : 3) +
+			(prifix.length - prifix.trimStart().length),
+	)}`;
 
-  return `${witdhPrifix}${prifix.trimStart()}`; // +3 ' = ' or + 4 ' = <'
+	return `${witdhPrifix}${prifix.trimStart()}`; // +3 ' = ' or + 4 ' = <'
 };
 
 const formatBlockCommentLine = (
-  commentItem: Comment,
-  levelMeta: LevelMeta | undefined,
-  indentString: string,
-  documentText: string[],
-  lineType: "last" | "first" | "comment",
-  settings: FormatingSettings
+	commentItem: Comment,
+	levelMeta: LevelMeta | undefined,
+	indentString: string,
+	documentText: string[],
+	lineType: 'last' | 'first' | 'comment',
+	settings: FormatingSettings,
 ): TextEdit[] => {
-  const result: TextEdit[] = [];
+	const result: TextEdit[] = [];
 
-  if (!commentItem.firstToken.prevToken) {
-    return [
-      ...result,
-      ...ensureOnNewLineAndMax1EmptyLineToPrev(
-        commentItem.firstToken,
-        levelMeta?.level ?? 0,
-        indentString,
-        documentText
-      ),
-    ];
-  }
+	if (!commentItem.firstToken.prevToken) {
+		return [
+			...result,
+			...ensureOnNewLineAndMax1EmptyLineToPrev(
+				commentItem.firstToken,
+				levelMeta?.level ?? 0,
+				indentString,
+				documentText,
+			),
+		];
+	}
 
-  const onSameLine =
-    commentItem.firstToken.pos.line ===
-    commentItem.firstToken.prevToken?.pos.line;
-  if (onSameLine) {
-    return [
-      ...result,
-      ...fixedNumberOfSpaceBetweenTokensAndNext(
-        commentItem.firstToken.prevToken,
-        documentText,
-        1
-      ),
-    ];
-  }
+	const onSameLine =
+		commentItem.firstToken.pos.line ===
+		commentItem.firstToken.prevToken?.pos.line;
+	if (onSameLine) {
+		return [
+			...result,
+			...fixedNumberOfSpaceBetweenTokensAndNext(
+				commentItem.firstToken.prevToken,
+				documentText,
+				1,
+			),
+		];
+	}
 
-  if (levelMeta === undefined) {
-    return [];
-  }
+	if (levelMeta === undefined) {
+		return [];
+	}
 
-  let prifix: string = "";
-  const commentStr = commentItem.toString();
-  if (
-    lineType === "last" &&
-    commentStr.trim() !== "" &&
-    commentItem.lastToken.prevToken
-  ) {
-    lineType = "comment";
-    result.push(
-      ...ensureOnNewLineAndMax1EmptyLineToPrev(
-        commentItem.lastToken.prevToken,
-        levelMeta?.level ?? 0,
-        indentString,
-        documentText,
-        " "
-      )
-    );
-  }
+	let prifix: string = '';
+	const commentStr = commentItem.toString();
+	if (
+		lineType === 'last' &&
+		commentStr.trim() !== '' &&
+		commentItem.lastToken.prevToken
+	) {
+		lineType = 'comment';
+		result.push(
+			...ensureOnNewLineAndMax1EmptyLineToPrev(
+				commentItem.lastToken.prevToken,
+				levelMeta?.level ?? 0,
+				indentString,
+				documentText,
+				' ',
+			),
+		);
+	}
 
-  switch (lineType) {
-    case "comment":
-      prifix = commentItem.firstToken.value === "*" ? " " : " * ";
-      break;
-    case "first":
-      break;
-    case "last":
-      prifix = " ";
-      break;
-  }
+	switch (lineType) {
+		case 'comment':
+			prifix = commentItem.firstToken.value === '*' ? ' ' : ' * ';
+			break;
+		case 'first':
+			break;
+		case 'last':
+			prifix = ' ';
+			break;
+	}
 
-  if (levelMeta?.inAst instanceof DtcBaseNode) {
-    result.push(
-      ...ensureOnNewLineAndMax1EmptyLineToPrev(
-        commentItem.firstToken,
-        levelMeta?.level ?? 0,
-        indentString,
-        documentText,
-        prifix
-      )
-    );
-  } else {
-    result.push(
-      ...ensureOnNewLineAndMax1EmptyLineToPrev(
-        commentItem.firstToken,
-        levelMeta?.level ?? 0,
-        indentString,
-        documentText,
-        getPropertyIndentPrefix(settings, levelMeta?.inAst, prifix)
-      )
-    );
-  }
+	if (levelMeta?.inAst instanceof DtcBaseNode) {
+		result.push(
+			...ensureOnNewLineAndMax1EmptyLineToPrev(
+				commentItem.firstToken,
+				levelMeta?.level ?? 0,
+				indentString,
+				documentText,
+				prifix,
+			),
+		);
+	} else {
+		result.push(
+			...ensureOnNewLineAndMax1EmptyLineToPrev(
+				commentItem.firstToken,
+				levelMeta?.level ?? 0,
+				indentString,
+				documentText,
+				getPropertyIndentPrefix(settings, levelMeta?.inAst, prifix),
+			),
+		);
+	}
 
-  return result;
+	return result;
 };
 
 const formatComment = (
-  commentItem: Comment,
-  levelMeta: LevelMeta | undefined,
-  indentString: string,
-  documentText: string[],
-  settings: FormatingSettings
+	commentItem: Comment,
+	levelMeta: LevelMeta | undefined,
+	indentString: string,
+	documentText: string[],
+	settings: FormatingSettings,
 ): TextEdit[] => {
-  if (!commentItem.firstToken.prevToken) {
-    return ensureOnNewLineAndMax1EmptyLineToPrev(
-      commentItem.firstToken,
-      levelMeta?.level ?? 0,
-      indentString,
-      documentText
-    );
-  }
+	if (!commentItem.firstToken.prevToken) {
+		return ensureOnNewLineAndMax1EmptyLineToPrev(
+			commentItem.firstToken,
+			levelMeta?.level ?? 0,
+			indentString,
+			documentText,
+		);
+	}
 
-  const commentLine = commentItem.firstToken.pos.line;
-  if (
-    commentLine === commentItem.firstToken.prevToken.pos.line // e.g prop = 10; // foo
-  ) {
-    return fixedNumberOfSpaceBetweenTokensAndNext(
-      commentItem.firstToken.prevToken,
-      documentText,
-      1
-    );
-  }
+	const commentLine = commentItem.firstToken.pos.line;
+	if (
+		commentLine === commentItem.firstToken.prevToken.pos.line // e.g prop = 10; // foo
+	) {
+		return fixedNumberOfSpaceBetweenTokensAndNext(
+			commentItem.firstToken.prevToken,
+			documentText,
+			1,
+		);
+	}
 
-  return ensureOnNewLineAndMax1EmptyLineToPrev(
-    commentItem.firstToken,
-    levelMeta?.level ?? 0,
-    indentString,
-    documentText,
-    getPropertyIndentPrefix(settings, levelMeta?.inAst)
-  );
+	return ensureOnNewLineAndMax1EmptyLineToPrev(
+		commentItem.firstToken,
+		levelMeta?.level ?? 0,
+		indentString,
+		documentText,
+		getPropertyIndentPrefix(settings, levelMeta?.inAst),
+	);
 };
 
 type FormatingSettings = {
-  tabSize: number;
-  insertSpaces: boolean;
-  singleIndent: string;
+	tabSize: number;
+	insertSpaces: boolean;
+	singleIndent: string;
 };
 
 const getTextEdit = async (
-  documentFormattingParams: DocumentFormattingParams,
-  astNode: ASTBase,
-  uri: string,
-  computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
-  documentText: string[],
-  level = 0
+	documentFormattingParams: DocumentFormattingParams,
+	astNode: ASTBase,
+	uri: string,
+	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
+	documentText: string[],
+	level = 0,
 ): Promise<TextEdit[]> => {
-  const delta = documentFormattingParams.options.tabSize;
-  const insertSpaces = documentFormattingParams.options.insertSpaces;
-  const singleIndent = insertSpaces ? "".padStart(delta, " ") : "\t";
-  const settings: FormatingSettings = {
-    tabSize: delta,
-    insertSpaces,
-    singleIndent,
-  };
+	const delta = documentFormattingParams.options.tabSize;
+	const insertSpaces = documentFormattingParams.options.insertSpaces;
+	const singleIndent = insertSpaces ? ''.padStart(delta, ' ') : '\t';
+	const settings: FormatingSettings = {
+		tabSize: delta,
+		insertSpaces,
+		singleIndent,
+	};
 
-  setIndentString(singleIndent);
+	setIndentString(singleIndent);
 
-  if (astNode instanceof DtcBaseNode) {
-    return formatDtcNode(
-      documentFormattingParams,
-      astNode,
-      uri,
-      level,
-      singleIndent,
-      documentText,
-      computeLevel
-    );
-  } else if (astNode instanceof DtcProperty) {
-    return formatDtcProperty(astNode, level, settings, documentText, uri);
-  } else if (astNode instanceof DeleteBase) {
-    return formatDtcDelete(astNode, level, singleIndent, documentText);
-  } else if (astNode instanceof Include) {
-    return formatDtcInclude(
-      astNode,
-      uri,
-      await computeLevel(astNode),
-      singleIndent,
-      documentText
-    );
-  } else if (astNode instanceof Comment) {
-    return formatComment(
-      astNode,
-      await computeLevel(astNode),
-      singleIndent,
-      documentText,
-      settings
-    );
-  } else if (astNode instanceof CommentBlock) {
-    return formatCommentBlock(
-      astNode,
-      await computeLevel(astNode),
-      singleIndent,
-      documentText,
-      settings
-    );
-  }
+	if (astNode instanceof DtcBaseNode) {
+		return formatDtcNode(
+			documentFormattingParams,
+			astNode,
+			uri,
+			level,
+			singleIndent,
+			documentText,
+			computeLevel,
+		);
+	} else if (astNode instanceof DtcProperty) {
+		return formatDtcProperty(astNode, level, settings, documentText, uri);
+	} else if (astNode instanceof DeleteBase) {
+		return formatDtcDelete(astNode, level, singleIndent, documentText);
+	} else if (astNode instanceof Include) {
+		return formatDtcInclude(
+			astNode,
+			uri,
+			await computeLevel(astNode),
+			singleIndent,
+			documentText,
+		);
+	} else if (astNode instanceof Comment) {
+		return formatComment(
+			astNode,
+			await computeLevel(astNode),
+			singleIndent,
+			documentText,
+			settings,
+		);
+	} else if (astNode instanceof CommentBlock) {
+		return formatCommentBlock(
+			astNode,
+			await computeLevel(astNode),
+			singleIndent,
+			documentText,
+			settings,
+		);
+	}
 
-  return [];
+	return [];
 };
 
 function getTextFromRange(lines: string[], range: Range): string {
-  const startLine = lines[range.start.line];
-  const endLine = lines[range.end.line];
+	const startLine = lines[range.start.line];
+	const endLine = lines[range.end.line];
 
-  if (range.start.line === range.end.line) {
-    // Single-line range
-    return startLine.substring(range.start.character, range.end.character);
-  }
+	if (range.start.line === range.end.line) {
+		// Single-line range
+		return startLine.substring(range.start.character, range.end.character);
+	}
 
-  // Multi-line range
-  const middleLines = lines.slice(range.start.line + 1, range.end.line);
-  return [
-    startLine.substring(range.start.character),
-    ...middleLines,
-    endLine.substring(0, range.end.character),
-  ].join("\n");
+	// Multi-line range
+	const middleLines = lines.slice(range.start.line + 1, range.end.line);
+	return [
+		startLine.substring(range.start.character),
+		...middleLines,
+		endLine.substring(0, range.end.character),
+	].join('\n');
 }

@@ -14,44 +14,44 @@
  * limitations under the License.
  */
 
-import { ASTBase } from "../base";
-import { SymbolKind } from "vscode-languageserver";
-import { Label } from "./label";
-import { type Node } from "../../context/node";
-import { SerializableLabelRef } from "../../types/index";
+import { SymbolKind } from 'vscode-languageserver';
+import { ASTBase } from '../base';
+import { type Node } from '../../context/node';
+import { SerializableLabelRef } from '../../types/index';
+import { Label } from './label';
 
 export class LabelRef extends ASTBase {
-  public linksTo?: Node;
+	public linksTo?: Node;
 
-  constructor(public readonly label: Label | null) {
-    super();
-    this.docSymbolsMeta = {
-      name: `&${this.label?.value ?? "NULL"}`,
-      kind: SymbolKind.Key,
-    };
-    this.addChild(label);
-  }
+	constructor(public readonly label: Label | null) {
+		super();
+		this.docSymbolsMeta = {
+			name: `&${this.label?.value ?? 'NULL'}`,
+			kind: SymbolKind.Key,
+		};
+		this.addChild(label);
+	}
 
-  get value() {
-    return this.label?.value;
-  }
+	get value() {
+		return this.label?.value;
+	}
 
-  toString() {
-    return `&${this.label?.value ?? "NULL"}`;
-  }
+	toString() {
+		return `&${this.label?.value ?? 'NULL'}`;
+	}
 
-  toJson() {
-    return -1;
-  }
+	toJson() {
+		return -1;
+	}
 
-  serialize(): SerializableLabelRef {
-    return {
-      type: "LABEL_REF",
-      label: this.label?.toString() ?? null,
-      nodePath: this.linksTo?.pathString ?? null,
-      uri: this.serializeUri,
-      range: this.range,
-      issues: this.serializeIssues,
-    };
-  }
+	serialize(): SerializableLabelRef {
+		return {
+			type: 'LABEL_REF',
+			label: this.label?.toString() ?? null,
+			nodePath: this.linksTo?.pathString ?? null,
+			uri: this.serializeUri,
+			range: this.range,
+			issues: this.serializeIssues,
+		};
+	}
 }

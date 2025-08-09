@@ -14,30 +14,30 @@
  * limitations under the License.
  */
 
-import { ASTBase } from "../base";
-import { Keyword } from "../keyword";
-import { SymbolKind } from "vscode-languageserver";
-import { NumberValue } from "./values/number";
+import { SymbolKind } from 'vscode-languageserver';
+import { ASTBase } from '../base';
+import { Keyword } from '../keyword';
+import { NumberValue } from './values/number';
 
 export class DtsMemreserveNode extends ASTBase {
-  constructor(
-    public readonly keyword: Keyword,
-    public readonly startAddress?: NumberValue,
-    public readonly endAddress?: NumberValue
-  ) {
-    super();
-    this.addChild(keyword);
-    this.docSymbolsMeta = {
-      name: "Memreserve",
-      kind: SymbolKind.Function,
-    };
-    this.addChild(startAddress);
-    this.addChild(endAddress);
-  }
+	constructor(
+		public readonly keyword: Keyword,
+		public readonly startAddress?: NumberValue,
+		public readonly endAddress?: NumberValue,
+	) {
+		super();
+		this.addChild(keyword);
+		this.docSymbolsMeta = {
+			name: 'Memreserve',
+			kind: SymbolKind.Function,
+		};
+		this.addChild(startAddress);
+		this.addChild(endAddress);
+	}
 
-  toString() {
-    return `/memreserve/ 0x${this.startAddress?.value?.toString(
-      16
-    )} 0x${this.endAddress?.value?.toString(16)}`;
-  }
+	toString() {
+		return `/memreserve/ 0x${this.startAddress?.value?.toString(
+			16,
+		)} 0x${this.endAddress?.value?.toString(16)}`;
+	}
 }

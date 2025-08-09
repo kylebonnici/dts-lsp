@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-import { BindingPropertyType } from "../../types/index";
-import { PropertyNodeType } from "../types";
-import { generateOrTypeObj } from "./helpers";
+import { BindingPropertyType } from '../../types/index';
+import { PropertyNodeType } from '../types';
+import { generateOrTypeObj } from './helpers';
 
 export default () => {
-  const prop = new PropertyNodeType(
-    "status",
-    generateOrTypeObj(BindingPropertyType.STRING),
-    "optional",
-    "okay",
-    ["okay", "disabled", "reserved", "fail", "fail-sss"]
-  );
-  prop.description = [
-    `The status property indicates the operational status of a device.
+	const prop = new PropertyNodeType(
+		'status',
+		generateOrTypeObj(BindingPropertyType.STRING),
+		'optional',
+		'okay',
+		['okay', 'disabled', 'reserved', 'fail', 'fail-sss'],
+	);
+	prop.description = [
+		`The status property indicates the operational status of a device.
    The lack of a status property should betreated as if the property existed with the value of "okay"`,
-  ];
-  return prop;
+	];
+	return prop;
 };

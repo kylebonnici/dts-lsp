@@ -14,68 +14,68 @@
  * limitations under the License.
  */
 
-import { genStandardTypeDiagnostic } from "../../../../helpers";
-import { getU32ValueFromProperty } from "../../helpers";
-import { StandardTypeIssue } from "../../../../types";
-import { DiagnosticSeverity } from "vscode-languageserver";
-import { getStandardDefaultType } from "../../../../dtsTypes/standardDefaultType";
+import { DiagnosticSeverity } from 'vscode-languageserver';
+import { genStandardTypeDiagnostic } from '../../../../helpers';
+import { getU32ValueFromProperty } from '../../helpers';
+import { StandardTypeIssue } from '../../../../types';
+import { getStandardDefaultType } from '../../../../dtsTypes/standardDefaultType';
 
 export function getCpusNodeType() {
-  const nodeType = getStandardDefaultType();
-  nodeType.additionalValidations = (_, node) => {
-    if (node.parent?.name !== "/") {
-      return [
-        genStandardTypeDiagnostic(
-          StandardTypeIssue.NODE_LOCATION,
-          node.definitions[0],
-          DiagnosticSeverity.Error,
-          node.definitions.slice(1),
-          [],
-          ["Cpus node can only be added to a root node"]
-        ),
-      ];
-    }
-    return [];
-  };
+	const nodeType = getStandardDefaultType();
+	nodeType.additionalValidations = (_, node) => {
+		if (node.parent?.name !== '/') {
+			return [
+				genStandardTypeDiagnostic(
+					StandardTypeIssue.NODE_LOCATION,
+					node.definitions[0],
+					DiagnosticSeverity.Error,
+					node.definitions.slice(1),
+					[],
+					['Cpus node can only be added to a root node'],
+				),
+			];
+		}
+		return [];
+	};
 
-  const addressCellsProp = nodeType.properties.find(
-    (p) => p.name === "#address-cells"
-  );
-  addressCellsProp!.required = () => {
-    return "required";
-  };
+	const addressCellsProp = nodeType.properties.find(
+		(p) => p.name === '#address-cells',
+	);
+	addressCellsProp!.required = () => {
+		return 'required';
+	};
 
-  const sizeCellsProp = nodeType.properties.find(
-    (p) => p.name === "#size-cells"
-  );
-  sizeCellsProp!.required = () => {
-    return "required";
-  };
+	const sizeCellsProp = nodeType.properties.find(
+		(p) => p.name === '#size-cells',
+	);
+	sizeCellsProp!.required = () => {
+		return 'required';
+	};
 
-  const sizeCellsAdditionalTypeCheck = sizeCellsProp?.additionalTypeCheck;
-  sizeCellsProp!.additionalTypeCheck = (property, macros) => {
-    const issues = sizeCellsAdditionalTypeCheck?.(property, macros) ?? [];
+	const sizeCellsAdditionalTypeCheck = sizeCellsProp?.additionalTypeCheck;
+	sizeCellsProp!.additionalTypeCheck = (property, macros) => {
+		const issues = sizeCellsAdditionalTypeCheck?.(property, macros) ?? [];
 
-    const node = property.parent.getProperty(property.name);
-    const nodeValue = node
-      ? getU32ValueFromProperty(node, 0, 0, macros)
-      : undefined;
+		const node = property.parent.getProperty(property.name);
+		const nodeValue = node
+			? getU32ValueFromProperty(node, 0, 0, macros)
+			: undefined;
 
-    if (nodeValue !== 0) {
-      issues.push(
-        genStandardTypeDiagnostic(
-          StandardTypeIssue.INVALID_VALUE,
-          property.ast,
-          DiagnosticSeverity.Error,
-          undefined,
-          undefined,
-          [`${property.name} value in cpus node must be '0'`]
-        )
-      );
-    }
+		if (nodeValue !== 0) {
+			issues.push(
+				genStandardTypeDiagnostic(
+					StandardTypeIssue.INVALID_VALUE,
+					property.ast,
+					DiagnosticSeverity.Error,
+					undefined,
+					undefined,
+					[`${property.name} value in cpus node must be '0'`],
+				),
+			);
+		}
 
-    return issues;
-  };
+		return issues;
+	};
 
-  return nodeType;
+	return nodeType;
 }

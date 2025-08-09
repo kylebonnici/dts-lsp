@@ -14,108 +14,115 @@
  * limitations under the License.
  */
 
-import { FoldingRange, FoldingRangeKind } from "vscode-languageserver";
-import { DtcBaseNode } from "./ast/dtc/node";
-import { Parser } from "./parser";
-import { ASTBase } from "./ast/base";
-import { IfDefineBlock, IfElIfBlock } from "./ast/cPreprocessors/ifDefine";
-import { isPathEqual } from "./helpers";
-import { CommentBlock } from "./ast/dtc/comment";
+import { FoldingRange, FoldingRangeKind } from 'vscode-languageserver';
+import { DtcBaseNode } from './ast/dtc/node';
+import { Parser } from './parser';
+import { ASTBase } from './ast/base';
+import { IfDefineBlock, IfElIfBlock } from './ast/cPreprocessors/ifDefine';
+import { isPathEqual } from './helpers';
+import { CommentBlock } from './ast/dtc/comment';
 
 const commentBlockToRange = (comment: CommentBlock): FoldingRange[] => {
-  if (!comment.lastToken.prevToken || !comment.lastToken.prevToken.prevToken) {
-    return [];
-  }
-  return [
-    <FoldingRange>{
-      startLine: comment.firstToken.pos.line,
-      startCharacter: comment.firstToken.pos.col,
-      endLine: comment.lastToken.prevToken.prevToken.pos.line,
-      endCharacter: comment.lastToken.prevToken.prevToken.pos.col,
-      kind: FoldingRangeKind.Comment,
-    },
-  ];
+	if (
+		!comment.lastToken.prevToken ||
+		!comment.lastToken.prevToken.prevToken
+	) {
+		return [];
+	}
+	return [
+		<FoldingRange>{
+			startLine: comment.firstToken.pos.line,
+			startCharacter: comment.firstToken.pos.col,
+			endLine: comment.lastToken.prevToken.prevToken.pos.line,
+			endCharacter: comment.lastToken.prevToken.prevToken.pos.col,
+			kind: FoldingRangeKind.Comment,
+		},
+	];
 };
 
 const nodeToRange = (dtcNode: DtcBaseNode): FoldingRange[] => {
-  if (!dtcNode.openScope || !dtcNode.closeScope?.prevToken) {
-    return dtcNode.nodes.flatMap(nodeToRange);
-  }
-  const range: FoldingRange = {
-    startLine: dtcNode.openScope.pos.line,
-    startCharacter: dtcNode.openScope.pos.col,
-    endLine: dtcNode.closeScope.prevToken.pos.line,
-    endCharacter: dtcNode.closeScope.prevToken.pos.col,
-    kind: FoldingRangeKind.Region,
-  };
+	if (!dtcNode.openScope || !dtcNode.closeScope?.prevToken) {
+		return dtcNode.nodes.flatMap(nodeToRange);
+	}
+	const range: FoldingRange = {
+		startLine: dtcNode.openScope.pos.line,
+		startCharacter: dtcNode.openScope.pos.col,
+		endLine: dtcNode.closeScope.prevToken.pos.line,
+		endCharacter: dtcNode.closeScope.prevToken.pos.col,
+		kind: FoldingRangeKind.Region,
+	};
 
-  return [range, ...dtcNode.nodes.flatMap(nodeToRange)];
+	return [range, ...dtcNode.nodes.flatMap(nodeToRange)];
 };
 
 const ifElIfBlockToRange = (
-  ifDefBlock: IfElIfBlock | IfDefineBlock
+	ifDefBlock: IfElIfBlock | IfDefineBlock,
 ): FoldingRange[] => {
-  const ranges: FoldingRange[] = [];
+	const ranges: FoldingRange[] = [];
 
-  [
-    ...(ifDefBlock instanceof IfElIfBlock
-      ? ifDefBlock.ifBlocks.map((b) => ({
-          start: (b.expression ?? b.keyword).lastToken,
-          end: b.content?.lastToken ?? (b.expression ?? b.keyword).lastToken,
-        }))
-      : [
-          {
-            start: (ifDefBlock.ifDef.identifier ?? ifDefBlock.ifDef.keyword)
-              .lastToken,
-            end: ifDefBlock.ifDef.content?.lastToken,
-          },
-        ]),
-    ifDefBlock.elseOption
-      ? {
-          start: ifDefBlock.elseOption.keyword.lastToken,
-          end: ifDefBlock.elseOption.content?.lastToken,
-        }
-      : null,
-  ].forEach((b) => {
-    if (!b || !b.end) {
-      return;
-    }
+	[
+		...(ifDefBlock instanceof IfElIfBlock
+			? ifDefBlock.ifBlocks.map((b) => ({
+					start: (b.expression ?? b.keyword).lastToken,
+					end:
+						b.content?.lastToken ??
+						(b.expression ?? b.keyword).lastToken,
+				}))
+			: [
+					{
+						start: (
+							ifDefBlock.ifDef.identifier ??
+							ifDefBlock.ifDef.keyword
+						).lastToken,
+						end: ifDefBlock.ifDef.content?.lastToken,
+					},
+				]),
+		ifDefBlock.elseOption
+			? {
+					start: ifDefBlock.elseOption.keyword.lastToken,
+					end: ifDefBlock.elseOption.content?.lastToken,
+				}
+			: null,
+	].forEach((b) => {
+		if (!b || !b.end) {
+			return;
+		}
 
-    ranges.push({
-      startLine: b.start.pos.line,
-      startCharacter: b.start.pos.col,
-      endLine: b.end.pos.line,
-      endCharacter: b.end.pos.colEnd,
-      kind: FoldingRangeKind.Region,
-    });
-  });
+		ranges.push({
+			startLine: b.start.pos.line,
+			startCharacter: b.start.pos.col,
+			endLine: b.end.pos.line,
+			endCharacter: b.end.pos.colEnd,
+			kind: FoldingRangeKind.Region,
+		});
+	});
 
-  return ranges;
+	return ranges;
 };
 
 const toFoldingRange = (ast: ASTBase): FoldingRange[] => {
-  if (ast instanceof DtcBaseNode) {
-    return nodeToRange(ast);
-  }
+	if (ast instanceof DtcBaseNode) {
+		return nodeToRange(ast);
+	}
 
-  if (ast instanceof IfDefineBlock) {
-    return ifElIfBlockToRange(ast);
-  }
+	if (ast instanceof IfDefineBlock) {
+		return ifElIfBlockToRange(ast);
+	}
 
-  if (ast instanceof IfElIfBlock) {
-    return ifElIfBlockToRange(ast);
-  }
+	if (ast instanceof IfElIfBlock) {
+		return ifElIfBlockToRange(ast);
+	}
 
-  if (ast instanceof CommentBlock) {
-    return commentBlockToRange(ast);
-  }
+	if (ast instanceof CommentBlock) {
+		return commentBlockToRange(ast);
+	}
 
-  return [];
+	return [];
 };
 
 export function getFoldingRanges(uri: string, parser: Parser): FoldingRange[] {
-  return parser.allAstItems
-    .flatMap((ast) => [ast, ...ast.allDescendants])
-    .filter((n) => isPathEqual(n.uri, uri))
-    .flatMap(toFoldingRange);
+	return parser.allAstItems
+		.flatMap((ast) => [ast, ...ast.allDescendants])
+		.filter((n) => isPathEqual(n.uri, uri))
+		.flatMap(toFoldingRange);
 }

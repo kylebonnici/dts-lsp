@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-import { BindingPropertyType } from "../../../../types/index";
-import { PropertyNodeType } from "../../../types";
-import { generateOrTypeObj } from "../../helpers";
+import { BindingPropertyType } from '../../../../types/index';
+import { PropertyNodeType } from '../../../types';
+import { generateOrTypeObj } from '../../helpers';
 
 export default () => {
-  const prop = new PropertyNodeType(
-    "serial-number",
-    generateOrTypeObj(BindingPropertyType.STRING),
-    "optional"
-  );
-  prop.description = [
-    `Specifies a string representing the device’s se-
+	const prop = new PropertyNodeType(
+		'serial-number',
+		generateOrTypeObj(BindingPropertyType.STRING),
+		'optional',
+	);
+	prop.description = [
+		`Specifies a string representing the device’s se-
 rialnumber.`,
-  ];
+	];
 
-  return prop;
+	return prop;
 };

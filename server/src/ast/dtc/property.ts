@@ -14,145 +14,149 @@
  * limitations under the License.
  */
 
-import { MacroRegistryItem, Token, TokenIndexes } from "../../types";
-import { ASTBase } from "../base";
-import { SymbolKind } from "vscode-languageserver";
-import { LabelAssign } from "./label";
-import { PropertyValues } from "./values/values";
-import { StringValue } from "./values/string";
-import { ArrayValues } from "./values/arrayValue";
-import { NumberValue } from "./values/number";
-import { ByteStringValue } from "./values/byteString";
+import { SymbolKind } from 'vscode-languageserver';
+import { MacroRegistryItem, Token, TokenIndexes } from '../../types';
+import { ASTBase } from '../base';
 import {
-  SerializableDtcProperty,
-  SerializablePropertyName,
-} from "../../types/index";
+	SerializableDtcProperty,
+	SerializablePropertyName,
+} from '../../types/index';
+import { LabelAssign } from './label';
+import { PropertyValues } from './values/values';
+import { StringValue } from './values/string';
+import { ArrayValues } from './values/arrayValue';
+import { NumberValue } from './values/number';
+import { ByteStringValue } from './values/byteString';
 
 export class PropertyName extends ASTBase {
-  constructor(public readonly name: string, tokenIndex: TokenIndexes) {
-    super(tokenIndex);
-    this.semanticTokenType = "property";
-    this.semanticTokenModifiers = "declaration";
-  }
+	constructor(
+		public readonly name: string,
+		tokenIndex: TokenIndexes,
+	) {
+		super(tokenIndex);
+		this.semanticTokenType = 'property';
+		this.semanticTokenModifiers = 'declaration';
+	}
 
-  toString() {
-    return this.name;
-  }
+	toString() {
+		return this.name;
+	}
 
-  serialize(): SerializablePropertyName {
-    return {
-      value: this.name,
-      uri: this.serializeUri,
-      range: this.range,
-      issues: this.serializeIssues,
-    };
-  }
+	serialize(): SerializablePropertyName {
+		return {
+			value: this.name,
+			uri: this.serializeUri,
+			range: this.range,
+			issues: this.serializeIssues,
+		};
+	}
 }
 
 export class DtcProperty extends ASTBase {
-  private _values: PropertyValues | null | undefined = undefined;
-  public assignOperatorToken?: Token;
+	private _values: PropertyValues | null | undefined = undefined;
+	public assignOperatorToken?: Token;
 
-  constructor(
-    public readonly propertyName: PropertyName | null,
-    public readonly labels: LabelAssign[] = []
-  ) {
-    super();
-    this.docSymbolsMeta = {
-      name: this.propertyName?.name ?? "Unknown",
-      kind: SymbolKind.Property,
-    };
-    this.labels.forEach((label) => this.addChild(label));
-    this.addChild(propertyName);
-  }
+	constructor(
+		public readonly propertyName: PropertyName | null,
+		public readonly labels: LabelAssign[] = [],
+	) {
+		super();
+		this.docSymbolsMeta = {
+			name: this.propertyName?.name ?? 'Unknown',
+			kind: SymbolKind.Property,
+		};
+		this.labels.forEach((label) => this.addChild(label));
+		this.addChild(propertyName);
+	}
 
-  set values(values: PropertyValues | null | undefined) {
-    if (this._values) throw new Error("Only one property name is allowed");
-    this._values = values;
-    this.addChild(values);
-  }
+	set values(values: PropertyValues | null | undefined) {
+		if (this._values) throw new Error('Only one property name is allowed');
+		this._values = values;
+		this.addChild(values);
+	}
 
-  get values() {
-    return this._values;
-  }
+	get values() {
+		return this._values;
+	}
 
-  get quickValues() {
-    return this.values?.values.map((v) => {
-      if (!v) {
-        return null;
-      }
-      if (v.value instanceof StringValue) {
-        return v.value.value;
-      }
+	get quickValues() {
+		return this.values?.values.map((v) => {
+			if (!v) {
+				return null;
+			}
+			if (v.value instanceof StringValue) {
+				return v.value.value;
+			}
 
-      if (v.value instanceof ArrayValues) {
-        return v.value.values.map((v) =>
-          v.value instanceof NumberValue ? v.value.value : NaN
-        );
-      }
+			if (v.value instanceof ArrayValues) {
+				return v.value.values.map((v) =>
+					v.value instanceof NumberValue ? v.value.value : NaN,
+				);
+			}
 
-      if (v.value instanceof ByteStringValue) {
-        return v.value.values.map((v) => v.value?.value ?? NaN);
-      }
+			if (v.value instanceof ByteStringValue) {
+				return v.value.values.map((v) => v.value?.value ?? NaN);
+			}
 
-      return NaN;
-    });
-  }
+			return NaN;
+		});
+	}
 
-  getFlatAstValues() {
-    return this.values?.values.flatMap((v) => {
-      if (!v) {
-        return null;
-      }
-      if (v.value instanceof StringValue) {
-        return v.value;
-      }
+	getFlatAstValues() {
+		return this.values?.values.flatMap((v) => {
+			if (!v) {
+				return null;
+			}
+			if (v.value instanceof StringValue) {
+				return v.value;
+			}
 
-      if (v.value instanceof ArrayValues) {
-        return v.value.values.map((v) => v.value);
-      }
+			if (v.value instanceof ArrayValues) {
+				return v.value.values.map((v) => v.value);
+			}
 
-      if (v.value instanceof ByteStringValue) {
-        return v.value.values.map((v) => v.value);
-      }
+			if (v.value instanceof ByteStringValue) {
+				return v.value.values.map((v) => v.value);
+			}
 
-      return v.value;
-    });
-  }
+			return v.value;
+		});
+	}
 
-  toString() {
-    return `${this.propertyName?.toString() ?? "__UNSET__"}${
-      this.assignOperatorToken
-        ? ` = ${
-            this._values?.values
-              .map((v) => v?.toString() ?? "NULL")
-              .join(", ") ?? "NULL"
-          }`
-        : ""
-    };`;
-  }
+	toString() {
+		return `${this.propertyName?.toString() ?? '__UNSET__'}${
+			this.assignOperatorToken
+				? ` = ${
+						this._values?.values
+							.map((v) => v?.toString() ?? 'NULL')
+							.join(', ') ?? 'NULL'
+					}`
+				: ''
+		};`;
+	}
 
-  toPrettyString(macros: Map<string, MacroRegistryItem>) {
-    return `${this.propertyName?.toString() ?? "__UNSET__"}${
-      this.assignOperatorToken
-        ? ` = ${
-            this._values?.values
-              .map((v) => v?.toPrettyString(macros) ?? "NULL")
-              .join(", ") ?? "NULL"
-          }`
-        : ""
-    };`;
-  }
+	toPrettyString(macros: Map<string, MacroRegistryItem>) {
+		return `${this.propertyName?.toString() ?? '__UNSET__'}${
+			this.assignOperatorToken
+				? ` = ${
+						this._values?.values
+							.map((v) => v?.toPrettyString(macros) ?? 'NULL')
+							.join(', ') ?? 'NULL'
+					}`
+				: ''
+		};`;
+	}
 
-  serialize(macros: Map<string, MacroRegistryItem>): SerializableDtcProperty {
-    return {
-      name: this.propertyName?.serialize() ?? null,
-      values:
-        this.values?.values.map((v) => v?.value?.serialize(macros) ?? null) ??
-        null,
-      uri: this.serializeUri,
-      range: this.range,
-      issues: this.serializeIssues,
-    };
-  }
+	serialize(macros: Map<string, MacroRegistryItem>): SerializableDtcProperty {
+		return {
+			name: this.propertyName?.serialize() ?? null,
+			values:
+				this.values?.values.map(
+					(v) => v?.value?.serialize(macros) ?? null,
+				) ?? null,
+			uri: this.serializeUri,
+			range: this.range,
+			issues: this.serializeIssues,
+		};
+	}
 }

@@ -14,17 +14,20 @@
  * limitations under the License.
  */
 
-import { ASTBase } from "../base";
-import { Keyword } from "../keyword";
-import { SymbolKind } from "vscode-languageserver";
+import { SymbolKind } from 'vscode-languageserver';
+import { ASTBase } from '../base';
+import { Keyword } from '../keyword';
 
 export class DeleteBase extends ASTBase {
-  constructor(name: string, public readonly keyword: Keyword) {
-    super();
-    this.addChild(keyword);
-    this.docSymbolsMeta = {
-      name,
-      kind: SymbolKind.Function,
-    };
-  }
+	constructor(
+		name: string,
+		public readonly keyword: Keyword,
+	) {
+		super();
+		this.addChild(keyword);
+		this.docSymbolsMeta = {
+			name,
+			kind: SymbolKind.Function,
+		};
+	}
 }

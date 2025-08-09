@@ -14,28 +14,28 @@
  * limitations under the License.
  */
 
-import { getStandardDefaultType } from "../../../../standardDefaultType";
-import alignment from "./alignment";
-import allocRanges from "./allocRanges";
-import noMap from "./noMap";
-import reusable from "./reusable";
-import size from "./size";
+import { getStandardDefaultType } from '../../../../standardDefaultType';
+import alignment from './alignment';
+import allocRanges from './allocRanges';
+import noMap from './noMap';
+import reusable from './reusable';
+import size from './size';
 
 export function getReservedMemoryChildNodeType() {
-  const nodeType = getStandardDefaultType();
+	const nodeType = getStandardDefaultType();
 
-  const regProp = nodeType.properties.find((p) => p.name === "reg");
-  regProp!.required = () => {
-    return "optional";
-  };
+	const regProp = nodeType.properties.find((p) => p.name === 'reg');
+	regProp!.required = () => {
+		return 'optional';
+	};
 
-  nodeType.addProperty([
-    size(),
-    alignment(),
-    allocRanges(),
-    noMap(),
-    reusable(),
-  ]);
+	nodeType.addProperty([
+		size(),
+		alignment(),
+		allocRanges(),
+		noMap(),
+		reusable(),
+	]);
 
-  return nodeType;
+	return nodeType;
 }
