@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-import { BindingPropertyType } from "../../types/index";
-import { PropertyNodeType } from "../types";
-import { generateOrTypeObj } from "./helpers";
+import { BindingPropertyType } from '../../types/index';
+import { PropertyNodeType } from '../types';
+import { generateOrTypeObj } from './helpers';
 
 export default () => {
-  const prop = new PropertyNodeType(
-    "dma-noncoherent",
-    generateOrTypeObj(BindingPropertyType.EMPTY)
-  );
-  prop.description = [
-    "For architectures which are by default coherent for 1/O, the dma-noncoherent property is used to indicate a device is not capable of coherent DMA operations. Some architectures have non-coherent DMA by default and this property is not applicable.",
-  ];
-  return prop;
+	const prop = new PropertyNodeType(
+		'dma-noncoherent',
+		generateOrTypeObj(BindingPropertyType.EMPTY),
+	);
+	prop.description = [
+		'For architectures which are by default coherent for 1/O, the dma-noncoherent property is used to indicate a device is not capable of coherent DMA operations. Some architectures have non-coherent DMA by default and this property is not applicable.',
+	];
+	return prop;
 };

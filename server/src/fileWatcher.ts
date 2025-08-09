@@ -14,61 +14,61 @@
  * limitations under the License.
  */
 
-import { unwatchFile, watchFile } from "fs";
-import { getTokenizedDocumentProvider } from "./providers/tokenizedDocument";
+import { unwatchFile, watchFile } from 'fs';
+import { getTokenizedDocumentProvider } from './providers/tokenizedDocument';
 
 const onChange = (file: string, cb: (uri: string) => void) => {
-  getTokenizedDocumentProvider().reset(file);
-  getTokenizedDocumentProvider().requestTokens(file, true);
-  cb(file);
+	getTokenizedDocumentProvider().reset(file);
+	getTokenizedDocumentProvider().requestTokens(file, true);
+	cb(file);
 };
 
 export class FileWatcher {
-  #count = 0;
-  constructor(
-    readonly file: string,
-    private cb: (uri: string) => void,
-    private hasDocumentOpen: (uri: string) => boolean
-  ) {}
+	#count = 0;
+	constructor(
+		readonly file: string,
+		private cb: (uri: string) => void,
+		private hasDocumentOpen: (uri: string) => boolean,
+	) {}
 
-  private onChange?: () => void;
+	private onChange?: () => void;
 
-  watch() {
-    this.count++;
-    if (this.count === 1) {
-      console.log("create watch for", this.file);
-      const file = this.file;
-      const cb = this.cb;
-      this.onChange = () => {
-        if (this.hasDocumentOpen(file)) {
-          console.log("skipping on change document is open", file);
-          return;
-        }
-        console.log("onChange", file);
-        onChange(file, cb);
-      };
-      watchFile(file, this.onChange);
-    }
-  }
+	watch() {
+		this.count++;
+		if (this.count === 1) {
+			console.log('create watch for', this.file);
+			const file = this.file;
+			const cb = this.cb;
+			this.onChange = () => {
+				if (this.hasDocumentOpen(file)) {
+					console.log('skipping on change document is open', file);
+					return;
+				}
+				console.log('onChange', file);
+				onChange(file, cb);
+			};
+			watchFile(file, this.onChange);
+		}
+	}
 
-  unwatch() {
-    if (this.count === 1) {
-      console.log("dispose watch for", this.file);
-      unwatchFile(this.file, this.onChange);
-      this.onChange = undefined;
-    }
-    this.count--;
-  }
+	unwatch() {
+		if (this.count === 1) {
+			console.log('dispose watch for', this.file);
+			unwatchFile(this.file, this.onChange);
+			this.onChange = undefined;
+		}
+		this.count--;
+	}
 
-  get count() {
-    return this.#count;
-  }
+	get count() {
+		return this.#count;
+	}
 
-  set count(count: number) {
-    this.#count = count;
-    if (count < 0) {
-      this.#count = 0;
-      console.warn("unwatching an un watched file", this.file);
-    }
-  }
+	set count(count: number) {
+		this.#count = count;
+		if (count < 0) {
+			this.#count = 0;
+			console.warn('unwatching an un watched file', this.file);
+		}
+	}
 }

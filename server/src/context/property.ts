@@ -14,159 +14,174 @@
  * limitations under the License.
  */
 
-import { DtcProperty } from "../ast/dtc/property";
 import {
-  ContextIssues,
-  FileDiagnostic,
-  MacroRegistryItem,
-  NexusMapEnty,
-  SearchableResult,
-} from "../types";
+	DiagnosticSeverity,
+	DiagnosticTag,
+	MarkupContent,
+	MarkupKind,
+	Position,
+} from 'vscode-languageserver';
 import {
-  DiagnosticSeverity,
-  DiagnosticTag,
-  MarkupContent,
-  MarkupKind,
-  Position,
-} from "vscode-languageserver";
+	ContextIssues,
+	FileDiagnostic,
+	MacroRegistryItem,
+	NexusMapEnty,
+	SearchableResult,
+} from '../types';
+import { DtcProperty } from '../ast/dtc/property';
 import {
-  genContextDiagnostic,
-  getDeepestAstNodeAfter,
-  getDeepestAstNodeBefore,
-  getDeepestAstNodeInBetween,
-  positionAfter,
-} from "../helpers";
-import { LabelAssign } from "../ast/dtc/label";
-import type { Node } from "./node";
-import { ASTBase } from "../ast/base";
-import { LabelRef } from "../ast/dtc/labelRef";
-import { NodePathRef } from "../ast/dtc/values/nodePath";
-import { NumberValue } from "../ast/dtc/values/number";
-import { Expression } from "../ast/cPreprocessors/expression";
+	genContextDiagnostic,
+	getDeepestAstNodeAfter,
+	getDeepestAstNodeBefore,
+	getDeepestAstNodeInBetween,
+	positionAfter,
+} from '../helpers';
+import { LabelAssign } from '../ast/dtc/label';
+import { ASTBase } from '../ast/base';
+import { LabelRef } from '../ast/dtc/labelRef';
+import { NodePathRef } from '../ast/dtc/values/nodePath';
+import { NumberValue } from '../ast/dtc/values/number';
+import { Expression } from '../ast/cPreprocessors/expression';
+import type { Node } from './node';
 
 export interface NexuxMapping {
-  mappingValuesAst: (LabelRef | NodePathRef | NumberValue | Expression)[];
-  specifierSpace?: string;
-  target: Node;
-  mapItem?: NexusMapEnty;
+	mappingValuesAst: (LabelRef | NodePathRef | NumberValue | Expression)[];
+	specifierSpace?: string;
+	target: Node;
+	mapItem?: NexusMapEnty;
 }
 export class Property {
-  replaces?: Property;
-  replacedBy?: Property;
-  nexusMapsTo: NexuxMapping[] = [];
-  constructor(public readonly ast: DtcProperty, public readonly parent: Node) {}
+	replaces?: Property;
+	replacedBy?: Property;
+	nexusMapsTo: NexuxMapping[] = [];
+	constructor(
+		public readonly ast: DtcProperty,
+		public readonly parent: Node,
+	) {}
 
-  getDeepestAstNode(
-    file: string,
-    position: Position
-  ): Omit<SearchableResult, "runtime"> {
-    const deepestAstNode = getDeepestAstNodeInBetween(this.ast, file, position);
+	getDeepestAstNode(
+		file: string,
+		position: Position,
+	): Omit<SearchableResult, 'runtime'> {
+		const deepestAstNode = getDeepestAstNodeInBetween(
+			this.ast,
+			file,
+			position,
+		);
 
-    if (this.ast.assignOperatorToken) {
-      if (positionAfter(this.ast.assignOperatorToken, file, position)) {
-        return {
-          item: this,
-          ast: deepestAstNode,
-          beforeAst: getDeepestAstNodeBefore(this.ast, file, position),
-          afterAst: getDeepestAstNodeAfter(this.ast, file, position),
-        };
-      }
-    }
+		if (this.ast.assignOperatorToken) {
+			if (positionAfter(this.ast.assignOperatorToken, file, position)) {
+				return {
+					item: this,
+					ast: deepestAstNode,
+					beforeAst: getDeepestAstNodeBefore(
+						this.ast,
+						file,
+						position,
+					),
+					afterAst: getDeepestAstNodeAfter(this.ast, file, position),
+				};
+			}
+		}
 
-    return {
-      item: this,
-      ast: deepestAstNode,
-    };
-  }
+		return {
+			item: this,
+			ast: deepestAstNode,
+		};
+	}
 
-  get name() {
-    return this.ast.propertyName?.name ?? "[UNSET]";
-  }
+	get name() {
+		return this.ast.propertyName?.name ?? '[UNSET]';
+	}
 
-  get labels(): LabelAssign[] {
-    return this.ast.allDescendants.filter(
-      (c) => c instanceof LabelAssign
-    ) as LabelAssign[];
-  }
+	get labels(): LabelAssign[] {
+		return this.ast.allDescendants.filter(
+			(c) => c instanceof LabelAssign,
+		) as LabelAssign[];
+	}
 
-  get labelsMapped(): {
-    label: LabelAssign;
-    owner: Property | null;
-  }[] {
-    return this.labels.map((l) => ({
-      label: l,
-      owner: this.ast.labels.some((ll) => ll === l) ? this : null,
-    }));
-  }
+	get labelsMapped(): {
+		label: LabelAssign;
+		owner: Property | null;
+	}[] {
+		return this.labels.map((l) => ({
+			label: l,
+			owner: this.ast.labels.some((ll) => ll === l) ? this : null,
+		}));
+	}
 
-  getArgumentIndex(ast: ASTBase | undefined) {
-    if (!ast) return;
-    const index = this.ast
-      .getFlatAstValues()
-      ?.findIndex((item) => item === ast || item?.isAncestorOf(ast));
+	getArgumentIndex(ast: ASTBase | undefined) {
+		if (!ast) return;
+		const index = this.ast
+			.getFlatAstValues()
+			?.findIndex((item) => item === ast || item?.isAncestorOf(ast));
 
-    return index === -1 ? undefined : index;
-  }
+		return index === -1 ? undefined : index;
+	}
 
-  get issues(): FileDiagnostic[] {
-    return this.replacedIssues;
-  }
+	get issues(): FileDiagnostic[] {
+		return this.replacedIssues;
+	}
 
-  get replacedIssues(): FileDiagnostic[] {
-    return [
-      ...(this.replaces?.replacedIssues ?? []),
-      ...(this.replaces
-        ? [
-            genContextDiagnostic(
-              ContextIssues.DUPLICATE_PROPERTY_NAME,
-              this.replaces.ast,
-              DiagnosticSeverity.Hint,
-              [this.ast],
-              [DiagnosticTag.Unnecessary],
-              [this.name]
-            ),
-          ]
-        : []),
-    ];
-  }
+	get replacedIssues(): FileDiagnostic[] {
+		return [
+			...(this.replaces?.replacedIssues ?? []),
+			...(this.replaces
+				? [
+						genContextDiagnostic(
+							ContextIssues.DUPLICATE_PROPERTY_NAME,
+							this.replaces.ast,
+							DiagnosticSeverity.Hint,
+							[this.ast],
+							[DiagnosticTag.Unnecessary],
+							[this.name],
+						),
+					]
+				: []),
+		];
+	}
 
-  onHover(): MarkupContent | undefined {
-    if (!this.nexusMapsTo.length) return;
+	onHover(): MarkupContent | undefined {
+		if (!this.nexusMapsTo.length) return;
 
-    return {
-      kind: MarkupKind.Markdown,
-      value: [
-        "### Nexus mappings",
+		return {
+			kind: MarkupKind.Markdown,
+			value: [
+				'### Nexus mappings',
 
-        ...this.nexusMapsTo
-          .filter((m) => !!m.mapItem)
-          .flatMap((m) => [
-            "```",
-            `${this.name} = <... ${m.mappingValuesAst
-              .map((a) => a.toString())
-              .join(" ")} ...> maps to <... ${m
-              .mapItem!.mappingValues.map((a) => a.toString())
-              .join(" ")} ...>;`,
-            "```",
-            `[Mapping (${m.mappingValuesAst
-              .map((a) => a.toString())
-              .join(" ")})](${`${m.mapItem!.mappingValues[0].uri}#L${
-              m.mapItem!.mappingValues[0].firstToken.pos.line + 1
-            }`})`,
-          ]),
-      ].join("\n"),
-    };
-  }
+				...this.nexusMapsTo
+					.filter((m) => !!m.mapItem)
+					.flatMap((m) => [
+						'```',
+						`${this.name} = <... ${m.mappingValuesAst
+							.map((a) => a.toString())
+							.join(' ')} ...> maps to <... ${m
+							.mapItem!.mappingValues.map((a) => a.toString())
+							.join(' ')} ...>;`,
+						'```',
+						`[Mapping (${m.mappingValuesAst
+							.map((a) => a.toString())
+							.join(
+								' ',
+							)})](${`${m.mapItem!.mappingValues[0].uri}#L${
+							m.mapItem!.mappingValues[0].firstToken.pos.line + 1
+						}`})`,
+					]),
+			].join('\n'),
+		};
+	}
 
-  get allReplaced(): Property[] {
-    return this.replaces ? [this.replaces, ...this.replaces.allReplaced] : [];
-  }
+	get allReplaced(): Property[] {
+		return this.replaces
+			? [this.replaces, ...this.replaces.allReplaced]
+			: [];
+	}
 
-  toString() {
-    return this.ast.toString();
-  }
+	toString() {
+		return this.ast.toString();
+	}
 
-  toPrettyString(macros: Map<string, MacroRegistryItem>) {
-    return this.ast.toPrettyString(macros);
-  }
+	toPrettyString(macros: Map<string, MacroRegistryItem>) {
+		return this.ast.toPrettyString(macros);
+	}
 }

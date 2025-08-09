@@ -15,327 +15,327 @@
  */
 
 import {
-  Diagnostic,
-  DiagnosticSeverity,
-  DiagnosticTag,
-  TextEdit,
-  Position as vsCodePosition,
-} from "vscode-languageserver";
-import { ASTBase } from "./ast/base";
-import { Node } from "./context/node";
-import { Property } from "./context/property";
-import { Runtime } from "./context/runtime";
-import { CMacro } from "./ast/cPreprocessors/macro";
-import { LabelRef } from "./ast/dtc/labelRef";
-import { NodePathRef } from "./ast/dtc/values/nodePath";
-import { NumberValue } from "./ast/dtc/values/number";
-import { Expression } from "./ast/cPreprocessors/expression";
+	Diagnostic,
+	DiagnosticSeverity,
+	DiagnosticTag,
+	TextEdit,
+	Position as vsCodePosition,
+} from 'vscode-languageserver';
+import { ASTBase } from './ast/base';
+import { Node } from './context/node';
+import { Property } from './context/property';
+import { Runtime } from './context/runtime';
+import { CMacro } from './ast/cPreprocessors/macro';
+import { LabelRef } from './ast/dtc/labelRef';
+import { NodePathRef } from './ast/dtc/values/nodePath';
+import { NumberValue } from './ast/dtc/values/number';
+import { Expression } from './ast/cPreprocessors/expression';
 
 export type CodeActionDiagnosticData = {
-  issues: { edit?: TextEdit; codeActionTitle?: string } & (
-    | { type: "SyntaxIssue"; items: SyntaxIssue[] }
-    | { type: "StandardTypeIssue"; items: StandardTypeIssue[] }
-  );
-  firstToken: Omit<Token, "prevToken" | "nextToken" | "uri">;
-  lastToken: Omit<Token, "prevToken" | "nextToken" | "uri">;
+	issues: { edit?: TextEdit; codeActionTitle?: string } & (
+		| { type: 'SyntaxIssue'; items: SyntaxIssue[] }
+		| { type: 'StandardTypeIssue'; items: StandardTypeIssue[] }
+	);
+	firstToken: Omit<Token, 'prevToken' | 'nextToken' | 'uri'>;
+	lastToken: Omit<Token, 'prevToken' | 'nextToken' | 'uri'>;
 };
 
 export enum StandardTypeIssue {
-  REQUIRED,
-  EXPECTED_EMPTY,
-  EXPECTED_STRING,
-  EXPECTED_STRINGLIST,
-  EXPECTED_COMPOSITE_LENGTH,
-  EXPECTED_U32,
-  EXPECTED_U64,
-  EXPECTED_PROP_ENCODED_ARRAY,
-  EXPECTED_ONE,
-  EXPECTED_ENUM,
-  MISMATCH_NODE_ADDRESS_REF_ADDRESS_VALUE,
-  OMITTED,
-  EXPECTED_DEVICE_TYPE_CPU,
-  EXPECTED_DEVICE_TYPE_MEMORY,
-  DEPRECATED,
-  IGNORED,
-  PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
-  INTERRUPTS_PARENT_NODE_NOT_FOUND,
-  EXPECTED_UNIQUE_PHANDLE,
-  CELL_MISS_MATCH,
-  MAP_ENTRY_INCOMPLETE,
-  NODE_DISABLED,
-  UNABLE_TO_RESOLVE_PHANDLE,
-  UNABLE_TO_RESOLVE_PATH,
-  EXPECTED_VALUE,
-  DEVICETREE_ORG_BINDINGS,
-  NODE_LOCATION,
-  PROPERTY_NOT_ALLOWED,
-  INVALID_VALUE,
-  EXCEEDS_MAPPING_ADDRESS,
-  DUPLICATE_MAP_ENTRY,
-  NO_NEXUS_MAP_MATCH,
-  MISSING_BINDING_FILE,
-  MISSING_VALUE_NAME,
-  PROPERTY_NOT_IN_BINDING,
-  UNABLE_TO_FIND_MAPPING,
+	REQUIRED,
+	EXPECTED_EMPTY,
+	EXPECTED_STRING,
+	EXPECTED_STRINGLIST,
+	EXPECTED_COMPOSITE_LENGTH,
+	EXPECTED_U32,
+	EXPECTED_U64,
+	EXPECTED_PROP_ENCODED_ARRAY,
+	EXPECTED_ONE,
+	EXPECTED_ENUM,
+	MISMATCH_NODE_ADDRESS_REF_ADDRESS_VALUE,
+	OMITTED,
+	EXPECTED_DEVICE_TYPE_CPU,
+	EXPECTED_DEVICE_TYPE_MEMORY,
+	DEPRECATED,
+	IGNORED,
+	PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+	INTERRUPTS_PARENT_NODE_NOT_FOUND,
+	EXPECTED_UNIQUE_PHANDLE,
+	CELL_MISS_MATCH,
+	MAP_ENTRY_INCOMPLETE,
+	NODE_DISABLED,
+	UNABLE_TO_RESOLVE_PHANDLE,
+	UNABLE_TO_RESOLVE_PATH,
+	EXPECTED_VALUE,
+	DEVICETREE_ORG_BINDINGS,
+	NODE_LOCATION,
+	PROPERTY_NOT_ALLOWED,
+	INVALID_VALUE,
+	EXCEEDS_MAPPING_ADDRESS,
+	DUPLICATE_MAP_ENTRY,
+	NO_NEXUS_MAP_MATCH,
+	MISSING_BINDING_FILE,
+	MISSING_VALUE_NAME,
+	PROPERTY_NOT_IN_BINDING,
+	UNABLE_TO_FIND_MAPPING,
 }
 
 export enum SyntaxIssue {
-  VALUE,
-  END_STATEMENT,
-  CURLY_OPEN,
-  CURLY_CLOSE,
-  OPEN_SQUARE,
-  SQUARE_CLOSE,
-  PROPERTY_NAME,
-  NODE_NAME,
-  NODE_ADDRESS,
-  NODE_PATH,
-  NODE_REF,
-  ROOT_NODE_NAME,
-  GT_SYM,
-  LT_SYM,
-  BYTESTRING,
-  BYTESTRING_EVEN,
-  DOUBLE_QUOTE,
-  SINGLE_QUOTE,
-  LABEL_NAME,
-  FORWARD_SLASH_START_PATH,
-  BYTESTRING_HEX,
-  MISSING_FORWARD_SLASH_END,
-  UNKNOWN,
-  NO_STATEMENT,
-  LABEL_ASSIGN_MISSING_COLON,
-  DELETE_INCOMPLETE,
-  MISSING_ROUND_CLOSE,
-  EXPECTED_EXPRESSION,
-  MISSING_COMMA,
-  WHITE_SPACE,
-  EXPECTED_IDENTIFIER_FUNCTION_LIKE,
-  EXPECTED_IDENTIFIER,
-  PROPERTY_MUST_BE_IN_NODE,
-  PROPERTY_DELETE_MUST_BE_IN_NODE,
-  DELETE_NODE_INCOMPLETE,
-  DELETE_PROPERTY_INCOMPLETE,
-  UNABLE_TO_RESOLVE_INCLUDE,
-  EXPECTED_START_ADDRESS,
-  EXPECTED_END_ADDRESS,
-  EXPECTED_BITS_SIZE,
-  INVALID_BITS_SIZE,
-  BITS_NON_OFFICIAL_SYNTAX,
-  UNKNOWN_MACRO,
-  EXPECTED_FUNCTION_LIKE,
-  MACRO_EXPECTS_LESS_PARAMS,
-  MACRO_EXPECTS_MORE_PARAMS,
-  MISSING_ENDIF,
-  UNUSED_BLOCK,
-  NODE_PATH_REF,
-  NAME_NODE_NAME_START,
-  NODE_ADDRERSS_HEX_START,
-  NODE_ADDRESS_ENDS_ULL,
-  UNKNOWN_NODE_ADDRESS_SYNTAX,
+	VALUE,
+	END_STATEMENT,
+	CURLY_OPEN,
+	CURLY_CLOSE,
+	OPEN_SQUARE,
+	SQUARE_CLOSE,
+	PROPERTY_NAME,
+	NODE_NAME,
+	NODE_ADDRESS,
+	NODE_PATH,
+	NODE_REF,
+	ROOT_NODE_NAME,
+	GT_SYM,
+	LT_SYM,
+	BYTESTRING,
+	BYTESTRING_EVEN,
+	DOUBLE_QUOTE,
+	SINGLE_QUOTE,
+	LABEL_NAME,
+	FORWARD_SLASH_START_PATH,
+	BYTESTRING_HEX,
+	MISSING_FORWARD_SLASH_END,
+	UNKNOWN,
+	NO_STATEMENT,
+	LABEL_ASSIGN_MISSING_COLON,
+	DELETE_INCOMPLETE,
+	MISSING_ROUND_CLOSE,
+	EXPECTED_EXPRESSION,
+	MISSING_COMMA,
+	WHITE_SPACE,
+	EXPECTED_IDENTIFIER_FUNCTION_LIKE,
+	EXPECTED_IDENTIFIER,
+	PROPERTY_MUST_BE_IN_NODE,
+	PROPERTY_DELETE_MUST_BE_IN_NODE,
+	DELETE_NODE_INCOMPLETE,
+	DELETE_PROPERTY_INCOMPLETE,
+	UNABLE_TO_RESOLVE_INCLUDE,
+	EXPECTED_START_ADDRESS,
+	EXPECTED_END_ADDRESS,
+	EXPECTED_BITS_SIZE,
+	INVALID_BITS_SIZE,
+	BITS_NON_OFFICIAL_SYNTAX,
+	UNKNOWN_MACRO,
+	EXPECTED_FUNCTION_LIKE,
+	MACRO_EXPECTS_LESS_PARAMS,
+	MACRO_EXPECTS_MORE_PARAMS,
+	MISSING_ENDIF,
+	UNUSED_BLOCK,
+	NODE_PATH_REF,
+	NAME_NODE_NAME_START,
+	NODE_ADDRERSS_HEX_START,
+	NODE_ADDRESS_ENDS_ULL,
+	UNKNOWN_NODE_ADDRESS_SYNTAX,
 }
 
 export enum ContextIssues {
-  DUPLICATE_PROPERTY_NAME,
-  PROPERTY_DOES_NOT_EXIST,
-  DUPLICATE_NODE_NAME,
-  UNABLE_TO_RESOLVE_CHILD_NODE,
-  LABEL_ALREADY_IN_USE,
-  NODE_DOES_NOT_EXIST,
-  DELETE_PROPERTY,
-  DELETE_NODE,
-  UNABLE_TO_RESOLVE_NODE_PATH,
-  MISSING_NODE,
-  ADDRESS_RANGE_COLLIDES,
+	DUPLICATE_PROPERTY_NAME,
+	PROPERTY_DOES_NOT_EXIST,
+	DUPLICATE_NODE_NAME,
+	UNABLE_TO_RESOLVE_CHILD_NODE,
+	LABEL_ALREADY_IN_USE,
+	NODE_DOES_NOT_EXIST,
+	DELETE_PROPERTY,
+	DELETE_NODE,
+	UNABLE_TO_RESOLVE_NODE_PATH,
+	MISSING_NODE,
+	ADDRESS_RANGE_COLLIDES,
 }
 
 export enum LexerToken {
-  ASSIGN_OPERATOR,
-  SEMICOLON,
-  CURLY_OPEN,
-  CURLY_CLOSE,
-  GT_SYM,
-  LT_SYM,
-  LOGICAL_NOT,
-  BIT_AND,
-  BIT_OR,
-  BIT_XOR,
-  BIT_NOT,
-  SQUARE_OPEN,
-  SQUARE_CLOSE,
-  FORWARD_SLASH,
-  BACK_SLASH,
-  ADD_OPERATOR,
-  NEG_OPERATOR,
-  MULTI_OPERATOR,
-  MODULUS_OPERATOR,
-  DIGIT,
-  HEX,
-  STRING,
-  DOUBLE_QUOTE,
-  SINGLE_QUOTE,
-  COMMA,
-  // EOL,
+	ASSIGN_OPERATOR,
+	SEMICOLON,
+	CURLY_OPEN,
+	CURLY_CLOSE,
+	GT_SYM,
+	LT_SYM,
+	LOGICAL_NOT,
+	BIT_AND,
+	BIT_OR,
+	BIT_XOR,
+	BIT_NOT,
+	SQUARE_OPEN,
+	SQUARE_CLOSE,
+	FORWARD_SLASH,
+	BACK_SLASH,
+	ADD_OPERATOR,
+	NEG_OPERATOR,
+	MULTI_OPERATOR,
+	MODULUS_OPERATOR,
+	DIGIT,
+	HEX,
+	STRING,
+	DOUBLE_QUOTE,
+	SINGLE_QUOTE,
+	COMMA,
+	// EOL,
 
-  C_DEFINE,
-  C_INCLUDE,
-  C_LINE,
-  C_UNDEF,
-  C_ERROR,
-  C_PRAGMA,
+	C_DEFINE,
+	C_INCLUDE,
+	C_LINE,
+	C_UNDEF,
+	C_ERROR,
+	C_PRAGMA,
 
-  C_DEFINED,
+	C_DEFINED,
 
-  C_IF,
-  C_IFDEF,
-  C_IFNDEF,
-  C_ELIF,
-  C_ELSE,
-  C_ENDIF,
+	C_IF,
+	C_IFDEF,
+	C_IFNDEF,
+	C_ELIF,
+	C_ELSE,
+	C_ENDIF,
 
-  C_TRUE,
-  C_FALSE,
-  AMPERSAND,
+	C_TRUE,
+	C_FALSE,
+	AMPERSAND,
 
-  UNKNOWN,
-  ROUND_OPEN,
-  ROUND_CLOSE,
-  QUESTION_MARK,
-  PERIOD,
-  HASH,
-  LETTERS,
-  UNDERSCORE,
-  AT,
-  COLON,
+	UNKNOWN,
+	ROUND_OPEN,
+	ROUND_CLOSE,
+	QUESTION_MARK,
+	PERIOD,
+	HASH,
+	LETTERS,
+	UNDERSCORE,
+	AT,
+	COLON,
 }
 
 export const tokenTypes = [
-  "namespace",
-  "class",
-  "enum",
-  "interface",
-  "struct",
-  "typeParameter",
-  "type",
-  "parameter",
-  "variable",
-  "property",
-  "enumMember",
-  "decorator",
-  "event",
-  "function",
-  "method",
-  "macro",
-  "label",
-  "comment",
-  "string",
-  "keyword",
-  "number",
-  "regexp",
-  "operator",
+	'namespace',
+	'class',
+	'enum',
+	'interface',
+	'struct',
+	'typeParameter',
+	'type',
+	'parameter',
+	'variable',
+	'property',
+	'enumMember',
+	'decorator',
+	'event',
+	'function',
+	'method',
+	'macro',
+	'label',
+	'comment',
+	'string',
+	'keyword',
+	'number',
+	'regexp',
+	'operator',
 ] as const;
 
 export type SemanticTokenType = (typeof tokenTypes)[number];
 
 export const tokenModifiers = [
-  "declaration",
-  "definition",
-  "readonly",
-  "static",
-  "deprecated",
-  "abstract",
-  "async",
-  "modification",
-  "documentation",
-  "defaultLibrary",
+	'declaration',
+	'definition',
+	'readonly',
+	'static',
+	'deprecated',
+	'abstract',
+	'async',
+	'modification',
+	'documentation',
+	'defaultLibrary',
 ] as const;
 
 export type SemanticTokenModifiers = (typeof tokenModifiers)[number];
 
 export interface Position {
-  line: number;
-  col: number;
-  len: number;
-  colEnd: number;
+	line: number;
+	col: number;
+	len: number;
+	colEnd: number;
 }
 export interface Token {
-  prevToken?: Token;
-  nextToken?: Token;
-  tokens: readonly LexerToken[];
-  pos: Position;
-  value: string;
-  uri: string;
-  adjacentToken?: Token;
+	prevToken?: Token;
+	nextToken?: Token;
+	tokens: readonly LexerToken[];
+	pos: Position;
+	value: string;
+	uri: string;
+	adjacentToken?: Token;
 }
 
 export interface TokenIndexes {
-  start: Token;
-  end: Token;
+	start: Token;
+	end: Token;
 }
 
 export type BuildSemanticTokensPush = (
-  tokenType: number,
-  tokenModifiers: number,
-  tokenIndexes?: TokenIndexes
+	tokenType: number,
+	tokenModifiers: number,
+	tokenIndexes?: TokenIndexes,
 ) => void;
 
 export type IssueTypes = SyntaxIssue | ContextIssues | StandardTypeIssue;
 export interface Issue<T extends IssueTypes> {
-  issues: T[];
-  astElement: ASTBase;
-  severity?: DiagnosticSeverity;
-  tags?: DiagnosticTag[];
-  linkedTo: { ast: ASTBase; templateStrings: string[] }[];
-  templateStrings: string[];
-  edit?: TextEdit;
-  codeActionTitle?: string;
+	issues: T[];
+	astElement: ASTBase;
+	severity?: DiagnosticSeverity;
+	tags?: DiagnosticTag[];
+	linkedTo: { ast: ASTBase; templateStrings: string[] }[];
+	templateStrings: string[];
+	edit?: TextEdit;
+	codeActionTitle?: string;
 }
 
 export type SearchableResult = {
-  runtime: Runtime;
-  item: Node | Property | null;
-  ast: ASTBase;
-  beforeAst?: ASTBase;
-  afterAst?: ASTBase;
+	runtime: Runtime;
+	item: Node | Property | null;
+	ast: ASTBase;
+	beforeAst?: ASTBase;
+	afterAst?: ASTBase;
 };
 
 export interface Searchable {
-  getDeepestAstNode(
-    file: string,
-    position: vsCodePosition
-  ): SearchableResult | undefined;
+	getDeepestAstNode(
+		file: string,
+		position: vsCodePosition,
+	): SearchableResult | undefined;
 }
 
 export type MacrosResolver = string | ((...args: string[]) => string);
 
 export interface MacroRegistryItem {
-  resolver: MacrosResolver | undefined;
-  macro: CMacro;
+	resolver: MacrosResolver | undefined;
+	macro: CMacro;
 }
 
 export type ContextId = { uri: string } | { id: string } | { name: string };
 
 export type FileDiagnostic = {
-  raw: Issue<IssueTypes>;
-  diagnostic: () => Diagnostic;
+	raw: Issue<IssueTypes>;
+	diagnostic: () => Diagnostic;
 };
 
 export type RegMapping = {
-  startAddress: number[];
-  size: number[];
-  endAddress: number[];
-  ast: ASTBase;
+	startAddress: number[];
+	size: number[];
+	endAddress: number[];
+	ast: ASTBase;
 };
 
 export type RangeMapping = {
-  childAddress: number[];
-  parentAddress: number[];
-  length: number[];
-  ast: ASTBase;
+	childAddress: number[];
+	parentAddress: number[];
+	length: number[];
+	ast: ASTBase;
 };
 
 export interface NexusMapEnty {
-  mappingValues: (LabelRef | NodePathRef | NumberValue | Expression)[];
-  node: Node;
-  parentValues: (LabelRef | NodePathRef | NumberValue | Expression)[];
+	mappingValues: (LabelRef | NodePathRef | NumberValue | Expression)[];
+	node: Node;
+	parentValues: (LabelRef | NodePathRef | NumberValue | Expression)[];
 }

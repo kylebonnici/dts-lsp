@@ -14,51 +14,51 @@
  * limitations under the License.
  */
 
-import { ASTBase } from "../../base";
-import { SymbolKind } from "vscode-languageserver";
-import { LabeledValue } from "./labeledValue";
-import { NumberValue } from "./number";
-import type { Token } from "../../../types";
-import { SerializableByteString } from "../../../types/index";
+import { SymbolKind } from 'vscode-languageserver';
+import { ASTBase } from '../../base';
+import type { Token } from '../../../types';
+import { SerializableByteString } from '../../../types/index';
+import { LabeledValue } from './labeledValue';
+import { NumberValue } from './number';
 
 export class ByteStringValue extends ASTBase {
-  public openBracket?: Token;
-  public closeBracket?: Token;
+	public openBracket?: Token;
+	public closeBracket?: Token;
 
-  constructor(public readonly values: LabeledValue<NumberValue>[]) {
-    super();
-    this.docSymbolsMeta = {
-      name: "Byte String Value",
-      kind: SymbolKind.Array,
-    };
-    this.values.forEach((value) => this.addChild(value));
-  }
+	constructor(public readonly values: LabeledValue<NumberValue>[]) {
+		super();
+		this.docSymbolsMeta = {
+			name: 'Byte String Value',
+			kind: SymbolKind.Array,
+		};
+		this.values.forEach((value) => this.addChild(value));
+	}
 
-  toString() {
-    return `[${this.values
-      .map((v) => v.toString(16).padStart(2, "0"))
-      .join(" ")}]`;
-  }
+	toString() {
+		return `[${this.values
+			.map((v) => v.toString(16).padStart(2, '0'))
+			.join(' ')}]`;
+	}
 
-  toJson() {
-    return this.values.map((v) => v.value?.toJson() ?? NaN);
-  }
+	toJson() {
+		return this.values.map((v) => v.value?.toJson() ?? NaN);
+	}
 
-  serialize(): SerializableByteString {
-    return {
-      type: "BYTESTRING",
-      values: this.values.map((v) =>
-        v.value
-          ? {
-              value: v.value.toString(16),
-              range: v.value.range,
-              evaluated: v.value.value,
-            }
-          : null
-      ),
-      uri: this.serializeUri,
-      range: this.range,
-      issues: this.serializeIssues,
-    };
-  }
+	serialize(): SerializableByteString {
+		return {
+			type: 'BYTESTRING',
+			values: this.values.map((v) =>
+				v.value
+					? {
+							value: v.value.toString(16),
+							range: v.value.range,
+							evaluated: v.value.value,
+						}
+					: null,
+			),
+			uri: this.serializeUri,
+			range: this.range,
+			issues: this.serializeIssues,
+		};
+	}
 }

@@ -14,31 +14,31 @@
  * limitations under the License.
  */
 
-import type { MacroRegistryItem } from "../../../types";
-import { ASTBase } from "../../base";
-import { LabelAssign } from "../label";
+import type { MacroRegistryItem } from '../../../types';
+import { ASTBase } from '../../base';
+import { LabelAssign } from '../label';
 
 export class LabeledValue<T extends ASTBase> extends ASTBase {
-  constructor(
-    public readonly value: T | null,
-    public readonly labels: LabelAssign[]
-  ) {
-    super();
-    this.labels.forEach((label) => {
-      this.addChild(label);
-    });
-    this.addChild(this.value);
-  }
+	constructor(
+		public readonly value: T | null,
+		public readonly labels: LabelAssign[],
+	) {
+		super();
+		this.labels.forEach((label) => {
+			this.addChild(label);
+		});
+		this.addChild(this.value);
+	}
 
-  toString(radix?: number) {
-    return `${this.labels.map((l) => l.toString()).join(" ")}${
-      this.value?.toString(radix) ?? "NULL"
-    }`;
-  }
+	toString(radix?: number) {
+		return `${this.labels.map((l) => l.toString()).join(' ')}${
+			this.value?.toString(radix) ?? 'NULL'
+		}`;
+	}
 
-  toPrettyString(macros: Map<string, MacroRegistryItem>) {
-    return `${this.labels.map((l) => l.toString()).join(" ")}${
-      this.value?.toPrettyString(macros) ?? "NULL"
-    }`;
-  }
+	toPrettyString(macros: Map<string, MacroRegistryItem>) {
+		return `${this.labels.map((l) => l.toString()).join(' ')}${
+			this.value?.toPrettyString(macros) ?? 'NULL'
+		}`;
+	}
 }

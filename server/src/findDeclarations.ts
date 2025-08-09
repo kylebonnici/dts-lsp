@@ -14,137 +14,145 @@
  * limitations under the License.
  */
 
-import { Location, TextDocumentPositionParams } from "vscode-languageserver";
-import { ContextAware } from "./runtimeEvaluator";
-import { SearchableResult } from "./types";
-import { Node } from "./context/node";
-import { NodeName } from "./ast/dtc/node";
-import { Label } from "./ast/dtc/label";
-import { LabelRef } from "./ast/dtc/labelRef";
-import { PropertyName } from "./ast/dtc/property";
-import { Property } from "./context/property";
-import { DeleteProperty } from "./ast/dtc/deleteProperty";
-import { isDeleteChild } from "./ast/helpers";
-import { nodeFinder, pathToFileURL, toRange } from "./helpers";
-import { CIdentifier } from "./ast/cPreprocessors/cIdentifier";
-import { StringValue } from "./ast/dtc/values/string";
-import { CMacroCallParam } from "./ast/cPreprocessors/functionCall";
+import { Location, TextDocumentPositionParams } from 'vscode-languageserver';
+import { ContextAware } from './runtimeEvaluator';
+import { SearchableResult } from './types';
+import { Node } from './context/node';
+import { NodeName } from './ast/dtc/node';
+import { Label } from './ast/dtc/label';
+import { LabelRef } from './ast/dtc/labelRef';
+import { PropertyName } from './ast/dtc/property';
+import { Property } from './context/property';
+import { DeleteProperty } from './ast/dtc/deleteProperty';
+import { isDeleteChild } from './ast/helpers';
+import { nodeFinder, pathToFileURL, toRange } from './helpers';
+import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
+import { StringValue } from './ast/dtc/values/string';
+import { CMacroCallParam } from './ast/cPreprocessors/functionCall';
 
 function getPropertyDeclaration(
-  result: SearchableResult | undefined
+	result: SearchableResult | undefined,
 ): Location | undefined {
-  if (
-    !result ||
-    result.item === null ||
-    !(result.ast instanceof PropertyName)
-  ) {
-    return;
-  }
+	if (
+		!result ||
+		result.item === null ||
+		!(result.ast instanceof PropertyName)
+	) {
+		return;
+	}
 
-  const getBottomProperty = (property: Property): Property => {
-    if (property.replaces) {
-      return getBottomProperty(property.replaces);
-    }
+	const getBottomProperty = (property: Property): Property => {
+		if (property.replaces) {
+			return getBottomProperty(property.replaces);
+		}
 
-    return property;
-  };
+		return property;
+	};
 
-  const gentItem = (property: Property) => {
-    return Location.create(
-      pathToFileURL(property.ast.uri),
-      toRange(property.ast.propertyName ?? property.ast)
-    );
-  };
+	const gentItem = (property: Property) => {
+		return Location.create(
+			pathToFileURL(property.ast.uri),
+			toRange(property.ast.propertyName ?? property.ast),
+		);
+	};
 
-  if (result.item instanceof Property && result.ast instanceof PropertyName) {
-    return gentItem(getBottomProperty(result.item));
-  }
+	if (result.item instanceof Property && result.ast instanceof PropertyName) {
+		return gentItem(getBottomProperty(result.item));
+	}
 
-  if (
-    result.item instanceof Node &&
-    result.ast instanceof PropertyName &&
-    result.ast.parentNode instanceof DeleteProperty
-  ) {
-    const property = result.item.deletedProperties.find(
-      (d) => d.by === result.ast.parentNode
-    )?.property;
-    if (property) return gentItem(getBottomProperty(property));
-  }
+	if (
+		result.item instanceof Node &&
+		result.ast instanceof PropertyName &&
+		result.ast.parentNode instanceof DeleteProperty
+	) {
+		const property = result.item.deletedProperties.find(
+			(d) => d.by === result.ast.parentNode,
+		)?.property;
+		if (property) return gentItem(getBottomProperty(property));
+	}
 }
 
 function getNodeDeclaration(
-  result: SearchableResult | undefined
+	result: SearchableResult | undefined,
 ): Location | undefined {
-  if (!result) {
-    return;
-  }
+	if (!result) {
+		return;
+	}
 
-  const gentItem = (node: Node) => {
-    const declaration = node.definitions.at(0);
-    return declaration
-      ? Location.create(pathToFileURL(declaration.uri), toRange(declaration))
-      : undefined;
-  };
+	const gentItem = (node: Node) => {
+		const declaration = node.definitions.at(0);
+		return declaration
+			? Location.create(
+					pathToFileURL(declaration.uri),
+					toRange(declaration),
+				)
+			: undefined;
+	};
 
-  if (result.item instanceof Node && !isDeleteChild(result.ast)) {
-    return gentItem(result.item);
-  }
+	if (result.item instanceof Node && !isDeleteChild(result.ast)) {
+		return gentItem(result.item);
+	}
 
-  if (
-    result.ast instanceof Label &&
-    result.ast.parentNode instanceof LabelRef
-  ) {
-    if (result.ast.parentNode.linksTo) {
-      return gentItem(result.ast.parentNode.linksTo);
-    }
-  }
+	if (
+		result.ast instanceof Label &&
+		result.ast.parentNode instanceof LabelRef
+	) {
+		if (result.ast.parentNode.linksTo) {
+			return gentItem(result.ast.parentNode.linksTo);
+		}
+	}
 
-  if (result.ast instanceof NodeName) {
-    if (result.ast.linksTo) {
-      return gentItem(result.ast.linksTo);
-    }
-  }
+	if (result.ast instanceof NodeName) {
+		if (result.ast.linksTo) {
+			return gentItem(result.ast.linksTo);
+		}
+	}
 
-  if (
-    result?.ast instanceof StringValue &&
-    result.item instanceof Property &&
-    result.item.parent.name === "aliases"
-  ) {
-    const node = result.runtime.rootNode.getChild(result.ast.value.split("/"));
-    if (node) {
-      return gentItem(node);
-    }
-  }
+	if (
+		result?.ast instanceof StringValue &&
+		result.item instanceof Property &&
+		result.item.parent.name === 'aliases'
+	) {
+		const node = result.runtime.rootNode.getChild(
+			result.ast.value.split('/'),
+		);
+		if (node) {
+			return gentItem(node);
+		}
+	}
 }
 
 function getMacrosDeclaration(
-  result: SearchableResult | undefined
+	result: SearchableResult | undefined,
 ): Location | undefined {
-  if (
-    result?.ast instanceof CIdentifier ||
-    result?.ast instanceof CMacroCallParam
-  ) {
-    const macro = result.runtime.context.parser.cPreprocessorParser.macros.get(
-      result.ast instanceof CIdentifier ? result.ast.name : result.ast.value
-    );
-    if (macro) {
-      return Location.create(
-        pathToFileURL(macro.macro.uri),
-        toRange(macro.macro.identifier)
-      );
-    }
-  }
+	if (
+		result?.ast instanceof CIdentifier ||
+		result?.ast instanceof CMacroCallParam
+	) {
+		const macro =
+			result.runtime.context.parser.cPreprocessorParser.macros.get(
+				result.ast instanceof CIdentifier
+					? result.ast.name
+					: result.ast.value,
+			);
+		if (macro) {
+			return Location.create(
+				pathToFileURL(macro.macro.uri),
+				toRange(macro.macro.identifier),
+			);
+		}
+	}
 }
 
 export async function getDeclaration(
-  location: TextDocumentPositionParams,
-  context: ContextAware | undefined
+	location: TextDocumentPositionParams,
+	context: ContextAware | undefined,
 ): Promise<Location | undefined> {
-  return (
-    await nodeFinder(location, context, (locationMeta) => [
-      getNodeDeclaration(locationMeta) ||
-        getPropertyDeclaration(locationMeta) ||
-        getMacrosDeclaration(locationMeta),
-    ])
-  ).at(0);
+	return (
+		await nodeFinder(location, context, (locationMeta) => [
+			getNodeDeclaration(locationMeta) ||
+				getPropertyDeclaration(locationMeta) ||
+				getMacrosDeclaration(locationMeta),
+		])
+	).at(0);
 }

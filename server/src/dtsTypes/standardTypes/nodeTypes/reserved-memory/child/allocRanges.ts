@@ -14,78 +14,86 @@
  * limitations under the License.
  */
 
-import { genStandardTypeDiagnostic } from "../../../../../helpers";
-import { FileDiagnostic, StandardTypeIssue } from "../../../../../types";
-import { BindingPropertyType } from "../../../../../types/index";
-import { PropertyNodeType } from "../../../../types";
-import { flatNumberValues, generateOrTypeObj } from "../../../helpers";
 import {
-  DiagnosticSeverity,
-  ParameterInformation,
-  SignatureInformation,
-} from "vscode-languageserver-types";
+	DiagnosticSeverity,
+	ParameterInformation,
+} from 'vscode-languageserver-types';
+import { genStandardTypeDiagnostic } from '../../../../../helpers';
+import { FileDiagnostic, StandardTypeIssue } from '../../../../../types';
+import { BindingPropertyType } from '../../../../../types/index';
+import { PropertyNodeType } from '../../../../types';
+import { flatNumberValues, generateOrTypeObj } from '../../../helpers';
 
 export default () => {
-  const prop = new PropertyNodeType(
-    "alloc-ranges",
-    generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
-    "optional",
-    undefined,
-    [],
-    (property, macros) => {
-      const issues: FileDiagnostic[] = [];
+	const prop = new PropertyNodeType(
+		'alloc-ranges',
+		generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
+		'optional',
+		undefined,
+		[],
+		(property, macros) => {
+			const issues: FileDiagnostic[] = [];
 
-      const values = flatNumberValues(property.ast.values);
-      if (!values) {
-        return [];
-      }
+			const values = flatNumberValues(property.ast.values);
+			if (!values) {
+				return [];
+			}
 
-      const addressCells = property.parent.addressCells(macros);
-      const sizeCells = property.parent.sizeCells(macros);
-      const args = [
-        ...Array.from(
-          { length: addressCells },
-          (_, i) => `address${addressCells > 1 ? i : ""}`
-        ),
-        ...Array.from(
-          { length: sizeCells },
-          (_, i) => `size${sizeCells > 1 ? i : ""}`
-        ),
-      ];
-      prop.signatureArgs = args.map((arg) => ParameterInformation.create(arg));
-      prop.signatureArgsCyclic = true;
+			const addressCells = property.parent.addressCells(macros);
+			const sizeCells = property.parent.sizeCells(macros);
+			const args = [
+				...Array.from(
+					{ length: addressCells },
+					(_, i) => `address${addressCells > 1 ? i : ''}`,
+				),
+				...Array.from(
+					{ length: sizeCells },
+					(_, i) => `size${sizeCells > 1 ? i : ''}`,
+				),
+			];
+			prop.signatureArgs = args.map((arg) =>
+				ParameterInformation.create(arg),
+			);
+			prop.signatureArgsCyclic = true;
 
-      if (
-        values.length === 0 ||
-        values.length % (addressCells + sizeCells) !== 0
-      ) {
-        issues.push(
-          genStandardTypeDiagnostic(
-            StandardTypeIssue.CELL_MISS_MATCH,
-            values.at(
-              values.length - (values.length % (sizeCells + addressCells))
-            ) ?? property.ast,
-            DiagnosticSeverity.Error,
-            [],
-            [],
-            [
-              property.name,
-              `<${[
-                ...Array.from({ length: addressCells }, () => "address"),
-                ...Array.from({ length: sizeCells }, () => "size"),
-              ].join(" ")}>`,
-            ]
-          )
-        );
-        return issues;
-      }
+			if (
+				values.length === 0 ||
+				values.length % (addressCells + sizeCells) !== 0
+			) {
+				issues.push(
+					genStandardTypeDiagnostic(
+						StandardTypeIssue.CELL_MISS_MATCH,
+						values.at(
+							values.length -
+								(values.length % (sizeCells + addressCells)),
+						) ?? property.ast,
+						DiagnosticSeverity.Error,
+						[],
+						[],
+						[
+							property.name,
+							`<${[
+								...Array.from(
+									{ length: addressCells },
+									() => 'address',
+								),
+								...Array.from(
+									{ length: sizeCells },
+									() => 'size',
+								),
+							].join(' ')}>`,
+						],
+					),
+				);
+				return issues;
+			}
 
-      return issues;
-    }
-  );
-  prop.description = [
-    `Specifies regions of memory that are acceptable to allocate from`,
-  ];
+			return issues;
+		},
+	);
+	prop.description = [
+		`Specifies regions of memory that are acceptable to allocate from`,
+	];
 
-  return prop;
+	return prop;
 };

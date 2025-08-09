@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-import { BindingPropertyType } from "../../../../types/index";
-import { PropertyNodeType } from "../../../types";
-import { generateOrTypeObj } from "../../helpers";
+import { BindingPropertyType } from '../../../../types/index';
+import { PropertyNodeType } from '../../../types';
+import { generateOrTypeObj } from '../../helpers';
 
 export default () => {
-  const prop = new PropertyNodeType(
-    "nonposted-mmio",
-    generateOrTypeObj(BindingPropertyType.EMPTY),
-    "optional"
-  );
-  prop.description = [
-    `Specifies that direct children of this bus should use non-posted memory accesses (i.e. a non-posted mapping mode) for MMIO ranges.`,
-  ];
+	const prop = new PropertyNodeType(
+		'nonposted-mmio',
+		generateOrTypeObj(BindingPropertyType.EMPTY),
+		'optional',
+	);
+	prop.description = [
+		`Specifies that direct children of this bus should use non-posted memory accesses (i.e. a non-posted mapping mode) for MMIO ranges.`,
+	];
 
-  return prop;
+	return prop;
 };

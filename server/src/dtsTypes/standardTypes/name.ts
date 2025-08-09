@@ -14,31 +14,31 @@
  * limitations under the License.
  */
 
-import { BindingPropertyType } from "../../types/index";
-import { genStandardTypeDiagnostic } from "../../helpers";
-import { PropertyNodeType } from "../types";
-import { generateOrTypeObj } from "./helpers";
-import { StandardTypeIssue } from "../../types";
-import { DiagnosticSeverity, DiagnosticTag } from "vscode-languageserver";
+import { DiagnosticSeverity, DiagnosticTag } from 'vscode-languageserver';
+import { BindingPropertyType } from '../../types/index';
+import { genStandardTypeDiagnostic } from '../../helpers';
+import { PropertyNodeType } from '../types';
+import { StandardTypeIssue } from '../../types';
+import { generateOrTypeObj } from './helpers';
 
 export default () => {
-  const prop = new PropertyNodeType<string>(
-    "name",
-    generateOrTypeObj(BindingPropertyType.STRING),
-    "optional",
-    undefined,
-    undefined,
-    (property) => [
-      genStandardTypeDiagnostic(
-        StandardTypeIssue.DEPRECATED,
-        property.ast,
-        DiagnosticSeverity.Warning,
-        [],
-        [DiagnosticTag.Deprecated],
-        [property.name]
-      ),
-    ]
-  );
-  prop.hideAutoComplete = true;
-  return prop;
+	const prop = new PropertyNodeType<string>(
+		'name',
+		generateOrTypeObj(BindingPropertyType.STRING),
+		'optional',
+		undefined,
+		undefined,
+		(property) => [
+			genStandardTypeDiagnostic(
+				StandardTypeIssue.DEPRECATED,
+				property.ast,
+				DiagnosticSeverity.Warning,
+				[],
+				[DiagnosticTag.Deprecated],
+				[property.name],
+			),
+		],
+	);
+	prop.hideAutoComplete = true;
+	return prop;
 };

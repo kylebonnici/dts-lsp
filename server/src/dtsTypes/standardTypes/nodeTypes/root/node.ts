@@ -14,40 +14,40 @@
  * limitations under the License.
  */
 
-import { getStandardDefaultType } from "../../../../dtsTypes/standardDefaultType";
-import chassisType from "./chassisType";
-import serialNumber from "./serialNumber";
+import { getStandardDefaultType } from '../../../../dtsTypes/standardDefaultType';
+import chassisType from './chassisType';
+import serialNumber from './serialNumber';
 
 export function getRootNodeType() {
-  const standardType = getStandardDefaultType();
-  standardType.noMismatchPropertiesAllowed = true;
+	const standardType = getStandardDefaultType();
+	standardType.noMismatchPropertiesAllowed = true;
 
-  const addressCellsProp = standardType.properties.find(
-    (p) => p.name === "#address-cells"
-  );
-  addressCellsProp!.required = () => {
-    return "required";
-  };
+	const addressCellsProp = standardType.properties.find(
+		(p) => p.name === '#address-cells',
+	);
+	addressCellsProp!.required = () => {
+		return 'required';
+	};
 
-  const sizeCellsProp = standardType.properties.find(
-    (p) => p.name === "#size-cells"
-  );
-  sizeCellsProp!.required = () => {
-    return "required";
-  };
+	const sizeCellsProp = standardType.properties.find(
+		(p) => p.name === '#size-cells',
+	);
+	sizeCellsProp!.required = () => {
+		return 'required';
+	};
 
-  const modelProp = standardType.properties.find((p) => p.name === "model");
-  modelProp!.required = () => {
-    return "required";
-  };
+	const modelProp = standardType.properties.find((p) => p.name === 'model');
+	modelProp!.required = () => {
+		return 'required';
+	};
 
-  const compatibleProp = standardType.properties.find(
-    (p) => p.name === "compatible"
-  );
-  compatibleProp!.required = () => {
-    return "required";
-  };
+	const compatibleProp = standardType.properties.find(
+		(p) => p.name === 'compatible',
+	);
+	compatibleProp!.required = () => {
+		return 'required';
+	};
 
-  standardType.addProperty([chassisType(), serialNumber()]);
-  return standardType;
+	standardType.addProperty([chassisType(), serialNumber()]);
+	return standardType;
 }

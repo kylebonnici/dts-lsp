@@ -14,75 +14,81 @@
  * limitations under the License.
  */
 
-import { BindingPropertyType } from "../../types/index";
-import { StringValue } from "../../ast/dtc/values/string";
-import { PropertyNodeType } from "../types";
-import { generateOrTypeObj } from "./helpers";
-import { StandardTypeIssue } from "../../types";
-import { genStandardTypeDiagnostic } from "../../helpers";
-import { DiagnosticSeverity, DiagnosticTag } from "vscode-languageserver";
+import { DiagnosticSeverity, DiagnosticTag } from 'vscode-languageserver';
+import { BindingPropertyType } from '../../types/index';
+import { StringValue } from '../../ast/dtc/values/string';
+import { PropertyNodeType } from '../types';
+import { StandardTypeIssue } from '../../types';
+import { genStandardTypeDiagnostic } from '../../helpers';
+import { generateOrTypeObj } from './helpers';
 
 export default () => {
-  const prop = new PropertyNodeType(
-    "device_type",
-    generateOrTypeObj(BindingPropertyType.STRING),
-    "optional",
-    undefined,
-    (property) => {
-      if (property.parent.name === "cpu" || property.parent.name === "memory") {
-        return [property.parent.name];
-      }
-      return [];
-    },
-    (property) => {
-      if (property.parent.name === "cpu" || property.parent.name === "memory") {
-        const value = property.ast.values?.values.at(0)?.value;
-        if (
-          value instanceof StringValue &&
-          value.value !== property.parent.name
-        ) {
-          return property.parent.name === "cpu"
-            ? [
-                genStandardTypeDiagnostic(
-                  StandardTypeIssue.EXPECTED_DEVICE_TYPE_CPU,
-                  property.ast,
-                  DiagnosticSeverity.Error,
-                  [],
-                  [],
-                  [property.name]
-                ),
-              ]
-            : [
-                genStandardTypeDiagnostic(
-                  StandardTypeIssue.EXPECTED_DEVICE_TYPE_MEMORY,
-                  property.ast,
-                  DiagnosticSeverity.Error,
-                  [],
-                  [],
-                  [property.name]
-                ),
-              ];
-        }
-      }
+	const prop = new PropertyNodeType(
+		'device_type',
+		generateOrTypeObj(BindingPropertyType.STRING),
+		'optional',
+		undefined,
+		(property) => {
+			if (
+				property.parent.name === 'cpu' ||
+				property.parent.name === 'memory'
+			) {
+				return [property.parent.name];
+			}
+			return [];
+		},
+		(property) => {
+			if (
+				property.parent.name === 'cpu' ||
+				property.parent.name === 'memory'
+			) {
+				const value = property.ast.values?.values.at(0)?.value;
+				if (
+					value instanceof StringValue &&
+					value.value !== property.parent.name
+				) {
+					return property.parent.name === 'cpu'
+						? [
+								genStandardTypeDiagnostic(
+									StandardTypeIssue.EXPECTED_DEVICE_TYPE_CPU,
+									property.ast,
+									DiagnosticSeverity.Error,
+									[],
+									[],
+									[property.name],
+								),
+							]
+						: [
+								genStandardTypeDiagnostic(
+									StandardTypeIssue.EXPECTED_DEVICE_TYPE_MEMORY,
+									property.ast,
+									DiagnosticSeverity.Error,
+									[],
+									[],
+									[property.name],
+								),
+							];
+				}
+			}
 
-      if (prop.required(property.parent) !== "required") {
-        return [
-          genStandardTypeDiagnostic(
-            StandardTypeIssue.DEPRECATED,
-            property.ast,
-            DiagnosticSeverity.Hint,
-            [],
-            [DiagnosticTag.Deprecated],
-            [property.name]
-          ),
-        ];
-      }
+			if (prop.required(property.parent) !== 'required') {
+				return [
+					genStandardTypeDiagnostic(
+						StandardTypeIssue.DEPRECATED,
+						property.ast,
+						DiagnosticSeverity.Hint,
+						[],
+						[DiagnosticTag.Deprecated],
+						[property.name],
+					),
+				];
+			}
 
-      return [];
-    }
-  );
-  prop.description = [
-    "The device_type property was used in IEEE 1275 to describe the device's FCode programming model. Because DTSpec does not have FCode, new use of the property is deprecated, and it should be included only on cpu and memory nodes for compatibility with IEEE 1275-derived devicetrees.",
-  ];
-  return prop;
+			return [];
+		},
+	);
+	prop.description = [
+		"The device_type property was used in IEEE 1275 to describe the device's FCode programming model. Because DTSpec does not have FCode, new use of the property is deprecated, and it should be included only on cpu and memory nodes for compatibility with IEEE 1275-derived devicetrees.",
+	];
+	return prop;
 };

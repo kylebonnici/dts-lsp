@@ -14,26 +14,26 @@
  * limitations under the License.
  */
 
-import { ASTBase } from "../base";
-import { Keyword } from "../keyword";
-import { SymbolKind } from "vscode-languageserver";
-import { NumberValue } from "./values/number";
+import { SymbolKind } from 'vscode-languageserver';
+import { ASTBase } from '../base';
+import { Keyword } from '../keyword';
+import { NumberValue } from './values/number';
 
 export class DtsBitsNode extends ASTBase {
-  constructor(
-    public readonly keyword: Keyword,
-    public readonly bitsSize?: NumberValue
-  ) {
-    super();
-    this.addChild(keyword);
-    this.docSymbolsMeta = {
-      name: "bits",
-      kind: SymbolKind.Function,
-    };
-    this.addChild(bitsSize);
-  }
+	constructor(
+		public readonly keyword: Keyword,
+		public readonly bitsSize?: NumberValue,
+	) {
+		super();
+		this.addChild(keyword);
+		this.docSymbolsMeta = {
+			name: 'bits',
+			kind: SymbolKind.Function,
+		};
+		this.addChild(bitsSize);
+	}
 
-  toString() {
-    return `/bits/ ${this.bitsSize?.value?.toString()}`;
-  }
+	toString() {
+		return `/bits/ ${this.bitsSize?.value?.toString()}`;
+	}
 }

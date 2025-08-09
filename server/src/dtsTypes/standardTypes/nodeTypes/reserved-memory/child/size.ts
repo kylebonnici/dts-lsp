@@ -14,64 +14,66 @@
  * limitations under the License.
  */
 
-import { genStandardTypeDiagnostic } from "../../../../../helpers";
-import { FileDiagnostic, StandardTypeIssue } from "../../../../../types";
-import { BindingPropertyType } from "../../../../../types/index";
-import { PropertyNodeType } from "../../../../types";
-import { flatNumberValues, generateOrTypeObj } from "../../../helpers";
 import {
-  DiagnosticSeverity,
-  ParameterInformation,
-} from "vscode-languageserver-types";
+	DiagnosticSeverity,
+	ParameterInformation,
+} from 'vscode-languageserver-types';
+import { genStandardTypeDiagnostic } from '../../../../../helpers';
+import { FileDiagnostic, StandardTypeIssue } from '../../../../../types';
+import { BindingPropertyType } from '../../../../../types/index';
+import { PropertyNodeType } from '../../../../types';
+import { flatNumberValues, generateOrTypeObj } from '../../../helpers';
 
 export default () => {
-  const prop = new PropertyNodeType(
-    "size",
-    generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
-    "optional",
-    undefined,
-    [],
-    (property, macros) => {
-      const issues: FileDiagnostic[] = [];
+	const prop = new PropertyNodeType(
+		'size',
+		generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
+		'optional',
+		undefined,
+		[],
+		(property, macros) => {
+			const issues: FileDiagnostic[] = [];
 
-      const values = flatNumberValues(property.ast.values);
+			const values = flatNumberValues(property.ast.values);
 
-      const sizeLength = property.parent.sizeCells(macros);
-      const args = [
-        ...Array.from(
-          { length: sizeLength },
-          (_, i) => `size${sizeLength > 1 ? i : ""}`
-        ),
-      ];
-      prop.signatureArgs = args.map((arg) => ParameterInformation.create(arg));
+			const sizeLength = property.parent.sizeCells(macros);
+			const args = [
+				...Array.from(
+					{ length: sizeLength },
+					(_, i) => `size${sizeLength > 1 ? i : ''}`,
+				),
+			];
+			prop.signatureArgs = args.map((arg) =>
+				ParameterInformation.create(arg),
+			);
 
-      if (values?.length !== property.parent.sizeCells(macros)) {
-        issues.push(
-          genStandardTypeDiagnostic(
-            StandardTypeIssue.CELL_MISS_MATCH,
-            property.ast.values ?? property.ast,
-            DiagnosticSeverity.Error,
-            [],
-            [],
-            [
-              property.name,
-              `<${Array.from(
-                {
-                  length: sizeLength,
-                },
-                () => "size"
-              )}>`,
-            ]
-          )
-        );
-      }
+			if (values?.length !== property.parent.sizeCells(macros)) {
+				issues.push(
+					genStandardTypeDiagnostic(
+						StandardTypeIssue.CELL_MISS_MATCH,
+						property.ast.values ?? property.ast,
+						DiagnosticSeverity.Error,
+						[],
+						[],
+						[
+							property.name,
+							`<${Array.from(
+								{
+									length: sizeLength,
+								},
+								() => 'size',
+							)}>`,
+						],
+					),
+				);
+			}
 
-      return issues;
-    }
-  );
-  prop.description = [
-    `Size in bytes of memory to reserve for dynamically allocated regions.`,
-  ];
+			return issues;
+		},
+	);
+	prop.description = [
+		`Size in bytes of memory to reserve for dynamically allocated regions.`,
+	];
 
-  return prop;
+	return prop;
 };

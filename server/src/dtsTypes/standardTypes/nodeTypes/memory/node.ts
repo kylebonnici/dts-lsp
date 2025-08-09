@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-import { getStandardDefaultType } from "../../../../dtsTypes/standardDefaultType";
+import { getStandardDefaultType } from '../../../../dtsTypes/standardDefaultType';
 
 export function getMemoryNodeType() {
-  const standardType = getStandardDefaultType();
-  standardType.noMismatchPropertiesAllowed = true;
+	const standardType = getStandardDefaultType();
+	standardType.noMismatchPropertiesAllowed = true;
 
-  const regProp = standardType.properties.find((p) => p.name === "reg");
-  regProp!.required = () => "required";
+	const regProp = standardType.properties.find((p) => p.name === 'reg');
+	regProp!.required = () => 'required';
 
-  return standardType;
+	return standardType;
 }

@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-import { BindingPropertyType } from "../../../../../types/index";
-import { PropertyNodeType } from "../../../../types";
-import { generateOrTypeObj } from "../../../helpers";
+import { BindingPropertyType } from '../../../../../types/index';
+import { PropertyNodeType } from '../../../../types';
+import { generateOrTypeObj } from '../../../helpers';
 
 export default () => {
-  const prop = new PropertyNodeType(
-    "reusable",
-    generateOrTypeObj(BindingPropertyType.EMPTY),
-    "optional"
-  );
-  prop.description = [
-    `The operating system can use the memory in this region with the limitation that the device driver(s) owning the region need to be able to reclaim it back. Typically that means that the operating system can use that region to store volatile or cached data that can be otherwise regenerated or migrated elsewhere.`,
-  ];
+	const prop = new PropertyNodeType(
+		'reusable',
+		generateOrTypeObj(BindingPropertyType.EMPTY),
+		'optional',
+	);
+	prop.description = [
+		`The operating system can use the memory in this region with the limitation that the device driver(s) owning the region need to be able to reclaim it back. Typically that means that the operating system can use that region to store volatile or cached data that can be otherwise regenerated or migrated elsewhere.`,
+	];
 
-  return prop;
+	return prop;
 };

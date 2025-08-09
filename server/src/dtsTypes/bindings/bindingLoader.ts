@@ -14,84 +14,87 @@
  * limitations under the License.
  */
 
-import type { BindingType } from "../../types/index";
-import { Node } from "../../context/node";
-import { INodeType } from "../types";
-import { getDevicetreeOrgBindingsLoader } from "./devicetree-org/loader";
-import { getZephyrBindingsLoader } from "./zephyr/loader";
-import { FileDiagnostic } from "../../types";
-import { DocumentLink } from "vscode-languageserver-types";
-import { TextDocument } from "vscode-languageserver-textdocument";
+import { DocumentLink } from 'vscode-languageserver-types';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import type { BindingType } from '../../types/index';
+import { Node } from '../../context/node';
+import { INodeType } from '../types';
+import { FileDiagnostic } from '../../types';
+import { getDevicetreeOrgBindingsLoader } from './devicetree-org/loader';
+import { getZephyrBindingsLoader } from './zephyr/loader';
 
 export interface BindingLoader {
-  getNodeTypes(node: Node): { type: INodeType[]; issues: FileDiagnostic[] };
-  readonly type: BindingType;
-  readonly files: BindingLoaderFileType;
-  getBindings(): string[];
-  getDocumentLinks?(document?: TextDocument): DocumentLink[];
+	getNodeTypes(node: Node): { type: INodeType[]; issues: FileDiagnostic[] };
+	readonly type: BindingType;
+	readonly files: BindingLoaderFileType;
+	getBindings(): string[];
+	getDocumentLinks?(document?: TextDocument): DocumentLink[];
 }
 
 export interface BindingLoaderFileType {
-  zephyrBindings: string[];
-  deviceOrgBindingsMetaSchema: string[];
-  deviceOrgTreeBindings: string[];
+	zephyrBindings: string[];
+	deviceOrgBindingsMetaSchema: string[];
+	deviceOrgTreeBindings: string[];
 }
 
 export const getBindingLoader = (
-  files: BindingLoaderFileType,
-  type: BindingType
+	files: BindingLoaderFileType,
+	type: BindingType,
 ): BindingLoader => {
-  const zephyrKey = files.zephyrBindings.join(":");
-  if (type === "Zephyr") {
-    getZephyrBindingsLoader().loadTypeAndCache(files.zephyrBindings, zephyrKey);
-  }
-  return {
-    files,
-    type,
-    getNodeTypes: (node: Node) => {
-      switch (type) {
-        case "Zephyr":
-          return getZephyrBindingsLoader().getNodeTypes(
-            files.zephyrBindings,
-            node,
-            zephyrKey
-          );
+	const zephyrKey = files.zephyrBindings.join(':');
+	if (type === 'Zephyr') {
+		getZephyrBindingsLoader().loadTypeAndCache(
+			files.zephyrBindings,
+			zephyrKey,
+		);
+	}
+	return {
+		files,
+		type,
+		getNodeTypes: (node: Node) => {
+			switch (type) {
+				case 'Zephyr':
+					return getZephyrBindingsLoader().getNodeTypes(
+						files.zephyrBindings,
+						node,
+						zephyrKey,
+					);
 
-        case "DevicetreeOrg":
-          return {
-            type: getDevicetreeOrgBindingsLoader().getNodeTypes(
-              files.deviceOrgBindingsMetaSchema,
-              files.deviceOrgTreeBindings,
-              node
-            ),
-            issues: [], // TODO
-          };
-      }
-    },
-    getBindings: () => {
-      switch (type) {
-        case "Zephyr":
-          return getZephyrBindingsLoader().getBindings(zephyrKey);
+				case 'DevicetreeOrg':
+					return {
+						type: getDevicetreeOrgBindingsLoader().getNodeTypes(
+							files.deviceOrgBindingsMetaSchema,
+							files.deviceOrgTreeBindings,
+							node,
+						),
+						issues: [], // TODO
+					};
+			}
+		},
+		getBindings: () => {
+			switch (type) {
+				case 'Zephyr':
+					return getZephyrBindingsLoader().getBindings(zephyrKey);
 
-        case "DevicetreeOrg":
-          return getDevicetreeOrgBindingsLoader().getBindings();
-      }
-    },
-    getDocumentLinks(document) {
-      if (!document) {
-        return [];
-      }
+				case 'DevicetreeOrg':
+					return getDevicetreeOrgBindingsLoader().getBindings();
+			}
+		},
+		getDocumentLinks(document) {
+			if (!document) {
+				return [];
+			}
 
-      switch (type) {
-        case "Zephyr":
-          return getZephyrBindingsLoader().getDocumentLinks(
-            document,
-            files.zephyrBindings
-          );
+			switch (type) {
+				case 'Zephyr':
+					return getZephyrBindingsLoader().getDocumentLinks(
+						document,
+						files.zephyrBindings,
+					);
 
-        case "DevicetreeOrg":
-          return [];
-      }
-    },
-  };
+				case 'DevicetreeOrg':
+					return [];
+			}
+		},
+	};
 };

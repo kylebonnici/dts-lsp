@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-import { BindingPropertyType } from "../../types/index";
-import { PropertyNodeType } from "../types";
-import { generateOrTypeObj } from "./helpers";
+import { BindingPropertyType } from '../../types/index';
+import { PropertyNodeType } from '../types';
+import { generateOrTypeObj } from './helpers';
 
 export default () =>
-  new PropertyNodeType(
-    "#size-cells",
-    generateOrTypeObj(BindingPropertyType.U32),
-    "optional",
-    1
-  );
+	new PropertyNodeType(
+		'#size-cells',
+		generateOrTypeObj(BindingPropertyType.U32),
+		'optional',
+		1,
+	);

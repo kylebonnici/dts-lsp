@@ -14,38 +14,38 @@
  * limitations under the License.
  */
 
-import { type Node } from "../context/node";
-import { getRootNodeType } from "./standardTypes/nodeTypes/root/node";
-import { getStandardDefaultType } from "./standardDefaultType";
-import { getAliasesNodeType } from "./standardTypes/nodeTypes/aliases/node";
-import { getMemoryNodeType } from "./standardTypes/nodeTypes/memory/node";
-import { getReservedMemoryNodeType } from "./standardTypes/nodeTypes/reserved-memory/node";
-import { getChosenNodeType } from "./standardTypes/nodeTypes/chosen/node";
-import { getCpusNodeType } from "./standardTypes/nodeTypes/cpus/node";
-import { getCpuNodeType } from "./standardTypes/nodeTypes/cpus/cpu/node";
-import { getReservedMemoryChildNodeType } from "./standardTypes/nodeTypes/reserved-memory/child/node";
+import { type Node } from '../context/node';
+import { getRootNodeType } from './standardTypes/nodeTypes/root/node';
+import { getStandardDefaultType } from './standardDefaultType';
+import { getAliasesNodeType } from './standardTypes/nodeTypes/aliases/node';
+import { getMemoryNodeType } from './standardTypes/nodeTypes/memory/node';
+import { getReservedMemoryNodeType } from './standardTypes/nodeTypes/reserved-memory/node';
+import { getChosenNodeType } from './standardTypes/nodeTypes/chosen/node';
+import { getCpusNodeType } from './standardTypes/nodeTypes/cpus/node';
+import { getCpuNodeType } from './standardTypes/nodeTypes/cpus/cpu/node';
+import { getReservedMemoryChildNodeType } from './standardTypes/nodeTypes/reserved-memory/child/node';
 
 export function getStandardType(node?: Node) {
-  switch (node?.name) {
-    case "/":
-      return getRootNodeType();
-    case "aliases":
-      return getAliasesNodeType();
-    case "memory":
-      return getMemoryNodeType();
-    case "reserved-memory":
-      return getReservedMemoryNodeType();
-    case "chosen":
-      return getChosenNodeType();
-    case "cpus":
-      return getCpusNodeType();
-    case "cpu":
-      return getCpuNodeType();
-  }
+	switch (node?.name) {
+		case '/':
+			return getRootNodeType();
+		case 'aliases':
+			return getAliasesNodeType();
+		case 'memory':
+			return getMemoryNodeType();
+		case 'reserved-memory':
+			return getReservedMemoryNodeType();
+		case 'chosen':
+			return getChosenNodeType();
+		case 'cpus':
+			return getCpusNodeType();
+		case 'cpu':
+			return getCpuNodeType();
+	}
 
-  if (node?.parent?.name === "reserved-memory") {
-    return getReservedMemoryChildNodeType();
-  }
+	if (node?.parent?.name === 'reserved-memory') {
+		return getReservedMemoryChildNodeType();
+	}
 
-  return getStandardDefaultType();
+	return getStandardDefaultType();
 }

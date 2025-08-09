@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-import { BindingPropertyType } from "../../../../../types/index";
-import { PropertyNodeType } from "../../../../types";
-import { generateOrTypeObj } from "../../../helpers";
+import { BindingPropertyType } from '../../../../../types/index';
+import { PropertyNodeType } from '../../../../types';
+import { generateOrTypeObj } from '../../../helpers';
 
 export default () => {
-  const prop = new PropertyNodeType(
-    "no-map",
-    generateOrTypeObj(BindingPropertyType.EMPTY),
-    "optional"
-  );
-  prop.description = [
-    `Indicates the operating system must not create a virtual mapping of the region as part of its standard mapping of system memory, nor permit speculative access to it under
+	const prop = new PropertyNodeType(
+		'no-map',
+		generateOrTypeObj(BindingPropertyType.EMPTY),
+		'optional',
+	);
+	prop.description = [
+		`Indicates the operating system must not create a virtual mapping of the region as part of its standard mapping of system memory, nor permit speculative access to it under
 any circumstances other than under the control of the device driver using the region.`,
-  ];
+	];
 
-  return prop;
+	return prop;
 };

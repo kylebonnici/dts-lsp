@@ -14,77 +14,80 @@
  * limitations under the License.
  */
 
-import { ASTBase } from "./base";
-import { DeleteBase } from "./dtc/delete";
-import { LabelRef } from "./dtc/labelRef";
+import { ASTBase } from './base';
+import { DeleteBase } from './dtc/delete';
+import { LabelRef } from './dtc/labelRef';
 import {
-  DtcBaseNode,
-  DtcChildNode,
-  DtcRefNode,
-  DtcRootNode,
-  NodeName,
-} from "./dtc/node";
-import { DtcProperty } from "./dtc/property";
-import { PropertyValue } from "./dtc/values/value";
+	DtcBaseNode,
+	DtcChildNode,
+	DtcRefNode,
+	DtcRootNode,
+	NodeName,
+} from './dtc/node';
+import { DtcProperty } from './dtc/property';
+import { PropertyValue } from './dtc/values/value';
 
 export const isDeleteChild = (ast: ASTBase): boolean => {
-  if (ast instanceof DeleteBase) {
-    return true;
-  }
+	if (ast instanceof DeleteBase) {
+		return true;
+	}
 
-  if (ast instanceof DtcBaseNode) {
-    return false;
-  }
+	if (ast instanceof DtcBaseNode) {
+		return false;
+	}
 
-  return ast.parentNode ? isDeleteChild(ast.parentNode) : false;
+	return ast.parentNode ? isDeleteChild(ast.parentNode) : false;
 };
 
 export const isPropertyChild = (ast: ASTBase): boolean => {
-  return !!getPropertyFromChild(ast);
+	return !!getPropertyFromChild(ast);
 };
 
 export const getPropertyFromChild = (ast: ASTBase): DtcProperty | undefined => {
-  if (ast instanceof DtcProperty) {
-    return ast;
-  }
+	if (ast instanceof DtcProperty) {
+		return ast;
+	}
 
-  if (ast instanceof DtcBaseNode) {
-    return;
-  }
+	if (ast instanceof DtcBaseNode) {
+		return;
+	}
 
-  return ast.parentNode ? getPropertyFromChild(ast.parentNode) : undefined;
+	return ast.parentNode ? getPropertyFromChild(ast.parentNode) : undefined;
 };
 
 export const isPropertyValueChild = (astBase?: ASTBase): boolean => {
-  if (!astBase || astBase instanceof DtcProperty) return false;
+	if (!astBase || astBase instanceof DtcProperty) return false;
 
-  return (
-    astBase instanceof PropertyValue || isPropertyValueChild(astBase.parentNode)
-  );
+	return (
+		astBase instanceof PropertyValue ||
+		isPropertyValueChild(astBase.parentNode)
+	);
 };
 
 export const getNodeNameOrNodeLabelRef = (nodes: DtcBaseNode[]) => {
-  return [
-    ...nodes.map((n) => {
-      if (n instanceof DtcChildNode) {
-        return n.name;
-      }
+	return [
+		...nodes.map((n) => {
+			if (n instanceof DtcChildNode) {
+				return n.name;
+			}
 
-      if (n instanceof DtcRootNode) {
-        return n.name;
-      }
+			if (n instanceof DtcRootNode) {
+				return n.name;
+			}
 
-      if (n instanceof DtcRefNode) {
-        return n.reference;
-      }
-    }),
-  ].filter((a) => !!a) as (NodeName | LabelRef)[];
+			if (n instanceof DtcRefNode) {
+				return n.reference;
+			}
+		}),
+	].filter((a) => !!a) as (NodeName | LabelRef)[];
 };
 
 export const isChildOfAstNode = (parent: ASTBase, ast?: ASTBase): boolean => {
-  if (!ast) {
-    return false;
-  }
+	if (!ast) {
+		return false;
+	}
 
-  return ast.parentNode === parent || isChildOfAstNode(parent, ast.parentNode);
+	return (
+		ast.parentNode === parent || isChildOfAstNode(parent, ast.parentNode)
+	);
 };

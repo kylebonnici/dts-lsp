@@ -15,138 +15,145 @@
  */
 
 import {
-  CompletionItem,
-  CompletionItemKind,
-  TextDocumentPositionParams,
-} from "vscode-languageserver";
-import { ContextAware } from "./runtimeEvaluator";
-import { SearchableResult } from "./types";
-import { Node } from "./context/node";
-import { DtcProperty, PropertyName } from "./ast/dtc/property";
-import { Property } from "./context/property";
-import { nodeFinder } from "./helpers";
-import { isChildOfAstNode, isDeleteChild } from "./ast/helpers";
-import { NodeType } from "./dtsTypes/types";
-import { ASTBase } from "./ast/base";
-import { PropertyValue } from "./ast/dtc/values/value";
-import { DeleteBase } from "./ast/dtc/delete";
+	CompletionItem,
+	CompletionItemKind,
+	TextDocumentPositionParams,
+} from 'vscode-languageserver';
+import { ContextAware } from './runtimeEvaluator';
+import { SearchableResult } from './types';
+import { Node } from './context/node';
+import { DtcProperty, PropertyName } from './ast/dtc/property';
+import { Property } from './context/property';
+import { nodeFinder } from './helpers';
+import { isChildOfAstNode, isDeleteChild } from './ast/helpers';
+import { NodeType } from './dtsTypes/types';
+import { ASTBase } from './ast/base';
+import { PropertyValue } from './ast/dtc/values/value';
+import { DeleteBase } from './ast/dtc/delete';
 
 const propertyValue = (astBase?: ASTBase): boolean => {
-  if (!astBase || astBase instanceof DtcProperty) return false;
+	if (!astBase || astBase instanceof DtcProperty) return false;
 
-  return astBase instanceof PropertyValue || propertyValue(astBase.parentNode);
+	return (
+		astBase instanceof PropertyValue || propertyValue(astBase.parentNode)
+	);
 };
 
 function getPropertyAssignItems(
-  result: SearchableResult | undefined
+	result: SearchableResult | undefined,
 ): CompletionItem[] {
-  if (
-    !result ||
-    !(result.item instanceof Property && result.item.ast.assignOperatorToken)
-  ) {
-    return [];
-  }
+	if (
+		!result ||
+		!(
+			result.item instanceof Property &&
+			result.item.ast.assignOperatorToken
+		)
+	) {
+		return [];
+	}
 
-  const inPropertyValue = propertyValue(result?.ast);
+	const inPropertyValue = propertyValue(result?.ast);
 
-  if (
-    !inPropertyValue &&
-    !(result.ast instanceof DtcProperty && result.item.ast.values === null) &&
-    !propertyValue(result.beforeAst) &&
-    !propertyValue(result.afterAst)
-  ) {
-    return [];
-  }
+	if (
+		!inPropertyValue &&
+		!(
+			result.ast instanceof DtcProperty && result.item.ast.values === null
+		) &&
+		!propertyValue(result.beforeAst) &&
+		!propertyValue(result.afterAst)
+	) {
+		return [];
+	}
 
-  let valueIndex = -1;
+	let valueIndex = -1;
 
-  if (result.item.ast.values === null) {
-    valueIndex = 0;
-  } else {
-    valueIndex =
-      (result.item.ast.values?.values.findIndex(
-        (v) => v && isChildOfAstNode(v, result.beforeAst)
-      ) ?? -1) + 1;
-  }
+	if (result.item.ast.values === null) {
+		valueIndex = 0;
+	} else {
+		valueIndex =
+			(result.item.ast.values?.values.findIndex(
+				(v) => v && isChildOfAstNode(v, result.beforeAst),
+			) ?? -1) + 1;
+	}
 
-  if (valueIndex === -1) {
-    valueIndex = 0;
-  }
+	if (valueIndex === -1) {
+		valueIndex = 0;
+	}
 
-  if (result.item.name === "compatible") {
-    const nodeTypes = result.item.parent.nodeTypes.filter((t) => t);
-    const nodeType = nodeTypes.at(-1);
-    const currentBindings = result.item.ast.quickValues;
-    let bindings: string[] | undefined;
-    if (nodeType instanceof NodeType && nodeType.extends.size) {
-      bindings = Array.from(nodeType.extends).filter(
-        (v) => !currentBindings || !currentBindings.includes(v)
-      );
-    }
+	if (result.item.name === 'compatible') {
+		const nodeTypes = result.item.parent.nodeTypes.filter((t) => t);
+		const nodeType = nodeTypes.at(-1);
+		const currentBindings = result.item.ast.quickValues;
+		let bindings: string[] | undefined;
+		if (nodeType instanceof NodeType && nodeType.extends.size) {
+			bindings = Array.from(nodeType.extends).filter(
+				(v) => !currentBindings || !currentBindings.includes(v),
+			);
+		}
 
-    if (currentBindings?.filter((v) => v)?.length && !bindings) {
-      return [];
-    }
+		if (currentBindings?.filter((v) => v)?.length && !bindings) {
+			return [];
+		}
 
-    bindings ??= result.runtime.context.bindingLoader?.getBindings() ?? [];
-    return bindings
-      .filter((v) => !currentBindings || !currentBindings.includes(v))
-      .map((v) => ({
-        label: `"${v}"`,
-        kind: CompletionItemKind.Variable,
-        insertText: inPropertyValue ? v : `"${v}"`,
-      }));
-  }
+		bindings ??= result.runtime.context.bindingLoader?.getBindings() ?? [];
+		return bindings
+			.filter((v) => !currentBindings || !currentBindings.includes(v))
+			.map((v) => ({
+				label: `"${v}"`,
+				kind: CompletionItemKind.Variable,
+				insertText: inPropertyValue ? v : `"${v}"`,
+			}));
+	}
 
-  const nodeType = result.item.parent.nodeType;
-  if (nodeType instanceof NodeType) {
-    return (
-      nodeType.properties
-        .find((p) => p.name === result.item?.name)
-        ?.getPropertyCompletionItems(
-          result.item,
-          valueIndex,
-          inPropertyValue
-        ) ?? []
-    );
-  }
+	const nodeType = result.item.parent.nodeType;
+	if (nodeType instanceof NodeType) {
+		return (
+			nodeType.properties
+				.find((p) => p.name === result.item?.name)
+				?.getPropertyCompletionItems(
+					result.item,
+					valueIndex,
+					inPropertyValue,
+				) ?? []
+		);
+	}
 
-  return [];
+	return [];
 }
 
 function getPropertyNamesItems(
-  result: SearchableResult | undefined
+	result: SearchableResult | undefined,
 ): CompletionItem[] {
-  if (
-    !result ||
-    !(
-      (result.item instanceof Property &&
-        result.ast instanceof PropertyName &&
-        result.item.ast.values == null) ||
-      result.item instanceof Node
-    ) ||
-    isDeleteChild(result.ast) ||
-    result.beforeAst?.parentNode instanceof DeleteBase
-  ) {
-    return [];
-  }
+	if (
+		!result ||
+		!(
+			(result.item instanceof Property &&
+				result.ast instanceof PropertyName &&
+				result.item.ast.values == null) ||
+			result.item instanceof Node
+		) ||
+		isDeleteChild(result.ast) ||
+		result.beforeAst?.parentNode instanceof DeleteBase
+	) {
+		return [];
+	}
 
-  const getItems = (node: Node) =>
-    node.nodeType?.getPropertyListCompletionItems(node) ?? [];
+	const getItems = (node: Node) =>
+		node.nodeType?.getPropertyListCompletionItems(node) ?? [];
 
-  if (result.item instanceof Property) {
-    return getItems(result.item.parent);
-  }
+	if (result.item instanceof Property) {
+		return getItems(result.item.parent);
+	}
 
-  return getItems(result.item);
+	return getItems(result.item);
 }
 
 export async function getTypeCompletions(
-  location: TextDocumentPositionParams,
-  context: ContextAware | undefined
+	location: TextDocumentPositionParams,
+	context: ContextAware | undefined,
 ): Promise<CompletionItem[]> {
-  return nodeFinder(location, context, (locationMeta) => [
-    ...getPropertyAssignItems(locationMeta),
-    ...getPropertyNamesItems(locationMeta),
-  ]);
+	return nodeFinder(location, context, (locationMeta) => [
+		...getPropertyAssignItems(locationMeta),
+		...getPropertyNamesItems(locationMeta),
+	]);
 }

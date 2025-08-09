@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-import { TokenIndexes } from "../types";
-import { ASTBase } from "./base";
+import { TokenIndexes } from '../types';
+import { ASTBase } from './base';
 
 export class Keyword extends ASTBase {
-  constructor(tokenIndexes?: TokenIndexes) {
-    super(tokenIndexes);
-    this.semanticTokenType = "keyword";
-    this.semanticTokenModifiers = "declaration";
-  }
+	constructor(tokenIndexes?: TokenIndexes) {
+		super(tokenIndexes);
+		this.semanticTokenType = 'keyword';
+		this.semanticTokenModifiers = 'declaration';
+	}
 }

@@ -14,29 +14,29 @@
  * limitations under the License.
  */
 
-import { ASTBase } from "../../base";
-import { SymbolKind } from "vscode-languageserver";
-import { PropertyValue } from "./value";
+import { SymbolKind } from 'vscode-languageserver';
+import { ASTBase } from '../../base';
+import { PropertyValue } from './value';
 
 export class PropertyValues extends ASTBase {
-  constructor(public readonly values: (PropertyValue | null)[]) {
-    super();
-    this.docSymbolsMeta = {
-      name: "Values",
-      kind: SymbolKind.String,
-    };
-    this.values.forEach((value) => this.addChild(value));
-  }
+	constructor(public readonly values: (PropertyValue | null)[]) {
+		super();
+		this.docSymbolsMeta = {
+			name: 'Values',
+			kind: SymbolKind.String,
+		};
+		this.values.forEach((value) => this.addChild(value));
+	}
 
-  toString() {
-    return this.values.map((v) => v?.toString()).join(",");
-  }
+	toString() {
+		return this.values.map((v) => v?.toString()).join(',');
+	}
 
-  toJson() {
-    if (this.values.length === 1) {
-      return this.values[0]?.toJson();
-    }
+	toJson() {
+		if (this.values.length === 1) {
+			return this.values[0]?.toJson();
+		}
 
-    return this.values.map((v) => v?.toJson());
-  }
+		return this.values.map((v) => v?.toJson());
+	}
 }

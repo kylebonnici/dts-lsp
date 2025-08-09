@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-import { getStandardDefaultType } from "../../../standardDefaultType";
-import nonpostedMmio from "./nonpostedMmio";
+import { getStandardDefaultType } from '../../../standardDefaultType';
+import nonpostedMmio from './nonpostedMmio';
 
 export function getSimpleBusType() {
-  const simpleBus = getStandardDefaultType();
-  simpleBus.noMismatchPropertiesAllowed = true;
+	const simpleBus = getStandardDefaultType();
+	simpleBus.noMismatchPropertiesAllowed = true;
 
-  const compatibleProp = simpleBus.properties.find(
-    (p) => p.name === "compatible"
-  );
-  compatibleProp!.required = () => "required";
+	const compatibleProp = simpleBus.properties.find(
+		(p) => p.name === 'compatible',
+	);
+	compatibleProp!.required = () => 'required';
 
-  const rangesProp = simpleBus.properties.find((p) => p.name === "ranges");
-  rangesProp!.required = () => "required";
+	const rangesProp = simpleBus.properties.find((p) => p.name === 'ranges');
+	rangesProp!.required = () => 'required';
 
-  simpleBus.addProperty(nonpostedMmio());
+	simpleBus.addProperty(nonpostedMmio());
 
-  return simpleBus;
+	return simpleBus;
 }

@@ -14,67 +14,68 @@
  * limitations under the License.
  */
 
-import type { MacroRegistryItem } from "../types";
-import { CPreprocessorParser } from "../cPreprocessorParser";
-import { normalizePath } from "../helpers";
+import type { MacroRegistryItem } from '../types';
+import { CPreprocessorParser } from '../cPreprocessorParser';
+import { normalizePath } from '../helpers';
 
 let cachedCPreprocessorParserProvider:
-  | CachedCPreprocessorParserProvider
-  | undefined;
+	| CachedCPreprocessorParserProvider
+	| undefined;
 
 class CachedCPreprocessorParserProvider {
-  private headerFiles = new Map<string, Map<string, CPreprocessorParser>>();
-  private includeOwners = new WeakMap<CPreprocessorParser, Set<string>>();
+	private headerFiles = new Map<string, Map<string, CPreprocessorParser>>();
+	private includeOwners = new WeakMap<CPreprocessorParser, Set<string>>();
 
-  getCPreprocessorParser(
-    uri: string,
-    inludes: string[],
-    macros: Map<string, MacroRegistryItem>,
-    parent: string
-  ) {
-    uri = normalizePath(uri);
-    const key = `${Array.from(macros)
-      .map((m) => m[1].macro.toString())
-      .join("::")}`;
-    const cache = this.headerFiles.get(uri)?.get(key);
-    if (cache) {
-      cache.reparse(macros);
-      return cache;
-    }
+	getCPreprocessorParser(
+		uri: string,
+		inludes: string[],
+		macros: Map<string, MacroRegistryItem>,
+		parent: string,
+	) {
+		uri = normalizePath(uri);
+		const key = `${Array.from(macros)
+			.map((m) => m[1].macro.toString())
+			.join('::')}`;
+		const cache = this.headerFiles.get(uri)?.get(key);
+		if (cache) {
+			cache.reparse(macros);
+			return cache;
+		}
 
-    console.log("No cpreprocess cache", uri);
-    const header = new CPreprocessorParser(uri, inludes, macros);
-    const set = this.includeOwners.get(header) ?? new Set();
-    set.add(parent);
-    this.includeOwners.set(header, set);
-    if (!this.headerFiles.has(uri)) {
-      this.headerFiles.set(uri, new Map());
-    }
-    this.headerFiles.get(uri)?.set(key, header);
-    return header;
-  }
+		console.log('No cpreprocess cache', uri);
+		const header = new CPreprocessorParser(uri, inludes, macros);
+		const set = this.includeOwners.get(header) ?? new Set();
+		set.add(parent);
+		this.includeOwners.set(header, set);
+		if (!this.headerFiles.has(uri)) {
+			this.headerFiles.set(uri, new Map());
+		}
+		this.headerFiles.get(uri)?.set(key, header);
+		return header;
+	}
 
-  reset(uri: string) {
-    uri = normalizePath(uri);
-    const headers = this.headerFiles.get(uri);
-    if (headers)
-      Array.from(headers).forEach((header) => {
-        if (header[1]) {
-          console.log("disposing cpreprocessor cache for", uri);
-          Array.from(this.includeOwners.get(header[1]) ?? []).forEach(
-            this.reset.bind(this)
-          );
-          this.headerFiles.delete(uri);
-        }
-      });
-  }
+	reset(uri: string) {
+		uri = normalizePath(uri);
+		const headers = this.headerFiles.get(uri);
+		if (headers)
+			Array.from(headers).forEach((header) => {
+				if (header[1]) {
+					console.log('disposing cpreprocessor cache for', uri);
+					Array.from(this.includeOwners.get(header[1]) ?? []).forEach(
+						this.reset.bind(this),
+					);
+					this.headerFiles.delete(uri);
+				}
+			});
+	}
 }
 
 export function getCachedCPreprocessorParserProvider(): CachedCPreprocessorParserProvider {
-  cachedCPreprocessorParserProvider ??= new CachedCPreprocessorParserProvider();
-  return cachedCPreprocessorParserProvider;
+	cachedCPreprocessorParserProvider ??=
+		new CachedCPreprocessorParserProvider();
+	return cachedCPreprocessorParserProvider;
 }
 
 export function resetCachedCPreprocessorParserProvider() {
-  cachedCPreprocessorParserProvider = new CachedCPreprocessorParserProvider();
+	cachedCPreprocessorParserProvider = new CachedCPreprocessorParserProvider();
 }

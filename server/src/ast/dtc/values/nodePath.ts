@@ -14,76 +14,76 @@
  * limitations under the License.
  */
 
-import { SymbolKind } from "vscode-languageserver";
-import { ASTBase } from "../../base";
-import { NodeName } from "../node";
-import { SerializableNodePath } from "../../../types/index";
-import { BuildSemanticTokensPush } from "../../../types";
-import { getTokenModifiers, getTokenTypes } from "../../../helpers";
+import { SymbolKind } from 'vscode-languageserver';
+import { ASTBase } from '../../base';
+import { NodeName } from '../node';
+import { SerializableNodePath } from '../../../types/index';
+import { BuildSemanticTokensPush } from '../../../types';
+import { getTokenModifiers, getTokenTypes } from '../../../helpers';
 
 export class NodePath extends ASTBase {
-  private _pathParts: (NodeName | null)[] = [];
+	private _pathParts: (NodeName | null)[] = [];
 
-  constructor() {
-    super();
-  }
+	constructor() {
+		super();
+	}
 
-  addPath(part: NodeName | null, pathDivider?: ASTBase) {
-    this._pathParts.push(part);
-    if (pathDivider) {
-      this.addChild(pathDivider);
-    }
-    this.addChild(part);
-  }
+	addPath(part: NodeName | null, pathDivider?: ASTBase) {
+		this._pathParts.push(part);
+		if (pathDivider) {
+			this.addChild(pathDivider);
+		}
+		this.addChild(part);
+	}
 
-  get pathParts() {
-    return [...this._pathParts];
-  }
+	get pathParts() {
+		return [...this._pathParts];
+	}
 
-  toString() {
-    return this._pathParts.map((p) => p?.toString() ?? "<NULL>").join("/");
-  }
+	toString() {
+		return this._pathParts.map((p) => p?.toString() ?? '<NULL>').join('/');
+	}
 
-  buildSemanticTokens(push: BuildSemanticTokensPush) {
-    this._children.forEach((child) => {
-      if (child instanceof NodeName) {
-        child.buildSemanticTokens(push);
-      } else {
-        push(
-          getTokenTypes("operator"),
-          getTokenModifiers("declaration"),
-          child.tokenIndexes
-        );
-      }
-    });
-  }
+	buildSemanticTokens(push: BuildSemanticTokensPush) {
+		this._children.forEach((child) => {
+			if (child instanceof NodeName) {
+				child.buildSemanticTokens(push);
+			} else {
+				push(
+					getTokenTypes('operator'),
+					getTokenModifiers('declaration'),
+					child.tokenIndexes,
+				);
+			}
+		});
+	}
 }
 
 export class NodePathRef extends ASTBase {
-  constructor(public readonly path: NodePath | null) {
-    super();
-    this.docSymbolsMeta = {
-      name: `/${this.path?.toString() ?? ""}`,
-      kind: SymbolKind.Namespace,
-    };
-    this.addChild(path);
-  }
+	constructor(public readonly path: NodePath | null) {
+		super();
+		this.docSymbolsMeta = {
+			name: `/${this.path?.toString() ?? ''}`,
+			kind: SymbolKind.Namespace,
+		};
+		this.addChild(path);
+	}
 
-  toString() {
-    return `&${this.path?.toString() ?? "NULL"}`;
-  }
+	toString() {
+		return `&${this.path?.toString() ?? 'NULL'}`;
+	}
 
-  toJson() {
-    return -1;
-  }
+	toJson() {
+		return -1;
+	}
 
-  serialize(): SerializableNodePath {
-    return {
-      type: "NODE_PATH",
-      nodePath: this.path?.toString() ?? null,
-      uri: this.serializeUri,
-      range: this.range,
-      issues: this.serializeIssues,
-    };
-  }
+	serialize(): SerializableNodePath {
+		return {
+			type: 'NODE_PATH',
+			nodePath: this.path?.toString() ?? null,
+			uri: this.serializeUri,
+			range: this.range,
+			issues: this.serializeIssues,
+		};
+	}
 }

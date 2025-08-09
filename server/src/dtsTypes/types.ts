@@ -15,740 +15,764 @@
  */
 
 import {
-  genStandardTypeDiagnostic,
-  getIndentString,
-  isNestedArray,
-  toRangeWithTokenIndex,
-} from "../helpers";
-import { type Node } from "../context/node";
-import { Property } from "../context/property";
-import { FileDiagnostic, MacroRegistryItem, StandardTypeIssue } from "../types";
-import { Runtime } from "../context/runtime";
+	CompletionItem,
+	CompletionItemKind,
+	DiagnosticSeverity,
+	DiagnosticTag,
+	MarkupContent,
+	MarkupKind,
+	ParameterInformation,
+	Position,
+	SignatureHelp,
+	SignatureInformation,
+	TextEdit,
+} from 'vscode-languageserver';
 import {
-  CompletionItem,
-  CompletionItemKind,
-  DiagnosticSeverity,
-  DiagnosticTag,
-  MarkupContent,
-  MarkupKind,
-  ParameterInformation,
-  Position,
-  SignatureHelp,
-  SignatureInformation,
-  TextEdit,
-} from "vscode-languageserver";
-import { PropertyValue } from "../ast/dtc/values/value";
-import { StringValue } from "../ast/dtc/values/string";
-import { ASTBase } from "../ast/base";
-import { ArrayValues } from "../ast/dtc/values/arrayValue";
-import { LabelRef } from "../ast/dtc/labelRef";
-import { NodePathRef } from "../ast/dtc/values/nodePath";
-import { getNodeNameOrNodeLabelRef } from "../ast/helpers";
-import { countParent } from "../getDocumentFormatting";
+	genStandardTypeDiagnostic,
+	getIndentString,
+	isNestedArray,
+	toRangeWithTokenIndex,
+} from '../helpers';
+import { type Node } from '../context/node';
+import { Property } from '../context/property';
+import { FileDiagnostic, MacroRegistryItem, StandardTypeIssue } from '../types';
+import { Runtime } from '../context/runtime';
+import { PropertyValue } from '../ast/dtc/values/value';
+import { StringValue } from '../ast/dtc/values/string';
+import { ASTBase } from '../ast/base';
+import { ArrayValues } from '../ast/dtc/values/arrayValue';
+import { LabelRef } from '../ast/dtc/labelRef';
+import { NodePathRef } from '../ast/dtc/values/nodePath';
+import { getNodeNameOrNodeLabelRef } from '../ast/helpers';
+import { countParent } from '../getDocumentFormatting';
 import {
-  BindingPropertyType as PropertyType,
-  TypeConfig,
-} from "../types/index";
+	BindingPropertyType as PropertyType,
+	TypeConfig,
+} from '../types/index';
 
 function propertyTypeToString(type: PropertyType): string {
-  switch (type) {
-    case PropertyType.EMPTY:
-      return `EMPTY`;
-    case PropertyType.U32:
-      return `U32`;
-    case PropertyType.U64:
-      return `U64`;
-    case PropertyType.STRING:
-      return `STRING`;
-    case PropertyType.PROP_ENCODED_ARRAY:
-      return `PROP_ENCODED_ARRAY`;
-    case PropertyType.STRINGLIST:
-      return `STRINGLIST`;
-    case PropertyType.BYTESTRING:
-      return `BYTESTRING`;
-    case PropertyType.ANY:
-      return `ANY`;
-    case PropertyType.UNKNOWN:
-      return `UNKNOWN`;
-  }
+	switch (type) {
+		case PropertyType.EMPTY:
+			return `EMPTY`;
+		case PropertyType.U32:
+			return `U32`;
+		case PropertyType.U64:
+			return `U64`;
+		case PropertyType.STRING:
+			return `STRING`;
+		case PropertyType.PROP_ENCODED_ARRAY:
+			return `PROP_ENCODED_ARRAY`;
+		case PropertyType.STRINGLIST:
+			return `STRINGLIST`;
+		case PropertyType.BYTESTRING:
+			return `BYTESTRING`;
+		case PropertyType.ANY:
+			return `ANY`;
+		case PropertyType.UNKNOWN:
+			return `UNKNOWN`;
+	}
 }
 
-export type RequirementStatus = "required" | "omitted" | "optional";
+export type RequirementStatus = 'required' | 'omitted' | 'optional';
 
 export class PropertyNodeType<T = string | number> {
-  public required: (node: Node) => RequirementStatus;
-  public readonly allowedValues: T[] | undefined;
-  public values: (property: Property) => T[];
-  public hideAutoComplete = false;
-  public list = false;
-  public bindingType?: string;
-  public description?: string[];
-  public examples?: string[];
-  public constValue?: number | string | number[] | string[];
-  public onHover = (): MarkupContent => {
-    return {
-      kind: MarkupKind.Markdown,
-      value: [
-        "### Type",
-        `**DTS native type**  `,
-        `${this.type
-          .map((t) => t.types.map(propertyTypeToString).join(" or "))
-          .join(",")}
+	public required: (node: Node) => RequirementStatus;
+	public readonly allowedValues: T[] | undefined;
+	public values: (property: Property) => T[];
+	public hideAutoComplete = false;
+	public list = false;
+	public bindingType?: string;
+	public description?: string[];
+	public examples?: string[];
+	public constValue?: number | string | number[] | string[];
+	public onHover = (): MarkupContent => {
+		return {
+			kind: MarkupKind.Markdown,
+			value: [
+				'### Type',
+				`**DTS native type**  `,
+				`${this.type
+					.map((t) => t.types.map(propertyTypeToString).join(' or '))
+					.join(',')}
           
           `,
-        ...(this.bindingType
-          ? [
-              `**Binding type**  `,
-              `${this.bindingType}
+				...(this.bindingType
+					? [
+							`**Binding type**  `,
+							`${this.bindingType}
         
         `,
-            ]
-          : []),
-        ...(this.description
-          ? ["### Description", this.description.join("\n\n")]
-          : []),
-        ...(this.examples ? ["### Example", this.examples.join("\n\n")] : []),
-      ].join("\n"),
-    };
-  };
+						]
+					: []),
+				...(this.description
+					? ['### Description', this.description.join('\n\n')]
+					: []),
+				...(this.examples
+					? ['### Example', this.examples.join('\n\n')]
+					: []),
+			].join('\n'),
+		};
+	};
 
-  public signatureArgs?: ParameterInformation[] | ParameterInformation[][];
-  public signatureArgsCyclic = false;
+	public signatureArgs?: ParameterInformation[] | ParameterInformation[][];
+	public signatureArgsCyclic = false;
 
-  constructor(
-    public readonly name: string | RegExp,
-    public type: TypeConfig[],
-    required:
-      | RequirementStatus
-      | ((node: Node) => RequirementStatus) = "optional",
-    public readonly def: T | undefined = undefined,
-    values?: T[] | ((property: Property) => T[]),
-    public additionalTypeCheck?: (
-      property: Property,
-      macros: Map<string, MacroRegistryItem>
-    ) => FileDiagnostic[]
-  ) {
-    if (typeof required !== "function") {
-      this.required = () => required;
-    } else {
-      this.required = required;
-    }
+	constructor(
+		public readonly name: string | RegExp,
+		public type: TypeConfig[],
+		required:
+			| RequirementStatus
+			| ((node: Node) => RequirementStatus) = 'optional',
+		public readonly def: T | undefined = undefined,
+		values?: T[] | ((property: Property) => T[]),
+		public additionalTypeCheck?: (
+			property: Property,
+			macros: Map<string, MacroRegistryItem>,
+		) => FileDiagnostic[],
+	) {
+		if (typeof required !== 'function') {
+			this.required = () => required;
+		} else {
+			this.required = required;
+		}
 
-    if (typeof values !== "function") {
-      this.allowedValues = values;
-      this.values = () => {
-        if (values === undefined) {
-          return def ? [def] : [];
-        }
+		if (typeof values !== 'function') {
+			this.allowedValues = values;
+			this.values = () => {
+				if (values === undefined) {
+					return def ? [def] : [];
+				}
 
-        return def && values.indexOf(def) === -1 ? [def, ...values] : values;
-      };
-    } else {
-      this.values = values;
-    }
-  }
+				return def && values.indexOf(def) === -1
+					? [def, ...values]
+					: values;
+			};
+		} else {
+			this.values = values;
+		}
+	}
 
-  getNameMatch(name: string): boolean {
-    return typeof this.name === "string"
-      ? this.name === name
-      : this.name.test(name);
-  }
+	getNameMatch(name: string): boolean {
+		return typeof this.name === 'string'
+			? this.name === name
+			: this.name.test(name);
+	}
 
-  validateProperty(
-    runtime: Runtime,
-    node: Node,
-    propertyName: string,
-    property?: Property
-  ): FileDiagnostic[] {
-    const required = this.required(node);
-    if (!property) {
-      if (required === "required") {
-        const childOrRefNode = runtime.getOrderedNodeAst(node);
-        const orderedTree = getNodeNameOrNodeLabelRef(childOrRefNode);
+	validateProperty(
+		runtime: Runtime,
+		node: Node,
+		propertyName: string,
+		property?: Property,
+	): FileDiagnostic[] {
+		const required = this.required(node);
+		if (!property) {
+			if (required === 'required') {
+				const childOrRefNode = runtime.getOrderedNodeAst(node);
+				const orderedTree = getNodeNameOrNodeLabelRef(childOrRefNode);
 
-        let assignTest = "";
-        if (this.type.length === 1 && this.type[0].types.length === 1) {
-          switch (this.type[0].types[0]) {
-            case PropertyType.U32:
-            case PropertyType.U64:
-            case PropertyType.PROP_ENCODED_ARRAY:
-              assignTest = " = <>";
-              break;
-            case PropertyType.STRING:
-            case PropertyType.STRINGLIST:
-              assignTest = ' = ""';
-              break;
-            case PropertyType.BYTESTRING:
-              assignTest = " = []";
-              break;
-          }
-        }
+				let assignTest = '';
+				if (this.type.length === 1 && this.type[0].types.length === 1) {
+					switch (this.type[0].types[0]) {
+						case PropertyType.U32:
+						case PropertyType.U64:
+						case PropertyType.PROP_ENCODED_ARRAY:
+							assignTest = ' = <>';
+							break;
+						case PropertyType.STRING:
+						case PropertyType.STRINGLIST:
+							assignTest = ' = ""';
+							break;
+						case PropertyType.BYTESTRING:
+							assignTest = ' = []';
+							break;
+					}
+				}
 
-        return [
-          ...childOrRefNode.map((node, i) => {
-            const token = node.openScope ?? orderedTree[i].lastToken;
+				return [
+					...childOrRefNode.map((node, i) => {
+						const token =
+							node.openScope ?? orderedTree[i].lastToken;
 
-            return genStandardTypeDiagnostic(
-              StandardTypeIssue.REQUIRED,
-              orderedTree[i],
-              DiagnosticSeverity.Error,
-              [],
-              [],
-              [propertyName],
-              TextEdit.insert(
-                Position.create(token.pos.line, token.pos.col + 1),
-                `\n${"".padEnd(
-                  countParent(orderedTree[i].uri, node) *
-                    getIndentString().length,
-                  getIndentString()
-                )}${propertyName}${assignTest};`
-              )
-            );
-          }),
-        ];
-      }
+						return genStandardTypeDiagnostic(
+							StandardTypeIssue.REQUIRED,
+							orderedTree[i],
+							DiagnosticSeverity.Error,
+							[],
+							[],
+							[propertyName],
+							TextEdit.insert(
+								Position.create(
+									token.pos.line,
+									token.pos.col + 1,
+								),
+								`\n${''.padEnd(
+									countParent(orderedTree[i].uri, node) *
+										getIndentString().length,
+									getIndentString(),
+								)}${propertyName}${assignTest};`,
+							),
+						);
+					}),
+				];
+			}
 
-      return [];
-    } else if (required === "omitted") {
-      return [
-        genStandardTypeDiagnostic(
-          StandardTypeIssue.OMITTED,
-          property.ast,
-          DiagnosticSeverity.Error,
-          undefined,
-          [],
-          [propertyName]
-        ),
-      ];
-    }
+			return [];
+		} else if (required === 'omitted') {
+			return [
+				genStandardTypeDiagnostic(
+					StandardTypeIssue.OMITTED,
+					property.ast,
+					DiagnosticSeverity.Error,
+					undefined,
+					[],
+					[propertyName],
+				),
+			];
+		}
 
-    const propTypes = propertyValuesToPropertyType(property);
-    const issues: FileDiagnostic[] = [];
+		const propTypes = propertyValuesToPropertyType(property);
+		const issues: FileDiagnostic[] = [];
 
-    const checkType = (
-      expected: PropertyType[],
-      type: PropertyType,
-      ast: ASTBase | undefined | null
-    ) => {
-      ast ??= property.ast;
+		const checkType = (
+			expected: PropertyType[],
+			type: PropertyType,
+			ast: ASTBase | undefined | null,
+		) => {
+			ast ??= property.ast;
 
-      const typeIsValid =
-        expected.some((tt) => tt == type) ||
-        (expected.some((tt) => tt == PropertyType.STRINGLIST) &&
-          (type === PropertyType.STRING || type === PropertyType.STRINGLIST)) ||
-        (expected.some((tt) => tt == PropertyType.PROP_ENCODED_ARRAY) &&
-          (type === PropertyType.U32 || type === PropertyType.U64));
+			const typeIsValid =
+				expected.some((tt) => tt == type) ||
+				(expected.some((tt) => tt == PropertyType.STRINGLIST) &&
+					(type === PropertyType.STRING ||
+						type === PropertyType.STRINGLIST)) ||
+				(expected.some((tt) => tt == PropertyType.PROP_ENCODED_ARRAY) &&
+					(type === PropertyType.U32 || type === PropertyType.U64));
 
-      if (!typeIsValid) {
-        const issue: StandardTypeIssue[] = [];
-        expected.forEach((tt) => {
-          switch (tt) {
-            case PropertyType.EMPTY:
-              issue.push(StandardTypeIssue.EXPECTED_EMPTY);
-              break;
-            case PropertyType.STRING:
-              issue.push(StandardTypeIssue.EXPECTED_STRING);
-              break;
-            case PropertyType.STRINGLIST:
-              issue.push(StandardTypeIssue.EXPECTED_STRINGLIST);
-              break;
-            case PropertyType.U32:
-              issue.push(StandardTypeIssue.EXPECTED_U32);
-              break;
-            case PropertyType.U64:
-              issue.push(StandardTypeIssue.EXPECTED_U64);
-              break;
-            case PropertyType.PROP_ENCODED_ARRAY:
-              issue.push(StandardTypeIssue.EXPECTED_PROP_ENCODED_ARRAY);
-              break;
-          }
-        });
+			if (!typeIsValid) {
+				const issue: StandardTypeIssue[] = [];
+				expected.forEach((tt) => {
+					switch (tt) {
+						case PropertyType.EMPTY:
+							issue.push(StandardTypeIssue.EXPECTED_EMPTY);
+							break;
+						case PropertyType.STRING:
+							issue.push(StandardTypeIssue.EXPECTED_STRING);
+							break;
+						case PropertyType.STRINGLIST:
+							issue.push(StandardTypeIssue.EXPECTED_STRINGLIST);
+							break;
+						case PropertyType.U32:
+							issue.push(StandardTypeIssue.EXPECTED_U32);
+							break;
+						case PropertyType.U64:
+							issue.push(StandardTypeIssue.EXPECTED_U64);
+							break;
+						case PropertyType.PROP_ENCODED_ARRAY:
+							issue.push(
+								StandardTypeIssue.EXPECTED_PROP_ENCODED_ARRAY,
+							);
+							break;
+					}
+				});
 
-        if (issue.length) {
-          issues.push(
-            genStandardTypeDiagnostic(
-              issue,
-              ast,
-              DiagnosticSeverity.Error,
-              [],
-              [],
-              [property.name]
-            )
-          );
-        }
-      }
-    };
+				if (issue.length) {
+					issues.push(
+						genStandardTypeDiagnostic(
+							issue,
+							ast,
+							DiagnosticSeverity.Error,
+							[],
+							[],
+							[property.name],
+						),
+					);
+				}
+			}
+		};
 
-    if (this.type[0].types.some((e) => e === PropertyType.ANY)) {
-      return [];
-    }
+		if (this.type[0].types.some((e) => e === PropertyType.ANY)) {
+			return [];
+		}
 
-    if (this.type.length > 1) {
-      const type = this.type;
-      if (!this.list && this.type.length !== propTypes.length) {
-        issues.push(
-          genStandardTypeDiagnostic(
-            StandardTypeIssue.EXPECTED_COMPOSITE_LENGTH,
-            property.ast.values ?? property.ast,
-            DiagnosticSeverity.Error,
-            [],
-            [],
-            [propertyName, this.type.length.toString()]
-          )
-        );
-      } else {
-        propTypes.forEach((t, i) => {
-          if (type[0].types.every((tt) => tt !== t)) {
-            issues.push(
-              genStandardTypeDiagnostic(
-                StandardTypeIssue.EXPECTED_STRINGLIST,
-                property.ast.values?.values[i] ?? property.ast
-              )
-            );
-          }
-        });
-      }
-    } else {
-      if (this.type[0].types.some((tt) => tt === PropertyType.STRINGLIST)) {
-        propTypes.some((t) =>
-          checkType(
-            [PropertyType.STRINGLIST],
-            t,
-            property.ast.values?.values[0]?.value
-          )
-        );
-      } else if (
-        this.list ||
-        (this.type.length === 1 &&
-          this.type[0].types
-            .filter((t) => t !== PropertyType.EMPTY)
-            .every((tt) => tt === PropertyType.PROP_ENCODED_ARRAY))
-      ) {
-        propTypes.some((t) =>
-          checkType(
-            this.type[0].types,
-            t,
-            property.ast.values?.values[0]?.value
-          )
-        );
-      } else if (
-        propTypes.length > 1 &&
-        this.type[0].types.some((tt) => tt !== PropertyType.EMPTY)
-      ) {
-        issues.push(
-          genStandardTypeDiagnostic(
-            StandardTypeIssue.EXPECTED_ONE,
-            property.ast.propertyName ?? property.ast,
-            DiagnosticSeverity.Error,
-            (property.ast.values?.values.slice(1) ?? []).filter(
-              (v) => !!v
-            ) as PropertyValue[],
-            [],
-            [property.name]
-          )
-        );
-      } else if (propTypes.length === 1) {
-        checkType(
-          this.type[0].types,
-          propTypes[0],
-          property.ast.values?.values[0]?.value
-        );
-      }
+		if (this.type.length > 1) {
+			const type = this.type;
+			if (!this.list && this.type.length !== propTypes.length) {
+				issues.push(
+					genStandardTypeDiagnostic(
+						StandardTypeIssue.EXPECTED_COMPOSITE_LENGTH,
+						property.ast.values ?? property.ast,
+						DiagnosticSeverity.Error,
+						[],
+						[],
+						[propertyName, this.type.length.toString()],
+					),
+				);
+			} else {
+				propTypes.forEach((t, i) => {
+					if (type[0].types.every((tt) => tt !== t)) {
+						issues.push(
+							genStandardTypeDiagnostic(
+								StandardTypeIssue.EXPECTED_STRINGLIST,
+								property.ast.values?.values[i] ?? property.ast,
+							),
+						);
+					}
+				});
+			}
+		} else {
+			if (
+				this.type[0].types.some((tt) => tt === PropertyType.STRINGLIST)
+			) {
+				propTypes.some((t) =>
+					checkType(
+						[PropertyType.STRINGLIST],
+						t,
+						property.ast.values?.values[0]?.value,
+					),
+				);
+			} else if (
+				this.list ||
+				(this.type.length === 1 &&
+					this.type[0].types
+						.filter((t) => t !== PropertyType.EMPTY)
+						.every((tt) => tt === PropertyType.PROP_ENCODED_ARRAY))
+			) {
+				propTypes.some((t) =>
+					checkType(
+						this.type[0].types,
+						t,
+						property.ast.values?.values[0]?.value,
+					),
+				);
+			} else if (
+				propTypes.length > 1 &&
+				this.type[0].types.some((tt) => tt !== PropertyType.EMPTY)
+			) {
+				issues.push(
+					genStandardTypeDiagnostic(
+						StandardTypeIssue.EXPECTED_ONE,
+						property.ast.propertyName ?? property.ast,
+						DiagnosticSeverity.Error,
+						(property.ast.values?.values.slice(1) ?? []).filter(
+							(v) => !!v,
+						) as PropertyValue[],
+						[],
+						[property.name],
+					),
+				);
+			} else if (propTypes.length === 1) {
+				checkType(
+					this.type[0].types,
+					propTypes[0],
+					property.ast.values?.values[0]?.value,
+				);
+			}
 
-      const values = this.values(property);
-      // we have the right type
-      if (issues.length === 0) {
-        issues.push(
-          ...(this.additionalTypeCheck?.(property, runtime.context.macros) ??
-            [])
-        );
-        if (
-          values.length &&
-          this.type[0].types.some((tt) => tt === PropertyType.STRING)
-        ) {
-          const currentValue = property.ast.values?.values[0]
-            ?.value as StringValue;
-          if (!values.some((v) => currentValue.value === v)) {
-            issues.push(
-              genStandardTypeDiagnostic(
-                StandardTypeIssue.EXPECTED_ENUM,
-                property.ast.values?.values[0]?.value ?? property.ast,
-                DiagnosticSeverity.Error,
-                [],
-                [],
-                [
-                  this.values(property)
-                    .map((v) => `'${v}'`)
-                    .join(" or "),
-                ]
-              )
-            );
-          }
-        }
-      }
-    }
+			const values = this.values(property);
+			// we have the right type
+			if (issues.length === 0) {
+				issues.push(
+					...(this.additionalTypeCheck?.(
+						property,
+						runtime.context.macros,
+					) ?? []),
+				);
+				if (
+					values.length &&
+					this.type[0].types.some((tt) => tt === PropertyType.STRING)
+				) {
+					const currentValue = property.ast.values?.values[0]
+						?.value as StringValue;
+					if (!values.some((v) => currentValue.value === v)) {
+						issues.push(
+							genStandardTypeDiagnostic(
+								StandardTypeIssue.EXPECTED_ENUM,
+								property.ast.values?.values[0]?.value ??
+									property.ast,
+								DiagnosticSeverity.Error,
+								[],
+								[],
+								[
+									this.values(property)
+										.map((v) => `'${v}'`)
+										.join(' or '),
+								],
+							),
+						);
+					}
+				}
+			}
+		}
 
-    return issues;
-  }
+		return issues;
+	}
 
-  getPropertyCompletionItems(
-    property: Property,
-    valueIndex: number,
-    inValue: boolean
-  ): CompletionItem[] {
-    const currentValue = this.type.at(valueIndex);
+	getPropertyCompletionItems(
+		property: Property,
+		valueIndex: number,
+		inValue: boolean,
+	): CompletionItem[] {
+		const currentValue = this.type.at(valueIndex);
 
-    if (currentValue?.types.some((tt) => tt === PropertyType.STRING)) {
-      if (
-        property.ast.values?.values &&
-        property.ast.values.values?.length > 1
-      ) {
-        return [];
-      }
+		if (currentValue?.types.some((tt) => tt === PropertyType.STRING)) {
+			if (
+				property.ast.values?.values &&
+				property.ast.values.values?.length > 1
+			) {
+				return [];
+			}
 
-      return this.values(property).map((v) => ({
-        label: `"${v}"`,
-        kind: CompletionItemKind.Variable,
-        sortText: v === this.def ? `A${v}` : `Z${v}`,
-        insertText: inValue ? `${v}` : `"${v}"`,
-      }));
-    }
+			return this.values(property).map((v) => ({
+				label: `"${v}"`,
+				kind: CompletionItemKind.Variable,
+				sortText: v === this.def ? `A${v}` : `Z${v}`,
+				insertText: inValue ? `${v}` : `"${v}"`,
+			}));
+		}
 
-    if (
-      currentValue?.types.some(
-        (tt) => tt === PropertyType.U32 || tt === PropertyType.U64
-      )
-    ) {
-      return this.values(property).map((v) => ({
-        label: `<${v}>`,
-        kind: CompletionItemKind.Variable,
-        sortText: v === this.def ? `A${v}` : `Z${v}`,
-        insertText: inValue ? `${v}` : `<${v}>`,
-      }));
-    }
+		if (
+			currentValue?.types.some(
+				(tt) => tt === PropertyType.U32 || tt === PropertyType.U64,
+			)
+		) {
+			return this.values(property).map((v) => ({
+				label: `<${v}>`,
+				kind: CompletionItemKind.Variable,
+				sortText: v === this.def ? `A${v}` : `Z${v}`,
+				insertText: inValue ? `${v}` : `<${v}>`,
+			}));
+		}
 
-    return [];
-  }
+		return [];
+	}
 }
 
 const propertyValuesToPropertyType = (property: Property): PropertyType[] => {
-  return property.ast.values
-    ? property.ast.values.values.map((v) => propertyValueToPropertyType(v))
-    : [PropertyType.EMPTY];
+	return property.ast.values
+		? property.ast.values.values.map((v) => propertyValueToPropertyType(v))
+		: [PropertyType.EMPTY];
 };
 
 const propertyValueToPropertyType = (
-  value: PropertyValue | null
+	value: PropertyValue | null,
 ): PropertyType => {
-  if (!value) {
-    return PropertyType.UNKNOWN;
-  }
-  if (value.value instanceof StringValue) {
-    return PropertyType.STRING;
-  }
+	if (!value) {
+		return PropertyType.UNKNOWN;
+	}
+	if (value.value instanceof StringValue) {
+		return PropertyType.STRING;
+	}
 
-  if (value.value instanceof ArrayValues) {
-    if (value.value.values.length === 1) {
-      return PropertyType.U32;
-    } else if (value.value.values.length === 2) {
-      return PropertyType.U64;
-    } else {
-      return PropertyType.PROP_ENCODED_ARRAY;
-    }
-  }
+	if (value.value instanceof ArrayValues) {
+		if (value.value.values.length === 1) {
+			return PropertyType.U32;
+		} else if (value.value.values.length === 2) {
+			return PropertyType.U64;
+		} else {
+			return PropertyType.PROP_ENCODED_ARRAY;
+		}
+	}
 
-  if (value.value instanceof LabelRef || value.value instanceof NodePathRef) {
-    return PropertyType.U32;
-  }
+	if (value.value instanceof LabelRef || value.value instanceof NodePathRef) {
+		return PropertyType.U32;
+	}
 
-  return PropertyType.BYTESTRING;
+	return PropertyType.BYTESTRING;
 };
 
 export abstract class INodeType {
-  abstract getIssue(runtime: Runtime, node: Node): FileDiagnostic[];
-  abstract getOnPropertyHover(name: string): MarkupContent | undefined;
-  abstract getSignatureHelp(
-    property: Property,
-    ast: ASTBase,
-    beforeAst?: ASTBase,
-    afterAst?: ASTBase
-  ): SignatureHelp | undefined;
-  abstract childNodeType: ((node: Node) => INodeType) | undefined;
-  onBus?: string;
-  bus?: string[];
-  description?: string;
-  maintainers?: string[];
-  examples?: string[];
-  cellsValues?: {
-    specifier: string;
-    values: string[];
-  }[];
-  bindingsPath?: string;
-  compatible?: string;
-  extends: Set<string> = new Set();
-  abstract getPropertyListCompletionItems(node: Node): CompletionItem[];
+	abstract getIssue(runtime: Runtime, node: Node): FileDiagnostic[];
+	abstract getOnPropertyHover(name: string): MarkupContent | undefined;
+	abstract getSignatureHelp(
+		property: Property,
+		ast: ASTBase,
+		beforeAst?: ASTBase,
+		afterAst?: ASTBase,
+	): SignatureHelp | undefined;
+	abstract childNodeType: ((node: Node) => INodeType) | undefined;
+	onBus?: string;
+	bus?: string[];
+	description?: string;
+	maintainers?: string[];
+	examples?: string[];
+	cellsValues?: {
+		specifier: string;
+		values: string[];
+	}[];
+	bindingsPath?: string;
+	compatible?: string;
+	extends: Set<string> = new Set();
+	abstract getPropertyListCompletionItems(node: Node): CompletionItem[];
 }
 
 export class NodeType extends INodeType {
-  #properties: PropertyNodeType[] = [];
-  public noMismatchPropertiesAllowed = false;
-  public warnMismatchProperties = false;
-  #childNodeType?: (node: Node) => NodeType;
+	#properties: PropertyNodeType[] = [];
+	public noMismatchPropertiesAllowed = false;
+	public warnMismatchProperties = false;
+	#childNodeType?: (node: Node) => NodeType;
 
-  constructor(
-    public additionalValidations: (
-      runtime: Runtime,
-      node: Node
-    ) => FileDiagnostic[] = () => []
-  ) {
-    super();
-  }
+	constructor(
+		public additionalValidations: (
+			runtime: Runtime,
+			node: Node,
+		) => FileDiagnostic[] = () => [],
+	) {
+		super();
+	}
 
-  getIssue(runtime: Runtime, node: Node) {
-    const issue: FileDiagnostic[] = [];
+	getIssue(runtime: Runtime, node: Node) {
+		const issue: FileDiagnostic[] = [];
 
-    if (node.disabled) {
-      const statusProperty = node.getProperty("status");
-      [...node.definitions, ...node.referencedBy].forEach((n) =>
-        issue.push(
-          genStandardTypeDiagnostic(
-            StandardTypeIssue.NODE_DISABLED,
-            n,
-            DiagnosticSeverity.Hint,
-            [...(statusProperty?.ast ? [statusProperty?.ast] : [])],
-            [DiagnosticTag.Unnecessary]
-          )
-        )
-      );
-      return issue;
-    }
+		if (node.disabled) {
+			const statusProperty = node.getProperty('status');
+			[...node.definitions, ...node.referencedBy].forEach((n) =>
+				issue.push(
+					genStandardTypeDiagnostic(
+						StandardTypeIssue.NODE_DISABLED,
+						n,
+						DiagnosticSeverity.Hint,
+						[...(statusProperty?.ast ? [statusProperty?.ast] : [])],
+						[DiagnosticTag.Unnecessary],
+					),
+				),
+			);
+			return issue;
+		}
 
-    const machedSet = new Set<Property>();
+		const machedSet = new Set<Property>();
 
-    const propIssues = this.properties.flatMap((propType) => {
-      if (typeof propType.name === "string") {
-        const property = node.getProperty(propType.name);
-        if (property) machedSet.add(property);
-        return propType.validateProperty(
-          runtime,
-          node,
-          propType.name,
-          property
-        );
-      }
+		const propIssues = this.properties.flatMap((propType) => {
+			if (typeof propType.name === 'string') {
+				const property = node.getProperty(propType.name);
+				if (property) machedSet.add(property);
+				return propType.validateProperty(
+					runtime,
+					node,
+					propType.name,
+					property,
+				);
+			}
 
-      const properties = node.property.filter((p) =>
-        propType.getNameMatch(p.name)
-      );
+			const properties = node.property.filter((p) =>
+				propType.getNameMatch(p.name),
+			);
 
-      properties.forEach((p) => machedSet.add(p));
+			properties.forEach((p) => machedSet.add(p));
 
-      const ddd = this.properties.filter((t) => t !== propType) ?? [];
+			const ddd = this.properties.filter((t) => t !== propType) ?? [];
 
-      if (
-        ddd.length &&
-        properties.some((p) => ddd.some((d) => d.getNameMatch(p.name)))
-      ) {
-        return [];
-      }
+			if (
+				ddd.length &&
+				properties.some((p) => ddd.some((d) => d.getNameMatch(p.name)))
+			) {
+				return [];
+			}
 
-      return properties.flatMap((p) =>
-        propType.validateProperty(runtime, node, p.name, p)
-      );
-    });
+			return properties.flatMap((p) =>
+				propType.validateProperty(runtime, node, p.name, p),
+			);
+		});
 
-    if (
-      machedSet.size !== node.property.length &&
-      (this.noMismatchPropertiesAllowed || this.warnMismatchProperties)
-    ) {
-      const mismatch = node.property.filter((p) => !machedSet.has(p));
-      mismatch.forEach((p) => {
-        issue.push(
-          genStandardTypeDiagnostic(
-            this.warnMismatchProperties
-              ? StandardTypeIssue.PROPERTY_NOT_IN_BINDING
-              : StandardTypeIssue.PROPERTY_NOT_ALLOWED,
-            p.ast,
-            this.warnMismatchProperties
-              ? DiagnosticSeverity.Warning
-              : DiagnosticSeverity.Error,
-            [],
-            [],
-            [p.name],
-            TextEdit.del(
-              toRangeWithTokenIndex(
-                p.ast.firstToken.prevToken,
-                p.ast.lastToken,
-                false
-              )
-            )
-          )
-        );
-      });
-    }
+		if (
+			machedSet.size !== node.property.length &&
+			(this.noMismatchPropertiesAllowed || this.warnMismatchProperties)
+		) {
+			const mismatch = node.property.filter((p) => !machedSet.has(p));
+			mismatch.forEach((p) => {
+				issue.push(
+					genStandardTypeDiagnostic(
+						this.warnMismatchProperties
+							? StandardTypeIssue.PROPERTY_NOT_IN_BINDING
+							: StandardTypeIssue.PROPERTY_NOT_ALLOWED,
+						p.ast,
+						this.warnMismatchProperties
+							? DiagnosticSeverity.Warning
+							: DiagnosticSeverity.Error,
+						[],
+						[],
+						[p.name],
+						TextEdit.del(
+							toRangeWithTokenIndex(
+								p.ast.firstToken.prevToken,
+								p.ast.lastToken,
+								false,
+							),
+						),
+					),
+				);
+			});
+		}
 
-    return [
-      ...issue,
-      ...propIssues,
-      ...this.additionalValidations(runtime, node),
-    ];
-  }
+		return [
+			...issue,
+			...propIssues,
+			...this.additionalValidations(runtime, node),
+		];
+	}
 
-  get properties() {
-    return this.#properties;
-  }
+	get properties() {
+		return this.#properties;
+	}
 
-  addProperty(property: PropertyNodeType | PropertyNodeType[]) {
-    if (Array.isArray(property)) {
-      property.forEach((p) => this.#properties.push(p));
-    } else {
-      this.#properties.push(property);
-    }
-    this.#properties.sort((a, b) => {
-      if (typeof a.name === "string" && typeof b.name === "string") return 0;
-      if (typeof a.name !== "string" && typeof b.name !== "string") return 0;
-      if (typeof a.name === "string") return -1;
-      return 1;
-    });
-  }
+	addProperty(property: PropertyNodeType | PropertyNodeType[]) {
+		if (Array.isArray(property)) {
+			property.forEach((p) => this.#properties.push(p));
+		} else {
+			this.#properties.push(property);
+		}
+		this.#properties.sort((a, b) => {
+			if (typeof a.name === 'string' && typeof b.name === 'string')
+				return 0;
+			if (typeof a.name !== 'string' && typeof b.name !== 'string')
+				return 0;
+			if (typeof a.name === 'string') return -1;
+			return 1;
+		});
+	}
 
-  get childNodeType() {
-    return this.#childNodeType;
-  }
+	get childNodeType() {
+		return this.#childNodeType;
+	}
 
-  set childNodeType(nodeType: ((node: Node) => NodeType) | undefined) {
-    if (!nodeType) {
-      return;
-    }
+	set childNodeType(nodeType: ((node: Node) => NodeType) | undefined) {
+		if (!nodeType) {
+			return;
+		}
 
-    this.#childNodeType = (node: Node) => {
-      const type = nodeType(node);
-      type.bindingsPath = this.bindingsPath;
-      return type;
-    };
-  }
+		this.#childNodeType = (node: Node) => {
+			const type = nodeType(node);
+			type.bindingsPath = this.bindingsPath;
+			return type;
+		};
+	}
 
-  getOnPropertyHover(name: string) {
-    const typeFound = this.properties.find((p) => p.getNameMatch(name));
-    return typeFound?.onHover.bind(typeFound)();
-  }
+	getOnPropertyHover(name: string) {
+		const typeFound = this.properties.find((p) => p.getNameMatch(name));
+		return typeFound?.onHover.bind(typeFound)();
+	}
 
-  getSignatureHelp(
-    property: Property,
-    ast: ASTBase,
-    beforeAst?: ASTBase,
-    afterAst?: ASTBase
-  ) {
-    const typeFound = this.properties.find((p) =>
-      p.getNameMatch(property.name)
-    );
+	getSignatureHelp(
+		property: Property,
+		ast: ASTBase,
+		beforeAst?: ASTBase,
+		afterAst?: ASTBase,
+	) {
+		const typeFound = this.properties.find((p) =>
+			p.getNameMatch(property.name),
+		);
 
-    let signatureArgs = typeFound?.signatureArgs;
+		let signatureArgs = typeFound?.signatureArgs;
 
-    if (!typeFound || !signatureArgs) {
-      return;
-    }
+		if (!typeFound || !signatureArgs) {
+			return;
+		}
 
-    const beforeIndex = property.getArgumentIndex(beforeAst);
-    const afterIndex = property.getArgumentIndex(afterAst);
-    const thisIndex = property.getArgumentIndex(ast);
+		const beforeIndex = property.getArgumentIndex(beforeAst);
+		const afterIndex = property.getArgumentIndex(afterAst);
+		const thisIndex = property.getArgumentIndex(ast);
 
-    let argIndex =
-      thisIndex ??
-      afterIndex ??
-      (beforeIndex !== undefined ? beforeIndex + 1 : undefined);
+		let argIndex =
+			thisIndex ??
+			afterIndex ??
+			(beforeIndex !== undefined ? beforeIndex + 1 : undefined);
 
-    if (isNestedArray(signatureArgs)) {
-      let sum = 0;
-      if (argIndex !== undefined) {
-        const argIndexTemp = argIndex;
-        const grpIndex = argIndex
-          ? signatureArgs.findIndex((args) => {
-              if (sum <= argIndexTemp && args.length + sum > argIndexTemp) {
-                return true;
-              }
+		if (isNestedArray(signatureArgs)) {
+			let sum = 0;
+			if (argIndex !== undefined) {
+				const argIndexTemp = argIndex;
+				const grpIndex = argIndex
+					? signatureArgs.findIndex((args) => {
+							if (
+								sum <= argIndexTemp &&
+								args.length + sum > argIndexTemp
+							) {
+								return true;
+							}
 
-              sum += args.length;
-              return false;
-            })
-          : undefined;
+							sum += args.length;
+							return false;
+						})
+					: undefined;
 
-        if (grpIndex !== undefined) {
-          if (grpIndex > 1) {
-            argIndex =
-              argIndex -
-              signatureArgs
-                .slice(0, grpIndex - 1)
-                .reduce((a, b) => a + b.length, 0);
-          }
-          signatureArgs = signatureArgs.slice(
-            grpIndex ? grpIndex - 1 : 0,
-            grpIndex + 2
-          );
-        }
-      }
+				if (grpIndex !== undefined) {
+					if (grpIndex > 1) {
+						argIndex =
+							argIndex -
+							signatureArgs
+								.slice(0, grpIndex - 1)
+								.reduce((a, b) => a + b.length, 0);
+					}
+					signatureArgs = signatureArgs.slice(
+						grpIndex ? grpIndex - 1 : 0,
+						grpIndex + 2,
+					);
+				}
+			}
 
-      return {
-        signatures: [
-          SignatureInformation.create(
-            `${property.name} = ${signatureArgs
-              .map((t) => `<${t.map((arg) => arg.label).join(" ")}>`)
-              .join(", \n\t\t")};`,
-            this.description,
-            ...signatureArgs.flat()
-          ),
-        ],
-        activeSignature: 0,
-        activeParameter: argIndex,
-      };
-    }
+			return {
+				signatures: [
+					SignatureInformation.create(
+						`${property.name} = ${signatureArgs
+							.map(
+								(t) =>
+									`<${t.map((arg) => arg.label).join(' ')}>`,
+							)
+							.join(', \n\t\t')};`,
+						this.description,
+						...signatureArgs.flat(),
+					),
+				],
+				activeSignature: 0,
+				activeParameter: argIndex,
+			};
+		}
 
-    if (typeFound.signatureArgsCyclic && argIndex) {
-      argIndex = argIndex % signatureArgs.length;
-    }
+		if (typeFound.signatureArgsCyclic && argIndex) {
+			argIndex = argIndex % signatureArgs.length;
+		}
 
-    return {
-      signatures: [
-        SignatureInformation.create(
-          `${property.name} = <${signatureArgs
-            .map((arg) => arg.label)
-            .join(" ")}>;`,
-          this.description,
-          ...signatureArgs
-        ),
-      ],
-      activeSignature: 0,
-      activeParameter: argIndex,
-    };
-  }
+		return {
+			signatures: [
+				SignatureInformation.create(
+					`${property.name} = <${signatureArgs
+						.map((arg) => arg.label)
+						.join(' ')}>;`,
+					this.description,
+					...signatureArgs,
+				),
+			],
+			activeSignature: 0,
+			activeParameter: argIndex,
+		};
+	}
 
-  getPropertyListCompletionItems(node: Node) {
-    return (
-      this.properties
-        .filter(
-          (p) =>
-            !p.hideAutoComplete &&
-            p.required(node) !== "omitted" &&
-            typeof p.name === "string"
-        )
-        .map((p) => {
-          const required = node && p.required(node);
-          const hasProperty = !!node.property.some((pp) =>
-            p.getNameMatch(pp.name)
-          );
-          let sortLetter = "a";
-          if (required === "required") {
-            sortLetter = hasProperty ? "Y" : "!";
-          } else {
-            sortLetter = hasProperty ? "Z" : "B";
-          }
+	getPropertyListCompletionItems(node: Node) {
+		return (
+			this.properties
+				.filter(
+					(p) =>
+						!p.hideAutoComplete &&
+						p.required(node) !== 'omitted' &&
+						typeof p.name === 'string',
+				)
+				.map((p) => {
+					const required = node && p.required(node);
+					const hasProperty = !!node.property.some((pp) =>
+						p.getNameMatch(pp.name),
+					);
+					let sortLetter = 'a';
+					if (required === 'required') {
+						sortLetter = hasProperty ? 'Y' : '!';
+					} else {
+						sortLetter = hasProperty ? 'Z' : 'B';
+					}
 
-          return {
-            label: `${p.name}`,
-            kind: CompletionItemKind.Property,
-            sortText: `${sortLetter}${p.name}`,
-          };
-        }) ?? []
-    );
-  }
+					return {
+						label: `${p.name}`,
+						kind: CompletionItemKind.Property,
+						sortText: `${sortLetter}${p.name}`,
+					};
+				}) ?? []
+		);
+	}
 }

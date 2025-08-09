@@ -15,68 +15,68 @@
  */
 
 import {
-  Location,
-  Position,
-  Range,
-  TypeDefinitionParams,
-} from "vscode-languageserver";
-import { ContextAware } from "./runtimeEvaluator";
-import { SearchableResult } from "./types";
-import { Node } from "./context/node";
-import { NodeName } from "./ast/dtc/node";
-import { Label } from "./ast/dtc/label";
-import { LabelRef } from "./ast/dtc/labelRef";
-import { nodeFinder, pathToFileURL } from "./helpers";
-import { isDeleteChild } from "./ast/helpers";
+	Location,
+	Position,
+	Range,
+	TypeDefinitionParams,
+} from 'vscode-languageserver';
+import { ContextAware } from './runtimeEvaluator';
+import { SearchableResult } from './types';
+import { Node } from './context/node';
+import { NodeName } from './ast/dtc/node';
+import { Label } from './ast/dtc/label';
+import { LabelRef } from './ast/dtc/labelRef';
+import { nodeFinder, pathToFileURL } from './helpers';
+import { isDeleteChild } from './ast/helpers';
 
 function getNodeTypeDefinition(
-  result: SearchableResult | undefined
+	result: SearchableResult | undefined,
 ): Location[] {
-  if (
-    !result ||
-    (!(result.ast instanceof NodeName) && !(result.ast instanceof Label))
-  ) {
-    return [];
-  }
+	if (
+		!result ||
+		(!(result.ast instanceof NodeName) && !(result.ast instanceof Label))
+	) {
+		return [];
+	}
 
-  const gentItem = (node: Node) => {
-    if (!node.nodeType?.bindingsPath) {
-      return [];
-    }
-    return [
-      Location.create(
-        pathToFileURL(node.nodeType.bindingsPath),
-        Range.create(Position.create(0, 0), Position.create(0, 0))
-      ),
-    ];
-  };
-  if (result.item instanceof Node && !isDeleteChild(result.ast)) {
-    return gentItem(result.item);
-  }
+	const gentItem = (node: Node) => {
+		if (!node.nodeType?.bindingsPath) {
+			return [];
+		}
+		return [
+			Location.create(
+				pathToFileURL(node.nodeType.bindingsPath),
+				Range.create(Position.create(0, 0), Position.create(0, 0)),
+			),
+		];
+	};
+	if (result.item instanceof Node && !isDeleteChild(result.ast)) {
+		return gentItem(result.item);
+	}
 
-  if (
-    result.ast instanceof Label &&
-    result.ast.parentNode instanceof LabelRef
-  ) {
-    if (result.ast.parentNode.linksTo) {
-      return gentItem(result.ast.parentNode.linksTo);
-    }
-  }
+	if (
+		result.ast instanceof Label &&
+		result.ast.parentNode instanceof LabelRef
+	) {
+		if (result.ast.parentNode.linksTo) {
+			return gentItem(result.ast.parentNode.linksTo);
+		}
+	}
 
-  if (result.ast instanceof NodeName) {
-    if (result.ast.linksTo) {
-      return gentItem(result.ast.linksTo);
-    }
-  }
+	if (result.ast instanceof NodeName) {
+		if (result.ast.linksTo) {
+			return gentItem(result.ast.linksTo);
+		}
+	}
 
-  return [];
+	return [];
 }
 
 export async function typeDefinition(
-  location: TypeDefinitionParams,
-  context?: ContextAware
+	location: TypeDefinitionParams,
+	context?: ContextAware,
 ): Promise<Location[]> {
-  return nodeFinder(location, context, (locationMeta) => [
-    ...getNodeTypeDefinition(locationMeta),
-  ]);
+	return nodeFinder(location, context, (locationMeta) => [
+		...getNodeTypeDefinition(locationMeta),
+	]);
 }

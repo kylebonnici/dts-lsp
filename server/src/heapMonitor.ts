@@ -14,43 +14,43 @@
  * limitations under the License.
  */
 
-import { setInterval } from "timers";
-import { EventEmitter } from "events";
-import { resetCachedCPreprocessorParserProvider } from "./providers/cachedCPreprocessorParser";
-import { resetTokenizedDocumentProvider } from "./providers/tokenizedDocument";
+import { setInterval } from 'timers';
+import { EventEmitter } from 'events';
+import { resetCachedCPreprocessorParserProvider } from './providers/cachedCPreprocessorParser';
+import { resetTokenizedDocumentProvider } from './providers/tokenizedDocument';
 
 class HeapMonitor extends EventEmitter {
-  private interval: NodeJS.Timeout;
-  private thresholdBytes: number;
+	private interval: NodeJS.Timeout;
+	private thresholdBytes: number;
 
-  constructor(thresholdMb = 3000, pollIntervalMs = 1000) {
-    super();
-    this.thresholdBytes = thresholdMb * 1024 * 1024;
+	constructor(thresholdMb = 3000, pollIntervalMs = 1000) {
+		super();
+		this.thresholdBytes = thresholdMb * 1024 * 1024;
 
-    this.interval = setInterval(() => {
-      const used = process.memoryUsage().heapUsed;
-      if (used > this.thresholdBytes) {
-        this.emit("thresholdExceeded", {
-          usedMb: (used / 1024 / 1024).toFixed(2),
-          thresholdMb,
-        });
-      }
-    }, pollIntervalMs);
-  }
+		this.interval = setInterval(() => {
+			const used = process.memoryUsage().heapUsed;
+			if (used > this.thresholdBytes) {
+				this.emit('thresholdExceeded', {
+					usedMb: (used / 1024 / 1024).toFixed(2),
+					thresholdMb,
+				});
+			}
+		}, pollIntervalMs);
+	}
 
-  stop() {
-    clearInterval(this.interval);
-  }
+	stop() {
+		clearInterval(this.interval);
+	}
 }
 
 const monitor = new HeapMonitor(3000); // 3 GB
 
 export const initHeapMonitor = () => {
-  monitor.on("thresholdExceeded", ({ usedMb, thresholdMb }) => {
-    console.warn(
-      `[HeapMonitor] Heap usage exceeded ${thresholdMb}MB: ${usedMb}MB used`
-    );
-    resetTokenizedDocumentProvider();
-    resetCachedCPreprocessorParserProvider();
-  });
+	monitor.on('thresholdExceeded', ({ usedMb, thresholdMb }) => {
+		console.warn(
+			`[HeapMonitor] Heap usage exceeded ${thresholdMb}MB: ${usedMb}MB used`,
+		);
+		resetTokenizedDocumentProvider();
+		resetCachedCPreprocessorParserProvider();
+	});
 };

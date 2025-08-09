@@ -14,81 +14,81 @@
  * limitations under the License.
  */
 
-import { existsSync, readFileSync } from "fs";
-import { Token } from "../types";
-import { Lexer } from "../lexer";
-import { getCachedCPreprocessorParserProvider } from "./cachedCPreprocessorParser";
-import { normalizePath } from "../helpers";
-import { TextDocument } from "vscode-languageserver-textdocument";
+import { existsSync, readFileSync } from 'fs';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import { Token } from '../types';
+import { Lexer } from '../lexer';
+import { normalizePath } from '../helpers';
+import { getCachedCPreprocessorParserProvider } from './cachedCPreprocessorParser';
 
 let tokenizedDocumentProvider: TokenizedDocumentProvider | undefined;
 
 class TokenizedDocumentProvider {
-  private fileMap = new Map<string, Lexer>();
+	private fileMap = new Map<string, Lexer>();
 
-  static clone(tokens: Token[]) {
-    const newList = tokens.map((t) => ({ ...t }));
-    newList.forEach((t, i) => {
-      t.prevToken = newList[i - 1];
-      t.nextToken = newList[i + 1];
-    });
-    return newList;
-  }
+	static clone(tokens: Token[]) {
+		const newList = tokens.map((t) => ({ ...t }));
+		newList.forEach((t, i) => {
+			t.prevToken = newList[i - 1];
+			t.nextToken = newList[i + 1];
+		});
+		return newList;
+	}
 
-  needsRenew(uri: string, text: string) {
-    uri = normalizePath(uri);
-    return this.fileMap.get(uri)?.text !== text;
-  }
+	needsRenew(uri: string, text: string) {
+		uri = normalizePath(uri);
+		return this.fileMap.get(uri)?.text !== text;
+	}
 
-  getDocument(uri: string) {
-    return TextDocument.create(
-      uri,
-      "devicetree",
-      0,
-      this.fileMap.get(uri)?.text ?? readFileSync(uri).toString()
-    );
-  }
+	getDocument(uri: string) {
+		return TextDocument.create(
+			uri,
+			'devicetree',
+			0,
+			this.fileMap.get(uri)?.text ?? readFileSync(uri).toString(),
+		);
+	}
 
-  renewLexer(uri: string, text?: string): Token[] {
-    uri = normalizePath(uri);
-    getCachedCPreprocessorParserProvider().reset(uri);
-    if (!uri || !existsSync(uri)) {
-      return [];
-    }
+	renewLexer(uri: string, text?: string): Token[] {
+		uri = normalizePath(uri);
+		getCachedCPreprocessorParserProvider().reset(uri);
+		if (!uri || !existsSync(uri)) {
+			return [];
+		}
 
-    try {
-      text ??= readFileSync(uri).toString();
-      const lexer = new Lexer(text, uri);
-      this.fileMap.set(uri, lexer);
-      return TokenizedDocumentProvider.clone(lexer.tokens);
-    } catch {
-      //
-    }
+		try {
+			text ??= readFileSync(uri).toString();
+			const lexer = new Lexer(text, uri);
+			this.fileMap.set(uri, lexer);
+			return TokenizedDocumentProvider.clone(lexer.tokens);
+		} catch {
+			//
+		}
 
-    return [];
-  }
+		return [];
+	}
 
-  requestTokens(uri: string, renewIfNotFound: boolean): Token[] {
-    uri = normalizePath(uri);
-    const tokens = this.fileMap.get(uri)?.tokens;
-    if (!tokens && renewIfNotFound) {
-      return [...this.renewLexer(uri)];
-    }
-    return TokenizedDocumentProvider.clone(tokens ?? []);
-  }
+	requestTokens(uri: string, renewIfNotFound: boolean): Token[] {
+		uri = normalizePath(uri);
+		const tokens = this.fileMap.get(uri)?.tokens;
+		if (!tokens && renewIfNotFound) {
+			return [...this.renewLexer(uri)];
+		}
+		return TokenizedDocumentProvider.clone(tokens ?? []);
+	}
 
-  reset(uri: string) {
-    uri = normalizePath(uri);
-    getCachedCPreprocessorParserProvider().reset(uri);
-    this.fileMap.delete(uri);
-  }
+	reset(uri: string) {
+		uri = normalizePath(uri);
+		getCachedCPreprocessorParserProvider().reset(uri);
+		this.fileMap.delete(uri);
+	}
 }
 
 export function getTokenizedDocumentProvider(): TokenizedDocumentProvider {
-  tokenizedDocumentProvider ??= new TokenizedDocumentProvider();
-  return tokenizedDocumentProvider;
+	tokenizedDocumentProvider ??= new TokenizedDocumentProvider();
+	return tokenizedDocumentProvider;
 }
 
 export function resetTokenizedDocumentProvider() {
-  tokenizedDocumentProvider = new TokenizedDocumentProvider();
+	tokenizedDocumentProvider = new TokenizedDocumentProvider();
 }
