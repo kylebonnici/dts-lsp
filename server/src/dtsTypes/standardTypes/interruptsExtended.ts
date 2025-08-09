@@ -28,6 +28,8 @@ import {
   DiagnosticSeverity,
   ParameterInformation,
 } from "vscode-languageserver";
+import { Expression } from "../../ast/cPreprocessors/expression";
+import { NexuxMapping } from "src/context/property";
 
 export default () => {
   const prop = new PropertyNodeType<number>(
@@ -113,20 +115,6 @@ export default () => {
           break;
         }
 
-        const addressCellsProperty = phandleNode?.getProperty(`#address-cells`);
-        if (!addressCellsProperty) {
-          issues.push(
-            genStandardTypeDiagnostic(
-              StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
-              property.ast,
-              DiagnosticSeverity.Error,
-              [...property.parent.nodeNameOrLabelRef],
-              [],
-              [property.name, "#address-cells", phandleNode.pathString]
-            )
-          );
-        }
-
         const cellsPropertyValue = getU32ValueFromProperty(
           cellsProperty,
           0,
@@ -167,6 +155,13 @@ export default () => {
           i + 1 + cellsPropertyValue
         );
         const mapProperty = phandleNode.getProperty(`interrupt-map`);
+        const nexusMapping: NexuxMapping = {
+          mappingValuesAst,
+          target: phandleNode,
+        };
+
+        property.nexusMapsTo.push(nexusMapping);
+
         const startAddress = node.mappedReg(macros)?.at(0)?.startAddress;
         if (mapProperty && startAddress) {
           const match = phandleNode.getNexusMapEntyMatch(
@@ -185,11 +180,16 @@ export default () => {
               )
             );
           } else {
-            property.nexusMapsTo.push({
-              mappingValuesAst,
-              mapItem: match.match,
-            });
+            nexusMapping.mapItem = match.match;
           }
+        }
+
+        if (mappingValuesAst.every((ast) => ast instanceof Expression)) {
+          phandleNode.interrupControlerMapping.push({
+            expressions: mappingValuesAst,
+            node,
+            property,
+          });
         }
 
         i += cellsPropertyValue + 1;

@@ -17,26 +17,11 @@
 import { ASTBase } from "../base";
 import { Operator } from "./operator";
 import type { MacroRegistryItem, Token } from "../../types";
-import { expandMacros } from "../../helpers";
+import { evalExp, expandMacros } from "../../helpers";
 import {
   SerializableExpression,
-  SerializableExpressionBase,
+  SerializableNumberValue,
 } from "../../types/index";
-
-function sanitizeCExpression(expr: string) {
-  return expr
-    .replace(/'(.)'/g, (_, char: string) => char.charCodeAt(0).toString())
-    .replace(/(0x[a-f\d]+|\d+)[ul]*/gi, "$1");
-}
-
-function evalExp(str: string) {
-  try {
-    return (0, eval)(sanitizeCExpression(str));
-  } catch (e) {
-    console.log(e);
-  }
-  return str;
-}
 
 export abstract class Expression extends ASTBase {
   toJson() {
@@ -65,14 +50,15 @@ export abstract class Expression extends ASTBase {
 
   serialize(
     macros: Map<string, MacroRegistryItem>
-  ): SerializableExpressionBase {
-    return new SerializableExpression(
-      this.toString(),
-      this.evaluate(macros),
-      this.uri,
-      this.range,
-      this.serializeIssues
-    );
+  ): SerializableExpression | SerializableNumberValue {
+    return {
+      type: "EXPRESSION",
+      value: this.toString(),
+      evaluated: this.evaluate(macros),
+      uri: this.serializeUri,
+      range: this.range,
+      issues: this.serializeIssues,
+    };
   }
 }
 

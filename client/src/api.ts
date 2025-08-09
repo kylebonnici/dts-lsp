@@ -14,21 +14,27 @@
  * limitations under the License.
  */
 
+import * as vscode from "vscode";
 import type {
   Actions,
   Context,
   ContextListItem,
+  EvaluatedMacro,
   IntegrationSettings,
+  LocationResult,
   ResolvedSettings,
   SerializedNode,
+  StableResult,
 } from "devicetree-language-server-types";
 import {
   LanguageClient,
   NotificationType,
   TextDocumentPositionParams,
+  Disposable,
 } from "vscode-languageclient/node";
 import { IDeviceTreeAPI as IDeviceTreeAPI } from "./types";
 import { EventEmitter } from "events";
+import { getCurrentTextDocumentPositionParams } from "./helpers";
 
 const contextDeletedNotification = new NotificationType<ContextListItem>(
   "devicetree/contextDeleted"
@@ -39,6 +45,14 @@ const contextCreatedNotification = new NotificationType<ContextListItem>(
 const newActiveContextNotification = new NotificationType<
   ContextListItem | undefined
 >("devicetree/newActiveContext");
+
+const activeContextStableNotification = new NotificationType<StableResult>(
+  "devicetree/activeContextStableNotification"
+);
+const contextStableNotification = new NotificationType<StableResult>(
+  "devicetree/contextStableNotification"
+);
+
 const settingsChangedNotification = new NotificationType<ContextListItem>(
   "devicetree/settingsChanged"
 );
@@ -53,6 +67,12 @@ export class API implements IDeviceTreeAPI {
     );
     this.client.onNotification(newActiveContextNotification, (ctx) =>
       this.event.emit("onActiveContextChange", ctx)
+    );
+    this.client.onNotification(activeContextStableNotification, (result) =>
+      this.event.emit("onActiveContextStable", result)
+    );
+    this.client.onNotification(contextStableNotification, (result) =>
+      this.event.emit("onContextStable", result)
     );
     this.client.onNotification(settingsChangedNotification, (ctx) =>
       this.event.emit("onSettingsChanged", ctx)
@@ -87,6 +107,27 @@ export class API implements IDeviceTreeAPI {
     >;
   }
 
+  async getActivePathLocation(): Promise<LocationResult | undefined> {
+    const result = await this.getPathLocation(
+      await getCurrentTextDocumentPositionParams()
+    );
+
+    if (result) {
+      this.event.emit("onActivePath", result);
+    }
+
+    return result;
+  }
+
+  async getPathLocation(
+    textDocumentPositionParams: TextDocumentPositionParams
+  ): Promise<LocationResult | undefined> {
+    return await this.client.sendRequest<LocationResult | undefined>(
+      "devicetree/activePath",
+      textDocumentPositionParams
+    );
+  }
+
   requestContext(ctx: Context) {
     return this.client.sendRequest(
       "devicetree/requestContext",
@@ -108,6 +149,15 @@ export class API implements IDeviceTreeAPI {
     ) as Promise<string | undefined>;
   }
 
+  async copyZephyrCMacroIdentifier(
+    textDocumentPositionParams: TextDocumentPositionParams
+  ): Promise<void> {
+    await vscode.commands.executeCommand(
+      "devicetree.clipboard.dtMacro",
+      textDocumentPositionParams
+    );
+  }
+
   serializedContext(id: string) {
     return this.client.sendRequest(
       "devicetree/serializedContext",
@@ -115,33 +165,68 @@ export class API implements IDeviceTreeAPI {
     ) as Promise<SerializedNode | undefined>;
   }
 
-  onActiveContextChange(listener: (ctx: ContextListItem | undefined) => void) {
+  onActiveContextChange(
+    listener: (ctx: ContextListItem | undefined) => void
+  ): Disposable {
     this.event.addListener("onActiveContextChange", listener);
-    return () => {
-      this.event.removeListener("onActiveContextChange", listener);
+    return {
+      dispose: () => {
+        this.event.removeListener("onActiveContextChange", listener);
+      },
     };
   }
 
-  onContextDeleted(listener: (ctx: ContextListItem) => void): () => void {
+  onActiveContextStable(listener: (result: StableResult) => void) {
+    this.event.addListener("onActiveContextStable", listener);
+    return {
+      dispose: () => {
+        this.event.removeListener("onActiveContextStable", listener);
+      },
+    };
+  }
+
+  onActivePath(listener: (path: LocationResult) => void) {
+    this.event.addListener("onActivePath", listener);
+    return {
+      dispose: () => {
+        this.event.removeListener("onActivePath", listener);
+      },
+    };
+  }
+
+  onContextStable(listener: (result: StableResult) => void) {
+    this.event.addListener("onContextStable", listener);
+    return {
+      dispose: () => {
+        this.event.removeListener("onContextStable", listener);
+      },
+    };
+  }
+
+  onContextDeleted(listener: (ctx: ContextListItem) => void) {
     this.event.addListener("onContextDeleted", listener);
-    return () => {
-      this.event.removeListener("onContextDeleted", listener);
+    return {
+      dispose: () => {
+        this.event.removeListener("onContextDeleted", listener);
+      },
     };
   }
 
-  onContextCreated(listener: (ctx: ContextListItem) => void): () => void {
+  onContextCreated(listener: (ctx: ContextListItem) => void) {
     this.event.addListener("onContextCreated", listener);
-    return () => {
-      this.event.removeListener("onContextCreated", listener);
+    return {
+      dispose: () => {
+        this.event.removeListener("onContextCreated", listener);
+      },
     };
   }
 
-  onSettingsChanged(
-    listener: (setiings: ResolvedSettings) => void
-  ): () => void {
+  onSettingsChanged(listener: (setiings: ResolvedSettings) => void) {
     this.event.addListener("onSettingsChanged", listener);
-    return () => {
-      this.event.removeListener("onSettingsChanged", listener);
+    return {
+      dispose: () => {
+        this.event.removeListener("onSettingsChanged", listener);
+      },
     };
   }
 
@@ -157,5 +242,12 @@ export class API implements IDeviceTreeAPI {
       "devicetree/activeFileUri",
       path
     ) as Promise<void>;
+  }
+
+  evaluateMacros(macros: string[], ctxId: string) {
+    return this.client.sendRequest("devicetree/evalMacros", {
+      macros,
+      ctxId,
+    }) as Promise<EvaluatedMacro[]>;
   }
 }

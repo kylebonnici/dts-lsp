@@ -114,13 +114,14 @@ export class DtcRootNode extends DtcBaseNode {
   }
 
   serialize(macros: Map<string, MacroRegistryItem>): SerializableRootNode {
-    return new SerializableRootNode(
-      this.properties.map((p) => p.serialize(macros)),
-      this.nodes.map((n) => n.serialize(macros)),
-      this.uri,
-      this.range,
-      this.serializeIssues
-    );
+    return {
+      type: "ROOT",
+      properties: this.properties.map((p) => p.serialize(macros)),
+      nodes: this.nodes.map((n) => n.serialize(macros)),
+      uri: this.serializeUri,
+      range: this.range,
+      issues: this.serializeIssues,
+    };
   }
 }
 
@@ -191,14 +192,15 @@ export class DtcRefNode extends DtcBaseNode {
   }
 
   serialize(macros: Map<string, MacroRegistryItem>): SerializableRefNode {
-    return new SerializableRefNode(
-      this.reference?.serialize() ?? null,
-      this.properties.map((p) => p.serialize(macros)),
-      this.nodes.map((n) => n.serialize(macros)),
-      this.uri,
-      this.range,
-      this.serializeIssues
-    );
+    return {
+      type: "REF",
+      name: this.reference?.serialize() ?? null,
+      properties: this.properties.map((p) => p.serialize(macros)),
+      nodes: this.nodes.map((n) => n.serialize(macros)),
+      uri: this.serializeUri,
+      range: this.range,
+      issues: this.serializeIssues,
+    };
   }
 }
 
@@ -260,14 +262,15 @@ export class DtcChildNode extends DtcBaseNode {
   }
 
   serialize(macros: Map<string, MacroRegistryItem>): SerializableChildNode {
-    return new SerializableChildNode(
-      this.name?.serialize() ?? null,
-      this.properties.map((p) => p.serialize(macros)),
-      this.nodes.map((n) => n.serialize(macros)),
-      this.uri,
-      this.range,
-      this.serializeIssues
-    );
+    return {
+      type: "CHILD",
+      name: this.name?.serialize() ?? null,
+      properties: this.properties.map((p) => p.serialize(macros)),
+      nodes: this.nodes.map((n) => n.serialize(macros)),
+      uri: this.serializeUri,
+      range: this.range,
+      issues: this.serializeIssues,
+    };
   }
 }
 
@@ -287,12 +290,12 @@ export class NodeAddress extends ASTBase {
   }
 
   serialize(): SerializableNodeAddress {
-    return new SerializableNodeAddress(
-      this.address,
-      this.uri,
-      this.range,
-      this.serializeIssues
-    );
+    return {
+      address: this.address,
+      uri: this.serializeUri,
+      range: this.range,
+      issues: this.serializeIssues,
+    };
   }
 }
 
@@ -374,12 +377,12 @@ export class NodeName extends ASTBase {
   }
 
   serialize(): SerializableFullNodeName {
-    return new SerializableFullNodeName(
-      this.toString(),
-      new SerializableNodeName(
-        this.name,
-        this.uri,
-        Range.create(
+    return {
+      fullName: this.toString(),
+      name: {
+        name: this.name,
+        uri: this.serializeUri,
+        range: Range.create(
           Position.create(
             this.tokenIndexes.start.pos.line,
             this.tokenIndexes.start.pos.col
@@ -389,12 +392,12 @@ export class NodeName extends ASTBase {
             this.tokenIndexes.start.pos.colEnd
           )
         ),
-        []
-      ),
-      this.address?.map((add) => add.serialize()) ?? null,
-      this.uri,
-      this.range,
-      this.serializeIssues
-    );
+        issues: this.serializeIssues,
+      },
+      address: this.address?.map((add) => add.serialize()) ?? null,
+      uri: this.serializeUri,
+      range: this.range,
+      issues: this.serializeIssues,
+    };
   }
 }

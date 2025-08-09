@@ -17,10 +17,17 @@
 import type {
   Context,
   ContextListItem,
+  EvaluatedMacro,
   IntegrationSettings,
+  LocationResult,
   ResolvedSettings,
   SerializedNode,
+  StableResult,
 } from "devicetree-language-server-types";
+import {
+  Disposable,
+  TextDocumentPositionParams,
+} from "vscode-languageclient/node";
 
 export interface IDeviceTreeAPI {
   readonly version: string;
@@ -29,7 +36,15 @@ export interface IDeviceTreeAPI {
   getContexts(): Promise<ContextListItem[]>;
   setActiveContextById(id: string): Promise<boolean>;
   setActiveContextByName(name: string): Promise<boolean>;
+  getActivePathLocation(): Promise<LocationResult>;
+  getPathLocation(
+    textDocumentPositionParams: TextDocumentPositionParams
+  ): Promise<LocationResult>;
   getActiveContext(): Promise<ContextListItem | undefined>;
+  evaluateMacros(macros: string[], ctxId: string): Promise<EvaluatedMacro[]>;
+  copyZephyrCMacroIdentifier(
+    textDocumentPositionParams: TextDocumentPositionParams
+  ): Promise<void>;
   requestContext(ctx: Context): Promise<ContextListItem>;
   removeContext(id: string, name: string): Promise<void>;
   compiledOutput(id?: string): Promise<string | undefined>;
@@ -37,8 +52,11 @@ export interface IDeviceTreeAPI {
 
   onActiveContextChange(
     listener: (ctx: ContextListItem | undefined) => void
-  ): () => void;
-  onContextDeleted(listener: (ctx: ContextListItem) => void): () => void;
-  onContextCreated(listener: (ctx: ContextListItem) => void): () => void;
-  onSettingsChanged(listener: (setiings: ResolvedSettings) => void): () => void;
+  ): Disposable;
+  onActiveContextStable(listener: (result: StableResult) => void): Disposable;
+  onActivePath(listener: (result: LocationResult) => void): Disposable;
+  onContextStable(listener: (result: StableResult) => void): Disposable;
+  onContextDeleted(listener: (ctx: ContextListItem) => void): Disposable;
+  onContextCreated(listener: (ctx: ContextListItem) => void): Disposable;
+  onSettingsChanged(listener: (setiings: ResolvedSettings) => void): Disposable;
 }

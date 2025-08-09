@@ -46,12 +46,13 @@ import {
   ParameterInformation,
   Range,
 } from "vscode-languageserver";
-import { Property } from "../../../context/property";
+import { NexuxMapping, Property } from "../../../context/property";
 import { BindingPropertyType } from "../../../types/index";
 import { ASTBase } from "../../../ast/base";
 import { getSimpleBusType } from "../../../dtsTypes/standardTypes/nodeTypes/simpleBus/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import p from "path";
+import { Expression } from "../../../ast/cPreprocessors/expression";
 
 type ZephyrPropertyType =
   | "string"
@@ -91,8 +92,8 @@ interface ZephyrBindingYml {
   description?: string;
   compatible?: string;
   "child-binding"?: ZephyrBindingYml;
-  bus: string[] | undefined;
-  "on-bus": string;
+  bus?: string[];
+  "on-bus"?: string;
   properties?: {
     [key: string]: ZephyrBindingsProperty;
   };
@@ -358,11 +359,30 @@ export class ZephyrBindingsLoader {
         }[]
       | undefined;
 
-    if (!compatible) {
+    if (!compatible?.length) {
+      if (node.name === "zephyr,user") {
+        const folders = key.split(":");
+        const bindings = Array.from(this.zephyrBindingCache.keys())
+          .filter((p) => folders.some((f) => p.startsWith(f)))
+          .flatMap((path) => this.zephyrBindingCache.get(path)!);
+
+        const base = bindings.find((b) => b.filePath.endsWith(`/base.yaml`));
+        const baseType = base ? convertBindingToType(base, node) : undefined;
+        if (baseType) {
+          baseType.warnMismatchProperties = false;
+          const compat = baseType.properties.find(
+            (p) => p.name === "compatible"
+          );
+          if (compat) {
+            compat.required = () => "optional";
+          }
+        }
+
+        return { type: [baseType ?? getStandardType(node)], issues: [] };
+      }
+
       return { type: [getStandardType(node)], issues: [] };
     }
-
-    this.loadTypeAndCache(folders, key);
 
     const out = compatible
       .flatMap((c) =>
@@ -393,7 +413,7 @@ export class ZephyrBindingsLoader {
     return { type: out.length ? out : [getStandardType(node)], issues };
   }
 
-  private loadTypeAndCache(folders: string | string[], key: string) {
+  loadTypeAndCache(folders: string | string[], key: string) {
     folders = Array.isArray(folders) ? folders : [folders];
 
     const bindings = folders
@@ -827,6 +847,14 @@ const generateZephyrTypeCheck = (
         i += 1 + sizeCellValue;
 
         const mappingValuesAst = values.slice(i - sizeCellValue, i);
+        const nexusMapping: NexuxMapping = {
+          mappingValuesAst,
+          specifierSpace: parentName,
+          target: phandelValue,
+        };
+
+        p.nexusMapsTo.push(nexusMapping);
+
         const mapProperty = phandelValue.getProperty(`${parentName}-map`);
         if (mapProperty) {
           const match = phandelValue.getNexusMapEntyMatch(
@@ -844,11 +872,16 @@ const generateZephyrTypeCheck = (
               )
             );
           } else {
-            p.nexusMapsTo.push({
-              mappingValuesAst,
-              mapItem: match.match,
-            });
+            nexusMapping.mapItem = match.match;
           }
+        }
+
+        if (mappingValuesAst.every((ast) => ast instanceof Expression)) {
+          phandelValue.spesifierNexusMapping.push({
+            expressions: mappingValuesAst,
+            node: p.parent,
+            property: p,
+          });
         }
 
         const nameProperty = p.parent.getProperty(`${parentName}-names`);

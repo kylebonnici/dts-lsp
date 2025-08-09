@@ -83,6 +83,12 @@ type MappedReg = {
   missingMapping: boolean;
 };
 
+export interface Mapping {
+  expressions: Expression[];
+  node: Node;
+  property: Property;
+}
+
 export class Node {
   public referencedBy: DtcRefNode[] = [];
   public definitions: (DtcChildNode | DtcRootNode)[] = [];
@@ -93,6 +99,8 @@ export class Node {
   private _nodes: Node[] = [];
   linkedNodeNamePaths: NodeName[] = [];
   linkedRefLabels: LabelRef[] = [];
+  interrupControlerMapping: Mapping[] = [];
+  spesifierNexusMapping: Mapping[] = [];
 
   private _nodeTypes: INodeType[] | undefined;
 
@@ -134,7 +142,9 @@ export class Node {
       return this._nodeTypes;
     }
 
-    this._nodeTypes = [getStandardType(this)];
+    this._nodeTypes = this.bindingLoader?.getNodeTypes(this).type ?? [
+      getStandardType(this),
+    ];
     return this._nodeTypes;
   }
 
@@ -913,6 +923,42 @@ export class Node {
     return this.#mappedRegCache;
   }
 
+  get interruptsParent(): {
+    interruptParent?: Property;
+    parentInterruptNode: Node | null;
+  } | null {
+    if (this.getProperty("interrupts-extended")) {
+      return null;
+    }
+
+    const zephyr = this.bindingLoader?.type === "Zephyr";
+
+    const interruptParent = this.getProperty("interrupt-parent");
+    const parentInterruptNode = interruptParent
+      ? resolvePhandleNode(interruptParent?.ast.values?.values.at(0), this.root)
+      : !zephyr
+      ? this.parent
+      : undefined;
+
+    if (!zephyr || interruptParent) {
+      return {
+        interruptParent,
+        parentInterruptNode: parentInterruptNode ?? null,
+      };
+    }
+
+    if (parentInterruptNode) {
+      return {
+        interruptParent,
+        parentInterruptNode: parentInterruptNode ?? null,
+      };
+    }
+
+    return this.parent
+      ? this.parent.interruptsParent
+      : { parentInterruptNode: this };
+  }
+
   getNexusMapEntyMatch(
     specifier: string,
     macros: Map<string, MacroRegistryItem>,
@@ -989,11 +1035,7 @@ export class Node {
       childSpecifierCellsValue += this.addressCells(macros);
     }
 
-    const map: {
-      mappingValues: (LabelRef | NodePathRef | NumberValue | Expression)[];
-      node: Node;
-      parentValues: (LabelRef | NodePathRef | NumberValue | Expression)[];
-    }[] = [];
+    const map: NexusMapEnty[] = [];
 
     let i = 0;
     while (i < values.length) {
@@ -1166,14 +1208,39 @@ ${"\t".repeat(level - 1)}}; ${isOmmited ? " */" : ""}`;
                 name: typeof p.name === "string" ? p.name : p.name.toString(),
                 allowedValues: p.allowedValues,
                 type: p.type,
+                description: p.description?.join("\n"),
               })),
             }
           : undefined,
       issues: nodeAsts.flatMap((n) => n.serializeIssues),
       path: this.pathString,
+      disabled: this.disabled,
       name: this.fullName,
+      labels: this.labels.map((l) => l.label.value),
       nodes: nodeAsts.map((d) => d.serialize(macros)),
-      properties: this.property.map((p) => p.ast.serialize(macros)),
+      properties: this.property.map((p) => ({
+        ...p.ast.serialize(macros),
+        nexusMapEnty: p.nexusMapsTo.map((nexus) => {
+          return {
+            mappingValuesAst: nexus.mappingValuesAst.map((v) =>
+              v.serialize(macros)
+            ),
+            specifierSpace: nexus.specifierSpace,
+            target: nexus.target.pathString,
+            mapItem: nexus.mapItem
+              ? {
+                  parentValues: nexus.mapItem?.parentValues.map((v) =>
+                    v.serialize(macros)
+                  ),
+                  target: nexus.mapItem.node.pathString,
+                  mappingValues: nexus.mapItem.mappingValues.map((v) =>
+                    v.serialize(macros)
+                  ),
+                }
+              : undefined,
+          };
+        }),
+      })),
       childNodes: this.nodes.map((n) => n.serialize(macros)),
       reg: mappedRegs?.map((mappedReg) => ({
         mappedStartAddress: mappedReg?.startAddress,
@@ -1182,6 +1249,16 @@ ${"\t".repeat(level - 1)}}; ${isOmmited ? " */" : ""}`;
         endAddress: mappedReg?.endAddressRaw,
         size: mappedReg?.size,
         inMappingRange: mappedReg?.inMappingRange,
+      })),
+      interruptControllerMappings: this.interrupControlerMapping.map((m) => ({
+        cells: m.expressions.map((e) => e.serialize(macros)),
+        path: m.node.pathString,
+        property: m.property.ast.serialize(macros),
+      })),
+      specifierNexusMappings: this.spesifierNexusMapping.map((m) => ({
+        cells: m.expressions.map((e) => e.serialize(macros)),
+        path: m.node.pathString,
+        property: m.property.ast.serialize(macros),
       })),
     };
   }

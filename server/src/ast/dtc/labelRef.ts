@@ -45,12 +45,13 @@ export class LabelRef extends ASTBase {
   }
 
   serialize(): SerializableLabelRef {
-    return new SerializableLabelRef(
-      this.label?.toString() ?? null,
-      this.linksTo?.pathString ?? null,
-      this.uri,
-      this.range,
-      this.serializeIssues
-    );
+    return {
+      type: "LABEL_REF",
+      label: this.label?.toString() ?? null,
+      nodePath: this.linksTo?.pathString ?? null,
+      uri: this.serializeUri,
+      range: this.range,
+      issues: this.serializeIssues,
+    };
   }
 }

@@ -55,7 +55,9 @@
           ".dts",
           ".dtsi",
           ".dtso",
-          ".overlay"
+          ".overlay",
+          ".dts_compiled",
+          ".dts.pre.tmp"
         ],
         "configuration": "syntax/devicetree-language.json"
       },

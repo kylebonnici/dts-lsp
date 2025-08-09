@@ -16,6 +16,7 @@
 
 import { SerializableASTBase } from "../types/index";
 import {
+  fileURLToPath,
   getTokenModifiers,
   getTokenTypes,
   isPathEqual,
@@ -51,10 +52,15 @@ export class ASTBase {
   private _fisrtToken?: Token;
   private allDescendantsCache?: ASTBase[];
 
-  public issues: (() => Diagnostic)[] = [];
+  syntaxIssues: (() => Diagnostic)[] = [];
+  resetableIssues: (() => Diagnostic)[] = [];
+  get issues(): (() => Diagnostic)[] {
+    return [...this.syntaxIssues, ...this.resetableIssues];
+  }
 
-  addIssue(issue: () => Diagnostic) {
-    this.issues.push(issue);
+  resetIssues() {
+    this.resetableIssues = [];
+    this.children.forEach((c) => c.resetIssues());
   }
 
   // all issues we want to this item to show when serialized
@@ -212,7 +218,15 @@ export class ASTBase {
     );
   }
 
+  protected get serializeUri() {
+    return pathToFileURL(this.uri);
+  }
+
   serialize(macros: Map<string, MacroRegistryItem>): SerializableASTBase {
-    return new SerializableASTBase(this.uri, this.range, this.serializeIssues);
+    return {
+      uri: this.serializeUri,
+      range: this.range,
+      issues: this.serializeIssues,
+    };
   }
 }

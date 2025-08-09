@@ -21,13 +21,14 @@ import {
   flatNumberValues,
   generateOrTypeObj,
   getU32ValueFromProperty,
-  resolvePhandleNode,
 } from "./helpers";
 import { genStandardTypeDiagnostic } from "../../helpers";
 import {
   DiagnosticSeverity,
   ParameterInformation,
 } from "vscode-languageserver";
+import { Expression } from "../../ast/cPreprocessors/expression";
+import { NexuxMapping } from "../../context/property";
 
 export default () => {
   const prop = new PropertyNodeType<number>(
@@ -45,14 +46,17 @@ export default () => {
       }
 
       const node = property.parent;
-      const interruptParent = node.getProperty("interrupt-parent");
-      const root = node.root;
-      const parentInterruptNode = interruptParent
-        ? resolvePhandleNode(interruptParent?.ast.values?.values.at(0), root)
-        : node.parent;
 
-      if (!parentInterruptNode) {
-        if (!interruptParent) {
+      // in this case we can leve it up to interrupts-extended to validate as this prop
+      // is to be ignored
+      if (node.getProperty("interrupts-extended")) {
+        return issues;
+      }
+
+      const result = node.interruptsParent;
+
+      if (!result?.parentInterruptNode) {
+        if (!result?.interruptParent) {
           issues.push(
             genStandardTypeDiagnostic(
               StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
@@ -68,17 +72,29 @@ export default () => {
         issues.push(
           genStandardTypeDiagnostic(
             StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
-            interruptParent.ast.values?.values.at(0)?.value ??
-              interruptParent.ast
+            result.interruptParent.ast.values?.values.at(0)?.value ??
+              result.interruptParent.ast
           )
         );
         return issues;
       }
 
+      const { parentInterruptNode } = result;
+
       const childInterruptSpecifier =
         parentInterruptNode.getProperty("#interrupt-cells");
 
       if (!childInterruptSpecifier) {
+        issues.push(
+          genStandardTypeDiagnostic(
+            StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+            property.ast,
+            DiagnosticSeverity.Error,
+            [...parentInterruptNode.nodeNameOrLabelRef],
+            [],
+            [property.name, "#interrupt-cells", parentInterruptNode.pathString]
+          )
+        );
         return issues;
       }
 
@@ -111,32 +127,28 @@ export default () => {
             DiagnosticSeverity.Error,
             [...property.parent.nodeNameOrLabelRef],
             [],
-            [property.name, "#address-cells", node.parent!.pathString]
+            [property.name, "#address-cells", node.parent?.pathString ?? "/"]
           )
         );
       }
 
+      if (!childInterruptSpecifier) {
+        issues.push(
+          genStandardTypeDiagnostic(
+            StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+            property.ast,
+            DiagnosticSeverity.Error,
+            [...parentInterruptNode.nodeNameOrLabelRef],
+            [],
+            [property.name, "#interrupt-cells", parentInterruptNode.pathString]
+          )
+        );
+
+        return issues;
+      }
+
       let i = 0;
       while (i < values.length) {
-        if (!childInterruptSpecifier) {
-          issues.push(
-            genStandardTypeDiagnostic(
-              StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
-              property.ast,
-              DiagnosticSeverity.Error,
-              [...parentInterruptNode.nodeNameOrLabelRef],
-              [],
-              [
-                property.name,
-                "#interrupt-cells",
-                parentInterruptNode.pathString,
-              ]
-            )
-          );
-
-          break;
-        }
-
         const remaining = values.length - i;
 
         if (childInterruptSpecifierValue > remaining) {
@@ -167,6 +179,13 @@ export default () => {
         );
 
         const startAddress = node.mappedReg(macros)?.at(0)?.startAddress;
+        const nexusMapping: NexuxMapping = {
+          mappingValuesAst,
+          target: parentInterruptNode,
+        };
+
+        property.nexusMapsTo.push(nexusMapping);
+
         if (mapProperty && startAddress) {
           const match = parentInterruptNode.getNexusMapEntyMatch(
             "interrupt",
@@ -184,11 +203,16 @@ export default () => {
               )
             );
           } else {
-            property.nexusMapsTo.push({
-              mappingValuesAst,
-              mapItem: match.match,
-            });
+            nexusMapping.mapItem = match.match;
           }
+        }
+
+        if (mappingValuesAst.every((ast) => ast instanceof Expression)) {
+          parentInterruptNode.interrupControlerMapping.push({
+            expressions: mappingValuesAst,
+            node,
+            property,
+          });
         }
 
         i += childInterruptSpecifierValue;

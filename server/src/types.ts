@@ -334,8 +334,8 @@ export type RangeMapping = {
   ast: ASTBase;
 };
 
-export type NexusMapEnty = {
+export interface NexusMapEnty {
   mappingValues: (LabelRef | NodePathRef | NumberValue | Expression)[];
   node: Node;
   parentValues: (LabelRef | NodePathRef | NumberValue | Expression)[];
-};
+}

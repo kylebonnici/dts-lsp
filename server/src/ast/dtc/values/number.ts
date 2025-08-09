@@ -17,10 +17,7 @@
 import { SymbolKind } from "vscode-languageserver";
 import { Expression } from "../../cPreprocessors/expression";
 import { MacroRegistryItem, TokenIndexes } from "../../../types";
-import {
-  SerializableExpressionBase,
-  SerializableNumberValue,
-} from "../../../types/index";
+import { SerializableNumberValue } from "../../../types/index";
 
 export class NumberValue extends Expression {
   constructor(public readonly value: number, tokenIndexes: TokenIndexes) {
@@ -49,13 +46,14 @@ export class NumberValue extends Expression {
     } */`;
   }
 
-  serialize(): SerializableExpressionBase {
-    return new SerializableNumberValue(
-      this.value.toString(),
-      this.value,
-      this.uri,
-      this.range,
-      this.serializeIssues
-    );
+  serialize(): SerializableNumberValue {
+    return {
+      type: "NUMBER_VALUE",
+      value: this.toString(),
+      evaluated: this.value,
+      uri: this.serializeUri,
+      range: this.range,
+      issues: this.serializeIssues,
+    };
   }
 }

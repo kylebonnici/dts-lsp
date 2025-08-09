@@ -44,17 +44,21 @@ import {
   ContextId,
   Issue,
   IssueTypes,
+  SearchableResult,
   SyntaxIssue,
   tokenModifiers,
   tokenTypes,
 } from "./types";
 import {
   applyEdits,
+  evalExp,
+  expandMacros,
   fileURLToPath,
   findContext,
   findContexts,
   generateContextId,
   isPathEqual,
+  nodeFinder,
   pathToFileURL,
   resolveContextFiles,
 } from "./helpers";
@@ -77,10 +81,13 @@ import type {
   Context,
   ContextListItem,
   ContextType,
+  EvaluatedMacro,
   IntegrationSettings,
+  LocationResult,
   ResolvedContext,
   SerializedNode,
   Settings,
+  StableResult,
 } from "./types/index";
 import {
   defaultSettings,
@@ -93,6 +100,7 @@ import { getActions } from "./getActions";
 import { getSignatureHelp } from "./signatureHelp";
 import { createPatch } from "diff";
 import { initHeapMonitor } from "./heapMonitor";
+import { Node } from "./context/node";
 
 const contextAware: ContextAware[] = [];
 let activeContext: ContextAware | undefined;
@@ -105,8 +113,7 @@ const fileWatchers = new Map<string, FileWatcher>();
 
 initHeapMonitor();
 
-const watchContextFiles = async (context: ContextAware) => {
-  await context.stable();
+const watchContextFiles = (context: ContextAware) => {
   context.getContextFiles().forEach((file) => {
     if (!fileWatchers.has(file)) {
       fileWatchers.set(
@@ -142,10 +149,6 @@ const deleteContext = async (context: ContextAware) => {
   } satisfies ContextListItem);
   contextAware.splice(index, 1);
 
-  // context
-  //   .getContextFiles()
-  //   .forEach((file) => getTokenizedDocumentProvider().reset(file));
-
   await reportContexList();
 
   if (context === activeContext) {
@@ -160,14 +163,7 @@ const deleteContext = async (context: ContextAware) => {
     }
   }
 
-  unwatchContextFiles(context);
-};
-
-const unwatchContextFiles = async (context: ContextAware) => {
-  await context.stable();
-  context
-    .getContextFiles()
-    .forEach((file) => fileWatchers.get(file)?.unwatch());
+  context.getContextFiles().map((file) => fileWatchers.get(file)?.unwatch());
 };
 
 const isStable = (context: ContextAware) => {
@@ -272,7 +268,7 @@ const cleanUpAdHocContext = async (context: ContextAware) => {
     .map((o) => o.context);
 
   if (contextToClean.length) {
-    contextToClean.forEach(deleteContext);
+    await Promise.all(contextToClean.map(deleteContext));
   }
 };
 
@@ -476,9 +472,8 @@ const createContext = async (context: ResolvedContext) => {
   );
 
   contextAware.push(newContext);
-  watchContextFiles(newContext);
-
   await newContext.stable();
+  watchContextFiles(newContext);
   const meta = await contexMeta(newContext);
 
   connection.sendNotification("devicetree/contextCreated", {
@@ -505,7 +500,7 @@ const loadSettings = async () => {
 
   const allActiveIds = resolvedFullSettings.contexts.map(generateContextId);
   const toDelete = contextAware.filter((c) => !allActiveIds.includes(c.id));
-  toDelete.forEach(deleteContext);
+  await Promise.all(toDelete.map(deleteContext));
 
   await resolvedPersistantSettings.contexts?.reduce((p, c) => {
     return p.then(async () => {
@@ -660,52 +655,87 @@ const onChange = async (uri: string) => {
     await loadSettings();
     await updateActiveContext({ uri });
   } else {
-    contexts.forEach((context) => {
-      debounce.get(context)?.abort.abort();
-      const abort = new AbortController();
-      const promise = new Promise<void>((resolve) => {
-        setTimeout(async () => {
-          if (abort.signal.aborted) {
-            resolve();
-            return;
-          }
-          const t = performance.now();
-          const isActive = activeContext === context;
-          const itemsToClear = isActive
-            ? generateClearWorkspaceDiagnostics(context)
-            : [];
-          unwatchContextFiles(context);
-          await context.reevaluate(uri);
-          watchContextFiles(context);
-          if (isActive) {
-            reportWorkspaceDiagnostics(context).then((d) => {
-              const newDiagnostics = d.items.map(
-                (i) =>
-                  ({
-                    uri: i.uri,
-                    version: i.version ?? undefined,
-                    diagnostics: i.items,
-                  } satisfies PublishDiagnosticsParams)
-              );
-              clearWorkspaceDiagnostics(
-                context,
-                itemsToClear.filter((i) =>
-                  newDiagnostics.every((nd) => nd.uri !== i.uri)
-                )
-              );
-              newDiagnostics.forEach((ii) => {
-                connection.sendDiagnostics(ii);
+    contexts
+      .sort((a, b) => (a === activeContext ? -1 : b === activeContext ? 1 : 0))
+      .forEach((context) => {
+        debounce.get(context)?.abort.abort();
+        const abort = new AbortController();
+        const promise = new Promise<void>((resolve) => {
+          setTimeout(async () => {
+            if (abort.signal.aborted) {
+              resolve();
+              return;
+            }
+            const t = performance.now();
+            const isActive = activeContext === context;
+            const itemsToClear = isActive
+              ? generateClearWorkspaceDiagnostics(context)
+              : [];
+            const prevFiles = context.getContextFiles();
+            await context.reevaluate(uri);
+            watchContextFiles(context);
+            prevFiles.forEach((f) => fileWatchers.get(f)?.unwatch());
+
+            if (isActive) {
+              reportWorkspaceDiagnostics(context).then((d) => {
+                const newDiagnostics = d.items.map(
+                  (i) =>
+                    ({
+                      uri: i.uri,
+                      version: i.version ?? undefined,
+                      diagnostics: i.items,
+                    } satisfies PublishDiagnosticsParams)
+                );
+                clearWorkspaceDiagnostics(
+                  context,
+                  itemsToClear.filter((i) =>
+                    newDiagnostics.every((nd) => nd.uri !== i.uri)
+                  )
+                );
+                newDiagnostics.forEach((ii) => {
+                  connection.sendDiagnostics(ii);
+                });
               });
+            }
+
+            context.serialize().then(async (node) => {
+              const [meta, fileTree] = await Promise.all([
+                contexMeta(context),
+                context.getFileTree(),
+              ]);
+
+              const stableResult = {
+                node,
+                ctx: {
+                  ctxNames: context.ctxNames.map((c) => c.toString()),
+                  id: context.id,
+                  ...fileTree,
+                  settings: context.settings,
+                  active: isActive,
+                  type: meta.type,
+                } as ContextListItem,
+              } satisfies StableResult;
+
+              if (activeContext === context) {
+                connection.sendNotification(
+                  "devicetree/activeContextStableNotification",
+                  stableResult
+                );
+              }
+
+              connection.sendNotification(
+                "devicetree/contextStableNotification",
+                stableResult
+              );
             });
-          }
 
-          resolve();
-          console.log("reevaluate", performance.now() - t);
-        }, 50);
+            resolve();
+            console.log("reevaluate", performance.now() - t);
+          }, 50);
+        });
+
+        debounce.set(context, { abort, promise });
       });
-
-      debounce.set(context, { abort, promise });
-    });
   }
 };
 
@@ -999,7 +1029,7 @@ documents.onDidClose(async (e) => {
         .some((f) => fetchDocument(f));
       if (!contextHasFileOpen) {
         if (await isAdHocContext(context)) {
-          deleteContext(context);
+          await deleteContext(context);
           adHocContextSettings.delete(context.settings.dtsFile);
         } else {
           clearWorkspaceDiagnostics(context);
@@ -1398,17 +1428,16 @@ connection.onRequest(
 
 connection.onRequest(
   "devicetree/getActiveContext",
-  async (id: string): Promise<ContextListItem | undefined> => {
+  async (): Promise<ContextListItem | undefined> => {
     await allStable();
-    console.log("devicetree/getActiveContext", id);
-    await updateActiveContext({ id }, true);
+    console.log("devicetree/getActiveContext");
     if (!activeContext) return;
 
     const meta = await contexMeta(activeContext);
     return activeContext
       ? {
           ctxNames: activeContext.ctxNames.map((c) => c.toString()),
-          id: id,
+          id: activeContext.id,
           ...(await activeContext.getFileTree()),
           settings: activeContext.settings,
           active: true,
@@ -1523,6 +1552,42 @@ connection.onRequest(
 );
 
 connection.onRequest(
+  "devicetree/activePath",
+  async (
+    location: TextDocumentPositionParams
+  ): Promise<LocationResult | undefined> => {
+    await allStable();
+
+    if (!activeContext) {
+      return;
+    }
+
+    const action = (
+      locationMeta?: SearchableResult
+    ): LocationResult | undefined => {
+      if (!locationMeta?.item) {
+        return;
+      }
+
+      if (locationMeta.item instanceof Node) {
+        return { nodePath: locationMeta.item.pathString };
+      }
+
+      return {
+        nodePath: locationMeta.item.parent.pathString,
+        propertyName: locationMeta.item.name,
+      };
+    };
+
+    return (
+      await nodeFinder(location, activeContext, (locationMeta) => [
+        action(locationMeta),
+      ])
+    ).at(0);
+  }
+);
+
+connection.onRequest(
   "devicetree/customActions",
   async (location: TextDocumentPositionParams) => {
     await allStable();
@@ -1562,5 +1627,27 @@ connection.onRequest(
     }
 
     return issues;
+  }
+);
+
+connection.onRequest(
+  "devicetree/evalMacros",
+  async ({ macros, ctxId }: { macros: string[]; ctxId: string }) => {
+    await allStable();
+
+    const context = findContext(contextAware, { id: ctxId });
+
+    if (!context) {
+      return [];
+    }
+
+    return macros.map<EvaluatedMacro>((macro) => {
+      const expanded = expandMacros(macro, context.macros);
+      const evaluated = evalExp(expanded);
+      return {
+        macro,
+        evaluated: typeof evaluated === "number" ? evaluated : expanded,
+      };
+    });
   }
 );

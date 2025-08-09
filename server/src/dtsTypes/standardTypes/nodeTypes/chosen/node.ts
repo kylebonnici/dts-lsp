@@ -15,14 +15,11 @@
  */
 
 import { BindingPropertyType } from "../../../../types/index";
-import {
-  genStandardTypeDiagnostic,
-  toRangeWithTokenIndex,
-} from "../../../../helpers";
+import { genStandardTypeDiagnostic } from "../../../../helpers";
 import { PropertyNodeType } from "../../../types";
 import { generateOrTypeObj } from "../../helpers";
 import { FileDiagnostic, StandardTypeIssue } from "../../../../types";
-import { DiagnosticSeverity, TextEdit } from "vscode-languageserver";
+import { DiagnosticSeverity } from "vscode-languageserver";
 import { getStandardDefaultType } from "../../../../dtsTypes/standardDefaultType";
 
 export function getChosenNodeType() {
