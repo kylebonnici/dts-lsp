@@ -4,19 +4,21 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.4.10] - Unreleased
+## [0.4.10] - 2025-08-09
 
 ### Added
 
-- Privide document links to included binding files for Zephyr bindings
-- Formatting macro in `(...)` example `prop = <(MACRO(x))>;` -> `prop = <MACRO(x)>` but not `prop = <(MACRO(x) + 1)>;`
+- Property types for Zephyr node `zephyr,user`.
+- Document links in Zephyr Binding files included bindings.
+- Formatting rule for macros inside parentheses:
+    - Example: `prop = <(MACRO(x))>;` → `prop = <MACRO(x)>`
+    - Does not apply when there are additional operations: `prop = <(MACRO(x) + 1)>;` (unchanged).
 
 ### Fixed
 
-- Issue with zephyt bindings when child node should use parent node bus type to find match.
-- Issue where renaming lables will not effect labels linked to a referanced node.
-- Issue with parser where `...VAL (1 + 2)...` was parsed as a `VAL(1 + 2)`
-  now parser will interpret it as `VAL` and `(1 + 2)`
+- Issue in Zephyr bindings where a child node should use its parent node's bus type to find a matching binding.
+- Issue where renaming labels did not update labels linked to a referenced node.
+- Parser issue where `...VAL (1 + 2)...` was incorrectly parsed as `VAL(1 + 2)`.
 
 ## [0.4.9] - 2025-07-11
 
@@ -262,11 +264,11 @@ prop1 = <
 - Display node path on hover.
 - Show DTS native type and binding type on hover for properties.
 - LSP API to get actions for a location:
-  - Generate C Identifier macros for nodes and properties.
-  - Generate node path.
+    - Generate C Identifier macros for nodes and properties.
+    - Generate node path.
 - Context menu options:
-  - Copy C Identifiers to clipboard.
-  - Copy node path to clipboard.
+    - Copy C Identifiers to clipboard.
+    - Copy node path to clipboard.
 
 ### Fixed
 
@@ -283,8 +285,8 @@ prop1 = <
 - On-hover over macro shows both decimal and hex values.
 - `lockRenameEdits` added to context settings.
 - VS Code commands:
-  - Devicetree: Generate context output.
-  - Devicetree: Set active context.
+    - Devicetree: Generate context output.
+    - Devicetree: Set active context.
 
 ### Changed
 
@@ -394,8 +396,8 @@ prop1 = <
 ### Changed
 
 - `device_type`
-  - diagnostics will not show deprecated warning when required.
-  - required for `cpus` node.
+    - diagnostics will not show deprecated warning when required.
+    - required for `cpus` node.
 
 ### Fixed
 
@@ -434,7 +436,7 @@ prop1 = <
 ### Added
 
 - Parser support for `prop = /bits/ 8 <10>;`
-  - This syntax will be marked with a warning given it is not part of the v0.4 devicetree spec.
+    - This syntax will be marked with a warning given it is not part of the v0.4 devicetree spec.
 - Parser support for `/memreserve/ 0x0000a800 0x000f5800;`
 - Experimental Support for devicetree-org json schema bindings
 - Support for node names with comma separated addresses e.g.
@@ -446,8 +448,8 @@ node1@1,0 {}
 ### Changed
 
 - `device_type`
-  - diagnostics now always show depreciated warning.
-  - no longer show `should be omitted` diagnostic
+    - diagnostics now always show depreciated warning.
+    - no longer show `should be omitted` diagnostic
 
 ### Fixed
 
@@ -549,12 +551,12 @@ reg = <536870912 DT_SIZE_K(448)>; -> fix
 ### Added
 
 - Support for `devicetree.cwd` in the setting. This can be used to allow relative paths in:
-  - `devicetree.defaultIncludePaths`
-  - `devicetree.defaultZephyrBindings`
+    - `devicetree.defaultIncludePaths`
+    - `devicetree.defaultZephyrBindings`
 - Support for `cwd` in each context. If this is missing `devicetree.cwd` will be used as fallback. This can be used to allow relative paths in:
-  - `includePaths`
-  - `zephyrBindings`
-  - `dtsFile`
+    - `includePaths`
+    - `zephyrBindings`
+    - `dtsFile`
 - `ctxName` to the context settings. This can be a string or a number.
 - Extended `preferredContext` to support linking to `ctxName`. This can be a string or a number.
 - `devicetree.autoChangeContext`. If true the LSP will auto change the active context for actions. Defaults to true.
