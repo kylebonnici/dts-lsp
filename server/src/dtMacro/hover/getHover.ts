@@ -26,6 +26,7 @@ import { dtCompatGetAnyStatusOk } from './dtCompatGetAnyStatusOk';
 import { dtGParent } from './dtGParent';
 import { dtHasAlias } from './dtHasAlias';
 import { dtNodeFullName } from './dtNodeFullName';
+import { dtNodePath } from './dtNodePath';
 
 // async function dtNodeLabel(args: string[], context: ContextAware) {
 // 	const runtime = await context?.getRuntime();
@@ -158,6 +159,10 @@ export async function getHover(
 	}
 
 	// TODO DT_NODE_HASH
+
+	if (macro.macro === 'DT_NODE_PATH') {
+		return await dtNodePath(document, macro, context, hoverParams.position);
+	}
 
 	// we need to recursivly find definition
 	const newPosition = findMacroDefinition(
