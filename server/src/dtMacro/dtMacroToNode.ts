@@ -27,6 +27,7 @@ import { resolveDtAlias } from './dtAlias';
 import { resolveDtChild } from './dtChild';
 import { resolveDtGParent } from './dtGParent';
 import { resolveDtCompatGetAnyStatusOk } from './dtCompatGetAnyStatusOk';
+import { resolveDtNodeLabel } from './dtNodeLabel';
 
 export async function resolveDTMacroToNode(
 	document: TextDocument,
@@ -38,6 +39,10 @@ export async function resolveDTMacroToNode(
 		case 'DT_ALIAS':
 			return macro.args?.[0]
 				? resolveDtAlias(macro.args[0].macro, context)
+				: undefined;
+		case 'DT_NODELABEL':
+			return macro.args?.[0]
+				? resolveDtNodeLabel(macro.args[0].macro, context)
 				: undefined;
 		case 'DT_CHILD':
 			return resolveDtChild(

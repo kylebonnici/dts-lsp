@@ -27,25 +27,7 @@ import { dtGParent } from './dtGParent';
 import { dtHasAlias } from './dtHasAlias';
 import { dtNodeFullName } from './dtNodeFullName';
 import { dtNodePath } from './dtNodePath';
-
-// async function dtNodeLabel(args: string[], context: ContextAware) {
-// 	const runtime = await context?.getRuntime();
-// 	const path = runtime?.resolvePath([`&${args[0].trim()}`]);
-// 	if (runtime && path) {
-// 		const node = Runtime.getNodeFromPath(path, runtime.rootNode, true);
-// 		if (!node) {
-// 			return;
-// 		}
-
-// 		const lastParser = (await runtime.context.getAllParsers()).at(-1)!;
-
-// 		return {
-// 			contents: node.toMarkupContent(
-// 				lastParser.cPreprocessorParser.macros,
-// 			),
-// 		};
-// 	}
-// }
+import { dtNodeLabel } from './dtNodeLabel';
 
 export async function getHover(
 	hoverParams: HoverParams,
@@ -162,6 +144,14 @@ export async function getHover(
 
 	if (macro.macro === 'DT_NODE_PATH') {
 		return await dtNodePath(document, macro, context, hoverParams.position);
+	}
+
+	if (macro.parent?.macro === 'DT_NODELABEL') {
+		return await dtNodeLabel(macro.macro.trim(), context);
+	}
+
+	if (macro.macro === 'DT_NODELABEL' && macro.args?.[0]) {
+		return await dtNodeLabel(macro.args[0].macro.trim(), context);
 	}
 
 	// we need to recursivly find definition
