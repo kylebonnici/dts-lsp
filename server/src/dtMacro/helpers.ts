@@ -58,73 +58,58 @@ function findMatchingCloseParen(
 	return undefined;
 }
 
-/** Split an argument list segment [start,end] (exclusive end) into args and their ranges. */
+/** Split an argument list segment [start,end) into args, respecting () and quotes. */
 function splitArgsWithRanges(text: string, start: number, end: number) {
 	const ranges: Array<{ start: number; end: number; text: string }> = [];
 	let depth = 0;
+	let inSingle = false,
+		inDouble = false;
 	let s = start;
+
 	for (let i = start; i < end; i++) {
 		const c = text[i];
-		if (c === '(') depth++;
-		else if (c === ')') depth--;
-		else if (c === ',' && depth === 0) {
-			// push arg s..i
-			let a = s,
-				b = i;
-			while (a < b && /\s/.test(text[a])) a++;
-			while (b > a && /\s/.test(text[b - 1])) b--;
-			ranges.push({ start: a, end: b, text: text.slice(a, b) });
-			s = i + 1;
+		if (c === "'" && !inDouble) inSingle = !inSingle;
+		else if (c === '"' && !inSingle) inDouble = !inDouble;
+		else if (!inSingle && !inDouble) {
+			if (c === '(') depth++;
+			else if (c === ')') depth--;
+			else if (c === ',' && depth === 0) {
+				let a = s,
+					b = i;
+				while (a < b && /\s/.test(text[a])) a++;
+				while (b > a && /\s/.test(text[b - 1])) b--;
+				ranges.push({ start: a, end: b, text: text.slice(a, b) });
+				s = i + 1;
+			}
 		}
 	}
-	// last arg s..end
+	// last arg
 	let a = s,
 		b = end;
 	while (a < b && /\s/.test(text[a])) a++;
 	while (b > a && /\s/.test(text[b - 1])) b--;
-	if (a <= b) ranges.push({ start: a, end: b, text: text.slice(a, b) });
-	// handle empty arglist: we’ll have a==b==end, keep a single empty range for consistency
+	ranges.push({ start: a, end: b, text: text.slice(a, b) });
+
 	return ranges;
 }
 
-/** Parse a macro or literal string into DTMacroInfo, recursively (no source ranges). */
+/** Parse a macro or literal string into DTMacroInfo, recursively. */
 function parseNodeFromString(expr: string): DTMacroInfo {
 	const trimmed = expr.trim();
-	// Allow optional whitespace before '('
-	const m = /^([A-Za-z_][A-Za-z0-9_]*)\s*\((.*)\)$/.exec(trimmed);
+	// Use [\s\S]* to match across newlines and include quotes
+	const m = /^([A-Za-z_][A-Za-z0-9_]*)\s*\(([\s\S]*)\)$/.exec(trimmed);
 	if (!m) return { macro: trimmed };
 
 	const name = m[1];
 	const inner = m[2];
 
-	// split args at top level
-	let depth = 0,
-		cur = '';
-	const parts: string[] = [];
-	for (const ch of inner) {
-		if (ch === '(') {
-			depth++;
-			cur += ch;
-		} else if (ch === ')') {
-			depth--;
-			cur += ch;
-		} else if (ch === ',' && depth === 0) {
-			parts.push(cur.trim());
-			cur = '';
-		} else {
-			cur += ch;
-		}
-	}
-	if (cur.trim() !== '' || inner.trim() === '') parts.push(cur.trim());
-
+	const ranges = splitArgsWithRanges(inner, 0, inner.length);
 	const node: DTMacroInfo = { macro: name, args: [] };
-	node.args = parts
-		.filter((p) => p.length > 0 || inner.trim() === '') // keep empty only if truly empty arglist
-		.map((p) => {
-			const child = parseNodeFromString(p);
-			child.parent = node;
-			return child;
-		});
+	node.args = ranges.map((r) => {
+		const child = parseNodeFromString(r.text);
+		child.parent = node;
+		return child;
+	});
 
 	return node;
 }

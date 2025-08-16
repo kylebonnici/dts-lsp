@@ -22,6 +22,7 @@ import { findMacroDefinition, getMacroAtPosition } from '../helpers';
 import { dtAlias } from './dtAlias';
 import { dtChild } from './dtChild';
 import { dtChildNum } from './dtChildNum';
+import { dtCompatGetAnyStatusOk } from './dtCompatGetAnyStatusOk';
 
 // async function dtNodeLabel(args: string[], context: ContextAware) {
 // 	const runtime = await context?.getRuntime();
@@ -87,6 +88,12 @@ export async function getHover(
 			hoverParams.position,
 			true,
 		);
+	}
+
+	if (macro?.macro === 'DT_COMPAT_GET_ANY_STATUS_OKAY') {
+		return macro.args?.[0].macro
+			? dtCompatGetAnyStatusOk(macro.args[0].macro, context)
+			: undefined;
 	}
 
 	const newPosition = findMacroDefinition(
