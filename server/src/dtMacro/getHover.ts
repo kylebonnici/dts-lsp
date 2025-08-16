@@ -23,9 +23,10 @@ import {
 	DTMacroInfo,
 	findMacroDefinition,
 	getMacroAtPosition,
-	resolveDtAlias,
-	resolveDtChild,
 } from './helpers';
+import { resolveDtChild } from './dtChild';
+import { resolveDtAlias } from './dtAlias';
+import { resolveDTMacroToNode } from './dtMacroToNode';
 
 async function dtAlias(alias: string, context: ContextAware) {
 	const runtime = await context?.getRuntime();
@@ -61,6 +62,7 @@ async function dtChild(
 			macro,
 			context,
 			position,
+			resolveDTMacroToNode,
 		);
 
 		if (!childNode) {

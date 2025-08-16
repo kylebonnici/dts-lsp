@@ -16,12 +16,6 @@
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Position } from 'vscode-languageserver-types';
-import { Node } from '../context/node';
-import { Runtime } from '../context/runtime';
-import { StringValue } from '../ast/dtc/values/string';
-import { LabelRef } from '../ast/dtc/labelRef';
-import { NodePathRef } from '../ast/dtc/values/nodePath';
-import { ContextAware } from '../runtimeEvaluator';
 export interface DTMacroInfo {
 	macro: string;
 	args?: DTMacroInfo[];
@@ -262,94 +256,4 @@ export function findMacroDefinition(
 
 export function toCIdentifier(name: string) {
 	return name.toLowerCase().replace(/[@,-]/g, '_');
-}
-
-export async function resolveDtAlias(alias: string, context: ContextAware) {
-	const runtime = await context?.getRuntime();
-
-	if (runtime) {
-		let node: Node | undefined = Runtime.getNodeFromPath(
-			['aliases'],
-			runtime.rootNode,
-			true,
-		);
-
-		const property = node?.property.find((p) => p.name === alias);
-
-		if (!property) {
-			return;
-		}
-
-		const values = property.ast.getFlatAstValues();
-
-		if (values?.[0] instanceof StringValue) {
-			node = runtime.rootNode.getChild(values[0].value.split('/'));
-		} else if (values?.[0] instanceof LabelRef) {
-			node = values[0].linksTo;
-		} else if (values?.[0] instanceof NodePathRef) {
-			node = values[0].path?.pathParts.at(-1)?.linksTo;
-		}
-
-		return node;
-	}
-}
-
-export async function resolveDtChild(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
-) {
-	if (macro.args?.length !== 2) return;
-
-	const runtime = await context?.getRuntime();
-
-	if (runtime) {
-		const node = await resolveDTMacroToNode(
-			document,
-			macro.args[0],
-			context,
-			position,
-		);
-
-		const childName = macro.args[1].macro;
-
-		if (!node) {
-			return;
-		}
-
-		let childNode = node.nodes.find(
-			(c) => toCIdentifier(c.name) === childName,
-		);
-
-		return childNode;
-	}
-}
-
-export async function resolveDTMacroToNode(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
-): Promise<Node | undefined> {
-	switch (macro.macro) {
-		case 'DT_ALIAS':
-			return macro.args?.[0]
-				? resolveDtAlias(macro.args[0].macro, context)
-				: undefined;
-		case 'DT_CHILD':
-			return resolveDtChild(document, macro, context, position);
-	}
-
-	const newPosition = findMacroDefinition(document, macro.macro, position);
-	if (!newPosition) {
-		return;
-	}
-
-	const newMacro = getMacroAtPosition(document, newPosition);
-	if (!newMacro) {
-		return;
-	}
-
-	return resolveDTMacroToNode(document, newMacro, context, newPosition);
 }
