@@ -28,6 +28,8 @@ import { resolveDtChild } from './dtChild';
 import { resolveDtGParent } from './dtGParent';
 import { resolveDtCompatGetAnyStatusOk } from './dtCompatGetAnyStatusOk';
 import { resolveDtNodeLabel } from './dtNodeLabel';
+import { resolveDtParent } from './dtParent';
+import { resolveDtPath } from './dtPath';
 
 export async function resolveDTMacroToNode(
 	document: TextDocument,
@@ -68,6 +70,21 @@ export async function resolveDTMacroToNode(
 							context,
 						)
 					)?.at(0)
+				: undefined;
+		case 'DT_PARENT':
+			return resolveDtParent(
+				document,
+				macro,
+				context,
+				position,
+				resolveDTMacroToNode,
+			);
+		case 'DT_PATH':
+			return macro.args
+				? resolveDtPath(
+						macro.args.map((a) => a.macro),
+						context,
+					)
 				: undefined;
 	}
 

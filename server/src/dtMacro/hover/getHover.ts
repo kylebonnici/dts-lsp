@@ -29,6 +29,8 @@ import { dtNodeFullName } from './dtNodeFullName';
 import { dtNodePath } from './dtNodePath';
 import { dtNodeLabel } from './dtNodeLabel';
 import { dtNodeLabelStringArray } from './dtNodeLabelStringArray';
+import { dtParent } from './dtParent';
+import { dtPath } from './dtPath';
 
 export async function getHover(
 	hoverParams: HoverParams,
@@ -162,6 +164,19 @@ export async function getHover(
 			context,
 			hoverParams.position,
 		);
+	}
+
+	if (macro?.macro === 'DT_PARENT') {
+		return dtParent(document, macro, context, hoverParams.position);
+	}
+
+	if (macro?.macro === 'DT_PATH') {
+		return macro.args
+			? dtPath(
+					macro.args.map((a) => a.macro),
+					context,
+				)
+			: undefined;
 	}
 
 	// we need to recursivly find definition
