@@ -24,6 +24,7 @@ import { dtChild } from './dtChild';
 import { dtChildNum } from './dtChildNum';
 import { dtCompatGetAnyStatusOk } from './dtCompatGetAnyStatusOk';
 import { dtGParent } from './dtGParent';
+import { dtHasAlias } from './dtHasAlias';
 
 // async function dtNodeLabel(args: string[], context: ContextAware) {
 // 	const runtime = await context?.getRuntime();
@@ -105,6 +106,15 @@ export async function getHover(
 		return dtGParent(document, macro, context, hoverParams.position);
 	}
 
+	if (macro.parent?.macro === 'DT_HAS_ALIAS') {
+		return await dtAlias(macro.macro.trim(), context);
+	}
+
+	if (macro.macro === 'DT_HAS_ALIAS' && macro.args?.[0]) {
+		return await dtHasAlias(macro.args[0].macro.trim(), context);
+	}
+
+	// we need to recursivly find definition
 	const newPosition = findMacroDefinition(
 		document,
 		macro.macro,
