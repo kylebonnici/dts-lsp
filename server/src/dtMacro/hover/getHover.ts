@@ -179,6 +179,17 @@ export async function getHover(
 			: undefined;
 	}
 
+	if (macro?.macro === 'DT_ROOT') {
+		const runtime = await context.getRuntime();
+		const lastParser = (await runtime.context.getAllParsers()).at(-1)!;
+
+		return {
+			contents: runtime.rootNode.toMarkupContent(
+				lastParser.cPreprocessorParser.macros,
+			),
+		};
+	}
+
 	// we need to recursivly find definition
 	const newPosition = findMacroDefinition(
 		document,

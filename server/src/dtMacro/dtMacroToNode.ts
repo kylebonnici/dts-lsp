@@ -86,6 +86,8 @@ export async function resolveDTMacroToNode(
 						context,
 					)
 				: undefined;
+		case 'DT_ROOT':
+			return (await context.getRuntime()).rootNode;
 	}
 
 	const newPosition = findMacroDefinition(document, macro.macro, position);
