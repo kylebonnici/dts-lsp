@@ -14,108 +14,14 @@
  * limitations under the License.
  */
 
-import {
-	Hover,
-	HoverParams,
-	MarkupKind,
-	Position,
-} from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../runtimeEvaluator';
-import { getTokenizedDocumentProvider } from '../providers/tokenizedDocument';
-import { fileURLToPath } from '../helpers';
-import {
-	DTMacroInfo,
-	findMacroDefinition,
-	getMacroAtPosition,
-} from './helpers';
-import { resolveDtChild } from './dtChild';
-import { resolveDtAlias } from './dtAlias';
-import { resolveDTMacroToNode } from './dtMacroToNode';
-import { resolveDtChildNum } from './dtChildNum';
-
-async function dtAlias(alias: string, context: ContextAware) {
-	const runtime = await context?.getRuntime();
-
-	if (runtime) {
-		const node = await resolveDtAlias(alias, context);
-
-		if (!node) {
-			return;
-		}
-
-		const lastParser = (await runtime.context.getAllParsers()).at(-1)!;
-
-		return {
-			contents: node.toMarkupContent(
-				lastParser.cPreprocessorParser.macros,
-			),
-		};
-	}
-}
-
-async function dtChild(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
-) {
-	const runtime = await context?.getRuntime();
-
-	if (runtime) {
-		let childNode = await resolveDtChild(
-			document,
-			macro,
-			context,
-			position,
-			resolveDTMacroToNode,
-		);
-
-		if (!childNode) {
-			return;
-		}
-
-		const lastParser = (await runtime.context.getAllParsers()).at(-1)!;
-
-		return {
-			contents: childNode.toMarkupContent(
-				lastParser.cPreprocessorParser.macros,
-			),
-		};
-	}
-}
-
-async function dtChildNum(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
-	statusOk?: boolean,
-) {
-	const runtime = await context?.getRuntime();
-
-	if (runtime) {
-		let num = await resolveDtChildNum(
-			document,
-			macro,
-			context,
-			position,
-			resolveDTMacroToNode,
-			statusOk,
-		);
-
-		if (num === undefined) {
-			return;
-		}
-
-		return {
-			contents: {
-				kind: MarkupKind.Markdown,
-				value: num.toString(),
-			},
-		};
-	}
-}
+import { Hover, HoverParams } from 'vscode-languageserver';
+import { ContextAware } from '../../runtimeEvaluator';
+import { getTokenizedDocumentProvider } from '../../providers/tokenizedDocument';
+import { fileURLToPath } from '../../helpers';
+import { findMacroDefinition, getMacroAtPosition } from '../helpers';
+import { dtAlias } from './dtAlias';
+import { dtChild } from './dtChild';
+import { dtChildNum } from './dtChildNum';
 
 // async function dtNodeLabel(args: string[], context: ContextAware) {
 // 	const runtime = await context?.getRuntime();

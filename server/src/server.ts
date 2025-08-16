@@ -75,7 +75,7 @@ import { getCodeActions } from './getCodeActions';
 import { getDocumentFormatting } from './getDocumentFormatting';
 import { getTypeCompletions } from './getTypeCompletions';
 import { getHover } from './getHover';
-import { getHover as getDTMacroHover } from './dtMacro/getHover';
+import { getHover as getDTMacroHover } from './dtMacro/hover/getHover';
 import { getBindingLoader } from './dtsTypes/bindings/bindingLoader';
 import { getFoldingRanges } from './foldingRanges';
 import { typeDefinition } from './typeDefinition';
