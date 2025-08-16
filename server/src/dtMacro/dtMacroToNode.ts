@@ -25,6 +25,7 @@ import {
 } from './helpers';
 import { resolveDtAlias } from './dtAlias';
 import { resolveDtChild } from './dtChild';
+import { resolveDtGParent } from './dtGParent';
 
 export async function resolveDTMacroToNode(
 	document: TextDocument,
@@ -39,6 +40,14 @@ export async function resolveDTMacroToNode(
 				: undefined;
 		case 'DT_CHILD':
 			return resolveDtChild(
+				document,
+				macro,
+				context,
+				position,
+				resolveDTMacroToNode,
+			);
+		case 'DT_GPARENT':
+			return resolveDtGParent(
 				document,
 				macro,
 				context,

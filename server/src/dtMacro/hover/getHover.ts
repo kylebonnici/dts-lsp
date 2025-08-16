@@ -23,6 +23,7 @@ import { dtAlias } from './dtAlias';
 import { dtChild } from './dtChild';
 import { dtChildNum } from './dtChildNum';
 import { dtCompatGetAnyStatusOk } from './dtCompatGetAnyStatusOk';
+import { dtGParent } from './dtGParent';
 
 // async function dtNodeLabel(args: string[], context: ContextAware) {
 // 	const runtime = await context?.getRuntime();
@@ -94,6 +95,14 @@ export async function getHover(
 		return macro.args?.[0].macro
 			? dtCompatGetAnyStatusOk(macro.args[0].macro, context)
 			: undefined;
+	}
+
+	if (macro?.parent?.macro === 'DT_COMPAT_GET_ANY_STATUS_OKAY') {
+		return dtCompatGetAnyStatusOk(macro.macro, context);
+	}
+
+	if (macro?.macro === 'DT_GPARENT') {
+		return dtGParent(document, macro, context, hoverParams.position);
 	}
 
 	const newPosition = findMacroDefinition(
