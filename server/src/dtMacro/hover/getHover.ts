@@ -25,6 +25,7 @@ import { dtChildNum } from './dtChildNum';
 import { dtCompatGetAnyStatusOk } from './dtCompatGetAnyStatusOk';
 import { dtGParent } from './dtGParent';
 import { dtHasAlias } from './dtHasAlias';
+import { dtNodeFullName } from './dtNodeFullName';
 
 // async function dtNodeLabel(args: string[], context: ContextAware) {
 // 	const runtime = await context?.getRuntime();
@@ -113,6 +114,50 @@ export async function getHover(
 	if (macro.macro === 'DT_HAS_ALIAS' && macro.args?.[0]) {
 		return await dtHasAlias(macro.args[0].macro.trim(), context);
 	}
+
+	// TODO  DT_INST,  DT_NODE_CHILD_IDX
+
+	if (macro.macro === 'DT_NODE_FULL_NAME') {
+		return await dtNodeFullName(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+			'Quoted',
+		);
+	}
+
+	if (macro.macro === 'DT_NODE_FULL_NAME_TOKEN') {
+		return await dtNodeFullName(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+			'Token',
+		);
+	}
+
+	if (macro.macro === 'DT_NODE_FULL_NAME_UNQUOTED') {
+		return await dtNodeFullName(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+			'Unquoted',
+		);
+	}
+
+	if (macro.macro === 'DT_NODE_FULL_NAME_UPPER_TOKEN') {
+		return await dtNodeFullName(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+			'Upper Token',
+		);
+	}
+
+	// TODO DT_NODE_HASH
 
 	// we need to recursivly find definition
 	const newPosition = findMacroDefinition(

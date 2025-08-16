@@ -15,22 +15,8 @@
  */
 
 import { Hover, MarkupKind } from 'vscode-languageserver-types';
-import { Node } from '../../context/node';
 import { ContextAware } from '../../runtimeEvaluator';
-import { toCIdentifier } from '../helpers';
-
-const get = (node: Node, compat: string): Node[] => {
-	return node.nodes
-		.filter((n) => !n.disabled && n.nodeType)
-		.flatMap((n) =>
-			[n.nodeType!.compatible, ...Array.from(n.nodeType!.extends)]
-				.filter((v) => !!v)
-				.map((c) => toCIdentifier(c!))
-				.includes(compat)
-				? [n, ...get(n, compat)]
-				: get(n, compat),
-		);
-};
+import { resolveDtCompatGetAnyStatusOk } from '../dtCompatGetAnyStatusOk';
 
 export async function dtCompatGetAnyStatusOk(
 	compat: string,
@@ -39,9 +25,9 @@ export async function dtCompatGetAnyStatusOk(
 	const runtime = await context?.getRuntime();
 
 	if (runtime) {
-		const nodes = get(runtime.rootNode, compat);
+		const nodes = await resolveDtCompatGetAnyStatusOk(compat, context);
 
-		if (!nodes.length) {
+		if (!nodes?.length) {
 			return {
 				contents: {
 					kind: MarkupKind.Markdown,

@@ -26,6 +26,7 @@ import {
 import { resolveDtAlias } from './dtAlias';
 import { resolveDtChild } from './dtChild';
 import { resolveDtGParent } from './dtGParent';
+import { resolveDtCompatGetAnyStatusOk } from './dtCompatGetAnyStatusOk';
 
 export async function resolveDTMacroToNode(
 	document: TextDocument,
@@ -54,6 +55,15 @@ export async function resolveDTMacroToNode(
 				position,
 				resolveDTMacroToNode,
 			);
+		case 'DT_COMPAT_GET_ANY_STATUS_OKAY':
+			return macro.args?.length === 1
+				? (
+						await resolveDtCompatGetAnyStatusOk(
+							macro.args[0].macro,
+							context,
+						)
+					)?.at(0)
+				: undefined;
 	}
 
 	const newPosition = findMacroDefinition(document, macro.macro, position);
