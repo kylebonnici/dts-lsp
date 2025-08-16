@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
-import { Hover, HoverParams, Position } from 'vscode-languageserver';
+import {
+	Hover,
+	HoverParams,
+	MarkupKind,
+	Position,
+} from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ContextAware } from '../runtimeEvaluator';
 import { getTokenizedDocumentProvider } from '../providers/tokenizedDocument';
@@ -27,6 +32,7 @@ import {
 import { resolveDtChild } from './dtChild';
 import { resolveDtAlias } from './dtAlias';
 import { resolveDTMacroToNode } from './dtMacroToNode';
+import { resolveDtChildNum } from './dtChildNum';
 
 async function dtAlias(alias: string, context: ContextAware) {
 	const runtime = await context?.getRuntime();
@@ -75,6 +81,38 @@ async function dtChild(
 			contents: childNode.toMarkupContent(
 				lastParser.cPreprocessorParser.macros,
 			),
+		};
+	}
+}
+
+async function dtChildNum(
+	document: TextDocument,
+	macro: DTMacroInfo,
+	context: ContextAware,
+	position: Position,
+	statusOk?: boolean,
+) {
+	const runtime = await context?.getRuntime();
+
+	if (runtime) {
+		let num = await resolveDtChildNum(
+			document,
+			macro,
+			context,
+			position,
+			resolveDTMacroToNode,
+			statusOk,
+		);
+
+		if (num === undefined) {
+			return;
+		}
+
+		return {
+			contents: {
+				kind: MarkupKind.Markdown,
+				value: num.toString(),
+			},
 		};
 	}
 }
@@ -128,6 +166,20 @@ export async function getHover(
 			macro.parent,
 			context,
 			hoverParams.position,
+		);
+	}
+
+	if (macro?.macro === 'DT_CHILD_NUM') {
+		return await dtChildNum(document, macro, context, hoverParams.position);
+	}
+
+	if (macro?.macro === 'DT_CHILD_NUM_STATUS_OKAY') {
+		return await dtChildNum(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+			true,
 		);
 	}
 
