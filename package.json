@@ -66,6 +66,18 @@
 				"extensions": [
 					".yaml"
 				]
+			},
+			{
+				"id": "c",
+				"extensions": [
+					".c"
+				]
+			},
+			{
+				"id": "cpp",
+				"extensions": [
+					".cpp"
+				]
 			}
 		],
 		"grammars": [

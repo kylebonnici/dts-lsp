@@ -75,6 +75,7 @@ import { getCodeActions } from './getCodeActions';
 import { getDocumentFormatting } from './getDocumentFormatting';
 import { getTypeCompletions } from './getTypeCompletions';
 import { getHover } from './getHover';
+import { getHover as getDTMacroHover } from './dtMacro/getHover';
 import { getBindingLoader } from './dtsTypes/bindings/bindingLoader';
 import { getFoldingRanges } from './foldingRanges';
 import { typeDefinition } from './typeDefinition';
@@ -1379,6 +1380,14 @@ connection.onDocumentFormatting(async (event) => {
 
 connection.onHover(async (event) => {
 	const filePath = fileURLToPath(event.textDocument.uri);
+
+	if (
+		(filePath.endsWith('.c') || filePath.endsWith('.cpp')) &&
+		activeContext
+	) {
+		return getDTMacroHover(event, activeContext);
+	}
+
 	if (!isDtsFile(filePath)) {
 		return;
 	}
