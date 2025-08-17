@@ -1383,7 +1383,8 @@ connection.onHover(async (event) => {
 
 	if (
 		(filePath.endsWith('.c') || filePath.endsWith('.cpp')) &&
-		activeContext
+		activeContext &&
+		activeContext.bindingLoader?.type === 'Zephyr'
 	) {
 		return getDTMacroHover(event, activeContext);
 	}
