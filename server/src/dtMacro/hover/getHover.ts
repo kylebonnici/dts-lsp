@@ -38,6 +38,7 @@ import { dtParent } from './node/dtParent';
 import { dtPath } from './node/dtPath';
 import { dtSameNode } from './node/dtSameNode';
 import { dtEnumIndexByIndex } from './property/dtEnumIndexByIndex';
+import { dtPhaByIndex } from './property/dtPhaByIndex';
 
 async function getNodeHover(
 	hoverParams: HoverParams,
@@ -252,6 +253,64 @@ async function getPropertyHover(
 					hoverParams.position,
 					0,
 					macro.args[2].macro,
+				)
+			: undefined;
+	}
+
+	if (macro.macro === 'DT_PHA') {
+		return macro.args?.length === 3
+			? await dtPhaByIndex(
+					document,
+					macro.args[0],
+					macro.args[1].macro,
+					context,
+					hoverParams.position,
+					0,
+					macro.args[2].macro,
+				)
+			: undefined;
+	}
+
+	if (macro.macro === 'DT_PHA_BY_IDX') {
+		return macro.args?.length === 4
+			? await dtPhaByIndex(
+					document,
+					macro.args[0],
+					macro.args[1].macro,
+					context,
+					hoverParams.position,
+					macro.args[2].macro,
+					macro.args[3].macro,
+				)
+			: undefined;
+	}
+
+	if (macro.macro === 'DT_PHA_BY_IDX_OR') {
+		return macro.args?.length === 5
+			? await dtPhaByIndex(
+					document,
+					macro.args[0],
+					macro.args[1].macro,
+					context,
+					hoverParams.position,
+					macro.args[2].macro,
+					macro.args[3].macro,
+					macro.args[4].macro,
+				)
+			: undefined;
+	}
+
+	if (macro.macro === 'DT_PHA_OR') {
+		return macro.args?.length === 4
+			? await dtPhaByIndex(
+					document,
+					macro.args[0],
+					macro.args[1].macro,
+					context,
+					hoverParams.position,
+					0,
+					macro.args[2].macro,
+					macro.args[3].macro,
 				)
 			: undefined;
 	}

@@ -18,44 +18,58 @@ import { MarkupKind, Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { NodeType } from 'src/dtsTypes/types';
 import { Property } from 'src/context/property';
+import { Expression } from 'src/ast/cPreprocessors/expression';
 import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo, toCIdentifier } from '../../helpers';
 import { resolveDTMacroToNode } from '../../dtMacroToNode';
 import { evalExp } from '../../../helpers';
 
-async function getEnumIndexByIndex(
+async function getPhaByIndex(
+	context: ContextAware,
 	idx: number,
 	property: Property,
+	cell: string,
 	fallback?: string,
 ) {
-	const value = property?.ast.quickValues?.at(idx);
-
 	const nodeType = property.parent.nodeType;
 
-	if (Array.isArray(value) || !nodeType || !(nodeType instanceof NodeType)) {
-		return;
+	if (!nodeType || !(nodeType instanceof NodeType)) {
+		return fallback;
 	}
 
-	const propType = nodeType.properties.find((p) =>
-		p.getNameMatch(property.name),
+	const nexusMapping = property.nexusMapsTo.at(idx);
+	const cellNames = nexusMapping?.target.nodeType?.cellsValues?.find(
+		(c) =>
+			nexusMapping.specifierSpace &&
+			c.specifier === nexusMapping.specifierSpace,
 	);
+	const cellIndex = cellNames?.values?.indexOf(cell);
 
-	if (!propType) {
-		return;
+	if (cellIndex === undefined || cellIndex === -1) {
+		return fallback;
 	}
 
-	const enumIdx = propType.values(property).findIndex((v) => v === value);
+	const value = nexusMapping?.mappingValuesAst.at(cellIndex);
 
-	return enumIdx === -1 ? fallback : enumIdx;
+	const lastParser = (
+		await (await context.getRuntime()).context.getAllParsers()
+	).at(-1)!;
+
+	if (value instanceof Expression) {
+		return value.evaluate(lastParser.cPreprocessorParser.macros);
+	}
+
+	return fallback;
 }
 
-export async function dtEnumIndexByIndex(
+export async function dtPhaByIndex(
 	document: TextDocument,
 	nodeId: DTMacroInfo,
 	propertyName: string,
 	context: ContextAware,
 	position: Position,
 	idx: number | string,
+	cell: string,
 	fallback?: string,
 ) {
 	const node = await resolveDTMacroToNode(
@@ -82,7 +96,7 @@ export async function dtEnumIndexByIndex(
 			: undefined;
 	}
 
-	const enumIdx = await getEnumIndexByIndex(idx, property, fallback);
+	const enumIdx = await getPhaByIndex(context, idx, property, cell, fallback);
 
 	return enumIdx
 		? {
