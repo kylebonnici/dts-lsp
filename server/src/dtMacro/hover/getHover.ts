@@ -15,10 +15,15 @@
  */
 
 import { Hover, HoverParams } from 'vscode-languageserver';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ContextAware } from '../../runtimeEvaluator';
 import { getTokenizedDocumentProvider } from '../../providers/tokenizedDocument';
 import { fileURLToPath } from '../../helpers';
-import { findMacroDefinition, getMacroAtPosition } from '../helpers';
+import {
+	DTMacroInfo,
+	findMacroDefinition,
+	getMacroAtPosition,
+} from '../helpers';
 import { dtAlias } from './node/dtAlias';
 import { dtChild } from './node/dtChild';
 import { dtChildNum } from './node/dtChildNum';
@@ -32,19 +37,14 @@ import { dtNodeLabelStringArray } from './node/dtNodeLabelStringArray';
 import { dtParent } from './node/dtParent';
 import { dtPath } from './node/dtPath';
 import { dtSameNode } from './node/dtSameNode';
+import { dtEnumIndexByIndex } from './property/dtEnumIndexByIndex';
 
-export async function getHover(
+async function getNodeHover(
 	hoverParams: HoverParams,
 	context: ContextAware,
+	document: TextDocument,
+	macro: DTMacroInfo,
 ): Promise<Hover | undefined> {
-	const filePath = fileURLToPath(hoverParams.textDocument.uri);
-	const document = getTokenizedDocumentProvider().getDocument(filePath);
-	const macro = getMacroAtPosition(document, hoverParams.position);
-
-	if (!macro?.macro) {
-		return;
-	}
-
 	if (macro.parent?.macro === 'DT_ALIAS') {
 		return await dtAlias(macro.macro.trim(), context);
 	}
@@ -53,7 +53,7 @@ export async function getHover(
 		return await dtAlias(macro.args[0].macro.trim(), context);
 	}
 
-	if (macro?.macro === 'DT_CHILD') {
+	if (macro.macro === 'DT_CHILD') {
 		return await dtChild(document, macro, context, hoverParams.position);
 	}
 
@@ -70,7 +70,7 @@ export async function getHover(
 		return await dtChildNum(document, macro, context, hoverParams.position);
 	}
 
-	if (macro?.macro === 'DT_CHILD_NUM_STATUS_OKAY') {
+	if (macro.macro === 'DT_CHILD_NUM_STATUS_OKAY') {
 		return await dtChildNum(
 			document,
 			macro,
@@ -80,17 +80,17 @@ export async function getHover(
 		);
 	}
 
-	if (macro?.macro === 'DT_COMPAT_GET_ANY_STATUS_OKAY') {
+	if (macro.macro === 'DT_COMPAT_GET_ANY_STATUS_OKAY') {
 		return macro.args?.[0].macro
 			? dtCompatGetAnyStatusOk(macro.args[0].macro, context)
 			: undefined;
 	}
 
-	if (macro?.parent?.macro === 'DT_COMPAT_GET_ANY_STATUS_OKAY') {
+	if (macro.parent?.macro === 'DT_COMPAT_GET_ANY_STATUS_OKAY') {
 		return dtCompatGetAnyStatusOk(macro.macro, context);
 	}
 
-	if (macro?.macro === 'DT_GPARENT') {
+	if (macro.macro === 'DT_GPARENT') {
 		return dtGParent(document, macro, context, hoverParams.position);
 	}
 
@@ -167,11 +167,11 @@ export async function getHover(
 		);
 	}
 
-	if (macro?.macro === 'DT_PARENT') {
+	if (macro.macro === 'DT_PARENT') {
 		return dtParent(document, macro, context, hoverParams.position);
 	}
 
-	if (macro?.macro === 'DT_PATH') {
+	if (macro.macro === 'DT_PATH') {
 		return macro.args
 			? dtPath(
 					macro.args.map((a) => a.macro),
@@ -180,7 +180,7 @@ export async function getHover(
 			: undefined;
 	}
 
-	if (macro?.macro === 'DT_ROOT') {
+	if (macro.macro === 'DT_ROOT') {
 		const runtime = await context.getRuntime();
 		const lastParser = (await runtime.context.getAllParsers()).at(-1)!;
 
@@ -191,8 +191,45 @@ export async function getHover(
 		};
 	}
 
-	if (macro?.macro === 'DT_SAME_NODE') {
+	if (macro.macro === 'DT_SAME_NODE') {
 		return dtSameNode(document, macro, context, hoverParams.position);
+	}
+}
+
+async function getPropertyHover(
+	hoverParams: HoverParams,
+	context: ContextAware,
+	document: TextDocument,
+	macro: DTMacroInfo,
+): Promise<Hover | undefined> {
+	if (macro.macro === 'DT_ENUM_IDX_BY_IDX') {
+		return await dtEnumIndexByIndex(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+		);
+	}
+}
+
+export async function getHover(
+	hoverParams: HoverParams,
+	context: ContextAware,
+): Promise<Hover | undefined> {
+	const filePath = fileURLToPath(hoverParams.textDocument.uri);
+	const document = getTokenizedDocumentProvider().getDocument(filePath);
+	const macro = getMacroAtPosition(document, hoverParams.position);
+
+	if (!macro?.macro) {
+		return;
+	}
+
+	const hover =
+		(await getNodeHover(hoverParams, context, document, macro)) ||
+		(await getPropertyHover(hoverParams, context, document, macro));
+
+	if (hover) {
+		return hover;
 	}
 
 	// we need to recursivly find definition
