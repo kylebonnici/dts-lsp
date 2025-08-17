@@ -26,7 +26,7 @@ import { evalExp } from '../../../helpers';
 
 async function getPhaByIndex(
 	context: ContextAware,
-	idx: number,
+	idx: number | string,
 	property: Property,
 	cell: string,
 	fallback?: string,
@@ -35,6 +35,24 @@ async function getPhaByIndex(
 
 	if (!nodeType || !(nodeType instanceof NodeType)) {
 		return fallback;
+	}
+
+	if (typeof idx === 'string') {
+		const specifierSpace = property.nexusMapsTo.at(0)?.specifierSpace;
+		const nameValues = specifierSpace
+			? property.parent.getProperty(`${specifierSpace}-names`)?.ast
+					.quickValues
+			: undefined;
+
+		idx =
+			nameValues?.findIndex(
+				(name) =>
+					typeof name === 'string' && name.toLowerCase() === idx,
+			) ?? -1;
+
+		if (idx === -1) {
+			return fallback;
+		}
 	}
 
 	const nexusMapping = property.nexusMapsTo.at(idx);
@@ -85,7 +103,7 @@ export async function dtPhaByIndex(
 
 	idx = typeof idx !== 'number' ? evalExp(idx) : idx;
 
-	if (typeof idx !== 'number' || !property) {
+	if (!property) {
 		return fallback
 			? {
 					contents: {
