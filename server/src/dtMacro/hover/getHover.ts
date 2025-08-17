@@ -31,6 +31,7 @@ import { dtNodeLabel } from './dtNodeLabel';
 import { dtNodeLabelStringArray } from './dtNodeLabelStringArray';
 import { dtParent } from './dtParent';
 import { dtPath } from './dtPath';
+import { dtSameNode } from './dtSameNode';
 
 export async function getHover(
 	hoverParams: HoverParams,
@@ -188,6 +189,10 @@ export async function getHover(
 				lastParser.cPreprocessorParser.macros,
 			),
 		};
+	}
+
+	if (macro?.macro === 'DT_SAME_NODE') {
+		return dtSameNode(document, macro, context, hoverParams.position);
 	}
 
 	// we need to recursivly find definition
