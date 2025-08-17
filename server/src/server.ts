@@ -70,6 +70,7 @@ import { getReferences } from './findReferences';
 import { getTokenizedDocumentProvider } from './providers/tokenizedDocument';
 import { getPrepareRenameRequest, getRenameRequest } from './getRenameRequest';
 import { getDefinitions } from './findDefinitions';
+import { getDefinitions as getDTMacroDefinitions } from './dtMacro/definitions/findDefinitions';
 import { getDeclaration } from './findDeclarations';
 import { getCodeActions } from './getCodeActions';
 import { getDocumentFormatting } from './getDocumentFormatting';
@@ -1315,17 +1316,26 @@ connection.onReferences(async (event) => {
 });
 
 connection.onDefinition(async (event) => {
-	const uri = fileURLToPath(event.textDocument.uri);
-	if (!isDtsFile(uri)) {
+	const filePath = fileURLToPath(event.textDocument.uri);
+
+	if (
+		(filePath.endsWith('.c') || filePath.endsWith('.cpp')) &&
+		activeContext &&
+		activeContext.bindingLoader?.type === 'Zephyr'
+	) {
+		return getDTMacroDefinitions(event, activeContext);
+	}
+
+	if (!isDtsFile(filePath)) {
 		return;
 	}
 
 	await allStable();
-	updateActiveContext({ uri });
-	const context = quickFindContext(uri);
+	updateActiveContext({ uri: filePath });
+	const context = quickFindContext(filePath);
 
 	const documentLinkDefinition =
-		(await context?.getDocumentLinks(uri, event.position))
+		(await context?.getDocumentLinks(filePath, event.position))
 			?.filter((docLink) => docLink.target)
 			.map((docLink) =>
 				Location.create(docLink.target!, docLink.range),

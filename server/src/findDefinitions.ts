@@ -35,6 +35,22 @@ import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
 import { StringValue } from './ast/dtc/values/string';
 import { CMacroCallParam } from './ast/cPreprocessors/functionCall';
 
+export const generateDefinitionsFromNode = (node: Node) => {
+	return [...node.definitions, ...node.referencedBy]
+		.map((dtc) => {
+			if (dtc instanceof DtcRootNode) {
+				return Location.create(pathToFileURL(dtc.uri), toRange(dtc));
+			}
+			if (dtc instanceof DtcChildNode) {
+				return Location.create(pathToFileURL(dtc.uri), toRange(dtc));
+			}
+			if (dtc instanceof DtcRefNode) {
+				return Location.create(pathToFileURL(dtc.uri), toRange(dtc));
+			}
+		})
+		.filter((r) => r) as Location[];
+};
+
 function getPropertyDefinition(
 	result: SearchableResult | undefined,
 ): Location[] {
@@ -90,32 +106,8 @@ function getNodeDefinition(result: SearchableResult | undefined): Location[] {
 		return [];
 	}
 
-	const gentItem = (node: Node) => {
-		return [...node.definitions, ...node.referencedBy]
-			.map((dtc) => {
-				if (dtc instanceof DtcRootNode) {
-					return Location.create(
-						pathToFileURL(dtc.uri),
-						toRange(dtc),
-					);
-				}
-				if (dtc instanceof DtcChildNode) {
-					return Location.create(
-						pathToFileURL(dtc.uri),
-						toRange(dtc),
-					);
-				}
-				if (dtc instanceof DtcRefNode) {
-					return Location.create(
-						pathToFileURL(dtc.uri),
-						toRange(dtc),
-					);
-				}
-			})
-			.filter((r) => r) as Location[];
-	};
 	if (result.item instanceof Node && !isDeleteChild(result.ast)) {
-		return gentItem(result.item);
+		return generateDefinitionsFromNode(result.item);
 	}
 
 	if (
@@ -123,13 +115,13 @@ function getNodeDefinition(result: SearchableResult | undefined): Location[] {
 		result.ast.parentNode instanceof LabelRef
 	) {
 		if (result.ast.parentNode.linksTo) {
-			return gentItem(result.ast.parentNode.linksTo);
+			return generateDefinitionsFromNode(result.ast.parentNode.linksTo);
 		}
 	}
 
 	if (result.ast instanceof NodeName) {
 		if (result.ast.linksTo) {
-			return gentItem(result.ast.linksTo);
+			return generateDefinitionsFromNode(result.ast.linksTo);
 		}
 	}
 
@@ -142,7 +134,7 @@ function getNodeDefinition(result: SearchableResult | undefined): Location[] {
 			result.ast.value.split('/'),
 		);
 		if (node) {
-			return gentItem(node);
+			return generateDefinitionsFromNode(node);
 		}
 	}
 
