@@ -72,6 +72,7 @@ import { getPrepareRenameRequest, getRenameRequest } from './getRenameRequest';
 import { getDefinitions } from './findDefinitions';
 import { getDefinitions as getDTMacroDefinitions } from './dtMacro/definitions/findDefinitions';
 import { getDeclaration } from './findDeclarations';
+import { getDeclaration as getDTMacroDeclaration } from './dtMacro/declarations/findDeclarations';
 import { getCodeActions } from './getCodeActions';
 import { getDocumentFormatting } from './getDocumentFormatting';
 import { getTypeCompletions } from './getTypeCompletions';
@@ -1347,14 +1348,23 @@ connection.onDefinition(async (event) => {
 });
 
 connection.onDeclaration(async (event) => {
-	const uri = fileURLToPath(event.textDocument.uri);
-	if (!isDtsFile(uri)) {
+	const filePath = fileURLToPath(event.textDocument.uri);
+
+	if (
+		(filePath.endsWith('.c') || filePath.endsWith('.cpp')) &&
+		activeContext &&
+		activeContext.bindingLoader?.type === 'Zephyr'
+	) {
+		return getDTMacroDeclaration(event, activeContext);
+	}
+
+	if (!isDtsFile(filePath)) {
 		return;
 	}
 
 	await allStable();
-	updateActiveContext({ uri });
-	const context = quickFindContext(uri);
+	updateActiveContext({ uri: filePath });
+	const context = quickFindContext(filePath);
 
 	return getDeclaration(event, context);
 });
