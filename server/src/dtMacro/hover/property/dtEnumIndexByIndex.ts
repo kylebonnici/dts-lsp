@@ -17,69 +17,84 @@
 import { MarkupKind, Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { NodeType } from 'src/dtsTypes/types';
+import { Property } from 'src/context/property';
 import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo, toCIdentifier } from '../../helpers';
 import { resolveDTMacroToNode } from '../../dtMacroToNode';
 import { evalExp } from '../../../helpers';
 
-export async function dtEnumIndexByIndex(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
+async function getEnumIndexByIndex(
+	idx: number,
+	property: Property,
+	fallback?: string,
 ) {
-	const args = macro.args;
-	if (args?.length !== 3) {
+	const value = property?.ast.quickValues?.at(idx);
+
+	const nodeType = property.parent.nodeType;
+
+	if (
+		Array.isArray(value) ||
+		!property ||
+		!nodeType ||
+		!(nodeType instanceof NodeType)
+	) {
 		return;
 	}
 
-	const runtime = await context?.getRuntime();
+	const propType = nodeType.properties.find((p) =>
+		p.getNameMatch(property.name),
+	);
 
-	if (runtime) {
-		const node = await resolveDTMacroToNode(
-			document,
-			args[0],
-			context,
-			position,
-		);
-
-		const property = node?.property.find(
-			(p) => toCIdentifier(p.name) === args[1].macro,
-		);
-
-		const idx = evalExp(args[2].macro);
-
-		if (typeof idx !== 'number') {
-			return;
-		}
-
-		const value = property?.ast.quickValues?.at(idx);
-
-		const nodeType = node?.nodeType;
-		if (
-			Array.isArray(value) ||
-			!property ||
-			!nodeType ||
-			!(nodeType instanceof NodeType)
-		) {
-			return;
-		}
-
-		const propType = nodeType.properties.find((p) =>
-			p.getNameMatch(property.name),
-		);
-
-		if (!propType) {
-			return;
-		}
-
-		const enumIdx = propType.values(property).findIndex((v) => v === value);
-
-		return {
-			contents: {
-				kind: MarkupKind.Markdown,
-				value: enumIdx.toString(),
-			},
-		};
+	if (!propType) {
+		return;
 	}
+
+	const enumIdx = propType.values(property).findIndex((v) => v === value);
+
+	return enumIdx === -1 ? fallback : enumIdx;
+}
+
+export async function dtEnumIndexByIndex(
+	document: TextDocument,
+	nodeId: DTMacroInfo,
+	propertyName: string,
+	context: ContextAware,
+	position: Position,
+	idx: number | string,
+	fallback?: string,
+) {
+	const node = await resolveDTMacroToNode(
+		document,
+		nodeId,
+		context,
+		position,
+	);
+
+	const property = node?.property.find(
+		(p) => toCIdentifier(p.name) === propertyName,
+	);
+
+	idx = typeof idx !== 'number' ? evalExp(idx) : idx;
+
+	if (typeof idx !== 'number' || !property) {
+		return fallback
+			? {
+					contents: {
+						kind: MarkupKind.Markdown,
+						value: fallback.toString(),
+					},
+				}
+			: undefined;
+	}
+
+	const enumIdx = await getEnumIndexByIndex(idx, property, fallback);
+
+	return enumIdx
+		? {
+				contents: {
+					kind: MarkupKind.Markdown,
+					value: enumIdx.toString(),
+				},
+			}
+		: undefined;
 }

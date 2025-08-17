@@ -202,13 +202,58 @@ async function getPropertyHover(
 	document: TextDocument,
 	macro: DTMacroInfo,
 ): Promise<Hover | undefined> {
+	if (macro.macro === 'DT_ENUM_IDX') {
+		return macro.args?.length === 2
+			? await dtEnumIndexByIndex(
+					document,
+					macro.args[0],
+					macro.args[1].macro,
+					context,
+					hoverParams.position,
+					0,
+				)
+			: undefined;
+	}
+
 	if (macro.macro === 'DT_ENUM_IDX_BY_IDX') {
-		return await dtEnumIndexByIndex(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		);
+		return macro.args?.length === 3
+			? await dtEnumIndexByIndex(
+					document,
+					macro.args[0],
+					macro.args[1].macro,
+					context,
+					hoverParams.position,
+					macro.args[2].macro,
+				)
+			: undefined;
+	}
+
+	if (macro.macro === 'DT_ENUM_IDX_BY_IDX_OR') {
+		return macro.args?.length === 4
+			? await dtEnumIndexByIndex(
+					document,
+					macro.args[0],
+					macro.args[1].macro,
+					context,
+					hoverParams.position,
+					macro.args[2].macro,
+					macro.args[3].macro,
+				)
+			: undefined;
+	}
+
+	if (macro.macro === 'DT_ENUM_IDX_OR') {
+		return macro.args?.length === 4
+			? await dtEnumIndexByIndex(
+					document,
+					macro.args[0],
+					macro.args[1].macro,
+					context,
+					hoverParams.position,
+					0,
+					macro.args[2].macro,
+				)
+			: undefined;
 	}
 }
 
