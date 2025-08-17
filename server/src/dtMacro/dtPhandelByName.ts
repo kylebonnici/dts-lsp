@@ -35,11 +35,12 @@ async function getPhandelByName(name: string, property: Property) {
 				.quickValues
 		: undefined;
 
-	const idx = nameValues?.findIndex(
-		(n) => typeof n === 'string' && n.toLowerCase() === name,
-	);
+	const idx =
+		nameValues?.findIndex(
+			(n) => typeof n === 'string' && n.toLowerCase() === name,
+		) ?? -1;
 
-	if (idx === undefined) {
+	if (idx === -1) {
 		return;
 	}
 
