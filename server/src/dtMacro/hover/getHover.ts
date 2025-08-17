@@ -40,6 +40,7 @@ import { dtSameNode } from './node/dtSameNode';
 import { dtEnumIndexByIndex } from './property/dtEnumIndexByIndex';
 import { dtPhaByIndex } from './property/dtPhaByIndex';
 import { dtPhandelByIndex } from './property/dtPhandelByIndex';
+import { dtPhandelByName } from './property/dtPhandelByName';
 
 async function getNodeHover(
 	hoverParams: HoverParams,
@@ -356,6 +357,15 @@ async function getPropertyHover(
 
 	if (macro.macro === 'DT_PHANDLE_BY_IDX' || macro.macro === 'DT_PHANDLE') {
 		return await dtPhandelByIndex(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+		);
+	}
+
+	if (macro.macro === 'DT_PHANDLE_BY_NAME') {
+		return await dtPhandelByName(
 			document,
 			macro,
 			context,

@@ -31,6 +31,7 @@ import { resolveDtNodeLabel } from './dtNodeLabel';
 import { resolveDtParent } from './dtParent';
 import { resolveDtPath } from './dtPath';
 import { resolveDtPhandelByIndex } from './dtPhandelByIndex';
+import { resolverDtPhandelByName } from './dtPhandelByName';
 
 export async function resolveDTMacroToNode(
 	document: TextDocument,
@@ -119,6 +120,14 @@ export async function resolveDTMacroToNode(
 			);
 		case 'DT_PHANDLE':
 			return resolveDtPhandelByIndex(
+				document,
+				macro,
+				context,
+				position,
+				resolveDTMacroToNode,
+			);
+		case 'DT_PHANDLE_BY_NAME':
+			return resolverDtPhandelByName(
 				document,
 				macro,
 				context,
