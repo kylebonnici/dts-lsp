@@ -30,6 +30,7 @@ import { resolveDtCompatGetAnyStatusOk } from './dtCompatGetAnyStatusOk';
 import { resolveDtNodeLabel } from './dtNodeLabel';
 import { resolveDtParent } from './dtParent';
 import { resolveDtPath } from './dtPath';
+import { resolveDtPhandelByIndex } from './dtPhandelByIndex';
 
 export async function resolveDTMacroToNode(
 	document: TextDocument,
@@ -88,6 +89,22 @@ export async function resolveDTMacroToNode(
 				: undefined;
 		case 'DT_ROOT':
 			return (await context.getRuntime()).rootNode;
+		case 'DT_PHANDLE_BY_IDX':
+			return resolveDtPhandelByIndex(
+				document,
+				macro,
+				context,
+				position,
+				resolveDTMacroToNode,
+			);
+		case 'DT_PHANDLE':
+			return resolveDtPhandelByIndex(
+				document,
+				macro,
+				context,
+				position,
+				resolveDTMacroToNode,
+			);
 	}
 
 	const newPosition = findMacroDefinition(document, macro.macro, position);
