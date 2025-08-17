@@ -182,6 +182,15 @@ async function getNodeHover(
 			: undefined;
 	}
 
+	if (macro.parent?.macro === 'DT_PATH') {
+		return dtPath(
+			macro.parent.args
+				?.slice(0, (macro.argIndexInParent ?? 0) + 1)
+				.map((p) => p.macro) ?? [],
+			context,
+		);
+	}
+
 	if (macro.macro === 'DT_ROOT') {
 		const runtime = await context.getRuntime();
 		const lastParser = (await runtime.context.getAllParsers()).at(-1)!;

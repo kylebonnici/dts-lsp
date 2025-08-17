@@ -38,6 +38,26 @@ export async function resolveDTMacroToNode(
 	context: ContextAware,
 	position: Position,
 ): Promise<Node | undefined> {
+	if (
+		['DT_ALIAS', 'DT_NODELABEL'].some((m) => m === macro.parent?.macro) ||
+		(macro.parent?.macro === 'DT_CHILD' && macro.argIndexInParent === 1)
+	) {
+		macro = macro.parent!;
+	}
+
+	if (macro.parent?.macro === 'DT_HAS_ALIAS') {
+		return resolveDtAlias(macro.macro, context);
+	}
+
+	if (macro.parent?.macro === 'DT_PATH') {
+		return resolveDtPath(
+			macro.parent.args
+				?.slice(0, (macro.argIndexInParent ?? 0) + 1)
+				.map((p) => p.macro) ?? [],
+			context,
+		);
+	}
+
 	switch (macro.macro) {
 		case 'DT_ALIAS':
 			return macro.args?.[0]
