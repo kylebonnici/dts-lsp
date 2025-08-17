@@ -1324,7 +1324,11 @@ connection.onDefinition(async (event) => {
 		activeContext &&
 		activeContext.bindingLoader?.type === 'Zephyr'
 	) {
-		return getDTMacroDefinitions(event, activeContext);
+		return getDTMacroDefinitions(
+			event,
+			activeContext,
+			documents.get(event.textDocument.uri),
+		);
 	}
 
 	if (!isDtsFile(filePath)) {
@@ -1355,7 +1359,11 @@ connection.onDeclaration(async (event) => {
 		activeContext &&
 		activeContext.bindingLoader?.type === 'Zephyr'
 	) {
-		return getDTMacroDeclaration(event, activeContext);
+		return getDTMacroDeclaration(
+			event,
+			activeContext,
+			documents.get(event.textDocument.uri),
+		);
 	}
 
 	if (!isDtsFile(filePath)) {
@@ -1406,7 +1414,11 @@ connection.onHover(async (event) => {
 		activeContext &&
 		activeContext.bindingLoader?.type === 'Zephyr'
 	) {
-		return getDTMacroHover(event, activeContext);
+		return getDTMacroHover(
+			event,
+			activeContext,
+			documents.get(event.textDocument.uri),
+		);
 	}
 
 	if (!isDtsFile(filePath)) {

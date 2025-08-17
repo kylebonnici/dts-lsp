@@ -15,9 +15,8 @@
  */
 
 import { Location, TextDocumentPositionParams } from 'vscode-languageserver';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ContextAware } from '../../runtimeEvaluator';
-import { getTokenizedDocumentProvider } from '../../providers/tokenizedDocument';
-import { fileURLToPath } from '../../helpers';
 import { findMacroDefinition, getMacroAtPosition } from '../helpers';
 import { resolveDTMacroToNode } from '../dtMacroToNode';
 import { generateNodeDeclaration } from '../../findDeclarations';
@@ -25,9 +24,10 @@ import { generateNodeDeclaration } from '../../findDeclarations';
 export async function getDeclaration(
 	location: TextDocumentPositionParams,
 	context: ContextAware,
+	document: TextDocument | undefined,
 ): Promise<Location | undefined> {
-	const filePath = fileURLToPath(location.textDocument.uri);
-	const document = getTokenizedDocumentProvider().getDocument(filePath);
+	if (!document) return;
+
 	const macro = getMacroAtPosition(document, location.position);
 
 	if (!macro?.macro) {
@@ -55,5 +55,9 @@ export async function getDeclaration(
 		return;
 	}
 
-	return getDeclaration({ ...location, position: newPosition }, context);
+	return getDeclaration(
+		{ ...location, position: newPosition },
+		context,
+		document,
+	);
 }

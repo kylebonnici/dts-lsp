@@ -17,8 +17,6 @@
 import { Hover, HoverParams } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ContextAware } from '../../runtimeEvaluator';
-import { getTokenizedDocumentProvider } from '../../providers/tokenizedDocument';
-import { fileURLToPath } from '../../helpers';
 import {
 	DTMacroInfo,
 	findMacroDefinition,
@@ -377,9 +375,9 @@ async function getPropertyHover(
 export async function getHover(
 	hoverParams: HoverParams,
 	context: ContextAware,
+	document: TextDocument | undefined,
 ): Promise<Hover | undefined> {
-	const filePath = fileURLToPath(hoverParams.textDocument.uri);
-	const document = getTokenizedDocumentProvider().getDocument(filePath);
+	if (!document) return;
 	const macro = getMacroAtPosition(document, hoverParams.position);
 
 	if (!macro?.macro) {
@@ -404,5 +402,9 @@ export async function getHover(
 		return;
 	}
 
-	return getHover({ ...hoverParams, position: newPosition }, context);
+	return getHover(
+		{ ...hoverParams, position: newPosition },
+		context,
+		document,
+	);
 }
