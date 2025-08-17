@@ -14,40 +14,44 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver';
+import { MarkupKind, Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../../runtimeEvaluator';
-import { DTMacroInfo } from '../helpers';
-import { resolveDtChild } from '../dtChild';
-import { resolveDTMacroToNode } from '../dtMacroToNode';
+import { ContextAware } from '../../../runtimeEvaluator';
+import { DTMacroInfo } from '../../helpers';
+import { resolveDTMacroToNode } from '../../dtMacroToNode';
 
-export async function dtChild(
+export async function dtSameNode(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
 ) {
+	if (macro.args?.length !== 2) {
+		return;
+	}
+
 	const runtime = await context?.getRuntime();
 
 	if (runtime) {
-		let childNode = await resolveDtChild(
+		const rhs = await resolveDTMacroToNode(
 			document,
-			macro,
+			macro.args[0],
 			context,
 			position,
-			resolveDTMacroToNode,
 		);
 
-		if (!childNode) {
-			return;
-		}
-
-		const lastParser = (await runtime.context.getAllParsers()).at(-1)!;
+		const lhs = await resolveDTMacroToNode(
+			document,
+			macro.args[1],
+			context,
+			position,
+		);
 
 		return {
-			contents: childNode.toMarkupContent(
-				lastParser.cPreprocessorParser.macros,
-			),
+			contents: {
+				kind: MarkupKind.Markdown,
+				value: !!lhs && !!rhs && lhs === rhs ? '1' : '0',
+			},
 		};
 	}
 }

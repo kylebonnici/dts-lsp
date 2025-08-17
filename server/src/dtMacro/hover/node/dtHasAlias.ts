@@ -14,25 +14,17 @@
  * limitations under the License.
  */
 
-import { ContextAware } from '../../runtimeEvaluator';
-import { resolveDtAlias } from '../dtAlias';
+import { MarkupKind } from 'vscode-languageserver-types';
+import { ContextAware } from '../../../runtimeEvaluator';
+import { dtAlias } from './dtAlias';
 
-export async function dtAlias(alias: string, context: ContextAware) {
-	const runtime = await context?.getRuntime();
+export async function dtHasAlias(alias: string, context: ContextAware) {
+	const aliasNode = await dtAlias(alias, context);
 
-	if (runtime) {
-		const node = await resolveDtAlias(alias, context);
-
-		if (!node) {
-			return;
-		}
-
-		const lastParser = (await runtime.context.getAllParsers()).at(-1)!;
-
-		return {
-			contents: node.toMarkupContent(
-				lastParser.cPreprocessorParser.macros,
-			),
-		};
-	}
+	return {
+		contents: {
+			kind: MarkupKind.Markdown,
+			value: !!aliasNode ? '1' : '0',
+		},
+	};
 }

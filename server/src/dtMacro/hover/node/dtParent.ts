@@ -16,10 +16,10 @@
 
 import { Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../../runtimeEvaluator';
-import { DTMacroInfo } from '../helpers';
-import { resolveDTMacroToNode } from '../dtMacroToNode';
-import { resolveDtParent } from '../dtParent';
+import { ContextAware } from '../../../runtimeEvaluator';
+import { DTMacroInfo } from '../../helpers';
+import { resolveDTMacroToNode } from '../../dtMacroToNode';
+import { resolveDtParent } from '../../dtParent';
 
 export async function dtParent(
 	document: TextDocument,

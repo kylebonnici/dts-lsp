@@ -16,16 +16,15 @@
 
 import { MarkupKind, Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../../runtimeEvaluator';
-import { DTMacroInfo, toCIdentifier } from '../helpers';
-import { resolveDTMacroToNode } from '../dtMacroToNode';
+import { ContextAware } from '../../../runtimeEvaluator';
+import { DTMacroInfo } from '../../helpers';
+import { resolveDTMacroToNode } from '../../dtMacroToNode';
 
-export async function dtNodeFullName(
+export async function dtNodeLabelStringArray(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
-	type: 'Quoted' | 'Unquoted' | 'Token' | 'Upper Token',
 ) {
 	if (macro.args?.length !== 1) {
 		return;
@@ -41,27 +40,10 @@ export async function dtNodeFullName(
 		return;
 	}
 
-	let value = '';
-
-	switch (type) {
-		case 'Unquoted':
-			value = node.fullName;
-			break;
-		case 'Quoted':
-			value = `"${node.fullName}"`;
-			break;
-		case 'Token':
-			value = toCIdentifier(node.fullName);
-			break;
-		case 'Upper Token':
-			value = toCIdentifier(node.fullName).toUpperCase();
-			break;
-	}
-
 	return {
 		contents: {
 			kind: MarkupKind.Markdown,
-			value,
+			value: `{ ${node.labels.map((l) => `"${l.label}"`).join(', ')} }`,
 		},
 	};
 }

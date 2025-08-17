@@ -14,36 +14,40 @@
  * limitations under the License.
  */
 
-import { MarkupKind, Position } from 'vscode-languageserver';
+import { Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../../runtimeEvaluator';
-import { DTMacroInfo } from '../helpers';
-import { resolveDTMacroToNode } from '../dtMacroToNode';
+import { ContextAware } from '../../../runtimeEvaluator';
+import { DTMacroInfo } from '../../helpers';
+import { resolveDtChild } from '../../dtChild';
+import { resolveDTMacroToNode } from '../../dtMacroToNode';
 
-export async function dtNodeLabelStringArray(
+export async function dtChild(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
 ) {
-	if (macro.args?.length !== 1) {
-		return;
-	}
-	const node = await resolveDTMacroToNode(
-		document,
-		macro.args[0],
-		context,
-		position,
-	);
+	const runtime = await context?.getRuntime();
 
-	if (!node) {
-		return;
-	}
+	if (runtime) {
+		let childNode = await resolveDtChild(
+			document,
+			macro,
+			context,
+			position,
+			resolveDTMacroToNode,
+		);
 
-	return {
-		contents: {
-			kind: MarkupKind.Markdown,
-			value: `{ ${node.labels.map((l) => `"${l.label}"`).join(', ')} }`,
-		},
-	};
+		if (!childNode) {
+			return;
+		}
+
+		const lastParser = (await runtime.context.getAllParsers()).at(-1)!;
+
+		return {
+			contents: childNode.toMarkupContent(
+				lastParser.cPreprocessorParser.macros,
+			),
+		};
+	}
 }

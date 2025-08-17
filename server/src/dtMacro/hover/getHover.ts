@@ -19,19 +19,19 @@ import { ContextAware } from '../../runtimeEvaluator';
 import { getTokenizedDocumentProvider } from '../../providers/tokenizedDocument';
 import { fileURLToPath } from '../../helpers';
 import { findMacroDefinition, getMacroAtPosition } from '../helpers';
-import { dtAlias } from './dtAlias';
-import { dtChild } from './dtChild';
-import { dtChildNum } from './dtChildNum';
-import { dtCompatGetAnyStatusOk } from './dtCompatGetAnyStatusOk';
-import { dtGParent } from './dtGParent';
-import { dtHasAlias } from './dtHasAlias';
-import { dtNodeFullName } from './dtNodeFullName';
-import { dtNodePath } from './dtNodePath';
-import { dtNodeLabel } from './dtNodeLabel';
-import { dtNodeLabelStringArray } from './dtNodeLabelStringArray';
-import { dtParent } from './dtParent';
-import { dtPath } from './dtPath';
-import { dtSameNode } from './dtSameNode';
+import { dtAlias } from './node/dtAlias';
+import { dtChild } from './node/dtChild';
+import { dtChildNum } from './node/dtChildNum';
+import { dtCompatGetAnyStatusOk } from './node/dtCompatGetAnyStatusOk';
+import { dtGParent } from './node/dtGParent';
+import { dtHasAlias } from './node/dtHasAlias';
+import { dtNodeFullName } from './node/dtNodeFullName';
+import { dtNodePath } from './node/dtNodePath';
+import { dtNodeLabel } from './node/dtNodeLabel';
+import { dtNodeLabelStringArray } from './node/dtNodeLabelStringArray';
+import { dtParent } from './node/dtParent';
+import { dtPath } from './node/dtPath';
+import { dtSameNode } from './node/dtSameNode';
 
 export async function getHover(
 	hoverParams: HoverParams,

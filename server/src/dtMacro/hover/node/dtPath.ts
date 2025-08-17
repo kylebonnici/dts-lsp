@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import { ContextAware } from '../../runtimeEvaluator';
-import { resolveDtPath } from '../dtPath';
+import { ContextAware } from '../../../runtimeEvaluator';
+import { resolveDtPath } from '../../dtPath';
 
 export async function dtPath(path: string[], context: ContextAware) {
 	const runtime = await context?.getRuntime();

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import { ContextAware } from '../../runtimeEvaluator';
-import { resolveDtNodeLabel } from '../dtNodeLabel';
+import { ContextAware } from '../../../runtimeEvaluator';
+import { resolveDtNodeLabel } from '../../dtNodeLabel';
 
 export async function dtNodeLabel(label: string, context: ContextAware) {
 	const runtime = await context?.getRuntime();

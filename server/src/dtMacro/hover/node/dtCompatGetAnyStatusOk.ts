@@ -15,8 +15,8 @@
  */
 
 import { Hover, MarkupKind } from 'vscode-languageserver-types';
-import { ContextAware } from '../../runtimeEvaluator';
-import { resolveDtCompatGetAnyStatusOk } from '../dtCompatGetAnyStatusOk';
+import { ContextAware } from '../../../runtimeEvaluator';
+import { resolveDtCompatGetAnyStatusOk } from '../../dtCompatGetAnyStatusOk';
 
 export async function dtCompatGetAnyStatusOk(
 	compat: string,

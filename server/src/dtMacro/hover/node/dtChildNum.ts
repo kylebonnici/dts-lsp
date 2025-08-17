@@ -16,10 +16,10 @@
 
 import { MarkupKind, Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../../runtimeEvaluator';
-import { DTMacroInfo } from '../helpers';
-import { resolveDTMacroToNode } from '../dtMacroToNode';
-import { resolveDtChildNum } from '../dtChildNum';
+import { ContextAware } from '../../../runtimeEvaluator';
+import { DTMacroInfo } from '../../helpers';
+import { resolveDTMacroToNode } from '../../dtMacroToNode';
+import { resolveDtChildNum } from '../../dtChildNum';
 
 export async function dtChildNum(
 	document: TextDocument,
