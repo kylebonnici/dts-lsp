@@ -33,6 +33,7 @@ import { resolveDtPath } from './dtPath';
 import { resolveDtPhandelByIndex } from './dtPhandelByIndex';
 import { resolverDtPhandelByName } from './dtPhandelByName';
 import { resolveDtPropNode } from './dtProp';
+import { resolveDtPropOr } from './dtPropOr';
 
 export async function resolveDTMacroToNode(
 	document: TextDocument,
@@ -145,6 +146,14 @@ export async function resolveDTMacroToNode(
 			);
 		case 'DT_PROP_BY_IDX':
 			return resolveDtPropNode(
+				document,
+				macro,
+				context,
+				position,
+				resolveDTMacroToNode,
+			);
+		case 'DT_PROP_OR':
+			return resolveDtPropOr(
 				document,
 				macro,
 				context,

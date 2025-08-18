@@ -43,6 +43,7 @@ import { dtProp } from './property/dtProp';
 import { dtPropIdx } from './property/dtPropIdx';
 import { dtPropByHandleIndex } from './property/dtPropByHandleIndex';
 import { dtPropByHandle } from './property/dtPropByHandle';
+import { dtPropOr } from './property/dtPropOr';
 
 async function getNodeHover(
 	hoverParams: HoverParams,
@@ -399,6 +400,10 @@ async function getPropertyHover(
 			context,
 			hoverParams.position,
 		);
+	}
+
+	if (macro.macro === 'DT_PROP_OR') {
+		return await dtPropOr(document, macro, context, hoverParams.position);
 	}
 }
 
