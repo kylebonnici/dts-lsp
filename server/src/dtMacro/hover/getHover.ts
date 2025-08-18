@@ -40,10 +40,10 @@ import { dtPhaByIndex } from './property/dtPhaByIndex';
 import { dtPhandelByIndex } from './property/dtPhandelByIndex';
 import { dtPhandelByName } from './property/dtPhandelByName';
 import { dtProp } from './property/dtProp';
-import { dtPropIdx } from './property/dtPropIdx';
-import { dtPropByHandleIndex } from './property/dtPropByHandleIndex';
-import { dtPropByHandle } from './property/dtPropByHandle';
+import { dtPropByIdx } from './property/dtPropIdx';
 import { dtPropOr } from './property/dtPropOr';
+import { dtPropByPhandle } from './property/dtPropByPHandle';
+import { dtPropByPhandleIndex } from './property/dtPropByPhandleIndex';
 
 async function getNodeHover(
 	hoverParams: HoverParams,
@@ -381,11 +381,16 @@ async function getPropertyHover(
 	}
 
 	if (macro.macro === 'DT_PROP_IDX') {
-		return await dtPropIdx(document, macro, context, hoverParams.position);
+		return await dtPropByIdx(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+		);
 	}
 
 	if (macro.macro === 'DT_PROP_BY_PHANDLE') {
-		return await dtPropByHandle(
+		return await dtPropByPhandle(
 			document,
 			macro,
 			context,
@@ -394,7 +399,7 @@ async function getPropertyHover(
 	}
 
 	if (macro.macro === 'DT_PROP_BY_PHANDLE_IDX') {
-		return await dtPropByHandleIndex(
+		return await dtPropByPhandleIndex(
 			document,
 			macro,
 			context,

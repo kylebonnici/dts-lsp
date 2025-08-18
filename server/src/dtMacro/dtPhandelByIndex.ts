@@ -23,6 +23,32 @@ import { NodePathRef } from '../ast/dtc/values/nodePath';
 import { Node } from '../context/node';
 import { DTMacroInfo, toCIdentifier } from './helpers';
 
+export async function resolveDtPhandelByIndexRaw(
+	node: Node | undefined,
+	propertyName: string,
+	idx: string | number = 0,
+) {
+	const property = node?.property.find(
+		(p) => toCIdentifier(p.name) === propertyName,
+	);
+
+	idx = typeof idx === 'number' ? idx : evalExp(idx ?? '0');
+
+	if (typeof idx !== 'number') {
+		return;
+	}
+
+	const value = property?.ast.getFlatAstValues()?.at(idx);
+
+	if (value instanceof LabelRef) {
+		return value.linksTo;
+	}
+
+	if (value instanceof NodePathRef) {
+		return value.path?.pathParts.at(-1)?.linksTo;
+	}
+}
+
 export async function resolveDtPhandelByIndex(
 	document: TextDocument,
 	macro: DTMacroInfo,
@@ -47,23 +73,5 @@ export async function resolveDtPhandelByIndex(
 		position,
 	);
 
-	const property = node?.property.find(
-		(p) => toCIdentifier(p.name) === args[1].macro,
-	);
-
-	const idx = evalExp(args.at(2)?.macro ?? '0');
-
-	if (!property || typeof idx !== 'number') {
-		return;
-	}
-
-	const value = property.ast.getFlatAstValues()?.at(idx);
-
-	if (value instanceof LabelRef) {
-		return value.linksTo;
-	}
-
-	if (value instanceof NodePathRef) {
-		return value.path?.pathParts.at(-1)?.linksTo;
-	}
+	return resolveDtPhandelByIndexRaw(node, args[1].macro, args.at(2)?.macro);
 }

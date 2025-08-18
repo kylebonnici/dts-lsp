@@ -23,7 +23,7 @@ import { DTMacroInfo, toCIdentifier } from '../../helpers';
 import { resolveDTMacroToNode } from '../../dtMacroToNode';
 import { evalExp } from '../../../helpers';
 
-async function getEnumIndexByIndex(
+async function dtEnumIndexByIndexRaw(
 	idx: number,
 	property: Property,
 	fallback?: string,
@@ -82,7 +82,7 @@ export async function dtEnumIndexByIndex(
 			: undefined;
 	}
 
-	const enumIdx = await getEnumIndexByIndex(idx, property, fallback);
+	const enumIdx = await dtEnumIndexByIndexRaw(idx, property, fallback);
 
 	return enumIdx
 		? {

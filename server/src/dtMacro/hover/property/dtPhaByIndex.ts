@@ -24,7 +24,7 @@ import { DTMacroInfo, toCIdentifier } from '../../helpers';
 import { resolveDTMacroToNode } from '../../dtMacroToNode';
 import { evalExp } from '../../../helpers';
 
-async function getPhaByIndex(
+async function dtPhaByIndexRaw(
 	context: ContextAware,
 	idx: number | string,
 	property: Property,
@@ -114,7 +114,13 @@ export async function dtPhaByIndex(
 			: undefined;
 	}
 
-	const enumIdx = await getPhaByIndex(context, idx, property, cell, fallback);
+	const enumIdx = await dtPhaByIndexRaw(
+		context,
+		idx,
+		property,
+		cell,
+		fallback,
+	);
 
 	return enumIdx
 		? {

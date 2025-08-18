@@ -19,30 +19,34 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo } from '../../helpers';
 import { resolveDTMacroToNode } from '../../dtMacroToNode';
-import { resolveDtPhandelByIndex } from '../../../dtMacro/dtPhandelByIndex';
-import { dtPropValuesWithNodeId } from '../../../dtMacro/dtProp';
-import { dtPropValues } from './dtProp';
+import { resolveDtPhandelByIndexRaw } from '../../../dtMacro/dtPhandelByIndex';
+import { resolveDtPropOrRaw } from '../../../dtMacro/dtPropOr';
+import { generateHoverValues } from './dtProp';
 
-export async function dtPropByHandleIndex(
+export async function dtPropByPhandleIndexOr(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
 ) {
-	if (macro.args?.length !== 4) {
+	if (macro.args?.length !== 5) {
 		return;
 	}
-	const handle = await resolveDtPhandelByIndex(
+	const handle = await resolveDtPhandelByIndexRaw(
+		await resolveDTMacroToNode(document, macro.args[0], context, position),
+		macro.args[1].macro,
+		macro.args[2].macro,
+	);
+
+	const values = await resolveDtPropOrRaw(
+		handle,
+		macro.args[3].macro,
+		macro.args[4],
 		document,
-		{ macro: 'DT_PHANDLE_BY_IDX', args: macro.args?.slice(0, 3) },
 		context,
 		position,
 		resolveDTMacroToNode,
 	);
 
-	const values = handle
-		? await dtPropValuesWithNodeId(context, handle, macro.args[3].macro)
-		: undefined;
-
-	return values ? dtPropValues(context, values) : undefined;
+	return generateHoverValues(context, values);
 }

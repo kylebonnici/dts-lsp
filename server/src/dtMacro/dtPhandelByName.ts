@@ -17,12 +17,23 @@
 import { Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { NodeType } from 'src/dtsTypes/types';
-import { Property } from 'src/context/property';
 import { ContextAware } from '../runtimeEvaluator';
 import { Node } from '../context/node';
 import { DTMacroInfo, toCIdentifier } from './helpers';
 
-async function getPhandelByName(name: string, property: Property) {
+async function dtPhandelByNameRaw(
+	node: Node | undefined,
+	propertyName: string,
+	name: string,
+) {
+	const property = node?.property.find(
+		(p) => toCIdentifier(p.name) === propertyName,
+	);
+
+	if (!property) {
+		return;
+	}
+
 	const nodeType = property.parent.nodeType;
 
 	if (!nodeType || !(nodeType instanceof NodeType)) {
@@ -72,13 +83,5 @@ export async function resolverDtPhandelByName(
 		position,
 	);
 
-	const property = node?.property.find(
-		(p) => toCIdentifier(p.name) === args[1].macro,
-	);
-
-	if (!property) {
-		return;
-	}
-
-	return await getPhandelByName(args[2].macro, property);
+	return await dtPhandelByNameRaw(node, args[1].macro, args[2].macro);
 }

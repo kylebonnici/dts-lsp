@@ -20,11 +20,11 @@ import { Node } from 'src/context/node';
 import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo } from '../../helpers';
 import { resolveDTMacroToNode } from '../../dtMacroToNode';
-import { resolveDtPropValues } from '../../../dtMacro/dtProp';
+import { resolveDtProp } from '../../../dtMacro/dtProp';
 
-export async function dtPropValues(
+export async function generateHoverValues(
 	context: ContextAware,
-	values?: boolean | (string | number | Node | undefined)[],
+	values?: boolean | Node | (string | number | Node | undefined)[],
 ) {
 	if (!values) {
 		return;
@@ -36,6 +36,18 @@ export async function dtPropValues(
 				kind: MarkupKind.Markdown,
 				value: values ? '1' : '0',
 			},
+		};
+	}
+
+	if (values instanceof Node) {
+		return {
+			contents: values.toMarkupContent(context.macros),
+		};
+	}
+
+	if (values.length === 1 && values[0] instanceof Node) {
+		return {
+			contents: values[0].toMarkupContent(context.macros),
 		};
 	}
 
@@ -63,12 +75,6 @@ export async function dtPropValues(
 		};
 	}
 
-	if (values.length === 1 && values[0] instanceof Node) {
-		return {
-			contents: values[0].toMarkupContent(context.macros),
-		};
-	}
-
 	return;
 }
 
@@ -78,7 +84,7 @@ export async function dtProp(
 	context: ContextAware,
 	position: Position,
 ) {
-	const values = await resolveDtPropValues(
+	const values = await resolveDtProp(
 		document,
 		macro,
 		context,
@@ -86,5 +92,5 @@ export async function dtProp(
 		resolveDTMacroToNode,
 	);
 
-	return dtPropValues(context, values);
+	return generateHoverValues(context, values);
 }

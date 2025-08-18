@@ -19,7 +19,28 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ContextAware } from '../runtimeEvaluator';
 import { Node } from '../context/node';
 import { DTMacroInfo } from './helpers';
-import { resolveDtPropNode } from './dtProp';
+import { resolveDtPropRaw } from './dtProp';
+
+export async function resolveDtPropOrRaw(
+	node: Node | undefined,
+	propertyName: string,
+	fallback: DTMacroInfo,
+	document: TextDocument,
+	context: ContextAware,
+	position: Position,
+	resolveDTMacroToNode: (
+		document: TextDocument,
+		macro: DTMacroInfo,
+		context: ContextAware,
+		position: Position,
+	) => Promise<Node | undefined>,
+) {
+	const result = await resolveDtPropRaw(node, propertyName, context);
+
+	return (
+		result ?? resolveDTMacroToNode(document, fallback, context, position)
+	);
+}
 
 export async function resolveDtPropOr(
 	document: TextDocument,
@@ -37,21 +58,56 @@ export async function resolveDtPropOr(
 		return;
 	}
 
-	const [nodeId, prop] = macro.args;
-
-	const result = await resolveDtPropNode(
+	const [nodeId, prop, fallback] = macro.args;
+	const node = await resolveDTMacroToNode(
 		document,
-		{
-			macro: 'DT_PROP',
-			args: [nodeId, prop],
-		},
+		nodeId,
+		context,
+		position,
+	);
+
+	return await resolveDtPropOrRaw(
+		node,
+		prop.macro,
+		fallback,
+		document,
+		context,
+		position,
+		resolveDTMacroToNode,
+	);
+}
+
+export async function resolveDtPropOrNode(
+	document: TextDocument,
+	macro: DTMacroInfo,
+	context: ContextAware,
+	position: Position,
+	resolveDTMacroToNode: (
+		document: TextDocument,
+		macro: DTMacroInfo,
+		context: ContextAware,
+		position: Position,
+	) => Promise<Node | undefined>,
+) {
+	const values = await resolveDtPropOr(
+		document,
+		macro,
 		context,
 		position,
 		resolveDTMacroToNode,
 	);
 
-	return (
-		result ??
-		resolveDTMacroToNode(document, macro.args[2], context, position)
-	);
+	if (values instanceof Node) {
+		return values;
+	}
+
+	if (typeof values === 'boolean') {
+		return;
+	}
+
+	const node = values?.at(0);
+
+	if (values?.length === 1 && node instanceof Node) {
+		return node;
+	}
 }

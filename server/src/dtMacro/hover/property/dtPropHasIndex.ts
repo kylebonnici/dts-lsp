@@ -16,65 +16,62 @@
 
 import { MarkupKind, Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { Node } from 'src/context/node';
 import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo } from '../../helpers';
 import { resolveDTMacroToNode } from '../../dtMacroToNode';
 import { resolveDtPropRaw } from '../../dtProp';
+import { Node } from '../../../context/node';
 import { evalExp } from '../../../helpers';
 
-export async function dtPropByIdxRaw(
+export async function dtPropHasIndexRaw(
 	node: Node | undefined,
 	propertyName: string,
 	idx: number | string,
 	context: ContextAware,
 ) {
-	idx = typeof idx === 'number' ? idx : evalExp(idx);
+	const values = await resolveDtPropRaw(node, propertyName, context);
+
+	if (values === undefined) {
+		return false;
+	}
+
+	idx = typeof idx === 'number' ? idx : evalExp(idx ?? '0');
 
 	if (typeof idx !== 'number') {
 		return;
 	}
 
-	const values = await resolveDtPropRaw(node, propertyName, context);
-
-	if (!values || !Array.isArray(values)) {
-		return;
+	if (Array.isArray(values)) {
+		return values.length < idx;
 	}
 
-	const value = values.at(idx);
-
-	if (!value) {
-		return;
-	}
-
-	if (values.length === 1 && values[0] instanceof Node) {
-		return {
-			contents: values[0].toMarkupContent(context.macros),
-		};
-	}
-
-	return {
-		contents: {
-			kind: MarkupKind.Markdown,
-			value: value.toString(),
-		},
-	};
+	return idx === 0;
 }
 
-export async function dtPropByIdx(
+export async function dtPropHasIndex(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
 ) {
-	if (macro.macro !== 'DT_PROP_BY_IDX' || macro.args?.length !== 3) {
+	const args = macro.args;
+	if (macro.macro !== 'DT_PROP_HAS_IDX' || args?.length !== 3) return;
+
+	const values = await dtPropHasIndexRaw(
+		await resolveDTMacroToNode(document, args[0], context, position),
+		args[1].macro,
+		args[2].macro,
+		context,
+	);
+
+	if (values === undefined) {
 		return;
 	}
 
-	return dtPropByIdxRaw(
-		await resolveDTMacroToNode(document, macro.args[0], context, position),
-		macro.args[1].macro,
-		macro.args[2].macro,
-		context,
-	);
+	return {
+		contents: {
+			kind: MarkupKind.Markdown,
+			value: values ? '1' : '0',
+		},
+	};
 }

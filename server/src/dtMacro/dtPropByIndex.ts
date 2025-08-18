@@ -24,7 +24,7 @@ import { ContextAware } from '../runtimeEvaluator';
 import { Node } from '../context/node';
 import { DTMacroInfo, toCIdentifier } from './helpers';
 
-export async function resolveDtPropRaw(
+export async function resolveDtPropByIndexRaw(
 	node: Node | undefined,
 	propertyName: string,
 	context: ContextAware,
@@ -42,25 +42,27 @@ export async function resolveDtPropRaw(
 		return true;
 	}
 
-	return values?.map((v) => {
-		if (v instanceof NodePathRef) {
-			return v.path?.pathParts.at(-1)?.linksTo;
-		}
-		if (v instanceof LabelRef) {
-			return v.linksTo;
-		}
-		if (v instanceof StringValue) {
-			return v.value;
-		}
-		if (v instanceof Expression) {
-			const evaluated = v.evaluate(context.macros);
+	return (
+		values?.map((v) => {
+			if (v instanceof NodePathRef) {
+				return v.path?.pathParts.at(-1)?.linksTo;
+			}
+			if (v instanceof LabelRef) {
+				return v.linksTo;
+			}
+			if (v instanceof StringValue) {
+				return v.value;
+			}
+			if (v instanceof Expression) {
+				const evaluated = v.evaluate(context.macros);
 
-			return typeof evaluated === 'number' ? evaluated : v.toString();
-		}
-	});
+				return typeof evaluated === 'number' ? evaluated : v.toString();
+			}
+		}) ?? false
+	);
 }
 
-export async function resolveDtProp(
+export async function resolveDtPropByIndex(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
@@ -73,19 +75,25 @@ export async function resolveDtProp(
 	) => Promise<Node | undefined>,
 ) {
 	const args = macro.args;
-	if (args?.length !== 2) return;
+	if (args?.length !== (macro.macro === 'DT_PROP' ? 2 : 3)) return;
 
-	const node = await resolveDTMacroToNode(
-		document,
-		args[0],
-		context,
-		position,
-	);
+	const runtime = await context?.getRuntime();
 
-	return node ? resolveDtPropRaw(node, args[1].macro, context) : undefined;
+	if (runtime) {
+		const node = await resolveDTMacroToNode(
+			document,
+			args[0],
+			context,
+			position,
+		);
+
+		return node
+			? resolveDtPropByIndexRaw(node, args[1].macro, context)
+			: undefined;
+	}
 }
 
-export async function resolveDtPropNode(
+export async function resolveDtPropByIndexNode(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
@@ -97,7 +105,7 @@ export async function resolveDtPropNode(
 		position: Position,
 	) => Promise<Node | undefined>,
 ) {
-	const values = await resolveDtProp(
+	const values = await resolveDtPropByIndex(
 		document,
 		macro,
 		context,

@@ -18,29 +18,27 @@ import { Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo } from '../../helpers';
+import { resolveDtPhandelByIndexRaw } from '../../../dtMacro/dtPhandelByIndex';
 import { resolveDTMacroToNode } from '../../../dtMacro/dtMacroToNode';
-import { resolveDtPropOrRaw } from '../../../dtMacro/dtPropOr';
+import { resolveDtPropRaw } from '../../../dtMacro/dtProp';
 import { generateHoverValues } from './dtProp';
 
-export async function dtPropOr(
+export async function dtPropByPhandle(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
 ) {
-	if (macro.macro !== 'DT_PROP_OR' || macro.args?.length !== 3) {
+	if (macro.args?.length !== 3) {
 		return;
 	}
 
-	const values = await resolveDtPropOrRaw(
+	const handle = await resolveDtPhandelByIndexRaw(
 		await resolveDTMacroToNode(document, macro.args[0], context, position),
 		macro.args[1].macro,
-		macro.args[2],
-		document,
-		context,
-		position,
-		resolveDTMacroToNode,
 	);
+
+	const values = await resolveDtPropRaw(handle, macro.args[2].macro, context);
 
 	return generateHoverValues(context, values);
 }
