@@ -41,6 +41,8 @@ import { dtPhandelByIndex } from './property/dtPhandelByIndex';
 import { dtPhandelByName } from './property/dtPhandelByName';
 import { dtProp } from './property/dtProp';
 import { dtPropIdx } from './property/dtPropIdx';
+import { dtPropByHandleIndex } from './property/dtPropByHandleIndex';
+import { dtPropByHandle } from './property/dtPropByHandle';
 
 async function getNodeHover(
 	hoverParams: HoverParams,
@@ -379,6 +381,24 @@ async function getPropertyHover(
 
 	if (macro.macro === 'DT_PROP_IDX') {
 		return await dtPropIdx(document, macro, context, hoverParams.position);
+	}
+
+	if (macro.macro === 'DT_PROP_BY_PHANDLE') {
+		return await dtPropByHandle(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+		);
+	}
+
+	if (macro.macro === 'DT_PROP_BY_PHANDLE_IDX') {
+		return await dtPropByHandleIndex(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+		);
 	}
 }
 

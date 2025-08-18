@@ -22,20 +22,10 @@ import { DTMacroInfo } from '../../helpers';
 import { resolveDTMacroToNode } from '../../dtMacroToNode';
 import { resolveDtPropValues } from '../../../dtMacro/dtProp';
 
-export async function dtProp(
-	document: TextDocument,
-	macro: DTMacroInfo,
+export async function dtPropValues(
 	context: ContextAware,
-	position: Position,
+	values?: boolean | (string | number | Node | undefined)[],
 ) {
-	const values = await resolveDtPropValues(
-		document,
-		macro,
-		context,
-		position,
-		resolveDTMacroToNode,
-	);
-
 	if (!values) {
 		return;
 	}
@@ -53,7 +43,10 @@ export async function dtProp(
 		return {
 			contents: {
 				kind: MarkupKind.Markdown,
-				value: `{${values.join(', ')}}`,
+				value:
+					values.length === 1
+						? values[0].toString()
+						: `{${values.join(', ')}}`,
 			},
 		};
 	}
@@ -62,7 +55,10 @@ export async function dtProp(
 		return {
 			contents: {
 				kind: MarkupKind.Markdown,
-				value: `{${values.map((v) => `"${v}"`).join(', ')}}`,
+				value:
+					values.length === 1
+						? `"${values[0]}"`
+						: `{${values.map((v) => `"${v}"`).join(', ')}}`,
 			},
 		};
 	}
@@ -74,4 +70,21 @@ export async function dtProp(
 	}
 
 	return;
+}
+
+export async function dtProp(
+	document: TextDocument,
+	macro: DTMacroInfo,
+	context: ContextAware,
+	position: Position,
+) {
+	const values = await resolveDtPropValues(
+		document,
+		macro,
+		context,
+		position,
+		resolveDTMacroToNode,
+	);
+
+	return dtPropValues(context, values);
 }

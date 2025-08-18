@@ -24,6 +24,40 @@ import { ContextAware } from '../runtimeEvaluator';
 import { Node } from '../context/node';
 import { DTMacroInfo, toCIdentifier } from './helpers';
 
+export async function dtPropValuesWithNodeId(
+	context: ContextAware,
+	node: Node,
+	propertyName: string,
+) {
+	const property = node?.property.find(
+		(p) => toCIdentifier(p.name) === propertyName,
+	);
+
+	const values = property?.ast.getFlatAstValues();
+	if (values?.length === 0) {
+		return true;
+	}
+
+	return (
+		values?.map((v) => {
+			if (v instanceof NodePathRef) {
+				return v.path?.pathParts.at(-1)?.linksTo;
+			}
+			if (v instanceof LabelRef) {
+				return v.linksTo;
+			}
+			if (v instanceof StringValue) {
+				return v.value;
+			}
+			if (v instanceof Expression) {
+				const evaluated = v.evaluate(context.macros);
+
+				return typeof evaluated === 'number' ? evaluated : v.toString();
+			}
+		}) ?? false
+	);
+}
+
 export async function resolveDtPropValues(
 	document: TextDocument,
 	macro: DTMacroInfo,
@@ -49,35 +83,9 @@ export async function resolveDtPropValues(
 			position,
 		);
 
-		const property = node?.property.find(
-			(p) => toCIdentifier(p.name) === args[1].macro,
-		);
-
-		const values = property?.ast.getFlatAstValues();
-		if (values?.length === 0) {
-			return true;
-		}
-
-		return (
-			values?.map((v) => {
-				if (v instanceof NodePathRef) {
-					return v.path?.pathParts.at(-1)?.linksTo;
-				}
-				if (v instanceof LabelRef) {
-					return v.linksTo;
-				}
-				if (v instanceof StringValue) {
-					return v.value;
-				}
-				if (v instanceof Expression) {
-					const evaluated = v.evaluate(runtime.context.macros);
-
-					return typeof evaluated === 'number'
-						? evaluated
-						: v.toString();
-				}
-			}) ?? false
-		);
+		return node
+			? dtPropValuesWithNodeId(context, node, args[1].macro)
+			: undefined;
 	}
 }
 
