@@ -39,6 +39,8 @@ import { dtEnumIndexByIndex } from './property/dtEnumIndexByIndex';
 import { dtPhaByIndex } from './property/dtPhaByIndex';
 import { dtPhandelByIndex } from './property/dtPhandelByIndex';
 import { dtPhandelByName } from './property/dtPhandelByName';
+import { dtProp } from './property/dtProp';
+import { dtPropIdx } from './property/dtPropIdx';
 
 async function getNodeHover(
 	hoverParams: HoverParams,
@@ -369,6 +371,14 @@ async function getPropertyHover(
 			context,
 			hoverParams.position,
 		);
+	}
+
+	if (macro.macro === 'DT_PROP') {
+		return await dtProp(document, macro, context, hoverParams.position);
+	}
+
+	if (macro.macro === 'DT_PROP_IDX') {
+		return await dtPropIdx(document, macro, context, hoverParams.position);
 	}
 }
 
