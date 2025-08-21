@@ -23,7 +23,7 @@ import { dtPropByIndexNode } from '../dtPropByIndex';
 import { dtPropNode } from '../dtProp';
 import {
 	DTMacroInfo,
-	findMacroDefinition,
+	findMacroDefinitionPosition,
 	getMacroAtPosition,
 } from '../helpers';
 import { dtPhandelByName } from './properties/dtPhandelByName';
@@ -99,7 +99,11 @@ export async function dtMacroToNode(
 		return Array.isArray(v) ? v.at(0) : v;
 	}
 
-	const newPosition = findMacroDefinition(document, macro.macro, position);
+	const newPosition = findMacroDefinitionPosition(
+		document,
+		macro.macro,
+		position,
+	);
 	if (!newPosition) {
 		return;
 	}

@@ -14,49 +14,57 @@
  * limitations under the License.
  */
 
-import { Location, TextDocumentPositionParams } from 'vscode-languageserver';
+import {
+	Location,
+	Position,
+	TextDocumentPositionParams,
+} from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { generateNodeDeclaration } from '../../findDeclarations';
 import { ContextAware } from '../../runtimeEvaluator';
-import { findMacroDefinition, getMacroAtPosition } from '../helpers';
-import { generateDefinitionsFromNode } from '../../findDefinitions';
+import {
+	DTMacroInfo,
+	findMacroDefinition,
+	getMacroAtPosition,
+} from '../helpers';
 import { dtMacroToNode } from '../macro/dtMacroToNode';
 
 export async function getDefinitions(
 	location: TextDocumentPositionParams,
 	context: ContextAware,
 	document: TextDocument | undefined,
-): Promise<Location[]> {
-	if (!document) return [];
+): Promise<Location | undefined> {
+	if (!document) return;
 	const macro = getMacroAtPosition(document, location.position);
+	return getDefinitionsFrom(macro, location.position, context, document);
+}
 
+async function getDefinitionsFrom(
+	macro: DTMacroInfo | undefined,
+	position: Position,
+	context: ContextAware,
+	document: TextDocument,
+): Promise<Location | undefined> {
 	if (!macro?.macro) {
-		return [];
+		return;
 	}
 
-	const node = await dtMacroToNode(
-		document,
-		macro,
-		context,
-		location.position,
-	);
+	const node = await dtMacroToNode(document, macro, context, position);
 
 	if (node) {
-		return generateDefinitionsFromNode(node);
+		return generateNodeDeclaration(node);
 	}
 
-	// we need to recursivly find definition
-	const newPosition = findMacroDefinition(
+	const newMacro = findMacroDefinition(
 		document,
 		macro.macro,
-		location.position,
+		position,
+		context,
 	);
-	if (!newPosition) {
-		return [];
+
+	if (!newMacro) {
+		return;
 	}
 
-	return getDefinitions(
-		{ ...location, position: newPosition },
-		context,
-		document,
-	);
+	return getDefinitionsFrom(newMacro[0], newMacro[1], context, document);
 }

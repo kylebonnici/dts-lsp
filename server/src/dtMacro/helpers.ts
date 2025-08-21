@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
+import { spawnSync } from 'child_process';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Position } from 'vscode-languageserver-types';
+import { fileURLToPath, isPathEqual } from '../helpers';
+import { ContextAware } from '../runtimeEvaluator';
 export interface DTMacroInfo {
 	macro: string;
 	args?: DTMacroInfo[];
@@ -202,7 +205,7 @@ export function getMacroAtPosition(
 	return parentNode;
 }
 
-export function findMacroDefinition(
+export function findMacroDefinitionPosition(
 	document: TextDocument,
 	macro: string,
 	endPosition: Position,
@@ -237,6 +240,88 @@ export function findMacroDefinition(
 	}
 
 	return undefined;
+}
+
+export function findMacroDefinition(
+	document: TextDocument,
+	macro: string,
+	position: Position,
+	context: ContextAware,
+): [DTMacroInfo, Position] | undefined {
+	let result = findMacroDefinitionFromDocument(document, macro, position);
+	if (result) {
+		return result;
+	}
+
+	const fromCompileCommand = findFromCompiledCommand(
+		macro,
+		context,
+		fileURLToPath(document.uri),
+	);
+
+	if (fromCompileCommand) {
+		return [fromCompileCommand, position];
+	}
+}
+
+export function findMacroDefinitionFromDocument(
+	document: TextDocument,
+	macro: string,
+	position: Position,
+): [DTMacroInfo, Position] | undefined {
+	const newPosition = findMacroDefinitionPosition(document, macro, position);
+	if (!newPosition) {
+		return;
+	}
+	const result = getMacroAtPosition(document, newPosition);
+
+	if (result) {
+		return [result, newPosition];
+	}
+}
+
+function findFromCompiledCommand(
+	macro: string,
+	context: ContextAware,
+	file: string,
+): DTMacroInfo | undefined {
+	const compileCommand = context
+		.getCompileCommands()
+		?.find((c) => isPathEqual(c.file, file));
+
+	if (!compileCommand) {
+		return;
+	}
+
+	const newCompileCommandHeaders = `${compileCommand.command.replace(
+		/-(o|c)\s+\S+/g,
+		'',
+	)} -E -dM ${compileCommand.file}`;
+
+	try {
+		const [command, ...args] = newCompileCommandHeaders.split(' ');
+		const r = spawnSync(command, args);
+		const macros = r.stdout.toString();
+		const document = TextDocument.create(
+			`macros://${compileCommand.file}`,
+			'devicetree',
+			0,
+			macros,
+		);
+
+		const result = findMacroDefinitionFromDocument(
+			document,
+			macro,
+			document.positionAt(macro.length - 1),
+		);
+
+		if (result) {
+			return result[0];
+		}
+	} catch (e) {
+		console.error(e);
+		//
+	}
 }
 
 export function toCIdentifier(name: string) {

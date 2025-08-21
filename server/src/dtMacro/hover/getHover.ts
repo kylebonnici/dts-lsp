@@ -15,7 +15,7 @@
  */
 
 import { Hover, HoverParams } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
+import { Position, TextDocument } from 'vscode-languageserver-textdocument';
 import { ContextAware } from '../../runtimeEvaluator';
 import {
 	DTMacroInfo,
@@ -63,7 +63,7 @@ import { dtPropHasIndexHover } from './property/dtPropHasIndex';
 import { dtPropHasNameHover } from './property/dtPropHasName';
 
 async function getNodeHover(
-	hoverParams: HoverParams,
+	position: Position,
 	context: ContextAware,
 	document: TextDocument,
 	macro: DTMacroInfo,
@@ -71,177 +71,67 @@ async function getNodeHover(
 	return (
 		(await dtAliasHover(macro, context)) ||
 		(await dtRootHover(macro, context)) ||
-		(await dtChildHover(document, macro, context, hoverParams.position)) ||
+		(await dtChildHover(document, macro, context, position)) ||
 		(await dtPathHover(macro, context)) ||
-		(await dtChildNumHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
-		(await dtChildNumStatusOkHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
+		(await dtChildNumHover(document, macro, context, position)) ||
+		(await dtChildNumStatusOkHover(document, macro, context, position)) ||
 		(await dtCompatGetAnyStatusOkHover(macro, context)) ||
-		(await dtGParentHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
-		(await dtNodePathHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
+		(await dtGParentHover(document, macro, context, position)) ||
+		(await dtNodePathHover(document, macro, context, position)) ||
 		(await dtHasAliasHover(macro, context)) ||
-		(await dtNodeFullNameHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
+		(await dtNodeFullNameHover(document, macro, context, position)) ||
 		(await dtNodeLabelHover(macro, context)) ||
 		(await dtNodeLabelStringArrayHover(
 			document,
 			macro,
 			context,
-			hoverParams.position,
+			position,
 		)) ||
-		(await dtParentHover(document, macro, context, hoverParams.position)) ||
-		(await dtSameNodeHover(document, macro, context, hoverParams.position))
+		(await dtParentHover(document, macro, context, position)) ||
+		(await dtSameNodeHover(document, macro, context, position))
 	);
 }
 
 async function getPropertyHover(
-	hoverParams: HoverParams,
+	position: Position,
 	context: ContextAware,
 	document: TextDocument,
 	macro: DTMacroInfo,
 ): Promise<Hover | undefined> {
 	return (
-		(await dtEnumHasValueHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
+		(await dtEnumHasValueHover(document, macro, context, position)) ||
 		(await dtEnumHasValueByIndexHover(
 			document,
 			macro,
 			context,
-			hoverParams.position,
+			position,
 		)) ||
-		(await dtEnumIndexHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
-		(await dtEnumIndexOrHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
-		(await dtEnumIndexByIndexOrHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
-		(await dtEnumIndexByIndexHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
-		(await dtPhaHover(document, macro, context, hoverParams.position)) ||
-		(await dtPhaOrHover(document, macro, context, hoverParams.position)) ||
-		(await dtPhaByIndexHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
-		(await dtPhaByIndexOrHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
-		(await dtPhaByNameHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
-		(await dtPhaByNameOrHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
-		(await dtPhandelHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
-		(await dtPhandelByIndexHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
-		(await dtPhandelByNameHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
-		(await dtPropHover(document, macro, context, hoverParams.position)) ||
-		(await dtPropByIdxHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
-		(await dtPropByPhandleHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
+		(await dtEnumIndexHover(document, macro, context, position)) ||
+		(await dtEnumIndexOrHover(document, macro, context, position)) ||
+		(await dtEnumIndexByIndexOrHover(document, macro, context, position)) ||
+		(await dtEnumIndexByIndexHover(document, macro, context, position)) ||
+		(await dtPhaHover(document, macro, context, position)) ||
+		(await dtPhaOrHover(document, macro, context, position)) ||
+		(await dtPhaByIndexHover(document, macro, context, position)) ||
+		(await dtPhaByIndexOrHover(document, macro, context, position)) ||
+		(await dtPhaByNameHover(document, macro, context, position)) ||
+		(await dtPhaByNameOrHover(document, macro, context, position)) ||
+		(await dtPhandelHover(document, macro, context, position)) ||
+		(await dtPhandelByIndexHover(document, macro, context, position)) ||
+		(await dtPhandelByNameHover(document, macro, context, position)) ||
+		(await dtPropHover(document, macro, context, position)) ||
+		(await dtPropByIdxHover(document, macro, context, position)) ||
+		(await dtPropByPhandleHover(document, macro, context, position)) ||
 		(await dtPropByPhandleIndexOrHover(
 			document,
 			macro,
 			context,
-			hoverParams.position,
+			position,
 		)) ||
-		(await dtPropByPhandleIndexHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
-		(await dtPropHasIndexHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
-		(await dtPropHasNameHover(
-			document,
-			macro,
-			context,
-			hoverParams.position,
-		)) ||
-		(await dtPropOrHover(document, macro, context, hoverParams.position))
+		(await dtPropByPhandleIndexHover(document, macro, context, position)) ||
+		(await dtPropHasIndexHover(document, macro, context, position)) ||
+		(await dtPropHasNameHover(document, macro, context, position)) ||
+		(await dtPropOrHover(document, macro, context, position))
 	);
 }
 
@@ -252,25 +142,28 @@ export async function getHover(
 ): Promise<Hover | undefined> {
 	if (!document) return;
 	const macro = getMacroAtPosition(document, hoverParams.position);
+	return getHoverFrom(macro, hoverParams.position, context, document);
+}
 
+async function getHoverFrom(
+	macro: DTMacroInfo | undefined,
+	position: Position,
+	context: ContextAware,
+	document: TextDocument,
+): Promise<Hover | undefined> {
 	if (!macro?.macro) {
 		return;
 	}
 
 	const hover =
-		(await getNodeHover(hoverParams, context, document, macro)) ||
-		(await getPropertyHover(hoverParams, context, document, macro));
+		(await getNodeHover(position, context, document, macro)) ||
+		(await getPropertyHover(position, context, document, macro));
 
 	if (hover) {
 		return hover;
 	}
 
-	const node = await dtMacroToNode(
-		document,
-		macro,
-		context,
-		hoverParams.position,
-	);
+	const node = await dtMacroToNode(document, macro, context, position);
 
 	if (node) {
 		return {
@@ -278,19 +171,16 @@ export async function getHover(
 		};
 	}
 
-	// we need to recursivly find definition
-	const newPosition = findMacroDefinition(
+	const newMacro = findMacroDefinition(
 		document,
 		macro.macro,
-		hoverParams.position,
+		position,
+		context,
 	);
-	if (!newPosition) {
+
+	if (!newMacro) {
 		return;
 	}
 
-	return getHover(
-		{ ...hoverParams, position: newPosition },
-		context,
-		document,
-	);
+	return getHoverFrom(newMacro[0], newMacro[1], context, document);
 }

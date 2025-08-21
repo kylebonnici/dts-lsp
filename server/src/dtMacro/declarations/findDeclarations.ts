@@ -14,10 +14,18 @@
  * limitations under the License.
  */
 
-import { Location, TextDocumentPositionParams } from 'vscode-languageserver';
+import {
+	Location,
+	Position,
+	TextDocumentPositionParams,
+} from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ContextAware } from '../../runtimeEvaluator';
-import { findMacroDefinition, getMacroAtPosition } from '../helpers';
+import {
+	DTMacroInfo,
+	findMacroDefinition,
+	getMacroAtPosition,
+} from '../helpers';
 import { generateNodeDeclaration } from '../../findDeclarations';
 import { dtMacroToNode } from '../macro/dtMacroToNode';
 
@@ -27,37 +35,36 @@ export async function getDeclaration(
 	document: TextDocument | undefined,
 ): Promise<Location | undefined> {
 	if (!document) return;
-
 	const macro = getMacroAtPosition(document, location.position);
+	return getDeclarationFrom(macro, location.position, context, document);
+}
 
+async function getDeclarationFrom(
+	macro: DTMacroInfo | undefined,
+	position: Position,
+	context: ContextAware,
+	document: TextDocument,
+): Promise<Location | undefined> {
 	if (!macro?.macro) {
 		return;
 	}
 
-	const node = await dtMacroToNode(
-		document,
-		macro,
-		context,
-		location.position,
-	);
+	const node = await dtMacroToNode(document, macro, context, position);
 
 	if (node) {
 		return generateNodeDeclaration(node);
 	}
 
-	// we need to recursivly find definition
-	const newPosition = findMacroDefinition(
+	const newMacro = findMacroDefinition(
 		document,
 		macro.macro,
-		location.position,
+		position,
+		context,
 	);
-	if (!newPosition) {
+
+	if (!newMacro) {
 		return;
 	}
 
-	return getDeclaration(
-		{ ...location, position: newPosition },
-		context,
-		document,
-	);
+	return getDeclarationFrom(newMacro[0], newMacro[1], context, document);
 }
