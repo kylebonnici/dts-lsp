@@ -18,11 +18,5 @@ import { toCIdentifier } from '../../../../dtMacro/helpers';
 import { Node } from '../../../../context/node';
 
 export async function dtChildRaw(node: Node | undefined, childName: string) {
-	if (!node) {
-		return;
-	}
-
-	let childNode = node.nodes.find((c) => toCIdentifier(c.name) === childName);
-
-	return childNode;
+	return node?.nodes.find((c) => toCIdentifier(c.name) === childName);
 }

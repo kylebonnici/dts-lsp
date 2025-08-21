@@ -19,15 +19,15 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
 import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo } from '../../helpers';
-import { dtPropHasIndex } from '../../../dtMacro/macro/properties/dtPropHasIndex';
+import { dtPropHasName } from '../../../dtMacro/macro/properties/dtPropHasName';
 
-export async function dtPropHasIndexHover(
+export async function dtPropHasNameHover(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
 ) {
-	const values = await dtPropHasIndex(
+	const values = await dtPropHasName(
 		document,
 		macro,
 		context,

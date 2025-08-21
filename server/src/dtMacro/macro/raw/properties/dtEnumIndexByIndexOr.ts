@@ -17,15 +17,15 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Position } from 'vscode-languageserver-types';
 import { ContextAware } from '../../../../runtimeEvaluator';
-import { Property } from '../../../../context/property';
 import { DTMacroInfo } from '../../../../dtMacro/helpers';
 import { Node } from '../../../../context/node';
 import { dtEnumIndexByIndexRaw } from './dtEnumIndexByIndex';
 import { dtOrRaw } from './dtOr';
 
 export async function dtEnumIndexByIndexOrRaw(
+	node: Node | undefined,
+	propertyName: string,
 	idx: number,
-	property: Property | undefined,
 	fallback: DTMacroInfo,
 	document: TextDocument,
 	context: ContextAware,
@@ -38,7 +38,7 @@ export async function dtEnumIndexByIndexOrRaw(
 	) => Promise<Node | undefined>,
 ) {
 	return dtOrRaw(
-		await dtEnumIndexByIndexRaw(idx, property),
+		await dtEnumIndexByIndexRaw(node, propertyName, idx),
 		fallback,
 		document,
 		context,

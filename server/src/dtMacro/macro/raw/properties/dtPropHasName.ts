@@ -14,37 +14,45 @@
  * limitations under the License.
  */
 
-import { NodeType } from '../../../../dtsTypes/types';
+import { ContextAware } from '../../../../runtimeEvaluator';
 import { Node } from '../../../../context/node';
 import { toCIdentifier } from '../../../../dtMacro/helpers';
+import { NodeType } from '../../../../dtsTypes/types';
+import { dtPropRaw } from './dtProp';
 
-export async function dtEnumIndexByIndexRaw(
+export async function dtPropHasNameRaw(
 	node: Node | undefined,
 	propertyName: string,
-	idx: number,
+	nameValue: string,
+	context: ContextAware,
 ) {
 	const property = node?.property.find(
 		(p) => toCIdentifier(p.name) === propertyName,
 	);
 
-	if (!property) {
+	const nodeType = property?.parent.nodeType;
+
+	if (!nodeType || !(nodeType instanceof NodeType)) {
 		return;
 	}
 
-	const value = property?.ast.quickValues?.at(idx);
+	const values = await dtPropRaw(node, propertyName, context);
 
-	const nodeType = property.parent.nodeType;
-
-	if (Array.isArray(value) || !nodeType || !(nodeType instanceof NodeType)) {
+	if (values === undefined) {
 		return;
 	}
 
-	const propType = nodeType.properties.find((p) =>
-		p.getNameMatch(property.name),
-	);
+	const specifierSpace = property.nexusMapsTo.at(0)?.specifierSpace;
+	const nameValues = specifierSpace
+		? property.parent.getProperty(`${specifierSpace}-names`)?.ast
+				.quickValues
+		: undefined;
 
-	const enumIdx =
-		propType?.values(property).findIndex((v) => v === value) ?? -1;
+	const idx =
+		nameValues?.findIndex(
+			(name) =>
+				typeof name === 'string' && name.toLowerCase() === nameValue,
+		) ?? -1;
 
-	return enumIdx === -1 ? undefined : enumIdx;
+	return idx === -1 ? undefined : idx;
 }

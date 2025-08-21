@@ -17,7 +17,7 @@
 import { Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo, toCIdentifier } from '../../helpers';
+import { DTMacroInfo } from '../../helpers';
 import { evalExp } from '../../../helpers';
 import { Node } from '../../../context/node';
 import { dtEnumIndexByIndexOrRaw } from '../raw/properties/dtEnumIndexByIndexOr';
@@ -45,11 +45,6 @@ export async function dtEnumIndexByIndexOr(
 		context,
 		position,
 	);
-
-	const property = node?.property.find(
-		(p) => toCIdentifier(p.name) === args[1].macro,
-	);
-
 	const idx = evalExp(args[2].macro);
 
 	if (typeof idx !== 'number') {
@@ -57,8 +52,9 @@ export async function dtEnumIndexByIndexOr(
 	}
 
 	return await dtEnumIndexByIndexOrRaw(
+		node,
+		args[1].macro,
 		idx,
-		property,
 		args[3],
 		document,
 		context,

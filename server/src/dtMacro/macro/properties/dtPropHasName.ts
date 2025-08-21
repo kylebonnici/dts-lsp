@@ -14,31 +14,34 @@
  * limitations under the License.
  */
 
-import { MarkupKind, Position } from 'vscode-languageserver';
+import { Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
 import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo } from '../../helpers';
-import { dtPropHasIndex } from '../../../dtMacro/macro/properties/dtPropHasIndex';
+import { Node } from '../../../context/node';
+import { dtPropHasNameRaw } from '../raw/properties/dtPropHasName';
 
-export async function dtPropHasIndexHover(
+export async function dtPropHasName(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
+	dtMacroToNode: (
+		document: TextDocument,
+		macro: DTMacroInfo,
+		context: ContextAware,
+		position: Position,
+	) => Promise<Node | undefined>,
 ) {
-	const values = await dtPropHasIndex(
-		document,
-		macro,
+	const args = macro.args;
+	if (macro.macro !== 'DT_PROP_HAS_NAME' || args?.length !== 3) return;
+
+	const values = await dtPropHasNameRaw(
+		await dtMacroToNode(document, args[0], context, position),
+		args[1].macro,
+		args[2].macro,
 		context,
-		position,
-		dtMacroToNode,
 	);
 
-	return {
-		contents: {
-			kind: MarkupKind.Markdown,
-			value: values ? '1' : '0',
-		},
-	};
+	return !!values;
 }

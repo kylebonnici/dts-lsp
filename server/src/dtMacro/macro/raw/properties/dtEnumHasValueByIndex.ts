@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-import { NodeType } from '../../../../dtsTypes/types';
-import { Node } from '../../../../context/node';
+import util from 'util';
+import { evalExp } from '../../../../helpers';
 import { toCIdentifier } from '../../../../dtMacro/helpers';
+import { Node } from '../../../../context/node';
 
-export async function dtEnumIndexByIndexRaw(
+export async function dtEnumHasValueByIndexRaw(
 	node: Node | undefined,
 	propertyName: string,
 	idx: number,
+	cmpValue: string,
 ) {
 	const property = node?.property.find(
 		(p) => toCIdentifier(p.name) === propertyName,
@@ -33,18 +35,9 @@ export async function dtEnumIndexByIndexRaw(
 
 	const value = property?.ast.quickValues?.at(idx);
 
-	const nodeType = property.parent.nodeType;
-
-	if (Array.isArray(value) || !nodeType || !(nodeType instanceof NodeType)) {
+	if (value === undefined) {
 		return;
 	}
 
-	const propType = nodeType.properties.find((p) =>
-		p.getNameMatch(property.name),
-	);
-
-	const enumIdx =
-		propType?.values(property).findIndex((v) => v === value) ?? -1;
-
-	return enumIdx === -1 ? undefined : enumIdx;
+	return util.isDeepStrictEqual(evalExp(cmpValue), value);
 }

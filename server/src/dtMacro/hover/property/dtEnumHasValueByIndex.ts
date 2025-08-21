@@ -16,18 +16,18 @@
 
 import { MarkupKind, Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
+import { dtEnumHasValueByIndex } from 'src/dtMacro/macro/properties/dtEnumHasValueByIndex';
+import { dtMacroToNode } from '../../macro/dtMacroToNode';
 import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo } from '../../helpers';
-import { dtPropHasIndex } from '../../../dtMacro/macro/properties/dtPropHasIndex';
 
-export async function dtPropHasIndexHover(
+export async function dtEnumHasValueByIndexHover(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
 ) {
-	const values = await dtPropHasIndex(
+	const hasValue = await dtEnumHasValueByIndex(
 		document,
 		macro,
 		context,
@@ -35,10 +35,12 @@ export async function dtPropHasIndexHover(
 		dtMacroToNode,
 	);
 
-	return {
-		contents: {
-			kind: MarkupKind.Markdown,
-			value: values ? '1' : '0',
-		},
-	};
+	return hasValue !== undefined
+		? {
+				contents: {
+					kind: MarkupKind.Markdown,
+					value: hasValue ? '1' : '0',
+				},
+			}
+		: undefined;
 }

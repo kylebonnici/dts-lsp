@@ -14,31 +14,48 @@
  * limitations under the License.
  */
 
-import { MarkupKind, Position } from 'vscode-languageserver';
+import { Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
 import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo } from '../../helpers';
-import { dtPropHasIndex } from '../../../dtMacro/macro/properties/dtPropHasIndex';
+import { Node } from '../../../context/node';
+import { dtEnumHasValueByIndexRaw } from '../raw/properties/dtEnumHasValueByIndex';
+import { evalExp } from '../../../helpers';
 
-export async function dtPropHasIndexHover(
+export async function dtEnumHasValueByIndex(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
+	dtMacroToNode: (
+		document: TextDocument,
+		macro: DTMacroInfo,
+		context: ContextAware,
+		position: Position,
+	) => Promise<Node | undefined>,
 ) {
-	const values = await dtPropHasIndex(
+	const args = macro.args;
+	if (macro.macro !== 'DT_ENUM_HAS_VALUE_BY_IDX' || args?.length !== 4) {
+		return;
+	}
+
+	const node: Node | undefined = await dtMacroToNode(
 		document,
-		macro,
+		args[0],
 		context,
 		position,
-		dtMacroToNode,
 	);
 
-	return {
-		contents: {
-			kind: MarkupKind.Markdown,
-			value: values ? '1' : '0',
-		},
-	};
+	const idx = evalExp(args[2].macro);
+
+	if (typeof idx !== 'number') {
+		return;
+	}
+
+	return await dtEnumHasValueByIndexRaw(
+		node,
+		args[1].macro,
+		idx,
+		args[3].macro,
+	);
 }

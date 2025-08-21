@@ -57,6 +57,10 @@ import { dtEnumIndexHover } from './property/dtEnumIndex';
 import { dtEnumIndexOrHover } from './property/dtEnumIndexOr';
 import { dtPropByPhandleHover } from './property/dtPropByPhandle';
 import { dtPropByPhandleIndexOrHover } from './property/dtPropByPhandleIndexOr';
+import { dtEnumHasValueHover } from './property/dtEnumHasValue';
+import { dtEnumHasValueByIndexHover } from './property/dtEnumHasValueByIndex';
+import { dtPropHasIndexHover } from './property/dtPropHasIndex';
+import { dtPropHasNameHover } from './property/dtPropHasName';
 
 async function getNodeHover(
 	hoverParams: HoverParams,
@@ -120,6 +124,18 @@ async function getPropertyHover(
 	macro: DTMacroInfo,
 ): Promise<Hover | undefined> {
 	return (
+		(await dtEnumHasValueHover(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+		)) ||
+		(await dtEnumHasValueByIndexHover(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+		)) ||
 		(await dtEnumIndexHover(
 			document,
 			macro,
@@ -208,6 +224,18 @@ async function getPropertyHover(
 			hoverParams.position,
 		)) ||
 		(await dtPropByPhandleIndexHover(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+		)) ||
+		(await dtPropHasIndexHover(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+		)) ||
+		(await dtPropHasNameHover(
 			document,
 			macro,
 			context,
