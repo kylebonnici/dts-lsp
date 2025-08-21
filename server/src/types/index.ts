@@ -31,6 +31,7 @@ export interface Context {
 	deviceOrgTreeBindings?: string[];
 	deviceOrgBindingsMetaSchema?: string[];
 	lockRenameEdits?: string[];
+	compileCommands?: string;
 }
 
 export type IntegrationSettings = Omit<
@@ -40,7 +41,7 @@ export type IntegrationSettings = Omit<
 
 export type ResolvedContext = PartialBy<
 	Required<Context>,
-	'cwd' | 'bindingType'
+	'cwd' | 'bindingType' | 'compileCommands'
 >;
 
 export type ResolvedSettings = PartialBy<

@@ -133,6 +133,7 @@ export const resolveContextSetting = async (
 
 	let dtsFile = context.dtsFile;
 	let overlays = context.overlays ?? [];
+	let compileCommands = context.compileCommands;
 
 	if (cwd) {
 		zephyrBindings = zephyrBindings
@@ -150,6 +151,9 @@ export const resolveContextSetting = async (
 		lockRenameEdits = lockRenameEdits.map((lockRenameEdit) =>
 			resolve(cwd, lockRenameEdit),
 		);
+		compileCommands = compileCommands
+			? resolve(cwd, compileCommands)
+			: undefined;
 	}
 
 	return {
@@ -164,6 +168,9 @@ export const resolveContextSetting = async (
 		dtsFile: normalizePath(dtsFile),
 		overlays: overlays.map(normalizePath),
 		lockRenameEdits: lockRenameEdits.map(normalizePath),
+		compileCommands: compileCommands
+			? normalizePath(compileCommands)
+			: undefined,
 	};
 };
 
