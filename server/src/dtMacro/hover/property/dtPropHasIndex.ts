@@ -35,10 +35,12 @@ export async function dtPropHasIndexHover(
 		dtMacroToNode,
 	);
 
-	return {
-		contents: {
-			kind: MarkupKind.Markdown,
-			value: values ? '1' : '0',
-		},
-	};
+	return values === undefined
+		? undefined
+		: {
+				contents: {
+					kind: MarkupKind.Markdown,
+					value: values ? '1' : '0',
+				},
+			};
 }

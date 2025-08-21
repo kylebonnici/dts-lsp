@@ -16,7 +16,7 @@
 
 import { MarkupKind, Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { dtEnumHasValueByIndex } from 'src/dtMacro/macro/properties/dtEnumHasValueByIndex';
+import { dtEnumHasValueByIndex } from '../../../dtMacro/macro/properties/dtEnumHasValueByIndex';
 import { dtMacroToNode } from '../../macro/dtMacroToNode';
 import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo } from '../../helpers';

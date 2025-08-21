@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { dtRoot } from 'src/dtMacro/macro/node/dtRoot';
+import { dtRoot } from '../../../dtMacro/macro/node/dtRoot';
 import { DTMacroInfo } from '../../helpers';
 import { ContextAware } from '../../../runtimeEvaluator';
 
