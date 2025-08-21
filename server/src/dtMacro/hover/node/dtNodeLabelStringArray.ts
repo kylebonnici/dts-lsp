@@ -16,34 +16,30 @@
 
 import { MarkupKind, Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { dtNodeLabelStringArray } from '../../../dtMacro/macro/node/dtNodeLabelStringArray';
 import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo } from '../../helpers';
-import { resolveDTMacroToNode } from '../../dtMacroToNode';
 
-export async function dtNodeLabelStringArray(
+export async function dtNodeLabelStringArrayHover(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
 ) {
-	if (macro.args?.length !== 1) {
-		return;
-	}
-	const node = await resolveDTMacroToNode(
+	const labels = await dtNodeLabelStringArray(
 		document,
-		macro.args[0],
+		macro,
 		context,
 		position,
 	);
-
-	if (!node) {
+	if (!labels) {
 		return;
 	}
 
 	return {
 		contents: {
 			kind: MarkupKind.Markdown,
-			value: `{ ${node.labels.map((l) => `"${l.label}"`).join(', ')} }`,
+			value: `{ ${labels.map((l) => `"${l}"`).join(', ')} }`,
 		},
 	};
 }

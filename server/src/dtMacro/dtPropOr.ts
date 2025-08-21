@@ -19,30 +19,9 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ContextAware } from '../runtimeEvaluator';
 import { Node } from '../context/node';
 import { DTMacroInfo } from './helpers';
-import { resolveDtPropRaw } from './dtProp';
+import { dtPropOr } from './macro/properties/dtPropOr';
 
-export async function resolveDtPropOrRaw(
-	node: Node | undefined,
-	propertyName: string,
-	fallback: DTMacroInfo,
-	document: TextDocument,
-	context: ContextAware,
-	position: Position,
-	resolveDTMacroToNode: (
-		document: TextDocument,
-		macro: DTMacroInfo,
-		context: ContextAware,
-		position: Position,
-	) => Promise<Node | undefined>,
-) {
-	const result = await resolveDtPropRaw(node, propertyName, context);
-
-	return (
-		result ?? resolveDTMacroToNode(document, fallback, context, position)
-	);
-}
-
-export async function resolveDtPropOr(
+export async function dtPropOrNode(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
@@ -54,42 +33,7 @@ export async function resolveDtPropOr(
 		position: Position,
 	) => Promise<Node | undefined>,
 ) {
-	if (macro.args?.length !== 3) {
-		return;
-	}
-
-	const [nodeId, prop, fallback] = macro.args;
-	const node = await resolveDTMacroToNode(
-		document,
-		nodeId,
-		context,
-		position,
-	);
-
-	return await resolveDtPropOrRaw(
-		node,
-		prop.macro,
-		fallback,
-		document,
-		context,
-		position,
-		resolveDTMacroToNode,
-	);
-}
-
-export async function resolveDtPropOrNode(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
-	resolveDTMacroToNode: (
-		document: TextDocument,
-		macro: DTMacroInfo,
-		context: ContextAware,
-		position: Position,
-	) => Promise<Node | undefined>,
-) {
-	const values = await resolveDtPropOr(
+	const values = await dtPropOr(
 		document,
 		macro,
 		context,

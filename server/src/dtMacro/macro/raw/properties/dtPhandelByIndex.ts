@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { LabelRef } from '../ast/dtc/labelRef';
-import { ContextAware } from '../runtimeEvaluator';
-import { evalExp } from '../helpers';
-import { NodePathRef } from '../ast/dtc/values/nodePath';
-import { Node } from '../context/node';
-import { DTMacroInfo, toCIdentifier } from './helpers';
+import { LabelRef } from '../../../../ast/dtc/labelRef';
+import { evalExp } from '../../../../helpers';
+import { NodePathRef } from '../../../../ast/dtc/values/nodePath';
+import { Node } from '../../../../context/node';
+import { toCIdentifier } from '../../../helpers';
 
-export async function resolveDtPhandelByIndexRaw(
+export async function dtPhandelByIndexRaw(
 	node: Node | undefined,
 	propertyName: string,
 	idx: string | number = 0,
@@ -47,31 +44,4 @@ export async function resolveDtPhandelByIndexRaw(
 	if (value instanceof NodePathRef) {
 		return value.path?.pathParts.at(-1)?.linksTo;
 	}
-}
-
-export async function resolveDtPhandelByIndex(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
-	resolveDTMacroToNode: (
-		document: TextDocument,
-		macro: DTMacroInfo,
-		context: ContextAware,
-		position: Position,
-	) => Promise<Node | undefined>,
-) {
-	const args = macro.args;
-	if (args?.length !== (macro.macro === 'DT_PHANDLE_BY_IDX' ? 3 : 2)) {
-		return;
-	}
-
-	const node = await resolveDTMacroToNode(
-		document,
-		args[0],
-		context,
-		position,
-	);
-
-	return resolveDtPhandelByIndexRaw(node, args[1].macro, args.at(2)?.macro);
 }

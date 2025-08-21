@@ -14,22 +14,12 @@
  * limitations under the License.
  */
 
-import { Node } from '../context/node';
-import { ContextAware } from '../runtimeEvaluator';
-import { toCIdentifier } from './helpers';
+import { ContextAware } from '../../../runtimeEvaluator';
+import { DTMacroInfo } from '../../../dtMacro/helpers';
+import { dtHasAliasRaw } from '../raw/node/dtHasAlias';
 
-const get = (node: Node, path: string[]): Node | undefined => {
-	if (!path.length) return node;
+export async function dtHasAlias(macro: DTMacroInfo, context: ContextAware) {
+	if (macro.macro !== 'DT_HAS_ALIAS' || macro.args?.length !== 1) return;
 
-	const p = path.splice(0, 1)[0];
-	const n = node.nodes.find((n) => toCIdentifier(n.fullName) === p);
-	return n ? get(n, path) : undefined;
-};
-
-export async function resolveDtPath(path: string[], context: ContextAware) {
-	const runtime = await context?.getRuntime();
-
-	if (runtime) {
-		return get(runtime.rootNode, path);
-	}
+	return dtHasAliasRaw(macro.args[0].macro, context);
 }

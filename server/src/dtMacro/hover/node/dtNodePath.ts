@@ -16,34 +16,26 @@
 
 import { MarkupKind, Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { dtNodePath } from '../../../dtMacro/macro/node/dtNodePath';
 import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo } from '../../helpers';
-import { resolveDTMacroToNode } from '../../dtMacroToNode';
 
-export async function dtNodePath(
+export async function dtNodePathHover(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
 ) {
-	if (macro.args?.length !== 1) {
-		return;
-	}
-	const node = await resolveDTMacroToNode(
-		document,
-		macro.args[0],
-		context,
-		position,
-	);
+	const path = await dtNodePath(document, macro, context, position);
 
-	if (!node) {
+	if (!path) {
 		return;
 	}
 
 	return {
 		contents: {
 			kind: MarkupKind.Markdown,
-			value: `"${node.pathString}"`,
+			value: `"${path}"`,
 		},
 	};
 }

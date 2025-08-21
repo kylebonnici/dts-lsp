@@ -16,34 +16,30 @@
 
 import { Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { resolveDTMacroToNode } from '../../../dtMacro/dtMacroToNode';
 import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo } from '../../helpers';
-import { resolveDtPhandelByIndex } from '../../../dtMacro/dtPhandelByIndex';
+import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
+import { dtPhandelByIndex } from '../../../dtMacro/macro/properties/dtPhandelByIndex';
 
-export async function dtPhandelByIndex(
+export async function dtPhandelByIndexHover(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
 ) {
-	const node = await resolveDtPhandelByIndex(
+	const node = await dtPhandelByIndex(
 		document,
 		macro,
 		context,
 		position,
-		resolveDTMacroToNode,
+		dtMacroToNode,
 	);
 
-	const runtime = await context?.getRuntime();
-
-	if (!runtime || !node) {
+	if (!node) {
 		return;
 	}
 
-	const lastParser = (await runtime.context.getAllParsers()).at(-1)!;
-
 	return {
-		contents: node.toMarkupContent(lastParser.cPreprocessorParser.macros),
+		contents: node.toMarkupContent(context.macros),
 	};
 }

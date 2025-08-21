@@ -16,10 +16,18 @@
 
 import { MarkupKind } from 'vscode-languageserver-types';
 import { ContextAware } from '../../../runtimeEvaluator';
-import { dtAlias } from './dtAlias';
+import { DTMacroInfo } from '../../../dtMacro/helpers';
+import { dtHasAlias } from '../../../dtMacro/macro/node/dtHasAlias';
 
-export async function dtHasAlias(alias: string, context: ContextAware) {
-	const aliasNode = await dtAlias(alias, context);
+export async function dtHasAliasHover(
+	macro: DTMacroInfo,
+	context: ContextAware,
+) {
+	const aliasNode = await dtHasAlias(macro, context);
+
+	if (aliasNode === undefined) {
+		return;
+	}
 
 	return {
 		contents: {

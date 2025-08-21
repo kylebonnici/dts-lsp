@@ -16,110 +16,23 @@
 
 import { MarkupKind, Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { NodeType } from 'src/dtsTypes/types';
-import { Property } from 'src/context/property';
-import { Expression } from 'src/ast/cPreprocessors/expression';
+import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
 import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo, toCIdentifier } from '../../helpers';
-import { resolveDTMacroToNode } from '../../dtMacroToNode';
-import { evalExp } from '../../../helpers';
+import { DTMacroInfo } from '../../helpers';
+import { dtPhaByIndex } from '../../../dtMacro/macro/properties/dtPhaByIndex';
 
-async function dtPhaByIndexRaw(
-	context: ContextAware,
-	idx: number | string,
-	property: Property,
-	cell: string,
-	fallback?: string,
-) {
-	const nodeType = property.parent.nodeType;
-
-	if (!nodeType || !(nodeType instanceof NodeType)) {
-		return fallback;
-	}
-
-	if (typeof idx === 'string') {
-		const specifierSpace = property.nexusMapsTo.at(0)?.specifierSpace;
-		const nameValues = specifierSpace
-			? property.parent.getProperty(`${specifierSpace}-names`)?.ast
-					.quickValues
-			: undefined;
-
-		idx =
-			nameValues?.findIndex(
-				(name) =>
-					typeof name === 'string' && name.toLowerCase() === idx,
-			) ?? -1;
-
-		if (idx === -1) {
-			return fallback;
-		}
-	}
-
-	const nexusMapping = property.nexusMapsTo.at(idx);
-	const cellNames = nexusMapping?.target.nodeType?.cellsValues?.find(
-		(c) =>
-			nexusMapping.specifierSpace &&
-			c.specifier === nexusMapping.specifierSpace,
-	);
-	const cellIndex = cellNames?.values?.indexOf(cell);
-
-	if (cellIndex === undefined || cellIndex === -1) {
-		return fallback;
-	}
-
-	const value = nexusMapping?.mappingValuesAst.at(cellIndex);
-
-	const lastParser = (
-		await (await context.getRuntime()).context.getAllParsers()
-	).at(-1)!;
-
-	if (value instanceof Expression) {
-		return value.evaluate(lastParser.cPreprocessorParser.macros);
-	}
-
-	return fallback;
-}
-
-export async function dtPhaByIndex(
+export async function dtPhaByIndexHover(
 	document: TextDocument,
-	nodeId: DTMacroInfo,
-	propertyName: string,
+	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
-	idx: number | string,
-	cell: string,
-	fallback?: string,
 ) {
-	const node = await resolveDTMacroToNode(
+	const enumIdx = await dtPhaByIndex(
 		document,
-		nodeId,
+		macro,
 		context,
 		position,
-	);
-
-	const property = node?.property.find(
-		(p) => toCIdentifier(p.name) === propertyName,
-	);
-
-	idx = typeof idx !== 'number' ? evalExp(idx) : idx;
-
-	if (!property) {
-		return fallback
-			? {
-					contents: {
-						kind: MarkupKind.Markdown,
-						value: fallback.toString(),
-					},
-				}
-			: undefined;
-	}
-
-	const enumIdx = await dtPhaByIndexRaw(
-		context,
-		idx,
-		property,
-		cell,
-		fallback,
+		dtMacroToNode,
 	);
 
 	return enumIdx

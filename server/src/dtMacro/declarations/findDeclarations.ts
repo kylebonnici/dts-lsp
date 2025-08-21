@@ -18,8 +18,8 @@ import { Location, TextDocumentPositionParams } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ContextAware } from '../../runtimeEvaluator';
 import { findMacroDefinition, getMacroAtPosition } from '../helpers';
-import { resolveDTMacroToNode } from '../dtMacroToNode';
 import { generateNodeDeclaration } from '../../findDeclarations';
+import { dtMacroToNode } from '../macro/dtMacroToNode';
 
 export async function getDeclaration(
 	location: TextDocumentPositionParams,
@@ -34,7 +34,7 @@ export async function getDeclaration(
 		return;
 	}
 
-	const node = await resolveDTMacroToNode(
+	const node = await dtMacroToNode(
 		document,
 		macro,
 		context,

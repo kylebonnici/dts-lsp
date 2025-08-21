@@ -16,110 +16,36 @@
 
 import { Position } from 'vscode-languageserver-types';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { LabelRef } from 'src/ast/dtc/labelRef';
-import { StringValue } from 'src/ast/dtc/values/string';
-import { Expression } from 'src/ast/cPreprocessors/expression';
-import { NodePathRef } from '../ast/dtc/values/nodePath';
 import { ContextAware } from '../runtimeEvaluator';
 import { Node } from '../context/node';
-import { DTMacroInfo, toCIdentifier } from './helpers';
+import { DTMacroInfo } from './helpers';
+import { dtPropByIndex } from './macro/properties/dtPropByIndex';
 
-export async function resolveDtPropByIndexRaw(
-	node: Node | undefined,
-	propertyName: string,
-	context: ContextAware,
-) {
-	if (!node) {
-		return;
-	}
-
-	const property = node?.property.find(
-		(p) => toCIdentifier(p.name) === propertyName,
-	);
-
-	const values = property?.ast.getFlatAstValues();
-	if (values?.length === 0) {
-		return true;
-	}
-
-	return (
-		values?.map((v) => {
-			if (v instanceof NodePathRef) {
-				return v.path?.pathParts.at(-1)?.linksTo;
-			}
-			if (v instanceof LabelRef) {
-				return v.linksTo;
-			}
-			if (v instanceof StringValue) {
-				return v.value;
-			}
-			if (v instanceof Expression) {
-				const evaluated = v.evaluate(context.macros);
-
-				return typeof evaluated === 'number' ? evaluated : v.toString();
-			}
-		}) ?? false
-	);
-}
-
-export async function resolveDtPropByIndex(
+export async function dtPropByIndexNode(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
-	resolveDTMacroToNode: (
+	dtMacroToNode: (
 		document: TextDocument,
 		macro: DTMacroInfo,
 		context: ContextAware,
 		position: Position,
 	) => Promise<Node | undefined>,
 ) {
-	const args = macro.args;
-	if (args?.length !== (macro.macro === 'DT_PROP' ? 2 : 3)) return;
-
-	const runtime = await context?.getRuntime();
-
-	if (runtime) {
-		const node = await resolveDTMacroToNode(
-			document,
-			args[0],
-			context,
-			position,
-		);
-
-		return node
-			? resolveDtPropByIndexRaw(node, args[1].macro, context)
-			: undefined;
-	}
-}
-
-export async function resolveDtPropByIndexNode(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
-	resolveDTMacroToNode: (
-		document: TextDocument,
-		macro: DTMacroInfo,
-		context: ContextAware,
-		position: Position,
-	) => Promise<Node | undefined>,
-) {
-	const values = await resolveDtPropByIndex(
+	const value = await dtPropByIndex(
 		document,
 		macro,
 		context,
 		position,
-		resolveDTMacroToNode,
+		dtMacroToNode,
 	);
 
-	if (typeof values === 'boolean') {
+	if (typeof value === 'boolean') {
 		return;
 	}
 
-	const node = values?.at(0);
-
-	if (values?.length === 1 && node instanceof Node) {
-		return node;
+	if (value instanceof Node) {
+		return value;
 	}
 }

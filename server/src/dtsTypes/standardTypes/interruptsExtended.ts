@@ -18,7 +18,7 @@ import {
 	DiagnosticSeverity,
 	ParameterInformation,
 } from 'vscode-languageserver';
-import { NexuxMapping } from 'src/context/property';
+import { NexuxMapping } from '../../context/property';
 import { BindingPropertyType } from '../../types/index';
 import { FileDiagnostic, StandardTypeIssue } from '../../types';
 import { PropertyNodeType } from '../types';

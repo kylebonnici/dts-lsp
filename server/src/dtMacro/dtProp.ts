@@ -16,51 +16,12 @@
 
 import { Position } from 'vscode-languageserver-types';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { LabelRef } from 'src/ast/dtc/labelRef';
-import { StringValue } from 'src/ast/dtc/values/string';
-import { Expression } from 'src/ast/cPreprocessors/expression';
-import { NodePathRef } from '../ast/dtc/values/nodePath';
 import { ContextAware } from '../runtimeEvaluator';
 import { Node } from '../context/node';
-import { DTMacroInfo, toCIdentifier } from './helpers';
+import { DTMacroInfo } from './helpers';
+import { dtProp } from './macro/properties/dtProp';
 
-export async function resolveDtPropRaw(
-	node: Node | undefined,
-	propertyName: string,
-	context: ContextAware,
-) {
-	if (!node) {
-		return;
-	}
-
-	const property = node?.property.find(
-		(p) => toCIdentifier(p.name) === propertyName,
-	);
-
-	const values = property?.ast.getFlatAstValues();
-	if (values?.length === 0) {
-		return true;
-	}
-
-	return values?.map((v) => {
-		if (v instanceof NodePathRef) {
-			return v.path?.pathParts.at(-1)?.linksTo;
-		}
-		if (v instanceof LabelRef) {
-			return v.linksTo;
-		}
-		if (v instanceof StringValue) {
-			return v.value;
-		}
-		if (v instanceof Expression) {
-			const evaluated = v.evaluate(context.macros);
-
-			return typeof evaluated === 'number' ? evaluated : v.toString();
-		}
-	});
-}
-
-export async function resolveDtProp(
+export async function dtPropNode(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
@@ -72,32 +33,7 @@ export async function resolveDtProp(
 		position: Position,
 	) => Promise<Node | undefined>,
 ) {
-	const args = macro.args;
-	if (args?.length !== 2) return;
-
-	const node = await resolveDTMacroToNode(
-		document,
-		args[0],
-		context,
-		position,
-	);
-
-	return node ? resolveDtPropRaw(node, args[1].macro, context) : undefined;
-}
-
-export async function resolveDtPropNode(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
-	resolveDTMacroToNode: (
-		document: TextDocument,
-		macro: DTMacroInfo,
-		context: ContextAware,
-		position: Position,
-	) => Promise<Node | undefined>,
-) {
-	const values = await resolveDtProp(
+	const values = await dtProp(
 		document,
 		macro,
 		context,

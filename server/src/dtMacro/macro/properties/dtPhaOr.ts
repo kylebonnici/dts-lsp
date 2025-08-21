@@ -14,45 +14,46 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver-types';
+import { Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../runtimeEvaluator';
-import { Node } from '../context/node';
-import { DTMacroInfo } from './helpers';
+import { ContextAware } from '../../../runtimeEvaluator';
+import { DTMacroInfo } from '../../helpers';
+import { Node } from '../../../context/node';
+import { dtPhaByIndexOrRaw } from '../raw/properties/dtPhaByIndexOr';
 
-export async function resolveDtChildNum(
+export async function dtPhaOr(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
-	resolveDTMacroToNode: (
+	dtMacroToNode: (
 		document: TextDocument,
 		macro: DTMacroInfo,
 		context: ContextAware,
 		position: Position,
 	) => Promise<Node | undefined>,
-	statusOk?: boolean,
-) {
-	if (macro.args?.length !== 1) return;
-
-	const runtime = await context?.getRuntime();
-
-	if (runtime) {
-		const node = await resolveDTMacroToNode(
-			document,
-			macro.args[0],
-			context,
-			position,
-		);
-
-		if (!node) {
-			return;
-		}
-
-		if (statusOk) {
-			return node.nodes.filter((n) => !n.disabled).length;
-		}
-
-		return node.nodes.length;
+): Promise<string | Node | number | undefined> {
+	const args = macro.args;
+	if (macro.macro !== 'DT_PHA_OR' || args?.length !== 4) {
+		return;
 	}
+
+	const node: Node | undefined = await dtMacroToNode(
+		document,
+		args[0],
+		context,
+		position,
+	);
+
+	return dtPhaByIndexOrRaw(
+		node,
+		args[1].macro,
+		0,
+		args[2].macro,
+		args[3],
+		document,
+		context,
+		position,
+		dtMacroToNode,
+	);
 }

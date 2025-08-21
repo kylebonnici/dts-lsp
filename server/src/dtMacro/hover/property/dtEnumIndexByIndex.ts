@@ -16,73 +16,24 @@
 
 import { MarkupKind, Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { NodeType } from 'src/dtsTypes/types';
-import { Property } from 'src/context/property';
+import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
+import { dtEnumIndexByIndex } from '../../../dtMacro/macro/properties/dtEnumIndexByIndex';
 import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo, toCIdentifier } from '../../helpers';
-import { resolveDTMacroToNode } from '../../dtMacroToNode';
-import { evalExp } from '../../../helpers';
+import { DTMacroInfo } from '../../helpers';
 
-async function dtEnumIndexByIndexRaw(
-	idx: number,
-	property: Property,
-	fallback?: string,
-) {
-	const value = property?.ast.quickValues?.at(idx);
-
-	const nodeType = property.parent.nodeType;
-
-	if (Array.isArray(value) || !nodeType || !(nodeType instanceof NodeType)) {
-		return;
-	}
-
-	const propType = nodeType.properties.find((p) =>
-		p.getNameMatch(property.name),
-	);
-
-	if (!propType) {
-		return;
-	}
-
-	const enumIdx = propType.values(property).findIndex((v) => v === value);
-
-	return enumIdx === -1 ? fallback : enumIdx;
-}
-
-export async function dtEnumIndexByIndex(
+export async function dtEnumIndexByIndexHover(
 	document: TextDocument,
-	nodeId: DTMacroInfo,
-	propertyName: string,
+	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
-	idx: number | string,
-	fallback?: string,
 ) {
-	const node = await resolveDTMacroToNode(
+	const enumIdx = await dtEnumIndexByIndex(
 		document,
-		nodeId,
+		macro,
 		context,
 		position,
+		dtMacroToNode,
 	);
-
-	const property = node?.property.find(
-		(p) => toCIdentifier(p.name) === propertyName,
-	);
-
-	idx = typeof idx !== 'number' ? evalExp(idx) : idx;
-
-	if (typeof idx !== 'number' || !property) {
-		return fallback
-			? {
-					contents: {
-						kind: MarkupKind.Markdown,
-						value: fallback.toString(),
-					},
-				}
-			: undefined;
-	}
-
-	const enumIdx = await dtEnumIndexByIndexRaw(idx, property, fallback);
 
 	return enumIdx
 		? {

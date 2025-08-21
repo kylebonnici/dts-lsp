@@ -14,25 +14,18 @@
  * limitations under the License.
  */
 
+import { dtAlias } from '../../../dtMacro/macro/node/dtAlias';
+import { DTMacroInfo } from '../../../dtMacro/helpers';
 import { ContextAware } from '../../../runtimeEvaluator';
-import { resolveDtAlias } from '../../dtAlias';
 
-export async function dtAlias(alias: string, context: ContextAware) {
-	const runtime = await context?.getRuntime();
+export async function dtAliasHover(macro: DTMacroInfo, context: ContextAware) {
+	const node = await dtAlias(macro, context);
 
-	if (runtime) {
-		const node = await resolveDtAlias(alias, context);
-
-		if (!node) {
-			return;
-		}
-
-		const lastParser = (await runtime.context.getAllParsers()).at(-1)!;
-
-		return {
-			contents: node.toMarkupContent(
-				lastParser.cPreprocessorParser.macros,
-			),
-		};
+	if (!node) {
+		return;
 	}
+
+	return {
+		contents: node.toMarkupContent(context.macros),
+	};
 }

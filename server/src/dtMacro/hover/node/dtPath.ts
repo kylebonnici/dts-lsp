@@ -14,20 +14,18 @@
  * limitations under the License.
  */
 
+import { DTMacroInfo } from '../../../dtMacro/helpers';
+import { dtPath } from '../../../dtMacro/macro/node/dtPath';
 import { ContextAware } from '../../../runtimeEvaluator';
-import { resolveDtPath } from '../../dtPath';
 
-export async function dtPath(path: string[], context: ContextAware) {
-	const runtime = await context?.getRuntime();
-	const node = await resolveDtPath(path, context);
+export async function dtPathHover(macro: DTMacroInfo, context: ContextAware) {
+	const node = await dtPath(macro, context);
 
-	if (!runtime || !node) {
+	if (!node) {
 		return;
 	}
 
-	const lastParser = (await runtime.context.getAllParsers()).at(-1)!;
-
 	return {
-		contents: node.toMarkupContent(lastParser.cPreprocessorParser.macros),
+		contents: node.toMarkupContent(context.macros),
 	};
 }

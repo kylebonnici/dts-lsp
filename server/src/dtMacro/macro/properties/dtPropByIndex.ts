@@ -14,65 +14,31 @@
  * limitations under the License.
  */
 
-import { MarkupKind, Position } from 'vscode-languageserver';
+import { Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { Node } from 'src/context/node';
 import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo } from '../../helpers';
-import { resolveDTMacroToNode } from '../../dtMacroToNode';
-import { resolveDtPropRaw } from '../../dtProp';
-import { evalExp } from '../../../helpers';
+import { dtPropByIdxRaw } from '../raw/properties/dtPropByIdx';
+import { Node } from '../../../context/node';
 
-export async function dtPropByIdxRaw(
-	node: Node | undefined,
-	propertyName: string,
-	idx: number | string,
-	context: ContextAware,
-) {
-	idx = typeof idx === 'number' ? idx : evalExp(idx);
-
-	if (typeof idx !== 'number') {
-		return;
-	}
-
-	const values = await resolveDtPropRaw(node, propertyName, context);
-
-	if (!values || !Array.isArray(values)) {
-		return;
-	}
-
-	const value = values.at(idx);
-
-	if (!value) {
-		return;
-	}
-
-	if (values.length === 1 && values[0] instanceof Node) {
-		return {
-			contents: values[0].toMarkupContent(context.macros),
-		};
-	}
-
-	return {
-		contents: {
-			kind: MarkupKind.Markdown,
-			value: value.toString(),
-		},
-	};
-}
-
-export async function dtPropByIdx(
+export async function dtPropByIndex(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
+	dtMacroToNode: (
+		document: TextDocument,
+		macro: DTMacroInfo,
+		context: ContextAware,
+		position: Position,
+	) => Promise<Node | undefined>,
 ) {
 	if (macro.macro !== 'DT_PROP_BY_IDX' || macro.args?.length !== 3) {
 		return;
 	}
 
 	return dtPropByIdxRaw(
-		await resolveDTMacroToNode(document, macro.args[0], context, position),
+		await dtMacroToNode(document, macro.args[0], context, position),
 		macro.args[1].macro,
 		macro.args[2].macro,
 		context,

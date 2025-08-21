@@ -22,28 +22,41 @@ import {
 	findMacroDefinition,
 	getMacroAtPosition,
 } from '../helpers';
-import { dtAlias } from './node/dtAlias';
-import { dtChild } from './node/dtChild';
-import { dtChildNum } from './node/dtChildNum';
-import { dtCompatGetAnyStatusOk } from './node/dtCompatGetAnyStatusOk';
-import { dtGParent } from './node/dtGParent';
-import { dtHasAlias } from './node/dtHasAlias';
-import { dtNodeFullName } from './node/dtNodeFullName';
-import { dtNodePath } from './node/dtNodePath';
-import { dtNodeLabel } from './node/dtNodeLabel';
-import { dtNodeLabelStringArray } from './node/dtNodeLabelStringArray';
-import { dtParent } from './node/dtParent';
-import { dtPath } from './node/dtPath';
-import { dtSameNode } from './node/dtSameNode';
-import { dtEnumIndexByIndex } from './property/dtEnumIndexByIndex';
-import { dtPhaByIndex } from './property/dtPhaByIndex';
-import { dtPhandelByIndex } from './property/dtPhandelByIndex';
-import { dtPhandelByName } from './property/dtPhandelByName';
-import { dtProp } from './property/dtProp';
-import { dtPropByIdx } from './property/dtPropIdx';
-import { dtPropOr } from './property/dtPropOr';
-import { dtPropByPhandle } from './property/dtPropByPHandle';
-import { dtPropByPhandleIndex } from './property/dtPropByPhandleIndex';
+import { dtMacroToNode } from '../macro/dtMacroToNode';
+import { dtAliasHover } from './node/dtAlias';
+import { dtChildHover } from './node/dtChild';
+import { dtChildNumHover } from './node/dtChildNum';
+import { dtCompatGetAnyStatusOkHover } from './node/dtCompatGetAnyStatusOk';
+import { dtGParentHover } from './node/dtGParent';
+import { dtHasAliasHover } from './node/dtHasAlias';
+import { dtNodeFullNameHover } from './node/dtNodeFullName';
+import { dtNodePathHover } from './node/dtNodePath';
+import { dtNodeLabelHover } from './node/dtNodeLabel';
+import { dtNodeLabelStringArrayHover } from './node/dtNodeLabelStringArray';
+import { dtParentHover } from './node/dtParent';
+import { dtPathHover } from './node/dtPath';
+import { dtSameNodeHover } from './node/dtSameNode';
+import { dtEnumIndexByIndexHover } from './property/dtEnumIndexByIndex';
+import { dtPhaByIndexHover } from './property/dtPhaByIndex';
+import { dtPhandelByIndexHover } from './property/dtPhandelByIndex';
+import { dtPhandelByNameHover } from './property/dtPhandelByName';
+import { dtPropHover } from './property/dtProp';
+import { dtPropByIdxHover } from './property/dtPropByIdx';
+import { dtPropOrHover } from './property/dtPropOr';
+import { dtPropByPhandleIndexHover } from './property/dtPropByPhandleIndex';
+import { dtRootHover } from './node/dtRoot';
+import { dtChildNumStatusOkHover } from './node/dtChildNumStausOk';
+import { dtPhandelHover } from './property/dtPhandel';
+import { dtPhaHover } from './property/dtPha';
+import { dtPhaByIndexOrHover } from './property/dtPhaByIndexOr';
+import { dtPhaByNameHover } from './property/dtPhaByName';
+import { dtPhaByNameOrHover } from './property/dtPhaByNameOr';
+import { dtPhaOrHover } from './property/dtPhaOr';
+import { dtEnumIndexByIndexOrHover } from './property/dtEnumIndexByIndexOr';
+import { dtEnumIndexHover } from './property/dtEnumIndex';
+import { dtEnumIndexOrHover } from './property/dtEnumIndexOr';
+import { dtPropByPhandleHover } from './property/dtPropByPhandle';
+import { dtPropByPhandleIndexOrHover } from './property/dtPropByPhandleIndexOr';
 
 async function getNodeHover(
 	hoverParams: HoverParams,
@@ -51,164 +64,53 @@ async function getNodeHover(
 	document: TextDocument,
 	macro: DTMacroInfo,
 ): Promise<Hover | undefined> {
-	if (macro.parent?.macro === 'DT_ALIAS') {
-		return await dtAlias(macro.macro.trim(), context);
-	}
-
-	if (macro.macro === 'DT_ALIAS' && macro.args?.[0]) {
-		return await dtAlias(macro.args[0].macro.trim(), context);
-	}
-
-	if (macro.macro === 'DT_CHILD') {
-		return await dtChild(document, macro, context, hoverParams.position);
-	}
-
-	if (macro.parent?.macro === 'DT_CHILD' && macro.argIndexInParent === 1) {
-		return await dtChild(
-			document,
-			macro.parent,
-			context,
-			hoverParams.position,
-		);
-	}
-
-	if (macro?.macro === 'DT_CHILD_NUM') {
-		return await dtChildNum(document, macro, context, hoverParams.position);
-	}
-
-	if (macro.macro === 'DT_CHILD_NUM_STATUS_OKAY') {
-		return await dtChildNum(
+	return (
+		(await dtAliasHover(macro, context)) ||
+		(await dtRootHover(macro, context)) ||
+		(await dtChildHover(document, macro, context, hoverParams.position)) ||
+		(await dtPathHover(macro, context)) ||
+		(await dtChildNumHover(
 			document,
 			macro,
 			context,
 			hoverParams.position,
-			true,
-		);
-	}
-
-	if (macro.macro === 'DT_COMPAT_GET_ANY_STATUS_OKAY') {
-		return macro.args?.[0].macro
-			? dtCompatGetAnyStatusOk(macro.args[0].macro, context)
-			: undefined;
-	}
-
-	if (macro.parent?.macro === 'DT_COMPAT_GET_ANY_STATUS_OKAY') {
-		return dtCompatGetAnyStatusOk(macro.macro, context);
-	}
-
-	if (macro.macro === 'DT_GPARENT') {
-		return dtGParent(document, macro, context, hoverParams.position);
-	}
-
-	if (macro.parent?.macro === 'DT_HAS_ALIAS') {
-		return await dtAlias(macro.macro.trim(), context);
-	}
-
-	if (macro.macro === 'DT_HAS_ALIAS' && macro.args?.[0]) {
-		return await dtHasAlias(macro.args[0].macro.trim(), context);
-	}
-
-	// TODO  DT_INST,  DT_NODE_CHILD_IDX
-
-	if (macro.macro === 'DT_NODE_FULL_NAME') {
-		return await dtNodeFullName(
+		)) ||
+		(await dtChildNumStatusOkHover(
 			document,
 			macro,
 			context,
 			hoverParams.position,
-			'Quoted',
-		);
-	}
-
-	if (macro.macro === 'DT_NODE_FULL_NAME_TOKEN') {
-		return await dtNodeFullName(
+		)) ||
+		(await dtCompatGetAnyStatusOkHover(macro, context)) ||
+		(await dtGParentHover(
 			document,
 			macro,
 			context,
 			hoverParams.position,
-			'Token',
-		);
-	}
-
-	if (macro.macro === 'DT_NODE_FULL_NAME_UNQUOTED') {
-		return await dtNodeFullName(
+		)) ||
+		(await dtNodePathHover(
 			document,
 			macro,
 			context,
 			hoverParams.position,
-			'Unquoted',
-		);
-	}
-
-	if (macro.macro === 'DT_NODE_FULL_NAME_UPPER_TOKEN') {
-		return await dtNodeFullName(
+		)) ||
+		(await dtHasAliasHover(macro, context)) ||
+		(await dtNodeFullNameHover(
 			document,
 			macro,
 			context,
 			hoverParams.position,
-			'Upper Token',
-		);
-	}
-
-	// TODO DT_NODE_HASH
-
-	if (macro.macro === 'DT_NODE_PATH') {
-		return await dtNodePath(document, macro, context, hoverParams.position);
-	}
-
-	if (macro.parent?.macro === 'DT_NODELABEL') {
-		return await dtNodeLabel(macro.macro.trim(), context);
-	}
-
-	if (macro.macro === 'DT_NODELABEL' && macro.args?.[0]) {
-		return await dtNodeLabel(macro.args[0].macro.trim(), context);
-	}
-
-	if (macro.macro === 'DT_NODELABEL_STRING_ARRAY') {
-		return await dtNodeLabelStringArray(
+		)) ||
+		(await dtNodeLabelHover(macro, context)) ||
+		(await dtNodeLabelStringArrayHover(
 			document,
 			macro,
 			context,
 			hoverParams.position,
-		);
-	}
-
-	if (macro.macro === 'DT_PARENT') {
-		return dtParent(document, macro, context, hoverParams.position);
-	}
-
-	if (macro.macro === 'DT_PATH') {
-		return macro.args
-			? dtPath(
-					macro.args.map((a) => a.macro),
-					context,
-				)
-			: undefined;
-	}
-
-	if (macro.parent?.macro === 'DT_PATH') {
-		return dtPath(
-			macro.parent.args
-				?.slice(0, (macro.argIndexInParent ?? 0) + 1)
-				.map((p) => p.macro) ?? [],
-			context,
-		);
-	}
-
-	if (macro.macro === 'DT_ROOT') {
-		const runtime = await context.getRuntime();
-		const lastParser = (await runtime.context.getAllParsers()).at(-1)!;
-
-		return {
-			contents: runtime.rootNode.toMarkupContent(
-				lastParser.cPreprocessorParser.macros,
-			),
-		};
-	}
-
-	if (macro.macro === 'DT_SAME_NODE') {
-		return dtSameNode(document, macro, context, hoverParams.position);
-	}
+		)) ||
+		(await dtParentHover(document, macro, context, hoverParams.position)) ||
+		(await dtSameNodeHover(document, macro, context, hoverParams.position))
+	);
 }
 
 async function getPropertyHover(
@@ -217,199 +119,102 @@ async function getPropertyHover(
 	document: TextDocument,
 	macro: DTMacroInfo,
 ): Promise<Hover | undefined> {
-	if (macro.macro === 'DT_ENUM_IDX') {
-		return macro.args?.length === 2
-			? await dtEnumIndexByIndex(
-					document,
-					macro.args[0],
-					macro.args[1].macro,
-					context,
-					hoverParams.position,
-					0,
-				)
-			: undefined;
-	}
-
-	if (macro.macro === 'DT_ENUM_IDX_BY_IDX') {
-		return macro.args?.length === 3
-			? await dtEnumIndexByIndex(
-					document,
-					macro.args[0],
-					macro.args[1].macro,
-					context,
-					hoverParams.position,
-					macro.args[2].macro,
-				)
-			: undefined;
-	}
-
-	if (macro.macro === 'DT_ENUM_IDX_BY_IDX_OR') {
-		return macro.args?.length === 4
-			? await dtEnumIndexByIndex(
-					document,
-					macro.args[0],
-					macro.args[1].macro,
-					context,
-					hoverParams.position,
-					macro.args[2].macro,
-					macro.args[3].macro,
-				)
-			: undefined;
-	}
-
-	if (macro.macro === 'DT_ENUM_IDX_OR') {
-		return macro.args?.length === 4
-			? await dtEnumIndexByIndex(
-					document,
-					macro.args[0],
-					macro.args[1].macro,
-					context,
-					hoverParams.position,
-					0,
-					macro.args[2].macro,
-				)
-			: undefined;
-	}
-
-	if (macro.macro === 'DT_PHA') {
-		return macro.args?.length === 3
-			? await dtPhaByIndex(
-					document,
-					macro.args[0],
-					macro.args[1].macro,
-					context,
-					hoverParams.position,
-					0,
-					macro.args[2].macro,
-				)
-			: undefined;
-	}
-
-	if (macro.macro === 'DT_PHA_BY_IDX') {
-		return macro.args?.length === 4
-			? await dtPhaByIndex(
-					document,
-					macro.args[0],
-					macro.args[1].macro,
-					context,
-					hoverParams.position,
-					macro.args[2].macro,
-					macro.args[3].macro,
-				)
-			: undefined;
-	}
-
-	if (macro.macro === 'DT_PHA_BY_IDX_OR') {
-		return macro.args?.length === 5
-			? await dtPhaByIndex(
-					document,
-					macro.args[0],
-					macro.args[1].macro,
-					context,
-					hoverParams.position,
-					macro.args[2].macro,
-					macro.args[3].macro,
-					macro.args[4].macro,
-				)
-			: undefined;
-	}
-
-	if (macro.macro === 'DT_PHA_OR') {
-		return macro.args?.length === 4
-			? await dtPhaByIndex(
-					document,
-					macro.args[0],
-					macro.args[1].macro,
-					context,
-					hoverParams.position,
-					0,
-					macro.args[2].macro,
-					macro.args[3].macro,
-				)
-			: undefined;
-	}
-
-	if (macro.macro === 'DT_PHA_BY_NAME') {
-		return macro.args?.length === 4
-			? await dtPhaByIndex(
-					document,
-					macro.args[0],
-					macro.args[1].macro,
-					context,
-					hoverParams.position,
-					macro.args[2].macro,
-					macro.args[3].macro,
-				)
-			: undefined;
-	}
-
-	if (macro.macro === 'DT_PHA_BY_NAME_OR') {
-		return macro.args?.length === 5
-			? await dtPhaByIndex(
-					document,
-					macro.args[0],
-					macro.args[1].macro,
-					context,
-					hoverParams.position,
-					macro.args[2].macro,
-					macro.args[3].macro,
-					macro.args[4].macro,
-				)
-			: undefined;
-	}
-
-	if (macro.macro === 'DT_PHANDLE_BY_IDX' || macro.macro === 'DT_PHANDLE') {
-		return await dtPhandelByIndex(
+	return (
+		(await dtEnumIndexHover(
 			document,
 			macro,
 			context,
 			hoverParams.position,
-		);
-	}
-
-	if (macro.macro === 'DT_PHANDLE_BY_NAME') {
-		return await dtPhandelByName(
+		)) ||
+		(await dtEnumIndexOrHover(
 			document,
 			macro,
 			context,
 			hoverParams.position,
-		);
-	}
-
-	if (macro.macro === 'DT_PROP') {
-		return await dtProp(document, macro, context, hoverParams.position);
-	}
-
-	if (macro.macro === 'DT_PROP_IDX') {
-		return await dtPropByIdx(
+		)) ||
+		(await dtEnumIndexByIndexOrHover(
 			document,
 			macro,
 			context,
 			hoverParams.position,
-		);
-	}
-
-	if (macro.macro === 'DT_PROP_BY_PHANDLE') {
-		return await dtPropByPhandle(
+		)) ||
+		(await dtEnumIndexByIndexHover(
 			document,
 			macro,
 			context,
 			hoverParams.position,
-		);
-	}
-
-	if (macro.macro === 'DT_PROP_BY_PHANDLE_IDX') {
-		return await dtPropByPhandleIndex(
+		)) ||
+		(await dtPhaHover(document, macro, context, hoverParams.position)) ||
+		(await dtPhaOrHover(document, macro, context, hoverParams.position)) ||
+		(await dtPhaByIndexHover(
 			document,
 			macro,
 			context,
 			hoverParams.position,
-		);
-	}
-
-	if (macro.macro === 'DT_PROP_OR') {
-		return await dtPropOr(document, macro, context, hoverParams.position);
-	}
+		)) ||
+		(await dtPhaByIndexOrHover(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+		)) ||
+		(await dtPhaByNameHover(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+		)) ||
+		(await dtPhaByNameOrHover(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+		)) ||
+		(await dtPhandelHover(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+		)) ||
+		(await dtPhandelByIndexHover(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+		)) ||
+		(await dtPhandelByNameHover(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+		)) ||
+		(await dtPropHover(document, macro, context, hoverParams.position)) ||
+		(await dtPropByIdxHover(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+		)) ||
+		(await dtPropByPhandleHover(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+		)) ||
+		(await dtPropByPhandleIndexOrHover(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+		)) ||
+		(await dtPropByPhandleIndexHover(
+			document,
+			macro,
+			context,
+			hoverParams.position,
+		)) ||
+		(await dtPropOrHover(document, macro, context, hoverParams.position))
+	);
 }
 
 export async function getHover(
@@ -430,6 +235,19 @@ export async function getHover(
 
 	if (hover) {
 		return hover;
+	}
+
+	const node = await dtMacroToNode(
+		document,
+		macro,
+		context,
+		hoverParams.position,
+	);
+
+	if (node) {
+		return {
+			contents: node.toMarkupContent(context.macros),
+		};
 	}
 
 	// we need to recursivly find definition

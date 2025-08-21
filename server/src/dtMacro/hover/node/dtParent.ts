@@ -18,36 +18,27 @@ import { Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo } from '../../helpers';
-import { resolveDTMacroToNode } from '../../dtMacroToNode';
-import { resolveDtParent } from '../../dtParent';
+import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
+import { dtParent } from '../../../dtMacro/macro/node/dtParent';
 
-export async function dtParent(
+export async function dtParentHover(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
 ) {
-	const runtime = await context?.getRuntime();
+	let gParent = await dtParent(
+		document,
+		macro,
+		context,
+		position,
+		dtMacroToNode,
+	);
 
-	if (runtime) {
-		let gParent = await resolveDtParent(
-			document,
-			macro,
-			context,
-			position,
-			resolveDTMacroToNode,
-		);
-
-		if (!gParent) {
-			return;
-		}
-
-		const lastParser = (await runtime.context.getAllParsers()).at(-1)!;
-
-		return {
-			contents: gParent.toMarkupContent(
-				lastParser.cPreprocessorParser.macros,
-			),
-		};
+	if (!gParent) {
+		return;
 	}
+	return {
+		contents: gParent.toMarkupContent(context.macros),
+	};
 }

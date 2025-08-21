@@ -14,31 +14,22 @@
  * limitations under the License.
  */
 
-import { Node } from '../context/node';
-import { ContextAware } from '../runtimeEvaluator';
-import { toCIdentifier } from './helpers';
+import { Node } from '../../../../context/node';
+import { ContextAware } from '../../../../runtimeEvaluator';
+import { toCIdentifier } from '../../../helpers';
 
-const get = (node: Node, compat: string): Node[] => {
-	return node.nodes
-		.filter((n) => !n.disabled && n.nodeType)
-		.flatMap((n) =>
-			[n.nodeType!.compatible, ...Array.from(n.nodeType!.extends)]
-				.filter((v) => !!v)
-				.map((c) => toCIdentifier(c!))
-				.includes(compat)
-				? [n, ...get(n, compat)]
-				: get(n, compat),
-		);
+const get = (node: Node, path: string[]): Node | undefined => {
+	if (!path.length) return node;
+
+	const p = path.splice(0, 1)[0];
+	const n = node.nodes.find((n) => toCIdentifier(n.fullName) === p);
+	return n ? get(n, path) : undefined;
 };
 
-export async function resolveDtCompatGetAnyStatusOk(
-	compat: string,
-	context: ContextAware,
-): Promise<Node[] | undefined> {
+export async function dtPathRaw(path: string[], context: ContextAware) {
 	const runtime = await context?.getRuntime();
 
 	if (runtime) {
-		const nodes = get(runtime.rootNode, compat);
-		return nodes;
+		return get(runtime.rootNode, path);
 	}
 }

@@ -16,42 +16,26 @@
 
 import { MarkupKind, Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { dtSameNode } from '../../../dtMacro/macro/node/dtSameNode';
 import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo } from '../../helpers';
-import { resolveDTMacroToNode } from '../../dtMacroToNode';
 
-export async function dtSameNode(
+export async function dtSameNodeHover(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
 ) {
-	if (macro.args?.length !== 2) {
+	const same = await dtSameNode(document, macro, context, position);
+
+	if (same === undefined) {
 		return;
 	}
 
-	const runtime = await context?.getRuntime();
-
-	if (runtime) {
-		const rhs = await resolveDTMacroToNode(
-			document,
-			macro.args[0],
-			context,
-			position,
-		);
-
-		const lhs = await resolveDTMacroToNode(
-			document,
-			macro.args[1],
-			context,
-			position,
-		);
-
-		return {
-			contents: {
-				kind: MarkupKind.Markdown,
-				value: !!lhs && !!rhs && lhs === rhs ? '1' : '0',
-			},
-		};
-	}
+	return {
+		contents: {
+			kind: MarkupKind.Markdown,
+			value: same ? '1' : '0',
+		},
+	};
 }

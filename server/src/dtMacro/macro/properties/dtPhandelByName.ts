@@ -14,46 +14,31 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver-types';
+import { Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../runtimeEvaluator';
-import { Node } from '../context/node';
-import { DTMacroInfo, toCIdentifier } from './helpers';
+import { ContextAware } from '../../../runtimeEvaluator';
+import { Node } from '../../../context/node';
+import { DTMacroInfo } from '../../helpers';
+import { dtPhandelByNameRaw } from '../raw/properties/dtPhandelByName';
 
-export async function resolveDtChild(
+export async function dtPhandelByName(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
-	resolveDTMacroToNode: (
+	dtMacroToNode: (
 		document: TextDocument,
 		macro: DTMacroInfo,
 		context: ContextAware,
 		position: Position,
 	) => Promise<Node | undefined>,
 ) {
-	if (macro.args?.length !== 2) return;
-
-	const runtime = await context?.getRuntime();
-
-	if (runtime) {
-		const node = await resolveDTMacroToNode(
-			document,
-			macro.args[0],
-			context,
-			position,
-		);
-
-		const childName = macro.args[1].macro;
-
-		if (!node) {
-			return;
-		}
-
-		let childNode = node.nodes.find(
-			(c) => toCIdentifier(c.name) === childName,
-		);
-
-		return childNode;
+	const args = macro.args;
+	if (macro.macro !== 'DT_PHANDLE_BY_NAME' || args?.length !== 3) {
+		return;
 	}
+
+	const node = await dtMacroToNode(document, args[0], context, position);
+
+	return await dtPhandelByNameRaw(node, args[1].macro, args[2].macro);
 }

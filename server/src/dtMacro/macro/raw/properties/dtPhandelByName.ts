@@ -14,14 +14,11 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { NodeType } from 'src/dtsTypes/types';
-import { ContextAware } from '../runtimeEvaluator';
-import { Node } from '../context/node';
-import { DTMacroInfo, toCIdentifier } from './helpers';
+import { NodeType } from '../../../../dtsTypes/types';
+import { Node } from '../../../../context/node';
+import { toCIdentifier } from '../../../helpers';
 
-async function dtPhandelByNameRaw(
+export async function dtPhandelByNameRaw(
 	node: Node | undefined,
 	propertyName: string,
 	name: string,
@@ -57,31 +54,4 @@ async function dtPhandelByNameRaw(
 
 	const nexusMapping = property.nexusMapsTo.at(idx);
 	return nexusMapping?.target;
-}
-
-export async function resolverDtPhandelByName(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
-	resolveDTMacroToNode: (
-		document: TextDocument,
-		macro: DTMacroInfo,
-		context: ContextAware,
-		position: Position,
-	) => Promise<Node | undefined>,
-) {
-	const args = macro.args;
-	if (args?.length !== 3) {
-		return;
-	}
-
-	const node = await resolveDTMacroToNode(
-		document,
-		args[0],
-		context,
-		position,
-	);
-
-	return await dtPhandelByNameRaw(node, args[1].macro, args[2].macro);
 }

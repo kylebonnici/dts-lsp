@@ -16,30 +16,25 @@
 
 import { Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { dtPropOr } from '../../../dtMacro/macro/properties/dtPropOr';
+import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
 import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo } from '../../helpers';
-import { resolveDTMacroToNode } from '../../../dtMacro/dtMacroToNode';
-import { resolveDtPropOrRaw } from '../../../dtMacro/dtPropOr';
+
 import { generateHoverValues } from './dtProp';
 
-export async function dtPropOr(
+export async function dtPropOrHover(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
 ) {
-	if (macro.macro !== 'DT_PROP_OR' || macro.args?.length !== 3) {
-		return;
-	}
-
-	const values = await resolveDtPropOrRaw(
-		await resolveDTMacroToNode(document, macro.args[0], context, position),
-		macro.args[1].macro,
-		macro.args[2],
+	const values = await dtPropOr(
 		document,
+		macro,
 		context,
 		position,
-		resolveDTMacroToNode,
+		dtMacroToNode,
 	);
 
 	return generateHoverValues(context, values);

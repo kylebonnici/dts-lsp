@@ -15,41 +15,38 @@
  */
 
 import { Hover, MarkupKind } from 'vscode-languageserver-types';
+import { DTMacroInfo } from '../../../dtMacro/helpers';
 import { ContextAware } from '../../../runtimeEvaluator';
-import { resolveDtCompatGetAnyStatusOk } from '../../dtCompatGetAnyStatusOk';
+import { dtCompatGetAnyStatusOk } from '../../../dtMacro/macro/node/dtCompatGetAnyStatusOk';
 
-export async function dtCompatGetAnyStatusOk(
-	compat: string,
+export async function dtCompatGetAnyStatusOkHover(
+	macro: DTMacroInfo,
 	context: ContextAware,
 ): Promise<Hover | undefined> {
-	const runtime = await context?.getRuntime();
+	const nodes = await dtCompatGetAnyStatusOk(macro, context);
 
-	if (runtime) {
-		const nodes = await resolveDtCompatGetAnyStatusOk(compat, context);
+	if (!nodes) {
+		return;
+	}
 
-		if (!nodes?.length) {
-			return {
-				contents: {
-					kind: MarkupKind.Markdown,
-					value: `No node matched compat ${compat}`,
-				},
-			};
-		}
-
-		const lastParser = (await runtime.context.getAllParsers()).at(-1)!;
-
+	if (!nodes?.length) {
 		return {
 			contents: {
 				kind: MarkupKind.Markdown,
-				value: nodes
-					.map((n, i) => {
-						const m = n.toMarkupContent(
-							lastParser.cPreprocessorParser.macros,
-						);
-						return `## Node ${i + 1}\n\n${m.value}\n`;
-					})
-					.join('\n\n'),
+				value: `No node matched compat ${macro.args![0].macro}`,
 			},
 		};
 	}
+
+	return {
+		contents: {
+			kind: MarkupKind.Markdown,
+			value: nodes
+				.map((n, i) => {
+					const m = n.toMarkupContent(context.macros);
+					return `## Node ${i + 1}\n\n${m.value}\n`;
+				})
+				.join('\n\n'),
+		},
+	};
 }

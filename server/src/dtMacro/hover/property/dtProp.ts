@@ -16,15 +16,21 @@
 
 import { MarkupKind, Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { Node } from 'src/context/node';
+import { Node } from '../../../context/node';
 import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo } from '../../helpers';
-import { resolveDTMacroToNode } from '../../dtMacroToNode';
-import { resolveDtProp } from '../../../dtMacro/dtProp';
+import { dtProp } from '../../../dtMacro/macro/properties/dtProp';
+import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
 
 export async function generateHoverValues(
 	context: ContextAware,
-	values?: boolean | Node | (string | number | Node | undefined)[],
+	values?:
+		| string
+		| Node
+		| NonNullable<
+				boolean | (string | number | Node | undefined)[] | undefined
+		  >
+		| undefined,
 ) {
 	if (!values) {
 		return;
@@ -35,6 +41,15 @@ export async function generateHoverValues(
 			contents: {
 				kind: MarkupKind.Markdown,
 				value: values ? '1' : '0',
+			},
+		};
+	}
+
+	if (typeof values === 'string') {
+		return {
+			contents: {
+				kind: MarkupKind.Markdown,
+				value: values,
 			},
 		};
 	}
@@ -78,18 +93,18 @@ export async function generateHoverValues(
 	return;
 }
 
-export async function dtProp(
+export async function dtPropHover(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
 ) {
-	const values = await resolveDtProp(
+	const values = await dtProp(
 		document,
 		macro,
 		context,
 		position,
-		resolveDTMacroToNode,
+		dtMacroToNode,
 	);
 
 	return generateHoverValues(context, values);

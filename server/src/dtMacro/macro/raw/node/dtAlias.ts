@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-import { Node } from '../context/node';
-import { Runtime } from '../context/runtime';
-import { StringValue } from '../ast/dtc/values/string';
-import { LabelRef } from '../ast/dtc/labelRef';
-import { NodePathRef } from '../ast/dtc/values/nodePath';
-import { ContextAware } from '../runtimeEvaluator';
+import { Node } from '../../../../context/node';
+import { Runtime } from '../../../../context/runtime';
+import { StringValue } from '../../../../ast/dtc/values/string';
+import { LabelRef } from '../../../../ast/dtc/labelRef';
+import { NodePathRef } from '../../../../ast/dtc/values/nodePath';
+import { ContextAware } from '../../../../runtimeEvaluator';
 
-export async function resolveDtAlias(alias: string, context: ContextAware) {
+export async function dtAliasRaw(alias: string, context: ContextAware) {
 	const runtime = await context?.getRuntime();
 
 	if (runtime) {

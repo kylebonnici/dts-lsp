@@ -16,39 +16,31 @@
 
 import { MarkupKind, Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
 import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo } from '../../helpers';
-import { resolveDTMacroToNode } from '../../dtMacroToNode';
-import { resolveDtChildNum } from '../../dtChildNum';
+import { dtChildNum } from '../../../dtMacro/macro/node/dtChildNum';
 
-export async function dtChildNum(
+export async function dtChildNumHover(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
-	statusOk?: boolean,
 ) {
-	const runtime = await context?.getRuntime();
+	const value = await dtChildNum(
+		document,
+		macro,
+		context,
+		position,
+		dtMacroToNode,
+	);
 
-	if (runtime) {
-		let num = await resolveDtChildNum(
-			document,
-			macro,
-			context,
-			position,
-			resolveDTMacroToNode,
-			statusOk,
-		);
-
-		if (num === undefined) {
-			return;
-		}
-
-		return {
-			contents: {
-				kind: MarkupKind.Markdown,
-				value: num.toString(),
-			},
-		};
-	}
+	return value !== undefined
+		? {
+				contents: {
+					kind: MarkupKind.Markdown,
+					value: value.toString(),
+				},
+			}
+		: undefined;
 }

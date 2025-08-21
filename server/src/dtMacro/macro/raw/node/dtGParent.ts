@@ -14,13 +14,8 @@
  * limitations under the License.
  */
 
-import { Runtime } from '../context/runtime';
-import { ContextAware } from '../runtimeEvaluator';
+import { Node } from '../../../../context/node';
 
-export async function resolveDtNodeLabel(label: string, context: ContextAware) {
-	const runtime = await context?.getRuntime();
-	const path = runtime?.resolvePath([`&${label.trim()}`]);
-	if (runtime && path) {
-		return Runtime.getNodeFromPath(path.slice(1), runtime.rootNode, true);
-	}
+export async function dtGParentRaw(node: Node | undefined) {
+	return node?.parent?.parent ?? undefined;
 }

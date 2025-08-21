@@ -14,20 +14,21 @@
  * limitations under the License.
  */
 
+import { dtNodeLabel } from '../../../dtMacro/macro/node/dtNodeLabel';
+import { DTMacroInfo } from '../../../dtMacro/helpers';
 import { ContextAware } from '../../../runtimeEvaluator';
-import { resolveDtNodeLabel } from '../../dtNodeLabel';
 
-export async function dtNodeLabel(label: string, context: ContextAware) {
-	const runtime = await context?.getRuntime();
-	const node = await resolveDtNodeLabel(label, context);
+export async function dtNodeLabelHover(
+	macro: DTMacroInfo,
+	context: ContextAware,
+) {
+	const node = await dtNodeLabel(macro, context);
 
-	if (!runtime || !node) {
+	if (!node) {
 		return;
 	}
 
-	const lastParser = (await runtime.context.getAllParsers()).at(-1)!;
-
 	return {
-		contents: node.toMarkupContent(lastParser.cPreprocessorParser.macros),
+		contents: node.toMarkupContent(context.macros),
 	};
 }

@@ -14,40 +14,46 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver-types';
+import { Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../runtimeEvaluator';
-import { Node } from '../context/node';
-import { DTMacroInfo } from './helpers';
+import { Node } from '../../../context/node';
+import { ContextAware } from '../../../runtimeEvaluator';
+import { DTMacroInfo } from '../../helpers';
+import { dtPropOrRaw } from '../raw/properties/dtPropOr';
+import { dtPhandelByIndexRaw } from '../raw/properties/dtPhandelByIndex';
 
-export async function resolveDtParent(
+export async function dtPropByPhandleIndexOr(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
-	resolveDTMacroToNode: (
+	dtMacroToNode: (
 		document: TextDocument,
 		macro: DTMacroInfo,
 		context: ContextAware,
 		position: Position,
 	) => Promise<Node | undefined>,
 ) {
-	if (macro.args?.length !== 1) return;
-
-	const runtime = await context?.getRuntime();
-
-	if (runtime) {
-		const node = await resolveDTMacroToNode(
-			document,
-			macro.args[0],
-			context,
-			position,
-		);
-
-		if (!node) {
-			return;
-		}
-
-		return node.parent ?? undefined;
+	if (
+		macro.macro !== 'DT_PROP_BY_PHANDLE_IDX_OR' ||
+		macro.args?.length !== 5
+	) {
+		return;
 	}
+
+	const handle = await dtPhandelByIndexRaw(
+		await dtMacroToNode(document, macro.args[0], context, position),
+		macro.args[1].macro,
+		macro.args[2].macro,
+	);
+
+	return dtPropOrRaw(
+		handle,
+		macro.args[3].macro,
+		macro.args[4],
+		document,
+		context,
+		position,
+		dtMacroToNode,
+	);
 }

@@ -16,52 +16,24 @@
 
 import { MarkupKind, Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { dtNodeFullName } from '../../../dtMacro/macro/node/dtNodeFullName';
 import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo, toCIdentifier } from '../../helpers';
-import { resolveDTMacroToNode } from '../../dtMacroToNode';
+import { DTMacroInfo } from '../../helpers';
 
-export async function dtNodeFullName(
+export async function dtNodeFullNameHover(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
-	type: 'Quoted' | 'Unquoted' | 'Token' | 'Upper Token',
 ) {
-	if (macro.args?.length !== 1) {
-		return;
+	const value = await dtNodeFullName(document, macro, context, position);
+
+	if (value) {
+		return {
+			contents: {
+				kind: MarkupKind.Markdown,
+				value,
+			},
+		};
 	}
-	const node = await resolveDTMacroToNode(
-		document,
-		macro.args[0],
-		context,
-		position,
-	);
-
-	if (!node) {
-		return;
-	}
-
-	let value = '';
-
-	switch (type) {
-		case 'Unquoted':
-			value = node.fullName;
-			break;
-		case 'Quoted':
-			value = `"${node.fullName}"`;
-			break;
-		case 'Token':
-			value = toCIdentifier(node.fullName);
-			break;
-		case 'Upper Token':
-			value = toCIdentifier(node.fullName).toUpperCase();
-			break;
-	}
-
-	return {
-		contents: {
-			kind: MarkupKind.Markdown,
-			value,
-		},
-	};
 }

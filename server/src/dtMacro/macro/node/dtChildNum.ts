@@ -16,38 +16,31 @@
 
 import { Position } from 'vscode-languageserver-types';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../runtimeEvaluator';
-import { Node } from '../context/node';
-import { DTMacroInfo } from './helpers';
+import { dtChildNumRaw } from '../raw/node/dtChildNum';
+import { DTMacroInfo } from '../../../dtMacro/helpers';
+import { ContextAware } from '../../../runtimeEvaluator';
+import { Node } from '../../../context/node';
 
-export async function resolveDtGParent(
+export async function dtChildNum(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
-	resolveDTMacroToNode: (
+	dtMacroToNode: (
 		document: TextDocument,
 		macro: DTMacroInfo,
 		context: ContextAware,
 		position: Position,
 	) => Promise<Node | undefined>,
 ) {
-	if (macro.args?.length !== 1) return;
+	if (macro.macro !== 'DT_CHILD_NUM' || macro.args?.length !== 1) return;
 
-	const runtime = await context?.getRuntime();
+	const node = await dtMacroToNode(
+		document,
+		macro.args[0],
+		context,
+		position,
+	);
 
-	if (runtime) {
-		const node = await resolveDTMacroToNode(
-			document,
-			macro.args[0],
-			context,
-			position,
-		);
-
-		if (!node) {
-			return;
-		}
-
-		return node.parent?.parent ?? undefined;
-	}
+	return dtChildNumRaw(node);
 }

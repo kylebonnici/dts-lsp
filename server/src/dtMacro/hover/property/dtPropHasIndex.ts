@@ -18,55 +18,15 @@ import { MarkupKind, Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo } from '../../helpers';
-import { resolveDTMacroToNode } from '../../dtMacroToNode';
-import { resolveDtPropRaw } from '../../dtProp';
-import { Node } from '../../../context/node';
-import { evalExp } from '../../../helpers';
+import { dtPropHasIndex } from '../../../dtMacro/macro/properties/dtPropHasIndex';
 
-export async function dtPropHasIndexRaw(
-	node: Node | undefined,
-	propertyName: string,
-	idx: number | string,
-	context: ContextAware,
-) {
-	const values = await resolveDtPropRaw(node, propertyName, context);
-
-	if (values === undefined) {
-		return false;
-	}
-
-	idx = typeof idx === 'number' ? idx : evalExp(idx ?? '0');
-
-	if (typeof idx !== 'number') {
-		return;
-	}
-
-	if (Array.isArray(values)) {
-		return values.length < idx;
-	}
-
-	return idx === 0;
-}
-
-export async function dtPropHasIndex(
+export async function dtPropHasIndexHover(
 	document: TextDocument,
 	macro: DTMacroInfo,
 	context: ContextAware,
 	position: Position,
 ) {
-	const args = macro.args;
-	if (macro.macro !== 'DT_PROP_HAS_IDX' || args?.length !== 3) return;
-
-	const values = await dtPropHasIndexRaw(
-		await resolveDTMacroToNode(document, args[0], context, position),
-		args[1].macro,
-		args[2].macro,
-		context,
-	);
-
-	if (values === undefined) {
-		return;
-	}
+	const values = await dtPropHasIndex(document, macro, context, position);
 
 	return {
 		contents: {
