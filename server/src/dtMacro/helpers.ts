@@ -300,7 +300,11 @@ function findFromCompiledCommand(
 
 	try {
 		const [command, ...args] = newCompileCommandHeaders.split(' ');
-		const r = spawnSync(command, args);
+		const r = spawnSync(
+			command,
+			args.filter((v) => !!v),
+			{ maxBuffer: 20 * 1024 * 1024 },
+		);
 		const macros = r.stdout.toString();
 		const document = TextDocument.create(
 			`macros://${compileCommand.file}`,
@@ -312,7 +316,7 @@ function findFromCompiledCommand(
 		const result = findMacroDefinitionFromDocument(
 			document,
 			macro,
-			document.positionAt(macro.length - 1),
+			document.positionAt(macros.length - 1),
 		);
 
 		if (result) {
