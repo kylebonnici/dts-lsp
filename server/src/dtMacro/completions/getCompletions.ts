@@ -16,13 +16,18 @@
 
 import {
 	CompletionItem,
+	CompletionItemKind,
+	InsertTextFormat,
 	TextDocumentPositionParams,
 } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ContextAware } from '../../runtimeEvaluator';
-import { getMacroAtPosition } from '../helpers';
+import { DTMacroInfo, getMacroAtPosition } from '../helpers';
 import { dtAliasComplitions } from './nodes/dtAlias';
 import { dtChildComplitions } from './nodes/dtChild';
+import { dtCompatGetStatusOkComplitions } from './nodes/dtCompatGetStatusOk';
+
+const MACRO_ONLY = ['DT_CHILD_NUM', 'DT_CHILD_NUM_STATUS_OKAY'];
 
 export async function getCompletions(
 	location: TextDocumentPositionParams,
@@ -46,5 +51,22 @@ export async function getCompletions(
 			macro,
 			location.position,
 		)),
+		...dtMacroOnlyComplitions(macro),
+		...dtCompatGetStatusOkComplitions(macro, runtime),
 	];
+}
+
+function dtMacroOnlyComplitions(macro: DTMacroInfo): CompletionItem[] {
+	if (!macro.macro) {
+		return [];
+	}
+	return MACRO_ONLY.filter((m) => m.startsWith(macro.macro)).map(
+		(m) =>
+			({
+				label: `${m}(...)`,
+				insertText: `${m}($1)`,
+				kind: CompletionItemKind.Function,
+				insertTextFormat: InsertTextFormat.Snippet,
+			}) satisfies CompletionItem,
+	);
 }

@@ -19,33 +19,39 @@ import {
 	CompletionItemKind,
 	InsertTextFormat,
 } from 'vscode-languageserver';
-import { DTMacroInfo, toCIdentifier } from '../../../dtMacro/helpers';
+import { DTMacroInfo, toCIdentifier } from '../../helpers';
 import { Runtime } from '../../../context/runtime';
 
-export function dtAliasComplitions(
+export function dtCompatGetStatusOkComplitions(
 	macro: DTMacroInfo,
 	runtime: Runtime,
 ): CompletionItem[] {
-	if (macro.macro && 'DT_ALIAS'.startsWith(macro.macro)) {
+	if (
+		macro.macro &&
+		'DT_COMPAT_GET_ANY_STATUS_OKAY'.startsWith(macro.macro)
+	) {
 		return [
 			{
-				label: `DT_ALIAS(...)`,
-				insertText: `DT_ALIAS($1)`,
+				label: `DT_COMPAT_GET_ANY_STATUS_OKAY(...)`,
+				insertText: `DT_COMPAT_GET_ANY_STATUS_OKAY($1)`,
 				kind: CompletionItemKind.Function,
 				insertTextFormat: InsertTextFormat.Snippet,
 			},
 		];
 	}
 
-	if (macro.parent?.macro !== 'DT_ALIAS' || macro.argIndexInParent !== 0) {
+	if (
+		macro.parent?.macro !== 'DT_COMPAT_GET_ANY_STATUS_OKAY' ||
+		macro.argIndexInParent !== 0
+	) {
 		return [];
 	}
 
 	return (
-		runtime.rootNode.getNode('aliases')?.property.map(
-			(prop) =>
+		runtime.context.bindingLoader?.getBindings().map(
+			(binding) =>
 				({
-					label: toCIdentifier(prop.name),
+					label: toCIdentifier(binding),
 					kind: CompletionItemKind.Property,
 				}) satisfies CompletionItem,
 		) ?? []
