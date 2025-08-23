@@ -66,6 +66,7 @@ import {
 } from './helpers';
 import { ContextAware } from './runtimeEvaluator';
 import { getCompletions } from './getCompletions';
+import { getCompletions as getDtMacroCompletions } from './dtMacro/completions/getCompletions';
 import { getReferences } from './findReferences';
 import { getTokenizedDocumentProvider } from './providers/tokenizedDocument';
 import { getPrepareRenameRequest, getRenameRequest } from './getRenameRequest';
@@ -336,7 +337,7 @@ connection.onInitialize((params: InitializeParams) => {
 			},
 			completionProvider: {
 				resolveProvider: true,
-				triggerCharacters: ['&', '=', ' ', '"'],
+				triggerCharacters: ['&', '=', ' ', '"', '(', ','],
 			},
 			codeActionProvider: {
 				codeActionKinds: [
@@ -1171,15 +1172,28 @@ connection.onCompletion(
 	async (
 		textDocumentPosition: TextDocumentPositionParams,
 	): Promise<CompletionItem[]> => {
-		const uri = fileURLToPath(textDocumentPosition.textDocument.uri);
-		if (!isDtsFile(uri)) {
+		const filePath = fileURLToPath(textDocumentPosition.textDocument.uri);
+
+		if (
+			(filePath.endsWith('.c') || filePath.endsWith('.cpp')) &&
+			activeContext &&
+			activeContext.bindingLoader?.type === 'Zephyr'
+		) {
+			return getDtMacroCompletions(
+				textDocumentPosition,
+				activeContext,
+				documents.get(textDocumentPosition.textDocument.uri),
+			);
+		}
+
+		if (!isDtsFile(filePath)) {
 			return [];
 		}
 
 		await allStable();
 
-		updateActiveContext({ uri });
-		const context = quickFindContext(uri);
+		updateActiveContext({ uri: filePath });
+		const context = quickFindContext(filePath);
 
 		if (context) {
 			return [
