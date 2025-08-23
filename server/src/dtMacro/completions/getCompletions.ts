@@ -22,6 +22,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ContextAware } from '../../runtimeEvaluator';
 import { getMacroAtPosition } from '../helpers';
 import { dtAliasComplitions } from './nodes/dtAlias';
+import { dtChildComplitions } from './nodes/dtChild';
 
 export async function getCompletions(
 	location: TextDocumentPositionParams,
@@ -37,5 +38,13 @@ export async function getCompletions(
 		return [];
 	}
 
-	return [...dtAliasComplitions(macro, runtime)];
+	return [
+		...dtAliasComplitions(macro, runtime),
+		...(await dtChildComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
+	];
 }

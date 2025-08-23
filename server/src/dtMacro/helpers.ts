@@ -77,21 +77,36 @@ function splitArgsWithRanges(text: string, start: number, end: number) {
 			if (c === '(') depth++;
 			else if (c === ')') depth--;
 			else if (c === ',' && depth === 0) {
-				let a = s,
-					b = i;
+				// raw bounds for hit-testing
+				const rawStart = s;
+				const rawEnd = i;
+
+				// trimmed slice for parsing text
+				let a = rawStart,
+					b = rawEnd;
 				while (a < b && /\s/.test(text[a])) a++;
 				while (b > a && /\s/.test(text[b - 1])) b--;
-				ranges.push({ start: a, end: b, text: text.slice(a, b) });
+
+				ranges.push({
+					start: rawStart,
+					end: rawEnd,
+					text: text.slice(a, b),
+				});
 				s = i + 1;
 			}
 		}
 	}
-	// last arg
-	let a = s,
-		b = end;
+
+	// last arg (up to `end`, which is the index of ')')
+	const rawStart = s;
+	const rawEnd = end;
+
+	let a = rawStart,
+		b = rawEnd;
 	while (a < b && /\s/.test(text[a])) a++;
 	while (b > a && /\s/.test(text[b - 1])) b--;
-	ranges.push({ start: a, end: b, text: text.slice(a, b) });
+
+	ranges.push({ start: rawStart, end: rawEnd, text: text.slice(a, b) });
 
 	return ranges;
 }
@@ -269,6 +284,10 @@ export function findMacroDefinitionFromDocument(
 	macro: string,
 	position: Position,
 ): [DTMacroInfo, Position] | undefined {
+	if (macro.startsWith('DT_')) {
+		return;
+	}
+
 	const newPosition = findMacroDefinitionPosition(document, macro, position);
 	if (!newPosition) {
 		return;
