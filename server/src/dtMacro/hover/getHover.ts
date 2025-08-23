@@ -61,6 +61,7 @@ import { dtEnumHasValueHover } from './property/dtEnumHasValue';
 import { dtEnumHasValueByIndexHover } from './property/dtEnumHasValueByIndex';
 import { dtPropHasIndexHover } from './property/dtPropHasIndex';
 import { dtPropHasNameHover } from './property/dtPropHasName';
+import { dtInstHover } from './node/dtInst';
 
 async function getNodeHover(
 	position: Position,
@@ -70,15 +71,16 @@ async function getNodeHover(
 ): Promise<Hover | undefined> {
 	return (
 		(await dtAliasHover(macro, context)) ||
-		(await dtRootHover(macro, context)) ||
 		(await dtChildHover(document, macro, context, position)) ||
-		(await dtPathHover(macro, context)) ||
 		(await dtChildNumHover(document, macro, context, position)) ||
 		(await dtChildNumStatusOkHover(document, macro, context, position)) ||
 		(await dtCompatGetAnyStatusOkHover(macro, context)) ||
 		(await dtGParentHover(document, macro, context, position)) ||
-		(await dtNodePathHover(document, macro, context, position)) ||
 		(await dtHasAliasHover(macro, context)) ||
+		(await dtInstHover(macro, context)) ||
+		(await dtRootHover(macro, context)) ||
+		(await dtPathHover(macro, context)) ||
+		(await dtNodePathHover(document, macro, context, position)) ||
 		(await dtNodeFullNameHover(document, macro, context, position)) ||
 		(await dtNodeLabelHover(macro, context)) ||
 		(await dtNodeLabelStringArrayHover(

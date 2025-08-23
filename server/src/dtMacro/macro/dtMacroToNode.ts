@@ -37,6 +37,7 @@ import { dtChild } from './node/dtChild';
 import { dtNodeLabel } from './node/dtNodeLabel';
 import { dtAlias } from './node/dtAlias';
 import { dtCompatGetAnyStatusOk } from './node/dtCompatGetAnyStatusOk';
+import { dtInst } from './node/dtInst';
 
 export async function dtMacroToNode(
 	document: TextDocument,
@@ -62,11 +63,12 @@ export async function dtMacroToNode(
 	// TODO Add all or operators
 
 	let v =
-		(await dtCompatGetAnyStatusOk(macro, context)) ||
 		(await dtAlias(macro, context)) ||
-		(await dtNodeLabel(macro, context)) ||
 		(await dtChild(document, macro, context, position, dtMacroToNode)) ||
 		(await dtGParent(document, macro, context, position, dtMacroToNode)) ||
+		(await dtCompatGetAnyStatusOk(macro, context)) ||
+		(await dtInst(macro, context)) ||
+		(await dtNodeLabel(macro, context)) ||
 		(await dtParent(document, macro, context, position, dtMacroToNode)) ||
 		(await dtPath(macro, context)) ||
 		(await dtRoot(macro, context)) ||

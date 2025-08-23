@@ -27,7 +27,12 @@ import { dtAliasComplitions } from './nodes/dtAlias';
 import { dtChildComplitions } from './nodes/dtChild';
 import { dtCompatGetStatusOkComplitions } from './nodes/dtCompatGetStatusOk';
 
-const MACRO_ONLY = ['DT_CHILD_NUM', 'DT_CHILD_NUM_STATUS_OKAY'];
+const MACRO_ONLY = [
+	'DT_CHILD_NUM',
+	'DT_CHILD_NUM_STATUS_OKAY',
+	'DT_GPARENT',
+	'DT_HAS_ALIAS',
+];
 
 export async function getCompletions(
 	location: TextDocumentPositionParams,
