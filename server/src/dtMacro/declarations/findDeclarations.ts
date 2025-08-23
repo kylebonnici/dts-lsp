@@ -55,7 +55,7 @@ async function getDeclarationFrom(
 		return generateNodeDeclaration(node);
 	}
 
-	const newMacro = findMacroDefinition(
+	const newMacro = await findMacroDefinition(
 		document,
 		macro.macro,
 		position,

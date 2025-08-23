@@ -171,7 +171,7 @@ async function getHoverFrom(
 		};
 	}
 
-	const newMacro = findMacroDefinition(
+	const newMacro = await findMacroDefinition(
 		document,
 		macro.macro,
 		position,

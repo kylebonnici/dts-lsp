@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { spawnSync } from 'child_process';
+import { spawn } from 'child_process';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Position } from 'vscode-languageserver-types';
 import { fileURLToPath, isPathEqual } from '../helpers';
@@ -242,18 +242,18 @@ export function findMacroDefinitionPosition(
 	return undefined;
 }
 
-export function findMacroDefinition(
+export async function findMacroDefinition(
 	document: TextDocument,
 	macro: string,
 	position: Position,
 	context: ContextAware,
-): [DTMacroInfo, Position] | undefined {
+): Promise<[DTMacroInfo, Position] | undefined> {
 	let result = findMacroDefinitionFromDocument(document, macro, position);
 	if (result) {
 		return result;
 	}
 
-	const fromCompileCommand = findFromCompiledCommand(
+	const fromCompileCommand = await findFromCompiledCommand(
 		macro,
 		context,
 		fileURLToPath(document.uri),
@@ -280,11 +280,33 @@ export function findMacroDefinitionFromDocument(
 	}
 }
 
-function findFromCompiledCommand(
+const runAndCollectStdOut = (command: string, args: string[]) => {
+	return new Promise<string>((resolve) => {
+		const child = spawn(command, args, {
+			stdio: ['ignore', 'pipe', 'pipe'],
+		});
+
+		let stdout = '';
+
+		child.stdout.on('data', (chunk) => {
+			stdout += chunk.toString();
+		});
+
+		child.on('close', (code) => {
+			if (code) {
+				resolve('');
+			} else {
+				resolve(stdout);
+			}
+		});
+	});
+};
+
+async function findFromCompiledCommand(
 	macro: string,
 	context: ContextAware,
 	file: string,
-): DTMacroInfo | undefined {
+): Promise<DTMacroInfo | undefined> {
 	const compileCommand = context
 		.getCompileCommands()
 		?.find((c) => isPathEqual(c.file, file));
@@ -300,12 +322,10 @@ function findFromCompiledCommand(
 
 	try {
 		const [command, ...args] = newCompileCommandHeaders.split(' ');
-		const r = spawnSync(
+		const macros = await runAndCollectStdOut(
 			command,
 			args.filter((v) => !!v),
-			{ maxBuffer: 20 * 1024 * 1024 },
 		);
-		const macros = r.stdout.toString();
 		const document = TextDocument.create(
 			`macros://${compileCommand.file}`,
 			'devicetree',
