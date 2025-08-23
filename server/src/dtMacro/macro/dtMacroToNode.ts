@@ -21,11 +21,7 @@ import { Node } from '../../context/node';
 import { dtPropOrNode } from '../dtPropOr';
 import { dtPropByIndexNode } from '../dtPropByIndex';
 import { dtPropNode } from '../dtProp';
-import {
-	DTMacroInfo,
-	findMacroDefinitionPosition,
-	getMacroAtPosition,
-} from '../helpers';
+import { DTMacroInfo, findMacroDefinition } from '../helpers';
 import { dtPhandelByName } from './properties/dtPhandelByName';
 import { dtPhandelByIndex } from './properties/dtPhandelByIndex';
 import { dtPhandel } from './properties/dtPhandel';
@@ -101,19 +97,16 @@ export async function dtMacroToNode(
 		return Array.isArray(v) ? v.at(0) : v;
 	}
 
-	const newPosition = findMacroDefinitionPosition(
+	const newMacro = await findMacroDefinition(
 		document,
 		macro.macro,
 		position,
+		context,
 	);
-	if (!newPosition) {
-		return;
-	}
 
-	const newMacro = getMacroAtPosition(document, newPosition);
 	if (!newMacro) {
 		return;
 	}
 
-	return dtMacroToNode(document, newMacro, context, newPosition);
+	return dtMacroToNode(document, newMacro[0], context, position);
 }

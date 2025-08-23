@@ -14,19 +14,23 @@
  * limitations under the License.
  */
 
-import { evalExp } from '../../../helpers';
+import {
+	CompletionItem,
+	CompletionItemKind,
+	InsertTextFormat,
+} from 'vscode-languageserver';
 import { DTMacroInfo } from '../../helpers';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { dtInstRaw } from '../raw/node/dtInst';
 
-export async function dtInst(macro: DTMacroInfo, context: ContextAware) {
-	if (macro.macro !== 'DT_INST' || macro.args?.length !== 2) return;
-
-	const idx = evalExp(macro.args[0].macro);
-
-	if (typeof idx !== 'number') {
-		return;
+export function dtSameNodeComplitions(macro: DTMacroInfo): CompletionItem[] {
+	if (macro.macro && macro.macro && 'DT_SAME_NODE'.startsWith(macro.macro)) {
+		return [
+			{
+				label: `DT_SAME_NODE(...)`,
+				insertText: `DT_SAME_NODE($1, $2)`,
+				kind: CompletionItemKind.Snippet,
+				insertTextFormat: InsertTextFormat.Snippet,
+			},
+		];
 	}
-
-	return dtInstRaw(idx, macro.args[1].macro, context);
+	return [];
 }

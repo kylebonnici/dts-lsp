@@ -26,12 +26,26 @@ import { DTMacroInfo, getMacroAtPosition } from '../helpers';
 import { dtAliasComplitions } from './nodes/dtAlias';
 import { dtChildComplitions } from './nodes/dtChild';
 import { dtCompatGetStatusOkComplitions } from './nodes/dtCompatGetStatusOk';
+import { dtInstComplitions } from './nodes/dtInst';
+import { dtNodeLabelComplitions } from './nodes/dtNodeLabel';
+import { dtPathComplitions } from './nodes/dtPath';
+import { dtRootComplitions } from './nodes/dtRoot';
+import { dtSameNodeComplitions } from './nodes/dtSameNode';
 
 const MACRO_ONLY = [
 	'DT_CHILD_NUM',
 	'DT_CHILD_NUM_STATUS_OKAY',
 	'DT_GPARENT',
 	'DT_HAS_ALIAS',
+	'DT_NODE_CHILD_IDX',
+	'DT_NODE_FULL_NAME',
+	'DT_NODE_FULL_NAME_TOKEN',
+	'DT_NODE_FULL_NAME_UNQUOTED',
+	'DT_NODE_FULL_NAME_UPPER_TOKEN',
+	'DT_NODE_HASH',
+	'DT_NODE_PATH',
+	'DT_NODELABEL_STRING_ARRAY',
+	'DT_PARENT',
 ];
 
 export async function getCompletions(
@@ -57,7 +71,12 @@ export async function getCompletions(
 			location.position,
 		)),
 		...dtMacroOnlyComplitions(macro),
+		...dtInstComplitions(macro, runtime),
 		...dtCompatGetStatusOkComplitions(macro, runtime),
+		...(await dtNodeLabelComplitions(macro, runtime)),
+		...(await dtPathComplitions(context, macro)),
+		...dtRootComplitions(runtime, macro),
+		...dtSameNodeComplitions(macro),
 	];
 }
 

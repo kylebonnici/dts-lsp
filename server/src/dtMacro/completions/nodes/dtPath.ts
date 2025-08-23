@@ -18,43 +18,33 @@ import {
 	CompletionItem,
 	CompletionItemKind,
 	InsertTextFormat,
-	Position,
 } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { dtMacroToNode } from '../../..//dtMacro/macro/dtMacroToNode';
-import { ContextAware } from '../../..//runtimeEvaluator';
+import { dtPathRaw } from 'src/dtMacro/macro/raw/node/dtPath';
+import { ContextAware } from '../../../runtimeEvaluator';
 import { DTMacroInfo, toCIdentifier } from '../../helpers';
 
-export async function dtChildComplitions(
-	document: TextDocument,
+export async function dtPathComplitions(
 	context: ContextAware,
 	macro: DTMacroInfo,
-	position: Position,
 ): Promise<CompletionItem[]> {
-	if (macro.macro && macro.macro && 'DT_CHILD'.startsWith(macro.macro)) {
+	if (macro.macro && macro.macro && 'DT_PATH'.startsWith(macro.macro)) {
 		return [
 			{
-				label: `DT_CHILD(...)`,
-				insertText: `DT_CHILD($1, $2)`,
+				label: `DT_PATH(...)`,
+				insertText: `DT_PATH($1)`,
 				kind: CompletionItemKind.Function,
 				insertTextFormat: InsertTextFormat.Snippet,
 			},
 		];
 	}
 
-	if (
-		macro.parent?.macro !== 'DT_CHILD' ||
-		macro.argIndexInParent !== 1 ||
-		!macro.parent.args?.length
-	) {
+	if (macro.parent?.macro !== 'DT_PATH' || !macro.parent.args?.length) {
 		return [];
 	}
 
-	const node = await dtMacroToNode(
-		document,
-		macro.parent.args[0],
+	const node = await dtPathRaw(
+		macro.parent.args.slice(0, -1).map((m) => m.macro),
 		context,
-		position,
 	);
 
 	return (

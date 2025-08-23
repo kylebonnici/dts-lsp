@@ -14,19 +14,24 @@
  * limitations under the License.
  */
 
-import { evalExp } from '../../../helpers';
+import { CompletionItem, CompletionItemKind } from 'vscode-languageserver';
 import { DTMacroInfo } from '../../helpers';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { dtInstRaw } from '../raw/node/dtInst';
+import { Runtime } from '../../../context/runtime';
 
-export async function dtInst(macro: DTMacroInfo, context: ContextAware) {
-	if (macro.macro !== 'DT_INST' || macro.args?.length !== 2) return;
-
-	const idx = evalExp(macro.args[0].macro);
-
-	if (typeof idx !== 'number') {
-		return;
+export function dtRootComplitions(
+	runtime: Runtime,
+	macro: DTMacroInfo,
+): CompletionItem[] {
+	if (macro.macro && macro.macro && 'DT_ROOT'.startsWith(macro.macro)) {
+		return [
+			{
+				label: `DT_ROOT`,
+				kind: CompletionItemKind.Class,
+				documentation: runtime.rootNode.toMarkupContent(
+					runtime.context.macros,
+				),
+			},
+		];
 	}
-
-	return dtInstRaw(idx, macro.args[1].macro, context);
+	return [];
 }

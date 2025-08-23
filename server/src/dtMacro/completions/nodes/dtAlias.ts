@@ -19,8 +19,11 @@ import {
 	CompletionItemKind,
 	InsertTextFormat,
 } from 'vscode-languageserver';
+import { NodePath } from 'src/ast/dtc/values/nodePath';
 import { DTMacroInfo, toCIdentifier } from '../../../dtMacro/helpers';
 import { Runtime } from '../../../context/runtime';
+import { Node } from '../../../context/node';
+import { LabelRef } from '../../../ast/dtc/labelRef';
 
 export function dtAliasComplitions(
 	macro: DTMacroInfo,
@@ -42,12 +45,20 @@ export function dtAliasComplitions(
 	}
 
 	return (
-		runtime.rootNode.getNode('aliases')?.property.map(
-			(prop) =>
-				({
-					label: toCIdentifier(prop.name),
-					kind: CompletionItemKind.Property,
-				}) satisfies CompletionItem,
-		) ?? []
+		runtime.rootNode.getNode('aliases')?.property.map((prop) => {
+			const v = prop.ast.getFlatAstValues()?.at(0);
+			let node: Node | undefined;
+			if (v instanceof LabelRef) {
+				node = v.linksTo;
+			} else if (v instanceof NodePath) {
+				node = v.pathParts.at(-1)?.linksTo;
+			}
+
+			return {
+				label: toCIdentifier(prop.name),
+				kind: CompletionItemKind.Property,
+				documentation: node?.toMarkupContent(runtime.context.macros),
+			} satisfies CompletionItem;
+		}) ?? []
 	);
 }

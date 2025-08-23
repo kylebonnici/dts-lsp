@@ -18,24 +18,19 @@ import {
 	CompletionItem,
 	CompletionItemKind,
 	InsertTextFormat,
-	Position,
 } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { dtMacroToNode } from '../../..//dtMacro/macro/dtMacroToNode';
-import { ContextAware } from '../../..//runtimeEvaluator';
-import { DTMacroInfo, toCIdentifier } from '../../helpers';
+import { DTMacroInfo } from '../../helpers';
+import { Runtime } from '../../../context/runtime';
 
-export async function dtChildComplitions(
-	document: TextDocument,
-	context: ContextAware,
+export async function dtNodeLabelComplitions(
 	macro: DTMacroInfo,
-	position: Position,
+	runtime: Runtime,
 ): Promise<CompletionItem[]> {
-	if (macro.macro && macro.macro && 'DT_CHILD'.startsWith(macro.macro)) {
+	if (macro.macro && 'DT_NODELABEL'.startsWith(macro.macro)) {
 		return [
 			{
-				label: `DT_CHILD(...)`,
-				insertText: `DT_CHILD($1, $2)`,
+				label: `DT_NODELABEL(...)`,
+				insertText: `DT_NODELABEL($1)`,
 				kind: CompletionItemKind.Function,
 				insertTextFormat: InsertTextFormat.Snippet,
 			},
@@ -43,28 +38,22 @@ export async function dtChildComplitions(
 	}
 
 	if (
-		macro.parent?.macro !== 'DT_CHILD' ||
-		macro.argIndexInParent !== 1 ||
-		!macro.parent.args?.length
+		macro.parent?.macro !== 'DT_NODELABEL' ||
+		macro.argIndexInParent !== 0
 	) {
 		return [];
 	}
 
-	const node = await dtMacroToNode(
-		document,
-		macro.parent.args[0],
-		context,
-		position,
-	);
-
-	return (
-		node?.nodes.map(
-			(n) =>
+	return await Promise.all(
+		runtime.rootNode.allDescendantsLabels.map(
+			async (labelAssign) =>
 				({
-					label: toCIdentifier(n.fullName),
-					kind: CompletionItemKind.Class,
-					documentation: n.toMarkupContent(context.macros),
+					label: labelAssign.label.value,
+					kind: CompletionItemKind.Property,
+					documentation: labelAssign.lastLinkedTo?.toMarkupContent(
+						runtime.context.macros,
+					),
 				}) satisfies CompletionItem,
-		) ?? []
+		) ?? [],
 	);
 }
