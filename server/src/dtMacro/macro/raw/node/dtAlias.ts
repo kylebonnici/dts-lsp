@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { toCIdentifier } from '../../../../dtMacro/helpers';
 import { Node } from '../../../../context/node';
 import { Runtime } from '../../../../context/runtime';
 import { StringValue } from '../../../../ast/dtc/values/string';
@@ -31,7 +32,9 @@ export async function dtAliasRaw(alias: string, context: ContextAware) {
 			true,
 		);
 
-		const property = node?.property.find((p) => p.name === alias);
+		const property = node?.property.find(
+			(p) => toCIdentifier(p.name) === alias,
+		);
 
 		if (!property) {
 			return;
