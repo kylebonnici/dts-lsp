@@ -66,11 +66,11 @@ export async function dtPhaByNameComplitions(
 		return getNameCompletion(resolveMacroRequest, 'DT_PHA_BY_NAME');
 	}
 
-	if (!macro.parent?.args?.[2]?.macro) {
-		return [];
-	}
-
 	if (macro.argIndexInParent === 3) {
+		if (!macro.parent?.args?.[2]?.macro) {
+			return [];
+		}
+
 		return getCellNameCompletion(
 			resolveMacroRequest,
 			'DT_PHA_BY_NAME',

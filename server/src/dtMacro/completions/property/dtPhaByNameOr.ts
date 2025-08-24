@@ -24,15 +24,16 @@ export async function dtPhaByNameOrComplitions(
 	resolveMacroRequest: ResolveMacroRequest,
 ): Promise<CompletionItem[]> {
 	const { macro } = resolveMacroRequest;
-	if (!macro.parent?.args?.[2]?.macro) {
-		return [];
-	}
 
 	if (macro.argIndexInParent === 2) {
 		return getNameCompletion(resolveMacroRequest, 'DT_PHA_BY_NAME_OR');
 	}
 
 	if (macro.argIndexInParent === 3) {
+		if (!macro.parent?.args?.[2]?.macro) {
+			return [];
+		}
+
 		return getCellNameCompletion(
 			resolveMacroRequest,
 			'DT_PHA_BY_NAME_OR',
