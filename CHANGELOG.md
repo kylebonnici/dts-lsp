@@ -4,6 +4,74 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.5.0] - 2025-08-29
+
+### Added
+
+- Code Completion, Hover, Go Definition, Go to Declaration in C/C++ files for:
+    - **Node identifiers and helpers**
+        - DT_INVALID_NODE
+        - DT_ROOT
+        - DT_PATH
+        - DT_NODELABEL
+        - DT_ALIAS
+        - DT_HAS_ALIAS
+        - DT_NODE_HASH
+        - DT_INST
+        - DT_PARENT
+        - DT_GPARENT
+        - DT_CHILD
+        - DT_COMPAT_GET_ANY_STATUS_OKAY
+        - DT_NODE_PATH
+        - DT_NODE_FULL_NAME
+        - DT_NODE_FULL_NAME_UNQUOTED
+        - DT_NODE_FULL_NAME_TOKEN
+        - DT_NODE_FULL_NAME_UPPER_TOKEN
+        - DT_NODE_CHILD_IDX
+        - DT_CHILD_NUM
+        - DT_CHILD_NUM_STATUS_OKAY
+        - DT_SAME_NODE
+        - DT_NODELABEL_STRING_ARRAY
+    - **Property accessors**
+        - DT_PROP
+        - DT_PROP_LEN
+        - DT_PROP_LEN_OR
+        - DT_PROP_HAS_IDX
+        - DT_PROP_HAS_NAME
+        - DT_PROP_BY_IDX
+        - DT_PROP_LAST
+        - DT_PROP_OR
+        - DT_ENUM_IDX_BY_IDX
+        - DT_ENUM_IDX
+        - DT_ENUM_IDX_BY_IDX_OR
+        - DT_ENUM_IDX_OR
+        - DT_ENUM_HAS_VALUE_BY_IDX
+        - DT_ENUM_HAS_VALUE
+        - DT_STRING_TOKEN
+        - DT_STRING_TOKEN_OR
+        - DT_STRING_UPPER_TOKEN
+        - DT_STRING_UPPER_TOKEN_OR
+        - DT_STRING_UNQUOTED
+        - DT_STRING_UNQUOTED_OR
+        - DT_STRING_TOKEN_BY_IDX
+        - DT_STRING_UPPER_TOKEN_BY_IDX
+        - DT_STRING_UNQUOTED_BY_IDX
+        - DT_PROP_BY_PHANDLE_IDX
+        - DT_PROP_BY_PHANDLE_IDX_OR
+        - DT_PROP_BY_PHANDLE
+        - DT_PHA_BY_IDX
+        - DT_PHA_BY_IDX_OR
+        - DT_PHA
+        - DT_PHA_OR
+        - DT_PHA_BY_NAME
+        - DT_PHA_BY_NAME_OR
+        - DT_PHANDLE_BY_NAME
+        - DT_PHANDLE_BY_IDX
+        - DT_PHANDLE
+- `compileCommands?: string;` to context settings to extend the code `DT_`
+  Macros functionality to find definitions not in c/cpp file
+- Code completions to add documentation to the items to be added where relevant
+
 ## [0.4.10] - 2025-08-09
 
 ### Added

@@ -10,30 +10,31 @@ This extension needs a client that supports Configuration Capability. The format
 
 ```typescript
 interface Context {
-  ctxName?: string | number;
-  cwd?: string;
-  includePaths?: string[];
-  dtsFile: string;
-  overlays?: string[];
-  bindingType?: BindingType;
-  zephyrBindings?: string[];
-  deviceOrgTreeBindings?: string[];
-  deviceOrgBindingsMetaSchema?: string[];
-  lockRenameEdits?: string[];
+	ctxName?: string | number;
+	cwd?: string;
+	includePaths?: string[];
+	dtsFile: string;
+	overlays?: string[];
+	bindingType?: BindingType;
+	zephyrBindings?: string[];
+	deviceOrgTreeBindings?: string[];
+	deviceOrgBindingsMetaSchema?: string[];
+	lockRenameEdits?: string[];
+	compileCommands?: string;
 }
 
 interface Settings {
-  cwd?: string;
-  defaultBindingType?: BindingType;
-  defaultZephyrBindings?: string[];
-  defaultDeviceOrgTreeBindings?: string[];
-  defaultDeviceOrgBindingsMetaSchema?: string[];
-  defaultIncludePaths?: string[];
-  contexts?: Context[];
-  preferredContext?: string | number;
-  defaultLockRenameEdits?: string[];
-  autoChangeContext?: boolean;
-  allowAdhocContexts?: boolean;
+	cwd?: string;
+	defaultBindingType?: BindingType;
+	defaultZephyrBindings?: string[];
+	defaultDeviceOrgTreeBindings?: string[];
+	defaultDeviceOrgBindingsMetaSchema?: string[];
+	defaultIncludePaths?: string[];
+	contexts?: Context[];
+	preferredContext?: string | number;
+	defaultLockRenameEdits?: string[];
+	autoChangeContext?: boolean;
+	allowAdhocContexts?: boolean;
 }
 ```
 
@@ -41,31 +42,31 @@ Sample configuration in VSCode `settings.json`
 
 ```json
 {
-  "devicetree.defaultIncludePaths": [
-    "/opt/nordic/ncs/v2.9.0/zephyr/dts",
-    "/opt/nordic/ncs/v2.9.0/zephyr/dts/arm",
-    "/opt/nordic/ncs/v2.9.0/zephyr/dts/arm64/",
-    "/opt/nordic/ncs/v2.9.0/zephyr/dts/riscv",
-    "/opt/nordic/ncs/v2.9.0/zephyr/dts/common",
-    "/opt/nordic/ncs/v2.9.0/zephyr/include"
-  ],
-  "devicetree.contexts": [
-    {
-      "bindingType": "Zephyr",
-      "zephyrBindings": ["/opt/nordic/ncs/v2.9.0/zephyr/dts/bindings"],
-      "includePaths": [
-        "/opt/nordic/ncs/v2.9.0/zephyr/dts",
-        "/opt/nordic/ncs/v2.9.0/zephyr/dts/arm",
-        "/opt/nordic/ncs/v2.9.0/zephyr/dts/arm64/",
-        "/opt/nordic/ncs/v2.9.0/zephyr/dts/riscv",
-        "/opt/nordic/ncs/v2.9.0/zephyr/dts/common",
-        "/opt/nordic/ncs/v2.9.0/zephyr/include"
-      ],
-      "dtsFile": "/opt/nordic/ncs/v2.9.0/zephyr/boards/nordic/nrf52840dk/nrf52840dk_nrf52840.dts",
-      "overlays": ["/user/project/myOverlay.overlay"]
-    }
-  ],
-  "devicetree.preferredContext": 0
+	"devicetree.defaultIncludePaths": [
+		"/opt/nordic/ncs/v2.9.0/zephyr/dts",
+		"/opt/nordic/ncs/v2.9.0/zephyr/dts/arm",
+		"/opt/nordic/ncs/v2.9.0/zephyr/dts/arm64/",
+		"/opt/nordic/ncs/v2.9.0/zephyr/dts/riscv",
+		"/opt/nordic/ncs/v2.9.0/zephyr/dts/common",
+		"/opt/nordic/ncs/v2.9.0/zephyr/include"
+	],
+	"devicetree.contexts": [
+		{
+			"bindingType": "Zephyr",
+			"zephyrBindings": ["/opt/nordic/ncs/v2.9.0/zephyr/dts/bindings"],
+			"includePaths": [
+				"/opt/nordic/ncs/v2.9.0/zephyr/dts",
+				"/opt/nordic/ncs/v2.9.0/zephyr/dts/arm",
+				"/opt/nordic/ncs/v2.9.0/zephyr/dts/arm64/",
+				"/opt/nordic/ncs/v2.9.0/zephyr/dts/riscv",
+				"/opt/nordic/ncs/v2.9.0/zephyr/dts/common",
+				"/opt/nordic/ncs/v2.9.0/zephyr/include"
+			],
+			"dtsFile": "/opt/nordic/ncs/v2.9.0/zephyr/boards/nordic/nrf52840dk/nrf52840dk_nrf52840.dts",
+			"overlays": ["/user/project/myOverlay.overlay"]
+		}
+	],
+	"devicetree.preferredContext": 0
 }
 ```
 
@@ -73,16 +74,16 @@ Sample configuration in VSCode `settings.json`
 
 ```json
 {
-  "devicetree.cwd": "/Users/user/Workspace/linux/",
-  "devicetree.defaultIncludePaths": ["include"],
-  "devicetree.defaultBindingType": "DevicetreeOrg",
-  "devicetree.defaultDeviceOrgBindingsMetaSchema": [
-    "/Users/user/Workspace/linuxBindings/dt-schema/dtschema/meta-schemas" // https://github.com/devicetree-org/dt-schema/tree/main/dtschema/meta-schemas
-  ],
-  "devicetree.defaultDeviceOrgTreeBindings": [
-    "/Users/user/Workspace/linuxBindings/dt-schema/dtschema/schemas", // https://github.com/devicetree-org/dt-schema/tree/main/dtschema/schemas
-    "/Users/user/Workspace/linux/Documentation/devicetree/bindings" // https://github.com/torvalds/linux/tree/master/Documentation/devicetree/bindings
-  ]
+	"devicetree.cwd": "/Users/user/Workspace/linux/",
+	"devicetree.defaultIncludePaths": ["include"],
+	"devicetree.defaultBindingType": "DevicetreeOrg",
+	"devicetree.defaultDeviceOrgBindingsMetaSchema": [
+		"/Users/user/Workspace/linuxBindings/dt-schema/dtschema/meta-schemas" // https://github.com/devicetree-org/dt-schema/tree/main/dtschema/meta-schemas
+	],
+	"devicetree.defaultDeviceOrgTreeBindings": [
+		"/Users/user/Workspace/linuxBindings/dt-schema/dtschema/schemas", // https://github.com/devicetree-org/dt-schema/tree/main/dtschema/schemas
+		"/Users/user/Workspace/linux/Documentation/devicetree/bindings" // https://github.com/torvalds/linux/tree/master/Documentation/devicetree/bindings
+	]
 }
 ```
 
@@ -115,10 +116,10 @@ Every element in the document will have document symbols to help navigate the do
 #### Types
 
 - Supports standard types as defined in chapter 2 of Devicetree Specification Release v0.4
-  - Reports property type mismatch errors
-  - Reports prop-encoded-values errors when these need to follow some pattern e.g interrupts
-  - Compares the node address and ensures that it matches the reg property, and that the reg values use the appropriate number of values as defined by other properties
-  - And more... (See Chapter 2 of Devicetree Specification Release v0.4 https://devicetree.org)
+    - Reports property type mismatch errors
+    - Reports prop-encoded-values errors when these need to follow some pattern e.g interrupts
+    - Compares the node address and ensures that it matches the reg property, and that the reg values use the appropriate number of values as defined by other properties
+    - And more... (See Chapter 2 of Devicetree Specification Release v0.4 https://devicetree.org)
 
 ### Document Formatting
 
@@ -137,19 +138,19 @@ Completions are context aware of the document state on the line the action is re
 - Node path completion
 - Label reference completion in property assign values
 - Delete Node:
-  - Suggests appropriate type e.g. by reference or node name
-  - Does not suggest keyword if no delete is possible
+    - Suggests appropriate type e.g. by reference or node name
+    - Does not suggest keyword if no delete is possible
 - Delete Property:
-  - Suggests property names available in that context
-  - Does not suggest keyword if no delete is possible
+    - Suggests property names available in that context
+    - Does not suggest keyword if no delete is possible
 - Default values for standard types (e.g state)
 
 ### Code Actions
 
 - Adds missing syntax e.g. ';', '<', '>', ',' etc...
 - Removes syntactically incorrect spaces:
-  - Between node name, '@' and address
-  - In node path reference
+    - Between node name, '@' and address
+    - In node path reference
 - Removes ';' when used without any statement
 - Suggests solutions for incomplete /delete-node/ keywords
 - Suggests solutions for incomplete /delete-property/ keywords
@@ -197,7 +198,7 @@ Given that in some cases the files included in a devicetree might come from an S
 ### Road Map
 
 - Formatting
-  - Clean up trailing white spaces
+    - Clean up trailing white spaces
 - Implement syntax for Ternary operator
 - Write more unit tests
 - Let me know what you should be added or changed
