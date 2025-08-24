@@ -31,6 +31,27 @@ import { dtNodeLabelComplitions } from './nodes/dtNodeLabel';
 import { dtPathComplitions } from './nodes/dtPath';
 import { dtRootComplitions } from './nodes/dtRoot';
 import { dtSameNodeComplitions } from './nodes/dtSameNode';
+import { dtEnumHasValueComplitions } from './property/dtEnumHasValue';
+import { dtEnumHasValueByIndexComplitions } from './property/dtEnumHasValueByIndex';
+import { dtEnumIndexComplitions } from './property/dtEnumIndex';
+import { dtEnumIndexByIndexComplitions } from './property/dtEnumIndexByIndex';
+import { dtEnumIndexByIndexOrComplitions } from './property/dtEnumIndexByIndexOr';
+import { dtEnumIndexOrComplitions } from './property/dtEnumIndexOr';
+import { dtPhaComplitions } from './property/dtPha';
+import { dtPhaByIndexComplitions } from './property/dtPhaByIndex';
+import { dtPhaByNameComplitions } from './property/dtPhaByName';
+import { dtPhaByNameOrComplitions } from './property/dtPhaByNameOr';
+import { dtPhaOrComplitions } from './property/dtPhaOr';
+import { dtPhandleComplitions } from './property/dtPhandle';
+import { dtPhandleByIndexComplitions } from './property/dtPhandleByIndex';
+import { dtPhandleByNameComplitions } from './property/dtPhandleByName';
+import { dtPropComplitions } from './property/dtProp';
+import { dtPropByIndexComplitions } from './property/dtPropByIndex';
+import { dtPropByPhaIndexComplitions } from './property/dtPropByPhaIndex';
+import { dtPropByPhaComplitions } from './property/dtPropByPha';
+import { dtPropByPhaIndexOrComplitions } from './property/dtPropByPhaIndexOr';
+import { dtPropHasIndexComplitions } from './property/dtPropHasIndex';
+import { dtPropHasNameComplitions } from './property/dtPropHasName';
 
 const MACRO_ONLY = [
 	'DT_CHILD_NUM',
@@ -77,6 +98,133 @@ export async function getCompletions(
 		...(await dtPathComplitions(context, macro)),
 		...dtRootComplitions(runtime, macro),
 		...dtSameNodeComplitions(macro),
+		//
+		...(await dtEnumHasValueComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
+		...(await dtEnumHasValueByIndexComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
+		...(await dtEnumIndexComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
+		...(await dtEnumIndexByIndexComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
+		...(await dtEnumIndexByIndexOrComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
+		...(await dtEnumIndexOrComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
+		...(await dtPhaComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
+		...(await dtPhaByIndexComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
+		...(await dtPhaByNameComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
+		...(await dtPhaByNameOrComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
+		...(await dtPhaOrComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
+		...(await dtPhandleComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
+		...(await dtPhandleByIndexComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
+		...(await dtPhandleByNameComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
+		...(await dtPropComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
+		...(await dtPropByIndexComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
+		...(await dtPropByPhaComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
+		...(await dtPropByPhaIndexComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
+		...(await dtPropByPhaIndexOrComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
+		...(await dtPropHasIndexComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
+		...(await dtPropHasNameComplitions(
+			document,
+			context,
+			macro,
+			location.position,
+		)),
 	];
 }
 
