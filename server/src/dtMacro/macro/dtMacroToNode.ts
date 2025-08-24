@@ -119,8 +119,7 @@ export async function dtMacroToNode({
 		getNodeOrUndefined(dtStringUpperTokenOr),
 	];
 
-	// TODO Add all or operators
-	const v = funcs.reduce(
+	const v = await funcs.reduce(
 		(accPromise, fn) =>
 			accPromise.then(
 				(v) =>
