@@ -239,21 +239,20 @@ export function findMacroDefinitionPosition(
 	// Capture 1: macro name
 	// Capture 2: parameters (optional)
 	const re = new RegExp(
-		`^\\s*#\\s*define\\s+(${macro})(\\s*\\([^)]*\\))?\\s*(.*)$`,
+		`^\\s*#\\s*define\\s+(${macro})\\b(\\s*\\([^)]*\\))?\\s*(.*)$`,
 	);
 
+	// Scan backwards from the cursor line
 	for (
-		let lineNum = 0;
-		lineNum < Math.min(endPosition.line + 1, lines.length);
-		lineNum++
+		let lineNum = Math.min(endPosition.line, lines.length - 1);
+		lineNum >= 0;
+		lineNum--
 	) {
 		const line = lines[lineNum];
 		const m = re.exec(line);
 		if (m) {
-			// The definition text starts after the macro name + optional params
 			const beforeDef = line.indexOf(m[0]);
 			const defOffset = line.indexOf(m[3], beforeDef);
-
 			return Position.create(
 				lineNum,
 				defOffset >= 0 ? defOffset : line.length,
