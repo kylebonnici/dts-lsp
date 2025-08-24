@@ -20,7 +20,10 @@ import {
 	TextDocumentPositionParams,
 } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { generateNodeDeclaration } from '../../findDeclarations';
+import {
+	generateNodeDeclaration,
+	generatePropertyDeclaration,
+} from '../../findDeclarations';
 import { ContextAware } from '../../runtimeEvaluator';
 import {
 	DTMacroInfo,
@@ -28,6 +31,7 @@ import {
 	getMacroAtPosition,
 } from '../helpers';
 import { dtMacroToNode } from '../macro/dtMacroToNode';
+import { dtMacroToProperty } from '../macro/dtMacroToProperty';
 
 export async function getDefinitions(
 	location: TextDocumentPositionParams,
@@ -53,6 +57,17 @@ async function getDefinitionsFrom(
 
 	if (node) {
 		return generateNodeDeclaration(node);
+	}
+
+	const property = await dtMacroToProperty({
+		document,
+		macro,
+		context,
+		position,
+	});
+
+	if (property) {
+		return generatePropertyDeclaration(property);
 	}
 
 	const newMacro = await findMacroDefinition(

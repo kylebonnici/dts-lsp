@@ -37,6 +37,26 @@ export const generateNodeDeclaration = (node: Node) => {
 		: undefined;
 };
 
+const getBottomProperty = (property: Property): Property => {
+	if (property.replaces) {
+		return getBottomProperty(property.replaces);
+	}
+
+	return property;
+};
+
+export const generatePropertyDeclaration = (
+	property: Property,
+): Location | undefined => {
+	const fistDefinition = getBottomProperty(property);
+	return fistDefinition
+		? Location.create(
+				pathToFileURL(fistDefinition.ast.uri),
+				toRange(fistDefinition.ast),
+			)
+		: undefined;
+};
+
 function getPropertyDeclaration(
 	result: SearchableResult | undefined,
 ): Location | undefined {
@@ -47,14 +67,6 @@ function getPropertyDeclaration(
 	) {
 		return;
 	}
-
-	const getBottomProperty = (property: Property): Property => {
-		if (property.replaces) {
-			return getBottomProperty(property.replaces);
-		}
-
-		return property;
-	};
 
 	const gentItem = (property: Property) => {
 		return Location.create(

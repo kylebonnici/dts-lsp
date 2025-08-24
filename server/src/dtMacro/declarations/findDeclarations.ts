@@ -26,8 +26,12 @@ import {
 	findMacroDefinition,
 	getMacroAtPosition,
 } from '../helpers';
-import { generateNodeDeclaration } from '../../findDeclarations';
+import {
+	generateNodeDeclaration,
+	generatePropertyDeclaration,
+} from '../../findDeclarations';
 import { dtMacroToNode } from '../macro/dtMacroToNode';
+import { dtMacroToProperty } from '../macro/dtMacroToProperty';
 
 export async function getDeclaration(
 	location: TextDocumentPositionParams,
@@ -53,6 +57,17 @@ async function getDeclarationFrom(
 
 	if (node) {
 		return generateNodeDeclaration(node);
+	}
+
+	const property = await dtMacroToProperty({
+		document,
+		macro,
+		context,
+		position,
+	});
+
+	if (property) {
+		return generatePropertyDeclaration(property);
 	}
 
 	const newMacro = await findMacroDefinition(

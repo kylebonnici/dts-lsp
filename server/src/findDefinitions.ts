@@ -51,6 +51,27 @@ export const generateDefinitionsFromNode = (node: Node) => {
 		.filter((r) => r) as Location[];
 };
 
+const getTopProperty = (property: Property): Property => {
+	if (property.replacedBy) {
+		return getTopProperty(property.replacedBy);
+	}
+
+	return property;
+};
+
+export const generatePropertyDefinition = (property: Property): Location[] => {
+	return [property.ast, ...property.allReplaced.map((p) => p.ast)]
+		.map((dtc) => {
+			if (dtc instanceof DtcProperty) {
+				return Location.create(
+					pathToFileURL(dtc.uri),
+					toRange(dtc.propertyName ?? dtc),
+				);
+			}
+		})
+		.filter((r) => r) as Location[];
+};
+
 function getPropertyDefinition(
 	result: SearchableResult | undefined,
 ): Location[] {
@@ -62,29 +83,8 @@ function getPropertyDefinition(
 		return [];
 	}
 
-	const getTopProperty = (property: Property): Property => {
-		if (property.replacedBy) {
-			return getTopProperty(property.replacedBy);
-		}
-
-		return property;
-	};
-
-	const gentItem = (property: Property) => {
-		return [property.ast, ...property.allReplaced.map((p) => p.ast)]
-			.map((dtc) => {
-				if (dtc instanceof DtcProperty) {
-					return Location.create(
-						pathToFileURL(dtc.uri),
-						toRange(dtc.propertyName ?? dtc),
-					);
-				}
-			})
-			.filter((r) => r) as Location[];
-	};
-
 	if (result.item instanceof Property && result.ast instanceof PropertyName) {
-		return gentItem(getTopProperty(result.item));
+		return generatePropertyDefinition(getTopProperty(result.item));
 	}
 
 	if (
@@ -95,7 +95,7 @@ function getPropertyDefinition(
 		const property = result.item.deletedProperties.find(
 			(d) => d.by === result.ast.parentNode,
 		)?.property;
-		if (property) return gentItem(property);
+		if (property) return generatePropertyDefinition(property);
 	}
 
 	return [];
