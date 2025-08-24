@@ -14,22 +14,35 @@
  * limitations under the License.
  */
 
-import { CompletionItem } from 'vscode-languageserver';
+import { Node } from '../../../context/node';
 import { ResolveMacroRequest } from '../../helpers';
-import { StringValue } from '../../../ast/dtc/values/string';
-import { genericPropertyCompletion } from './genericProp';
+import { dtStringUnquotedOrRaw } from '../raw/properties/dtStringUnQuotedOr';
 
-export async function dtStringTokenOrComplitions(
-	resolveMacroRequest: ResolveMacroRequest,
-): Promise<CompletionItem[]> {
-	return genericPropertyCompletion(
-		resolveMacroRequest,
-		'DT_STRING_TOKEN_OR',
-		1,
-		3,
-		(prop) => {
-			const value = prop.ast.getFlatAstValues();
-			return value?.length === 1 && value[0] instanceof StringValue;
+export async function dtStringUnquotedOr(
+	{ document, macro, context, position }: ResolveMacroRequest,
+	dtMacroToNode: (
+		resolveMacroRequest: ResolveMacroRequest,
+	) => Promise<Node | undefined>,
+) {
+	const args = macro.args;
+	if (macro.macro !== 'DT_STRING_UNQUOTED_OR' || args?.length !== 3) return;
+
+	const node = await dtMacroToNode({
+		document,
+		macro: args[0],
+		context,
+		position,
+	});
+
+	return dtStringUnquotedOrRaw(
+		node,
+		args[1].macro,
+		{
+			document,
+			macro: args[2],
+			context,
+			position,
 		},
+		dtMacroToNode,
 	);
 }

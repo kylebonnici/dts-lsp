@@ -19,12 +19,12 @@ import { ResolveMacroRequest } from '../../helpers';
 import { StringValue } from '../../../ast/dtc/values/string';
 import { genericPropertyCompletion } from './genericProp';
 
-export async function dtStringTokenOrComplitions(
+export async function dtStringUnquotedOrComplitions(
 	resolveMacroRequest: ResolveMacroRequest,
 ): Promise<CompletionItem[]> {
 	return genericPropertyCompletion(
 		resolveMacroRequest,
-		'DT_STRING_TOKEN_OR',
+		'DT_STRING_UNQUOTED_OR',
 		1,
 		3,
 		(prop) => {

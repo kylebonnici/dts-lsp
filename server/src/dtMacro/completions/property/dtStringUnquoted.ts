@@ -15,18 +15,18 @@
  */
 
 import { CompletionItem } from 'vscode-languageserver';
-import { ResolveMacroRequest } from '../../helpers';
 import { StringValue } from '../../../ast/dtc/values/string';
+import { ResolveMacroRequest } from '../../helpers';
 import { genericPropertyCompletion } from './genericProp';
 
-export async function dtStringTokenOrComplitions(
+export async function dtStringUnquotedComplitions(
 	resolveMacroRequest: ResolveMacroRequest,
 ): Promise<CompletionItem[]> {
 	return genericPropertyCompletion(
 		resolveMacroRequest,
-		'DT_STRING_TOKEN_OR',
+		'DT_STRING_UNQUOTED',
 		1,
-		3,
+		2,
 		(prop) => {
 			const value = prop.ast.getFlatAstValues();
 			return value?.length === 1 && value[0] instanceof StringValue;

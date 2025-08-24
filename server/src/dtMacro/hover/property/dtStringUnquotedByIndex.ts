@@ -14,22 +14,27 @@
  * limitations under the License.
  */
 
-import { CompletionItem } from 'vscode-languageserver';
+import { Hover, MarkupKind } from 'vscode-languageserver';
+import { dtStringUnquotedByIndex } from '../../macro/properties/dtStringUnquotedByIndex';
 import { ResolveMacroRequest } from '../../helpers';
-import { StringValue } from '../../../ast/dtc/values/string';
-import { genericPropertyCompletion } from './genericProp';
+import { dtMacroToNode } from '../../macro/dtMacroToNode';
 
-export async function dtStringTokenOrComplitions(
+export async function dtStringUnquotedByIndexHover(
 	resolveMacroRequest: ResolveMacroRequest,
-): Promise<CompletionItem[]> {
-	return genericPropertyCompletion(
+): Promise<Hover | undefined> {
+	const value = await dtStringUnquotedByIndex(
 		resolveMacroRequest,
-		'DT_STRING_TOKEN_OR',
-		1,
-		3,
-		(prop) => {
-			const value = prop.ast.getFlatAstValues();
-			return value?.length === 1 && value[0] instanceof StringValue;
-		},
+		dtMacroToNode,
 	);
+
+	if (!value) {
+		return;
+	}
+
+	return {
+		contents: {
+			kind: MarkupKind.Markdown,
+			value: value.toString(),
+		},
+	};
 }

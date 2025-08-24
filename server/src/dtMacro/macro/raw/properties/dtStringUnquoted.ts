@@ -14,22 +14,28 @@
  * limitations under the License.
  */
 
-import { CompletionItem } from 'vscode-languageserver';
-import { ResolveMacroRequest } from '../../helpers';
-import { StringValue } from '../../../ast/dtc/values/string';
-import { genericPropertyCompletion } from './genericProp';
+import { Node } from '../../../../context/node';
+import { toCIdentifier } from '../../../helpers';
+import { StringValue } from '../../../../ast/dtc/values/string';
 
-export async function dtStringTokenOrComplitions(
-	resolveMacroRequest: ResolveMacroRequest,
-): Promise<CompletionItem[]> {
-	return genericPropertyCompletion(
-		resolveMacroRequest,
-		'DT_STRING_TOKEN_OR',
-		1,
-		3,
-		(prop) => {
-			const value = prop.ast.getFlatAstValues();
-			return value?.length === 1 && value[0] instanceof StringValue;
-		},
+export async function dtStringUnquotedRaw(
+	node: Node | undefined,
+	propertyName: string,
+) {
+	if (!node) {
+		return;
+	}
+
+	const property = node?.property.find(
+		(p) => toCIdentifier(p.name) === propertyName,
 	);
+
+	const values = property?.ast.getFlatAstValues();
+	if (values?.length !== 1) {
+		return;
+	}
+
+	if (values[0] instanceof StringValue) {
+		return values[0].value;
+	}
 }

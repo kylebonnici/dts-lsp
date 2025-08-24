@@ -16,6 +16,7 @@
 
 import { CompletionItem } from 'vscode-languageserver';
 import { ResolveMacroRequest } from '../../helpers';
+import { StringValue } from '../../../ast/dtc/values/string';
 import { genericPropertyCompletion } from './genericProp';
 
 export async function dtStringTokenByIndexComplitions(
@@ -26,5 +27,12 @@ export async function dtStringTokenByIndexComplitions(
 		'DT_STRING_TOKEN_BY_IDX',
 		1,
 		3,
+		(prop) => {
+			const values = prop.ast.getFlatAstValues();
+			return (
+				!!values?.length &&
+				values.every((value) => value instanceof StringValue)
+			);
+		},
 	);
 }

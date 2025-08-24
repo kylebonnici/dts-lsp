@@ -69,6 +69,9 @@ import { dtPropLastHover } from './property/dtPropLast';
 import { dtStringTokenHover } from './property/dtStringToken';
 import { dtStringTokenByIndexHover } from './property/dtStringTokenByIndex';
 import { dtStringTokenOrHover } from './property/dtStringTokenOr';
+import { dtStringUnquotedByIndexHover } from './property/dtStringUnquotedByIndex';
+import { dtStringUnquotedHover } from './property/dtStringUnquoted';
+import { dtStringUnquotedOrHover } from './property/dtStringUnquotedOr';
 
 async function getNodeHover(
 	resolveMacroRequest: ResolveMacroRequest,
@@ -130,6 +133,9 @@ async function getPropertyHover(
 		dtStringTokenByIndexHover,
 		dtStringTokenHover,
 		dtStringTokenOrHover,
+		dtStringUnquotedByIndexHover,
+		dtStringUnquotedHover,
+		dtStringUnquotedOrHover,
 	].reduce(
 		(accPromise, fn) =>
 			accPromise.then((v) => v || fn(resolveMacroRequest)),

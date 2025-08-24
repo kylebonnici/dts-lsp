@@ -59,6 +59,9 @@ import { dtPropOrComplitions } from './property/dtPropOr';
 import { dtStringTokenComplitions } from './property/dtStringToken';
 import { dtStringTokenByIndexComplitions } from './property/dtStringTokenByIndex';
 import { dtStringTokenOrComplitions } from './property/dtStringTokenOr';
+import { dtStringUnquotedComplitions } from './property/dtStringUnquoted';
+import { dtStringUnquotedByIndexComplitions } from './property/dtStringUnquotedByIndex';
+import { dtStringUnquotedOrComplitions } from './property/dtStringUnquotedOr';
 
 const MACRO_ONLY = [
 	'DT_CHILD_NUM',
@@ -130,6 +133,9 @@ export async function getCompletions(
 				dtStringTokenComplitions,
 				dtStringTokenByIndexComplitions,
 				dtStringTokenOrComplitions,
+				dtStringUnquotedComplitions,
+				dtStringUnquotedByIndexComplitions,
+				dtStringUnquotedOrComplitions,
 			].flatMap(
 				async (fn) =>
 					await fn({

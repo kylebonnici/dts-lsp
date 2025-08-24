@@ -19,17 +19,20 @@ import { ResolveMacroRequest } from '../../helpers';
 import { StringValue } from '../../../ast/dtc/values/string';
 import { genericPropertyCompletion } from './genericProp';
 
-export async function dtStringTokenOrComplitions(
+export async function dtStringUnquotedByIndexComplitions(
 	resolveMacroRequest: ResolveMacroRequest,
 ): Promise<CompletionItem[]> {
 	return genericPropertyCompletion(
 		resolveMacroRequest,
-		'DT_STRING_TOKEN_OR',
+		'DT_STRING_UNQUOTED_BY_IDX',
 		1,
 		3,
 		(prop) => {
-			const value = prop.ast.getFlatAstValues();
-			return value?.length === 1 && value[0] instanceof StringValue;
+			const values = prop.ast.getFlatAstValues();
+			return (
+				!!values?.length &&
+				values.every((value) => value instanceof StringValue)
+			);
 		},
 	);
 }

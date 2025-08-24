@@ -15,6 +15,7 @@
  */
 
 import { CompletionItem } from 'vscode-languageserver';
+import { StringValue } from '../../../ast/dtc/values/string';
 import { ResolveMacroRequest } from '../../helpers';
 import { genericPropertyCompletion } from './genericProp';
 
@@ -26,5 +27,9 @@ export async function dtStringTokenComplitions(
 		'DT_STRING_TOKEN',
 		1,
 		2,
+		(prop) => {
+			const value = prop.ast.getFlatAstValues();
+			return value?.length === 1 && value[0] instanceof StringValue;
+		},
 	);
 }
