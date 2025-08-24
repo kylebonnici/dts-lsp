@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-import { MarkupKind } from 'vscode-languageserver-types';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../../dtMacro/helpers';
+import { Hover, MarkupKind } from 'vscode-languageserver-types';
+import { ResolveMacroRequest } from '../../../dtMacro/helpers';
 import { dtHasAlias } from '../../../dtMacro/macro/node/dtHasAlias';
 
 export async function dtHasAliasHover(
-	macro: DTMacroInfo,
-	context: ContextAware,
-) {
-	const aliasNode = await dtHasAlias(macro, context);
+	resolveMacroRequest: ResolveMacroRequest,
+): Promise<Hover | undefined> {
+	const aliasNode = await dtHasAlias(resolveMacroRequest);
 
 	if (aliasNode === undefined) {
 		return;

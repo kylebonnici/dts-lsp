@@ -14,22 +14,13 @@
  * limitations under the License.
  */
 
-import {
-	CompletionItem,
-	CompletionItemKind,
-	Position,
-} from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo, toCIdentifier } from '../../helpers';
+import { CompletionItem, CompletionItemKind } from 'vscode-languageserver';
+import { ResolveMacroRequest, toCIdentifier } from '../../helpers';
 import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
 import { genericPropertyCompletion } from './genericProp';
 
 export async function getCellNameCompletion(
-	document: TextDocument,
-	context: ContextAware,
-	macro: DTMacroInfo,
-	position: Position,
+	{ macro, document, context, position }: ResolveMacroRequest,
 	macroName: string,
 	cellArgIndex: number,
 	mappingIndex: number | string,
@@ -42,12 +33,12 @@ export async function getCellNameCompletion(
 		return [];
 	}
 
-	const node = await dtMacroToNode(
+	const node = await dtMacroToNode({
 		document,
-		macro.parent.args[0],
+		macro: macro.parent.args[0],
 		context,
 		position,
-	);
+	});
 
 	const property = node?.property.find(
 		(p) => toCIdentifier(p.name) === macro.parent?.args?.at(1)?.macro,
@@ -92,28 +83,14 @@ export async function getCellNameCompletion(
 }
 
 export async function dtPhaComplitions(
-	document: TextDocument,
-	context: ContextAware,
-	macro: DTMacroInfo,
-	position: Position,
+	resolveMacroRequest: ResolveMacroRequest,
 ): Promise<CompletionItem[]> {
-	if (macro.argIndexInParent === 2) {
-		return getCellNameCompletion(
-			document,
-			context,
-			macro,
-			position,
-			'DT_PHA',
-			2,
-			0,
-		);
+	if (resolveMacroRequest.macro.argIndexInParent === 2) {
+		return getCellNameCompletion(resolveMacroRequest, 'DT_PHA', 2, 0);
 	}
 
 	return genericPropertyCompletion(
-		document,
-		context,
-		macro,
-		position,
+		resolveMacroRequest,
 		'DT_PHA',
 		1,
 		3,

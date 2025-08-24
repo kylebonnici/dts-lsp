@@ -15,14 +15,14 @@
  */
 
 import { CompletionItem, CompletionItemKind } from 'vscode-languageserver';
-import { DTMacroInfo } from '../../helpers';
-import { Runtime } from '../../../context/runtime';
+import { ResolveMacroRequest } from '../../helpers';
 
-export function dtRootComplitions(
-	runtime: Runtime,
-	macro: DTMacroInfo,
-): CompletionItem[] {
+export async function dtRootComplitions({
+	macro,
+	context,
+}: ResolveMacroRequest): Promise<CompletionItem[]> {
 	if (macro.macro && macro.macro && 'DT_ROOT'.startsWith(macro.macro)) {
+		const runtime = await context.getRuntime();
 		return [
 			{
 				label: `DT_ROOT`,

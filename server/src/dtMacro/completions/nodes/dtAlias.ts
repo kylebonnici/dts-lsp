@@ -20,15 +20,14 @@ import {
 	InsertTextFormat,
 } from 'vscode-languageserver';
 import { NodePath } from 'src/ast/dtc/values/nodePath';
-import { DTMacroInfo, toCIdentifier } from '../../../dtMacro/helpers';
-import { Runtime } from '../../../context/runtime';
+import { ResolveMacroRequest, toCIdentifier } from '../../../dtMacro/helpers';
 import { Node } from '../../../context/node';
 import { LabelRef } from '../../../ast/dtc/labelRef';
 
-export function dtAliasComplitions(
-	macro: DTMacroInfo,
-	runtime: Runtime,
-): CompletionItem[] {
+export async function dtAliasComplitions({
+	macro,
+	context,
+}: ResolveMacroRequest): Promise<CompletionItem[]> {
 	if (macro.macro && 'DT_ALIAS'.startsWith(macro.macro)) {
 		return [
 			{
@@ -43,6 +42,8 @@ export function dtAliasComplitions(
 	if (macro.parent?.macro !== 'DT_ALIAS' || macro.argIndexInParent !== 0) {
 		return [];
 	}
+
+	const runtime = await context.getRuntime();
 
 	return (
 		runtime.rootNode.getNode('aliases')?.property.map((prop) => {

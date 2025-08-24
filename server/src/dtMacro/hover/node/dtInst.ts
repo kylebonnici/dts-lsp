@@ -16,20 +16,18 @@
 
 import { Hover } from 'vscode-languageserver-types';
 import { dtInst } from '../../../dtMacro/macro/node/dtInst';
-import { DTMacroInfo } from '../../helpers';
-import { ContextAware } from '../../../runtimeEvaluator';
+import { ResolveMacroRequest } from '../../helpers';
 
 export async function dtInstHover(
-	macro: DTMacroInfo,
-	context: ContextAware,
+	resolveMacroRequest: ResolveMacroRequest,
 ): Promise<Hover | undefined> {
-	const node = await dtInst(macro, context);
+	const node = await dtInst(resolveMacroRequest);
 
 	if (!node) {
 		return;
 	}
 
 	return {
-		contents: node.toMarkupContent(context.macros),
+		contents: node.toMarkupContent(resolveMacroRequest.context.macros),
 	};
 }

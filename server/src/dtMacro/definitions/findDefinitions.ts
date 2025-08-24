@@ -49,7 +49,7 @@ async function getDefinitionsFrom(
 		return;
 	}
 
-	const node = await dtMacroToNode(document, macro, context, position);
+	const node = await dtMacroToNode({ document, macro, context, position });
 
 	if (node) {
 		return generateNodeDeclaration(node);

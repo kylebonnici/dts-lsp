@@ -19,6 +19,13 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Position } from 'vscode-languageserver-types';
 import { fileURLToPath, isPathEqual } from '../helpers';
 import { ContextAware } from '../runtimeEvaluator';
+
+export type ResolveMacroRequest = {
+	document: TextDocument;
+	macro: DTMacroInfo;
+	context: ContextAware;
+	position: Position;
+};
 export interface DTMacroInfo {
 	macro: string;
 	args?: DTMacroInfo[];

@@ -14,33 +14,30 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver-types';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../../runtimeEvaluator';
 import { Node } from '../../context/node';
-import { dtPropOrNode } from '../dtPropOr';
-import { dtPropByIndexNode } from '../dtPropByIndex';
 import { dtPropNode } from '../dtProp';
-import { DTMacroInfo, findMacroDefinition } from '../helpers';
-import { dtPhandelByName } from './properties/dtPhandelByName';
-import { dtPhandelByIndex } from './properties/dtPhandelByIndex';
-import { dtPhandel } from './properties/dtPhandel';
-import { dtRoot } from './node/dtRoot';
-import { dtPath } from './node/dtPath';
-import { dtParent } from './node/dtParent';
-import { dtGParent } from './node/dtGParent';
-import { dtChild } from './node/dtChild';
-import { dtNodeLabel } from './node/dtNodeLabel';
+import { dtPropByIndexNode } from '../dtPropByIndex';
+import { dtPropOrNode } from '../dtPropOr';
+import { findMacroDefinition, ResolveMacroRequest } from '../helpers';
 import { dtAlias } from './node/dtAlias';
-import { dtCompatGetAnyStatusOk } from './node/dtCompatGetAnyStatusOk';
+import { dtChild } from './node/dtChild';
+import { dtCompatGetAnyStatusOkNode } from './node/dtCompatGetAnyStatusOk';
+import { dtGParent } from './node/dtGParent';
 import { dtInst } from './node/dtInst';
+import { dtNodeLabel } from './node/dtNodeLabel';
+import { dtParent } from './node/dtParent';
+import { dtPath } from './node/dtPath';
+import { dtRoot } from './node/dtRoot';
+import { dtPhandel } from './properties/dtPhandel';
+import { dtPhandelByIndex } from './properties/dtPhandelByIndex';
+import { dtPhandelByName } from './properties/dtPhandelByName';
 
-export async function dtMacroToNode(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
-): Promise<Node | undefined> {
+export async function dtMacroToNode({
+	macro,
+	document,
+	context,
+	position,
+}: ResolveMacroRequest): Promise<Node | undefined> {
 	if (
 		['DT_ALIAS', 'DT_NODELABEL'].some((m) => m === macro.parent?.macro) ||
 		(macro.parent?.macro === 'DT_CHILD' && macro.argIndexInParent === 1)
@@ -55,43 +52,39 @@ export async function dtMacroToNode(
 			[];
 		macro = macro.parent;
 	}
+	const funcs: ((
+		resolveMacroRequest: ResolveMacroRequest,
+		dtMacroToNode: (
+			resolveMacroRequest: ResolveMacroRequest,
+		) => Promise<Node | undefined>,
+	) => Promise<Node | undefined>)[] = [
+		dtAlias,
+		dtChild,
+		dtCompatGetAnyStatusOkNode,
+		dtGParent,
+		dtInst,
+		dtNodeLabel,
+		dtParent,
+		dtPath,
+		dtPhandel,
+		dtPhandelByIndex,
+		dtPhandelByName,
+		dtPropByIndexNode,
+		dtPropNode,
+		dtPropOrNode,
+		dtRoot,
+	];
 
 	// TODO Add all or operators
-
-	let v =
-		(await dtAlias(macro, context)) ||
-		(await dtChild(document, macro, context, position, dtMacroToNode)) ||
-		(await dtGParent(document, macro, context, position, dtMacroToNode)) ||
-		(await dtCompatGetAnyStatusOk(macro, context)) ||
-		(await dtInst(macro, context)) ||
-		(await dtNodeLabel(macro, context)) ||
-		(await dtParent(document, macro, context, position, dtMacroToNode)) ||
-		(await dtPath(macro, context)) ||
-		(await dtRoot(macro, context)) ||
-		(await dtPhandel(document, macro, context, position, dtMacroToNode)) ||
-		(await dtPhandelByIndex(
-			document,
-			macro,
-			context,
-			position,
-			dtMacroToNode,
-		)) ||
-		(await dtPhandelByName(
-			document,
-			macro,
-			context,
-			position,
-			dtMacroToNode,
-		)) ||
-		(await dtPropNode(document, macro, context, position, dtMacroToNode)) ||
-		(await dtPropByIndexNode(
-			document,
-			macro,
-			context,
-			position,
-			dtMacroToNode,
-		)) ||
-		(await dtPropOrNode(document, macro, context, position, dtMacroToNode));
+	const v = funcs.reduce(
+		(accPromise, fn) =>
+			accPromise.then(
+				(v) =>
+					v ||
+					fn({ macro, document, context, position }, dtMacroToNode),
+			),
+		Promise.resolve<Node | undefined>(undefined),
+	);
 
 	if (v) {
 		return Array.isArray(v) ? v.at(0) : v;
@@ -108,5 +101,5 @@ export async function dtMacroToNode(
 		return;
 	}
 
-	return dtMacroToNode(document, newMacro[0], context, position);
+	return dtMacroToNode({ document, macro: newMacro[0], context, position });
 }

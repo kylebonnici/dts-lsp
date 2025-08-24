@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-import { MarkupKind, Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
+import { Hover, MarkupKind } from 'vscode-languageserver';
 import { Node } from '../../../context/node';
 import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
+import { ResolveMacroRequest } from '../../helpers';
 import { dtProp } from '../../../dtMacro/macro/properties/dtProp';
 import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
 
@@ -94,18 +93,9 @@ export async function generateHoverValues(
 }
 
 export async function dtPropHover(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
-) {
-	const values = await dtProp(
-		document,
-		macro,
-		context,
-		position,
-		dtMacroToNode,
-	);
+	resolveMacroRequest: ResolveMacroRequest,
+): Promise<Hover | undefined> {
+	const values = await dtProp(resolveMacroRequest, dtMacroToNode);
 
-	return generateHoverValues(context, values);
+	return generateHoverValues(resolveMacroRequest.context, values);
 }

@@ -14,28 +14,25 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
+import { Node } from '../../../context/node';
+import { ResolveMacroRequest } from '../../helpers';
 import { dtNodeFullNameRaw } from '../raw/node/dtNodeFullName';
 
 export async function dtNodeFullName(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
+	{ document, macro, context, position }: ResolveMacroRequest,
+	dtMacroToNode: (
+		resolveMacroRequest: ResolveMacroRequest,
+	) => Promise<Node | undefined>,
 ) {
 	if (macro.args?.length !== 1) {
 		return;
 	}
-	const node = await dtMacroToNode(
+	const node = await dtMacroToNode({
 		document,
-		macro.args[0],
+		macro: macro.args[0],
 		context,
 		position,
-	);
+	});
 
 	switch (macro.macro) {
 		case 'DT_NODE_FULL_NAME':

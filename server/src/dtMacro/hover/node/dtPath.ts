@@ -14,18 +14,20 @@
  * limitations under the License.
  */
 
-import { DTMacroInfo } from '../../../dtMacro/helpers';
+import { Hover } from 'vscode-languageserver';
+import { ResolveMacroRequest } from '../../../dtMacro/helpers';
 import { dtPath } from '../../../dtMacro/macro/node/dtPath';
-import { ContextAware } from '../../../runtimeEvaluator';
 
-export async function dtPathHover(macro: DTMacroInfo, context: ContextAware) {
-	const node = await dtPath(macro, context);
+export async function dtPathHover(
+	resolveMacroRequest: ResolveMacroRequest,
+): Promise<Hover | undefined> {
+	const node = await dtPath(resolveMacroRequest);
 
 	if (!node) {
 		return;
 	}
 
 	return {
-		contents: node.toMarkupContent(context.macros),
+		contents: node.toMarkupContent(resolveMacroRequest.context.macros),
 	};
 }

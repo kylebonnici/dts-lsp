@@ -14,23 +14,17 @@
  * limitations under the License.
  */
 
-import { MarkupKind, Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
+import { Hover, MarkupKind } from 'vscode-languageserver';
 import { dtNodeLabelStringArray } from '../../../dtMacro/macro/node/dtNodeLabelStringArray';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
+import { ResolveMacroRequest } from '../../helpers';
+import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
 
 export async function dtNodeLabelStringArrayHover(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
-) {
+	resolveMacroRequest: ResolveMacroRequest,
+): Promise<Hover | undefined> {
 	const labels = await dtNodeLabelStringArray(
-		document,
-		macro,
-		context,
-		position,
+		resolveMacroRequest,
+		dtMacroToNode,
 	);
 	if (!labels) {
 		return;

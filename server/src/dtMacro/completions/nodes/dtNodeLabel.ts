@@ -19,13 +19,12 @@ import {
 	CompletionItemKind,
 	InsertTextFormat,
 } from 'vscode-languageserver';
-import { DTMacroInfo } from '../../helpers';
-import { Runtime } from '../../../context/runtime';
+import { ResolveMacroRequest } from '../../helpers';
 
-export async function dtNodeLabelComplitions(
-	macro: DTMacroInfo,
-	runtime: Runtime,
-): Promise<CompletionItem[]> {
+export async function dtNodeLabelComplitions({
+	macro,
+	context,
+}: ResolveMacroRequest): Promise<CompletionItem[]> {
 	if (macro.macro && 'DT_NODELABEL'.startsWith(macro.macro)) {
 		return [
 			{
@@ -36,6 +35,8 @@ export async function dtNodeLabelComplitions(
 			},
 		];
 	}
+
+	const runtime = await context.getRuntime();
 
 	if (
 		macro.parent?.macro !== 'DT_NODELABEL' ||

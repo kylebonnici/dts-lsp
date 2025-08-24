@@ -14,26 +14,15 @@
  * limitations under the License.
  */
 
-import { MarkupKind, Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
+import { Hover, MarkupKind } from 'vscode-languageserver';
 import { dtMacroToNode } from '../../macro/dtMacroToNode';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
+import { ResolveMacroRequest } from '../../helpers';
 import { dtEnumHasValue } from '../../../dtMacro/macro/properties/dtEnumHasValue';
 
 export async function dtEnumHasValueHover(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
-) {
-	const hasValue = await dtEnumHasValue(
-		document,
-		macro,
-		context,
-		position,
-		dtMacroToNode,
-	);
+	resolveMacroRequest: ResolveMacroRequest,
+): Promise<Hover | undefined> {
+	const hasValue = await dtEnumHasValue(resolveMacroRequest, dtMacroToNode);
 
 	return hasValue !== undefined
 		? {

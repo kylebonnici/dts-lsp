@@ -14,32 +14,21 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
+import { Hover } from 'vscode-languageserver';
+import { ResolveMacroRequest } from '../../helpers';
 import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
 import { dtPhandelByIndex } from '../../../dtMacro/macro/properties/dtPhandelByIndex';
 
 export async function dtPhandelByIndexHover(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
-) {
-	const node = await dtPhandelByIndex(
-		document,
-		macro,
-		context,
-		position,
-		dtMacroToNode,
-	);
+	resolveMacroRequest: ResolveMacroRequest,
+): Promise<Hover | undefined> {
+	const node = await dtPhandelByIndex(resolveMacroRequest, dtMacroToNode);
 
 	if (!node) {
 		return;
 	}
 
 	return {
-		contents: node.toMarkupContent(context.macros),
+		contents: node.toMarkupContent(resolveMacroRequest.context.macros),
 	};
 }

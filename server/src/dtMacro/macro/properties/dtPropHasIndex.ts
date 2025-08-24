@@ -14,30 +14,21 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
+import { ResolveMacroRequest } from '../../helpers';
 import { dtPropHasIndexRaw } from '../raw/properties/dtPropHasIndex';
 import { Node } from '../../../context/node';
 
 export async function dtPropHasIndex(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
+	{ document, macro, context, position }: ResolveMacroRequest,
 	dtMacroToNode: (
-		document: TextDocument,
-		macro: DTMacroInfo,
-		context: ContextAware,
-		position: Position,
+		resolveMacroRequest: ResolveMacroRequest,
 	) => Promise<Node | undefined>,
 ) {
 	const args = macro.args;
 	if (macro.macro !== 'DT_PROP_HAS_IDX' || args?.length !== 3) return;
 
 	const values = await dtPropHasIndexRaw(
-		await dtMacroToNode(document, args[0], context, position),
+		await dtMacroToNode({ document, macro: args[0], context, position }),
 		args[1].macro,
 		args[2].macro,
 		context,

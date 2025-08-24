@@ -14,36 +14,27 @@
  * limitations under the License.
  */
 
-import {
-	CompletionItem,
-	CompletionItemKind,
-	Position,
-} from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
+import { CompletionItem, CompletionItemKind } from 'vscode-languageserver';
 import { evalExp } from '../../../helpers';
 import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo, toCIdentifier } from '../../helpers';
+import { ResolveMacroRequest, toCIdentifier } from '../../helpers';
 import { genericPropertyCompletion } from './genericProp';
 import { getCellNameCompletion } from './dtPha';
 
 export async function getIndexCompletion(
-	document: TextDocument,
-	context: ContextAware,
-	macro: DTMacroInfo,
-	position: Position,
+	{ document, macro, position, context }: ResolveMacroRequest,
 	macroName: string,
 ) {
 	if (macro.parent?.macro !== macroName || !macro.parent.args?.length) {
 		return [];
 	}
 
-	const node = await dtMacroToNode(
+	const node = await dtMacroToNode({
 		document,
-		macro.parent.args[0],
+		macro: macro.parent.args[0],
 		context,
 		position,
-	);
+	});
 
 	const property = node?.property.find(
 		(p) => toCIdentifier(p.name) === macro.parent?.args?.at(1)?.macro,
@@ -61,24 +52,15 @@ export async function getIndexCompletion(
 }
 
 export async function dtPhaByIndexComplitions(
-	document: TextDocument,
-	context: ContextAware,
-	macro: DTMacroInfo,
-	position: Position,
+	resolveMacroRequest: ResolveMacroRequest,
 ): Promise<CompletionItem[]> {
-	if (macro.argIndexInParent === 2) {
-		return getIndexCompletion(
-			document,
-			context,
-			macro,
-			position,
-			'DT_PHA_BY_IDX',
-		);
+	if (resolveMacroRequest.macro.argIndexInParent === 2) {
+		return getIndexCompletion(resolveMacroRequest, 'DT_PHA_BY_IDX');
 	}
 
-	if (macro.argIndexInParent === 3) {
-		const idx = macro.parent?.args
-			? evalExp(macro.parent.args[2].macro)
+	if (resolveMacroRequest.macro.argIndexInParent === 3) {
+		const idx = resolveMacroRequest.macro.parent?.args
+			? evalExp(resolveMacroRequest.macro.parent.args[2].macro)
 			: undefined;
 
 		if (typeof idx !== 'number') {
@@ -86,10 +68,7 @@ export async function dtPhaByIndexComplitions(
 		}
 
 		return getCellNameCompletion(
-			document,
-			context,
-			macro,
-			position,
+			resolveMacroRequest,
 			'DT_PHA_BY_IDX',
 			3,
 			idx,
@@ -97,10 +76,7 @@ export async function dtPhaByIndexComplitions(
 	}
 
 	return genericPropertyCompletion(
-		document,
-		context,
-		macro,
-		position,
+		resolveMacroRequest,
 		'DT_PHA_BY_IDX',
 		1,
 		3,

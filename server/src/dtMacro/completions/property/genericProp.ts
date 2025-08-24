@@ -18,26 +18,20 @@ import {
 	CompletionItem,
 	CompletionItemKind,
 	InsertTextFormat,
-	Position,
 } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
 import { dtMacroToNode } from '../../macro/dtMacroToNode';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo, toCIdentifier } from '../../helpers';
+import { DTMacroInfo, ResolveMacroRequest, toCIdentifier } from '../../helpers';
 import { Property } from '../../../context/property';
 import { Node } from '../../../context/node';
 
 export async function genericPropertyCompletion(
-	document: TextDocument,
-	context: ContextAware,
-	macro: DTMacroInfo,
-	position: Position,
+	{ macro, document, position, context }: ResolveMacroRequest,
 	macroName: string,
 	propertyIndex: number,
 	numberOfArguments: number,
 	filter?: (property: Property) => boolean,
 	fetchNode: (macro: DTMacroInfo) => Promise<Node | undefined> = (m) =>
-		dtMacroToNode(document, m, context, position),
+		dtMacroToNode({ document, macro: m, context, position }),
 ): Promise<CompletionItem[]> {
 	if (macro.macro && macro.macro && macroName.startsWith(macro.macro)) {
 		return [

@@ -14,23 +14,14 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
+import { ResolveMacroRequest } from '../../helpers';
 import { Node } from '../../../context/node';
 import { dtPhaByIndexOrRaw } from '../raw/properties/dtPhaByIndexOr';
 
 export async function dtPhaByNameOr(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
+	{ document, macro, context, position }: ResolveMacroRequest,
 	dtMacroToNode: (
-		document: TextDocument,
-		macro: DTMacroInfo,
-		context: ContextAware,
-		position: Position,
+		resolveMacroRequest: ResolveMacroRequest,
 	) => Promise<Node | undefined>,
 ) {
 	const args = macro.args;
@@ -38,22 +29,24 @@ export async function dtPhaByNameOr(
 		return;
 	}
 
-	const node: Node | undefined = await dtMacroToNode(
+	const node: Node | undefined = await dtMacroToNode({
 		document,
-		args[0],
+		macro: args[0],
 		context,
 		position,
-	);
+	});
 
 	return dtPhaByIndexOrRaw(
 		node,
 		args[1].macro,
 		args[2].macro,
 		args[3].macro,
-		args[4],
-		document,
-		context,
-		position,
+		{
+			macro: args[4],
+			document,
+			context,
+			position,
+		},
 		dtMacroToNode,
 	);
 }

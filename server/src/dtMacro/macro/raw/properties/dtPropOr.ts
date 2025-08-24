@@ -14,34 +14,22 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../../../../runtimeEvaluator';
 import { Node } from '../../../../context/node';
-import { DTMacroInfo } from '../../../helpers';
+import { ResolveMacroRequest } from '../../../helpers';
 import { dtPropRaw } from './dtProp';
 import { dtOrRaw } from './dtOr';
 
 export async function dtPropOrRaw(
 	node: Node | undefined,
 	propertyName: string,
-	fallback: DTMacroInfo,
-	document: TextDocument,
-	context: ContextAware,
-	position: Position,
+	resolveMacroRequest: ResolveMacroRequest,
 	dtMacroToNode: (
-		document: TextDocument,
-		macro: DTMacroInfo,
-		context: ContextAware,
-		position: Position,
+		resolveMacroRequest: ResolveMacroRequest,
 	) => Promise<Node | undefined>,
 ) {
 	return dtOrRaw(
-		await dtPropRaw(node, propertyName, context),
-		fallback,
-		document,
-		context,
-		position,
+		await dtPropRaw(node, propertyName, resolveMacroRequest.context),
+		resolveMacroRequest,
 		dtMacroToNode,
 	);
 }

@@ -22,7 +22,7 @@ import {
 } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ContextAware } from '../../runtimeEvaluator';
-import { DTMacroInfo, getMacroAtPosition } from '../helpers';
+import { getMacroAtPosition, ResolveMacroRequest } from '../helpers';
 import { dtAliasComplitions } from './nodes/dtAlias';
 import { dtChildComplitions } from './nodes/dtChild';
 import { dtCompatGetStatusOkComplitions } from './nodes/dtCompatGetStatusOk';
@@ -52,6 +52,13 @@ import { dtPropByPhaComplitions } from './property/dtPropByPha';
 import { dtPropByPhaIndexOrComplitions } from './property/dtPropByPhaIndexOr';
 import { dtPropHasIndexComplitions } from './property/dtPropHasIndex';
 import { dtPropHasNameComplitions } from './property/dtPropHasName';
+import { dtPropLastComplitions } from './property/dtPropLast';
+import { dtPropLenComplitions } from './property/dtPropLen';
+import { dtPropLenOrComplitions } from './property/dtPropLenOr';
+import { dtPropOrComplitions } from './property/dtPropOr';
+import { dtStringTokenComplitions } from './property/dtStringToken';
+import { dtStringTokenByIndexComplitions } from './property/dtStringTokenByIndex';
+import { dtStringTokenOrComplitions } from './property/dtStringTokenOr';
 
 const MACRO_ONLY = [
 	'DT_CHILD_NUM',
@@ -77,158 +84,68 @@ export async function getCompletions(
 	if (!document) return [];
 
 	const macro = getMacroAtPosition(document, location.position);
-	const runtime = await context.getRuntime();
 
 	if (!macro) {
 		return [];
 	}
 
-	return [
-		...dtAliasComplitions(macro, runtime),
-		...(await dtChildComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-		...dtMacroOnlyComplitions(macro),
-		...dtInstComplitions(macro, runtime),
-		...dtCompatGetStatusOkComplitions(macro, runtime),
-		...(await dtNodeLabelComplitions(macro, runtime)),
-		...(await dtPathComplitions(context, macro)),
-		...dtRootComplitions(runtime, macro),
-		...dtSameNodeComplitions(macro),
-		//
-		...(await dtEnumHasValueComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-		...(await dtEnumHasValueByIndexComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-		...(await dtEnumIndexComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-		...(await dtEnumIndexByIndexComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-		...(await dtEnumIndexByIndexOrComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-		...(await dtEnumIndexOrComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-		...(await dtPhaComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-		...(await dtPhaByIndexComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-		...(await dtPhaByNameComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-		...(await dtPhaByNameOrComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-		...(await dtPhaOrComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-		...(await dtPhandleComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-		...(await dtPhandleByIndexComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-		...(await dtPhandleByNameComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-		...(await dtPropComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-		...(await dtPropByIndexComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-		...(await dtPropByPhaComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-		...(await dtPropByPhaIndexComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-		...(await dtPropByPhaIndexOrComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-		...(await dtPropHasIndexComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-		...(await dtPropHasNameComplitions(
-			document,
-			context,
-			macro,
-			location.position,
-		)),
-	];
+	return (
+		await Promise.all(
+			[
+				dtAliasComplitions,
+				dtChildComplitions,
+				dtCompatGetStatusOkComplitions,
+				dtInstComplitions,
+				dtMacroOnlyComplitions,
+				dtNodeLabelComplitions,
+				dtPathComplitions,
+				dtRootComplitions,
+				dtSameNodeComplitions,
+				//
+				dtEnumHasValueByIndexComplitions,
+				dtEnumHasValueComplitions,
+				dtEnumIndexByIndexComplitions,
+				dtEnumIndexByIndexOrComplitions,
+				dtEnumIndexComplitions,
+				dtEnumIndexOrComplitions,
+				dtPhaByIndexComplitions,
+				dtPhaByNameComplitions,
+				dtPhaByNameOrComplitions,
+				dtPhaComplitions,
+				dtPhandleByIndexComplitions,
+				dtPhandleByNameComplitions,
+				dtPhandleComplitions,
+				dtPhaOrComplitions,
+				dtPropByIndexComplitions,
+				dtPropByPhaComplitions,
+				dtPropByPhaIndexComplitions,
+				dtPropByPhaIndexOrComplitions,
+				dtPropComplitions,
+				dtPropHasIndexComplitions,
+				dtPropHasNameComplitions,
+				dtPropLastComplitions,
+				dtPropLenComplitions,
+				dtPropLenOrComplitions,
+				dtPropOrComplitions,
+				dtStringTokenComplitions,
+				dtStringTokenByIndexComplitions,
+				dtStringTokenOrComplitions,
+			].flatMap(
+				async (fn) =>
+					await fn({
+						document,
+						context,
+						macro,
+						position: location.position,
+					}),
+			),
+		)
+	).flat();
 }
 
-function dtMacroOnlyComplitions(macro: DTMacroInfo): CompletionItem[] {
+function dtMacroOnlyComplitions({
+	macro,
+}: ResolveMacroRequest): CompletionItem[] {
 	if (!macro.macro) {
 		return [];
 	}

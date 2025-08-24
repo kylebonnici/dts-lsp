@@ -14,40 +14,27 @@
  * limitations under the License.
  */
 
-import { CompletionItem, Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
+import { CompletionItem } from 'vscode-languageserver';
+import { ResolveMacroRequest } from '../../helpers';
 import { genericPropertyCompletion } from './genericProp';
 import { getCellNameCompletion } from './dtPha';
 import { getNameCompletion } from './dtPhaByName';
 
 export async function dtPhaByNameOrComplitions(
-	document: TextDocument,
-	context: ContextAware,
-	macro: DTMacroInfo,
-	position: Position,
+	resolveMacroRequest: ResolveMacroRequest,
 ): Promise<CompletionItem[]> {
+	const { macro } = resolveMacroRequest;
 	if (!macro.parent?.args?.[2]?.macro) {
 		return [];
 	}
 
 	if (macro.argIndexInParent === 2) {
-		return getNameCompletion(
-			document,
-			context,
-			macro,
-			position,
-			'DT_PHA_BY_NAME_OR',
-		);
+		return getNameCompletion(resolveMacroRequest, 'DT_PHA_BY_NAME_OR');
 	}
 
 	if (macro.argIndexInParent === 3) {
 		return getCellNameCompletion(
-			document,
-			context,
-			macro,
-			position,
+			resolveMacroRequest,
 			'DT_PHA_BY_NAME_OR',
 			3,
 			macro.parent.args[2].macro,
@@ -55,10 +42,7 @@ export async function dtPhaByNameOrComplitions(
 	}
 
 	return genericPropertyCompletion(
-		document,
-		context,
-		macro,
-		position,
+		resolveMacroRequest,
 		'DT_PHA_BY_NAME_OR',
 		1,
 		3,

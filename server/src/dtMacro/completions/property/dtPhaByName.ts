@@ -14,35 +14,26 @@
  * limitations under the License.
  */
 
-import {
-	CompletionItem,
-	CompletionItemKind,
-	Position,
-} from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
+import { CompletionItem, CompletionItemKind } from 'vscode-languageserver';
 import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo, toCIdentifier } from '../../helpers';
+import { ResolveMacroRequest, toCIdentifier } from '../../helpers';
 import { genericPropertyCompletion } from './genericProp';
 import { getCellNameCompletion } from './dtPha';
 
 export async function getNameCompletion(
-	document: TextDocument,
-	context: ContextAware,
-	macro: DTMacroInfo,
-	position: Position,
+	{ document, macro, context, position }: ResolveMacroRequest,
 	macroName: string,
 ) {
 	if (macro.parent?.macro !== macroName || !macro.parent.args?.length) {
 		return [];
 	}
 
-	const node = await dtMacroToNode(
+	const node = await dtMacroToNode({
 		document,
-		macro.parent.args[0],
+		macro: macro.parent.args[0],
 		context,
 		position,
-	);
+	});
 
 	const property = node?.property.find(
 		(p) => toCIdentifier(p.name) === macro.parent?.args?.at(1)?.macro,
@@ -68,19 +59,11 @@ export async function getNameCompletion(
 }
 
 export async function dtPhaByNameComplitions(
-	document: TextDocument,
-	context: ContextAware,
-	macro: DTMacroInfo,
-	position: Position,
+	resolveMacroRequest: ResolveMacroRequest,
 ): Promise<CompletionItem[]> {
+	const { macro } = resolveMacroRequest;
 	if (macro.argIndexInParent === 2) {
-		return getNameCompletion(
-			document,
-			context,
-			macro,
-			position,
-			'DT_PHA_BY_NAME',
-		);
+		return getNameCompletion(resolveMacroRequest, 'DT_PHA_BY_NAME');
 	}
 
 	if (!macro.parent?.args?.[2]?.macro) {
@@ -89,10 +72,7 @@ export async function dtPhaByNameComplitions(
 
 	if (macro.argIndexInParent === 3) {
 		return getCellNameCompletion(
-			document,
-			context,
-			macro,
-			position,
+			resolveMacroRequest,
 			'DT_PHA_BY_NAME',
 			3,
 			macro.parent.args[2].macro,
@@ -100,10 +80,7 @@ export async function dtPhaByNameComplitions(
 	}
 
 	return genericPropertyCompletion(
-		document,
-		context,
-		macro,
-		position,
+		resolveMacroRequest,
 		'DT_PHA_BY_NAME',
 		1,
 		3,

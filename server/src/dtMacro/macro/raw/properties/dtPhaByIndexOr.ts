@@ -14,11 +14,8 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver-types';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../../../../runtimeEvaluator';
 import { Node } from '../../../../context/node';
-import { DTMacroInfo } from '../../../helpers';
+import { ResolveMacroRequest } from '../../../helpers';
 import { dtPhaByIndexRaw } from './dtPhaByIndex';
 import { dtOrRaw } from './dtOr';
 
@@ -27,23 +24,20 @@ export async function dtPhaByIndexOrRaw(
 	propertyName: string,
 	idx: number | string,
 	cell: string,
-	fallback: DTMacroInfo,
-	document: TextDocument,
-	context: ContextAware,
-	position: Position,
+	resolveMacroRequest: ResolveMacroRequest,
 	dtMacroToNode: (
-		document: TextDocument,
-		macro: DTMacroInfo,
-		context: ContextAware,
-		position: Position,
+		resolveMacroRequest: ResolveMacroRequest,
 	) => Promise<Node | undefined>,
 ): Promise<Node | number | string | undefined> {
 	return dtOrRaw(
-		await dtPhaByIndexRaw(node, propertyName, idx, cell, context),
-		fallback,
-		document,
-		context,
-		position,
+		await dtPhaByIndexRaw(
+			node,
+			propertyName,
+			idx,
+			cell,
+			resolveMacroRequest.context,
+		),
+		resolveMacroRequest,
 		dtMacroToNode,
 	);
 }

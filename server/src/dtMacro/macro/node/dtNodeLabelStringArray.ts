@@ -14,19 +14,15 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { DTMacroInfo } from '../../../dtMacro/helpers';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
+import { ResolveMacroRequest } from '../../../dtMacro/helpers';
 import { Node } from '../../../context/node';
 import { dtNodeLabelStringArrayRaw } from '../raw/node/dtNodeLabelStringArray';
 
 export async function dtNodeLabelStringArray(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
+	{ document, macro, context, position }: ResolveMacroRequest,
+	dtMacroToNode: (
+		resolveMacroRequest: ResolveMacroRequest,
+	) => Promise<Node | undefined>,
 ) {
 	if (
 		macro.macro !== 'DT_NODELABEL_STRING_ARRAY' ||
@@ -34,12 +30,12 @@ export async function dtNodeLabelStringArray(
 	) {
 		return;
 	}
-	const node: Node | undefined = await dtMacroToNode(
+	const node: Node | undefined = await dtMacroToNode({
 		document,
-		macro.args[0],
+		macro: macro.args[0],
 		context,
 		position,
-	);
+	});
 
 	return dtNodeLabelStringArrayRaw(node);
 }

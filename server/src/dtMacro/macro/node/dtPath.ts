@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
+import { ResolveMacroRequest } from '../../helpers';
 import { Node } from '../../../context/node';
 import { dtPathRaw } from '../raw/node/dtPath';
 
-export async function dtPath(
-	macro: DTMacroInfo,
-	context: ContextAware,
-): Promise<Node | undefined> {
+export async function dtPath({
+	macro,
+	context,
+}: ResolveMacroRequest): Promise<Node | undefined> {
 	const args = macro.args;
 	if (macro.macro !== 'DT_PATH' || !args?.length) {
 		return;

@@ -20,13 +20,12 @@ import {
 	InsertTextFormat,
 } from 'vscode-languageserver';
 import { dtPathRaw } from 'src/dtMacro/macro/raw/node/dtPath';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo, toCIdentifier } from '../../helpers';
+import { ResolveMacroRequest, toCIdentifier } from '../../helpers';
 
-export async function dtPathComplitions(
-	context: ContextAware,
-	macro: DTMacroInfo,
-): Promise<CompletionItem[]> {
+export async function dtPathComplitions({
+	macro,
+	context,
+}: ResolveMacroRequest): Promise<CompletionItem[]> {
 	if (macro.macro && macro.macro && 'DT_PATH'.startsWith(macro.macro)) {
 		return [
 			{

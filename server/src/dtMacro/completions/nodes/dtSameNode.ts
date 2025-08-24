@@ -19,9 +19,11 @@ import {
 	CompletionItemKind,
 	InsertTextFormat,
 } from 'vscode-languageserver';
-import { DTMacroInfo } from '../../helpers';
+import { ResolveMacroRequest } from '../../helpers';
 
-export function dtSameNodeComplitions(macro: DTMacroInfo): CompletionItem[] {
+export function dtSameNodeComplitions({
+	macro,
+}: ResolveMacroRequest): CompletionItem[] {
 	if (macro.macro && macro.macro && 'DT_SAME_NODE'.startsWith(macro.macro)) {
 		return [
 			{

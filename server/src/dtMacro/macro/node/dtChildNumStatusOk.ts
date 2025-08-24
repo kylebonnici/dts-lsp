@@ -14,34 +14,25 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver-types';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { DTMacroInfo } from '../../helpers';
-import { ContextAware } from '../../../runtimeEvaluator';
+import { ResolveMacroRequest } from '../../helpers';
 import { Node } from '../../../context/node';
 import { dtChildNumStatusOkRaw } from '../raw/node/dtChildNumStatusOk';
 
 export async function dtChildNumStatusOk(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
+	{ document, macro, context, position }: ResolveMacroRequest,
 	dtMacroToNode: (
-		document: TextDocument,
-		macro: DTMacroInfo,
-		context: ContextAware,
-		position: Position,
+		resolveMacroRequest: ResolveMacroRequest,
 	) => Promise<Node | undefined>,
 ) {
 	if (macro.macro !== 'DT_CHILD_NUM_STATUS_OKAY' || macro.args?.length !== 1)
 		return;
 
-	const node = await dtMacroToNode(
+	const node = await dtMacroToNode({
 		document,
-		macro.args[0],
+		macro: macro.args[0],
 		context,
 		position,
-	);
+	});
 
 	return dtChildNumStatusOkRaw(node);
 }

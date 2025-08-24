@@ -14,25 +14,12 @@
  * limitations under the License.
  */
 
-import { CompletionItem, Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
+import { CompletionItem } from 'vscode-languageserver';
+import { ResolveMacroRequest } from '../../helpers';
 import { genericPropertyCompletion } from './genericProp';
 
 export async function dtEnumIndexComplitions(
-	document: TextDocument,
-	context: ContextAware,
-	macro: DTMacroInfo,
-	position: Position,
+	resolveMacroRequest: ResolveMacroRequest,
 ): Promise<CompletionItem[]> {
-	return genericPropertyCompletion(
-		document,
-		context,
-		macro,
-		position,
-		'DT_ENUM_IDX',
-		1,
-		2,
-	);
+	return genericPropertyCompletion(resolveMacroRequest, 'DT_ENUM_IDX', 1, 2);
 }

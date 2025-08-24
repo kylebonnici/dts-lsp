@@ -14,36 +14,23 @@
  * limitations under the License.
  */
 
-import { CompletionItem, Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
+import { CompletionItem } from 'vscode-languageserver';
 import { LabelRef } from '../../../ast/dtc/labelRef';
 import { NodePathRef } from '../../../ast/dtc/values/nodePath';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
+import { ResolveMacroRequest } from '../../helpers';
 import { genericPropertyCompletion } from './genericProp';
 import { getNameCompletion } from './dtPhaByName';
 
 export async function dtPhandleByNameComplitions(
-	document: TextDocument,
-	context: ContextAware,
-	macro: DTMacroInfo,
-	position: Position,
+	resolveMacroRequest: ResolveMacroRequest,
 ): Promise<CompletionItem[]> {
+	const { macro } = resolveMacroRequest;
 	if (macro.argIndexInParent === 2) {
-		return getNameCompletion(
-			document,
-			context,
-			macro,
-			position,
-			'DT_PHANDLE_BY_NAME',
-		);
+		return getNameCompletion(resolveMacroRequest, 'DT_PHANDLE_BY_NAME');
 	}
 
 	return genericPropertyCompletion(
-		document,
-		context,
-		macro,
-		position,
+		resolveMacroRequest,
 		'DT_PHANDLE_BY_NAME',
 		1,
 		3,

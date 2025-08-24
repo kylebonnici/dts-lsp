@@ -14,17 +14,14 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
-import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
+import { Node } from '../../../context/node';
+import { ResolveMacroRequest } from '../../helpers';
 
 export async function dtSameNode(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
+	{ document, macro, context, position }: ResolveMacroRequest,
+	dtMacroToNode: (
+		resolveMacroRequest: ResolveMacroRequest,
+	) => Promise<Node | undefined>,
 ) {
 	if (macro.macro !== 'DT_SAME_NODE' || macro.args?.length !== 2) {
 		return;
@@ -33,19 +30,19 @@ export async function dtSameNode(
 	const runtime = await context?.getRuntime();
 
 	if (runtime) {
-		const rhs = await dtMacroToNode(
+		const rhs = await dtMacroToNode({
 			document,
-			macro.args[0],
+			macro: macro.args[0],
 			context,
 			position,
-		);
+		});
 
-		const lhs = await dtMacroToNode(
+		const lhs = await dtMacroToNode({
 			document,
-			macro.args[1],
+			macro: macro.args[1],
 			context,
 			position,
-		);
+		});
 
 		return !!lhs && !!rhs && lhs === rhs;
 	}

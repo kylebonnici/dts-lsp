@@ -14,18 +14,20 @@
  * limitations under the License.
  */
 
+import { Hover } from 'vscode-languageserver';
 import { dtAlias } from '../../../dtMacro/macro/node/dtAlias';
-import { DTMacroInfo } from '../../../dtMacro/helpers';
-import { ContextAware } from '../../../runtimeEvaluator';
+import { ResolveMacroRequest } from '../../../dtMacro/helpers';
 
-export async function dtAliasHover(macro: DTMacroInfo, context: ContextAware) {
-	const node = await dtAlias(macro, context);
+export async function dtAliasHover(
+	resolveMacroRequest: ResolveMacroRequest,
+): Promise<Hover | undefined> {
+	const node = await dtAlias(resolveMacroRequest);
 
 	if (!node) {
 		return;
 	}
 
 	return {
-		contents: node.toMarkupContent(context.macros),
+		contents: node.toMarkupContent(resolveMacroRequest.context.macros),
 	};
 }

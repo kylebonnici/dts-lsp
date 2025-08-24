@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-import { DTMacroInfo } from '../../helpers';
-import { ContextAware } from '../../../runtimeEvaluator';
+import { ResolveMacroRequest } from '../../helpers';
 import { dtCompatGetAnyStatusOkRaw } from '../raw/node/dtCompatGetAnyStatusOk';
 
-export async function dtCompatGetAnyStatusOk(
-	macro: DTMacroInfo,
-	context: ContextAware,
-) {
+export async function dtCompatGetAnyStatusOk({
+	macro,
+	context,
+}: ResolveMacroRequest) {
 	if (
 		macro.macro !== 'DT_COMPAT_GET_ANY_STATUS_OKAY' ||
 		macro.args?.length !== 1
@@ -29,4 +28,10 @@ export async function dtCompatGetAnyStatusOk(
 		return;
 
 	return dtCompatGetAnyStatusOkRaw(macro.args[0].macro, context);
+}
+
+export async function dtCompatGetAnyStatusOkNode(
+	resolveMacroRequest: ResolveMacroRequest,
+) {
+	return (await dtCompatGetAnyStatusOk(resolveMacroRequest))?.at(0);
 }

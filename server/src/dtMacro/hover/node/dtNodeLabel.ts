@@ -14,21 +14,20 @@
  * limitations under the License.
  */
 
+import { Hover } from 'vscode-languageserver';
 import { dtNodeLabel } from '../../../dtMacro/macro/node/dtNodeLabel';
-import { DTMacroInfo } from '../../../dtMacro/helpers';
-import { ContextAware } from '../../../runtimeEvaluator';
+import { ResolveMacroRequest } from '../../../dtMacro/helpers';
 
 export async function dtNodeLabelHover(
-	macro: DTMacroInfo,
-	context: ContextAware,
-) {
-	const node = await dtNodeLabel(macro, context);
+	resolveMacroRequest: ResolveMacroRequest,
+): Promise<Hover | undefined> {
+	const node = await dtNodeLabel(resolveMacroRequest);
 
 	if (!node) {
 		return;
 	}
 
 	return {
-		contents: node.toMarkupContent(context.macros),
+		contents: node.toMarkupContent(resolveMacroRequest.context.macros),
 	};
 }

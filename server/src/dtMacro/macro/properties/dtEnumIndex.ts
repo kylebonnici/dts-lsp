@@ -14,23 +14,14 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
+import { ResolveMacroRequest } from '../../helpers';
 import { Node } from '../../../context/node';
 import { dtEnumIndexByIndexRaw } from '../raw/properties/dtEnumIndexByIndex';
 
 export async function dtEnumIndex(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
+	{ document, macro, context, position }: ResolveMacroRequest,
 	dtMacroToNode: (
-		document: TextDocument,
-		macro: DTMacroInfo,
-		context: ContextAware,
-		position: Position,
+		resolveMacroRequest: ResolveMacroRequest,
 	) => Promise<Node | undefined>,
 ) {
 	const args = macro.args;
@@ -38,12 +29,12 @@ export async function dtEnumIndex(
 		return;
 	}
 
-	const node: Node | undefined = await dtMacroToNode(
+	const node: Node | undefined = await dtMacroToNode({
 		document,
-		args[0],
+		macro: args[0],
 		context,
 		position,
-	);
+	});
 
 	return await dtEnumIndexByIndexRaw(node, args[1].macro, 0);
 }

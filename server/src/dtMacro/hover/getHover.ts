@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-import { Hover, HoverParams } from 'vscode-languageserver';
-import { Position, TextDocument } from 'vscode-languageserver-textdocument';
+import { Hover, HoverParams, Position } from 'vscode-languageserver';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ContextAware } from '../../runtimeEvaluator';
 import {
 	DTMacroInfo,
 	findMacroDefinition,
 	getMacroAtPosition,
+	ResolveMacroRequest,
 } from '../helpers';
 import { dtMacroToNode } from '../macro/dtMacroToNode';
 import { dtAliasHover } from './node/dtAlias';
@@ -62,78 +63,77 @@ import { dtEnumHasValueByIndexHover } from './property/dtEnumHasValueByIndex';
 import { dtPropHasIndexHover } from './property/dtPropHasIndex';
 import { dtPropHasNameHover } from './property/dtPropHasName';
 import { dtInstHover } from './node/dtInst';
+import { dtPropLenHover } from './property/dtPropLen';
+import { dtPropLenOrHover } from './property/dtPropLenOR';
+import { dtPropLastHover } from './property/dtPropLast';
+import { dtStringTokenHover } from './property/dtStringToken';
+import { dtStringTokenByIndexHover } from './property/dtStringTokenByIndex';
+import { dtStringTokenOrHover } from './property/dtStringTokenOr';
 
 async function getNodeHover(
-	position: Position,
-	context: ContextAware,
-	document: TextDocument,
-	macro: DTMacroInfo,
+	resolveMacroRequest: ResolveMacroRequest,
 ): Promise<Hover | undefined> {
-	return (
-		(await dtAliasHover(macro, context)) ||
-		(await dtChildHover(document, macro, context, position)) ||
-		(await dtChildNumHover(document, macro, context, position)) ||
-		(await dtChildNumStatusOkHover(document, macro, context, position)) ||
-		(await dtCompatGetAnyStatusOkHover(macro, context)) ||
-		(await dtGParentHover(document, macro, context, position)) ||
-		(await dtHasAliasHover(macro, context)) ||
-		(await dtInstHover(macro, context)) ||
-		(await dtRootHover(macro, context)) ||
-		(await dtPathHover(macro, context)) ||
-		(await dtNodePathHover(document, macro, context, position)) ||
-		(await dtNodeFullNameHover(document, macro, context, position)) ||
-		(await dtNodeLabelHover(macro, context)) ||
-		(await dtNodeLabelStringArrayHover(
-			document,
-			macro,
-			context,
-			position,
-		)) ||
-		(await dtParentHover(document, macro, context, position)) ||
-		(await dtSameNodeHover(document, macro, context, position))
+	return [
+		dtAliasHover,
+		dtChildHover,
+		dtChildNumHover,
+		dtChildNumStatusOkHover,
+		dtCompatGetAnyStatusOkHover,
+		dtGParentHover,
+		dtHasAliasHover,
+		dtInstHover,
+		dtRootHover,
+		dtPathHover,
+		dtNodePathHover,
+		dtNodeFullNameHover,
+		dtNodeLabelHover,
+		dtNodeLabelStringArrayHover,
+		dtParentHover,
+		dtSameNodeHover,
+	].reduce(
+		(accPromise, fn) =>
+			accPromise.then((v) => v || fn(resolveMacroRequest)),
+		Promise.resolve<Hover | undefined>(undefined),
 	);
 }
 
 async function getPropertyHover(
-	position: Position,
-	context: ContextAware,
-	document: TextDocument,
-	macro: DTMacroInfo,
+	resolveMacroRequest: ResolveMacroRequest,
 ): Promise<Hover | undefined> {
-	return (
-		(await dtEnumHasValueHover(document, macro, context, position)) ||
-		(await dtEnumHasValueByIndexHover(
-			document,
-			macro,
-			context,
-			position,
-		)) ||
-		(await dtEnumIndexHover(document, macro, context, position)) ||
-		(await dtEnumIndexOrHover(document, macro, context, position)) ||
-		(await dtEnumIndexByIndexOrHover(document, macro, context, position)) ||
-		(await dtEnumIndexByIndexHover(document, macro, context, position)) ||
-		(await dtPhaHover(document, macro, context, position)) ||
-		(await dtPhaOrHover(document, macro, context, position)) ||
-		(await dtPhaByIndexHover(document, macro, context, position)) ||
-		(await dtPhaByIndexOrHover(document, macro, context, position)) ||
-		(await dtPhaByNameHover(document, macro, context, position)) ||
-		(await dtPhaByNameOrHover(document, macro, context, position)) ||
-		(await dtPhandelHover(document, macro, context, position)) ||
-		(await dtPhandelByIndexHover(document, macro, context, position)) ||
-		(await dtPhandelByNameHover(document, macro, context, position)) ||
-		(await dtPropHover(document, macro, context, position)) ||
-		(await dtPropByIdxHover(document, macro, context, position)) ||
-		(await dtPropByPhandleHover(document, macro, context, position)) ||
-		(await dtPropByPhandleIndexOrHover(
-			document,
-			macro,
-			context,
-			position,
-		)) ||
-		(await dtPropByPhandleIndexHover(document, macro, context, position)) ||
-		(await dtPropHasIndexHover(document, macro, context, position)) ||
-		(await dtPropHasNameHover(document, macro, context, position)) ||
-		(await dtPropOrHover(document, macro, context, position))
+	return [
+		dtEnumHasValueByIndexHover,
+		dtEnumHasValueHover,
+		dtEnumIndexByIndexHover,
+		dtEnumIndexByIndexOrHover,
+		dtEnumIndexHover,
+		dtEnumIndexOrHover,
+		dtPhaByIndexHover,
+		dtPhaByIndexOrHover,
+		dtPhaByNameHover,
+		dtPhaByNameOrHover,
+		dtPhaHover,
+		dtPhandelByIndexHover,
+		dtPhandelByNameHover,
+		dtPhandelHover,
+		dtPhaOrHover,
+		dtPropByIdxHover,
+		dtPropByPhandleHover,
+		dtPropByPhandleIndexHover,
+		dtPropByPhandleIndexOrHover,
+		dtPropHasIndexHover,
+		dtPropHasNameHover,
+		dtPropHover,
+		dtPropLastHover,
+		dtPropLenHover,
+		dtPropLenOrHover,
+		dtPropOrHover,
+		dtStringTokenByIndexHover,
+		dtStringTokenHover,
+		dtStringTokenOrHover,
+	].reduce(
+		(accPromise, fn) =>
+			accPromise.then((v) => v || fn(resolveMacroRequest)),
+		Promise.resolve<Hover | undefined>(undefined),
 	);
 }
 
@@ -158,14 +158,14 @@ async function getHoverFrom(
 	}
 
 	const hover =
-		(await getNodeHover(position, context, document, macro)) ||
-		(await getPropertyHover(position, context, document, macro));
+		(await getNodeHover({ position, context, document, macro })) ||
+		(await getPropertyHover({ position, context, document, macro }));
 
 	if (hover) {
 		return hover;
 	}
 
-	const node = await dtMacroToNode(document, macro, context, position);
+	const node = await dtMacroToNode({ document, macro, context, position });
 
 	if (node) {
 		return {

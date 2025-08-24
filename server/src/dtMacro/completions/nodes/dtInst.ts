@@ -19,13 +19,12 @@ import {
 	CompletionItemKind,
 	InsertTextFormat,
 } from 'vscode-languageserver';
-import { DTMacroInfo, toCIdentifier } from '../../helpers';
-import { Runtime } from '../../../context/runtime';
+import { ResolveMacroRequest, toCIdentifier } from '../../helpers';
 
-export function dtInstComplitions(
-	macro: DTMacroInfo,
-	runtime: Runtime,
-): CompletionItem[] {
+export function dtInstComplitions({
+	macro,
+	context,
+}: ResolveMacroRequest): CompletionItem[] {
 	if (macro.macro && 'DT_INST'.startsWith(macro.macro)) {
 		return [
 			{
@@ -42,7 +41,7 @@ export function dtInstComplitions(
 	}
 
 	return (
-		runtime.context.bindingLoader?.getBindings().map(
+		context.bindingLoader?.getBindings().map(
 			(binding) =>
 				({
 					label: toCIdentifier(binding),

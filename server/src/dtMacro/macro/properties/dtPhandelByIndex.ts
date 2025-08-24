@@ -14,23 +14,14 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../../../runtimeEvaluator';
 import { Node } from '../../../context/node';
-import { DTMacroInfo } from '../../helpers';
+import { ResolveMacroRequest } from '../../helpers';
 import { dtPhandelByIndexRaw } from '../raw/properties/dtPhandelByIndex';
 
 export async function dtPhandelByIndex(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
+	{ document, macro, context, position }: ResolveMacroRequest,
 	dtMacroToNode: (
-		document: TextDocument,
-		macro: DTMacroInfo,
-		context: ContextAware,
-		position: Position,
+		resolveMacroRequest: ResolveMacroRequest,
 	) => Promise<Node | undefined>,
 ) {
 	const args = macro.args;
@@ -38,7 +29,12 @@ export async function dtPhandelByIndex(
 		return;
 	}
 
-	const node = await dtMacroToNode(document, args[0], context, position);
+	const node = await dtMacroToNode({
+		document,
+		macro: args[0],
+		context,
+		position,
+	});
 
 	return dtPhandelByIndexRaw(node, args[1].macro, args.at(2)?.macro);
 }

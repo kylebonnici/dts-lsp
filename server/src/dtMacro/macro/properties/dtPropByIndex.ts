@@ -14,23 +14,14 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
+import { ResolveMacroRequest } from '../../helpers';
 import { dtPropByIdxRaw } from '../raw/properties/dtPropByIdx';
 import { Node } from '../../../context/node';
 
 export async function dtPropByIndex(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
+	{ document, macro, context, position }: ResolveMacroRequest,
 	dtMacroToNode: (
-		document: TextDocument,
-		macro: DTMacroInfo,
-		context: ContextAware,
-		position: Position,
+		resolveMacroRequest: ResolveMacroRequest,
 	) => Promise<Node | undefined>,
 ) {
 	if (macro.macro !== 'DT_PROP_BY_IDX' || macro.args?.length !== 3) {
@@ -38,7 +29,12 @@ export async function dtPropByIndex(
 	}
 
 	return dtPropByIdxRaw(
-		await dtMacroToNode(document, macro.args[0], context, position),
+		await dtMacroToNode({
+			document,
+			macro: macro.args[0],
+			context,
+			position,
+		}),
 		macro.args[1].macro,
 		macro.args[2].macro,
 		context,

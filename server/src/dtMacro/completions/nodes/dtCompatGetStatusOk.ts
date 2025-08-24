@@ -19,13 +19,12 @@ import {
 	CompletionItemKind,
 	InsertTextFormat,
 } from 'vscode-languageserver';
-import { DTMacroInfo, toCIdentifier } from '../../helpers';
-import { Runtime } from '../../../context/runtime';
+import { ResolveMacroRequest, toCIdentifier } from '../../helpers';
 
-export function dtCompatGetStatusOkComplitions(
-	macro: DTMacroInfo,
-	runtime: Runtime,
-): CompletionItem[] {
+export function dtCompatGetStatusOkComplitions({
+	macro,
+	context,
+}: ResolveMacroRequest): CompletionItem[] {
 	if (
 		macro.macro &&
 		'DT_COMPAT_GET_ANY_STATUS_OKAY'.startsWith(macro.macro)
@@ -48,7 +47,7 @@ export function dtCompatGetStatusOkComplitions(
 	}
 
 	return (
-		runtime.context.bindingLoader?.getBindings().map(
+		context.bindingLoader?.getBindings().map(
 			(binding) =>
 				({
 					label: toCIdentifier(binding),

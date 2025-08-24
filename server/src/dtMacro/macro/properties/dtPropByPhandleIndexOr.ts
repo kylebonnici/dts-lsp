@@ -14,24 +14,15 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Node } from '../../../context/node';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
+import { ResolveMacroRequest } from '../../helpers';
 import { dtPropOrRaw } from '../raw/properties/dtPropOr';
 import { dtPhandelByIndexRaw } from '../raw/properties/dtPhandelByIndex';
 
 export async function dtPropByPhandleIndexOr(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
+	{ document, macro, context, position }: ResolveMacroRequest,
 	dtMacroToNode: (
-		document: TextDocument,
-		macro: DTMacroInfo,
-		context: ContextAware,
-		position: Position,
+		resolveMacroRequest: ResolveMacroRequest,
 	) => Promise<Node | undefined>,
 ) {
 	if (
@@ -42,7 +33,12 @@ export async function dtPropByPhandleIndexOr(
 	}
 
 	const handle = await dtPhandelByIndexRaw(
-		await dtMacroToNode(document, macro.args[0], context, position),
+		await dtMacroToNode({
+			document,
+			macro: macro.args[0],
+			context,
+			position,
+		}),
 		macro.args[1].macro,
 		macro.args[2].macro,
 	);
@@ -50,10 +46,7 @@ export async function dtPropByPhandleIndexOr(
 	return dtPropOrRaw(
 		handle,
 		macro.args[3].macro,
-		macro.args[4],
-		document,
-		context,
-		position,
+		{ macro: macro.args[4], document, context, position },
 		dtMacroToNode,
 	);
 }

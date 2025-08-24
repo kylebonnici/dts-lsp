@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-import { DTMacroInfo } from '../../../dtMacro/helpers';
-import { ContextAware } from '../../../runtimeEvaluator';
+import { ResolveMacroRequest } from '../../../dtMacro/helpers';
 import { dtNodeLabelRaw } from '../raw/node/dtNodeLabel';
 
-export async function dtNodeLabel(macro: DTMacroInfo, context: ContextAware) {
+export async function dtNodeLabel({ macro, context }: ResolveMacroRequest) {
 	if (macro.macro !== 'DT_NODELABEL' || macro.args?.length !== 1) return;
 
 	return dtNodeLabelRaw(macro.args[0].macro, context);

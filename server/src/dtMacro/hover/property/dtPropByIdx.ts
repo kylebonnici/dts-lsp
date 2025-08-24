@@ -14,27 +14,16 @@
  * limitations under the License.
  */
 
-import { MarkupKind, Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
+import { Hover, MarkupKind } from 'vscode-languageserver';
 import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
+import { ResolveMacroRequest } from '../../helpers';
 import { dtPropByIndex } from '../../macro/properties/dtPropByIndex';
 import { Node } from '../../../context/node';
 
 export async function dtPropByIdxHover(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
-) {
-	const value = await dtPropByIndex(
-		document,
-		macro,
-		context,
-		position,
-		dtMacroToNode,
-	);
+	resolveMacroRequest: ResolveMacroRequest,
+): Promise<Hover | undefined> {
+	const value = await dtPropByIndex(resolveMacroRequest, dtMacroToNode);
 
 	if (value === true) {
 		return {
@@ -51,7 +40,7 @@ export async function dtPropByIdxHover(
 
 	if (value instanceof Node) {
 		return {
-			contents: value.toMarkupContent(context.macros),
+			contents: value.toMarkupContent(resolveMacroRequest.context.macros),
 		};
 	}
 

@@ -14,29 +14,24 @@
  * limitations under the License.
  */
 
-import { CompletionItem, Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
+import { CompletionItem } from 'vscode-languageserver';
 import { dtMacroToNode } from 'src/dtMacro/macro/dtMacroToNode';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
+import { ResolveMacroRequest } from '../../helpers';
 import { dtPhandelByIndex } from '../../../dtMacro/macro/properties/dtPhandelByIndex';
 import { genericPropertyCompletion } from './genericProp';
 import { dtPhandleByIndexComplitions } from './dtPhandleByIndex';
 
 export async function dtPropByPhaIndexComplitions(
-	document: TextDocument,
-	context: ContextAware,
-	macro: DTMacroInfo,
-	position: Position,
+	resolveMacroRequest: ResolveMacroRequest,
 ): Promise<CompletionItem[]> {
+	const { macro } = resolveMacroRequest;
 	if (
 		(macro.argIndexInParent === 1 || macro.argIndexInParent === 2) &&
 		'DT_PROP_BY_PHANDLE_IDX' === macro.parent?.macro
 	) {
-		return dtPhandleByIndexComplitions(
-			document,
-			context,
-			{
+		return dtPhandleByIndexComplitions({
+			...resolveMacroRequest,
+			macro: {
 				...macro,
 				parent: macro.parent
 					? {
@@ -45,28 +40,24 @@ export async function dtPropByPhaIndexComplitions(
 						}
 					: undefined,
 			},
-			position,
-		);
+		});
 	}
 
 	return genericPropertyCompletion(
-		document,
-		context,
-		macro,
-		position,
+		resolveMacroRequest,
 		'DT_PROP_BY_PHANDLE_IDX',
 		3,
 		4,
 		undefined,
 		() =>
 			dtPhandelByIndex(
-				document,
 				{
-					macro: 'DT_PHANDLE_BY_IDX',
-					args: macro.parent?.args?.slice(0, 3),
+					...resolveMacroRequest,
+					macro: {
+						macro: 'DT_PHANDLE_BY_IDX',
+						args: macro.parent?.args?.slice(0, 3),
+					},
 				},
-				context,
-				position,
 				dtMacroToNode,
 			),
 	);

@@ -14,31 +14,20 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
+import { Hover } from 'vscode-languageserver';
 import { dtGParent } from '../../../dtMacro/macro/node/dtGParent';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
+import { ResolveMacroRequest } from '../../helpers';
 import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
 
 export async function dtGParentHover(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
-) {
-	let gParent = await dtGParent(
-		document,
-		macro,
-		context,
-		position,
-		dtMacroToNode,
-	);
+	resolveMacroRequest: ResolveMacroRequest,
+): Promise<Hover | undefined> {
+	let gParent = await dtGParent(resolveMacroRequest, dtMacroToNode);
 
 	if (!gParent) {
 		return;
 	}
 	return {
-		contents: gParent.toMarkupContent(context.macros),
+		contents: gParent.toMarkupContent(resolveMacroRequest.context.macros),
 	};
 }

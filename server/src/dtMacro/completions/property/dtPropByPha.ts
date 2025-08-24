@@ -14,29 +14,24 @@
  * limitations under the License.
  */
 
-import { CompletionItem, Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
+import { CompletionItem } from 'vscode-languageserver';
 import { dtMacroToNode } from 'src/dtMacro/macro/dtMacroToNode';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
+import { ResolveMacroRequest } from '../../helpers';
 import { dtPhandel } from '../../../dtMacro/macro/properties/dtPhandel';
 import { genericPropertyCompletion } from './genericProp';
 import { dtPhandleComplitions } from './dtPhandle';
 
 export async function dtPropByPhaComplitions(
-	document: TextDocument,
-	context: ContextAware,
-	macro: DTMacroInfo,
-	position: Position,
+	resolveMacroRequest: ResolveMacroRequest,
 ): Promise<CompletionItem[]> {
+	const { macro } = resolveMacroRequest;
 	if (
 		macro.argIndexInParent === 1 &&
 		'DT_PROP_BY_PHANDLE' === macro.parent?.macro
 	) {
-		return dtPhandleComplitions(
-			document,
-			context,
-			{
+		return dtPhandleComplitions({
+			...resolveMacroRequest,
+			macro: {
 				...macro,
 				parent: macro.parent
 					? {
@@ -45,28 +40,24 @@ export async function dtPropByPhaComplitions(
 						}
 					: undefined,
 			},
-			position,
-		);
+		});
 	}
 
 	return genericPropertyCompletion(
-		document,
-		context,
-		macro,
-		position,
+		resolveMacroRequest,
 		'DT_PROP_BY_PHANDLE',
 		2,
 		3,
 		undefined,
 		() =>
 			dtPhandel(
-				document,
 				{
-					macro: 'DT_PHANDLE',
-					args: macro.parent?.args?.slice(0, 2),
+					...resolveMacroRequest,
+					macro: {
+						macro: 'DT_PHANDLE',
+						args: macro.parent?.args?.slice(0, 2),
+					},
 				},
-				context,
-				position,
 				dtMacroToNode,
 			),
 	);

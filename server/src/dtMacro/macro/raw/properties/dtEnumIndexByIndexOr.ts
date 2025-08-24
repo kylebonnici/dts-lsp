@@ -14,10 +14,7 @@
  * limitations under the License.
  */
 
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { Position } from 'vscode-languageserver-types';
-import { ContextAware } from '../../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../../../dtMacro/helpers';
+import { ResolveMacroRequest } from '../../../../dtMacro/helpers';
 import { Node } from '../../../../context/node';
 import { dtEnumIndexByIndexRaw } from './dtEnumIndexByIndex';
 import { dtOrRaw } from './dtOr';
@@ -26,23 +23,14 @@ export async function dtEnumIndexByIndexOrRaw(
 	node: Node | undefined,
 	propertyName: string,
 	idx: number,
-	fallback: DTMacroInfo,
-	document: TextDocument,
-	context: ContextAware,
-	position: Position,
+	resolveMacroRequest: ResolveMacroRequest,
 	dtMacroToNode: (
-		document: TextDocument,
-		macro: DTMacroInfo,
-		context: ContextAware,
-		position: Position,
+		resolveMacroRequest: ResolveMacroRequest,
 	) => Promise<Node | undefined>,
 ) {
 	return dtOrRaw(
 		await dtEnumIndexByIndexRaw(node, propertyName, idx),
-		fallback,
-		document,
-		context,
-		position,
+		resolveMacroRequest,
 		dtMacroToNode,
 	);
 }

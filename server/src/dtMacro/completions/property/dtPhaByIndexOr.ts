@@ -14,29 +14,20 @@
  * limitations under the License.
  */
 
-import { CompletionItem, Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
+import { CompletionItem } from 'vscode-languageserver';
 import { evalExp } from 'src/helpers';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
+import { ResolveMacroRequest } from '../../helpers';
 import { genericPropertyCompletion } from './genericProp';
 import { getCellNameCompletion } from './dtPha';
 import { getIndexCompletion } from './dtPhaByIndex';
 
 export async function dtPhaByIndexOrComplitions(
-	document: TextDocument,
-	context: ContextAware,
-	macro: DTMacroInfo,
-	position: Position,
+	resolveMacroRequest: ResolveMacroRequest,
 ): Promise<CompletionItem[]> {
+	const { macro } = resolveMacroRequest;
+
 	if (macro.argIndexInParent === 2) {
-		return getIndexCompletion(
-			document,
-			context,
-			macro,
-			position,
-			'DT_PHA_BY_IDX_OR',
-		);
+		return getIndexCompletion(resolveMacroRequest, 'DT_PHA_BY_IDX_OR');
 	}
 	if (macro.argIndexInParent === 3) {
 		const idx = macro.parent?.args
@@ -48,10 +39,7 @@ export async function dtPhaByIndexOrComplitions(
 		}
 
 		return getCellNameCompletion(
-			document,
-			context,
-			macro,
-			position,
+			resolveMacroRequest,
 			'DT_PHA_BY_IDX_OR',
 			3,
 			idx,
@@ -59,10 +47,7 @@ export async function dtPhaByIndexOrComplitions(
 	}
 
 	return genericPropertyCompletion(
-		document,
-		context,
-		macro,
-		position,
+		resolveMacroRequest,
 		'DT_PHA_BY_IDX_OR',
 		1,
 		3,

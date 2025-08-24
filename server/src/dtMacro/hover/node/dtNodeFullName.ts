@@ -14,19 +14,15 @@
  * limitations under the License.
  */
 
-import { MarkupKind, Position } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
+import { Hover, MarkupKind } from 'vscode-languageserver';
 import { dtNodeFullName } from '../../../dtMacro/macro/node/dtNodeFullName';
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
+import { ResolveMacroRequest } from '../../helpers';
+import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
 
 export async function dtNodeFullNameHover(
-	document: TextDocument,
-	macro: DTMacroInfo,
-	context: ContextAware,
-	position: Position,
-) {
-	const value = await dtNodeFullName(document, macro, context, position);
+	resolveMacroRequest: ResolveMacroRequest,
+): Promise<Hover | undefined> {
+	const value = await dtNodeFullName(resolveMacroRequest, dtMacroToNode);
 
 	if (value) {
 		return {

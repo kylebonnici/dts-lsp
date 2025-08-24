@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../helpers';
+import { ResolveMacroRequest } from '../../helpers';
 import { Node } from '../../../context/node';
 
-export async function dtRoot(
-	macro: DTMacroInfo,
-	context: ContextAware,
-): Promise<Node | undefined> {
+export async function dtRoot({
+	macro,
+	context,
+}: ResolveMacroRequest): Promise<Node | undefined> {
 	const args = macro.args;
 	if (macro.macro !== 'DT_ROOT' || args?.length) {
 		return;

@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-import { ContextAware } from '../../../runtimeEvaluator';
-import { DTMacroInfo } from '../../../dtMacro/helpers';
+import { ResolveMacroRequest } from '../../../dtMacro/helpers';
 import { dtHasAliasRaw } from '../raw/node/dtHasAlias';
 
-export async function dtHasAlias(macro: DTMacroInfo, context: ContextAware) {
+export async function dtHasAlias({ macro, context }: ResolveMacroRequest) {
 	if (macro.macro !== 'DT_HAS_ALIAS' || macro.args?.length !== 1) return;
 
 	return dtHasAliasRaw(macro.args[0].macro, context);

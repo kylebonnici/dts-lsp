@@ -18,19 +18,16 @@ import {
 	CompletionItem,
 	CompletionItemKind,
 	InsertTextFormat,
-	Position,
 } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
 import { dtMacroToNode } from '../../..//dtMacro/macro/dtMacroToNode';
-import { ContextAware } from '../../..//runtimeEvaluator';
-import { DTMacroInfo, toCIdentifier } from '../../helpers';
+import { ResolveMacroRequest, toCIdentifier } from '../../helpers';
 
-export async function dtChildComplitions(
-	document: TextDocument,
-	context: ContextAware,
-	macro: DTMacroInfo,
-	position: Position,
-): Promise<CompletionItem[]> {
+export async function dtChildComplitions({
+	macro,
+	document,
+	context,
+	position,
+}: ResolveMacroRequest): Promise<CompletionItem[]> {
 	if (macro.macro && macro.macro && 'DT_CHILD'.startsWith(macro.macro)) {
 		return [
 			{
@@ -50,12 +47,12 @@ export async function dtChildComplitions(
 		return [];
 	}
 
-	const node = await dtMacroToNode(
+	const node = await dtMacroToNode({
 		document,
-		macro.parent.args[0],
+		macro: macro.parent.args[0],
 		context,
 		position,
-	);
+	});
 
 	return (
 		node?.nodes.map(

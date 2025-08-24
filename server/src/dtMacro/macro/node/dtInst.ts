@@ -15,11 +15,10 @@
  */
 
 import { evalExp } from '../../../helpers';
-import { DTMacroInfo } from '../../helpers';
-import { ContextAware } from '../../../runtimeEvaluator';
+import { ResolveMacroRequest } from '../../helpers';
 import { dtInstRaw } from '../raw/node/dtInst';
 
-export async function dtInst(macro: DTMacroInfo, context: ContextAware) {
+export async function dtInst({ macro, context }: ResolveMacroRequest) {
 	if (macro.macro !== 'DT_INST' || macro.args?.length !== 2) return;
 
 	const idx = evalExp(macro.args[0].macro);
