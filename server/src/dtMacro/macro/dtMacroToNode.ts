@@ -28,9 +28,42 @@ import { dtNodeLabel } from './node/dtNodeLabel';
 import { dtParent } from './node/dtParent';
 import { dtPath } from './node/dtPath';
 import { dtRoot } from './node/dtRoot';
+import { dtEnumIndexByIndexOr } from './properties/dtEnumIndexByIndexOr';
+import { dtEnumIndexOr } from './properties/dtEnumIndexOr';
+import { dtPhaByIndexOr } from './properties/dtPhaByIndexOr';
+import { dtPhaByNameOr } from './properties/dtPhaByNameOr';
 import { dtPhandel } from './properties/dtPhandel';
 import { dtPhandelByIndex } from './properties/dtPhandelByIndex';
 import { dtPhandelByName } from './properties/dtPhandelByName';
+import { dtPhaOr } from './properties/dtPhaOr';
+import { dtPropByPhandleIndexOr } from './properties/dtPropByPhandleIndexOr';
+import { dtPropLenOr } from './properties/dtPropLenOr';
+import { dtPropOr } from './properties/dtPropOr';
+import { dtStringTokenOr } from './properties/dtStringTokenOr';
+import { dtStringUnquotedOr } from './properties/dtStringUnquotedOr';
+import { dtStringUpperTokenOr } from './properties/dtStringUpperTokenOr';
+
+function getNodeOrUndefined<T>(
+	action: (
+		resolveMacroRequest: ResolveMacroRequest,
+		dtMacroToNode: (
+			resolveMacroRequest: ResolveMacroRequest,
+		) => Promise<Node | undefined>,
+	) => T,
+) {
+	return async (
+		resolveMacroRequest: ResolveMacroRequest,
+		dtMacroToNode: (
+			resolveMacroRequest: ResolveMacroRequest,
+		) => Promise<Node | undefined>,
+	) => {
+		const result = await action(resolveMacroRequest, dtMacroToNode);
+
+		if (result instanceof Node) {
+			return result;
+		}
+	};
+}
 
 export async function dtMacroToNode({
 	macro,
@@ -73,6 +106,17 @@ export async function dtMacroToNode({
 		dtPropNode,
 		dtPropOrNode,
 		dtRoot,
+		getNodeOrUndefined(dtEnumIndexByIndexOr),
+		getNodeOrUndefined(dtEnumIndexOr),
+		getNodeOrUndefined(dtPhaByIndexOr),
+		getNodeOrUndefined(dtPhaByNameOr),
+		getNodeOrUndefined(dtPhaOr),
+		getNodeOrUndefined(dtPropByPhandleIndexOr),
+		getNodeOrUndefined(dtPropLenOr),
+		getNodeOrUndefined(dtPropOr),
+		getNodeOrUndefined(dtStringTokenOr),
+		getNodeOrUndefined(dtStringUnquotedOr),
+		getNodeOrUndefined(dtStringUpperTokenOr),
 	];
 
 	// TODO Add all or operators
