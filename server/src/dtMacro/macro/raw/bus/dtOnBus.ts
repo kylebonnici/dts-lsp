@@ -14,8 +14,14 @@
  * limitations under the License.
  */
 
+import { toCIdentifier } from 'src/dtMacro/helpers';
 import { Node } from '../../../../context/node';
 
 export async function dtOnBusRaw(node: Node | undefined, bus: string) {
-	return node?.nodeType?.onBus === bus;
+	if (!node) {
+		return;
+	}
+
+	const onBus = node.nodeType?.onBus;
+	return onBus ? toCIdentifier(onBus) === bus : false;
 }

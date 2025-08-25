@@ -19,7 +19,7 @@ import {
 	CompletionItemKind,
 	InsertTextFormat,
 } from 'vscode-languageserver';
-import { ResolveMacroRequest } from '../../helpers';
+import { ResolveMacroRequest, toCIdentifier } from '../../helpers';
 
 export async function dtOnBusComplitions({
 	macro,
@@ -28,7 +28,7 @@ export async function dtOnBusComplitions({
 	if (macro.parent?.macro === 'DT_ON_BUS' && macro.argIndexInParent === 1) {
 		return (
 			context.bindingLoader?.getBusTypes().map((busType) => ({
-				label: busType,
+				label: toCIdentifier(busType),
 				kind: CompletionItemKind.Enum,
 			})) ?? []
 		);

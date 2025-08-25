@@ -374,5 +374,5 @@ async function findFromCompiledCommand(
 }
 
 export function toCIdentifier(name: string) {
-	return name.toLowerCase().replace(/[@,-]/g, '_');
+	return name.toLowerCase().replace(/[@,-\.]/g, '_');
 }
