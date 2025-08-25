@@ -75,11 +75,16 @@ import { dtStringUnquotedOrHover } from './property/dtStringUnquotedOr';
 import { dtStringUpperTokenByIndexHover } from './property/dtStringUpperTokenByIndex';
 import { dtStringUpperTokenHover } from './property/dtStringUpperToken';
 import { dtStringUpperTokenOrHover } from './property/dtStringUpperTokenOr';
+import { dtBusHover } from './bus/dtBus';
+import { dtOnBusHover } from './bus/dtOnBus';
 
 async function getNodeHover(
 	resolveMacroRequest: ResolveMacroRequest,
 ): Promise<Hover | undefined> {
 	return [
+		dtBusHover,
+		dtOnBusHover,
+		//
 		dtAliasHover,
 		dtChildHover,
 		dtChildNumHover,

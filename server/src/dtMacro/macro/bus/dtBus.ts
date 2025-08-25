@@ -14,20 +14,25 @@
  * limitations under the License.
  */
 
-import { getStandardType } from '../dtsTypes/standardTypes';
-import { BindingLoader } from '../dtsTypes/bindings/bindingLoader';
-import { Node } from '../context/node';
+import { ResolveMacroRequest } from '../../helpers';
+import { Node } from '../../../context/node';
+import { dtBusRaw } from '../raw/bus/dtBus';
 
-export const getFakeBindingLoader = (): BindingLoader => ({
-	type: 'Zephyr',
-	files: {
-		zephyrBindings: [],
-		deviceOrgBindingsMetaSchema: [],
-		deviceOrgTreeBindings: [],
-	},
-	getNodeTypes: (node: Node) => {
-		return { type: [getStandardType(node)], issues: [] };
-	},
-	getBindings: () => [],
-	getBusTypes: () => [],
-});
+export async function dtBus(
+	resolveMacroRequest: ResolveMacroRequest,
+	dtMacroToNode: (
+		resolveMacroRequest: ResolveMacroRequest,
+	) => Promise<Node | undefined>,
+) {
+	const args = resolveMacroRequest.macro.args;
+	if (resolveMacroRequest.macro.macro !== 'DT_BUS' || args?.length !== 1) {
+		return;
+	}
+
+	const node: Node | undefined = await dtMacroToNode({
+		...resolveMacroRequest,
+		macro: args[0],
+	});
+
+	return await dtBusRaw(node);
+}

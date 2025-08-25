@@ -14,20 +14,21 @@
  * limitations under the License.
  */
 
-import { getStandardType } from '../dtsTypes/standardTypes';
-import { BindingLoader } from '../dtsTypes/bindings/bindingLoader';
-import { Node } from '../context/node';
+import { Hover } from 'vscode-languageserver';
+import { ResolveMacroRequest } from '../../helpers';
+import { dtMacroToNode } from '../../macro/dtMacroToNode';
+import { dtBus } from '../../../dtMacro/macro/bus/dtBus';
 
-export const getFakeBindingLoader = (): BindingLoader => ({
-	type: 'Zephyr',
-	files: {
-		zephyrBindings: [],
-		deviceOrgBindingsMetaSchema: [],
-		deviceOrgTreeBindings: [],
-	},
-	getNodeTypes: (node: Node) => {
-		return { type: [getStandardType(node)], issues: [] };
-	},
-	getBindings: () => [],
-	getBusTypes: () => [],
-});
+export async function dtBusHover(
+	resolveMacroRequest: ResolveMacroRequest,
+): Promise<Hover | undefined> {
+	const bus = await dtBus(resolveMacroRequest, dtMacroToNode);
+
+	return bus
+		? {
+				contents: bus.toMarkupContent(
+					resolveMacroRequest.context.macros,
+				),
+			}
+		: undefined;
+}

@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Code Completion, Hover, Go Definition, Go to Declaration in C/C++ files for:
+    - **Bus helpers**
+        - DT_BUS
+        - DT_ON_BUS
     - **Node identifiers and helpers**
         - DT_INVALID_NODE
         - DT_ROOT

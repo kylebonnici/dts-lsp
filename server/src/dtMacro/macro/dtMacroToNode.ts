@@ -19,6 +19,7 @@ import { dtPropNode } from '../dtProp';
 import { dtPropByIndexNode } from '../dtPropByIndex';
 import { dtPropOrNode } from '../dtPropOr';
 import { findMacroDefinition, ResolveMacroRequest } from '../helpers';
+import { dtBus } from './bus/dtBus';
 import { dtAlias } from './node/dtAlias';
 import { dtChild } from './node/dtChild';
 import { dtCompatGetAnyStatusOkNode } from './node/dtCompatGetAnyStatusOk';
@@ -91,6 +92,9 @@ export async function dtMacroToNode({
 			resolveMacroRequest: ResolveMacroRequest,
 		) => Promise<Node | undefined>,
 	) => Promise<Node | undefined>)[] = [
+		//
+		dtBus,
+		//
 		dtAlias,
 		dtChild,
 		dtCompatGetAnyStatusOkNode,

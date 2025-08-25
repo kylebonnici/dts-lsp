@@ -14,20 +14,15 @@
  * limitations under the License.
  */
 
-import { getStandardType } from '../dtsTypes/standardTypes';
-import { BindingLoader } from '../dtsTypes/bindings/bindingLoader';
-import { Node } from '../context/node';
+import { Node } from '../../../../context/node';
 
-export const getFakeBindingLoader = (): BindingLoader => ({
-	type: 'Zephyr',
-	files: {
-		zephyrBindings: [],
-		deviceOrgBindingsMetaSchema: [],
-		deviceOrgTreeBindings: [],
-	},
-	getNodeTypes: (node: Node) => {
-		return { type: [getStandardType(node)], issues: [] };
-	},
-	getBindings: () => [],
-	getBusTypes: () => [],
-});
+export async function dtBusRaw(node: Node | undefined) {
+	const onBus = node?.nodeType?.onBus;
+	const parentBusses = node?.parent?.nodeType?.bus;
+
+	return node &&
+		parentBusses?.length &&
+		parentBusses?.some((b) => b === onBus)
+		? (node.parent ?? undefined)
+		: undefined;
+}

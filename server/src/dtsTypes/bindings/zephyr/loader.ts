@@ -501,6 +501,13 @@ export class ZephyrBindingsLoader {
 		);
 	}
 
+	getBusTypes() {
+		const busTypes = Array.from(this.zephyrBindingCache.values())
+			.flatMap((b) => b.bus?.filter((v) => !!v) ?? [])
+			.filter((v) => !!v);
+		return Array.from(new Set(busTypes));
+	}
+
 	getDocumentLinks(
 		document: TextDocument,
 		folders: string[],

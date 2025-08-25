@@ -65,8 +65,11 @@ import { dtStringUnquotedOrComplitions } from './property/dtStringUnquotedOr';
 import { dtStringUpperTokenComplitions } from './property/dtStringUpperToken';
 import { dtStringUpperTokenByIndexComplitions } from './property/dtStringUpperTokenByIndex';
 import { dtStringUpperTokenOrComplitions } from './property/dtStringUpperTokenOr';
+import { dtOnBusComplitions } from './bus/dtOnBus';
 
 const MACRO_ONLY = [
+	'DT_BUS',
+	//
 	'DT_CHILD_NUM',
 	'DT_CHILD_NUM_STATUS_OKAY',
 	'DT_GPARENT',
@@ -80,6 +83,7 @@ const MACRO_ONLY = [
 	'DT_NODE_PATH',
 	'DT_NODELABEL_STRING_ARRAY',
 	'DT_PARENT',
+	//
 ];
 
 export async function getCompletions(
@@ -98,6 +102,8 @@ export async function getCompletions(
 	return (
 		await Promise.all(
 			[
+				dtOnBusComplitions,
+				//
 				dtAliasComplitions,
 				dtChildComplitions,
 				dtCompatGetStatusOkComplitions,
