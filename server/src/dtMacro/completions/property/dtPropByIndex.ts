@@ -26,5 +26,6 @@ export async function dtPropByIndexComplitions(
 		'DT_PROP_BY_IDX',
 		1,
 		3,
+		(prop) => !prop.nexusMapsTo.length,
 	);
 }

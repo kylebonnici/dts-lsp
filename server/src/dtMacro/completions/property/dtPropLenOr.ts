@@ -26,5 +26,6 @@ export async function dtPropLenOrComplitions(
 		'DT_PROP_LEN_OR',
 		1,
 		2,
+		(prop) => !prop.nexusMapsTo.length,
 	);
 }

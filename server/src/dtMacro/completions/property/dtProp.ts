@@ -21,5 +21,11 @@ import { genericPropertyCompletion } from './genericProp';
 export async function dtPropComplitions(
 	resolveMacroRequest: ResolveMacroRequest,
 ): Promise<CompletionItem[]> {
-	return genericPropertyCompletion(resolveMacroRequest, 'DT_PROP', 1, 2);
+	return genericPropertyCompletion(
+		resolveMacroRequest,
+		'DT_PROP',
+		1,
+		2,
+		(prop) => !prop.nexusMapsTo.length,
+	);
 }

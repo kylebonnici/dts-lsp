@@ -26,5 +26,6 @@ export async function dtPropHasNameComplitions(
 		'DT_PROP_HAS_NAME',
 		1,
 		3,
+		(prop) => !prop.nexusMapsTo.length,
 	);
 }

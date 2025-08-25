@@ -26,5 +26,6 @@ export async function dtPropHasIndexComplitions(
 		'DT_PROP_HAS_IDX',
 		1,
 		3,
+		(prop) => !prop.nexusMapsTo.length,
 	);
 }

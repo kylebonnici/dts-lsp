@@ -48,7 +48,7 @@ export async function dtPropByPhaIndexComplitions(
 		'DT_PROP_BY_PHANDLE_IDX',
 		3,
 		4,
-		undefined,
+		(prop) => !prop.nexusMapsTo.length,
 		() =>
 			dtPhandelByIndex(
 				{
