@@ -15,7 +15,7 @@
  */
 
 import { CompletionItem } from 'vscode-languageserver';
-import { dtMacroToNode } from 'src/dtMacro/macro/dtMacroToNode';
+import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
 import { ResolveMacroRequest } from '../../helpers';
 import { dtPhandel } from '../../../dtMacro/macro/properties/dtPhandel';
 import { genericPropertyCompletion } from './genericProp';

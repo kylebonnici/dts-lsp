@@ -15,7 +15,7 @@
  */
 
 import { CompletionItem } from 'vscode-languageserver';
-import { evalExp } from 'src/helpers';
+import { evalExp } from '../../../helpers';
 import { ResolveMacroRequest } from '../../helpers';
 import { genericPropertyCompletion } from './genericProp';
 import { getCellNameCompletion } from './dtPha';

@@ -64,7 +64,7 @@ import { dtPropHasIndexHover } from './property/dtPropHasIndex';
 import { dtPropHasNameHover } from './property/dtPropHasName';
 import { dtInstHover } from './node/dtInst';
 import { dtPropLenHover } from './property/dtPropLen';
-import { dtPropLenOrHover } from './property/dtPropLenOR';
+import { dtPropLenOrHover } from './property/dtPropLenOr';
 import { dtPropLastHover } from './property/dtPropLast';
 import { dtStringTokenHover } from './property/dtStringToken';
 import { dtStringTokenByIndexHover } from './property/dtStringTokenByIndex';

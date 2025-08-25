@@ -19,7 +19,7 @@ import {
 	CompletionItemKind,
 	InsertTextFormat,
 } from 'vscode-languageserver';
-import { dtPathRaw } from 'src/dtMacro/macro/raw/node/dtPath';
+import { dtPathRaw } from '../../../dtMacro/macro/raw/node/dtPath';
 import { ResolveMacroRequest, toCIdentifier } from '../../helpers';
 
 export async function dtPathComplitions({

@@ -16,7 +16,7 @@
 
 import { Node } from '../../../context/node';
 import { ResolveMacroRequest } from '../../helpers';
-import { dtStringUnquotedOrRaw } from '../raw/properties/dtStringUnQuotedOr';
+import { dtStringUnquotedOrRaw } from '../raw/properties/dtStringUnquotedOr';
 
 export async function dtStringUnquotedOr(
 	{ document, macro, context, position }: ResolveMacroRequest,

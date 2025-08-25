@@ -19,7 +19,7 @@ import {
 	CompletionItemKind,
 	InsertTextFormat,
 } from 'vscode-languageserver';
-import { NodePath } from 'src/ast/dtc/values/nodePath';
+import { NodePath } from '../../../ast/dtc/values/nodePath';
 import { ResolveMacroRequest, toCIdentifier } from '../../../dtMacro/helpers';
 import { Node } from '../../../context/node';
 import { LabelRef } from '../../../ast/dtc/labelRef';
