@@ -32,7 +32,7 @@ import { NumberValue } from './ast/dtc/values/number';
 import { Expression } from './ast/cPreprocessors/expression';
 
 export type CodeActionDiagnosticData = {
-	issues: { edit?: TextEdit; codeActionTitle?: string } & (
+	issues: { edit?: TextEdit | TextEdit[]; codeActionTitle?: string } & (
 		| { type: 'SyntaxIssue'; items: SyntaxIssue[] }
 		| { type: 'StandardTypeIssue'; items: StandardTypeIssue[] }
 	);
@@ -77,6 +77,7 @@ export enum StandardTypeIssue {
 	MISSING_VALUE_NAME,
 	PROPERTY_NOT_IN_BINDING,
 	UNABLE_TO_FIND_MAPPING,
+	EXPECTED_NODE_ADDRESS,
 }
 
 export enum SyntaxIssue {
@@ -287,7 +288,7 @@ export interface Issue<T extends IssueTypes> {
 	tags?: DiagnosticTag[];
 	linkedTo: { ast: ASTBase; templateStrings: string[] }[];
 	templateStrings: string[];
-	edit?: TextEdit;
+	edit?: TextEdit | TextEdit[];
 	codeActionTitle?: string;
 }
 

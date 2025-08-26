@@ -316,10 +316,10 @@ const standardTypeIssueToCodeAction = (
 	issue: StandardTypeIssue,
 	diagnostic: Diagnostic,
 	uri: string,
-	edit?: TextEdit,
+	edit?: TextEdit[],
 	codeActionTitle?: string,
 ): CodeAction[] | undefined => {
-	if (!edit) return [];
+	if (!edit?.length) return [];
 
 	switch (issue) {
 		case StandardTypeIssue.REQUIRED:
@@ -327,7 +327,7 @@ const standardTypeIssueToCodeAction = (
 				{
 					title:
 						codeActionTitle ??
-						`Add Property "${edit.newText
+						`Add Property "${edit[0].newText
 							.split('=', 1)[0]
 							.replace(';', '')
 							.trim()}"`,
@@ -336,7 +336,7 @@ const standardTypeIssueToCodeAction = (
 					isPreferred: true,
 					edit: {
 						changes: {
-							[uri]: [edit],
+							[uri]: edit,
 						},
 					},
 				},
@@ -350,7 +350,7 @@ const standardTypeIssueToCodeAction = (
 					isPreferred: true,
 					edit: {
 						changes: {
-							[uri]: [edit],
+							[uri]: edit,
 						},
 					},
 				},
@@ -364,7 +364,21 @@ const standardTypeIssueToCodeAction = (
 					isPreferred: true,
 					edit: {
 						changes: {
-							[uri]: [edit],
+							[uri]: edit,
+						},
+					},
+				},
+			];
+		case StandardTypeIssue.EXPECTED_NODE_ADDRESS:
+			return [
+				{
+					title: codeActionTitle ?? `TODO`,
+					diagnostics: [diagnostic],
+					kind: CodeActionKind.QuickFix,
+					isPreferred: true,
+					edit: {
+						changes: {
+							[uri]: edit,
 						},
 					},
 				},
@@ -380,7 +394,7 @@ const standardTypeIssueToCodeAction = (
 							isPreferred: true,
 							edit: {
 								changes: {
-									[uri]: [edit],
+									[uri]: edit,
 								},
 							},
 						},
@@ -416,7 +430,11 @@ export function getCodeActions(
 							issue,
 							diagnostic,
 							codeActionParams.textDocument.uri,
-							tmp.issues.edit,
+							!tmp.issues.edit
+								? undefined
+								: Array.isArray(tmp.issues.edit)
+									? tmp.issues.edit
+									: [tmp.issues.edit],
 							tmp.issues.codeActionTitle,
 						),
 					);

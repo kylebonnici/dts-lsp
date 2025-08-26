@@ -79,6 +79,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Fixed an issue where an exception is thrown when doing completion on `#include <...>` if one of the
   includeds in the context settings does not exists.
+- Fixed an issue where if `reg` property is required (due to binding for example) and node address is missing
+  no diagnostic error is shown.
 
 ## [0.4.10] - 2025-08-09
 

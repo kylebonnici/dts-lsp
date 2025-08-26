@@ -385,7 +385,7 @@ export const genStandardTypeDiagnostic = (
 	linkedTo: ASTBase[] = [],
 	tags: DiagnosticTag[] | undefined = undefined,
 	templateStrings: string[] = [],
-	edit?: TextEdit,
+	edit?: TextEdit | TextEdit[],
 	codeActionTitle?: string,
 ): FileDiagnostic => {
 	const issue: Issue<StandardTypeIssue> = {
@@ -1001,6 +1001,8 @@ export const standardTypeIssueIssuesToMessage = (
 					return `Unknown node type "${issue.templateStrings[0]}"`;
 				case StandardTypeIssue.MISSING_VALUE_NAME:
 					return `Missing name for "${issue.templateStrings[0]}" index ${issue.templateStrings[1]}"`;
+				case StandardTypeIssue.EXPECTED_NODE_ADDRESS:
+					return `Node address is missing`;
 			}
 		})
 		.join(' or ')

@@ -542,6 +542,42 @@ export class NodeType extends INodeType {
 		const machedSet = new Set<Property>();
 
 		const propIssues = this.properties.flatMap((propType) => {
+			if (
+				propType.name === 'reg' &&
+				propType.required(node) === 'required' &&
+				!node.address &&
+				node.property.find((p) => p.name === 'reg')
+			) {
+				const nodeAddress = node
+					.regArray(runtime.context.macros)?.[0]
+					.startAddress.map((a) => a.toString(16))
+					.join(',');
+				issue.push(
+					genStandardTypeDiagnostic(
+						StandardTypeIssue.EXPECTED_NODE_ADDRESS,
+						node.definitions.at(-1)!.name ??
+							node.definitions.at(-1)!,
+						DiagnosticSeverity.Error,
+						node.definitions.slice(0, -1).map((n) => n.name ?? n),
+						[],
+						[],
+						nodeAddress
+							? node.definitions
+									.filter((n) => !!n.name)
+									.map((n) =>
+										TextEdit.insert(
+											Position.create(
+												n.name!.lastToken.pos.line,
+												n.name!.lastToken.pos.colEnd,
+											),
+											`@${nodeAddress}`,
+										),
+									)
+							: undefined,
+						'Add Node Address',
+					),
+				);
+			}
 			if (typeof propType.name === 'string') {
 				const property = node.getProperty(propType.name);
 				if (property) machedSet.add(property);
