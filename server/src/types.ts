@@ -78,6 +78,7 @@ export enum StandardTypeIssue {
 	PROPERTY_NOT_IN_BINDING,
 	UNABLE_TO_FIND_MAPPING,
 	EXPECTED_NODE_ADDRESS,
+	BINDING_ON_BUS_NODE,
 }
 
 export enum SyntaxIssue {

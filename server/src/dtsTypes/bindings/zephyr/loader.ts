@@ -393,20 +393,38 @@ export class ZephyrBindingsLoader {
 			return { type: [getStandardType(node)], issues: [] };
 		}
 
-		const out = compatible
-			.flatMap((c) =>
-				ZephyrBindingsLoader.getCompatibleKeys(c.name, node.parent).map(
-					(compatKey) =>
-						this.typeCache.get(key)?.get(compatKey)?.(node),
-				),
-			)
-			.filter((t) => !!t);
+		const out = compatible.flatMap((c) =>
+			ZephyrBindingsLoader.getCompatibleKeys(c.name, node.parent)
+				.map((compatKey) =>
+					this.typeCache.get(key)?.get(compatKey)?.(node),
+				)
+				.filter((v) => !!v),
+		);
 
-		const issues = compatible.flatMap((c) =>
-			!c ||
-			ZephyrBindingsLoader.getCompatibleKeys(c.name, node.parent).some(
-				(compatKey) => this.typeCache.get(key)?.has(compatKey),
-			)
+		const allBusTypes = this.getBusTypes();
+
+		const issues = compatible.flatMap((c) => {
+			const match = ZephyrBindingsLoader.getCompatibleKeys(
+				c.name,
+				node.parent,
+			).some((compatKey) => this.typeCache.get(key)?.has(compatKey));
+			if (!match) {
+				const busCompats = allBusTypes.filter((bus) =>
+					this.typeCache.get(key)?.has(`${c.name}::${bus}`),
+				);
+
+				if (busCompats.length) {
+					return genStandardTypeDiagnostic(
+						StandardTypeIssue.BINDING_ON_BUS_NODE,
+						c.ast,
+						DiagnosticSeverity.Error,
+						[],
+						[],
+						busCompats,
+					);
+				}
+			}
+			return match
 				? []
 				: [
 						genStandardTypeDiagnostic(
@@ -417,10 +435,13 @@ export class ZephyrBindingsLoader {
 							[DiagnosticTag.Unnecessary],
 							[c.name],
 						),
-					],
-		);
+					];
+		});
 
-		return { type: out.length ? out : [getStandardType(node)], issues };
+		return {
+			type: out.length ? out : [getStandardType(node)],
+			issues,
+		};
 	}
 
 	loadTypeAndCache(folders: string | string[], key: string) {

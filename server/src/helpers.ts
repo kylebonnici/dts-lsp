@@ -1003,6 +1003,8 @@ export const standardTypeIssueIssuesToMessage = (
 					return `Missing name for "${issue.templateStrings[0]}" index ${issue.templateStrings[1]}"`;
 				case StandardTypeIssue.EXPECTED_NODE_ADDRESS:
 					return `Node address is missing`;
+				case StandardTypeIssue.BINDING_ON_BUS_NODE:
+					return `Binding should be used on bus type${issue.templateStrings.length ? 's' : ''}: ${issue.templateStrings.join(' or ')}`;
 			}
 		})
 		.join(' or ')
