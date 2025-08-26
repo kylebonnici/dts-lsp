@@ -1413,6 +1413,16 @@ connection.onDocumentFormatting(async (event) => {
 		return [];
 	}
 
+	const issues = (
+		await context.getSyntaxIssues(undefined, (issue) =>
+			coreSyntaxIssuesFilter(issue, filePath, false),
+		)
+	).get(filePath);
+
+	if (issues?.length) {
+		return [];
+	}
+
 	return getDocumentFormatting(
 		event,
 		context,

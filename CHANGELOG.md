@@ -77,6 +77,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Code Action for node `Property "reg" is required` to add address of node
 - Diagnostic error when a zephyr binding intened for a bus but node is not on bus
 
+### Changed
+
+- Document formating is not done if document has syntax errors.
+
 ### Fixed
 
 - Fixed an issue where an exception is thrown when doing completion on `#include <...>` if one of the
