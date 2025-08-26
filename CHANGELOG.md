@@ -74,6 +74,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `compileCommands?: string;` to context settings to extend the code `DT_`
   Macros functionality to find definitions not in c/cpp file
 - Code completions to add documentation to the items to be added where relevant
+- Code Action for node `Property "reg" is required` to add address of node 
 
 ### Fixed
 

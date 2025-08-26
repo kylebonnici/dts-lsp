@@ -176,7 +176,7 @@ export class PropertyNodeType<T = string | number> {
 						case PropertyType.U32:
 						case PropertyType.U64:
 						case PropertyType.PROP_ENCODED_ARRAY:
-							assignTest = ' = <>';
+							assignTest = ` = <${propertyName === 'reg' && node.address ? node.address.map((m) => `0x${m.toString(16)}`).join(' ') : ''}>`;
 							break;
 						case PropertyType.STRING:
 						case PropertyType.STRINGLIST:
@@ -549,8 +549,9 @@ export class NodeType extends INodeType {
 				node.property.find((p) => p.name === 'reg')
 			) {
 				const nodeAddress = node
-					.regArray(runtime.context.macros)?.[0]
-					.startAddress.map((a) => a.toString(16))
+					.regArray(runtime.context.macros)
+					?.at(0)
+					?.startAddress.map((a) => a.toString(16))
 					.join(',');
 				issue.push(
 					genStandardTypeDiagnostic(
