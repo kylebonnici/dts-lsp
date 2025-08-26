@@ -56,7 +56,6 @@ export const getBindingLoader = (
 			switch (type) {
 				case 'Zephyr':
 					return getZephyrBindingsLoader().getNodeTypes(
-						files.zephyrBindings,
 						node,
 						zephyrKey,
 					);

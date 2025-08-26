@@ -349,7 +349,6 @@ export class ZephyrBindingsLoader {
 	}
 
 	getNodeTypes(
-		folders: string[],
 		node: Node,
 		key: string,
 	): { type: NodeType[]; issues: FileDiagnostic[] } {
