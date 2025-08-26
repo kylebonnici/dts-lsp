@@ -34,11 +34,6 @@ export default () => {
 		(property, macros) => {
 			const issues: FileDiagnostic[] = [];
 
-			const values = flatNumberValues(property.ast.values);
-			if (!values) {
-				return [];
-			}
-
 			const addressCells = property.parent.addressCells(macros);
 			const sizeCells = property.parent.sizeCells(macros);
 			const args = [
@@ -55,6 +50,11 @@ export default () => {
 				ParameterInformation.create(arg),
 			);
 			prop.signatureArgsCyclic = true;
+
+			const values = flatNumberValues(property.ast.values);
+			if (!values) {
+				return [];
+			}
 
 			if (
 				values.length === 0 ||

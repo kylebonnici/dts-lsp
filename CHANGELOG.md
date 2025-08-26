@@ -74,7 +74,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `compileCommands?: string;` to context settings to extend the code `DT_`
   Macros functionality to find definitions not in c/cpp file
 - Code completions to add documentation to the items to be added where relevant
-- Code Action for node `Property "reg" is required` to add address of node 
+- Code Action for node `Property "reg" is required` to add address of node
 
 ### Fixed
 
@@ -82,6 +82,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   includeds in the context settings does not exists.
 - Fixed an issue where if `reg` property is required (due to binding for example) and node address is missing
   no diagnostic error is shown.
+- Fixed issue with signiture help no always working for `reg`, `dmaRanges`, `ranges` and `allocRanges`.
 
 ## [0.4.10] - 2025-08-09
 
