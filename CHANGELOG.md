@@ -84,6 +84,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fixed an issue where if `reg` property is required (due to binding for example) and node address is missing
   no diagnostic error is shown.
 - Fixed issue with signiture help no always working for `reg`, `dmaRanges`, `ranges` and `allocRanges`.
+- Fixed issue where code snippet for node referance e.g. `&spi0 {...}` would add new `{};`
 
 ## [0.4.10] - 2025-08-09
 

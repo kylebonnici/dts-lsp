@@ -169,7 +169,10 @@ function getCreateNodeRefItems(
 			),
 		).map((l) => ({
 			label: l,
-			insertText: `${l} {\n$1\n};`,
+			insertText:
+				result.ast.lastToken.nextToken?.value === '{'
+					? l
+					: `${l} {\n$1\n};`,
 			kind: CompletionItemKind.Value,
 			insertTextFormat: InsertTextFormat.Snippet,
 		})),
