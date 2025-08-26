@@ -75,6 +75,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   Macros functionality to find definitions not in c/cpp file
 - Code completions to add documentation to the items to be added where relevant
 
+### Fixed
+
+- Fixed an issue where an exception is thrown when doing completion on `#include <...>` if one of the
+  includeds in the context settings does not exists.
+
 ## [0.4.10] - 2025-08-09
 
 ### Added

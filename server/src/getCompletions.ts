@@ -57,19 +57,23 @@ function getIncudePathItems(
 	}
 
 	const getItems = (paths: string[]) => {
-		return paths.flatMap((p) =>
-			readdirSync(p, { withFileTypes: true, recursive: true })
-				.filter((f) => {
-					return (
-						f.name.toLowerCase().endsWith('.dtsi') ||
-						f.name.toLowerCase().endsWith('.h')
-					);
-				})
-				.map((f) => ({
-					label: `${join(relative(p, f.parentPath), f.name)}`,
-					kind: CompletionItemKind.File,
-				})),
-		);
+		return paths.flatMap((p) => {
+			try {
+				return readdirSync(p, { withFileTypes: true, recursive: true })
+					.filter((f) => {
+						return (
+							f.name.toLowerCase().endsWith('.dtsi') ||
+							f.name.toLowerCase().endsWith('.h')
+						);
+					})
+					.map((f) => ({
+						label: `${join(relative(p, f.parentPath), f.name)}`,
+						kind: CompletionItemKind.File,
+					}));
+			} catch {
+				return [];
+			}
+		});
 	};
 
 	if (result.ast.relative) {
