@@ -30,6 +30,33 @@ import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
 import { StringValue } from './ast/dtc/values/string';
 import { CMacroCallParam } from './ast/cPreprocessors/functionCall';
 
+export const generateNodeDeclaration = (node: Node) => {
+	const declaration = node.definitions.at(0);
+	return declaration
+		? Location.create(pathToFileURL(declaration.uri), toRange(declaration))
+		: undefined;
+};
+
+const getBottomProperty = (property: Property): Property => {
+	if (property.replaces) {
+		return getBottomProperty(property.replaces);
+	}
+
+	return property;
+};
+
+export const generatePropertyDeclaration = (
+	property: Property,
+): Location | undefined => {
+	const fistDefinition = getBottomProperty(property);
+	return fistDefinition
+		? Location.create(
+				pathToFileURL(fistDefinition.ast.uri),
+				toRange(fistDefinition.ast),
+			)
+		: undefined;
+};
+
 function getPropertyDeclaration(
 	result: SearchableResult | undefined,
 ): Location | undefined {
@@ -40,14 +67,6 @@ function getPropertyDeclaration(
 	) {
 		return;
 	}
-
-	const getBottomProperty = (property: Property): Property => {
-		if (property.replaces) {
-			return getBottomProperty(property.replaces);
-		}
-
-		return property;
-	};
 
 	const gentItem = (property: Property) => {
 		return Location.create(
@@ -79,18 +98,8 @@ function getNodeDeclaration(
 		return;
 	}
 
-	const gentItem = (node: Node) => {
-		const declaration = node.definitions.at(0);
-		return declaration
-			? Location.create(
-					pathToFileURL(declaration.uri),
-					toRange(declaration),
-				)
-			: undefined;
-	};
-
 	if (result.item instanceof Node && !isDeleteChild(result.ast)) {
-		return gentItem(result.item);
+		return generateNodeDeclaration(result.item);
 	}
 
 	if (
@@ -98,13 +107,13 @@ function getNodeDeclaration(
 		result.ast.parentNode instanceof LabelRef
 	) {
 		if (result.ast.parentNode.linksTo) {
-			return gentItem(result.ast.parentNode.linksTo);
+			return generateNodeDeclaration(result.ast.parentNode.linksTo);
 		}
 	}
 
 	if (result.ast instanceof NodeName) {
 		if (result.ast.linksTo) {
-			return gentItem(result.ast.linksTo);
+			return generateNodeDeclaration(result.ast.linksTo);
 		}
 	}
 
@@ -117,7 +126,7 @@ function getNodeDeclaration(
 			result.ast.value.split('/'),
 		);
 		if (node) {
-			return gentItem(node);
+			return generateNodeDeclaration(node);
 		}
 	}
 }

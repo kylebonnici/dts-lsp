@@ -28,6 +28,7 @@ export interface BindingLoader {
 	readonly type: BindingType;
 	readonly files: BindingLoaderFileType;
 	getBindings(): string[];
+	getBusTypes(): string[];
 	getDocumentLinks?(document?: TextDocument): DocumentLink[];
 }
 
@@ -78,6 +79,15 @@ export const getBindingLoader = (
 
 				case 'DevicetreeOrg':
 					return getDevicetreeOrgBindingsLoader().getBindings();
+			}
+		},
+		getBusTypes: () => {
+			switch (type) {
+				case 'Zephyr':
+					return getZephyrBindingsLoader().getBusTypes();
+
+				case 'DevicetreeOrg':
+					return [];
 			}
 		},
 		getDocumentLinks(document) {

@@ -52,7 +52,7 @@ class TokenizedDocumentProvider {
 	renewLexer(uri: string, text?: string): Token[] {
 		uri = normalizePath(uri);
 		getCachedCPreprocessorParserProvider().reset(uri);
-		if (!uri || !existsSync(uri)) {
+		if (!text && !existsSync(uri)) {
 			return [];
 		}
 

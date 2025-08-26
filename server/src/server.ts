@@ -66,15 +66,19 @@ import {
 } from './helpers';
 import { ContextAware } from './runtimeEvaluator';
 import { getCompletions } from './getCompletions';
+import { getCompletions as getDtMacroCompletions } from './dtMacro/completions/getCompletions';
 import { getReferences } from './findReferences';
 import { getTokenizedDocumentProvider } from './providers/tokenizedDocument';
 import { getPrepareRenameRequest, getRenameRequest } from './getRenameRequest';
 import { getDefinitions } from './findDefinitions';
+import { getDefinitions as getDTMacroDefinitions } from './dtMacro/definitions/findDefinitions';
 import { getDeclaration } from './findDeclarations';
+import { getDeclaration as getDTMacroDeclaration } from './dtMacro/declarations/findDeclarations';
 import { getCodeActions } from './getCodeActions';
 import { getDocumentFormatting } from './getDocumentFormatting';
 import { getTypeCompletions } from './getTypeCompletions';
 import { getHover } from './getHover';
+import { getHover as getDTMacroHover } from './dtMacro/hover/getHover';
 import { getBindingLoader } from './dtsTypes/bindings/bindingLoader';
 import { getFoldingRanges } from './foldingRanges';
 import { typeDefinition } from './typeDefinition';
@@ -301,7 +305,7 @@ connection.onInitialize((params: InitializeParams) => {
 	connection.console.log(
 		`[Server(${process.pid}) ${
 			workspaceFolder?.at(0)?.uri
-		} Version 0.4.10 ] Started and initialize received`,
+		} Version 0.5.0 ] Started and initialize received`,
 	);
 
 	const capabilities = params.capabilities;
@@ -333,7 +337,7 @@ connection.onInitialize((params: InitializeParams) => {
 			},
 			completionProvider: {
 				resolveProvider: true,
-				triggerCharacters: ['&', '=', ' ', '"'],
+				triggerCharacters: ['&', '=', ' ', '"', '(', ','],
 			},
 			codeActionProvider: {
 				codeActionKinds: [
@@ -1168,15 +1172,28 @@ connection.onCompletion(
 	async (
 		textDocumentPosition: TextDocumentPositionParams,
 	): Promise<CompletionItem[]> => {
-		const uri = fileURLToPath(textDocumentPosition.textDocument.uri);
-		if (!isDtsFile(uri)) {
+		const filePath = fileURLToPath(textDocumentPosition.textDocument.uri);
+
+		if (
+			(filePath.endsWith('.c') || filePath.endsWith('.cpp')) &&
+			activeContext &&
+			activeContext.bindingLoader?.type === 'Zephyr'
+		) {
+			return getDtMacroCompletions(
+				textDocumentPosition,
+				activeContext,
+				documents.get(textDocumentPosition.textDocument.uri),
+			);
+		}
+
+		if (!isDtsFile(filePath)) {
 			return [];
 		}
 
 		await allStable();
 
-		updateActiveContext({ uri });
-		const context = quickFindContext(uri);
+		updateActiveContext({ uri: filePath });
+		const context = quickFindContext(filePath);
 
 		if (context) {
 			return [
@@ -1314,17 +1331,30 @@ connection.onReferences(async (event) => {
 });
 
 connection.onDefinition(async (event) => {
-	const uri = fileURLToPath(event.textDocument.uri);
-	if (!isDtsFile(uri)) {
+	const filePath = fileURLToPath(event.textDocument.uri);
+
+	if (
+		(filePath.endsWith('.c') || filePath.endsWith('.cpp')) &&
+		activeContext &&
+		activeContext.bindingLoader?.type === 'Zephyr'
+	) {
+		return getDTMacroDefinitions(
+			event,
+			activeContext,
+			documents.get(event.textDocument.uri),
+		);
+	}
+
+	if (!isDtsFile(filePath)) {
 		return;
 	}
 
 	await allStable();
-	updateActiveContext({ uri });
-	const context = quickFindContext(uri);
+	updateActiveContext({ uri: filePath });
+	const context = quickFindContext(filePath);
 
 	const documentLinkDefinition =
-		(await context?.getDocumentLinks(uri, event.position))
+		(await context?.getDocumentLinks(filePath, event.position))
 			?.filter((docLink) => docLink.target)
 			.map((docLink) =>
 				Location.create(docLink.target!, docLink.range),
@@ -1336,14 +1366,27 @@ connection.onDefinition(async (event) => {
 });
 
 connection.onDeclaration(async (event) => {
-	const uri = fileURLToPath(event.textDocument.uri);
-	if (!isDtsFile(uri)) {
+	const filePath = fileURLToPath(event.textDocument.uri);
+
+	if (
+		(filePath.endsWith('.c') || filePath.endsWith('.cpp')) &&
+		activeContext &&
+		activeContext.bindingLoader?.type === 'Zephyr'
+	) {
+		return getDTMacroDeclaration(
+			event,
+			activeContext,
+			documents.get(event.textDocument.uri),
+		);
+	}
+
+	if (!isDtsFile(filePath)) {
 		return;
 	}
 
 	await allStable();
-	updateActiveContext({ uri });
-	const context = quickFindContext(uri);
+	updateActiveContext({ uri: filePath });
+	const context = quickFindContext(filePath);
 
 	return getDeclaration(event, context);
 });
@@ -1379,6 +1422,19 @@ connection.onDocumentFormatting(async (event) => {
 
 connection.onHover(async (event) => {
 	const filePath = fileURLToPath(event.textDocument.uri);
+
+	if (
+		(filePath.endsWith('.c') || filePath.endsWith('.cpp')) &&
+		activeContext &&
+		activeContext.bindingLoader?.type === 'Zephyr'
+	) {
+		return getDTMacroHover(
+			event,
+			activeContext,
+			documents.get(event.textDocument.uri),
+		);
+	}
+
 	if (!isDtsFile(filePath)) {
 		return;
 	}

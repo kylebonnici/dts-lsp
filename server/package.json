@@ -1,60 +1,60 @@
 {
-  "name": "devicetree-language-server",
-  "description": "Devicetree Language Server",
-  "author": "Kyle Micallef Bonnici",
-  "package-name": "devicetree-language-server",
-  "main": "dist/server.js",
-  "version": "0.4.10",
-  "categories": [
-    "Linters",
-    "Formatters",
-    "Programming Languages",
-    "Snippets"
-  ],
-  "keywords": [
-    "dts",
-    "devicetree",
-    "lsp",
-    "formatting"
-  ],
-  "files": [
-    "dist/server.js",
-    "meta-schemas/**"
-  ],
-  "bin": "dist/server.js",
-  "git repository": "https://github.com/kylebonnici/dts-lsp",
-  "license": "Apache-2.0",
-  "engines": {
-    "node": ">=16"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/kylebonnici/dts-lsp"
-  },
-  "dependencies": {
-    "@hyperjump/browser": "^1.2.0",
-    "@hyperjump/json-schema": "^1.10.1",
-    "ajv": "^8.17.1",
-    "diff": "^8.0.2",
-    "glob": "^11.0.0",
-    "vscode-languageserver": "^9.0.1",
-    "vscode-languageserver-textdocument": "^1.0.11",
-    "vscode-languageserver-types": "^3.17.5",
-    "yaml": "^2.6.1"
-  },
-  "scripts": {
-    "test": "jest --silent",
-    "test:coverage": "jest --coverage --silent"
-  },
-  "devDependencies": {
-    "@jest/globals": "^29.7.0",
-    "@tsconfig/node20": "^20.1.4",
-    "@types/jest": "^29.5.12",
-    "@types/node": "^22.5.1",
-    "jest": "^29.7.0",
-    "ts-jest": "^29.2.5",
-    "ts-node": "^10.9.2",
-    "tslib": "^2.7.0",
-    "typescript": "^5.5.4"
-  }
+	"name": "devicetree-language-server",
+	"description": "Devicetree Language Server",
+	"author": "Kyle Micallef Bonnici",
+	"package-name": "devicetree-language-server",
+	"main": "dist/server.js",
+	"version": "0.5.0",
+	"categories": [
+		"Linters",
+		"Formatters",
+		"Programming Languages",
+		"Snippets"
+	],
+	"keywords": [
+		"dts",
+		"devicetree",
+		"lsp",
+		"formatting"
+	],
+	"files": [
+		"dist/server.js",
+		"meta-schemas/**"
+	],
+	"bin": "dist/server.js",
+	"git repository": "https://github.com/kylebonnici/dts-lsp",
+	"license": "Apache-2.0",
+	"engines": {
+		"node": ">=16"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/kylebonnici/dts-lsp"
+	},
+	"dependencies": {
+		"@hyperjump/browser": "^1.2.0",
+		"@hyperjump/json-schema": "^1.10.1",
+		"ajv": "^8.17.1",
+		"diff": "^8.0.2",
+		"glob": "^11.0.0",
+		"vscode-languageserver": "^9.0.1",
+		"vscode-languageserver-textdocument": "^1.0.11",
+		"vscode-languageserver-types": "^3.17.5",
+		"yaml": "^2.6.1"
+	},
+	"scripts": {
+		"test": "jest --silent",
+		"test:coverage": "jest --coverage --silent"
+	},
+	"devDependencies": {
+		"@jest/globals": "^29.7.0",
+		"@tsconfig/node20": "^20.1.4",
+		"@types/jest": "^29.5.12",
+		"@types/node": "^22.5.1",
+		"jest": "^29.7.0",
+		"ts-jest": "^29.2.5",
+		"ts-node": "^10.9.2",
+		"tslib": "^2.7.0",
+		"typescript": "^5.5.4"
+	}
 }

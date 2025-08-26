@@ -123,13 +123,17 @@ function getRefLabelsItems(
 		return resolveNonDeletedLabels(node, inScope);
 	};
 
-	return Array.from(
-		new Set(
-			getScopeItems(result.runtime.rootNode).map((l) => l.label.value),
-		),
-	).map((l) => ({
-		label: `${l}`,
+	const map = new Map<string, LabelAssign>();
+	getScopeItems(result.runtime.rootNode).forEach((l) =>
+		map.set(l.label.value, l),
+	);
+
+	return Array.from(map).map(([, l]) => ({
+		label: `${l.label.value}`,
 		kind: CompletionItemKind.Method,
+		documentation: l.lastLinkedTo?.toMarkupContent(
+			result.runtime.context.macros,
+		),
 	}));
 }
 
@@ -227,13 +231,20 @@ function getDeleteNodeRefItems(
 		return [];
 	}
 
-	return Array.from(
-		new Set(
-			getScopeItems(result.runtime.rootNode).map((l) => l.label.value),
-		),
-	).map((l) => ({
-		label: result.ast instanceof LabelRef ? `${l}` : `&${l}`,
+	const map = new Map<string, LabelAssign>();
+	getScopeItems(result.runtime.rootNode).forEach((l) =>
+		map.set(l.label.value, l),
+	);
+
+	return Array.from(map).map(([, l]) => ({
+		label:
+			result.ast instanceof LabelRef
+				? `${l.label.value}`
+				: `&${l.label.value}`,
 		kind: CompletionItemKind.Variable,
+		documentation: l.lastLinkedTo?.toMarkupContent(
+			result.runtime.context.macros,
+		),
 	}));
 }
 
@@ -259,13 +270,13 @@ function getDeleteNodeNameItems(
 				.filter((n) => !inScope(n.by))
 				.map((n) => n.node),
 		]
-			.flatMap(
-				(n) =>
-					n.definitions.filter(
-						(n) => n instanceof DtcChildNode,
-					) as DtcChildNode[],
-			)
-			.filter((n) => inScope(n));
+			.flatMap((node) => ({
+				node,
+				astNodes: node.definitions.filter(
+					(n) => n instanceof DtcChildNode,
+				),
+			}))
+			.filter((n) => n.astNodes.some(inScope));
 	};
 
 	if (
@@ -273,11 +284,12 @@ function getDeleteNodeNameItems(
 		result.ast instanceof DeleteNode ||
 		result.beforeAst?.parentNode instanceof DeleteNode
 	) {
-		return Array.from(
-			new Set(getScopeItems(result.item).map((r) => r.name?.toString())),
-		).map((n) => ({
-			label: `${n}`,
+		return getScopeItems(result.item).map((n) => ({
+			label: `${n.astNodes.at(0)?.name?.toString()}`,
 			kind: CompletionItemKind.Variable,
+			documentation: n.node.toMarkupContent(
+				result.runtime.context.macros,
+			),
 		}));
 	}
 
@@ -324,11 +336,13 @@ function getDeletePropertyItems(
 		result.ast instanceof DeleteProperty ||
 		result.beforeAst?.parentNode instanceof DeleteProperty
 	) {
-		return Array.from(
-			new Set(getScopeItems(result.item).map((p) => p.name)),
-		).map((p) => ({
-			label: `${p}`,
+		const map = new Map<string, Property>();
+		getScopeItems(result.item).forEach((p) => map.set(p.name, p));
+
+		return Array.from(map).map(([, p]) => ({
+			label: `${p.name}`,
 			kind: CompletionItemKind.Variable,
+			documentation: p.ast.toPrettyString(result.runtime.context.macros),
 		}));
 	}
 
@@ -370,23 +384,21 @@ function getNodeRefPathsItems(
 			inScope,
 		);
 
-		return (
-			[
-				...(parentNode?.nodes.filter(
-					(n) =>
-						!isDeleteChild(result.ast) ||
-						n.definitions.some(inScope),
-				) ?? []),
-				...(parentNode?.deletedNodes
-					.filter((n) => !inScope(n.by))
-					.map((n) => n.node) ?? []),
-			].map((n) => n.fullName) ?? []
-		);
+		return [
+			...(parentNode?.nodes.filter(
+				(n) =>
+					!isDeleteChild(result.ast) || n.definitions.some(inScope),
+			) ?? []),
+			...(parentNode?.deletedNodes
+				.filter((n) => !inScope(n.by))
+				.map((n) => n.node) ?? []),
+		];
 	};
 
-	return getScopeItems().map((p) => ({
-		label: `/${[...nodePath, p].join('/')}`,
+	return getScopeItems().map((node) => ({
+		label: `/${[...nodePath, node.fullName].join('/')}`,
 		kind: CompletionItemKind.Variable,
+		documentation: node.toMarkupContent(result.runtime.context.macros),
 	}));
 }
 

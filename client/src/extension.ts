@@ -108,6 +108,8 @@ export async function activate(context: vscode.ExtensionContext) {
 		documentSelector: [
 			{ scheme: 'file', language: 'devicetree' },
 			{ scheme: 'file', language: 'yaml' },
+			{ scheme: 'file', language: 'c' },
+			{ scheme: 'file', language: 'cpp' },
 		],
 		synchronize: {
 			configurationSection: 'devicetree',

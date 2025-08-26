@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { basename } from 'path';
 import {
 	Diagnostic,
@@ -470,6 +470,23 @@ export class ContextAware {
 				}
 			}
 		});
+	}
+
+	getCompileCommands() {
+		if (
+			!this.settings.compileCommands ||
+			!existsSync(this.settings.compileCommands)
+		) {
+			return;
+		}
+
+		return JSON.parse(
+			readFileSync(this.settings.compileCommands).toString(),
+		) as {
+			directory: string;
+			command: string;
+			file: string;
+		}[];
 	}
 
 	private processDtcBaseNode(
