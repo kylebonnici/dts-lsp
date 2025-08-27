@@ -42,31 +42,44 @@ Sample configuration in VSCode `settings.json`
 
 ```json
 {
+	"devicetree.cwd": "/User/workspace/zephyr",
 	"devicetree.defaultIncludePaths": [
-		"/opt/nordic/ncs/v2.9.0/zephyr/dts",
-		"/opt/nordic/ncs/v2.9.0/zephyr/dts/arm",
-		"/opt/nordic/ncs/v2.9.0/zephyr/dts/arm64/",
-		"/opt/nordic/ncs/v2.9.0/zephyr/dts/riscv",
-		"/opt/nordic/ncs/v2.9.0/zephyr/dts/common",
-		"/opt/nordic/ncs/v2.9.0/zephyr/include"
+		"./zephyr/dts",
+		"./zephyr/dts/arm",
+		"./zephyr/dts/arm64/",
+		"./zephyr/dts/riscv",
+		"./zephyr/dts/common",
+		"./zephyr/dts/vendor",
+		"./zephyr/include",
+		"./zephyr/dts/xtensa"
 	],
+	"devicetree.defaultBindingType": "Zephyr",
+	"devicetree.defaultZephyrBindings": ["./zephyr/dts/bindings"],
 	"devicetree.contexts": [
 		{
+			"devicetree.cwd": "/opt/nordic/ncs/v3.0.0",
 			"bindingType": "Zephyr",
-			"zephyrBindings": ["/opt/nordic/ncs/v2.9.0/zephyr/dts/bindings"],
+			"zephyrBindings": ["./zephyr/dts/bindings", "./nrf/dts/bindings"],
 			"includePaths": [
-				"/opt/nordic/ncs/v2.9.0/zephyr/dts",
-				"/opt/nordic/ncs/v2.9.0/zephyr/dts/arm",
-				"/opt/nordic/ncs/v2.9.0/zephyr/dts/arm64/",
-				"/opt/nordic/ncs/v2.9.0/zephyr/dts/riscv",
-				"/opt/nordic/ncs/v2.9.0/zephyr/dts/common",
-				"/opt/nordic/ncs/v2.9.0/zephyr/include"
+				"./zephyr/dts",
+				"./zephyr/dts/arm",
+				"./zephyr/dts/arm64/",
+				"./zephyr/dts/riscv",
+				"./zephyr/dts/common",
+				"./zephyr/dts/vendor",
+				"./zephyr/include",
+				"./zephyr/dts/xtensa",
+				"./nrf/dts",
+				"./nrf/dts/arm",
+				"./nrf/dts/arm64/",
+				"./nrf/dts/riscv",
+				"./nrf/dts/common",
+				"./nrf/dts/vendor"
 			],
-			"dtsFile": "/opt/nordic/ncs/v2.9.0/zephyr/boards/nordic/nrf52840dk/nrf52840dk_nrf52840.dts",
-			"overlays": ["/user/project/myOverlay.overlay"]
+			"dtsFile": "./zephyr/boards/nordic/nrf52840dk/nrf52840dk_nrf52840.dts",
+			"overlays": ["/User/project/myOverlay.overlay"]
 		}
-	],
-	"devicetree.preferredContext": 0
+	]
 }
 ```
 
