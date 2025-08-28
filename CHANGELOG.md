@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Code Completion, Hover, Go Definition, Go to Declaration in C/C++ files for:
+- Code Completion, Hover, Go to Definition and Go to Declaration in C/C++ files for:
     - **Bus helpers**
         - DT_BUS
         - DT_ON_BUS
@@ -74,24 +74,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         - DT_PHANDLE_BY_NAME
         - DT_PHANDLE_BY_IDX
         - DT_PHANDLE
-- `compileCommands?: string;` to context settings to extend the code `DT_`
-  Macros functionality to find definitions not in c/cpp file
-- Code completions to add documentation to the items to be added where relevant
-- Code Action for node `Property "reg" is required` to add address of node
-- Diagnostic error when a zephyr binding intened for a bus but node is not on bus
+- `compileCommands?: string;` added to context settings to extend the `DT_`
+  macros functionality to find definitions not in C/C++ files.
+- Code completions now include documentation for items where relevant.
+- Code Action for nodes: `Property "reg" is required` — adds the address of the node.
+- Diagnostic error when a Zephyr binding is intended for a bus but the node is not on the bus.
 
 ### Changed
 
-- Document formating is not done if document has syntax errors.
+- Document formatting is not performed if the document has syntax errors.
 
 ### Fixed
 
-- Fixed an issue where an exception is thrown when doing completion on `#include <...>` if one of the
-  includeds in the context settings does not exists.
-- Fixed an issue where if `reg` property is required (due to binding for example) and node address is missing
-  no diagnostic error is shown.
-- Fixed issue with signiture help no always working for `reg`, `dmaRanges`, `ranges` and `allocRanges`.
-- Fixed issue where code snippet for node referance e.g. `&spi0 {...}` would add new `{};`
+- Fixed an issue where an exception was thrown when doing completion on `#include <...>` if one of the
+  includes in the context settings did not exist.
+- Fixed an issue where if the `reg` property was required (due to binding, for example) and the node address was missing,
+  no diagnostic error was shown.
+- Fixed an issue where signature help did not always work for `reg`, `dmaRanges`, `ranges`, and `allocRanges`.
+- Fixed an issue where code snippets for node references (e.g., `&spi0 {...}`) would add an extra `{};`.
 
 ## [0.4.10] - 2025-08-09
 
