@@ -14,14 +14,20 @@
  * limitations under the License.
  */
 
-import { toCIdentifier } from '../../../../dtMacro/helpers';
-import { Node } from '../../../../context/node';
+import { Hover } from 'vscode-languageserver';
+import { dtChosen } from '../../../dtMacro/macro/chosen/dtChosen';
+import { ResolveMacroRequest } from '../../helpers';
 
-export async function dtOnBusRaw(node: Node | undefined, bus: string) {
-	if (!node) {
-		return;
-	}
+export async function dtChosenHover(
+	resolveMacroRequest: ResolveMacroRequest,
+): Promise<Hover | undefined> {
+	const node = await dtChosen(resolveMacroRequest);
 
-	const onBus = node.nodeType?.onBus;
-	return onBus ? toCIdentifier(onBus) === bus : false;
+	return node
+		? {
+				contents: node.toMarkupContent(
+					resolveMacroRequest.context.macros,
+				),
+			}
+		: undefined;
 }

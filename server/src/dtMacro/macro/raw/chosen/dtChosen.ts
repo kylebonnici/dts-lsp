@@ -14,14 +14,35 @@
  * limitations under the License.
  */
 
+import { ContextAware } from 'src/runtimeEvaluator';
+import { LabelRef } from 'src/ast/dtc/labelRef';
+import { NodePathRef } from 'src/ast/dtc/values/nodePath';
 import { toCIdentifier } from '../../../../dtMacro/helpers';
 import { Node } from '../../../../context/node';
 
-export async function dtOnBusRaw(node: Node | undefined, bus: string) {
+export async function dtChosenRaw(
+	context: ContextAware,
+	propertyName: string,
+): Promise<Node | undefined> {
+	const node = (await context.getRuntime()).rootNode.getChild([
+		'/',
+		'chosen',
+	]);
 	if (!node) {
 		return;
 	}
 
-	const onBus = node.nodeType?.onBus;
-	return onBus ? toCIdentifier(onBus) === bus : false;
+	const property = node?.property.find(
+		(p) => toCIdentifier(p.name) === propertyName,
+	);
+
+	const values = property?.ast.getFlatAstValues();
+	const value = values?.at(0);
+	if (value instanceof LabelRef) {
+		return value.linksTo;
+	}
+
+	if (value instanceof NodePathRef) {
+		return value.path?.pathParts.at(-1)?.linksTo;
+	}
 }

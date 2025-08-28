@@ -77,6 +77,8 @@ import { dtStringUpperTokenHover } from './property/dtStringUpperToken';
 import { dtStringUpperTokenOrHover } from './property/dtStringUpperTokenOr';
 import { dtBusHover } from './bus/dtBus';
 import { dtOnBusHover } from './bus/dtOnBus';
+import { dtChosenHover } from './chosen/dtChosen';
+import { dtHasChosenHover } from './chosen/dtHasChosen';
 
 async function getNodeHover(
 	resolveMacroRequest: ResolveMacroRequest,
@@ -84,6 +86,9 @@ async function getNodeHover(
 	return [
 		dtBusHover,
 		dtOnBusHover,
+		//
+		dtChosenHover,
+		dtHasChosenHover,
 		//
 		dtAliasHover,
 		dtChildHover,

@@ -14,14 +14,23 @@
  * limitations under the License.
  */
 
-import { toCIdentifier } from '../../../../dtMacro/helpers';
-import { Node } from '../../../../context/node';
+import { CompletionItem } from 'vscode-languageserver';
+import { ResolveMacroRequest } from '../../helpers';
+import { genericPropertyCompletion } from '../property/genericProp';
 
-export async function dtOnBusRaw(node: Node | undefined, bus: string) {
-	if (!node) {
-		return;
-	}
-
-	const onBus = node.nodeType?.onBus;
-	return onBus ? toCIdentifier(onBus) === bus : false;
+export async function dtHasChosenComplitions(
+	resolveMacroRequest: ResolveMacroRequest,
+): Promise<CompletionItem[]> {
+	return genericPropertyCompletion(
+		resolveMacroRequest,
+		'DT_HAS_CHOSEN',
+		0,
+		1,
+		undefined,
+		async () =>
+			(await resolveMacroRequest.context.getRuntime()).rootNode.getChild([
+				'/',
+				'chosen',
+			]),
+	);
 }

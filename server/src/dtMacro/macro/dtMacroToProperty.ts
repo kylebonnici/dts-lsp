@@ -131,4 +131,14 @@ export async function dtMacroToProperty({
 			(p) => toCIdentifier(p.name) === macro.macro,
 		);
 	}
+
+	if (
+		['DT_CHOSEN', 'DT_HAS_CHOSEN'].some((m) => m === macro.parent?.macro) &&
+		macro.argIndexInParent === 0 &&
+		macro.parent?.args?.[0]
+	) {
+		return (await context.getRuntime()).rootNode
+			.getChild(['/', 'chosen'])
+			?.property.find((p) => toCIdentifier(p.name) === macro.macro);
+	}
 }

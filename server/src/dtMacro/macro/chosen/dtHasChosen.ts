@@ -14,14 +14,17 @@
  * limitations under the License.
  */
 
-import { toCIdentifier } from '../../../../dtMacro/helpers';
-import { Node } from '../../../../context/node';
+import { ResolveMacroRequest } from '../../helpers';
+import { dtHasChosenRaw } from '../raw/chosen/dtHasChosen';
 
-export async function dtOnBusRaw(node: Node | undefined, bus: string) {
-	if (!node) {
+export async function dtHasChosen(resolveMacroRequest: ResolveMacroRequest) {
+	const args = resolveMacroRequest.macro.args;
+	if (
+		resolveMacroRequest.macro.macro !== 'DT_HAS_CHOSEN' ||
+		args?.length !== 1
+	) {
 		return;
 	}
 
-	const onBus = node.nodeType?.onBus;
-	return onBus ? toCIdentifier(onBus) === bus : false;
+	return await dtHasChosenRaw(resolveMacroRequest.context, args[0].macro);
 }

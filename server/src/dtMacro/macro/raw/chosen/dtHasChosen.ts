@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-import { toCIdentifier } from '../../../../dtMacro/helpers';
-import { Node } from '../../../../context/node';
+import { ContextAware } from '../../../../runtimeEvaluator';
+import { dtChosenRaw } from './dtChosen';
 
-export async function dtOnBusRaw(node: Node | undefined, bus: string) {
-	if (!node) {
-		return;
-	}
-
-	const onBus = node.nodeType?.onBus;
-	return onBus ? toCIdentifier(onBus) === bus : false;
+export async function dtHasChosenRaw(
+	context: ContextAware,
+	propertyName: string,
+) {
+	return !!(await dtChosenRaw(context, propertyName));
 }

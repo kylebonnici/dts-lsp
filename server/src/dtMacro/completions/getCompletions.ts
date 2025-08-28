@@ -66,6 +66,8 @@ import { dtStringUpperTokenComplitions } from './property/dtStringUpperToken';
 import { dtStringUpperTokenByIndexComplitions } from './property/dtStringUpperTokenByIndex';
 import { dtStringUpperTokenOrComplitions } from './property/dtStringUpperTokenOr';
 import { dtOnBusComplitions } from './bus/dtOnBus';
+import { dtChosenComplitions } from './chosen/dtChosen';
+import { dtHasChosenComplitions } from './chosen/dtHasChosen';
 
 const MACRO_ONLY = [
 	'DT_BUS',
@@ -103,6 +105,9 @@ export async function getCompletions(
 		await Promise.all(
 			[
 				dtOnBusComplitions,
+				//
+				dtChosenComplitions,
+				dtHasChosenComplitions,
 				//
 				dtAliasComplitions,
 				dtChildComplitions,

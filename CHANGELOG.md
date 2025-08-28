@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - **Bus helpers**
         - DT_BUS
         - DT_ON_BUS
+    - **Chosen nodes**
+        - DT_CHOSEN
+        - DT_HAS_CHOSEN
     - **Node identifiers and helpers**
         - DT_INVALID_NODE
         - DT_ROOT
