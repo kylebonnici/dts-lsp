@@ -75,7 +75,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         - DT_PHANDLE_BY_IDX
         - DT_PHANDLE
 - `compileCommands?: string;` added to context settings to extend the `DT_`
-  macros functionality to find definitions not in C/C++ files.
+  macros functionality to find definitions included in the header files.
 - Code completions now include documentation for items where relevant.
 - Code Action for nodes: `Property "reg" is required` — adds the address of the node.
 - Diagnostic error when a Zephyr binding is intended for a bus but the node is not on the bus.
