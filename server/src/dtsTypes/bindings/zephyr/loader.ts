@@ -600,7 +600,9 @@ const convertBindingToType = (binding: ZephyrBindingYml, node?: Node) => {
 	nodeType.description = binding.description;
 	nodeType.bindingsPath = binding.filePath;
 	nodeType.bus =
-		typeof binding.bus === 'string' ? [binding.bus] : binding.bus;
+		typeof binding.bus === 'string'
+			? [binding.bus]
+			: Array.from(new Set(binding.bus));
 	nodeType.onBus = binding['on-bus'];
 	binding.extends?.forEach((e) => nodeType.extends.add(e));
 	nodeType.warnMismatchProperties = true;
