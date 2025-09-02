@@ -636,7 +636,15 @@ const formatLabeledValue = <T extends ASTBase>(
 	}
 
 	if (value.value instanceof Expression) {
-		result.push(...formatExpression(value.value, documentText));
+		result.push(
+			...formatExpression(
+				value.value,
+				documentText,
+				level,
+				settings,
+				propertyNameWidth + 4,
+			),
+		);
 	}
 
 	return result;
@@ -678,7 +686,15 @@ const formatValue = (
 			);
 		}
 	} else if (value instanceof Expression) {
-		result.push(...formatExpression(value, documentText));
+		result.push(
+			...formatExpression(
+				value,
+				documentText,
+				level,
+				settings,
+				propertyNameWidth,
+			),
+		);
 	}
 
 	return result;
@@ -687,13 +703,22 @@ const formatValue = (
 const formatExpression = (
 	value: Expression,
 	documentText: string[],
+	level: number,
+	settings: FormatingSettings,
+	width: number,
 ): TextEdit[] => {
 	if (value instanceof CMacroCall) {
 		return formatCMacroCall(value, documentText);
 	}
 
 	if (value instanceof ComplexExpression) {
-		return formatComplexExpression(value, documentText);
+		return formatComplexExpression(
+			value,
+			documentText,
+			level,
+			settings,
+			width,
+		);
 	}
 
 	return [];
@@ -744,40 +769,89 @@ const formatCMacroCall = (
 const formatComplexExpression = (
 	value: ComplexExpression,
 	documentText: string[],
+	level: number,
+	settings: FormatingSettings,
+	width: number,
 ): TextEdit[] => {
 	const result: TextEdit[] = [];
 
 	if (value.openBracket && value.openBracket.nextToken) {
-		result.push(
-			...fixedNumberOfSpaceBetweenTokensAndNext(
-				value.openBracket,
-				documentText,
-				0,
-			),
-		);
+		if (
+			value.openBracket.pos.line === value.openBracket.nextToken.pos.line
+		) {
+			result.push(
+				...fixedNumberOfSpaceBetweenTokensAndNext(
+					value.openBracket,
+					documentText,
+					0,
+				),
+			);
+		} else {
+			result.push(
+				...ensureOnNewLineAndMax1EmptyLineToPrev(
+					value.openBracket,
+					level,
+					settings.singleIndent,
+					documentText,
+					widthToPrefix(settings, width),
+				),
+			);
+		}
 	}
 
-	result.push(...formatExpression(value.expression, documentText));
+	result.push(
+		...formatExpression(
+			value.expression,
+			documentText,
+			level,
+			settings,
+			width,
+		),
+	);
 
-	if (value.join) {
-		if (value.join.operator.firstToken.prevToken) {
+	value.join?.forEach((join) => {
+		if (join.operator.firstToken.prevToken) {
 			result.push(
 				...fixedNumberOfSpaceBetweenTokensAndNext(
-					value.join.operator.firstToken.prevToken,
+					join.operator.firstToken.prevToken,
 					documentText,
 				),
 			);
 		}
-		if (value.join.expression.firstToken.prevToken) {
+		if (
+			join.expression.firstToken.prevToken?.pos.line ===
+			join.expression.firstToken.pos.line
+		) {
 			result.push(
 				...fixedNumberOfSpaceBetweenTokensAndNext(
-					value.join.expression.firstToken.prevToken,
+					join.expression.firstToken.prevToken,
 					documentText,
 				),
 			);
+		} else {
+			result.push(
+				...ensureOnNewLineAndMax1EmptyLineToPrev(
+					join.expression.firstToken,
+					level,
+					settings.singleIndent,
+					documentText,
+					widthToPrefix(settings, width),
+				),
+			);
 		}
-		result.push(...formatExpression(value.join.expression, documentText));
-	} else if (
+		result.push(
+			...formatExpression(
+				join.expression,
+				documentText,
+				level,
+				settings,
+				width,
+			),
+		);
+	});
+
+	if (
+		!value.join?.length &&
 		!(value.expression instanceof ComplexExpression) &&
 		(value.expression instanceof CMacroCall ||
 			value.expression instanceof CIdentifier)
@@ -1178,8 +1252,16 @@ const formatCommentBlock = (
 	indentString: string,
 	documentText: string[],
 	settings: FormatingSettings,
-): TextEdit[] =>
-	commentItem.comments.flatMap((c, i) =>
+): TextEdit[] => {
+	if (
+		commentItem.comments.length === 1 &&
+		commentItem.firstToken.pos.line ===
+			commentItem.firstToken.prevToken?.pos.line
+	) {
+		return [];
+	}
+
+	return commentItem.comments.flatMap((c, i) =>
 		formatBlockCommentLine(
 			c,
 			levelMeta,
@@ -1193,6 +1275,7 @@ const formatCommentBlock = (
 			settings,
 		),
 	);
+};
 
 const getPropertyIndentPrefix = (
 	settings: FormatingSettings,
@@ -1221,38 +1304,31 @@ const formatBlockCommentLine = (
 	lineType: 'last' | 'first' | 'comment',
 	settings: FormatingSettings,
 ): TextEdit[] => {
-	const result: TextEdit[] = [];
-
 	if (!commentItem.firstToken.prevToken) {
-		return [
-			...result,
-			...ensureOnNewLineAndMax1EmptyLineToPrev(
-				commentItem.firstToken,
-				levelMeta?.level ?? 0,
-				indentString,
-				documentText,
-			),
-		];
+		return ensureOnNewLineAndMax1EmptyLineToPrev(
+			commentItem.firstToken,
+			levelMeta?.level ?? 0,
+			indentString,
+			documentText,
+		);
 	}
 
-	const onSameLine =
+	if (
 		commentItem.firstToken.pos.line ===
-		commentItem.firstToken.prevToken?.pos.line;
-	if (onSameLine) {
-		return [
-			...result,
-			...fixedNumberOfSpaceBetweenTokensAndNext(
-				commentItem.firstToken.prevToken,
-				documentText,
-				1,
-			),
-		];
+		commentItem.firstToken.prevToken?.pos.line
+	) {
+		return fixedNumberOfSpaceBetweenTokensAndNext(
+			commentItem.firstToken.prevToken,
+			documentText,
+			1,
+		);
 	}
 
 	if (levelMeta === undefined) {
 		return [];
 	}
 
+	const result: TextEdit[] = [];
 	let prifix: string = '';
 	const commentStr = commentItem.toString();
 	if (
@@ -1328,11 +1404,7 @@ const formatComment = (
 	if (
 		commentLine === commentItem.firstToken.prevToken.pos.line // e.g prop = 10; // foo
 	) {
-		return fixedNumberOfSpaceBetweenTokensAndNext(
-			commentItem.firstToken.prevToken,
-			documentText,
-			1,
-		);
+		return [];
 	}
 
 	return ensureOnNewLineAndMax1EmptyLineToPrev(

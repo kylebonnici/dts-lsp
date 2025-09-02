@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.5.1] - Unreleased
+
+### Fixed
+
+- Fixed a formatting issue with expressions having multiple operators e.g. `(1 + 2 + 3)`.
+
+### Changed
+
+- Comments are now only formatted when the comment's first token is the first token on the line.
+
 ## [0.5.0] - 2025-08-29
 
 ### Added

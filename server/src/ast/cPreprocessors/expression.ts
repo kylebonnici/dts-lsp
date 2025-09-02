@@ -65,17 +65,20 @@ export abstract class Expression extends ASTBase {
 export class ComplexExpression extends Expression {
 	public openBracket?: Token;
 	public closeBracket?: Token;
+	public join?: { operator: Operator; expression: Expression }[];
 
 	constructor(
 		public readonly expression: Expression,
 		private wrapped: boolean,
-		public readonly join?: { operator: Operator; expression: Expression },
+		join?: { operator: Operator; expression: Expression },
 	) {
 		super();
 		this.addChild(expression);
 		if (join) {
 			this.addChild(join.operator);
 			this.addChild(join.expression);
+			this.join = [];
+			this.join?.push(join);
 		}
 	}
 
@@ -92,6 +95,8 @@ export class ComplexExpression extends Expression {
 	addExpression(operator: Operator, expression: Expression) {
 		this.addChild(operator);
 		this.addChild(expression);
+		this.join ??= [];
+		this.join?.push({ operator, expression });
 	}
 
 	toString() {
