@@ -247,24 +247,29 @@ interface SerializedBinding {
 	properties?: SerializedBindingProperty[];
 }
 
-export interface SerializableNodeBase extends SerializableASTBase {
-	readonly type: NodeType;
+export type SerializableNodeBase =
+	| SerializableNodeRef
+	| SerializableRootNode
+	| SerializableChildNode;
+
+export interface SerializableNodeRef extends SerializableASTBase {
+	readonly type: 'REF';
+	readonly name: SerializableLabelRef | SerializableNodePath | null;
 	readonly properties: SerializableDtcProperty[];
 	readonly nodes: SerializableNodeBase[];
 }
 
-export interface SerializableNodeRef extends SerializableNodeBase {
-	readonly type: 'REF';
-	readonly name: SerializableASTBase | null;
-}
-
-export interface SerializableRootNode extends SerializableNodeBase {
+export interface SerializableRootNode extends SerializableASTBase {
 	readonly type: 'ROOT';
+	readonly properties: SerializableDtcProperty[];
+	readonly nodes: SerializableNodeBase[];
 }
 
-export interface SerializableChildNode extends SerializableNodeBase {
-	readonly name: SerializableASTBase | null;
+export interface SerializableChildNode extends SerializableASTBase {
+	readonly name: SerializableFullNodeName | null;
 	readonly type: 'CHILD';
+	readonly properties: SerializableDtcProperty[];
+	readonly nodes: SerializableNodeBase[];
 }
 
 type SerializedMappedReg = {
