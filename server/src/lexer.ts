@@ -127,6 +127,7 @@ export class Lexer {
 			char === '_' ||
 			char === ',' ||
 			char === 'x' ||
+			char === 'X' ||
 			char === '?'
 		);
 	}

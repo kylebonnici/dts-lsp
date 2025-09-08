@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed a formatting issue with expressions having multiple operators e.g. `(1 + 2 + 3)`.
+- Fixed parser issue where `0XD` was not considered as a hex value `0xD`, resulting in formating to split `0 XD`,
+  assuming XD is a Macro.
 
 ### Changed
 

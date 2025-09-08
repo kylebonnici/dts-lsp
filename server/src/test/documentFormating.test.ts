@@ -1194,6 +1194,12 @@ describe('Document formating', () => {
 				'/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) + 10)>;',
 			);
 		});
+
+		test('hex with 0XD', async () => {
+			const documentText = '/ {\n\tprop1 = <0XD>;';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual('/ {\n\tprop1 = <0XD>;');
+		});
 	});
 
 	describe('trailing White space', () => {
