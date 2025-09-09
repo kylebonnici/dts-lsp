@@ -74,6 +74,7 @@ export class CPreprocessorParser extends BaseParser {
 		public readonly uri: string,
 		private incudes: string[],
 		macros?: Map<string, MacroRegistryItem>,
+		private getTokens?: () => Token[],
 	) {
 		super();
 		if (macros) {
@@ -160,7 +161,7 @@ export class CPreprocessorParser extends BaseParser {
 	}
 
 	public async parse() {
-		const commentsParser = new CommentsParser(this.uri);
+		const commentsParser = new CommentsParser(this.uri, this.getTokens);
 		await commentsParser.stable;
 		this.tokens = commentsParser.tokens;
 		this._comments = commentsParser.allAstItems;

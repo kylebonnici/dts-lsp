@@ -46,6 +46,7 @@ import {
 	CodeActionDiagnosticData,
 	FileDiagnostic,
 	RangeMapping,
+	IssueTypes,
 } from './types';
 import { ContextAware } from './runtimeEvaluator';
 import { ResolvedContext } from './types/index';
@@ -1325,4 +1326,30 @@ const linkAstBeforeComment = <T extends ASTBase>(
 		comment: result?.comment ?? linkedComment,
 		commentIsBefore: false,
 	};
+
+export const coreSyntaxIssuesFilter = (
+	issue: Issue<IssueTypes>,
+	filePath: string,
+	fullDiagnostics: boolean,
+) => {
+	const syntaxIssuesToIgnore = [
+		SyntaxIssue.UNKNOWN_MACRO,
+		SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS,
+		SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS,
+		SyntaxIssue.UNABLE_TO_RESOLVE_INCLUDE,
+	];
+
+	if (!fullDiagnostics) {
+		syntaxIssuesToIgnore.push(
+			SyntaxIssue.UNKNOWN_NODE_ADDRESS_SYNTAX,
+			SyntaxIssue.PROPERTY_MUST_BE_IN_NODE,
+			SyntaxIssue.NODE_ADDRESS,
+			SyntaxIssue.NAME_NODE_NAME_START,
+		);
+	}
+	return (
+		issue.severity === DiagnosticSeverity.Error &&
+		isPathEqual(issue.astElement.uri, filePath) &&
+		!syntaxIssuesToIgnore.some((i) => issue.issues.includes(i))
+	);
 };

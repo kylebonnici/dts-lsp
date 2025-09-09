@@ -44,15 +44,13 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { createPatch } from 'diff';
 import {
 	ContextId,
-	Issue,
-	IssueTypes,
 	SearchableResult,
-	SyntaxIssue,
 	tokenModifiers,
 	tokenTypes,
 } from './types';
 import {
 	applyEdits,
+	coreSyntaxIssuesFilter,
 	evalExp,
 	expandMacros,
 	fileURLToPath,
@@ -75,7 +73,7 @@ import { getDefinitions as getDTMacroDefinitions } from './dtMacro/definitions/f
 import { getDeclaration } from './findDeclarations';
 import { getDeclaration as getDTMacroDeclaration } from './dtMacro/declarations/findDeclarations';
 import { getCodeActions } from './getCodeActions';
-import { getDocumentFormatting } from './getDocumentFormatting';
+import { formatText, getDocumentFormatting } from './getDocumentFormatting';
 import { getTypeCompletions } from './getTypeCompletions';
 import { getHover } from './getHover';
 import { getHover as getDTMacroHover } from './dtMacro/hover/getHover';
@@ -962,79 +960,6 @@ const updateActiveContext = async (id: ContextId, force = false) => {
 	return true;
 };
 
-const coreSyntaxIssuesFilter = (
-	issue: Issue<IssueTypes>,
-	filePath: string,
-	fullDiagnostics: boolean,
-) => {
-	const syntaxIssuesToIgnore = [
-		SyntaxIssue.UNKNOWN_MACRO,
-		SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS,
-		SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS,
-		SyntaxIssue.UNABLE_TO_RESOLVE_INCLUDE,
-	];
-
-	if (!fullDiagnostics) {
-		syntaxIssuesToIgnore.push(
-			SyntaxIssue.UNKNOWN_NODE_ADDRESS_SYNTAX,
-			SyntaxIssue.PROPERTY_MUST_BE_IN_NODE,
-			SyntaxIssue.NODE_ADDRESS,
-			SyntaxIssue.NAME_NODE_NAME_START,
-		);
-	}
-	return (
-		issue.severity === DiagnosticSeverity.Error &&
-		isPathEqual(issue.astElement.uri, filePath) &&
-		!syntaxIssuesToIgnore.some((i) => issue.issues.includes(i))
-	);
-};
-
-const linterFormat = async (event: DocumentFormattingParams) => {
-	await allStable();
-	const filePath = fileURLToPath(event.textDocument.uri);
-	updateActiveContext({ uri: filePath });
-	const context = quickFindContext(filePath);
-
-	if (!context) {
-		return [];
-	}
-
-	const issues = (
-		await context.getSyntaxIssues(undefined, (issue) =>
-			coreSyntaxIssuesFilter(issue, filePath, false),
-		)
-	).get(filePath);
-
-	if (issues?.length) {
-		throw new Error('Unable to format. Files has syntax issues.');
-	}
-
-	const documentText = getTokenizedDocumentProvider().getDocument(filePath);
-	const originalText = documentText.getText();
-	const edits = await getDocumentFormatting(
-		event,
-		context,
-		documentText.getText(),
-	);
-
-	if (edits.length === 0) {
-		return;
-	}
-
-	const newText = applyEdits(documentText, edits);
-
-	if (newText === documentText.getText()) {
-		return;
-	}
-
-	const relativePath = relative(
-		context.settings.cwd ?? process.cwd(),
-		filePath,
-	);
-
-	return createPatch(`a/${relativePath}`, originalText, newText);
-};
-
 const isDtsFile = (uri: string) =>
 	['.dts', '.dtsi', '.dtso', '.overlay'].some((ext) => uri.endsWith(ext));
 
@@ -1710,7 +1635,77 @@ connection.onRequest('devicetree/activeFileUri', async (uri: string) => {
 	updateActiveContext({ uri });
 });
 
-connection.onRequest('devicetree/formattingDiff', linterFormat);
+connection.onRequest(
+	'devicetree/formattingDiff',
+	async (event: DocumentFormattingParams) => {
+		await allStable();
+		const filePath = fileURLToPath(event.textDocument.uri);
+		updateActiveContext({ uri: filePath });
+		const context = quickFindContext(filePath);
+
+		if (!context) {
+			return [];
+		}
+
+		const issues = (
+			await context.getSyntaxIssues(undefined, (issue) =>
+				coreSyntaxIssuesFilter(issue, filePath, false),
+			)
+		).get(filePath);
+
+		if (issues?.length) {
+			throw new Error('Unable to format. Files has syntax issues.');
+		}
+
+		const documentText =
+			getTokenizedDocumentProvider().getDocument(filePath);
+		const originalText = documentText.getText();
+		const edits = await getDocumentFormatting(
+			event,
+			context,
+			documentText.getText(),
+		);
+
+		if (edits.length === 0) {
+			return;
+		}
+
+		const newText = applyEdits(documentText, edits);
+
+		if (newText === documentText.getText()) {
+			return;
+		}
+
+		const relativePath = relative(
+			context.settings.cwd ?? process.cwd(),
+			filePath,
+		);
+
+		return createPatch(`a/${relativePath}`, originalText, newText);
+	},
+);
+
+connection.onRequest(
+	'devicetree/formattingText',
+	async (event: DocumentFormattingParams & { text: string }) => {
+		await allStable();
+		const filePath = fileURLToPath(event.textDocument.uri);
+
+		const documentText = getTokenizedDocumentProvider().getDocument(
+			filePath,
+			event.text,
+		);
+		const edits = await formatText(event, documentText.getText());
+
+		if (edits.length === 0) {
+			return documentText.getText();
+		}
+
+		const newText = applyEdits(documentText, edits);
+
+		return newText;
+	},
+);
 
 connection.onRequest(
 	'devicetree/diagnosticIssues',

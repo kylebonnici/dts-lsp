@@ -80,12 +80,14 @@ export class Parser extends BaseParser {
 		public readonly uri: string,
 		private incudes: string[],
 		macros?: Map<string, MacroRegistryItem>,
+		getTokens?: () => Token[],
 	) {
 		super();
 		this.cPreprocessorParser = new CPreprocessorParser(
 			this.uri,
 			this.incudes,
 			macros,
+			getTokens,
 		);
 	}
 
