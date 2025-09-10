@@ -472,6 +472,9 @@ const formatDtcNode = async (
 			level,
 			indentString,
 			documentText,
+			undefined,
+			undefined,
+			node.firstToken.prevToken?.value === '{',
 		),
 	);
 
@@ -1065,6 +1068,9 @@ const formatDtcProperty = (
 			level,
 			settings.singleIndent,
 			documentText,
+			undefined,
+			undefined,
+			property.firstToken.prevToken?.value === '{',
 		),
 	);
 

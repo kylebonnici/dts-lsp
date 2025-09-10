@@ -245,14 +245,14 @@ describe('Document formating', () => {
 		test('Node two new line from top', async () => {
 			const documentText = '/ {\n\n\tnode {};\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\n\tnode {};\n};');
+			expect(newText).toEqual('/ {\n\tnode {};\n};');
 		});
 
 		test('Node more then two new line from top', async () => {
 			const documentText = '/ {\n\n\n\n\tnode {};\n};';
 			const newText = await getNewText(documentText);
 			console.log(newText);
-			expect(newText).toEqual('/ {\n\n\tnode {};\n};');
+			expect(newText).toEqual('/ {\n\tnode {};\n};');
 		});
 
 		test('Node no new line from other Child', async () => {
@@ -1215,6 +1215,12 @@ describe('Document formating', () => {
 
 		test('empty bytestring value', async () => {
 			const documentText = '/ {\n\tprop1 = [ ];';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual('/ {\n\tprop1 = [];');
+		});
+
+		test('remove first property new line ', async () => {
+			const documentText = '/ {\n\n\tprop1 = [ ];';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual('/ {\n\tprop1 = [];');
 		});

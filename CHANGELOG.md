@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Comments are now only formatted when the comment's first token is the first token on the line.
 - Formats `prop = < >;` to `prop = <>;`
 - Formats `prop = [ ];` to `prop = [];`
+- Formats first property after `{\n\n\tprop = ....` to be only one new line below `{\n\tprop = ...`
 
 ## [0.5.0] - 2025-08-29
 
