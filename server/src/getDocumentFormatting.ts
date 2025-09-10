@@ -660,30 +660,43 @@ const formatValue = (
 	const result: TextEdit[] = [];
 
 	if (value instanceof ArrayValues || value instanceof ByteStringValue) {
-		result.push(
-			...value.values.flatMap((v) =>
-				formatLabeledValue(
-					propertyNameWidth,
-					v,
-					level,
-					settings,
-					value.openBracket,
-					documentText,
-				),
-			),
-		);
-
-		if (value.closeBracket?.prevToken) {
+		if (
+			value.openBracket &&
+			value.openBracket?.nextToken === value.closeBracket
+		) {
 			result.push(
 				...fixedNumberOfSpaceBetweenTokensAndNext(
-					value.closeBracket.prevToken,
+					value.openBracket,
 					documentText,
-					value.closeBracket.prevToken ===
-						value.values.at(-1)?.lastToken
-						? 0
-						: 1,
+					0,
 				),
 			);
+		} else {
+			result.push(
+				...value.values.flatMap((v) =>
+					formatLabeledValue(
+						propertyNameWidth,
+						v,
+						level,
+						settings,
+						value.openBracket,
+						documentText,
+					),
+				),
+			);
+
+			if (value.closeBracket?.prevToken) {
+				result.push(
+					...fixedNumberOfSpaceBetweenTokensAndNext(
+						value.closeBracket.prevToken,
+						documentText,
+						value.closeBracket.prevToken ===
+							value.values.at(-1)?.lastToken
+							? 0
+							: 1,
+					),
+				);
+			}
 		}
 	} else if (value instanceof Expression) {
 		result.push(

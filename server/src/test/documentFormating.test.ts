@@ -1200,6 +1200,24 @@ describe('Document formating', () => {
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual('/ {\n\tprop1 = <0XD>;');
 		});
+
+		test('empty array value with spaces', async () => {
+			const documentText = '/ {\n\tprop1 = < >;';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual('/ {\n\tprop1 = <>;');
+		});
+
+		test('empty array value new line', async () => {
+			const documentText = '/ {\n\tprop1 = < \n>;';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual('/ {\n\tprop1 = <>;');
+		});
+
+		test('empty bytestring value', async () => {
+			const documentText = '/ {\n\tprop1 = [ ];';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual('/ {\n\tprop1 = [];');
+		});
 	});
 
 	describe('trailing White space', () => {
