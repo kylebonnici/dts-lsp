@@ -73,6 +73,9 @@ export class ASTBase {
 	}
 
 	get firstToken(): Token {
+		if (!this._fisrtToken && !this._children[0]) {
+			console.log(this);
+		}
 		return this._fisrtToken ?? this._children[0].tokenIndexes.start;
 	}
 

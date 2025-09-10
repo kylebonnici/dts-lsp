@@ -28,6 +28,7 @@ import {
 	adjacentTokens,
 	createTokenIndex,
 	genSyntaxDiagnostic,
+	linkAstToComments,
 	normalizePath,
 	sameLine,
 	validateToken,
@@ -64,6 +65,7 @@ import { CPreprocessorParser } from './cPreprocessorParser';
 import { Include } from './ast/cPreprocessors/include';
 import { DtsMemreserveNode } from './ast/dtc/memreserveNode';
 import { DtsBitsNode } from './ast/dtc/bitsNode';
+import { Comment, CommentBlock } from './ast/dtc/comment';
 
 type AllowNodeRef = 'Ref' | 'Name';
 
@@ -179,6 +181,21 @@ export class Parser extends BaseParser {
 				),
 			);
 		});
+
+		const allAstItems = this.rootDocument.nodes.flatMap(
+			(n) => n.allDescendants,
+		);
+		const allComments = this.allAstItems.filter(
+			(ast) => ast instanceof CommentBlock || ast instanceof Comment,
+		);
+
+		if (allComments.length) {
+			allAstItems.forEach((ast) => {
+				if (ast instanceof DtcBaseNode || ast instanceof DtcProperty) {
+					linkAstToComments(ast, allComments);
+				}
+			});
+		}
 
 		if (this.positionStack.length !== 1) {
 			/* istanbul ignore next */
