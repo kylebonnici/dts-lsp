@@ -1326,6 +1326,7 @@ const linkAstBeforeComment = <T extends ASTBase>(
 		comment: result?.comment ?? linkedComment,
 		commentIsBefore: false,
 	};
+};
 
 export const coreSyntaxIssuesFilter = (
 	issue: Issue<IssueTypes>,
