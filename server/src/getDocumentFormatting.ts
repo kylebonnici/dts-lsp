@@ -15,9 +15,12 @@
  */
 
 import {
+	Diagnostic,
 	DocumentFormattingParams,
+	ErrorCodes,
 	Position,
 	Range,
+	ResponseError,
 	TextEdit,
 } from 'vscode-languageserver';
 import { ContextAware } from './runtimeEvaluator';
@@ -119,27 +122,38 @@ const getAstItemLevel =
 		};
 	};
 
-export function formatText(
+export async function formatText(
 	documentFormattingParams: DocumentFormattingParams,
 	text: string,
 ) {
-	const virtualDocumentUri = 'virtual://devicetree';
-	const parser = new Parser(virtualDocumentUri, [], undefined, () => {
-		const lexer = new Lexer(text, virtualDocumentUri);
-		return lexer.tokens;
-	});
+	const filePath = fileURLToPath(documentFormattingParams.textDocument.uri);
+	const parser = new Parser(
+		filePath,
+		[],
+		undefined,
+		() => {
+			const lexer = new Lexer(text, filePath);
+			return lexer.tokens;
+		},
+		true,
+	);
+	await parser.stable;
 	const issues = parser.issues.filter((issue) =>
-		coreSyntaxIssuesFilter(issue.raw, virtualDocumentUri, false),
+		coreSyntaxIssuesFilter(issue.raw, filePath, false),
 	);
 
 	if (issues?.length) {
-		throw new Error('Unable to format. Files has syntax issues.');
+		throw new ResponseError<Diagnostic[]>(
+			ErrorCodes.InternalError,
+			'Unable to format. File has syntax issues.',
+			issues.map((i) => i.diagnostic()),
+		);
 	}
 
 	return formatAstBaseItems(
 		documentFormattingParams,
 		parser.allAstItems,
-		virtualDocumentUri,
+		filePath,
 		text.split('\n'),
 	);
 }

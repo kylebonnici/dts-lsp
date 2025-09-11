@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { basename, dirname, join, relative } from 'path';
+import { basename, dirname, join } from 'path';
 import {
 	createConnection,
 	TextDocuments,
@@ -41,7 +41,6 @@ import {
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { createPatch } from 'diff';
 import {
 	ContextId,
 	SearchableResult,
@@ -1635,61 +1634,47 @@ connection.onRequest('devicetree/activeFileUri', async (uri: string) => {
 	updateActiveContext({ uri });
 });
 
-connection.onRequest(
-	'devicetree/formattingDiff',
-	async (event: DocumentFormattingParams) => {
-		await allStable();
-		const filePath = fileURLToPath(event.textDocument.uri);
-		updateActiveContext({ uri: filePath });
-		const context = quickFindContext(filePath);
+const formatWithContext = async (
+	event: DocumentFormattingParams,
+	context: ContextAware,
+	filePath: string,
+) => {
+	const issues = (
+		await context.getSyntaxIssues(undefined, (issue) =>
+			coreSyntaxIssuesFilter(issue, filePath, false),
+		)
+	).get(filePath);
 
-		if (!context) {
-			return [];
-		}
+	if (issues?.length) {
+		throw new Error('Unable to format. Files has syntax issues.');
+	}
 
-		const issues = (
-			await context.getSyntaxIssues(undefined, (issue) =>
-				coreSyntaxIssuesFilter(issue, filePath, false),
-			)
-		).get(filePath);
+	const documentText = getTokenizedDocumentProvider().getDocument(filePath);
+	const edits = await getDocumentFormatting(
+		event,
+		context,
+		documentText.getText(),
+	);
 
-		if (issues?.length) {
-			throw new Error('Unable to format. Files has syntax issues.');
-		}
+	if (edits.length === 0) {
+		return;
+	}
 
-		const documentText =
-			getTokenizedDocumentProvider().getDocument(filePath);
-		const originalText = documentText.getText();
-		const edits = await getDocumentFormatting(
-			event,
-			context,
-			documentText.getText(),
-		);
-
-		if (edits.length === 0) {
-			return;
-		}
-
-		const newText = applyEdits(documentText, edits);
-
-		if (newText === documentText.getText()) {
-			return;
-		}
-
-		const relativePath = relative(
-			context.settings.cwd ?? process.cwd(),
-			filePath,
-		);
-
-		return createPatch(`a/${relativePath}`, originalText, newText);
-	},
-);
+	const newText = applyEdits(documentText, edits);
+	return newText;
+};
 
 connection.onRequest(
 	'devicetree/formattingText',
-	async (event: DocumentFormattingParams & { text: string }) => {
+	async (event: DocumentFormattingParams & { text?: string }) => {
 		await allStable();
 		const filePath = fileURLToPath(event.textDocument.uri);
+		const context = quickFindContext(filePath);
+
+		if (context) {
+			updateActiveContext({ uri: filePath });
+			return formatWithContext(event, context, filePath);
+		}
 
 		const documentText = getTokenizedDocumentProvider().getDocument(
 			filePath,
@@ -1702,7 +1687,6 @@ connection.onRequest(
 		}
 
 		const newText = applyEdits(documentText, edits);
-
 		return newText;
 	},
 );
