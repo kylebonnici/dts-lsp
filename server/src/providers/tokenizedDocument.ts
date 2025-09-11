@@ -40,12 +40,12 @@ class TokenizedDocumentProvider {
 		return this.fileMap.get(uri)?.text !== text;
 	}
 
-	getDocument(uri: string) {
+	getDocument(uri: string, text?: string) {
 		return TextDocument.create(
 			uri,
 			'devicetree',
 			0,
-			this.fileMap.get(uri)?.text ?? readFileSync(uri).toString(),
+			text ?? this.fileMap.get(uri)?.text ?? readFileSync(uri).toString(),
 		);
 	}
 

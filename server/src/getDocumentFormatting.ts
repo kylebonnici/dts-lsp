@@ -15,9 +15,12 @@
  */
 
 import {
+	Diagnostic,
 	DocumentFormattingParams,
+	ErrorCodes,
 	Position,
 	Range,
+	ResponseError,
 	TextEdit,
 } from 'vscode-languageserver';
 import { ContextAware } from './runtimeEvaluator';
@@ -39,6 +42,7 @@ import { ByteStringValue } from './ast/dtc/values/byteString';
 import { LabeledValue } from './ast/dtc/values/labeledValue';
 import { Include } from './ast/cPreprocessors/include';
 import {
+	coreSyntaxIssuesFilter,
 	fileURLToPath,
 	getDeepestAstNodeInBetween,
 	isPathEqual,
@@ -52,6 +56,8 @@ import { ComplexExpression, Expression } from './ast/cPreprocessors/expression';
 import { CMacroCall } from './ast/cPreprocessors/functionCall';
 import { getPropertyFromChild, isPropertyValueChild } from './ast/helpers';
 import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
+import { Parser } from './parser';
+import { Lexer } from './lexer';
 
 const findAst = async (token: Token, uri: string, fileRootAsts: ASTBase[]) => {
 	const pos = Position.create(token.pos.line, token.pos.col);
@@ -116,13 +122,87 @@ const getAstItemLevel =
 		};
 	};
 
+export async function formatText(
+	documentFormattingParams: DocumentFormattingParams,
+	text: string,
+) {
+	const filePath = fileURLToPath(documentFormattingParams.textDocument.uri);
+	const parser = new Parser(
+		filePath,
+		[],
+		undefined,
+		() => {
+			const lexer = new Lexer(text, filePath);
+			return lexer.tokens;
+		},
+		true,
+	);
+	await parser.stable;
+	const issues = parser.issues.filter((issue) =>
+		coreSyntaxIssuesFilter(issue.raw, filePath, false),
+	);
+
+	if (issues?.length) {
+		throw new ResponseError<Diagnostic[]>(
+			ErrorCodes.InternalError,
+			'Unable to format. File has syntax issues.',
+			issues.map((i) => i.diagnostic()),
+		);
+	}
+
+	return formatAstBaseItems(
+		documentFormattingParams,
+		parser.allAstItems,
+		filePath,
+		text.split('\n'),
+	);
+}
+
+async function formatAstBaseItems(
+	documentFormattingParams: DocumentFormattingParams,
+	astItems: ASTBase[],
+	uri: string,
+	splitDocument: string[],
+) {
+	const astItemLevel = getAstItemLevel(astItems, uri);
+	const result: TextEdit[] = [];
+	result.push(
+		...(
+			await Promise.all(
+				astItems.flatMap(
+					async (base) =>
+						await getTextEdit(
+							documentFormattingParams,
+							base,
+							uri,
+							astItemLevel,
+							splitDocument,
+						),
+				),
+			)
+		).flat(),
+	);
+
+	if (documentFormattingParams.options.trimTrailingWhitespace) {
+		result.push(...removeTrailingWhitespace(splitDocument, result));
+	}
+
+	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
+	return formatOnOffMeta.length
+		? result.filter(
+				(edit) =>
+					!isFormattingDisabledAt(edit.range.start, formatOnOffMeta),
+			)
+		: result;
+}
+
 export async function getDocumentFormatting(
 	documentFormattingParams: DocumentFormattingParams,
 	contextAware: ContextAware,
 	documentText: string,
 ): Promise<TextEdit[]> {
 	const splitDocument = documentText.split('\n');
-	const result: TextEdit[] = [];
+
 	const uri = fileURLToPath(documentFormattingParams.textDocument.uri);
 
 	const runtime = await contextAware.getRuntime();
@@ -151,35 +231,12 @@ export async function getDocumentFormatting(
 		fileRootAsts = tmp;
 	}
 
-	const astItemLevel = getAstItemLevel(fileRootAsts, uri);
-	result.push(
-		...(
-			await Promise.all(
-				fileRootAsts.flatMap(
-					async (base) =>
-						await getTextEdit(
-							documentFormattingParams,
-							base,
-							uri,
-							astItemLevel,
-							splitDocument,
-						),
-				),
-			)
-		).flat(),
+	return formatAstBaseItems(
+		documentFormattingParams,
+		fileRootAsts,
+		uri,
+		splitDocument,
 	);
-
-	if (documentFormattingParams.options.trimTrailingWhitespace) {
-		result.push(...removeTrailingWhitespace(splitDocument, result));
-	}
-
-	const formatOnOffMeta = pairFormatOnOff(fileRootAsts, splitDocument);
-	return formatOnOffMeta.length
-		? result.filter(
-				(edit) =>
-					!isFormattingDisabledAt(edit.range.start, formatOnOffMeta),
-			)
-		: result;
 }
 const pairFormatOnOff = (
 	fileRootAsts: ASTBase[],
@@ -1413,6 +1470,8 @@ const formatBlockCommentLine = (
 				indentString,
 				documentText,
 				getPropertyIndentPrefix(settings, levelMeta?.inAst, prifix),
+				expectedNumberOfLines,
+				forceNumberOfLines,
 			),
 		);
 	}
@@ -1443,12 +1502,25 @@ const formatComment = (
 		return [];
 	}
 
+	let forceNumberOfLines: boolean | undefined;
+	let expectedNumberOfLines: number | undefined;
+	if (
+		!commentItem.astBeforeComment &&
+		commentItem.astAfterComment instanceof DtcBaseNode
+	) {
+		forceNumberOfLines = true;
+		expectedNumberOfLines =
+			commentItem.firstToken.prevToken?.value === '{' ? 1 : 2;
+	}
+
 	return ensureOnNewLineAndMax1EmptyLineToPrev(
 		commentItem.firstToken,
 		levelMeta?.level ?? 0,
 		indentString,
 		documentText,
 		getPropertyIndentPrefix(settings, levelMeta?.inAst),
+		expectedNumberOfLines,
+		forceNumberOfLines,
 	);
 };
 

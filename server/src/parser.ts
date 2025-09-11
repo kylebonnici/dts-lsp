@@ -80,12 +80,16 @@ export class Parser extends BaseParser {
 		public readonly uri: string,
 		private incudes: string[],
 		macros?: Map<string, MacroRegistryItem>,
+		getTokens?: () => Token[],
+		skipIncludes?: boolean,
 	) {
 		super();
 		this.cPreprocessorParser = new CPreprocessorParser(
 			this.uri,
 			this.incudes,
 			macros,
+			getTokens,
+			skipIncludes,
 		);
 	}
 
@@ -181,9 +185,10 @@ export class Parser extends BaseParser {
 			);
 		});
 
-		const allAstItems = this.rootDocument.nodes.flatMap(
-			(n) => n.allDescendants,
-		);
+		const allAstItems = this.allAstItems.flatMap((n) => [
+			n,
+			...n.allDescendants,
+		]);
 		const allComments = this.cPreprocessorParser.comments;
 
 		if (allComments.length) {
@@ -1937,6 +1942,7 @@ export class Parser extends BaseParser {
 			...this.others,
 			...this.unhandledStatements.properties,
 			...this.unhandledStatements.deleteProperties,
+			...this.unhandledStatements.nodes,
 		];
 	}
 }

@@ -25,7 +25,11 @@ export class CommentsParser extends BaseParser {
 	comments: (Comment | CommentBlock)[] = [];
 	public tokens: Token[] = [];
 
-	constructor(public readonly uri: string) {
+	constructor(
+		public readonly uri: string,
+		private getTokens = () =>
+			getTokenizedDocumentProvider().requestTokens(this.uri, true),
+	) {
 		super();
 	}
 
@@ -59,10 +63,7 @@ export class CommentsParser extends BaseParser {
 	}
 
 	protected async parse() {
-		this.tokens = getTokenizedDocumentProvider().requestTokens(
-			this.uri,
-			true,
-		);
+		this.tokens = this.getTokens();
 		this.cleanUpComments();
 	}
 
