@@ -81,6 +81,7 @@ export class Parser extends BaseParser {
 		private incudes: string[],
 		macros?: Map<string, MacroRegistryItem>,
 		getTokens?: () => Token[],
+		skipIncludes?: boolean,
 	) {
 		super();
 		this.cPreprocessorParser = new CPreprocessorParser(
@@ -88,6 +89,7 @@ export class Parser extends BaseParser {
 			this.incudes,
 			macros,
 			getTokens,
+			skipIncludes,
 		);
 	}
 
