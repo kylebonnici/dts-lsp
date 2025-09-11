@@ -310,6 +310,39 @@ describe('Document formating', () => {
 				'/ {\n\tnode {}; /* abc1 */ /* abc2 */\n};',
 			);
 		});
+
+		test('Nodes with comment ensure new line - case 1', async () => {
+			const documentText =
+				'/ {\n\n/* abc1 */\n\tnode1 {};\n/* abc2 */\n\tnode2 {};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\t/* abc1 */\n\tnode1 {};\n\n\t/* abc2 */\n\tnode2 {};\n};',
+			);
+		});
+
+		test('Nodes with comment ensure new line - case 2', async () => {
+			const documentText =
+				'/ {\n\n/* abc1 */\n\tnode1 {};\n\n\tnode2 {};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\t/* abc1 */\n\tnode1 {};\n\n\tnode2 {};\n};',
+			);
+		});
+
+		test('Nodes with comment ensure new line - case 3', async () => {
+			const documentText = '/ {\n\n/* abc1 */\n\tnode1 {}\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual('/ {\n\t/* abc1 */\n\tnode1 {}\n};');
+		});
+
+		test('Nodes with multiple comments ensure new line', async () => {
+			const documentText =
+				'/ {\n\n/* abc1 */\n/* abc2 */\n\tnode1 {};\n/* abc3 */\n/* abc4 */\n\tnode2 {};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\t/* abc1 */\n\t/* abc2 */\n\tnode1 {};\n\n\t/* abc3 */\n\t/* abc4 */\n\tnode2 {};\n};',
+			);
+		});
 	});
 
 	describe('Ref Node', () => {
@@ -593,7 +626,7 @@ describe('Document formating', () => {
 				'&n1 {\n\tprop1;\n\t/* foo */\n\tnode { };\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'&n1 {\n\tprop1;\n\t/* foo */\n\tnode {};\n};',
+				'&n1 {\n\tprop1;\n\n\t/* foo */\n\tnode {};\n};',
 			);
 		});
 
@@ -602,7 +635,7 @@ describe('Document formating', () => {
 				'/ {\n\t\t/* foo */\nnode {\n\tprop1;\n\t/* foo */\n\tnode { };\n};\n}';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\t/* foo */\n\tnode {\n\t\tprop1;\n\t\t/* foo */\n\t\tnode {};\n\t};\n}',
+				'/ {\n\t/* foo */\n\tnode {\n\t\tprop1;\n\n\t\t/* foo */\n\t\tnode {};\n\t};\n}',
 			);
 		});
 

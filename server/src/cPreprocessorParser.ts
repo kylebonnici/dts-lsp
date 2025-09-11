@@ -58,6 +58,7 @@ import { Expression } from './ast/cPreprocessors/expression';
 export class CPreprocessorParser extends BaseParser {
 	public tokens: Token[] = [];
 	private nodes: ASTBase[] = [];
+	private _comments: ASTBase[] = [];
 	public dtsIncludes: Include[] = [];
 	private macroSnapShot: Map<string, MacroRegistryItem> = new Map<
 		string,
@@ -83,6 +84,9 @@ export class CPreprocessorParser extends BaseParser {
 		}
 	}
 
+	get comments() {
+		return this._comments;
+	}
 	private macroStart = false;
 
 	protected get currentToken(): Token | undefined {
@@ -159,7 +163,7 @@ export class CPreprocessorParser extends BaseParser {
 		const commentsParser = new CommentsParser(this.uri);
 		await commentsParser.stable;
 		this.tokens = commentsParser.tokens;
-		this.nodes.push(...commentsParser.allAstItems);
+		this._comments = commentsParser.allAstItems;
 
 		this.positionStack.push(0);
 		if (this.tokens.length === 0) {
@@ -662,7 +666,7 @@ export class CPreprocessorParser extends BaseParser {
 	}
 
 	get allAstItems(): ASTBase[] {
-		return [...this.dtsIncludes, ...this.nodes];
+		return [...this.dtsIncludes, ...this.nodes, ...this.comments];
 	}
 
 	resolveInclude(include: Include) {

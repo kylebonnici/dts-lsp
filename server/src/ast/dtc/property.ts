@@ -27,6 +27,7 @@ import { StringValue } from './values/string';
 import { ArrayValues } from './values/arrayValue';
 import { NumberValue } from './values/number';
 import { ByteStringValue } from './values/byteString';
+import { Comment, CommentBlock } from './comment';
 
 export class PropertyName extends ASTBase {
 	constructor(
@@ -53,6 +54,8 @@ export class PropertyName extends ASTBase {
 }
 
 export class DtcProperty extends ASTBase {
+	public topComment?: Comment | CommentBlock;
+	public endComment?: Comment | CommentBlock;
 	private _values: PropertyValues | null | undefined = undefined;
 	public assignOperatorToken?: Token;
 

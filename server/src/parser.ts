@@ -28,6 +28,7 @@ import {
 	adjacentTokens,
 	createTokenIndex,
 	genSyntaxDiagnostic,
+	linkAstToComments,
 	normalizePath,
 	sameLine,
 	validateToken,
@@ -179,6 +180,19 @@ export class Parser extends BaseParser {
 				),
 			);
 		});
+
+		const allAstItems = this.rootDocument.nodes.flatMap(
+			(n) => n.allDescendants,
+		);
+		const allComments = this.cPreprocessorParser.comments;
+
+		if (allComments.length) {
+			allAstItems.forEach((ast) => {
+				if (ast instanceof DtcBaseNode || ast instanceof DtcProperty) {
+					linkAstToComments(ast, allComments);
+				}
+			});
+		}
 
 		if (this.positionStack.length !== 1) {
 			/* istanbul ignore next */

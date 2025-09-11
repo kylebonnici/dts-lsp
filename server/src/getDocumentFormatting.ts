@@ -295,10 +295,11 @@ const removeNewLinesBetweenTokenAndPrev = (
 				Range.create(
 					Position.create(prevToken.pos.line, prevToken.pos.colEnd),
 					Position.create(
-						token.pos.line - expectedNewLines,
+						token.pos.line - (expectedNewLines ? 1 : 0),
 						expectedNewLines
-							? documentText[token.pos.line - expectedNewLines]
-									.length
+							? documentText[
+									token.pos.line - (expectedNewLines ? 1 : 0)
+								].length
 							: token.pos.col,
 					),
 				),
@@ -1283,6 +1284,7 @@ const formatCommentBlock = (
 	return commentItem.comments.flatMap((c, i) =>
 		formatBlockCommentLine(
 			c,
+			commentItem,
 			levelMeta,
 			indentString,
 			documentText,
@@ -1317,6 +1319,7 @@ const getPropertyIndentPrefix = (
 
 const formatBlockCommentLine = (
 	commentItem: Comment,
+	commentBlock: CommentBlock,
 	levelMeta: LevelMeta | undefined,
 	indentString: string,
 	documentText: string[],
@@ -1345,6 +1348,18 @@ const formatBlockCommentLine = (
 
 	if (levelMeta === undefined) {
 		return [];
+	}
+
+	let forceNumberOfLines: boolean | undefined;
+	let expectedNumberOfLines: number | undefined;
+	if (
+		lineType === 'first' &&
+		!commentBlock.astBeforeComment &&
+		commentBlock.astAfterComment instanceof DtcBaseNode
+	) {
+		forceNumberOfLines = true;
+		expectedNumberOfLines =
+			commentBlock.firstToken.prevToken?.value === '{' ? 1 : 2;
 	}
 
 	const result: TextEdit[] = [];
@@ -1386,6 +1401,8 @@ const formatBlockCommentLine = (
 				indentString,
 				documentText,
 				prifix,
+				expectedNumberOfLines,
+				forceNumberOfLines,
 			),
 		);
 	} else {

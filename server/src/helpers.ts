@@ -50,6 +50,9 @@ import {
 import { ContextAware } from './runtimeEvaluator';
 import { ResolvedContext } from './types/index';
 import { CMacroCall } from './ast/cPreprocessors/functionCall';
+import { Comment, CommentBlock } from './ast/dtc/comment';
+import { DtcBaseNode } from './ast/dtc/node';
+import { DtcProperty } from './ast/dtc/property';
 
 export const toRangeWithTokenIndex = (
 	start?: Token,
@@ -1248,3 +1251,78 @@ export function rangesOverlap(r1: Range, r2: Range): boolean {
 		comparePosition(r1.start, r2.end) < 0
 	);
 }
+
+export const linkAstToComments = (
+	astItem: DtcBaseNode | DtcProperty,
+	comments: (CommentBlock | Comment)[],
+) => {
+	const after = linkAstAfterComment(astItem, comments);
+	const before = linkAstBeforeComment(astItem, comments);
+
+	if (after) {
+		astItem.topComment = after.comment;
+	}
+	if (before) {
+		astItem.endComment = before.comment;
+	}
+};
+
+const linkAstAfterComment = <T extends ASTBase>(
+	astItem: T,
+	comments: (CommentBlock | Comment)[],
+):
+	| { comment: CommentBlock | Comment; commentIsBefore: boolean }
+	| undefined => {
+	const linkedComment = comments.find(
+		(c) => c.lastToken === astItem.firstToken.prevToken,
+	);
+
+	if (!linkedComment) {
+		return;
+	}
+
+	linkedComment.astAfterComment = astItem;
+
+	const result = linkAstAfterComment(linkedComment, comments);
+
+	if (result) {
+		result.comment.astAfterComment = astItem;
+		linkedComment.astAfterComment = undefined;
+	}
+
+	return {
+		comment: result?.comment ?? linkedComment,
+		commentIsBefore: true,
+	};
+};
+
+const linkAstBeforeComment = <T extends ASTBase>(
+	astItem: T,
+	comments: (CommentBlock | Comment)[],
+):
+	| { comment: CommentBlock | Comment; commentIsBefore: boolean }
+	| undefined => {
+	const linkedComment = comments.find(
+		(c) =>
+			c.firstToken.prevToken === astItem.lastToken &&
+			c.firstToken.pos.line === astItem.lastToken.pos.line,
+	);
+
+	if (!linkedComment) {
+		return;
+	}
+
+	linkedComment.astBeforeComment = astItem;
+
+	const result = linkAstBeforeComment(linkedComment, comments);
+
+	if (result) {
+		result.comment.astBeforeComment = astItem;
+		linkedComment.astBeforeComment = undefined;
+	}
+
+	return {
+		comment: result?.comment ?? linkedComment,
+		commentIsBefore: false,
+	};
+};

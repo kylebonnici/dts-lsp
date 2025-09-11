@@ -43,8 +43,11 @@ import { LabelAssign } from './label';
 import { DeleteProperty } from './deleteProperty';
 import { LabelRef } from './labelRef';
 import { NodePathRef } from './values/nodePath';
+import { Comment, CommentBlock } from './comment';
 
 export class DtcBaseNode extends ASTBase {
+	public topComment?: Comment | CommentBlock;
+	public endComment?: Comment | CommentBlock;
 	public openScope?: Token;
 	public closeScope?: Token;
 
