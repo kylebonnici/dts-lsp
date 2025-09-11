@@ -311,7 +311,7 @@ describe('Document formating', () => {
 			);
 		});
 
-		test('Nodes with comment ensure new line - case 1', async () => {
+		test('Nodes with block comment ensure new line - case 1', async () => {
 			const documentText =
 				'/ {\n\n/* abc1 */\n\tnode1 {};\n/* abc2 */\n\tnode2 {};\n};';
 			const newText = await getNewText(documentText);
@@ -320,7 +320,7 @@ describe('Document formating', () => {
 			);
 		});
 
-		test('Nodes with comment ensure new line - case 2', async () => {
+		test('Nodes with block comment ensure new line - case 2', async () => {
 			const documentText =
 				'/ {\n\n/* abc1 */\n\tnode1 {};\n\n\tnode2 {};\n};';
 			const newText = await getNewText(documentText);
@@ -329,19 +329,64 @@ describe('Document formating', () => {
 			);
 		});
 
-		test('Nodes with comment ensure new line - case 3', async () => {
+		test('Nodes with block comment ensure new line - case 3', async () => {
 			const documentText = '/ {\n\n/* abc1 */\n\tnode1 {}\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual('/ {\n\t/* abc1 */\n\tnode1 {}\n};');
 		});
 
-		test('Nodes with multiple comments ensure new line', async () => {
+		test('Nodes with multiple block comments ensure new line', async () => {
 			const documentText =
 				'/ {\n\n/* abc1 */\n/* abc2 */\n\tnode1 {};\n/* abc3 */\n/* abc4 */\n\tnode2 {};\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
 				'/ {\n\t/* abc1 */\n\t/* abc2 */\n\tnode1 {};\n\n\t/* abc3 */\n\t/* abc4 */\n\tnode2 {};\n};',
 			);
+		});
+
+		test('Root Nodes with comment ensure new line', async () => {
+			const documentText = '// abc1\n/ {};\n// abc2\n/ {};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual('// abc1\n/ {};\n\n// abc2\n/ {};');
+		});
+
+		test('Nodes with comment ensure new line - case 1', async () => {
+			const documentText =
+				'/ {\n\n// abc1\n\tnode1 {};\n// abc2\n\tnode2 {};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\t// abc1\n\tnode1 {};\n\n\t// abc2\n\tnode2 {};\n};',
+			);
+		});
+
+		test('Nodes with comment ensure new line - case 2', async () => {
+			const documentText =
+				'/ {\n\n// abc1\n\tnode1 {};\n\n\tnode2 {};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\t// abc1\n\tnode1 {};\n\n\tnode2 {};\n};',
+			);
+		});
+
+		test('Nodes with comment ensure new line - case 3', async () => {
+			const documentText = '/ {\n\n// abc1\n\tnode1 {}\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual('/ {\n\t// abc1\n\tnode1 {}\n};');
+		});
+
+		test('Nodes with multiple comments ensure new line', async () => {
+			const documentText =
+				'/ {\n\n// abc1\n// abc2\n\tnode1 {};\n// abc3\n// abc4\n\tnode2 {};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\t// abc1\n\t// abc2\n\tnode1 {};\n\n\t// abc3\n\t// abc4\n\tnode2 {};\n};',
+			);
+		});
+
+		test('Root Nodes with comment ensure new line', async () => {
+			const documentText = '// abc1\n/ {};\n// abc2\n/ {};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual('// abc1\n/ {};\n\n// abc2\n/ {};');
 		});
 	});
 

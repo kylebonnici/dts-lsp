@@ -1456,6 +1456,8 @@ const formatBlockCommentLine = (
 				indentString,
 				documentText,
 				getPropertyIndentPrefix(settings, levelMeta?.inAst, prifix),
+				expectedNumberOfLines,
+				forceNumberOfLines,
 			),
 		);
 	}
@@ -1486,12 +1488,25 @@ const formatComment = (
 		return [];
 	}
 
+	let forceNumberOfLines: boolean | undefined;
+	let expectedNumberOfLines: number | undefined;
+	if (
+		!commentItem.astBeforeComment &&
+		commentItem.astAfterComment instanceof DtcBaseNode
+	) {
+		forceNumberOfLines = true;
+		expectedNumberOfLines =
+			commentItem.firstToken.prevToken?.value === '{' ? 1 : 2;
+	}
+
 	return ensureOnNewLineAndMax1EmptyLineToPrev(
 		commentItem.firstToken,
 		levelMeta?.level ?? 0,
 		indentString,
 		documentText,
 		getPropertyIndentPrefix(settings, levelMeta?.inAst),
+		expectedNumberOfLines,
+		forceNumberOfLines,
 	);
 };
 
