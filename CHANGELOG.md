@@ -4,22 +4,38 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.5.1] - Unreleased
+## [0.5.1] - 2025-09-12
 
 ### Fixed
 
-- Fixed a formatting issue with expressions having multiple operators e.g. `(1 + 2 + 3)`.
-- Fixed parser issue where `0XD` was not considered as a hex value `0xD`, resulting in formating to split `0 XD`,
-  assuming XD is a Macro.
+- Fixed a formatting issue with expressions containing multiple operators, e.g. `(1 + 2 + 3)`.
+- Fixed a parser issue where `0XD` was not recognized as the hex value `0xD`, resulting in formatting that split it into `0 XD`,
+  incorrectly assuming `XD` was a macro.
 
 ### Changed
 
-- Comments are now only formatted when the comment's first token is the first token on the line.
-- Formats `prop = < >;` to `prop = <>;`
-- Formats `prop = [ ];` to `prop = [];`
-- Formats first property after `{\n\n\tprop = ....` to be only one new line below `{\n\tprop = ...`
-- Enforce formatting nodes to have an empty new line between other nodes and properties.
-  Except when node is just after `{`
+- Comments are now only formatted when the comment's first token is also the first token on the line.
+- Formats `prop = < >;` as `prop = <>;`
+- Formats `prop = [ ];` as `prop = [];`
+- Ensures that when a property or a node follows an opening brace `{`, it is
+  placed on the next indented line (instead of adding an extra blank line).
+    - Example:
+        - Before:
+
+            ```
+            {
+
+                prop = ...
+            ```
+
+        - After:
+            ```
+            {
+                prop = ...
+            ```
+
+- Enforces that formatting nodes include a blank line before nodes,  
+  except when the node immediately follows `{`.
 
 ## [0.5.0] - 2025-08-29
 
