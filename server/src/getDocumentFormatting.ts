@@ -58,6 +58,7 @@ import { getPropertyFromChild, isPropertyValueChild } from './ast/helpers';
 import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
 import { Parser } from './parser';
 import { Lexer } from './lexer';
+import { IfDefineBlock } from './ast/cPreprocessors/ifDefine';
 
 const findAst = async (token: Token, uri: string, fileRootAsts: ASTBase[]) => {
 	const pos = Position.create(token.pos.line, token.pos.col);
@@ -100,7 +101,8 @@ const getAstItemLevel =
 			(ast) =>
 				!(ast instanceof Include) &&
 				!(ast instanceof Comment) &&
-				!(ast instanceof CommentBlock),
+				!(ast instanceof CommentBlock) &&
+				!(ast instanceof IfDefineBlock),
 		);
 		const parentAst = await findAst(astNode.firstToken, uri, rootItem);
 
@@ -531,8 +533,12 @@ const formatDtcNode = async (
 			indentString,
 			documentText,
 			undefined,
-			undefined,
-			node.firstToken.prevToken?.value === '{',
+			node.firstToken.prevToken?.value === '{' && !node.topComment
+				? 1
+				: node.topComment
+					? 1
+					: 2,
+			true,
 		),
 	);
 

@@ -360,8 +360,7 @@ describe('Document formating', () => {
 		});
 
 		test('Nodes with comment ensure new line - case 2', async () => {
-			const documentText =
-				'/ {\n\n// abc1\n\tnode1 {};\n\n\tnode2 {};\n};';
+			const documentText = '/ {\n\n// abc1\n\tnode1 {};\n\tnode2 {};\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
 				'/ {\n\t// abc1\n\tnode1 {};\n\n\tnode2 {};\n};',
@@ -376,10 +375,10 @@ describe('Document formating', () => {
 
 		test('Nodes with multiple comments ensure new line', async () => {
 			const documentText =
-				'/ {\n\n// abc1\n// abc2\n\tnode1 {};\n// abc3\n// abc4\n\tnode2 {};\n};';
+				'/ {\n\tprop1;\n/* foo; */\n\n// abc1\n// abc2\n\tnode1 {};\n// abc3\n// abc4\n\tnode2 {};\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\t// abc1\n\t// abc2\n\tnode1 {};\n\n\t// abc3\n\t// abc4\n\tnode2 {};\n};',
+				'/ {\n\tprop1;\n\t/* foo; */\n\n\t// abc1\n\t// abc2\n\tnode1 {};\n\n\t// abc3\n\t// abc4\n\tnode2 {};\n};',
 			);
 		});
 
@@ -387,6 +386,23 @@ describe('Document formating', () => {
 			const documentText = '// abc1\n/ {};\n// abc2\n/ {};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual('// abc1\n/ {};\n\n// abc2\n/ {};');
+		});
+
+		test('Comment not linked to Node before node', async () => {
+			const documentText = '/ {\n\tprop1;\n/* foo; */\n\n\tnode1 {};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tprop1;\n\t/* foo; */\n\n\tnode1 {};\n};',
+			);
+		});
+
+		test('Comment not linked inside a if def', async () => {
+			const documentText =
+				'/ {\n#ifdef ABC\n/* foo; */\n#endif\n\tnode1 {};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n#ifdef ABC\n\t/* foo; */\n#endif\n\n\tnode1 {};\n};',
+			);
 		});
 	});
 
@@ -506,7 +522,7 @@ describe('Document formating', () => {
 		test('Correct indentation in level 1', async () => {
 			const documentText = '/ {\n#include <>\n\tnode {};\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\t#include <>\n\tnode {};\n};');
+			expect(newText).toEqual('/ {\n\t#include <>\n\n\tnode {};\n};');
 		});
 
 		test('Correct indentation in level 2', async () => {
@@ -539,7 +555,7 @@ describe('Document formating', () => {
 			const documentText = '/ {\n/delete-node/ &n1;\n\tnode { };\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\t/delete-node/ &n1;\n\tnode {};\n};',
+				'/ {\n\t/delete-node/ &n1;\n\n\tnode {};\n};',
 			);
 		});
 
@@ -755,7 +771,7 @@ describe('Document formating', () => {
 			const documentText = '/ {\n/delete-property/ n1;\n\tnode { };\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\t/delete-property/ n1;\n\tnode {};\n};',
+				'/ {\n\t/delete-property/ n1;\n\n\tnode {};\n};',
 			);
 		});
 
@@ -1001,7 +1017,7 @@ describe('Document formating', () => {
 		test('Correct indentation in level 1', async () => {
 			const documentText = '/ {\nprop1;\n\tnode { };\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1;\n\tnode {};\n};');
+			expect(newText).toEqual('/ {\n\tprop1;\n\n\tnode {};\n};');
 		});
 
 		test('Correct indentation in level 2', async () => {
@@ -1332,14 +1348,14 @@ describe('Document formating', () => {
 			const documentText = `arduino_i2c: &i2c1 {};\narduino_spi: &spi1 {};`;
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				`arduino_i2c: &i2c1 {};\narduino_spi: &spi1 {};`,
+				`arduino_i2c: &i2c1 {};\n\narduino_spi: &spi1 {};`,
 			);
 		});
 
 		test('after semicolon', async () => {
 			const documentText = `&i2c1 {\n\tprop1;    \n};     \n&spi1 {};     `;
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual(`&i2c1 {\n\tprop1;\n};\n&spi1 {};`);
+			expect(newText).toEqual(`&i2c1 {\n\tprop1;\n};\n\n&spi1 {};`);
 		});
 
 		test('move to new lines', async () => {

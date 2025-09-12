@@ -1275,7 +1275,10 @@ const linkAstAfterComment = <T extends ASTBase>(
 	| { comment: CommentBlock | Comment; commentIsBefore: boolean }
 	| undefined => {
 	const linkedComment = comments.find(
-		(c) => c.lastToken === astItem.firstToken.prevToken,
+		(c) =>
+			c.lastToken === astItem.firstToken.prevToken &&
+			(c.lastToken.pos.line === astItem.firstToken.pos.line ||
+				c.lastToken.pos.line + 1 === astItem.firstToken.pos.line),
 	);
 
 	if (!linkedComment) {
