@@ -1,4 +1,5 @@
 .vscode/**
+.github/**
 **/*.ts
 **/*.map
 .gitignore
@@ -10,10 +11,12 @@ server/coverage/**
 .eslintignore
 jest.config.js
 client
-!client/dist
+!client/dist/extension.js
 server
-!server/dist
+!server/dist/server.js
 scripts
 bindings-schema.yaml
 dts-lsp-types
 vscode-dts-lsp-types
+eslint.config.mjs
+tsconfig.types.tsbuildinfo
