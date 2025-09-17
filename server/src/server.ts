@@ -880,11 +880,11 @@ const updateActiveContext = async (id: ContextId, force = false) => {
 
 	const resolvedSettings = await getResolvedAllContextSettings();
 
-	await allStable();
-
 	if (activeContext && !force && !resolvedSettings.autoChangeContext) {
 		return false;
 	}
+
+	await allStable();
 
 	if (
 		!force &&
