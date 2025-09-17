@@ -4,7 +4,7 @@
 	"author": "Kyle Micallef Bonnici",
 	"package-name": "devicetree-language-server",
 	"main": "dist/server.js",
-	"version": "0.5.1",
+	"version": "0.5.2",
 	"categories": [
 		"Linters",
 		"Formatters",
@@ -31,16 +31,7 @@
 		"type": "git",
 		"url": "https://github.com/kylebonnici/dts-lsp"
 	},
-	"dependencies": {
-		"@hyperjump/browser": "^1.2.0",
-		"@hyperjump/json-schema": "^1.10.1",
-		"ajv": "^8.17.1",
-		"glob": "^11.0.0",
-		"vscode-languageserver": "^9.0.1",
-		"vscode-languageserver-textdocument": "^1.0.11",
-		"vscode-languageserver-types": "^3.17.5",
-		"yaml": "^2.6.1"
-	},
+	"dependencies": {},
 	"scripts": {
 		"test": "jest --silent",
 		"test:coverage": "jest --coverage --silent"
@@ -54,6 +45,14 @@
 		"ts-jest": "^29.2.5",
 		"ts-node": "^10.9.2",
 		"tslib": "^2.7.0",
-		"typescript": "^5.5.4"
+		"typescript": "^5.5.4",
+		"vscode-languageserver-types": "^3.17.5",
+		"@hyperjump/browser": "^1.2.0",
+		"@hyperjump/json-schema": "^1.10.1",
+		"ajv": "^8.17.1",
+		"glob": "^11.0.0",
+		"vscode-languageserver": "^9.0.1",
+		"vscode-languageserver-textdocument": "^1.0.11",
+		"yaml": "^2.6.1"
 	}
 }

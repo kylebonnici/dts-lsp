@@ -302,7 +302,7 @@ connection.onInitialize((params: InitializeParams) => {
 	connection.console.log(
 		`[Server(${process.pid}) ${
 			workspaceFolder?.at(0)?.uri
-		} Version 0.5.1 ] Started and initialize received`,
+		} Version 0.5.2 ] Started and initialize received`,
 	);
 
 	const capabilities = params.capabilities;
@@ -800,6 +800,7 @@ const clearWorkspaceDiagnostics = async (
 	if (!force && context !== activeContext) {
 		return;
 	}
+	const t = performance.now();
 	await Promise.all(
 		items
 			.filter(
@@ -816,6 +817,13 @@ const clearWorkspaceDiagnostics = async (
 					diagnostics: [],
 				} satisfies PublishDiagnosticsParams);
 			}),
+	);
+
+	console.log(
+		`(ID: ${context.id})`,
+		'clear workspace diagnostics',
+		`[${context.ctxNames.join(',')}]`,
+		performance.now() - t,
 	);
 };
 
@@ -880,7 +888,7 @@ const updateActiveContext = async (id: ContextId, force = false) => {
 
 	const resolvedSettings = await getResolvedAllContextSettings();
 
-	if (activeContext && !force && !resolvedSettings.autoChangeContext) {
+	if (activeContext && !force) {
 		return false;
 	}
 
@@ -897,7 +905,11 @@ const updateActiveContext = async (id: ContextId, force = false) => {
 	const oldContext = activeContext;
 	const newContext = findContext(contextAware, id);
 
-	if (oldContext !== newContext) {
+	const updateActiveContext =
+		oldContext !== newContext &&
+		(resolvedSettings.autoChangeContext || force);
+
+	if (updateActiveContext) {
 		if (oldContext) {
 			clearWorkspaceDiagnostics(oldContext);
 		}
@@ -954,9 +966,7 @@ const updateActiveContext = async (id: ContextId, force = false) => {
 		connection.languages.semanticTokens.refresh();
 	}
 
-	reportNoContextFiles();
-
-	return true;
+	return updateActiveContext;
 };
 
 const isDtsFile = (uri: string) =>
@@ -997,6 +1007,7 @@ documents.onDidClose(async (e) => {
 					await deleteContext(context);
 					adHocContextSettings.delete(context.settings.dtsFile);
 				} else {
+					console.log('onDidClose', e.document.uri);
 					clearWorkspaceDiagnostics(context);
 				}
 			} else {
@@ -1026,6 +1037,7 @@ documents.onDidOpen(async (e) => {
 	reportNoContextFiles();
 
 	const ctx = findContext(contextAware, { uri });
+	console.log('onDidOpen', ctx?.id, uri);
 	if (!ctx) {
 		const contextBaseSettings: Context = {
 			ctxName: basename(uri),
@@ -1036,6 +1048,18 @@ documents.onDidOpen(async (e) => {
 		await onChange(uri);
 	} else if (ctx !== activeContext) {
 		await updateActiveContext({ id: ctx.id });
+	} else if (ctx === activeContext) {
+		const contextAllFiles = ctx?.getContextFiles() ?? [];
+
+		const contextHasOtherFileOpen = contextAllFiles
+			.filter((f) => f !== uri)
+			.some((f) => fetchDocument(f));
+		if (!contextHasOtherFileOpen) {
+			console.log('Firt file opne');
+
+			reportWorkspaceDiagnostics(ctx);
+			reportNoContextFiles();
+		}
 	}
 });
 

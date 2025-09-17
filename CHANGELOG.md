@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.5.2] - 2025-09-17
+
+### Fixed
+
+- Fixed Typos in some messages
+
 ## [0.5.1] - 2025-09-12
 
 ### Fixed
