@@ -144,7 +144,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		vscode.workspace.registerTextDocumentContentProvider(
 			'devicetree-context-output',
 			{
-				provideTextDocumentContent: openDeviceTreeOutputSocument,
+				provideTextDocumentContent: openDeviceTreeOutputDocument,
 			},
 		),
 		vscode.commands.registerCommand(
@@ -187,7 +187,7 @@ export async function activate(context: vscode.ExtensionContext) {
 						a.type === 'dt_zephyr_macro_prop_node_alias',
 				);
 
-				copyClibboardAction(actions, 'Pick a macro to copy...');
+				copyClipboardAction(actions, 'Pick a macro to copy...');
 			},
 		),
 		vscode.window.onDidChangeTextEditorSelection((e) => {
@@ -205,7 +205,7 @@ export async function activate(context: vscode.ExtensionContext) {
 					)
 				).filter((a): a is ClipboardActions => a.type === 'path');
 
-				copyClibboardAction(actions, 'Pick a path to copy...');
+				copyClipboardAction(actions, 'Pick a path to copy...');
 			},
 		),
 	);
@@ -221,12 +221,12 @@ export async function activate(context: vscode.ExtensionContext) {
 	return api;
 }
 
-const copyClibboardAction = async (
+const copyClipboardAction = async (
 	actions: ClipboardActions[],
 	placeHolder: string,
 ) => {
 	if (!actions.length) {
-		vscode.window.showWarningMessage('Nothing was coppied');
+		vscode.window.showWarningMessage('Nothing was copied');
 		return;
 	}
 
@@ -241,7 +241,7 @@ const copyClibboardAction = async (
 	if (!picked) return;
 
 	vscode.env.clipboard.writeText(picked);
-	vscode.window.showInformationMessage(`Coppied to clipboard: "${picked}"`);
+	vscode.window.showInformationMessage(`Copied to clipboard: "${picked}"`);
 };
 
 export function deactivate(): Thenable<void> | undefined {
@@ -251,7 +251,7 @@ export function deactivate(): Thenable<void> | undefined {
 	return client.stop();
 }
 
-export async function openDeviceTreeOutputSocument(): Promise<string | null> {
+export async function openDeviceTreeOutputDocument(): Promise<string | null> {
 	const context = await SelectContext(api);
 	if (!context) return null;
 	const dts = await api.compiledOutput(context.id);
