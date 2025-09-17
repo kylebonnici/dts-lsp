@@ -456,7 +456,7 @@ export class Parser extends BaseParser {
 		} else {
 			this._issues.push(
 				genSyntaxDiagnostic(
-					SyntaxIssue.NODE_ADDRERSS_HEX_START,
+					SyntaxIssue.NODE_ADDRESS_HEX_START,
 					new ASTBase(
 						createTokenIndex(
 							hexStartPrepend[0],

@@ -58,19 +58,19 @@ import { DtcProperty } from './ast/dtc/property';
 export const toRangeWithTokenIndex = (
 	start?: Token,
 	end?: Token,
-	incusiveStart = true,
-	incusiveEnd = true,
+	inclusiveStart = true,
+	inclusiveEnd = true,
 ) => {
 	return {
 		start: {
 			line: start?.pos.line ?? 0,
-			character: incusiveStart
+			character: inclusiveStart
 				? (start?.pos.col ?? 0)
 				: (start?.pos.col ?? 0) + (start?.pos.len ?? 0),
 		},
 		end: {
 			line: end?.pos.line ?? 0,
-			character: incusiveEnd
+			character: inclusiveEnd
 				? (end?.pos.col ?? 0) + (end?.pos.len ?? 0)
 				: (end?.pos.col ?? 0),
 		},
@@ -799,7 +799,7 @@ export const syntaxIssueToMessage = (issue: SyntaxIssue) => {
 			return 'Expected node name';
 		case SyntaxIssue.NAME_NODE_NAME_START:
 			return 'Node name shall start with a lower or upper case character';
-		case SyntaxIssue.NODE_ADDRERSS_HEX_START:
+		case SyntaxIssue.NODE_ADDRESS_HEX_START:
 			return 'Node unit address should not start with 0x';
 		case SyntaxIssue.NODE_ADDRESS_ENDS_ULL:
 			return 'Node unit address should not end with with ULL';
@@ -808,7 +808,7 @@ export const syntaxIssueToMessage = (issue: SyntaxIssue) => {
 		case SyntaxIssue.NODE_PATH:
 			return 'Expected node path';
 		case SyntaxIssue.NODE_PATH_REF:
-			return 'Expected node path referance';
+			return 'Expected node path reference';
 		case SyntaxIssue.NODE_REF:
 			return 'Expected node reference';
 		case SyntaxIssue.ROOT_NODE_NAME:
@@ -848,7 +848,7 @@ export const syntaxIssueToMessage = (issue: SyntaxIssue) => {
 		case SyntaxIssue.UNABLE_TO_RESOLVE_INCLUDE:
 			return 'Unable to resolve include';
 		case SyntaxIssue.UNKNOWN_NODE_ADDRESS_SYNTAX:
-			return 'Unkown Node Address syntax';
+			return 'Unknown Node Address syntax';
 		case SyntaxIssue.EXPECTED_START_ADDRESS:
 			return 'Expected start address';
 		case SyntaxIssue.EXPECTED_END_ADDRESS:
@@ -996,7 +996,7 @@ export const standardTypeIssueIssuesToMessage = (
 				case StandardTypeIssue.UNABLE_TO_FIND_MAPPING:
 					return `Unable to find mapping range for address`;
 				case StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS:
-					return `INTRO exceeds address space avalable for this mapping. The range ends at ${issue.templateStrings[2]}, the node ends at ${issue.templateStrings[1]}`;
+					return `INTRO exceeds address space available for this mapping. The range ends at ${issue.templateStrings[2]}, the node ends at ${issue.templateStrings[1]}`;
 				case StandardTypeIssue.DUPLICATE_MAP_ENTRY:
 					return `Map entry overlaps with others entries`;
 				case StandardTypeIssue.NO_NEXUS_MAP_MATCH:

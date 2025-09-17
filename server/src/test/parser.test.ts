@@ -2210,7 +2210,7 @@ describe('Parser', () => {
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
-				SyntaxIssue.NODE_ADDRERSS_HEX_START,
+				SyntaxIssue.NODE_ADDRESS_HEX_START,
 			]);
 			expect(parser.rootDocument.children.length).toEqual(1);
 			const rootDtc = parser.rootDocument.children[0];

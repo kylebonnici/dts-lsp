@@ -142,7 +142,7 @@ const deleteContext = async (context: ContextAware) => {
 		`(ID: ${context.id}) cleaning Context for [${context.ctxNames.join(',')}]`,
 	);
 
-	const meta = await contexMeta(context);
+	const meta = await contextMeta(context);
 
 	connection.sendNotification('devicetree/contextDeleted', {
 		ctxNames: context.ctxNames.map((c) => c.toString()),
@@ -154,7 +154,7 @@ const deleteContext = async (context: ContextAware) => {
 	} satisfies ContextListItem);
 	contextAware.splice(index, 1);
 
-	await reportContexList();
+	await reportContextList();
 
 	if (context === activeContext) {
 		activeContext = undefined;
@@ -195,7 +195,7 @@ const getAdhocContexts = async () => {
 };
 
 const getConfiguredContexts = async () => {
-	const settings = await getResolvedPersistantContextSettings();
+	const settings = await getResolvedPersistentContextSettings();
 	return contextAware.filter((c) =>
 		settings.contexts.find((sc) => generateContextId(sc) === c.id),
 	);
@@ -242,7 +242,7 @@ const contextFullyOverlaps = async (a: ContextAware, b: ContextAware) => {
 };
 
 const cleanUpAdHocContext = async (context: ContextAware) => {
-	// NOTE For these context Overlays are not an to be consired as there is no way
+	// NOTE For these context Overlays are not an to be considered as there is no way
 	// for an adHocContext to be created with overlays
 	if (!(await isAdHocContext(context))) return;
 
@@ -400,8 +400,8 @@ const getResolvedAdhocContextSettings = async () => {
 	return resolveSettings(unresolvedSettings, await getRootWorkspace());
 };
 
-const getResolvedPersistantContextSettings = async () => {
-	let unresolvedSettings = getUnresolvedPersistantContextSettings();
+const getResolvedPersistentContextSettings = async () => {
+	let unresolvedSettings = getUnresolvedPersistentContextSettings();
 
 	unresolvedSettings = <Settings>{
 		...defaultSettings,
@@ -491,7 +491,7 @@ const createContext = async (context: ResolvedContext) => {
 	contextAware.push(newContext);
 	await newContext.stable();
 	watchContextFiles(newContext);
-	const meta = await contexMeta(newContext);
+	const meta = await contextMeta(newContext);
 
 	connection.sendNotification('devicetree/contextCreated', {
 		ctxNames: newContext.ctxNames.map((c) => c.toString()),
@@ -503,23 +503,23 @@ const createContext = async (context: ResolvedContext) => {
 	} satisfies ContextListItem);
 
 	await cleanUpAdHocContext(newContext);
-	await reportContexList();
+	await reportContextList();
 	return newContext;
 };
 
 const loadSettings = async () => {
-	const resolvedPersistantSettings =
-		await getResolvedPersistantContextSettings();
+	const resolvedPersistentSettings =
+		await getResolvedPersistentContextSettings();
 	let resolvedFullSettings = await getResolvedAllContextSettings();
 	if (!resolvedFullSettings.allowAdhocContexts) {
-		resolvedFullSettings = await getResolvedPersistantContextSettings();
+		resolvedFullSettings = await getResolvedPersistentContextSettings();
 	}
 
 	const allActiveIds = resolvedFullSettings.contexts.map(generateContextId);
 	const toDelete = contextAware.filter((c) => !allActiveIds.includes(c.id));
 	await Promise.all(toDelete.map(deleteContext));
 
-	await resolvedPersistantSettings.contexts?.reduce((p, c) => {
+	await resolvedPersistentSettings.contexts?.reduce((p, c) => {
 		return p.then(async () => {
 			await createContext(c);
 		});
@@ -530,7 +530,7 @@ const loadSettings = async () => {
 		await resolvedAdHocSettings.contexts?.reduce((p, c) => {
 			return p.then(async () => {
 				if (findContext(contextAware, { uri: c.dtsFile })) {
-					return; // Skip creating this adhoc context thier is a peristance context covering this URI
+					return; // Skip creating this adhoc context their is a persistence context covering this URI
 				}
 				await createContext(c);
 			});
@@ -582,7 +582,7 @@ const getUnresolvedAdhocContextSettings = (): Settings | undefined => {
 	return merged;
 };
 
-const getUnresolvedPersistantContextSettings = (): Settings | undefined => {
+const getUnresolvedPersistentContextSettings = (): Settings | undefined => {
 	if (!integrationSettings && !lspConfigurationSettings) return;
 
 	const merged = <Settings>{
@@ -728,7 +728,7 @@ const onChange = async (uri: string) => {
 
 						context.serialize().then(async (node) => {
 							const [meta, fileTree] = await Promise.all([
-								contexMeta(context),
+								contextMeta(context),
 								context.getFileTree(),
 							]);
 
@@ -842,8 +842,8 @@ const reportWorkspaceDiagnostics = async (context: ContextAware) => {
 		items: [...activeContextItems],
 	};
 };
-const reportContexList = async () => {
-	const forLogs = await Promise.all(contextAware.map(contexMeta));
+const reportContextList = async () => {
+	const forLogs = await Promise.all(contextAware.map(contextMeta));
 
 	console.log('======== Context List ========');
 	forLogs.forEach((c) => {
@@ -856,7 +856,7 @@ const reportContexList = async () => {
 	console.log('==============================');
 };
 
-const contexMeta = async (ctx: ContextAware) => {
+const contextMeta = async (ctx: ContextAware) => {
 	const adHoc = await isAdHocContext(ctx);
 	const userCtx = !adHoc && (await isUserSettingsContext(ctx));
 	return {
@@ -904,7 +904,7 @@ const updateActiveContext = async (id: ContextId, force = false) => {
 		activeContext = newContext;
 
 		if (newContext) {
-			contexMeta(newContext).then(async (meta) => {
+			contextMeta(newContext).then(async (meta) => {
 				const fileTree = await newContext.getFileTree();
 				if (
 					!newContext ||
@@ -938,7 +938,7 @@ const updateActiveContext = async (id: ContextId, force = false) => {
 					});
 			});
 
-			await reportContexList();
+			await reportContextList();
 		} else {
 			connection.sendNotification(
 				'devicetree/newActiveContext',
@@ -1429,14 +1429,14 @@ connection.onSignatureHelp(async (event) => {
 	return getSignatureHelp(event, context);
 });
 
-// CUSTOME APIS
+// CUSTOM APIS
 connection.onRequest(
 	'devicetree/getContexts',
 	async (): Promise<ContextListItem[]> => {
 		await allStable();
 		return Promise.all(
 			contextAware.map(async (c) => {
-				const meta = await contexMeta(c);
+				const meta = await contextMeta(c);
 				return {
 					ctxNames: c.ctxNames.map((n) => n.toString()),
 					id: c.id,
@@ -1467,7 +1467,7 @@ connection.onRequest(
 		console.log('devicetree/getActiveContext');
 		if (!activeContext) return;
 
-		const meta = await contexMeta(activeContext);
+		const meta = await contextMeta(activeContext);
 		return activeContext
 			? {
 					ctxNames: activeContext.ctxNames.map((c) => c.toString()),
@@ -1526,7 +1526,7 @@ connection.onRequest(
 			throw new Error('Failed to create context');
 		}
 
-		const meta = await contexMeta(context);
+		const meta = await contextMeta(context);
 		return {
 			ctxNames: context.ctxNames.map((c) => c.toString()),
 			id: id,
