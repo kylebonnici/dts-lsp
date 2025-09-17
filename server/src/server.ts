@@ -302,7 +302,7 @@ connection.onInitialize((params: InitializeParams) => {
 	connection.console.log(
 		`[Server(${process.pid}) ${
 			workspaceFolder?.at(0)?.uri
-		} Version 0.5.2 ] Started and initialize received`,
+		} Version 0.5.3 ] Started and initialize received`,
 	);
 
 	const capabilities = params.capabilities;
@@ -638,31 +638,35 @@ const onSettingsChanged = async () => {
 	});
 };
 
-const reportNoContextFiles = () => {
+const reportNoContextFiles = async () => {
 	const activeCtxFiles = activeContext?.getContextFiles();
-	Array.from(documents.keys())
-		.filter(isDtsFile)
-		.forEach((u) => {
-			if (
-				!activeCtxFiles?.some((p) => isPathEqual(p, fileURLToPath(u)))
-			) {
-				connection.sendDiagnostics({
-					uri: u,
-					version: documents.get(u)?.version,
-					diagnostics: [
-						{
-							severity: DiagnosticSeverity.Information,
-							range: Range.create(
-								Position.create(0, 0),
-								Position.create(0, 0),
-							),
-							message: 'File not in active context',
-							source: 'devicetree',
-						},
-					],
-				});
-			}
-		});
+	await Promise.all(
+		Array.from(documents.keys())
+			.filter(isDtsFile)
+			.map(async (u) => {
+				if (
+					!activeCtxFiles?.some((p) =>
+						isPathEqual(p, fileURLToPath(u)),
+					)
+				) {
+					await connection.sendDiagnostics({
+						uri: u,
+						version: documents.get(u)?.version,
+						diagnostics: [
+							{
+								severity: DiagnosticSeverity.Information,
+								range: Range.create(
+									Position.create(0, 0),
+									Position.create(0, 0),
+								),
+								message: 'File not in active context',
+								source: 'devicetree',
+							},
+						],
+					});
+				}
+			}),
+	);
 };
 
 const onChange = async (uri: string) => {
@@ -703,7 +707,7 @@ const onChange = async (uri: string) => {
 						);
 
 						if (isActive) {
-							reportWorkspaceDiagnostics(context).then((d) => {
+							generateWorkspaceDiagnostics(context).then((d) => {
 								const newDiagnostics = d.items.map(
 									(i) =>
 										({
@@ -723,6 +727,8 @@ const onChange = async (uri: string) => {
 								newDiagnostics.forEach((ii) => {
 									connection.sendDiagnostics(ii);
 								});
+
+								hasWorkspaceDiagnostics.set(context, true);
 							});
 						}
 
@@ -790,6 +796,8 @@ const generateClearWorkspaceDiagnostics = (context: ContextAware) =>
 			}) satisfies PublishDiagnosticsParams,
 	);
 
+const hasWorkspaceDiagnostics = new WeakMap<ContextAware, boolean>();
+
 const clearWorkspaceDiagnostics = async (
 	context: ContextAware,
 	items: PublishDiagnosticsParams[] = generateClearWorkspaceDiagnostics(
@@ -819,6 +827,8 @@ const clearWorkspaceDiagnostics = async (
 			}),
 	);
 
+	hasWorkspaceDiagnostics.delete(context);
+
 	console.log(
 		`(ID: ${context.id})`,
 		'clear workspace diagnostics',
@@ -827,7 +837,7 @@ const clearWorkspaceDiagnostics = async (
 	);
 };
 
-const reportWorkspaceDiagnostics = async (context: ContextAware) => {
+const generateWorkspaceDiagnostics = async (context: ContextAware) => {
 	await context.stable();
 	const t = performance.now();
 	const diagnostics = await context.getDiagnostics();
@@ -935,21 +945,22 @@ const updateActiveContext = async (id: ContextId, force = false) => {
 				} satisfies ContextListItem);
 			});
 
-			reportWorkspaceDiagnostics(newContext).then((d) => {
-				d.items
-					.map(
-						(i) =>
-							({
-								uri: i.uri,
-								version: i.version ?? undefined,
-								diagnostics: i.items,
-							}) satisfies PublishDiagnosticsParams,
-					)
-					.forEach((ii) => {
-						connection.sendDiagnostics(ii);
-					});
-			});
-
+			generateWorkspaceDiagnostics(newContext)
+				.then((d) => {
+					d.items
+						.map(
+							(i) =>
+								({
+									uri: i.uri,
+									version: i.version ?? undefined,
+									diagnostics: i.items,
+								}) satisfies PublishDiagnosticsParams,
+						)
+						.forEach((ii) => {
+							connection.sendDiagnostics(ii);
+						});
+				})
+				.finally(() => hasWorkspaceDiagnostics.set(newContext, true));
 			await reportContextList();
 		} else {
 			connection.sendNotification(
@@ -1007,7 +1018,6 @@ documents.onDidClose(async (e) => {
 					await deleteContext(context);
 					adHocContextSettings.delete(context.settings.dtsFile);
 				} else {
-					console.log('onDidClose', e.document.uri);
 					clearWorkspaceDiagnostics(context);
 				}
 			} else {
@@ -1048,18 +1058,23 @@ documents.onDidOpen(async (e) => {
 		await onChange(uri);
 	} else if (ctx !== activeContext) {
 		await updateActiveContext({ id: ctx.id });
-	} else if (ctx === activeContext) {
-		const contextAllFiles = ctx?.getContextFiles() ?? [];
-
-		const contextHasOtherFileOpen = contextAllFiles
-			.filter((f) => f !== uri)
-			.some((f) => fetchDocument(f));
-		if (!contextHasOtherFileOpen) {
-			console.log('Firt file opne');
-
-			reportWorkspaceDiagnostics(ctx);
-			reportNoContextFiles();
-		}
+	} else if (ctx === activeContext && !hasWorkspaceDiagnostics.get(ctx)) {
+		generateWorkspaceDiagnostics(ctx)
+			.then(({ items }) =>
+				items
+					.map(
+						(i) =>
+							({
+								uri: i.uri,
+								version: i.version ?? undefined,
+								diagnostics: i.items,
+							}) satisfies PublishDiagnosticsParams,
+					)
+					.forEach(async (ii) => {
+						connection.sendDiagnostics(ii);
+					}),
+			)
+			.finally(() => hasWorkspaceDiagnostics.set(ctx, true));
 	}
 });
 
@@ -1109,7 +1124,9 @@ connection.languages.diagnostics.onWorkspace(async () => {
 		};
 	}
 
-	return reportWorkspaceDiagnostics(context);
+	return generateWorkspaceDiagnostics(context).finally(() => {
+		hasWorkspaceDiagnostics.set(context, true);
+	});
 });
 
 connection.onDidChangeWatchedFiles((_change) => {

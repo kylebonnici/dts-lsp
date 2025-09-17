@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.5.3] - 2025-09-18
+
+### Fixed
+
+- Fixed an issue with Diagnostics not showing when onDidOpen and onDidClose events occur close to each other
+  and only one file from context is open
+
 ## [0.5.2] - 2025-09-17
 
 ### Fixed
