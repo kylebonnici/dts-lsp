@@ -175,11 +175,13 @@ export class Runtime implements Searchable {
 		return label?.lastLinkedTo?.path;
 	}
 
+	private issuesCache?: FileDiagnostic[];
 	get issues(): FileDiagnostic[] {
-		return [
+		this.issuesCache ??= [
 			...this.labelIssues(),
 			...this.rootNode.getIssues(this.context.macros),
 		];
+		return this.issuesCache;
 	}
 
 	private labelIssues() {
@@ -237,7 +239,6 @@ export class Runtime implements Searchable {
 	}
 
 	private typesIssuesCache?: FileDiagnostic[];
-
 	get typesIssues() {
 		const getIssue = (node: Node): FileDiagnostic[] => {
 			return [
