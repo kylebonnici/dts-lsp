@@ -25,7 +25,7 @@ import {
 	ContextIssues,
 	FileDiagnostic,
 	MacroRegistryItem,
-	NexusMapEnty,
+	NexusMapEnty as NexusMapEntry,
 	SearchableResult,
 } from '../types';
 import { DtcProperty } from '../ast/dtc/property';
@@ -44,16 +44,16 @@ import { NumberValue } from '../ast/dtc/values/number';
 import { Expression } from '../ast/cPreprocessors/expression';
 import type { Node } from './node';
 
-export interface NexuxMapping {
+export interface NexusMapping {
 	mappingValuesAst: (LabelRef | NodePathRef | NumberValue | Expression)[];
 	specifierSpace?: string;
 	target: Node;
-	mapItem?: NexusMapEnty;
+	mapItem?: NexusMapEntry;
 }
 export class Property {
 	replaces?: Property;
 	replacedBy?: Property;
-	nexusMapsTo: NexuxMapping[] = [];
+	nexusMapsTo: NexusMapping[] = [];
 	constructor(
 		public readonly ast: DtcProperty,
 		public readonly parent: Node,
@@ -130,11 +130,14 @@ export class Property {
 				? [
 						genContextDiagnostic(
 							ContextIssues.DUPLICATE_PROPERTY_NAME,
+							this.replaces.ast.rangeTokens,
 							this.replaces.ast,
-							DiagnosticSeverity.Hint,
-							[this.ast],
-							[DiagnosticTag.Unnecessary],
-							[this.name],
+							{
+								severity: DiagnosticSeverity.Hint,
+								linkedTo: [this.ast],
+								tags: [DiagnosticTag.Unnecessary],
+								templateStrings: [this.name],
+							},
 						),
 					]
 				: []),

@@ -18,7 +18,7 @@ import {
 	DiagnosticSeverity,
 	ParameterInformation,
 } from 'vscode-languageserver';
-import { NexuxMapping } from '../../context/property';
+import { NexusMapping } from '../../context/property';
 import { BindingPropertyType } from '../../types/index';
 import { FileDiagnostic, StandardTypeIssue } from '../../types';
 import { PropertyNodeType } from '../types';
@@ -48,14 +48,16 @@ export default () => {
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.IGNORED,
+						interrupts.ast.rangeTokens,
 						interrupts.ast,
-						DiagnosticSeverity.Warning,
-						[property.ast],
-						[],
-						[
-							interrupts.name,
-							"is ignored when 'interrupts-extended' is used",
-						],
+						{
+							severity: DiagnosticSeverity.Warning,
+							linkedTo: [property.ast],
+							templateStrings: [
+								interrupts.name,
+								"is ignored when 'interrupts-extended' is used",
+							],
+						},
 					),
 				);
 			}
@@ -65,14 +67,16 @@ export default () => {
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.IGNORED,
+						interruptParent.ast.rangeTokens,
 						interruptParent.ast,
-						DiagnosticSeverity.Warning,
-						[property.ast],
-						[],
-						[
-							interruptParent.name,
-							"is ignored when 'interrupts-extended' is used",
-						],
+						{
+							severity: DiagnosticSeverity.Warning,
+							linkedTo: [property.ast],
+							templateStrings: [
+								interruptParent.name,
+								"is ignored when 'interrupts-extended' is used",
+							],
+						},
 					),
 				);
 			}
@@ -88,35 +92,36 @@ export default () => {
 			let index = 0;
 			const args: string[][] = [];
 			while (i < values.length) {
-				const phandleNode = resolvePhandleNode(values[i], root);
+				const pHandleNode = resolvePhandleNode(values[i], root);
 
-				if (!phandleNode) {
+				if (!pHandleNode) {
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
+							values[i].rangeTokens,
 							values[i],
-							DiagnosticSeverity.Error,
 						),
 					);
 					return issues;
 				}
 
 				const cellsProperty =
-					phandleNode.getProperty('#interrupt-cells');
+					pHandleNode.getProperty('#interrupt-cells');
 
 				if (!cellsProperty) {
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+							property.ast.rangeTokens,
 							property.ast,
-							DiagnosticSeverity.Error,
-							[...phandleNode.nodeNameOrLabelRef],
-							[],
-							[
-								property.name,
-								'#interrupt-cells',
-								phandleNode.pathString,
-							],
+							{
+								linkedTo: [...pHandleNode.nodeNameOrLabelRef],
+								templateStrings: [
+									property.name,
+									'#interrupt-cells',
+									pHandleNode.pathString,
+								],
+							},
 						),
 					);
 
@@ -149,11 +154,14 @@ export default () => {
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.CELL_MISS_MATCH,
+							values.at(-1)!.rangeTokens,
 							values.at(-1)!,
-							DiagnosticSeverity.Error,
-							[],
-							[],
-							[property.name, `<${args.at(-1)!.join(' ')}>`],
+							{
+								templateStrings: [
+									property.name,
+									`<${args.at(-1)!.join(' ')}>`,
+								],
+							},
 						),
 					);
 					return issues;
@@ -163,10 +171,10 @@ export default () => {
 					i + 1,
 					i + 1 + cellsPropertyValue,
 				);
-				const mapProperty = phandleNode.getProperty(`interrupt-map`);
-				const nexusMapping: NexuxMapping = {
+				const mapProperty = pHandleNode.getProperty(`interrupt-map`);
+				const nexusMapping: NexusMapping = {
 					mappingValuesAst,
-					target: phandleNode,
+					target: pHandleNode,
 				};
 
 				property.nexusMapsTo.push(nexusMapping);
@@ -175,7 +183,7 @@ export default () => {
 					.mappedReg(macros)
 					?.at(0)?.startAddress;
 				if (mapProperty && startAddress) {
-					const match = phandleNode.getNexusMapEntyMatch(
+					const match = pHandleNode.getNexusMapEntryMatch(
 						'interrupt',
 						macros,
 						mappingValuesAst,
@@ -185,9 +193,9 @@ export default () => {
 						issues.push(
 							genStandardTypeDiagnostic(
 								StandardTypeIssue.NO_NEXUS_MAP_MATCH,
+								match.entry.rangeTokens,
 								match.entry,
-								DiagnosticSeverity.Error,
-								[mapProperty.ast],
+								{ linkedTo: [mapProperty.ast] },
 							),
 						);
 					} else {
@@ -198,7 +206,7 @@ export default () => {
 				if (
 					mappingValuesAst.every((ast) => ast instanceof Expression)
 				) {
-					phandleNode.interrupControlerMapping.push({
+					pHandleNode.interrupControlerMapping.push({
 						expressions: mappingValuesAst,
 						node,
 						property,

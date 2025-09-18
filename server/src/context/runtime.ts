@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { DiagnosticSeverity, Position } from 'vscode-languageserver';
+import { Position } from 'vscode-languageserver';
 import { DeleteNode } from '../ast/dtc/deleteNode';
 import {
 	genContextDiagnostic,
@@ -217,11 +217,16 @@ export class Runtime implements Searchable {
 					issues.push(
 						genContextDiagnostic(
 							ContextIssues.LABEL_ALREADY_IN_USE,
-							otherOwners.at(0)!.label,
-							DiagnosticSeverity.Error,
-							otherOwners.slice(1).map((o) => o.label),
-							[],
-							[otherOwners.at(0)!.label.label.value],
+							otherOwners[0].label.rangeTokens,
+							otherOwners[0].label,
+							{
+								linkedTo: otherOwners
+									.slice(1)
+									.map((o) => o.label),
+								templateStrings: [
+									otherOwners.at(0)!.label.label.value,
+								],
+							},
 						),
 					);
 				}

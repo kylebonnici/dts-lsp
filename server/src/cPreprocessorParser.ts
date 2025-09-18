@@ -231,6 +231,7 @@ export class CPreprocessorParser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE,
+					keyword.rangeTokens,
 					keyword,
 				),
 			);
@@ -285,6 +286,7 @@ export class CPreprocessorParser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE,
+					keyword.rangeTokens,
 					keyword,
 				),
 			);
@@ -348,7 +350,11 @@ export class CPreprocessorParser extends BaseParser {
 				!validToken(this.currentToken, LexerToken.ROUND_CLOSE)
 			) {
 				this._issues.push(
-					genSyntaxDiagnostic(SyntaxIssue.MISSING_COMMA, param),
+					genSyntaxDiagnostic(
+						SyntaxIssue.MISSING_COMMA,
+						param.rangeTokens,
+						param,
+					),
 				);
 			} else if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
 				token = this.moveToNextToken;
@@ -363,10 +369,12 @@ export class CPreprocessorParser extends BaseParser {
 
 		if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
 			node.lastToken = this.prevToken;
+			const issueAST = params.at(-1) ?? node;
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.MISSING_ROUND_CLOSE,
-					params.at(-1) ?? node,
+					issueAST.rangeTokens,
+					issueAST,
 				),
 			);
 		} else {
@@ -476,10 +484,12 @@ export class CPreprocessorParser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.UNUSED_BLOCK,
+						b.content.rangeTokens,
 						b.content,
-						DiagnosticSeverity.Hint,
-						[],
-						[DiagnosticTag.Unnecessary],
+						{
+							severity: DiagnosticSeverity.Hint,
+							tags: [DiagnosticTag.Unnecessary],
+						},
 					),
 				);
 			}
@@ -510,6 +520,7 @@ export class CPreprocessorParser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.EXPECTED_IDENTIFIER,
+					ifDefKeyword.rangeTokens,
 					ifDefKeyword,
 				),
 			);
@@ -560,7 +571,11 @@ export class CPreprocessorParser extends BaseParser {
 			endifKeyword = new Keyword(createTokenIndex(block.endToken));
 		} else {
 			this._issues.push(
-				genSyntaxDiagnostic(SyntaxIssue.MISSING_ENDIF, ifDefKeyword),
+				genSyntaxDiagnostic(
+					SyntaxIssue.MISSING_ENDIF,
+					ifDefKeyword.rangeTokens,
+					ifDefKeyword,
+				),
 			);
 		}
 
@@ -597,7 +612,7 @@ export class CPreprocessorParser extends BaseParser {
 			this.macroStart = true;
 
 			const expression =
-				this.processExpression(this.macros, true) ||
+				this.processExpression(this.macros, keyword, true) ||
 				this.processCIdentifier(this.macros, true);
 
 			this.macroStart = false;
@@ -620,6 +635,7 @@ export class CPreprocessorParser extends BaseParser {
 					this._issues.push(
 						genSyntaxDiagnostic(
 							SyntaxIssue.EXPECTED_IDENTIFIER,
+							ifKeyword.rangeTokens,
 							ifKeyword,
 						),
 					);
@@ -655,7 +671,11 @@ export class CPreprocessorParser extends BaseParser {
 			endifKeyword = new Keyword(createTokenIndex(block.endToken));
 		} else {
 			this._issues.push(
-				genSyntaxDiagnostic(SyntaxIssue.MISSING_ENDIF, ifKeyword),
+				genSyntaxDiagnostic(
+					SyntaxIssue.MISSING_ENDIF,
+					ifKeyword.rangeTokens,
+					ifKeyword,
+				),
 			);
 		}
 		const ifElIfBlock = new IfElIfBlock(
@@ -761,7 +781,11 @@ export class CPreprocessorParser extends BaseParser {
 				!validToken(this.currentToken, LexerToken.GT_SYM)
 			) {
 				this._issues.push(
-					genSyntaxDiagnostic(SyntaxIssue.GT_SYM, node),
+					genSyntaxDiagnostic(
+						SyntaxIssue.GT_SYM,
+						node.rangeTokens,
+						node,
+					),
 				);
 			} else {
 				token = this.moveToNextToken;
@@ -779,8 +803,9 @@ export class CPreprocessorParser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.UNABLE_TO_RESOLVE_INCLUDE,
+					node.path.rangeTokens,
 					node.path,
-					DiagnosticSeverity.Warning,
+					{ severity: DiagnosticSeverity.Warning },
 				),
 			);
 		}

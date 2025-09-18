@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { DiagnosticSeverity, TextEdit } from 'vscode-languageserver';
+import { TextEdit } from 'vscode-languageserver';
 import { BindingPropertyType } from '../../../../types/index';
 import {
 	genStandardTypeDiagnostic,
@@ -32,11 +32,14 @@ export function getAliasesNodeType() {
 			issues.push(
 				genStandardTypeDiagnostic(
 					StandardTypeIssue.NODE_LOCATION,
+					node.definitions[0].rangeTokens,
 					node.definitions[0],
-					DiagnosticSeverity.Error,
-					node.definitions.slice(1),
-					[],
-					['Aliases node can only be added to a root node'],
+					{
+						linkedTo: node.definitions.slice(1),
+						templateStrings: [
+							'Aliases node can only be added to a root node',
+						],
+					},
 				),
 			);
 		}
@@ -46,19 +49,21 @@ export function getAliasesNodeType() {
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.NODE_LOCATION,
+						ast.tokenIndexes,
 						ast,
-						DiagnosticSeverity.Error,
-						[],
-						[],
-						['Aliases node can not have child nodes'],
-						TextEdit.del(
-							toRangeWithTokenIndex(
-								ast.firstToken.prevToken,
-								ast.lastToken,
-								false,
+						{
+							templateStrings: [
+								'Aliases node can not have child nodes',
+							],
+							edit: TextEdit.del(
+								toRangeWithTokenIndex(
+									ast.firstToken.prevToken,
+									ast.lastToken,
+									false,
+								),
 							),
-						),
-						'Delete Node',
+							codeActionTitle: 'Delete Node',
+						},
 					),
 				);
 			});
@@ -81,15 +86,14 @@ export function getAliasesNodeType() {
 			const issues: FileDiagnostic[] = [];
 			const values = property.ast.quickValues;
 			if (values?.length === 1 && typeof values[0] === 'string') {
+				const issueAst = property.ast.values ?? property.ast;
 				if (!values[0].startsWith('/')) {
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.UNABLE_TO_RESOLVE_PATH,
-							property.ast.values ?? property.ast,
-							DiagnosticSeverity.Error,
-							[],
-							[],
-							[values[0], property.name],
+							issueAst.rangeTokens,
+							issueAst,
+							{ templateStrings: [values[0], property.name] },
 						),
 					);
 					return issues;
@@ -98,11 +102,9 @@ export function getAliasesNodeType() {
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.UNABLE_TO_RESOLVE_PATH,
-							property.ast.values ?? property.ast,
-							DiagnosticSeverity.Error,
-							[],
-							[],
-							['', values[0]],
+							issueAst.rangeTokens,
+							issueAst,
+							{ templateStrings: ['', values[0]] },
 						),
 					);
 					return issues;
@@ -123,11 +125,9 @@ export function getAliasesNodeType() {
 						issues.push(
 							genStandardTypeDiagnostic(
 								StandardTypeIssue.UNABLE_TO_RESOLVE_PATH,
-								property.ast.values ?? property.ast,
-								DiagnosticSeverity.Error,
-								[],
-								[],
-								[name, lastNode.fullName],
+								issueAst.rangeTokens,
+								issueAst,
+								{ templateStrings: [name, lastNode.fullName] },
 							),
 						);
 						break;

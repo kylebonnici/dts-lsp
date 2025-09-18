@@ -14,10 +14,7 @@
  * limitations under the License.
  */
 
-import {
-	DiagnosticSeverity,
-	ParameterInformation,
-} from 'vscode-languageserver';
+import { ParameterInformation } from 'vscode-languageserver';
 import { BindingPropertyType } from '../../types/index';
 import { FileDiagnostic, StandardTypeIssue } from '../../types';
 import { PropertyNodeType } from '../types';
@@ -50,15 +47,16 @@ export default () => {
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+						property.ast.rangeTokens,
 						property.ast,
-						DiagnosticSeverity.Error,
-						[...node.nodeNameOrLabelRef],
-						[],
-						[
-							property.name,
-							`#${specifier}-cells`,
-							`/${node.path.slice(1).join('/')}`,
-						],
+						{
+							linkedTo: [...node.nodeNameOrLabelRef],
+							templateStrings: [
+								property.name,
+								`#${specifier}-cells`,
+								`/${node.path.slice(1).join('/')}`,
+							],
+						},
 					),
 				);
 				return issues;
@@ -103,24 +101,25 @@ export default () => {
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.MAP_ENTRY_INCOMPLETE,
+							values[values.length - 1].rangeTokens,
 							values[values.length - 1],
-							DiagnosticSeverity.Error,
-							[],
-							[],
-							[
-								property.name,
-								`after the last value of ${args
-									.at(-1)!
-									.slice(
-										(values.length - entryEndIndex) %
-											expLen ===
-											0
-											? expLen
-											: (values.length - entryEndIndex) %
-													expLen,
-									)
-									.join(' ')}`,
-							],
+							{
+								templateStrings: [
+									property.name,
+									`after the last value of ${args
+										.at(-1)!
+										.slice(
+											(values.length - entryEndIndex) %
+												expLen ===
+												0
+												? expLen
+												: (values.length -
+														entryEndIndex) %
+														expLen,
+										)
+										.join(' ')}`,
+								],
+							},
 						),
 					);
 					break;
@@ -153,24 +152,25 @@ export default () => {
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.MAP_ENTRY_INCOMPLETE,
+							values[values.length - 1].rangeTokens,
 							values[values.length - 1],
-							DiagnosticSeverity.Error,
-							[],
-							[],
-							[
-								property.name,
-								`after the last value of ${args
-									.at(-1)!
-									.slice(
-										(values.length - entryEndIndex) %
-											expLen ===
-											0
-											? expLen
-											: (values.length - entryEndIndex) %
-													expLen,
-									)
-									.join(' ')}`,
-							],
+							{
+								templateStrings: [
+									property.name,
+									`after the last value of ${args
+										.at(-1)!
+										.slice(
+											(values.length - entryEndIndex) %
+												expLen ===
+												0
+												? expLen
+												: (values.length -
+														entryEndIndex) %
+														expLen,
+										)
+										.join(' ')}`,
+								],
+							},
 						),
 					);
 					break;
@@ -180,8 +180,8 @@ export default () => {
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
+							values[i].rangeTokens,
 							values[i],
-							DiagnosticSeverity.Error,
 						),
 					);
 					break;
@@ -195,15 +195,18 @@ export default () => {
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+							values[i].rangeTokens,
 							values[i],
-							DiagnosticSeverity.Error,
-							[...specifierParent.nodeNameOrLabelRef],
-							[],
-							[
-								property.name,
-								`#${specifier}-cells`,
-								`/${node.path.slice(1).join('/')}`,
-							],
+							{
+								linkedTo: [
+									...specifierParent.nodeNameOrLabelRef,
+								],
+								templateStrings: [
+									property.name,
+									`#${specifier}-cells`,
+									`/${node.path.slice(1).join('/')}`,
+								],
+							},
 						),
 					);
 					return issues;
@@ -243,24 +246,25 @@ export default () => {
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.MAP_ENTRY_INCOMPLETE,
+							values[values.length - 1].rangeTokens,
 							values[values.length - 1],
-							DiagnosticSeverity.Error,
-							[],
-							[],
-							[
-								property.name,
-								`after the last value of ${args
-									.at(-1)!
-									.slice(
-										(values.length - entryEndIndex) %
-											expLen ===
-											0
-											? expLen
-											: (values.length - entryEndIndex) %
-													expLen,
-									)
-									.join(' ')}`,
-							],
+							{
+								templateStrings: [
+									property.name,
+									`after the last value of ${args
+										.at(-1)!
+										.slice(
+											(values.length - entryEndIndex) %
+												expLen ===
+												0
+												? expLen
+												: (values.length -
+														entryEndIndex) %
+														expLen,
+										)
+										.join(' ')}`,
+								],
+							},
 						),
 					);
 					break;
@@ -288,9 +292,9 @@ export default () => {
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.DUPLICATE_MAP_ENTRY,
+							v[v.length - 1].rangeTokens,
 							v[v.length - 1],
-							DiagnosticSeverity.Error,
-							v.slice(0, -1),
+							{ linkedTo: v.slice(0, -1) },
 						),
 					);
 				}

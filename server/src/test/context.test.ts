@@ -53,11 +53,11 @@ describe('Context Issues', () => {
 		expect(issues[0].raw.issues).toEqual([
 			ContextIssues.DUPLICATE_PROPERTY_NAME,
 		]);
-		expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(2);
-		expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(8);
+		expect(issues[0].raw.range.start.character).toEqual(2);
+		expect(issues[0].raw.range.end.character).toEqual(8);
 
-		expect(issues[0].raw.linkedTo[0].ast.firstToken.pos.col).toEqual(8);
-		expect(issues[0].raw.linkedTo[0].ast.lastToken.pos.colEnd).toEqual(14);
+		expect(issues[0].raw.linkedTo[0].range.start.character).toEqual(8);
+		expect(issues[0].raw.linkedTo[0].range.end.character).toEqual(14);
 	});
 
 	test('Delete non existing property', async () => {
@@ -72,8 +72,8 @@ describe('Context Issues', () => {
 		expect(issues[0].raw.issues).toEqual([
 			ContextIssues.PROPERTY_DOES_NOT_EXIST,
 		]);
-		expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(20);
-		expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(25);
+		expect(issues[0].raw.range.start.character).toEqual(20);
+		expect(issues[0].raw.range.end.character).toEqual(25);
 	});
 
 	test('Delete property before create', async () => {
@@ -90,8 +90,8 @@ describe('Context Issues', () => {
 		expect(issues[0].raw.issues).toEqual([
 			ContextIssues.PROPERTY_DOES_NOT_EXIST,
 		]);
-		expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(20);
-		expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(25);
+		expect(issues[0].raw.range.start.character).toEqual(20);
+		expect(issues[0].raw.range.end.character).toEqual(25);
 	});
 
 	test('Duplicate node name no address in node', async () => {
@@ -106,8 +106,8 @@ describe('Context Issues', () => {
 		expect(issues[0].raw.issues).toEqual([
 			ContextIssues.DUPLICATE_NODE_NAME,
 		]);
-		expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(9);
-		expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(13);
+		expect(issues[0].raw.range.start.character).toEqual(9);
+		expect(issues[0].raw.range.end.character).toEqual(13);
 	});
 
 	test('Duplicate node name with address in node', async () => {
@@ -122,8 +122,8 @@ describe('Context Issues', () => {
 		expect(issues[0].raw.issues).toEqual([
 			ContextIssues.DUPLICATE_NODE_NAME,
 		]);
-		expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(12);
-		expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(19);
+		expect(issues[0].raw.range.start.character).toEqual(12);
+		expect(issues[0].raw.range.end.character).toEqual(19);
 	});
 
 	test('Duplicate node name with address coma separated in node', async () => {
@@ -138,8 +138,8 @@ describe('Context Issues', () => {
 		expect(issues[0].raw.issues).toEqual([
 			ContextIssues.DUPLICATE_NODE_NAME,
 		]);
-		expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(15);
-		expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(25);
+		expect(issues[0].raw.range.start.character).toEqual(15);
+		expect(issues[0].raw.range.end.character).toEqual(25);
 	});
 
 	describe('Unable to resolve node name', () => {
@@ -156,8 +156,8 @@ describe('Context Issues', () => {
 				ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
 			]);
 
-			expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(8);
-			expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(11);
+			expect(issues[0].raw.range.start.character).toEqual(8);
+			expect(issues[0].raw.range.end.character).toEqual(11);
 		});
 		test('Node Ref', async () => {
 			mockReadFileSync('&nodeLabel{}; /{cpus{};memory{};};');
@@ -171,8 +171,8 @@ describe('Context Issues', () => {
 			expect(issues[0].raw.issues).toEqual([
 				ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
 			]);
-			expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(0);
-			expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(10);
+			expect(issues[0].raw.range.start.character).toEqual(0);
+			expect(issues[0].raw.range.end.character).toEqual(10);
 		});
 
 		test('Reference deleted Node with ref', async () => {
@@ -191,8 +191,8 @@ describe('Context Issues', () => {
 			expect(issues[1].raw.issues).toEqual([
 				ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
 			]);
-			expect(issues[1].raw.astElement.firstToken.pos.col).toEqual(54);
-			expect(issues[1].raw.astElement.lastToken.pos.colEnd).toEqual(57);
+			expect(issues[1].raw.range.start.character).toEqual(54);
+			expect(issues[1].raw.range.end.character).toEqual(57);
 		});
 
 		test('Reference deleted Node with name', async () => {
@@ -211,8 +211,8 @@ describe('Context Issues', () => {
 			expect(issues[1].raw.issues).toEqual([
 				ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
 			]);
-			expect(issues[1].raw.astElement.firstToken.pos.col).toEqual(55);
-			expect(issues[1].raw.astElement.lastToken.pos.colEnd).toEqual(58);
+			expect(issues[1].raw.range.start.character).toEqual(55);
+			expect(issues[1].raw.range.end.character).toEqual(58);
 		});
 
 		test('Delete Node with Ref', async () => {
@@ -227,8 +227,8 @@ describe('Context Issues', () => {
 			expect(issues[0].raw.issues).toEqual([
 				ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
 			]);
-			expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(14);
-			expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(24);
+			expect(issues[0].raw.range.start.character).toEqual(14);
+			expect(issues[0].raw.range.end.character).toEqual(24);
 		});
 	});
 
@@ -244,11 +244,11 @@ describe('Context Issues', () => {
 		expect(issues[0].raw.issues).toEqual([
 			ContextIssues.LABEL_ALREADY_IN_USE,
 		]);
-		expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(2);
-		expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(5);
+		expect(issues[0].raw.range.start.character).toEqual(2);
+		expect(issues[0].raw.range.end.character).toEqual(5);
 
-		expect(issues[0].raw.linkedTo[0].ast.firstToken.pos.col).toEqual(15);
-		expect(issues[0].raw.linkedTo[0].ast.lastToken.pos.colEnd).toEqual(18);
+		expect(issues[0].raw.linkedTo[0].range.start.character).toEqual(15);
+		expect(issues[0].raw.linkedTo[0].range.end.character).toEqual(18);
 	});
 
 	test('Delete non existing node', async () => {
@@ -263,8 +263,8 @@ describe('Context Issues', () => {
 		expect(issues[0].raw.issues).toEqual([
 			ContextIssues.NODE_DOES_NOT_EXIST,
 		]);
-		expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(16);
-		expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(20);
+		expect(issues[0].raw.range.start.character).toEqual(16);
+		expect(issues[0].raw.range.end.character).toEqual(20);
 	});
 
 	test('Delete node before created node', async () => {
@@ -279,8 +279,8 @@ describe('Context Issues', () => {
 		expect(issues[0].raw.issues).toEqual([
 			ContextIssues.NODE_DOES_NOT_EXIST,
 		]);
-		expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(16);
-		expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(20);
+		expect(issues[0].raw.range.start.character).toEqual(16);
+		expect(issues[0].raw.range.end.character).toEqual(20);
 	});
 
 	describe('delete ui', () => {
@@ -298,8 +298,8 @@ describe('Context Issues', () => {
 			expect(issues[0].raw.issues).toEqual([
 				ContextIssues.DELETE_PROPERTY,
 			]);
-			expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(8);
-			expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(14);
+			expect(issues[0].raw.range.start.character).toEqual(8);
+			expect(issues[0].raw.range.end.character).toEqual(14);
 		});
 
 		test('Delete from two nodes property', async () => {
@@ -316,20 +316,20 @@ describe('Context Issues', () => {
 			expect(issues[0].raw.issues).toEqual([
 				ContextIssues.DELETE_PROPERTY,
 			]);
-			expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(25);
-			expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(31);
+			expect(issues[0].raw.range.start.character).toEqual(25);
+			expect(issues[0].raw.range.end.character).toEqual(31);
 
 			expect(issues[1].raw.issues).toEqual([
 				ContextIssues.DELETE_PROPERTY,
 			]);
-			expect(issues[1].raw.astElement.firstToken.pos.col).toEqual(8);
-			expect(issues[1].raw.astElement.lastToken.pos.colEnd).toEqual(14);
+			expect(issues[1].raw.range.start.character).toEqual(8);
+			expect(issues[1].raw.range.end.character).toEqual(14);
 
 			expect(issues[2].raw.issues).toEqual([
 				ContextIssues.DUPLICATE_PROPERTY_NAME,
 			]);
-			expect(issues[2].raw.astElement.firstToken.pos.col).toEqual(8);
-			expect(issues[2].raw.astElement.lastToken.pos.colEnd).toEqual(14);
+			expect(issues[2].raw.range.start.character).toEqual(8);
+			expect(issues[2].raw.range.end.character).toEqual(14);
 		});
 
 		test('Delete Node with name no address', async () => {
@@ -344,15 +344,11 @@ describe('Context Issues', () => {
 			const issues = await context.getContextIssues();
 			expect(issues.length).toEqual(1);
 			expect(issues[0].raw.issues).toEqual([ContextIssues.DELETE_NODE]);
-			expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(2);
-			expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(10);
+			expect(issues[0].raw.range.start.character).toEqual(2);
+			expect(issues[0].raw.range.end.character).toEqual(10);
 
-			expect(issues[0].raw.linkedTo[0].ast.firstToken.pos.col).toEqual(
-				11,
-			);
-			expect(issues[0].raw.linkedTo[0].ast.lastToken.pos.colEnd).toEqual(
-				30,
-			);
+			expect(issues[0].raw.linkedTo[0].range.start.character).toEqual(11);
+			expect(issues[0].raw.linkedTo[0].range.end.character).toEqual(30);
 		});
 
 		test('Delete Node with name with address', async () => {
@@ -367,8 +363,8 @@ describe('Context Issues', () => {
 			const issues = await context.getContextIssues();
 			expect(issues.length).toEqual(1);
 			expect(issues[0].raw.issues).toEqual([ContextIssues.DELETE_NODE]);
-			expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(15);
-			expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(27);
+			expect(issues[0].raw.range.start.character).toEqual(15);
+			expect(issues[0].raw.range.end.character).toEqual(27);
 		});
 
 		test('Delete Node with label ref', async () => {
@@ -383,8 +379,8 @@ describe('Context Issues', () => {
 			const issues = await context.getContextIssues();
 			expect(issues.length).toEqual(1);
 			expect(issues[0].raw.issues).toEqual([ContextIssues.DELETE_NODE]);
-			expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(2);
-			expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(14);
+			expect(issues[0].raw.range.start.character).toEqual(2);
+			expect(issues[0].raw.range.end.character).toEqual(14);
 		});
 
 		test('Delete Node with path', async () => {
@@ -399,8 +395,8 @@ describe('Context Issues', () => {
 			const issues = await context.getContextIssues();
 			expect(issues.length).toEqual(1);
 			expect(issues[0].raw.issues).toEqual([ContextIssues.DELETE_NODE]);
-			expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(13);
-			expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(22);
+			expect(issues[0].raw.range.start.character).toEqual(13);
+			expect(issues[0].raw.range.end.character).toEqual(22);
 		});
 
 		test('Delete multiple Node', async () => {
@@ -415,11 +411,11 @@ describe('Context Issues', () => {
 			const issues = await context.getContextIssues();
 			expect(issues.length).toEqual(2);
 			expect(issues[0].raw.issues).toEqual([ContextIssues.DELETE_NODE]);
-			expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(2);
-			expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(10);
+			expect(issues[0].raw.range.start.character).toEqual(2);
+			expect(issues[0].raw.range.end.character).toEqual(10);
 			expect(issues[1].raw.issues).toEqual([ContextIssues.DELETE_NODE]);
-			expect(issues[1].raw.astElement.firstToken.pos.col).toEqual(14);
-			expect(issues[1].raw.astElement.lastToken.pos.colEnd).toEqual(22);
+			expect(issues[1].raw.range.start.character).toEqual(14);
+			expect(issues[1].raw.range.end.character).toEqual(22);
 		});
 	});
 
@@ -438,8 +434,8 @@ describe('Context Issues', () => {
 			expect(issues[0].raw.issues).toEqual([
 				ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH,
 			]);
-			expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(51);
-			expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(56);
+			expect(issues[0].raw.range.start.character).toEqual(51);
+			expect(issues[0].raw.range.end.character).toEqual(56);
 			expect(issues[0].raw.templateStrings).toEqual(['node2', 'node1']);
 		});
 
@@ -457,8 +453,8 @@ describe('Context Issues', () => {
 			expect(issues[0].raw.issues).toEqual([
 				ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH,
 			]);
-			expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(31);
-			expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(36);
+			expect(issues[0].raw.range.start.character).toEqual(31);
+			expect(issues[0].raw.range.end.character).toEqual(36);
 			expect(issues[0].raw.templateStrings).toEqual(['node2', 'node1']);
 		});
 
@@ -476,8 +472,8 @@ describe('Context Issues', () => {
 			expect(issues[0].raw.issues).toEqual([
 				ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH,
 			]);
-			expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(30);
-			expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(35);
+			expect(issues[0].raw.range.start.character).toEqual(30);
+			expect(issues[0].raw.range.end.character).toEqual(35);
 			expect(issues[0].raw.templateStrings).toEqual(['node2', 'node1']);
 		});
 	});
@@ -497,8 +493,8 @@ describe('Context Issues', () => {
 			expect(issues[0].raw.issues).toEqual([
 				ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
 			]);
-			expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(46);
-			expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(49);
+			expect(issues[0].raw.range.start.character).toEqual(46);
+			expect(issues[0].raw.range.end.character).toEqual(49);
 			expect(issues[0].raw.templateStrings).toEqual(['l2']);
 		});
 
@@ -516,8 +512,8 @@ describe('Context Issues', () => {
 			expect(issues[0].raw.issues).toEqual([
 				ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
 			]);
-			expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(26);
-			expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(29);
+			expect(issues[0].raw.range.start.character).toEqual(26);
+			expect(issues[0].raw.range.end.character).toEqual(29);
 			expect(issues[0].raw.templateStrings).toEqual(['l2']);
 		});
 
@@ -533,8 +529,8 @@ describe('Context Issues', () => {
 			expect(issues[0].raw.issues).toEqual([
 				ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
 			]);
-			expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(25);
-			expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(28);
+			expect(issues[0].raw.range.start.character).toEqual(25);
+			expect(issues[0].raw.range.end.character).toEqual(28);
 			expect(issues[0].raw.templateStrings).toEqual(['l2']);
 		});
 	});
@@ -550,8 +546,8 @@ describe('Context Issues', () => {
 			const issues = await context.getContextIssues();
 			expect(issues.length).toEqual(1);
 			expect(issues[0].raw.issues).toEqual([ContextIssues.MISSING_NODE]);
-			expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(0);
-			expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(1);
+			expect(issues[0].raw.range.start.character).toEqual(0);
+			expect(issues[0].raw.range.end.character).toEqual(1);
 			expect(issues[0].raw.templateStrings).toEqual(['/', 'cpus']);
 		});
 
@@ -565,8 +561,8 @@ describe('Context Issues', () => {
 			const issues = await context.getContextIssues();
 			expect(issues.length).toEqual(1);
 			expect(issues[0].raw.issues).toEqual([ContextIssues.MISSING_NODE]);
-			expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(0);
-			expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(1);
+			expect(issues[0].raw.range.start.character).toEqual(0);
+			expect(issues[0].raw.range.end.character).toEqual(1);
 			expect(issues[0].raw.templateStrings).toEqual(['/', 'memory']);
 		});
 	});

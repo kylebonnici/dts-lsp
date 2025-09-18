@@ -14,10 +14,7 @@
  * limitations under the License.
  */
 
-import {
-	DiagnosticSeverity,
-	ParameterInformation,
-} from 'vscode-languageserver';
+import { ParameterInformation } from 'vscode-languageserver';
 import { BindingPropertyType } from '../../types/index';
 import { FileDiagnostic, StandardTypeIssue } from '../../types';
 import {
@@ -74,30 +71,32 @@ export default () => {
 				values.length === 0 ||
 				values.length % (parentSizeCell + parentAddressCell) !== 0
 			) {
+				const issueAst =
+					values.at(
+						values.length -
+							(values.length %
+								(parentSizeCell + parentAddressCell)),
+					) ?? property.ast;
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.CELL_MISS_MATCH,
-						values.at(
-							values.length -
-								(values.length %
-									(parentSizeCell + parentAddressCell)),
-						) ?? property.ast,
-						DiagnosticSeverity.Error,
-						[],
-						[],
-						[
-							property.name,
-							`<${[
-								...Array.from(
-									{ length: parentAddressCell },
-									() => 'address',
-								),
-								...Array.from(
-									{ length: parentSizeCell },
-									() => 'size',
-								),
-							].join(' ')}>`,
-						],
+						issueAst.rangeTokens,
+						issueAst,
+						{
+							templateStrings: [
+								property.name,
+								`<${[
+									...Array.from(
+										{ length: parentAddressCell },
+										() => 'address',
+									),
+									...Array.from(
+										{ length: parentSizeCell },
+										() => 'size',
+									),
+								].join(' ')}>`,
+							],
+						},
 					),
 				);
 				return issues;
@@ -133,14 +132,15 @@ export default () => {
 								),
 							)
 						: undefined;
+
+				const issueAst =
+					addressValues ?? property.ast.values ?? property.ast;
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.MISMATCH_NODE_ADDRESS_REF_ADDRESS_VALUE,
-						addressValues ?? property.ast.values ?? property.ast,
-						DiagnosticSeverity.Error,
-						[],
-						[],
-						[property.name],
+						issueAst.rangeTokens,
+						issueAst,
+						{ templateStrings: [property.name] },
 					),
 				);
 			}

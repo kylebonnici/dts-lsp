@@ -18,6 +18,7 @@ import {
 	Diagnostic,
 	DiagnosticSeverity,
 	DiagnosticTag,
+	Range,
 	TextEdit,
 	Position as vsCodePosition,
 } from 'vscode-languageserver';
@@ -284,10 +285,11 @@ export type BuildSemanticTokensPush = (
 export type IssueTypes = SyntaxIssue | ContextIssues | StandardTypeIssue;
 export interface Issue<T extends IssueTypes> {
 	issues: T[];
-	astElement: ASTBase;
+	range: Range;
+	uri: string;
 	severity?: DiagnosticSeverity;
 	tags?: DiagnosticTag[];
-	linkedTo: { ast: ASTBase; templateStrings: string[] }[];
+	linkedTo: { range: Range; uri: string; templateStrings: string[] }[];
 	templateStrings: string[];
 	edit?: TextEdit | TextEdit[];
 	codeActionTitle?: string;
@@ -326,14 +328,14 @@ export type RegMapping = {
 	startAddress: number[];
 	size: number[];
 	endAddress: number[];
-	ast: ASTBase;
+	rangeTokens: TokenIndexes;
 };
 
 export type RangeMapping = {
 	childAddress: number[];
 	parentAddress: number[];
 	length: number[];
-	ast: ASTBase;
+	rangeTokens: TokenIndexes;
 };
 
 export interface NexusMapEnty {

@@ -20,6 +20,7 @@ import {
 	MarkupContent,
 	MarkupKind,
 	Position,
+	Range,
 } from 'vscode-languageserver';
 import { DeleteProperty } from '../ast/dtc/deleteProperty';
 import { DeleteNode } from '../ast/dtc/deleteNode';
@@ -34,6 +35,7 @@ import {
 	getDeepestAstNodeInBetween,
 	positionInBetween,
 	positionSameLineAndNotAfter,
+	toRangeWithTokenIndex,
 } from '../helpers';
 import {
 	ContextIssues,
@@ -43,6 +45,7 @@ import {
 	NexusMapEnty,
 	SearchableResult,
 	RegMapping,
+	TokenIndexes,
 } from '../types';
 import {
 	DtcChildNode,
@@ -78,8 +81,8 @@ type MappedReg = {
 	endAddressRaw: number[];
 	inMappingRange: boolean;
 	mappingEnd?: number[];
-	mappedAst?: ASTBase;
-	regAst: ASTBase;
+	mappedAst?: { range: Range; uri: string };
+	regRangeTokens: TokenIndexes;
 	missingMapping: boolean;
 };
 
@@ -304,7 +307,7 @@ export class Node {
 		];
 	}
 
-	getOverlappinNodeAddressesIssues(
+	getOverlappingNodeAddressesIssues(
 		macros: Map<string, MacroRegistryItem>,
 	): FileDiagnostic[] {
 		return this._nodes
@@ -342,46 +345,60 @@ export class Node {
 						if (collidingNodes.length) {
 							return genContextDiagnostic(
 								ContextIssues.ADDRESS_RANGE_COLLIDES,
-								reg.ast,
-								DiagnosticSeverity.Information,
-								collidingNodes.map((n) => n.reg.ast),
-								undefined,
-								[
-									node.fullName,
-									`0x${reg.startAddress
-										.map((c, i) =>
-											c
-												.toString(16)
-												.padStart(i ? 8 : 0, '0'),
-										)
-										.join('')}`,
-									`0x${reg.endAddress
-										.map((c, i) =>
-											c
-												.toString(16)
-												.padStart(i ? 8 : 0, '0'),
-										)
-										.join('')}`,
-								],
-								undefined,
-								undefined,
-								collidingNodes.map((n) => [
-									n.node.fullName,
-									`0x${n.reg.startAddress
-										.map((c, i) =>
-											c
-												.toString(16)
-												.padStart(i ? 8 : 0, '0'),
-										)
-										.join('')}`,
-									`0x${n.reg.endAddress
-										.map((c, i) =>
-											c
-												.toString(16)
-												.padStart(i ? 8 : 0, '0'),
-										)
-										.join('')}`,
-								]),
+								reg.rangeTokens,
+								node.definitions[0],
+								{
+									severity: DiagnosticSeverity.Information,
+									linkedTo: collidingNodes.map((n) => ({
+										range: toRangeWithTokenIndex(
+											n.reg.rangeTokens.start,
+											n.reg.rangeTokens.end,
+										),
+										uri: n.reg.rangeTokens.start.uri,
+									})),
+									templateStrings: [
+										node.fullName,
+										`0x${reg.startAddress
+											.map((c, i) =>
+												c
+													.toString(16)
+													.padStart(i ? 8 : 0, '0'),
+											)
+											.join('')}`,
+										`0x${reg.endAddress
+											.map((c, i) =>
+												c
+													.toString(16)
+													.padStart(i ? 8 : 0, '0'),
+											)
+											.join('')}`,
+									],
+									linkedToTemplateStrings: collidingNodes.map(
+										(n) => [
+											n.node.fullName,
+											`0x${n.reg.startAddress
+												.map((c, i) =>
+													c
+														.toString(16)
+														.padStart(
+															i ? 8 : 0,
+															'0',
+														),
+												)
+												.join('')}`,
+											`0x${n.reg.endAddress
+												.map((c, i) =>
+													c
+														.toString(16)
+														.padStart(
+															i ? 8 : 0,
+															'0',
+														),
+												)
+												.join('')}`,
+										],
+									),
+								},
 							);
 						}
 
@@ -400,23 +417,24 @@ export class Node {
 			...this.deletedPropertiesIssues,
 			...this.deletedNodesIssues,
 			...this.missingBinding,
-			...this.getOverlappinNodeAddressesIssues(macros),
+			...this.getOverlappingNodeAddressesIssues(macros),
 		];
 		if (this.name === '/' && this.definitions.length) {
 			if (!this._nodes.some((n) => n.name === 'cpus')) {
 				issues.push(
 					genContextDiagnostic(
 						ContextIssues.MISSING_NODE,
-						this.definitions.at(-1)!.name ??
-							new ASTBase(
-								createTokenIndex(
-									this.definitions.at(-1)!.firstToken,
-								),
+						this.definitions.at(-1)!.name?.rangeTokens ??
+							createTokenIndex(
+								this.definitions.at(-1)!.firstToken,
 							),
-						DiagnosticSeverity.Error,
-						this.definitions.slice(0, -1),
-						undefined,
-						['/', 'cpus'],
+						this.definitions.at(-1)!.name ??
+							this.definitions.at(-1)!,
+						{
+							severity: DiagnosticSeverity.Error,
+							linkedTo: this.definitions.slice(0, -1),
+							templateStrings: ['/', 'cpus'],
+						},
 					),
 				);
 			}
@@ -442,20 +460,26 @@ export class Node {
 			...this._deletedProperties.flatMap((meta) => [
 				genContextDiagnostic(
 					ContextIssues.DELETE_PROPERTY,
+					meta.property.ast.rangeTokens,
 					meta.property.ast,
-					DiagnosticSeverity.Hint,
-					[meta.by],
-					[DiagnosticTag.Deprecated],
-					[meta.property.name],
+					{
+						severity: DiagnosticSeverity.Hint,
+						tags: [DiagnosticTag.Deprecated],
+						linkedTo: [meta.by],
+						templateStrings: [meta.property.name],
+					},
 				),
 				...meta.property.allReplaced.map((p) =>
 					genContextDiagnostic(
 						ContextIssues.DELETE_PROPERTY,
+						p.ast.rangeTokens,
 						p.ast,
-						DiagnosticSeverity.Hint,
-						[meta.by],
-						[DiagnosticTag.Deprecated],
-						[meta.property.name],
+						{
+							severity: DiagnosticSeverity.Hint,
+							linkedTo: [meta.by],
+							tags: [DiagnosticTag.Deprecated],
+							templateStrings: [meta.property.name],
+						},
 					),
 				),
 				...meta.property.issues,
@@ -481,11 +505,14 @@ export class Node {
 				}
 				return genContextDiagnostic(
 					ContextIssues.DELETE_NODE,
+					node.rangeTokens,
 					node,
-					DiagnosticSeverity.Hint,
-					[meta.by],
-					[DiagnosticTag.Deprecated],
-					[name],
+					{
+						severity: DiagnosticSeverity.Hint,
+						linkedTo: [meta.by],
+						tags: [DiagnosticTag.Deprecated],
+						templateStrings: [name],
+					},
 				);
 			}),
 		]);
@@ -744,12 +771,10 @@ export class Node {
 				startAddress: startAddress,
 				endAddress: addWords(startAddress, length),
 				size: length,
-				ast: new ASTBase(
-					createTokenIndex(
-						firstToken,
-						sizeCellAst.at(-1)?.lastToken ??
-							addressAst.at(-1)?.lastToken,
-					),
+				rangeTokens: createTokenIndex(
+					firstToken,
+					sizeCellAst.at(-1)?.lastToken ??
+						addressAst.at(-1)?.lastToken,
 				),
 			});
 		}
@@ -818,8 +843,9 @@ export class Node {
 				childAddress: childAddress as number[],
 				parentAddress: parentAddress as number[],
 				length: length as number[],
-				ast: new ASTBase(
-					createTokenIndex(firstToken, lengthAst.at(-1)!.lastToken),
+				rangeTokens: createTokenIndex(
+					firstToken,
+					lengthAst.at(-1)!.lastToken,
 				),
 			});
 		}
@@ -888,8 +914,9 @@ export class Node {
 				childAddress: childAddress as number[],
 				parentAddress: parentAddress as number[],
 				length: length as number[],
-				ast: new ASTBase(
-					createTokenIndex(firstToken, lengthAst.at(-1)!.lastToken),
+				rangeTokens: createTokenIndex(
+					firstToken,
+					lengthAst.at(-1)!.lastToken,
 				),
 			});
 		}
@@ -940,16 +967,19 @@ export class Node {
 					const startAddress = reg.startAddress;
 					const size = reg.size;
 
-					const endEddress = addWords(startAddress, size);
+					const endAddress = addWords(startAddress, size);
 
 					const mappedReg: MappedReg = {
 						startAddress,
 						startAddressRaw: startAddress,
 						size,
-						endAddress: endEddress,
-						endAddressRaw: endEddress,
+						endAddress: endAddress,
+						endAddressRaw: endAddress,
 						inMappingRange: false,
-						regAst: reg.ast,
+						regRangeTokens: {
+							start: reg.rangeTokens.start,
+							end: reg.rangeTokens.end,
+						},
 						missingMapping: false,
 					};
 
@@ -968,7 +998,7 @@ export class Node {
 					}
 
 					return mappedAddress.map((m) => {
-						mappedReg.mappedAst = m.ast;
+						mappedReg.mappedAst = { range: m.range, uri: m.uri };
 						mappedReg.startAddress = m.start;
 						mappedReg.endAddress = addWords(m.start, size);
 						mappedReg.inMappingRange =
@@ -977,7 +1007,7 @@ export class Node {
 
 						return {
 							...mappedReg,
-							mappedAst: m.ast,
+							mappedAst: { range: m.range, uri: m.uri },
 							startAddress: m.start,
 							endAddress: addWords(m.start, size),
 							inMappingRange:
@@ -1030,7 +1060,7 @@ export class Node {
 			: { parentInterruptNode: this };
 	}
 
-	getNexusMapEntyMatch(
+	getNexusMapEntryMatch(
 		specifier: string,
 		macros: Map<string, MacroRegistryItem>,
 		mappingValuesAst: (LabelRef | NodePathRef | Expression | NumberValue)[],

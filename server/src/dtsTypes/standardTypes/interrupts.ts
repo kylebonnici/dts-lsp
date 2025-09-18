@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-import {
-	DiagnosticSeverity,
-	ParameterInformation,
-} from 'vscode-languageserver';
+import { ParameterInformation } from 'vscode-languageserver';
 import { BindingPropertyType } from '../../types/index';
 import { FileDiagnostic, StandardTypeIssue } from '../../types';
 import { PropertyNodeType } from '../types';
 import { genStandardTypeDiagnostic } from '../../helpers';
 import { Expression } from '../../ast/cPreprocessors/expression';
-import { NexuxMapping } from '../../context/property';
+import { NexusMapping } from '../../context/property';
 import {
 	flatNumberValues,
 	generateOrTypeObj,
@@ -60,24 +57,31 @@ export default () => {
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+							property.ast.rangeTokens,
 							property.ast,
-							DiagnosticSeverity.Error,
-							[...property.parent.nodeNameOrLabelRef],
-							[],
-							[
-								property.name,
-								'interrupt-parent',
-								property.parent.pathString,
-							],
+							{
+								linkedTo: [
+									...property.parent.nodeNameOrLabelRef,
+								],
+								templateStrings: [
+									property.name,
+									'interrupt-parent',
+									property.parent.pathString,
+								],
+							},
 						),
 					);
 					return issues;
 				}
+				const issueAST =
+					result.interruptParent.ast.values?.values.at(0)?.value ??
+					result.interruptParent.ast;
+
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
-						result.interruptParent.ast.values?.values.at(0)
-							?.value ?? result.interruptParent.ast,
+						issueAST.rangeTokens,
+						issueAST,
 					),
 				);
 				return issues;
@@ -92,15 +96,18 @@ export default () => {
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+						property.ast.rangeTokens,
 						property.ast,
-						DiagnosticSeverity.Error,
-						[...parentInterruptNode.nodeNameOrLabelRef],
-						[],
-						[
-							property.name,
-							'#interrupt-cells',
-							parentInterruptNode.pathString,
-						],
+						{
+							linkedTo: [
+								...parentInterruptNode.nodeNameOrLabelRef,
+							],
+							templateStrings: [
+								property.name,
+								'#interrupt-cells',
+								parentInterruptNode.pathString,
+							],
+						},
 					),
 				);
 				return issues;
@@ -133,18 +140,20 @@ export default () => {
 			const addressCellsProperty =
 				node.parent?.getProperty(`#address-cells`);
 			if (mapProperty && !addressCellsProperty) {
+				const issueAST = property.ast.propertyName ?? property.ast;
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
-						property.ast.propertyName ?? property.ast,
-						DiagnosticSeverity.Error,
-						[...property.parent.nodeNameOrLabelRef],
-						[],
-						[
-							property.name,
-							'#address-cells',
-							node.parent?.pathString ?? '/',
-						],
+						issueAST.rangeTokens,
+						issueAST,
+						{
+							linkedTo: [...property.parent.nodeNameOrLabelRef],
+							templateStrings: [
+								property.name,
+								'#address-cells',
+								node.parent?.pathString ?? '/',
+							],
+						},
 					),
 				);
 			}
@@ -153,15 +162,18 @@ export default () => {
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+						property.ast.rangeTokens,
 						property.ast,
-						DiagnosticSeverity.Error,
-						[...parentInterruptNode.nodeNameOrLabelRef],
-						[],
-						[
-							property.name,
-							'#interrupt-cells',
-							parentInterruptNode.pathString,
-						],
+						{
+							linkedTo: [
+								...parentInterruptNode.nodeNameOrLabelRef,
+							],
+							templateStrings: [
+								property.name,
+								'#interrupt-cells',
+								parentInterruptNode.pathString,
+							],
+						},
 					),
 				);
 
@@ -176,21 +188,21 @@ export default () => {
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.CELL_MISS_MATCH,
+							values.at(-1)!.rangeTokens,
 							values.at(-1)!,
-							DiagnosticSeverity.Error,
-							[],
-							[],
-							[
-								property.name,
-								`<${[
-									...Array.from(
-										{
-											length: childInterruptSpecifierValue,
-										},
-										() => 'Interrupt',
-									),
-								].join(' ')}> `,
-							],
+							{
+								templateStrings: [
+									property.name,
+									`<${[
+										...Array.from(
+											{
+												length: childInterruptSpecifierValue,
+											},
+											() => 'Interrupt',
+										),
+									].join(' ')}> `,
+								],
+							},
 						),
 					);
 					return issues;
@@ -204,7 +216,7 @@ export default () => {
 				const startAddress = node
 					.mappedReg(macros)
 					?.at(0)?.startAddress;
-				const nexusMapping: NexuxMapping = {
+				const nexusMapping: NexusMapping = {
 					mappingValuesAst,
 					target: parentInterruptNode,
 				};
@@ -212,7 +224,7 @@ export default () => {
 				property.nexusMapsTo.push(nexusMapping);
 
 				if (mapProperty && startAddress) {
-					const match = parentInterruptNode.getNexusMapEntyMatch(
+					const match = parentInterruptNode.getNexusMapEntryMatch(
 						'interrupt',
 						macros,
 						mappingValuesAst,
@@ -222,9 +234,9 @@ export default () => {
 						issues.push(
 							genStandardTypeDiagnostic(
 								StandardTypeIssue.NO_NEXUS_MAP_MATCH,
+								match.entry.rangeTokens,
 								match.entry,
-								DiagnosticSeverity.Error,
-								[mapProperty.ast],
+								{ linkedTo: [mapProperty.ast] },
 							),
 						);
 					} else {

@@ -48,7 +48,7 @@ export class ASTBase {
 	protected docSymbolsMeta?: { name: string; kind: SymbolKind };
 
 	private _lastToken?: Token;
-	private _fisrtToken?: Token;
+	private _firstToken?: Token;
 	private allDescendantsCache?: ASTBase[];
 
 	syntaxIssues: (() => Diagnostic)[] = [];
@@ -68,16 +68,20 @@ export class ASTBase {
 	}
 
 	constructor(_tokenIndexes?: TokenIndexes) {
-		this._fisrtToken = _tokenIndexes?.start;
+		this._firstToken = _tokenIndexes?.start;
 		this._lastToken = _tokenIndexes?.end;
 	}
 
 	get firstToken(): Token {
-		return this._fisrtToken ?? this._children[0].tokenIndexes.start;
+		return this._firstToken ?? this._children[0].tokenIndexes.start;
 	}
 
 	set firstToken(token: Token | undefined) {
-		this._fisrtToken = token;
+		this._firstToken = token;
+	}
+
+	get rangeTokens() {
+		return { start: this.firstToken, end: this.lastToken };
 	}
 
 	get lastToken(): Token {

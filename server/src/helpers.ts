@@ -60,7 +60,7 @@ export const toRangeWithTokenIndex = (
 	end?: Token,
 	inclusiveStart = true,
 	inclusiveEnd = true,
-) => {
+): Range => {
 	return {
 		start: {
 			line: start?.pos.line ?? 0,
@@ -257,20 +257,46 @@ export const getDeepestAstNodeBefore = (
 
 export const genSyntaxDiagnostic = (
 	issues: SyntaxIssue | SyntaxIssue[],
-	slxBase: ASTBase,
-	severity: DiagnosticSeverity = DiagnosticSeverity.Error,
-	linkedTo: ASTBase[] = [],
-	tags: DiagnosticTag[] | undefined = undefined,
-	templateStrings: string[] = [],
-	edit?: TextEdit,
-	codeActionTitle?: string,
+	rangeTokens: { start: Token; end: Token },
+	issueOwner: ASTBase | null,
+	{
+		severity = DiagnosticSeverity.Error,
+		linkedTo = [],
+		tags,
+		templateStrings = [],
+		edit,
+		codeActionTitle,
+		inclusiveStart,
+		inclusiveEnd,
+	}: {
+		severity?: DiagnosticSeverity;
+		linkedTo?: { range: Range; uri: string }[];
+		tags?: DiagnosticTag[];
+		templateStrings?: string[];
+		edit?: TextEdit;
+		codeActionTitle?: string;
+		inclusiveStart?: boolean;
+		inclusiveEnd?: boolean;
+	} = {
+		severity: DiagnosticSeverity.Error,
+		linkedTo: [],
+		templateStrings: [],
+	},
 ): FileDiagnostic => {
+	const range = toRangeWithTokenIndex(
+		rangeTokens.start,
+		rangeTokens.end,
+		inclusiveStart,
+		inclusiveEnd,
+	);
 	const issue: Issue<SyntaxIssue> = {
 		issues: Array.isArray(issues) ? issues : [issues],
-		astElement: slxBase,
+		range,
+		uri: rangeTokens.start.uri,
 		severity,
-		linkedTo: linkedTo.map((ast) => ({
-			ast,
+		linkedTo: linkedTo.map(({ range, uri }) => ({
+			range,
+			uri,
 			templateStrings: [],
 		})),
 		tags,
@@ -284,7 +310,7 @@ export const genSyntaxDiagnostic = (
 	const action = () => {
 		diagnostic ??= {
 			severity: issue.severity,
-			range: toRange(issue.astElement),
+			range,
 			message: issue.issues
 				? issue.issues.map(syntaxIssueToMessage).join(' or ')
 				: '',
@@ -292,14 +318,14 @@ export const genSyntaxDiagnostic = (
 			tags: issue.tags,
 			data: {
 				firstToken: {
-					pos: issue.astElement.firstToken.pos,
-					tokens: issue.astElement.firstToken.tokens,
-					value: issue.astElement.firstToken.value,
+					pos: rangeTokens.start.pos,
+					tokens: rangeTokens.start.tokens,
+					value: rangeTokens.start.value,
 				},
 				lastToken: {
-					pos: issue.astElement.lastToken.pos,
-					tokens: issue.astElement.lastToken.tokens,
-					value: issue.astElement.lastToken.value,
+					pos: rangeTokens.end.pos,
+					tokens: rangeTokens.end.tokens,
+					value: rangeTokens.end.value,
 				},
 				issues: {
 					type: 'SyntaxIssue',
@@ -312,7 +338,7 @@ export const genSyntaxDiagnostic = (
 		return diagnostic;
 	};
 
-	issue.astElement.syntaxIssues.push(action);
+	issueOwner?.syntaxIssues.push(action);
 
 	return {
 		raw: issue,
@@ -322,21 +348,40 @@ export const genSyntaxDiagnostic = (
 
 export const genContextDiagnostic = (
 	issues: ContextIssues | ContextIssues[],
-	slxBase: ASTBase,
-	severity: DiagnosticSeverity = DiagnosticSeverity.Error,
-	linkedTo: ASTBase[] = [],
-	tags: DiagnosticTag[] | undefined = undefined,
-	templateStrings: string[] = [],
-	edit?: TextEdit,
-	codeActionTitle?: string,
-	linkedToTemplateStrings: string[][] = [],
+	rangeTokens: { start: Token; end: Token },
+	issueOwner: ASTBase | null,
+	{
+		severity = DiagnosticSeverity.Error,
+		linkedTo = [],
+		tags,
+		templateStrings = [],
+		edit,
+		codeActionTitle,
+		linkedToTemplateStrings = [],
+	}: {
+		severity?: DiagnosticSeverity;
+		linkedTo?: { range: Range; uri: string }[];
+		tags?: DiagnosticTag[];
+		templateStrings?: string[];
+		edit?: TextEdit;
+		codeActionTitle?: string;
+		linkedToTemplateStrings?: string[][];
+	} = {
+		severity: DiagnosticSeverity.Error,
+		linkedTo: [],
+		templateStrings: [],
+		linkedToTemplateStrings: [],
+	},
 ): FileDiagnostic => {
+	const range = toRangeWithTokenIndex(rangeTokens.start, rangeTokens.end);
 	const issue: Issue<ContextIssues> = {
 		issues: Array.isArray(issues) ? issues : [issues],
-		astElement: slxBase,
+		range,
+		uri: rangeTokens.start.uri,
 		severity,
-		linkedTo: linkedTo.map((ast, i) => ({
-			ast,
+		linkedTo: linkedTo.map(({ range, uri }, i) => ({
+			range,
+			uri,
 			templateStrings: linkedToTemplateStrings.at(i) ?? [],
 		})),
 		tags,
@@ -350,7 +395,7 @@ export const genContextDiagnostic = (
 	const action = () => {
 		diagnostic ??= {
 			severity: issue.severity,
-			range: toRange(issue.astElement),
+			range,
 			message: contextIssuesToMessage(issue),
 			source: 'devicetree',
 			tags: issue.tags,
@@ -365,8 +410,8 @@ export const genContextDiagnostic = (
 						)
 						.join(' or '),
 					location: {
-						uri: pathToFileURL(element.ast.uri!),
-						range: toRange(element.ast),
+						uri: pathToFileURL(element.uri),
+						range: element.range,
 					},
 				})),
 			],
@@ -374,7 +419,7 @@ export const genContextDiagnostic = (
 		return diagnostic;
 	};
 
-	issue.astElement.resetableIssues.push(action);
+	issueOwner?.resetableIssues.push(action);
 
 	return {
 		raw: issue,
@@ -384,20 +429,37 @@ export const genContextDiagnostic = (
 
 export const genStandardTypeDiagnostic = (
 	issues: StandardTypeIssue | StandardTypeIssue[],
-	slxBase: ASTBase,
-	severity: DiagnosticSeverity = DiagnosticSeverity.Error,
-	linkedTo: ASTBase[] = [],
-	tags: DiagnosticTag[] | undefined = undefined,
-	templateStrings: string[] = [],
-	edit?: TextEdit | TextEdit[],
-	codeActionTitle?: string,
+	rangeTokens: { start: Token; end: Token },
+	issueOwner: ASTBase | null,
+	{
+		severity = DiagnosticSeverity.Error,
+		linkedTo = [],
+		tags,
+		templateStrings = [],
+		edit,
+		codeActionTitle,
+	}: {
+		severity?: DiagnosticSeverity;
+		linkedTo?: { range: Range; uri: string }[];
+		tags?: DiagnosticTag[];
+		templateStrings?: string[];
+		edit?: TextEdit | TextEdit[];
+		codeActionTitle?: string;
+	} = {
+		severity: DiagnosticSeverity.Error,
+		linkedTo: [],
+		templateStrings: [],
+	},
 ): FileDiagnostic => {
+	const range = toRangeWithTokenIndex(rangeTokens.start, rangeTokens.end);
 	const issue: Issue<StandardTypeIssue> = {
 		issues: Array.isArray(issues) ? issues : [issues],
-		astElement: slxBase,
+		range,
 		severity,
-		linkedTo: linkedTo.map((ast) => ({
-			ast,
+		uri: rangeTokens.start.uri,
+		linkedTo: linkedTo.map(({ range, uri }) => ({
+			range,
+			uri,
 			templateStrings: [],
 		})),
 		tags,
@@ -411,7 +473,7 @@ export const genStandardTypeDiagnostic = (
 	const action = () => {
 		diagnostic ??= {
 			severity: issue.severity,
-			range: toRange(issue.astElement),
+			range,
 			message: standardTypeIssueIssuesToMessage(issue),
 			relatedInformation: [
 				...issue.linkedTo.map((element) => ({
@@ -419,8 +481,8 @@ export const genStandardTypeDiagnostic = (
 						.map(standardTypeToLinkedMessage)
 						.join(' or '),
 					location: {
-						uri: pathToFileURL(element.ast.uri!),
-						range: toRange(element.ast),
+						uri: pathToFileURL(element.uri),
+						range: element.range,
 					},
 				})),
 			],
@@ -428,14 +490,14 @@ export const genStandardTypeDiagnostic = (
 			tags: issue.tags,
 			data: {
 				firstToken: {
-					pos: issue.astElement.firstToken.pos,
-					tokens: issue.astElement.firstToken.tokens,
-					value: issue.astElement.firstToken.value,
+					pos: rangeTokens.start.pos,
+					tokens: rangeTokens.start.tokens,
+					value: rangeTokens.start.value,
 				},
 				lastToken: {
-					pos: issue.astElement.lastToken.pos,
-					tokens: issue.astElement.lastToken.tokens,
-					value: issue.astElement.lastToken.value,
+					pos: rangeTokens.end.pos,
+					tokens: rangeTokens.end.tokens,
+					value: rangeTokens.end.value,
 				},
 				issues: {
 					type: 'StandardTypeIssue',
@@ -448,7 +510,7 @@ export const genStandardTypeDiagnostic = (
 		return diagnostic;
 	};
 
-	issue.astElement.resetableIssues.push(action);
+	issueOwner?.resetableIssues.push(action);
 
 	return {
 		raw: issue,
@@ -1099,7 +1161,8 @@ export const addOffset = (base: number[], offset: number[]): number[] => {
 type MappedAddress = {
 	start: number[];
 	end: number[];
-	ast: ASTBase;
+	range: Range;
+	uri: string;
 };
 
 export const findMappedAddress = (
@@ -1124,7 +1187,11 @@ export const findMappedAddress = (
 			matches.push({
 				start: mappedStart,
 				end: mappedEnd,
-				ast: mapping.ast,
+				range: toRangeWithTokenIndex(
+					mapping.rangeTokens.start,
+					mapping.rangeTokens.end,
+				),
+				uri: mapping.rangeTokens.start.uri,
 			});
 		}
 	}
@@ -1353,7 +1420,7 @@ export const coreSyntaxIssuesFilter = (
 	}
 	return (
 		issue.severity === DiagnosticSeverity.Error &&
-		isPathEqual(issue.astElement.uri, filePath) &&
+		isPathEqual(issue.uri, filePath) &&
 		!syntaxIssuesToIgnore.some((i) => issue.issues.includes(i))
 	);
 };

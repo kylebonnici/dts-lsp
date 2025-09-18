@@ -14,10 +14,7 @@
  * limitations under the License.
  */
 
-import {
-	DiagnosticSeverity,
-	ParameterInformation,
-} from 'vscode-languageserver-types';
+import { ParameterInformation } from 'vscode-languageserver-types';
 import { FileDiagnostic, StandardTypeIssue } from '../../types';
 import { BindingPropertyType } from '../../types/index';
 import { PropertyNodeType } from '../types';
@@ -84,26 +81,29 @@ export default () => {
 				values.length !==
 				childAddressCellsValue + childInterruptSpecifierValue
 			) {
+				const issueAST = property.ast.values ?? property.ast;
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.CELL_MISS_MATCH,
-						property.ast.values ?? property.ast,
-						DiagnosticSeverity.Error,
-						[],
-						[],
-						[
-							property.name,
-							`<${[
-								...Array.from(
-									{ length: childAddressCellsValue },
-									() => 'AddressMask',
-								),
-								...Array.from(
-									{ length: childInterruptSpecifierValue },
-									() => 'InterruptMask',
-								),
-							].join(' ')}>`,
-						],
+						issueAST.rangeTokens,
+						issueAST,
+						{
+							templateStrings: [
+								property.name,
+								`<${[
+									...Array.from(
+										{ length: childAddressCellsValue },
+										() => 'AddressMask',
+									),
+									...Array.from(
+										{
+											length: childInterruptSpecifierValue,
+										},
+										() => 'InterruptMask',
+									),
+								].join(' ')}>`,
+							],
+						},
 					),
 				);
 				return issues;
