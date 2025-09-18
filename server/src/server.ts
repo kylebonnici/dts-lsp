@@ -302,7 +302,7 @@ connection.onInitialize((params: InitializeParams) => {
 	connection.console.log(
 		`[Server(${process.pid}) ${
 			workspaceFolder?.at(0)?.uri
-		} Version 0.5.3 ] Started and initialize received`,
+		} Version 0.5.4 ] Started and initialize received`,
 	);
 
 	const capabilities = params.capabilities;
@@ -706,7 +706,7 @@ const onChange = async (uri: string) => {
 							fileWatchers.get(f)?.unwatch(),
 						);
 
-						if (isActive) {
+						if (isActive && getContextOpenFiles(context)?.length) {
 							generateWorkspaceDiagnostics(context).then((d) => {
 								const newDiagnostics = d.items.map(
 									(i) =>
@@ -945,22 +945,26 @@ const updateActiveContext = async (id: ContextId, force = false) => {
 				} satisfies ContextListItem);
 			});
 
-			generateWorkspaceDiagnostics(newContext)
-				.then((d) => {
-					d.items
-						.map(
-							(i) =>
-								({
-									uri: i.uri,
-									version: i.version ?? undefined,
-									diagnostics: i.items,
-								}) satisfies PublishDiagnosticsParams,
-						)
-						.forEach((ii) => {
-							connection.sendDiagnostics(ii);
-						});
-				})
-				.finally(() => hasWorkspaceDiagnostics.set(newContext, true));
+			if (getContextOpenFiles(newContext)?.length) {
+				generateWorkspaceDiagnostics(newContext)
+					.then((d) => {
+						d.items
+							.map(
+								(i) =>
+									({
+										uri: i.uri,
+										version: i.version ?? undefined,
+										diagnostics: i.items,
+									}) satisfies PublishDiagnosticsParams,
+							)
+							.forEach((ii) => {
+								connection.sendDiagnostics(ii);
+							});
+					})
+					.finally(() =>
+						hasWorkspaceDiagnostics.set(newContext, true),
+					);
+			}
 			await reportContextList();
 		} else {
 			connection.sendNotification(
@@ -987,6 +991,10 @@ const isDtsFile = (uri: string) =>
 // for open, change and close text document events
 documents.listen(connection);
 
+const getContextOpenFiles = (context: ContextAware | undefined) => {
+	return context?.getContextFiles()?.filter((f) => fetchDocument(f));
+};
+
 // Only keep settings for open documents
 documents.onDidClose(async (e) => {
 	const uri = fileURLToPath(e.document.uri);
@@ -1008,11 +1016,10 @@ documents.onDidClose(async (e) => {
 
 	await Promise.all(
 		contexts.map(async (context) => {
-			const contextAllFiles = context?.getContextFiles() ?? [];
+			const contextHasFileOpen = !!getContextOpenFiles(context)?.filter(
+				(f) => f !== uri,
+			).length;
 
-			const contextHasFileOpen = contextAllFiles
-				.filter((f) => f !== uri)
-				.some((f) => fetchDocument(f));
 			if (!contextHasFileOpen) {
 				if (await isAdHocContext(context)) {
 					await deleteContext(context);
