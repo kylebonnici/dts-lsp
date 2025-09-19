@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.5.4] - Unreleased
+
+### Fixed
+
+- Fixed an issue with server crashing when loading vering binding with `property-allowlist` or `property-blocklist`
+
 ## [0.5.4] - 2025-09-19
 
 ### Fixed

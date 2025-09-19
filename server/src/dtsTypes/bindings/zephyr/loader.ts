@@ -68,8 +68,8 @@ type ZephyrPropertyType =
 	| 'compound';
 
 type ZephyrBindingsProperty = {
-	required: boolean;
-	type: ZephyrPropertyType;
+	required?: boolean;
+	type?: ZephyrPropertyType;
 	deprecated?: false;
 	default?: string | number | (string | number)[];
 	description?: string;
@@ -103,7 +103,7 @@ interface ZephyrBindingYml {
 
 type CellSpecifier = `${string}-cells`;
 
-const ZephyrTypeToDTSType = (type: ZephyrPropertyType) => {
+const ZephyrTypeToDTSType = (type: ZephyrPropertyType | undefined) => {
 	switch (type) {
 		case 'string':
 			return generateOrTypeObj(BindingPropertyType.STRING);
@@ -130,10 +130,15 @@ const ZephyrTypeToDTSType = (type: ZephyrPropertyType) => {
 			]);
 		case 'compound':
 			return generateOrTypeObj(BindingPropertyType.ANY);
+		default:
+			return generateOrTypeObj(BindingPropertyType.ANY);
 	}
 };
 
-const ZephyrDefaultTypeDefault = (type: ZephyrPropertyType, def: any) => {
+const ZephyrDefaultTypeDefault = (
+	type: ZephyrPropertyType | undefined,
+	def: any,
+) => {
 	switch (type) {
 		case 'string':
 			return typeof def === 'string' ? def : undefined;
@@ -238,17 +243,17 @@ const mergeAintoB = (
 			propertiesToExclude?.some((n) => n === name) ||
 			(propertiesToInclude &&
 				!propertiesToInclude.some((n) => n === name)) // as per zephyr we cannot have both propertiesToExclude and propertiesToInclude
-				? {}
-				: (resolvedA.properties?.[name] ?? {});
-		const propertyFromB = resolvedB.properties?.[name] ?? {};
+				? undefined
+				: (resolvedA.properties?.[name] ?? undefined);
+		const propertyFromB = resolvedB.properties?.[name] ?? undefined;
 
-		newProperties = {
-			...newProperties,
-			[name]: {
-				...propertyFromA,
-				...propertyFromB,
-			},
-		};
+		if (propertyFromA || propertyFromB)
+			newProperties = {
+				...newProperties,
+				[name]: {
+					...(propertyFromA ?? propertyFromB),
+				},
+			};
 	});
 
 	resolvedB.properties = newProperties;
