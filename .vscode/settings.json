@@ -9,5 +9,6 @@
 	"editor.formatOnSave": true,
 	"editor.tabSize": 4,
 	"prettier.singleQuote": true,
-	"eslint.enable": true
+	"eslint.enable": true,
+	"cSpell.words": ["phandel", "phandle", "STRINGLIST"]
 }

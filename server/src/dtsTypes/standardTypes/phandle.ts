@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-import { DiagnosticSeverity } from 'vscode-languageserver';
 import { BindingPropertyType } from '../../types/index';
 import { StandardTypeIssue } from '../../types';
 import { genStandardTypeDiagnostic } from '../../helpers';
 import { PropertyNodeType } from '../types';
-import { ASTBase } from '../../ast/base';
 import { generateOrTypeObj, getU32ValueFromProperty } from './helpers';
 
 export default () => {
@@ -39,17 +37,22 @@ export default () => {
 			if (phandelValue) {
 				const nodes = property.parent.root.getAllPhandle(phandelValue);
 				if (nodes.length > 1 && nodes.at(-1) === property.parent) {
+					const issueAst =
+						property.ast.values?.values.at(0) ?? property.ast;
 					return [
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.EXPECTED_UNIQUE_PHANDLE,
-							property.ast.values?.values.at(0) ?? property.ast,
-							DiagnosticSeverity.Error,
-							nodes
-								.slice(0, -1)
-								.flatMap((n) => n.getProperty('phandle')?.ast)
-								.filter((a) => !!a) as ASTBase[],
-							[],
-							[property.name],
+							issueAst.rangeTokens,
+							issueAst,
+							{
+								linkedTo: nodes
+									.slice(0, -1)
+									.flatMap(
+										(n) => n.getProperty('phandle')?.ast,
+									)
+									.filter((a) => !!a),
+								templateStrings: [property.name],
+							},
 						),
 					];
 				}

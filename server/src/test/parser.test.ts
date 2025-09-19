@@ -104,9 +104,7 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.MISSING_FORWARD_SLASH_END,
 			]);
-			expect(
-				parser.issues[0].raw.astElement.lastToken.pos.colEnd,
-			).toEqual(7);
+			expect(parser.issues[0].raw.range.end.character).toEqual(7);
 		});
 	});
 
@@ -135,9 +133,7 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.MISSING_FORWARD_SLASH_END,
 			]);
-			expect(
-				parser.issues[0].raw.astElement.lastToken.pos.colEnd,
-			).toEqual(11);
+			expect(parser.issues[0].raw.range.end.character).toEqual(11);
 
 			expect(parser.others[0] instanceof DtsMemreserveNode).toBeTruthy();
 			expect(
@@ -156,9 +152,7 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.EXPECTED_END_ADDRESS,
 			]);
-			expect(
-				parser.issues[0].raw.astElement.lastToken.pos.colEnd,
-			).toEqual(18);
+			expect(parser.issues[0].raw.range.end.character).toEqual(18);
 
 			expect(parser.others[0] instanceof DtsMemreserveNode).toBeTruthy();
 			expect(
@@ -180,12 +174,8 @@ describe('Parser', () => {
 			expect(parser.issues[1].raw.issues).toEqual([
 				SyntaxIssue.EXPECTED_END_ADDRESS,
 			]);
-			expect(
-				parser.issues[0].raw.astElement.lastToken.pos.colEnd,
-			).toEqual(12);
-			expect(
-				parser.issues[1].raw.astElement.lastToken.pos.colEnd,
-			).toEqual(12);
+			expect(parser.issues[0].raw.range.end.character).toEqual(12);
+			expect(parser.issues[1].raw.range.end.character).toEqual(12);
 
 			expect(parser.others[0] instanceof DtsMemreserveNode).toBeTruthy();
 			expect(
@@ -207,11 +197,9 @@ describe('Parser', () => {
 				expect(parser.issues[0].raw.issues).toEqual([
 					SyntaxIssue.END_STATEMENT,
 				]);
-				expect(parser.issues[0].raw.astElement.lastToken.pos).toEqual({
+				expect(parser.issues[0].raw.range.end).toEqual({
 					line: 0,
-					col: 7,
-					len: 1,
-					colEnd: 8,
+					character: 8,
 				});
 			});
 
@@ -223,11 +211,9 @@ describe('Parser', () => {
 				expect(parser.issues[0].raw.issues).toEqual([
 					SyntaxIssue.END_STATEMENT,
 				]);
-				expect(parser.issues[0].raw.astElement.lastToken.pos).toEqual({
+				expect(parser.issues[0].raw.range.end).toEqual({
 					line: 0,
-					col: 2,
-					len: 1,
-					colEnd: 3,
+					character: 3,
 				});
 			});
 
@@ -239,11 +225,9 @@ describe('Parser', () => {
 				expect(parser.issues[0].raw.issues).toEqual([
 					SyntaxIssue.END_STATEMENT,
 				]);
-				expect(parser.issues[0].raw.astElement.lastToken.pos).toEqual({
+				expect(parser.issues[0].raw.range.end).toEqual({
 					line: 0,
-					col: 9,
-					len: 1,
-					colEnd: 10,
+					character: 10,
 				});
 			});
 
@@ -255,21 +239,17 @@ describe('Parser', () => {
 				expect(parser.issues[0].raw.issues).toEqual([
 					SyntaxIssue.END_STATEMENT,
 				]);
-				expect(parser.issues[0].raw.astElement.lastToken.pos).toEqual({
+				expect(parser.issues[0].raw.range.end).toEqual({
 					line: 0,
-					col: 9,
-					len: 1,
-					colEnd: 10,
+					character: 10,
 				});
 
 				expect(parser.issues[1].raw.issues).toEqual([
 					SyntaxIssue.END_STATEMENT,
 				]);
-				expect(parser.issues[1].raw.astElement.lastToken.pos).toEqual({
+				expect(parser.issues[1].raw.range.end).toEqual({
 					line: 0,
-					col: 10,
-					len: 1,
-					colEnd: 11,
+					character: 11,
 				});
 			});
 
@@ -281,11 +261,9 @@ describe('Parser', () => {
 				expect(parser.issues[0].raw.issues).toEqual([
 					SyntaxIssue.END_STATEMENT,
 				]);
-				expect(parser.issues[0].raw.astElement.lastToken.pos).toEqual({
+				expect(parser.issues[0].raw.range.end).toEqual({
 					line: 0,
-					col: 7,
-					len: 1,
-					colEnd: 8,
+					character: 8,
 				});
 			});
 
@@ -297,11 +275,9 @@ describe('Parser', () => {
 				expect(parser.issues[0].raw.issues).toEqual([
 					SyntaxIssue.END_STATEMENT,
 				]);
-				expect(parser.issues[0].raw.astElement.lastToken.pos).toEqual({
+				expect(parser.issues[0].raw.range.end).toEqual({
 					line: 0,
-					col: 12,
-					len: 1,
-					colEnd: 13,
+					character: 13,
 				});
 			});
 
@@ -313,21 +289,17 @@ describe('Parser', () => {
 				expect(parser.issues[0].raw.issues).toEqual([
 					SyntaxIssue.END_STATEMENT,
 				]);
-				expect(parser.issues[0].raw.astElement.lastToken.pos).toEqual({
+				expect(parser.issues[0].raw.range.end).toEqual({
 					line: 0,
-					col: 18,
-					len: 1,
-					colEnd: 19,
+					character: 19,
 				});
 
 				expect(parser.issues[1].raw.issues).toEqual([
 					SyntaxIssue.END_STATEMENT,
 				]);
-				expect(parser.issues[1].raw.astElement.lastToken.pos).toEqual({
+				expect(parser.issues[1].raw.range.end).toEqual({
 					line: 0,
-					col: 19,
-					len: 1,
-					colEnd: 20,
+					character: 20,
 				});
 			});
 		});
@@ -340,11 +312,9 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.NO_STATEMENT,
 			]);
-			expect(parser.issues[0].raw.astElement.lastToken.pos).toEqual({
+			expect(parser.issues[0].raw.range.end).toEqual({
 				line: 0,
-				col: 4,
-				len: 1,
-				colEnd: 5,
+				character: 5,
 			});
 		});
 	});
@@ -358,15 +328,8 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.CURLY_OPEN,
 			]);
-			expect(parser.issues[0].raw.astElement.firstToken.pos.col).toEqual(
-				2,
-			);
-			expect(parser.issues[0].raw.astElement.lastToken.pos.col).toEqual(
-				9,
-			);
-			expect(parser.issues[0].raw.astElement.lastToken.pos.len).toEqual(
-				1,
-			);
+			expect(parser.issues[0].raw.range.start.character).toEqual(2);
+			expect(parser.issues[0].raw.range.end.character).toEqual(10);
 		});
 
 		test('Ref Node', async () => {
@@ -377,15 +340,8 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.CURLY_OPEN,
 			]);
-			expect(parser.issues[0].raw.astElement.firstToken.pos.col).toEqual(
-				0,
-			);
-			expect(parser.issues[0].raw.astElement.lastToken.pos.col).toEqual(
-				1,
-			);
-			expect(parser.issues[0].raw.astElement.lastToken.pos.len).toEqual(
-				5,
-			);
+			expect(parser.issues[0].raw.range.start.character).toEqual(0);
+			expect(parser.issues[0].raw.range.end.character).toEqual(6);
 
 			const refNode = parser.rootDocument.children[0];
 			expect(refNode instanceof DtcRefNode).toBeTruthy();
@@ -407,12 +363,7 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.CURLY_CLOSE,
 			]);
-			expect(parser.issues[0].raw.astElement.lastToken.pos.col).toEqual(
-				7,
-			);
-			expect(parser.issues[0].raw.astElement.lastToken.pos.len).toEqual(
-				1,
-			);
+			expect(parser.issues[0].raw.range.end.character).toEqual(8);
 		});
 
 		test('Root Node', async () => {
@@ -423,12 +374,7 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.CURLY_CLOSE,
 			]);
-			expect(parser.issues[0].raw.astElement.lastToken.pos.col).toEqual(
-				1,
-			);
-			expect(parser.issues[0].raw.astElement.lastToken.pos.len).toEqual(
-				1,
-			);
+			expect(parser.issues[0].raw.range.end.character).toEqual(2);
 		});
 
 		test('Child Node', async () => {
@@ -439,21 +385,11 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.CURLY_CLOSE,
 			]);
-			expect(parser.issues[0].raw.astElement.lastToken.pos.col).toEqual(
-				16,
-			);
-			expect(parser.issues[0].raw.astElement.lastToken.pos.len).toEqual(
-				1,
-			);
+			expect(parser.issues[0].raw.range.end.character).toEqual(17);
 			expect(parser.issues[1].raw.issues).toEqual([
 				SyntaxIssue.CURLY_CLOSE,
 			]);
-			expect(parser.issues[1].raw.astElement.lastToken.pos.col).toEqual(
-				16,
-			);
-			expect(parser.issues[1].raw.astElement.lastToken.pos.len).toEqual(
-				1,
-			);
+			expect(parser.issues[1].raw.range.end.character).toEqual(17);
 		});
 
 		test('Ref Path', async () => {
@@ -464,9 +400,7 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.CURLY_CLOSE,
 			]);
-			expect(
-				parser.issues[0].raw.astElement.lastToken.pos.colEnd,
-			).toEqual(22);
+			expect(parser.issues[0].raw.range.end.character).toEqual(22);
 		});
 	});
 
@@ -479,12 +413,8 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.WHITE_SPACE,
 			]);
-			expect(
-				parser.issues[0].raw.astElement.firstToken.pos.colEnd,
-			).toEqual(8);
-			expect(parser.issues[0].raw.astElement.lastToken.pos.col).toEqual(
-				9,
-			);
+			expect(parser.issues[0].raw.range.start.character).toEqual(8);
+			expect(parser.issues[0].raw.range.end.character).toEqual(9);
 
 			const rootDtc = parser.rootDocument.children[0];
 			const node1 = rootDtc.children[0];
@@ -506,16 +436,9 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.WHITE_SPACE,
 			]);
-			expect(
-				parser.issues[0].raw.astElement.firstToken.pos.colEnd,
-			).toEqual(7);
+			expect(parser.issues[0].raw.range.start.character).toEqual(7);
 
-			expect(parser.issues[0].raw.astElement.lastToken.pos.col).toEqual(
-				8,
-			);
-			expect(parser.issues[0].raw.astElement.lastToken.pos.len).toEqual(
-				1,
-			);
+			expect(parser.issues[0].raw.range.end.character).toEqual(8);
 
 			const rootDtc = parser.rootDocument.children[0];
 			const node1 = rootDtc.children[0];
@@ -537,13 +460,9 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.WHITE_SPACE,
 			]);
-			expect(
-				parser.issues[0].raw.astElement.firstToken.pos.colEnd,
-			).toEqual(10);
+			expect(parser.issues[0].raw.range.start.character).toEqual(10);
 
-			expect(parser.issues[0].raw.astElement.lastToken.pos.col).toEqual(
-				12,
-			);
+			expect(parser.issues[0].raw.range.end.character).toEqual(12);
 		});
 
 		test('Label assign', async () => {
@@ -554,13 +473,9 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.WHITE_SPACE,
 			]);
-			expect(
-				parser.issues[0].raw.astElement.firstToken.pos.colEnd,
-			).toEqual(4);
+			expect(parser.issues[0].raw.range.start.character).toEqual(4);
 
-			expect(parser.issues[0].raw.astElement.lastToken.pos.col).toEqual(
-				7,
-			);
+			expect(parser.issues[0].raw.range.end.character).toEqual(7);
 		});
 
 		test('Label ref', async () => {
@@ -571,13 +486,9 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.WHITE_SPACE,
 			]);
-			expect(
-				parser.issues[0].raw.astElement.firstToken.pos.colEnd,
-			).toEqual(8);
+			expect(parser.issues[0].raw.range.start.character).toEqual(8);
 
-			expect(parser.issues[0].raw.astElement.lastToken.pos.col).toEqual(
-				10,
-			);
+			expect(parser.issues[0].raw.range.end.character).toEqual(10);
 		});
 
 		test('Label ref child node', async () => {
@@ -588,13 +499,9 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.WHITE_SPACE,
 			]);
-			expect(
-				parser.issues[0].raw.astElement.firstToken.pos.colEnd,
-			).toEqual(1);
+			expect(parser.issues[0].raw.range.start.character).toEqual(1);
 
-			expect(parser.issues[0].raw.astElement.lastToken.pos.col).toEqual(
-				3,
-			);
+			expect(parser.issues[0].raw.range.end.character).toEqual(3);
 		});
 
 		test('Ref Path end', async () => {
@@ -605,13 +512,9 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.WHITE_SPACE,
 			]);
-			expect(
-				parser.issues[0].raw.astElement.firstToken.pos.colEnd,
-			).toEqual(22);
+			expect(parser.issues[0].raw.range.start.character).toEqual(22);
 
-			expect(parser.issues[0].raw.astElement.lastToken.pos.col).toEqual(
-				26,
-			);
+			expect(parser.issues[0].raw.range.end.character).toEqual(26);
 		});
 
 		test('Ref Path between - 1', async () => {
@@ -622,13 +525,9 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.WHITE_SPACE,
 			]);
-			expect(
-				parser.issues[0].raw.astElement.firstToken.pos.colEnd,
-			).toEqual(16);
+			expect(parser.issues[0].raw.range.start.character).toEqual(16);
 
-			expect(parser.issues[0].raw.astElement.lastToken.pos.col).toEqual(
-				20,
-			);
+			expect(parser.issues[0].raw.range.end.character).toEqual(20);
 		});
 
 		test('Ref Path between - 2', async () => {
@@ -639,13 +538,9 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.WHITE_SPACE,
 			]);
-			expect(
-				parser.issues[0].raw.astElement.firstToken.pos.colEnd,
-			).toEqual(17);
+			expect(parser.issues[0].raw.range.start.character).toEqual(17);
 
-			expect(parser.issues[0].raw.astElement.lastToken.pos.col).toEqual(
-				21,
-			);
+			expect(parser.issues[0].raw.range.end.character).toEqual(21);
 		});
 	});
 
@@ -659,9 +554,7 @@ describe('Parser', () => {
 				SyntaxIssue.FORWARD_SLASH_START_PATH,
 			]);
 
-			expect(
-				parser.issues[0].raw.astElement.lastToken.pos.colEnd,
-			).toEqual(10);
+			expect(parser.issues[0].raw.range.end.character).toEqual(10);
 		});
 	});
 
@@ -674,12 +567,8 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.PROPERTY_MUST_BE_IN_NODE,
 			]);
-			expect(parser.issues[0].raw.astElement.firstToken.pos.col).toEqual(
-				0,
-			);
-			expect(
-				parser.issues[0].raw.astElement.lastToken.pos.colEnd,
-			).toEqual(11);
+			expect(parser.issues[0].raw.range.start.character).toEqual(0);
+			expect(parser.issues[0].raw.range.end.character).toEqual(11);
 		});
 
 		describe('Values', () => {
@@ -879,12 +768,9 @@ describe('Parser', () => {
 					expect(parser.issues[0].raw.issues).toEqual([
 						SyntaxIssue.BYTESTRING_EVEN,
 					]);
-					expect(
-						parser.issues[0].raw.astElement.lastToken.pos.col,
-					).toEqual(14);
-					expect(
-						parser.issues[0].raw.astElement.lastToken.pos.len,
-					).toEqual(1);
+					expect(parser.issues[0].raw.range.end.character).toEqual(
+						15,
+					);
 
 					const rootDts = parser.rootDocument
 						.children[0] as DtcRootNode;
@@ -919,12 +805,9 @@ describe('Parser', () => {
 					expect(parser.issues[0].raw.issues).toEqual([
 						SyntaxIssue.BYTESTRING_EVEN,
 					]);
-					expect(
-						parser.issues[0].raw.astElement.lastToken.pos.col,
-					).toEqual(17);
-					expect(
-						parser.issues[0].raw.astElement.lastToken.pos.len,
-					).toEqual(1);
+					expect(parser.issues[0].raw.range.end.character).toEqual(
+						18,
+					);
 
 					const rootDts = parser.rootDocument
 						.children[0] as DtcRootNode;
@@ -959,12 +842,9 @@ describe('Parser', () => {
 					expect(parser.issues[0].raw.issues).toEqual([
 						SyntaxIssue.BYTESTRING_EVEN,
 					]);
-					expect(
-						parser.issues[0].raw.astElement.lastToken.pos.col,
-					).toEqual(14);
-					expect(
-						parser.issues[0].raw.astElement.lastToken.pos.len,
-					).toEqual(1);
+					expect(parser.issues[0].raw.range.end.character).toEqual(
+						15,
+					);
 
 					const rootDts = parser.rootDocument
 						.children[0] as DtcRootNode;
@@ -1668,12 +1548,8 @@ describe('Parser', () => {
 						]);
 
 						expect(
-							parser.issues[0].raw.astElement.lastToken.pos.col,
-						).toEqual(22);
-
-						expect(
-							parser.issues[0].raw.astElement.lastToken.pos.len,
-						).toEqual(1);
+							parser.issues[0].raw.range.end.character,
+						).toEqual(23);
 					});
 
 					test('missing ending curly', async () => {
@@ -1686,8 +1562,7 @@ describe('Parser', () => {
 						]);
 
 						expect(
-							parser.issues[0].raw.astElement.lastToken.pos
-								.colEnd,
+							parser.issues[0].raw.range.end.character,
 						).toEqual(22);
 					});
 				});
@@ -1754,16 +1629,16 @@ describe('Parser', () => {
 					expect(parser.issues[0].raw.issues).toEqual([
 						SyntaxIssue.LABEL_ASSIGN_MISSING_COLON,
 					]);
-					expect(
-						parser.issues[0].raw.astElement.lastToken.pos.colEnd,
-					).toEqual(10);
+					expect(parser.issues[0].raw.range.end.character).toEqual(
+						10,
+					);
 
 					expect(parser.issues[1].raw.issues).toEqual([
 						SyntaxIssue.LABEL_ASSIGN_MISSING_COLON,
 					]);
-					expect(
-						parser.issues[1].raw.astElement.lastToken.pos.colEnd,
-					).toEqual(13);
+					expect(parser.issues[1].raw.range.end.character).toEqual(
+						13,
+					);
 
 					const rootDts = parser.rootDocument
 						.children[0] as DtcRootNode;
@@ -1911,9 +1786,9 @@ describe('Parser', () => {
 					expect(parser.issues[0].raw.issues).toEqual([
 						SyntaxIssue.MISSING_COMMA,
 					]);
-					expect(
-						parser.issues[0].raw.astElement.lastToken.pos.colEnd,
-					).toEqual(14);
+					expect(parser.issues[0].raw.range.end.character).toEqual(
+						14,
+					);
 				});
 
 				test('Missing value', async () => {
@@ -1925,12 +1800,12 @@ describe('Parser', () => {
 					expect(parser.issues[0].raw.issues).toEqual([
 						SyntaxIssue.VALUE,
 					]);
-					expect(
-						parser.issues[0].raw.astElement.firstToken.pos.col,
-					).toEqual(14);
-					expect(
-						parser.issues[0].raw.astElement.lastToken.pos.col,
-					).toEqual(16);
+					expect(parser.issues[0].raw.range.start.character).toEqual(
+						14,
+					);
+					expect(parser.issues[0].raw.range.end.character).toEqual(
+						17,
+					);
 				});
 			});
 
@@ -1977,14 +1852,14 @@ describe('Parser', () => {
 			expect(parser.rootDocument.children[0].firstToken.pos).toEqual({
 				line: 0,
 				col: 0,
-				len: 1,
 				colEnd: 1,
+				len: 1,
 			});
 			expect(parser.rootDocument.children[0].lastToken.pos).toEqual({
 				line: 0,
 				col: 3,
-				len: 1,
 				colEnd: 4,
+				len: 1,
 			});
 		});
 
@@ -2294,11 +2169,9 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.NODE_ADDRESS,
 			]);
-			expect(parser.issues[0].raw.astElement.lastToken.pos).toEqual({
+			expect(parser.issues[0].raw.range.end).toEqual({
 				line: 0,
-				col: 7,
-				len: 1,
-				colEnd: 8,
+				character: 8,
 			});
 		});
 
@@ -2319,17 +2192,13 @@ describe('Parser', () => {
 			expect(node1.name?.address?.at(0)?.address).toEqual([0x20]);
 			expect(node1.name?.address?.at(1)?.address).toEqual([NaN]);
 			expect(node1.name?.address?.at(2)?.address).toEqual([NaN]);
-			expect(parser.issues[0].raw.astElement.lastToken.pos).toEqual({
+			expect(parser.issues[0].raw.range.end).toEqual({
 				line: 0,
-				col: 10,
-				len: 1,
-				colEnd: 11,
+				character: 11,
 			});
-			expect(parser.issues[1].raw.astElement.lastToken.pos).toEqual({
+			expect(parser.issues[1].raw.range.end).toEqual({
 				line: 0,
-				col: 11,
-				len: 1,
-				colEnd: 12,
+				character: 12,
 			});
 		});
 
@@ -2363,12 +2232,8 @@ describe('Parser', () => {
 				SyntaxIssue.NODE_PATH_REF,
 				SyntaxIssue.ROOT_NODE_NAME,
 			]);
-			expect(parser.issues[0].raw.astElement.firstToken.pos.col).toEqual(
-				0,
-			);
-			expect(parser.issues[0].raw.astElement.lastToken.pos.col).toEqual(
-				2,
-			);
+			expect(parser.issues[0].raw.range.start.character).toEqual(0);
+			expect(parser.issues[0].raw.range.end.character).toEqual(2);
 		});
 
 		test('Ref node, no ref label', async () => {
@@ -2379,12 +2244,8 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.LABEL_NAME,
 			]);
-			expect(parser.issues[0].raw.astElement.firstToken.pos.col).toEqual(
-				0,
-			);
-			expect(parser.issues[0].raw.astElement.lastToken.pos.col).toEqual(
-				0,
-			);
+			expect(parser.issues[0].raw.range.start.character).toEqual(0);
+			expect(parser.issues[0].raw.range.end.character).toEqual(1);
 		});
 
 		test('Labeled Ref node, no ref label', async () => {
@@ -2395,12 +2256,8 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.LABEL_NAME,
 			]);
-			expect(parser.issues[0].raw.astElement.firstToken.pos.col).toEqual(
-				7,
-			);
-			expect(parser.issues[0].raw.astElement.lastToken.pos.col).toEqual(
-				7,
-			);
+			expect(parser.issues[0].raw.range.start.character).toEqual(7);
+			expect(parser.issues[0].raw.range.end.character).toEqual(8);
 		});
 
 		test('Child node, missing node name', async () => {
@@ -2411,12 +2268,8 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.NODE_NAME,
 			]);
-			expect(parser.issues[0].raw.astElement.firstToken.pos.col).toEqual(
-				3,
-			);
-			expect(parser.issues[0].raw.astElement.lastToken.pos.col).toEqual(
-				5,
-			);
+			expect(parser.issues[0].raw.range.start.character).toEqual(3);
+			expect(parser.issues[0].raw.range.end.character).toEqual(5);
 		});
 
 		test('Labeled Child node, missing node name', async () => {
@@ -2427,9 +2280,7 @@ describe('Parser', () => {
 			expect(parser.issues[0].raw.issues).toEqual([
 				SyntaxIssue.NODE_NAME,
 			]);
-			expect(parser.issues[0].raw.astElement.firstToken.pos.col).toEqual(
-				10,
-			);
+			expect(parser.issues[0].raw.range.start.character).toEqual(10);
 
 			const rootDtc = parser.rootDocument.children[0];
 			expect(rootDtc.children[0] instanceof DtcChildNode).toBeTruthy();
@@ -2489,12 +2340,8 @@ describe('Parser', () => {
 					SyntaxIssue.NODE_NAME,
 				]);
 
-				expect(
-					parser.issues[0].raw.astElement.firstToken.pos.col,
-				).toEqual(16);
-				expect(
-					parser.issues[0].raw.astElement.lastToken.pos.col,
-				).toEqual(34);
+				expect(parser.issues[0].raw.range.start.character).toEqual(16);
+				expect(parser.issues[0].raw.range.end.character).toEqual(35);
 			});
 
 			test('with label ref in root node - expects node name', async () => {
@@ -2506,12 +2353,8 @@ describe('Parser', () => {
 					SyntaxIssue.NODE_NAME,
 				]);
 
-				expect(
-					parser.issues[0].raw.astElement.firstToken.pos.col,
-				).toEqual(16);
-				expect(
-					parser.issues[0].raw.astElement.lastToken.pos.col,
-				).toEqual(18);
+				expect(parser.issues[0].raw.range.start.character).toEqual(16);
+				expect(parser.issues[0].raw.range.end.character).toEqual(19);
 			});
 
 			test('with node path ref in raw doc', async () => {
@@ -2559,9 +2402,7 @@ describe('Parser', () => {
 					SyntaxIssue.MISSING_FORWARD_SLASH_END,
 				]);
 
-				expect(
-					parser.issues[0].raw.astElement.lastToken.pos.colEnd,
-				).toEqual(14);
+				expect(parser.issues[0].raw.range.end.character).toEqual(14);
 
 				const rootDts = parser.rootDocument.children[0] as DtcRootNode;
 
@@ -2583,12 +2424,8 @@ describe('Parser', () => {
 					SyntaxIssue.DELETE_INCOMPLETE,
 				]);
 
-				expect(
-					parser.issues[0].raw.astElement.firstToken.pos.col,
-				).toEqual(0);
-				expect(
-					parser.issues[0].raw.astElement.lastToken.pos.col,
-				).toEqual(0);
+				expect(parser.issues[0].raw.range.start.character).toEqual(0);
+				expect(parser.issues[0].raw.range.end.character).toEqual(1);
 			});
 
 			test('incomplete - 2', async () => {
@@ -2600,12 +2437,8 @@ describe('Parser', () => {
 					SyntaxIssue.DELETE_NODE_INCOMPLETE,
 				]);
 
-				expect(
-					parser.issues[0].raw.astElement.firstToken.pos.col,
-				).toEqual(0);
-				expect(
-					parser.issues[0].raw.astElement.lastToken.pos.colEnd,
-				).toEqual(9);
+				expect(parser.issues[0].raw.range.start.character).toEqual(0);
+				expect(parser.issues[0].raw.range.end.character).toEqual(9);
 			});
 		});
 
@@ -2632,12 +2465,8 @@ describe('Parser', () => {
 				expect(parser.issues[0].raw.issues).toEqual([
 					SyntaxIssue.PROPERTY_DELETE_MUST_BE_IN_NODE,
 				]);
-				expect(
-					parser.issues[0].raw.astElement.firstToken.pos.col,
-				).toEqual(0);
-				expect(
-					parser.issues[0].raw.astElement.lastToken.pos.colEnd,
-				).toEqual(24);
+				expect(parser.issues[0].raw.range.start.character).toEqual(0);
+				expect(parser.issues[0].raw.range.end.character).toEqual(24);
 			});
 
 			test('missing end forward slash', async () => {
@@ -2649,9 +2478,7 @@ describe('Parser', () => {
 					SyntaxIssue.MISSING_FORWARD_SLASH_END,
 				]);
 
-				expect(
-					parser.issues[0].raw.astElement.lastToken.pos.colEnd,
-				).toEqual(18);
+				expect(parser.issues[0].raw.range.end.character).toEqual(18);
 
 				const rootDts = parser.rootDocument.children[0] as DtcRootNode;
 
@@ -2670,12 +2497,8 @@ describe('Parser', () => {
 					SyntaxIssue.DELETE_INCOMPLETE,
 				]);
 
-				expect(
-					parser.issues[0].raw.astElement.firstToken.pos.col,
-				).toEqual(0);
-				expect(
-					parser.issues[0].raw.astElement.lastToken.pos.col,
-				).toEqual(0);
+				expect(parser.issues[0].raw.range.start.character).toEqual(0);
+				expect(parser.issues[0].raw.range.end.character).toEqual(1);
 			});
 
 			test('incomplete - 2', async () => {
@@ -2687,12 +2510,8 @@ describe('Parser', () => {
 					SyntaxIssue.DELETE_PROPERTY_INCOMPLETE,
 				]);
 
-				expect(
-					parser.issues[0].raw.astElement.firstToken.pos.col,
-				).toEqual(2);
-				expect(
-					parser.issues[0].raw.astElement.lastToken.pos.colEnd,
-				).toEqual(11);
+				expect(parser.issues[0].raw.range.start.character).toEqual(2);
+				expect(parser.issues[0].raw.range.end.character).toEqual(11);
 			});
 		});
 	});
@@ -2815,9 +2634,7 @@ describe('Parser', () => {
 				expect(parser.issues[0].raw.issues).toEqual([
 					SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE,
 				]);
-				expect(
-					parser.issues[0].raw.astElement.lastToken.pos.colEnd,
-				).toEqual(7);
+				expect(parser.issues[0].raw.range.end.character).toEqual(7);
 			});
 
 			test('Simple name', async () => {
@@ -2981,9 +2798,7 @@ describe('Parser', () => {
 				expect(parser.issues[0].raw.issues).toEqual([
 					SyntaxIssue.MISSING_COMMA,
 				]);
-				expect(
-					parser.issues[0].raw.astElement.lastToken.pos.colEnd,
-				).toEqual(13);
+				expect(parser.issues[0].raw.range.end.character).toEqual(13);
 			});
 
 			test('Missing close round bracket function like - 1', async () => {
@@ -3003,9 +2818,7 @@ describe('Parser', () => {
 				expect(issues[0].raw.issues).toEqual([
 					SyntaxIssue.MISSING_ROUND_CLOSE,
 				]);
-				expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(
-					18,
-				);
+				expect(issues[0].raw.range.end.character).toEqual(18);
 			});
 
 			test('Missing close round bracket function like - 2', async () => {
@@ -3020,9 +2833,7 @@ describe('Parser', () => {
 				expect(parser.issues[0].raw.issues).toEqual([
 					SyntaxIssue.MISSING_ROUND_CLOSE,
 				]);
-				expect(
-					parser.issues[0].raw.astElement.lastToken.pos.colEnd,
-				).toEqual(12);
+				expect(parser.issues[0].raw.range.end.character).toEqual(12);
 			});
 		});
 
@@ -3092,9 +2903,9 @@ describe('Parser', () => {
 					expect(parser.issues[0].raw.issues).toEqual([
 						SyntaxIssue.GT_SYM,
 					]);
-					expect(
-						parser.issues[0].raw.astElement.lastToken.pos.colEnd,
-					).toEqual(31);
+					expect(parser.issues[0].raw.range.end.character).toEqual(
+						31,
+					);
 				});
 			});
 
@@ -3163,9 +2974,9 @@ describe('Parser', () => {
 					expect(parser.issues[0].raw.issues).toEqual([
 						SyntaxIssue.GT_SYM,
 					]);
-					expect(
-						parser.issues[0].raw.astElement.lastToken.pos.colEnd,
-					).toEqual(32);
+					expect(parser.issues[0].raw.range.end.character).toEqual(
+						32,
+					);
 				});
 			});
 		});
@@ -3183,9 +2994,7 @@ describe('Parser', () => {
 				expect(parser.issues[0].raw.issues).toEqual([
 					SyntaxIssue.EXPECTED_IDENTIFIER,
 				]);
-				expect(
-					parser.issues[0].raw.astElement.lastToken.pos.colEnd,
-				).toEqual(6);
+				expect(parser.issues[0].raw.range.end.character).toEqual(6);
 			});
 			test('If def - end - false', async () => {
 				mockReadFileSync('#IFDEF HELLO\nsome\nstuff\n#endif');

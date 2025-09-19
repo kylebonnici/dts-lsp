@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { DiagnosticSeverity } from 'vscode-languageserver';
 import { genStandardTypeDiagnostic } from '../../../../../helpers';
 import { StandardTypeIssue } from '../../../../../types';
 import { getStandardDefaultType } from '../../../../../dtsTypes/standardDefaultType';
@@ -26,11 +25,14 @@ export function getCpuNodeType() {
 			return [
 				genStandardTypeDiagnostic(
 					StandardTypeIssue.NODE_LOCATION,
+					node.definitions[0].rangeTokens,
 					node.definitions[0],
-					DiagnosticSeverity.Error,
-					node.definitions.slice(1),
-					[],
-					['`cpu` node can only be a child of `cpus` node'],
+					{
+						linkedTo: node.definitions.slice(1),
+						templateStrings: [
+							'`cpu` node can only be a child of `cpus` node',
+						],
+					},
 				),
 			];
 		}

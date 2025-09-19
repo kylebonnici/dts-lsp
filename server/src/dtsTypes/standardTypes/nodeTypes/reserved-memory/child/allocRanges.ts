@@ -14,10 +14,7 @@
  * limitations under the License.
  */
 
-import {
-	DiagnosticSeverity,
-	ParameterInformation,
-} from 'vscode-languageserver-types';
+import { ParameterInformation } from 'vscode-languageserver-types';
 import { genStandardTypeDiagnostic } from '../../../../../helpers';
 import { FileDiagnostic, StandardTypeIssue } from '../../../../../types';
 import { BindingPropertyType } from '../../../../../types/index';
@@ -60,29 +57,32 @@ export default () => {
 				values.length === 0 ||
 				values.length % (addressCells + sizeCells) !== 0
 			) {
+				const issueAst =
+					values.at(
+						values.length -
+							(values.length % (sizeCells + addressCells)),
+					) ?? property.ast;
+
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.CELL_MISS_MATCH,
-						values.at(
-							values.length -
-								(values.length % (sizeCells + addressCells)),
-						) ?? property.ast,
-						DiagnosticSeverity.Error,
-						[],
-						[],
-						[
-							property.name,
-							`<${[
-								...Array.from(
-									{ length: addressCells },
-									() => 'address',
-								),
-								...Array.from(
-									{ length: sizeCells },
-									() => 'size',
-								),
-							].join(' ')}>`,
-						],
+						issueAst.rangeTokens,
+						issueAst,
+						{
+							templateStrings: [
+								property.name,
+								`<${[
+									...Array.from(
+										{ length: addressCells },
+										() => 'address',
+									),
+									...Array.from(
+										{ length: sizeCells },
+										() => 'size',
+									),
+								].join(' ')}>`,
+							],
+						},
 					),
 				);
 				return issues;

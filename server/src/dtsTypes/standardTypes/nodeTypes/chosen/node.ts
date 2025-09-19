@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { DiagnosticSeverity } from 'vscode-languageserver';
 import { BindingPropertyType } from '../../../../types/index';
 import { genStandardTypeDiagnostic } from '../../../../helpers';
 import { PropertyNodeType } from '../../../types';
@@ -31,11 +30,14 @@ export function getChosenNodeType() {
 			issues.push(
 				genStandardTypeDiagnostic(
 					StandardTypeIssue.NODE_LOCATION,
+					node.definitions[0].rangeTokens,
 					node.definitions[0],
-					DiagnosticSeverity.Error,
-					node.definitions.slice(1),
-					[],
-					['Chosen node can only be added to a root node'],
+					{
+						linkedTo: node.definitions.slice(1),
+						templateStrings: [
+							'Chosen node can only be added to a root node',
+						],
+					},
 				),
 			);
 		}

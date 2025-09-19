@@ -31,11 +31,13 @@ export default () => {
 		(property) => [
 			genStandardTypeDiagnostic(
 				StandardTypeIssue.DEPRECATED,
+				property.ast.rangeTokens,
 				property.ast,
-				DiagnosticSeverity.Warning,
-				[],
-				[DiagnosticTag.Deprecated],
-				[property.name],
+				{
+					severity: DiagnosticSeverity.Warning,
+					tags: [DiagnosticTag.Deprecated],
+					templateStrings: [property.name],
+				},
 			),
 		],
 	);

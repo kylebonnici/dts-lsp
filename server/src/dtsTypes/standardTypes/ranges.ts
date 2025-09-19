@@ -76,36 +76,38 @@ export default () => {
 						sizeCellValue) !==
 					0
 			) {
+				const issueAst =
+					values.at(
+						values.length -
+							(values.length %
+								(childBusAddressValue +
+									parentdBusAddressValue +
+									sizeCellValue)),
+					) ?? property.ast;
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.CELL_MISS_MATCH,
-						values.at(
-							values.length -
-								(values.length %
-									(childBusAddressValue +
-										parentdBusAddressValue +
-										sizeCellValue)),
-						) ?? property.ast,
-						DiagnosticSeverity.Error,
-						[],
-						[],
-						[
-							property.name,
-							`<${[
-								...Array.from(
-									{ length: childBusAddressValue },
-									() => 'child-bus-address',
-								),
-								...Array.from(
-									{ length: parentdBusAddressValue },
-									() => 'parent-bus-address',
-								),
-								...Array.from(
-									{ length: parentdBusAddressValue },
-									() => 'length',
-								),
-							].join(' ')}>`,
-						],
+						issueAst.rangeTokens,
+						issueAst,
+						{
+							templateStrings: [
+								property.name,
+								`<${[
+									...Array.from(
+										{ length: childBusAddressValue },
+										() => 'child-bus-address',
+									),
+									...Array.from(
+										{ length: parentdBusAddressValue },
+										() => 'parent-bus-address',
+									),
+									...Array.from(
+										{ length: parentdBusAddressValue },
+										() => 'length',
+									),
+								].join(' ')}>`,
+							],
+						},
 					),
 				);
 			}
@@ -122,9 +124,14 @@ export default () => {
 							issues.push(
 								genStandardTypeDiagnostic(
 									StandardTypeIssue.UNABLE_TO_FIND_MAPPING,
-									mappedAddress.regAst,
-									DiagnosticSeverity.Warning,
-									rangesProperty ? [rangesProperty.ast] : [],
+									mappedAddress.regRangeTokens,
+									property.ast,
+									{
+										severity: DiagnosticSeverity.Warning,
+										linkedTo: rangesProperty
+											? [rangesProperty.ast]
+											: [],
+									},
 								),
 							);
 							return;
@@ -139,27 +146,35 @@ export default () => {
 							issues.push(
 								genStandardTypeDiagnostic(
 									StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS,
-									mappedAddress.regAst,
-									DiagnosticSeverity.Warning,
-									[mappedAddress.mappedAst],
-									[],
-									[
-										reg.name,
-										`0x${mappedAddress.endAddress
-											.map((c, i) =>
-												c
-													.toString(16)
-													.padStart(i ? 8 : 0, '0'),
-											)
-											.join('')}`,
-										`0x${mappedAddress.mappingEnd
-											.map((c, i) =>
-												c
-													.toString(16)
-													.padStart(i ? 8 : 0, '0'),
-											)
-											.join('')}`,
-									],
+									mappedAddress.regRangeTokens,
+									property.ast,
+									{
+										severity: DiagnosticSeverity.Warning,
+										linkedTo: [mappedAddress.mappedAst],
+										templateStrings: [
+											reg.name,
+											`0x${mappedAddress.endAddress
+												.map((c, i) =>
+													c
+														.toString(16)
+														.padStart(
+															i ? 8 : 0,
+															'0',
+														),
+												)
+												.join('')}`,
+											`0x${mappedAddress.mappingEnd
+												.map((c, i) =>
+													c
+														.toString(16)
+														.padStart(
+															i ? 8 : 0,
+															'0',
+														),
+												)
+												.join('')}`,
+										],
+									},
 								),
 							);
 						}

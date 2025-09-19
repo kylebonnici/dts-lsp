@@ -451,12 +451,12 @@ describe('Type Issues', () => {
 				expect(issues[0].raw.issues).toEqual([
 					StandardTypeIssue.EXPECTED_UNIQUE_PHANDLE,
 				]);
-				expect(
-					issues[0].raw.linkedTo[0].ast.firstToken.pos.col,
-				).toEqual(9);
-				expect(
-					issues[0].raw.linkedTo[0].ast.lastToken.pos.colEnd,
-				).toEqual(22);
+				expect(issues[0].raw.linkedTo[0].range.start.character).toEqual(
+					9,
+				);
+				expect(issues[0].raw.linkedTo[0].range.end.character).toEqual(
+					22,
+				);
 			});
 		});
 
@@ -1443,18 +1443,14 @@ describe('Type Issues', () => {
 				expect(issues[0].raw.issues).toEqual([
 					StandardTypeIssue.IGNORED,
 				]);
-				expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(
-					169,
+				expect(issues[0].raw.range.start.character).toEqual(169);
+				expect(issues[0].raw.range.end.character).toEqual(189);
+				expect(issues[0].raw.linkedTo[0].range.start.character).toEqual(
+					190,
 				);
-				expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(
-					189,
+				expect(issues[0].raw.linkedTo[0].range.end.character).toEqual(
+					225,
 				);
-				expect(
-					issues[0].raw.linkedTo[0].ast.firstToken.pos.col,
-				).toEqual(190);
-				expect(
-					issues[0].raw.linkedTo[0].ast.lastToken.pos.colEnd,
-				).toEqual(225);
 			});
 
 			test('valid type single cell - label ref', async () => {
@@ -1556,10 +1552,8 @@ describe('Type Issues', () => {
 				expect(issues[0].raw.issues).toEqual([
 					StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
 				]);
-				expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(52);
-				expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(
-					53,
-				);
+				expect(issues[0].raw.range.start.character).toEqual(52);
+				expect(issues[0].raw.range.end.character).toEqual(53);
 			});
 
 			test('valid type invalid cell count ', async () => {
@@ -1577,12 +1571,8 @@ describe('Type Issues', () => {
 				expect(issues[0].raw.issues).toEqual([
 					StandardTypeIssue.CELL_MISS_MATCH,
 				]);
-				expect(issues[0].raw.astElement.firstToken.pos.col).toEqual(
-					145,
-				);
-				expect(issues[0].raw.astElement.lastToken.pos.colEnd).toEqual(
-					147,
-				);
+				expect(issues[0].raw.range.start.character).toEqual(145);
+				expect(issues[0].raw.range.end.character).toEqual(147);
 			});
 
 			test('missing cell size', async () => {
@@ -1600,12 +1590,12 @@ describe('Type Issues', () => {
 				expect(issues[0].raw.issues).toEqual([
 					StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
 				]);
-				expect(
-					issues[0].raw.linkedTo[0].ast.firstToken.pos.col,
-				).toEqual(2);
-				expect(
-					issues[0].raw.linkedTo[0].ast.lastToken.pos.colEnd,
-				).toEqual(7);
+				expect(issues[0].raw.linkedTo[0].range.start.character).toEqual(
+					2,
+				);
+				expect(issues[0].raw.linkedTo[0].range.end.character).toEqual(
+					7,
+				);
 				expect(issues[0].raw.templateStrings[1]).toEqual(
 					'#interrupt-cells',
 				);

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { DiagnosticSeverity, Position } from 'vscode-languageserver';
+import { Position } from 'vscode-languageserver';
 import { DeleteNode } from '../ast/dtc/deleteNode';
 import {
 	genContextDiagnostic,
@@ -175,11 +175,13 @@ export class Runtime implements Searchable {
 		return label?.lastLinkedTo?.path;
 	}
 
+	private issuesCache?: FileDiagnostic[];
 	get issues(): FileDiagnostic[] {
-		return [
+		this.issuesCache ??= [
 			...this.labelIssues(),
 			...this.rootNode.getIssues(this.context.macros),
 		];
+		return this.issuesCache;
 	}
 
 	private labelIssues() {
@@ -217,11 +219,16 @@ export class Runtime implements Searchable {
 					issues.push(
 						genContextDiagnostic(
 							ContextIssues.LABEL_ALREADY_IN_USE,
-							otherOwners.at(0)!.label,
-							DiagnosticSeverity.Error,
-							otherOwners.slice(1).map((o) => o.label),
-							[],
-							[otherOwners.at(0)!.label.label.value],
+							otherOwners[0].label.rangeTokens,
+							otherOwners[0].label,
+							{
+								linkedTo: otherOwners
+									.slice(1)
+									.map((o) => o.label),
+								templateStrings: [
+									otherOwners.at(0)!.label.label.value,
+								],
+							},
 						),
 					);
 				}
@@ -232,7 +239,6 @@ export class Runtime implements Searchable {
 	}
 
 	private typesIssuesCache?: FileDiagnostic[];
-
 	get typesIssues() {
 		const getIssue = (node: Node): FileDiagnostic[] => {
 			return [

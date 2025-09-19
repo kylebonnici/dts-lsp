@@ -195,22 +195,22 @@ export class PropertyNodeType<T = string | number> {
 
 						return genStandardTypeDiagnostic(
 							StandardTypeIssue.REQUIRED,
+							orderedTree[i].rangeTokens,
 							orderedTree[i],
-							DiagnosticSeverity.Error,
-							[],
-							[],
-							[propertyName],
-							TextEdit.insert(
-								Position.create(
-									token.pos.line,
-									token.pos.col + 1,
+							{
+								templateStrings: [propertyName],
+								edit: TextEdit.insert(
+									Position.create(
+										token.pos.line,
+										token.pos.col + 1,
+									),
+									`\n${''.padEnd(
+										countParent(orderedTree[i].uri, node) *
+											getIndentString().length,
+										getIndentString(),
+									)}${propertyName}${assignTest};`,
 								),
-								`\n${''.padEnd(
-									countParent(orderedTree[i].uri, node) *
-										getIndentString().length,
-									getIndentString(),
-								)}${propertyName}${assignTest};`,
-							),
+							},
 						);
 					}),
 				];
@@ -221,11 +221,9 @@ export class PropertyNodeType<T = string | number> {
 			return [
 				genStandardTypeDiagnostic(
 					StandardTypeIssue.OMITTED,
+					property.ast.rangeTokens,
 					property.ast,
-					DiagnosticSeverity.Error,
-					undefined,
-					[],
-					[propertyName],
+					{ templateStrings: [propertyName] },
 				),
 			];
 		}
@@ -277,14 +275,9 @@ export class PropertyNodeType<T = string | number> {
 
 				if (issue.length) {
 					issues.push(
-						genStandardTypeDiagnostic(
-							issue,
-							ast,
-							DiagnosticSeverity.Error,
-							[],
-							[],
-							[property.name],
-						),
+						genStandardTypeDiagnostic(issue, ast.rangeTokens, ast, {
+							templateStrings: [property.name],
+						}),
 					);
 				}
 			}
@@ -297,23 +290,30 @@ export class PropertyNodeType<T = string | number> {
 		if (this.type.length > 1) {
 			const type = this.type;
 			if (!this.list && this.type.length !== propTypes.length) {
+				const issueAst = property.ast.values ?? property.ast;
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.EXPECTED_COMPOSITE_LENGTH,
-						property.ast.values ?? property.ast,
-						DiagnosticSeverity.Error,
-						[],
-						[],
-						[propertyName, this.type.length.toString()],
+						issueAst.rangeTokens,
+						issueAst,
+						{
+							templateStrings: [
+								propertyName,
+								this.type.length.toString(),
+							],
+						},
 					),
 				);
 			} else {
 				propTypes.forEach((t, i) => {
 					if (type[0].types.every((tt) => tt !== t)) {
+						const issueAst =
+							property.ast.values?.values[i] ?? property.ast;
 						issues.push(
 							genStandardTypeDiagnostic(
 								StandardTypeIssue.EXPECTED_STRINGLIST,
-								property.ast.values?.values[i] ?? property.ast,
+								issueAst.rangeTokens,
+								issueAst,
 							),
 						);
 					}
@@ -348,16 +348,18 @@ export class PropertyNodeType<T = string | number> {
 				propTypes.length > 1 &&
 				this.type[0].types.some((tt) => tt !== PropertyType.EMPTY)
 			) {
+				const issueAst = property.ast.propertyName ?? property.ast;
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.EXPECTED_ONE,
-						property.ast.propertyName ?? property.ast,
-						DiagnosticSeverity.Error,
-						(property.ast.values?.values.slice(1) ?? []).filter(
-							(v) => !!v,
-						) as PropertyValue[],
-						[],
-						[property.name],
+						issueAst.rangeTokens,
+						issueAst,
+						{
+							linkedTo: (
+								property.ast.values?.values.slice(1) ?? []
+							).filter((v) => !!v),
+							templateStrings: [property.name],
+						},
 					),
 				);
 			} else if (propTypes.length === 1) {
@@ -384,19 +386,21 @@ export class PropertyNodeType<T = string | number> {
 					const currentValue = property.ast.values?.values[0]
 						?.value as StringValue;
 					if (!values.some((v) => currentValue.value === v)) {
+						const issueAst =
+							property.ast.values?.values[0]?.value ??
+							property.ast;
 						issues.push(
 							genStandardTypeDiagnostic(
 								StandardTypeIssue.EXPECTED_ENUM,
-								property.ast.values?.values[0]?.value ??
-									property.ast,
-								DiagnosticSeverity.Error,
-								[],
-								[],
-								[
-									this.values(property)
-										.map((v) => `'${v}'`)
-										.join(' or '),
-								],
+								issueAst.rangeTokens,
+								issueAst,
+								{
+									templateStrings: [
+										this.values(property)
+											.map((v) => `'${v}'`)
+											.join(' or '),
+									],
+								},
 							),
 						);
 					}
@@ -529,10 +533,17 @@ export class NodeType extends INodeType {
 				issue.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.NODE_DISABLED,
+						n.rangeTokens,
 						n,
-						DiagnosticSeverity.Hint,
-						[...(statusProperty?.ast ? [statusProperty?.ast] : [])],
-						[DiagnosticTag.Unnecessary],
+						{
+							severity: DiagnosticSeverity.Hint,
+							linkedTo: [
+								...(statusProperty?.ast
+									? [statusProperty?.ast]
+									: []),
+							],
+							tags: [DiagnosticTag.Unnecessary],
+						},
 					),
 				),
 			);
@@ -553,29 +564,33 @@ export class NodeType extends INodeType {
 					?.at(0)
 					?.startAddress.map((a) => a.toString(16))
 					.join(',');
+				const issueAst =
+					node.definitions.at(-1)!.name ?? node.definitions.at(-1)!;
 				issue.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.EXPECTED_NODE_ADDRESS,
-						node.definitions.at(-1)!.name ??
-							node.definitions.at(-1)!,
-						DiagnosticSeverity.Error,
-						node.definitions.slice(0, -1).map((n) => n.name ?? n),
-						[],
-						[],
-						nodeAddress
-							? node.definitions
-									.filter((n) => !!n.name)
-									.map((n) =>
-										TextEdit.insert(
-											Position.create(
-												n.name!.lastToken.pos.line,
-												n.name!.lastToken.pos.colEnd,
+						issueAst.rangeTokens,
+						issueAst,
+						{
+							linkedTo: node.definitions
+								.slice(0, -1)
+								.map((n) => n.name ?? n),
+							edit: nodeAddress
+								? node.definitions
+										.filter((n) => !!n.name)
+										.map((n) =>
+											TextEdit.insert(
+												Position.create(
+													n.name!.lastToken.pos.line,
+													n.name!.lastToken.pos
+														.colEnd,
+												),
+												`@${nodeAddress}`,
 											),
-											`@${nodeAddress}`,
-										),
-									)
-							: undefined,
-						'Add Node Address',
+										)
+								: undefined,
+							codeActionTitle: 'Add Node Address',
+						},
 					),
 				);
 			}
@@ -621,20 +636,21 @@ export class NodeType extends INodeType {
 						this.warnMismatchProperties
 							? StandardTypeIssue.PROPERTY_NOT_IN_BINDING
 							: StandardTypeIssue.PROPERTY_NOT_ALLOWED,
+						p.ast.rangeTokens,
 						p.ast,
-						this.warnMismatchProperties
-							? DiagnosticSeverity.Warning
-							: DiagnosticSeverity.Error,
-						[],
-						[],
-						[p.name],
-						TextEdit.del(
-							toRangeWithTokenIndex(
-								p.ast.firstToken.prevToken,
-								p.ast.lastToken,
-								false,
+						{
+							severity: this.warnMismatchProperties
+								? DiagnosticSeverity.Warning
+								: DiagnosticSeverity.Error,
+							templateStrings: [p.name],
+							edit: TextEdit.del(
+								toRangeWithTokenIndex(
+									p.ast.firstToken.prevToken,
+									p.ast.lastToken,
+									false,
+								),
 							),
-						),
+						},
 					),
 				);
 			});

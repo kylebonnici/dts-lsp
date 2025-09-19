@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { DiagnosticSeverity } from 'vscode-languageserver';
 import { BindingPropertyType } from '../../../../types/index';
 import { NodeType } from '../../../types';
 import { generateOrTypeObj, getU32ValueFromProperty } from '../../helpers';
@@ -55,13 +54,14 @@ const matchRootNode = (
 		issues.push(
 			genStandardTypeDiagnostic(
 				StandardTypeIssue.INVALID_VALUE,
+				property.ast.rangeTokens,
 				property.ast,
-				DiagnosticSeverity.Error,
-				[...(rootNode?.ast ? [rootNode.ast] : [])],
-				undefined,
-				[
-					`${property.name} value in this node must match value of root node`,
-				],
+				{
+					linkedTo: [...(rootNode?.ast ? [rootNode.ast] : [])],
+					templateStrings: [
+						`${property.name} value in this node must match value of root node`,
+					],
+				},
 			),
 		);
 	}

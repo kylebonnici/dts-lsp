@@ -61,10 +61,17 @@ export class DevicetreeOrgNodeType extends INodeType {
 				issue.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.NODE_DISABLED,
+						n.rangeTokens,
 						n,
-						DiagnosticSeverity.Hint,
-						[...(statusProperty?.ast ? [statusProperty?.ast] : [])],
-						[DiagnosticTag.Unnecessary],
+						{
+							severity: DiagnosticSeverity.Hint,
+							linkedTo: [
+								...(statusProperty?.ast
+									? [statusProperty?.ast]
+									: []),
+							],
+							tags: [DiagnosticTag.Unnecessary],
+						},
 					),
 				),
 			);
@@ -176,21 +183,21 @@ const convertToError = (
 		return [
 			genStandardTypeDiagnostic(
 				StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
+				property.ast.rangeTokens,
 				property.ast,
-				DiagnosticSeverity.Error,
-				[],
-				[],
-				[
-					`Node "${intanceNode.name}" ${error.message}: ${property.name}`,
-				],
-				TextEdit.del(
-					toRangeWithTokenIndex(
-						property.ast.firstToken.prevToken,
-						property.ast.lastToken,
-						false,
+				{
+					templateStrings: [
+						`Node "${intanceNode.name}" ${error.message}: ${property.name}`,
+					],
+					edit: TextEdit.del(
+						toRangeWithTokenIndex(
+							property.ast.firstToken.prevToken,
+							property.ast.lastToken,
+							false,
+						),
 					),
-				),
-				'Remove property',
+					codeActionTitle: 'Remove property',
+				},
 			),
 		];
 	} else if (error.keyword === 'type') {
@@ -205,11 +212,13 @@ const convertToError = (
 		return [
 			genStandardTypeDiagnostic(
 				StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
+				prop.ast.rangeTokens,
 				prop.ast,
-				DiagnosticSeverity.Error,
-				[],
-				[],
-				[`"${prop.name}" ${error.message ?? 'NO MESSAGE'}`],
+				{
+					templateStrings: [
+						`"${prop.name}" ${error.message ?? 'NO MESSAGE'}`,
+					],
+				},
 			),
 		];
 	} else if (error.keyword === 'required') {
@@ -223,19 +232,19 @@ const convertToError = (
 
 			return genStandardTypeDiagnostic(
 				StandardTypeIssue.REQUIRED,
+				orderedTree[i].rangeTokens,
 				orderedTree[i],
-				DiagnosticSeverity.Error,
-				[],
-				[],
-				[propertyName],
-				TextEdit.insert(
-					Position.create(token.pos.line, token.pos.col + 1),
-					`\n${''.padEnd(
-						countParent(orderedTree[i].uri, node) *
-							getIndentString().length,
-						getIndentString(),
-					)}${propertyName};`,
-				),
+				{
+					templateStrings: [propertyName],
+					edit: TextEdit.insert(
+						Position.create(token.pos.line, token.pos.col + 1),
+						`\n${''.padEnd(
+							countParent(orderedTree[i].uri, node) *
+								getIndentString().length,
+							getIndentString(),
+						)}${propertyName};`,
+					),
+				},
 			);
 		});
 	} else if (error.keyword === 'const') {
@@ -247,13 +256,13 @@ const convertToError = (
 		return [
 			genStandardTypeDiagnostic(
 				StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
+				property.ast.rangeTokens,
 				property.ast,
-				DiagnosticSeverity.Error,
-				[],
-				[],
-				[
-					`Property "${property.name}" ${error.message}: ${error.params.allowedValue}`,
-				],
+				{
+					templateStrings: [
+						`Property "${property.name}" ${error.message}: ${error.params.allowedValue}`,
+					],
+				},
 			),
 		];
 	} else if (error.keyword === 'enum') {
@@ -265,15 +274,15 @@ const convertToError = (
 		return [
 			genStandardTypeDiagnostic(
 				StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
+				property.ast.rangeTokens,
 				property.ast,
-				DiagnosticSeverity.Error,
-				[],
-				[],
-				[
-					`Property "${property.name}" ${error.message}: \n${(
-						error.params.allowedValues as string[]
-					).join('\n')}\n${schemaKey}`,
-				],
+				{
+					templateStrings: [
+						`Property "${property.name}" ${error.message}: \n${(
+							error.params.allowedValues as string[]
+						).join('\n')}\n${schemaKey}`,
+					],
+				},
 			),
 		];
 	} else if (error.keyword === 'maxItems' || error.keyword === 'minItems') {
@@ -288,11 +297,13 @@ const convertToError = (
 		return [
 			genStandardTypeDiagnostic(
 				StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
+				property.ast.rangeTokens,
 				property.ast,
-				DiagnosticSeverity.Error,
-				[],
-				[],
-				[`Property "${property.name}" ${error.message}`],
+				{
+					templateStrings: [
+						`Property "${property.name}" ${error.message}`,
+					],
+				},
 			),
 		];
 	}
@@ -301,33 +312,36 @@ const convertToError = (
 		return [
 			genStandardTypeDiagnostic(
 				StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
+				meta.property.ast.rangeTokens,
 				meta.property.ast,
-				undefined,
-				undefined,
-				undefined,
-				[
-					`${error.message ?? 'NO MESSAGE'}: \n${JSON.stringify(
-						error,
-					)}\n${schemaKey}`,
-				],
+				{
+					templateStrings: [
+						`${error.message ?? 'NO MESSAGE'}: \n${JSON.stringify(
+							error,
+						)}\n${schemaKey}`,
+					],
+				},
 			),
 		];
 	}
 
+	const issueAst =
+		meta.node.definitions[0] instanceof DtcRootNode
+			? meta.node.definitions[0]
+			: (meta.node.definitions[0].name ?? meta.node.definitions[0]);
+
 	return [
 		genStandardTypeDiagnostic(
 			StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
-			meta.node.definitions[0] instanceof DtcRootNode
-				? meta.node.definitions[0]
-				: (meta.node.definitions[0].name ?? meta.node.definitions[0]),
-			undefined,
-			undefined,
-			undefined,
-			[
-				`${error.message ?? 'NO MESSAGE'}: \n${JSON.stringify(
-					error,
-				)}\n${schemaKey}`,
-			],
+			issueAst.rangeTokens,
+			issueAst,
+			{
+				templateStrings: [
+					`${error.message ?? 'NO MESSAGE'}: \n${JSON.stringify(
+						error,
+					)}\n${schemaKey}`,
+				],
+			},
 		),
 	];
 };

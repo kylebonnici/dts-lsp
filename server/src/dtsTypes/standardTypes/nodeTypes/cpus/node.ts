@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { DiagnosticSeverity } from 'vscode-languageserver';
 import { genStandardTypeDiagnostic } from '../../../../helpers';
 import { getU32ValueFromProperty } from '../../helpers';
 import { StandardTypeIssue } from '../../../../types';
@@ -27,11 +26,14 @@ export function getCpusNodeType() {
 			return [
 				genStandardTypeDiagnostic(
 					StandardTypeIssue.NODE_LOCATION,
+					node.definitions[0].rangeTokens,
 					node.definitions[0],
-					DiagnosticSeverity.Error,
-					node.definitions.slice(1),
-					[],
-					['Cpus node can only be added to a root node'],
+					{
+						linkedTo: node.definitions.slice(1),
+						templateStrings: [
+							'Cpus node can only be added to a root node',
+						],
+					},
 				),
 			];
 		}
@@ -65,11 +67,13 @@ export function getCpusNodeType() {
 			issues.push(
 				genStandardTypeDiagnostic(
 					StandardTypeIssue.INVALID_VALUE,
+					property.ast.rangeTokens,
 					property.ast,
-					DiagnosticSeverity.Error,
-					undefined,
-					undefined,
-					[`${property.name} value in cpus node must be '0'`],
+					{
+						templateStrings: [
+							`${property.name} value in cpus node must be '0'`,
+						],
+					},
 				),
 			);
 		}

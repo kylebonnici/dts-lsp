@@ -14,10 +14,7 @@
  * limitations under the License.
  */
 
-import {
-	DiagnosticSeverity,
-	ParameterInformation,
-} from 'vscode-languageserver';
+import { ParameterInformation } from 'vscode-languageserver';
 import { BindingPropertyType } from '../../types/index';
 import { PropertyNodeType } from '../types';
 import { genStandardTypeDiagnostic } from '../../helpers';
@@ -38,7 +35,7 @@ export default () => {
 			const issues: FileDiagnostic[] = [];
 			const sizeCellValue = property.parent.sizeCells(macros);
 			const childBusAddressValue = property.parent.addressCells(macros);
-			const parentdBusAddressValue =
+			const parentDBusAddressValue =
 				property.parent.parentAddressCells(macros);
 
 			const args = [
@@ -48,9 +45,9 @@ export default () => {
 						`child-bus-address${childBusAddressValue > 1 ? i : ''}`,
 				),
 				...Array.from(
-					{ length: parentdBusAddressValue },
+					{ length: parentDBusAddressValue },
 					(_, i) =>
-						`parent-bus-address${parentdBusAddressValue > 1 ? i : ''}`,
+						`parent-bus-address${parentDBusAddressValue > 1 ? i : ''}`,
 				),
 				...Array.from(
 					{ length: sizeCellValue },
@@ -71,40 +68,42 @@ export default () => {
 				values.length === 0 ||
 				values.length %
 					(childBusAddressValue +
-						parentdBusAddressValue +
+						parentDBusAddressValue +
 						sizeCellValue) !==
 					0
 			) {
+				const issueAst =
+					values.at(
+						values.length -
+							(values.length %
+								(childBusAddressValue +
+									parentDBusAddressValue +
+									sizeCellValue)),
+					) ?? property.ast;
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.CELL_MISS_MATCH,
-						values.at(
-							values.length -
-								(values.length %
-									(childBusAddressValue +
-										parentdBusAddressValue +
-										sizeCellValue)),
-						) ?? property.ast,
-						DiagnosticSeverity.Error,
-						[],
-						[],
-						[
-							property.name,
-							`<${[
-								...Array.from(
-									{ length: childBusAddressValue },
-									() => 'child-bus-address',
-								),
-								...Array.from(
-									{ length: parentdBusAddressValue },
-									() => 'parent-bus-address',
-								),
-								...Array.from(
-									{ length: sizeCellValue },
-									() => 'length',
-								),
-							].join(' ')}>`,
-						],
+						issueAst.rangeTokens,
+						issueAst,
+						{
+							templateStrings: [
+								property.name,
+								`<${[
+									...Array.from(
+										{ length: childBusAddressValue },
+										() => 'child-bus-address',
+									),
+									...Array.from(
+										{ length: parentDBusAddressValue },
+										() => 'parent-bus-address',
+									),
+									...Array.from(
+										{ length: sizeCellValue },
+										() => 'length',
+									),
+								].join(' ')}>`,
+							],
+						},
 					),
 				);
 			}

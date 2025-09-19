@@ -304,7 +304,11 @@ export abstract class BaseParser {
 			const macro = macros.get(identifier.name);
 			if (!macro) {
 				this._issues.push(
-					genSyntaxDiagnostic(SyntaxIssue.UNKNOWN_MACRO, identifier),
+					genSyntaxDiagnostic(
+						SyntaxIssue.UNKNOWN_MACRO,
+						identifier.rangeTokens,
+						identifier,
+					),
 				);
 			}
 		}
@@ -506,6 +510,7 @@ export abstract class BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS,
+						identifier.rangeTokens,
 						identifier,
 					),
 				);
@@ -513,6 +518,7 @@ export abstract class BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS,
+						identifier.rangeTokens,
 						identifier,
 					),
 				);
@@ -524,6 +530,7 @@ export abstract class BaseParser {
 					this._issues.push(
 						genSyntaxDiagnostic(
 							SyntaxIssue.EXPECTED_FUNCTION_LIKE,
+							identifier.rangeTokens,
 							identifier,
 						),
 					);
@@ -531,18 +538,18 @@ export abstract class BaseParser {
 					this._issues.push(
 						genSyntaxDiagnostic(
 							SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS,
+							identifier.rangeTokens,
 							identifier,
-							undefined,
-							[macro],
+							{ linkedTo: [macro] },
 						),
 					);
 				} else if (params.length < macro.identifier.params.length) {
 					this._issues.push(
 						genSyntaxDiagnostic(
 							SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS,
+							identifier.rangeTokens,
 							identifier,
-							undefined,
-							[macro],
+							{ linkedTo: [macro] },
 						),
 					);
 				}
@@ -627,32 +634,38 @@ export abstract class BaseParser {
 		return numberValue;
 	}
 
-	private processEnclosedExpression(macros: Map<string, MacroRegistryItem>) {
+	private processEnclosedExpression(
+		macros: Map<string, MacroRegistryItem>,
+		parent: ASTBase,
+	) {
 		this.enqueueToStack();
 
 		let start: Token | undefined;
 		let token: Token | undefined;
 		if (validToken(this.currentToken, LexerToken.ROUND_OPEN)) {
-			let wrapedExpression: ComplexExpression | undefined;
+			let wrappedExpression: ComplexExpression | undefined;
 			start = this.moveToNextToken;
 			token = start;
-			let expression = this.processExpression(macros, true);
+			let expression = this.processExpression(macros, parent, true);
 			if (expression) {
-				wrapedExpression = new ComplexExpression(expression, true);
-				expression = new ComplexExpression(wrapedExpression, false);
-				wrapedExpression.openBracket = start;
+				wrappedExpression = new ComplexExpression(expression, true);
+				expression = new ComplexExpression(wrappedExpression, false);
+				wrappedExpression.openBracket = start;
 			}
 			if (!validToken(this.currentToken, LexerToken.ROUND_CLOSE)) {
-				this._issues.push(
-					genSyntaxDiagnostic(
-						SyntaxIssue.MISSING_ROUND_CLOSE,
-						new ASTBase(createTokenIndex(start!)),
-					),
-				);
+				if (start) {
+					this._issues.push(
+						genSyntaxDiagnostic(
+							SyntaxIssue.MISSING_ROUND_CLOSE,
+							createTokenIndex(start),
+							parent,
+						),
+					);
+				}
 			} else {
 				token = this.moveToNextToken;
-				if (wrapedExpression) {
-					wrapedExpression.closeBracket = token;
+				if (wrappedExpression) {
+					wrappedExpression.closeBracket = token;
 				}
 			}
 
@@ -665,6 +678,7 @@ export abstract class BaseParser {
 
 	protected processExpression(
 		macros: Map<string, MacroRegistryItem>,
+		parent: ASTBase,
 		complexExpression = false,
 	): Expression | undefined {
 		this.enqueueToStack();
@@ -672,7 +686,7 @@ export abstract class BaseParser {
 		let expression: Expression | undefined;
 
 		expression =
-			this.processEnclosedExpression(macros) ||
+			this.processEnclosedExpression(macros, parent) ||
 			this.isFunctionCall(macros) ||
 			this.processCIdentifier(macros, false) ||
 			this.processHex() ||
@@ -687,13 +701,14 @@ export abstract class BaseParser {
 
 			while (operator) {
 				// complex
-				const nextExpression = this.processExpression(macros);
+				const nextExpression = this.processExpression(macros, parent);
 
 				if (!nextExpression) {
 					this._issues.push(
 						genSyntaxDiagnostic(
 							SyntaxIssue.EXPECTED_EXPRESSION,
-							operator,
+							operator.rangeTokens,
+							parent,
 						),
 					);
 				} else {
@@ -779,8 +794,13 @@ export abstract class BaseParser {
 		}
 
 		if (report) {
-			const node = new ASTBase(createTokenIndex(start, end));
-			this._issues.push(genSyntaxDiagnostic(SyntaxIssue.UNKNOWN, node));
+			this._issues.push(
+				genSyntaxDiagnostic(
+					SyntaxIssue.UNKNOWN,
+					createTokenIndex(start, end),
+					null,
+				),
+			);
 		}
 
 		return end;

@@ -48,7 +48,7 @@ import {
 	genStandardTypeDiagnostic,
 	pathToFileURL,
 } from '../../../helpers';
-import { NexuxMapping, Property } from '../../../context/property';
+import { NexusMapping, Property } from '../../../context/property';
 import { BindingPropertyType } from '../../../types/index';
 import { ASTBase } from '../../../ast/base';
 import { getSimpleBusType } from '../../../dtsTypes/standardTypes/nodeTypes/simpleBus/node';
@@ -421,11 +421,9 @@ export class ZephyrBindingsLoader {
 				if (busCompats.length) {
 					return genStandardTypeDiagnostic(
 						StandardTypeIssue.BINDING_ON_BUS_NODE,
+						c.ast.rangeTokens,
 						c.ast,
-						DiagnosticSeverity.Error,
-						[],
-						[],
-						busCompats,
+						{ templateStrings: busCompats },
 					);
 				}
 			}
@@ -434,11 +432,13 @@ export class ZephyrBindingsLoader {
 				: [
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.MISSING_BINDING_FILE,
+							c.ast.rangeTokens,
 							c.ast,
-							DiagnosticSeverity.Hint,
-							[],
-							[DiagnosticTag.Unnecessary],
-							[c.name],
+							{
+								severity: DiagnosticSeverity.Hint,
+								tags: [DiagnosticTag.Unnecessary],
+								templateStrings: [c.name],
+							},
 						),
 					];
 		});
@@ -729,16 +729,17 @@ const generateZephyrTypeCheck = (
 					);
 
 				if (!equal) {
+					const issueAst = p.ast.values ?? p.ast;
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.EXPECTED_VALUE,
-							p.ast.values ?? p.ast,
-							DiagnosticSeverity.Error,
-							[],
-							[],
-							[
-								`Binding expects values to be "${myProperty.type}" with value: ${myProperty.const}`,
-							],
+							issueAst.rangeTokens,
+							issueAst,
+							{
+								templateStrings: [
+									`Binding expects values to be "${myProperty.type}" with value: ${myProperty.const}`,
+								],
+							},
 						),
 					);
 				}
@@ -749,11 +750,13 @@ const generateZephyrTypeCheck = (
 			issues.push(
 				genStandardTypeDiagnostic(
 					StandardTypeIssue.DEPRECATED,
+					p.ast.rangeTokens,
 					p.ast,
-					DiagnosticSeverity.Warning,
-					[],
-					[DiagnosticTag.Deprecated],
-					[p.name],
+					{
+						severity: DiagnosticSeverity.Warning,
+						tags: [DiagnosticTag.Deprecated],
+						templateStrings: [p.name],
+					},
 				),
 			);
 		}
@@ -765,13 +768,13 @@ const generateZephyrTypeCheck = (
 		) {
 			const values = flatNumberValues(p.ast.values);
 			values?.forEach((v) => {
-				const phandelValue = resolvePhandleNode(v, root);
-				if (!phandelValue) {
+				const pHandelValue = resolvePhandleNode(v, root);
+				if (!pHandelValue) {
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.UNABLE_TO_RESOLVE_PHANDLE,
+							v.rangeTokens,
 							v,
-							DiagnosticSeverity.Error,
 						),
 					);
 				}
@@ -791,11 +794,9 @@ const generateZephyrTypeCheck = (
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.UNABLE_TO_RESOLVE_PATH,
+							path.rangeTokens,
 							path,
-							DiagnosticSeverity.Error,
-							[],
-							[],
-							[p, `/${resolved.join('/')}`],
+							{ templateStrings: [p, `/${resolved.join('/')}`] },
 						),
 					);
 				} else {
@@ -823,11 +824,13 @@ const generateZephyrTypeCheck = (
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.MISSING_VALUE_NAME,
+							p.ast.rangeTokens,
 							p.ast,
-							DiagnosticSeverity.Warning,
-							[nameProperty.ast],
-							[],
-							[p.name, index.toString()],
+							{
+								severity: DiagnosticSeverity.Warning,
+								linkedTo: [nameProperty.ast],
+								templateStrings: [p.name, index.toString()],
+							},
 						),
 					);
 				}
@@ -841,13 +844,14 @@ const generateZephyrTypeCheck = (
 			let index = 0;
 			while (values && i < values.length) {
 				const v = values.at(i);
-				const phandelValue = resolvePhandleNode(v, root);
-				if (!phandelValue) {
+				const pHandelValue = resolvePhandleNode(v, root);
+				if (!pHandelValue) {
+					const issueAst = v ?? p.ast;
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.UNABLE_TO_RESOLVE_PHANDLE,
-							v ?? p.ast,
-							DiagnosticSeverity.Error,
+							issueAst.rangeTokens,
+							issueAst,
 						),
 					);
 					break;
@@ -861,7 +865,7 @@ const generateZephyrTypeCheck = (
 						myProperty['specifier-space'] ?? name.slice(0, -1);
 				}
 
-				const sizeCellProperty = phandelValue.getProperty(
+				const sizeCellProperty = pHandelValue.getProperty(
 					`#${parentName}-cells`,
 				);
 
@@ -869,15 +873,16 @@ const generateZephyrTypeCheck = (
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+							p.ast.rangeTokens,
 							p.ast,
-							DiagnosticSeverity.Error,
-							[...phandelValue.nodeNameOrLabelRef],
-							[],
-							[
-								p.name,
-								`#${parentName}-cells`,
-								`/${phandelValue.path.slice(1).join('/')}`,
-							],
+							{
+								linkedTo: [...pHandelValue.nodeNameOrLabelRef],
+								templateStrings: [
+									p.name,
+									`#${parentName}-cells`,
+									`/${pHandelValue.path.slice(1).join('/')}`,
+								],
+							},
 						),
 					);
 					break;
@@ -892,7 +897,7 @@ const generateZephyrTypeCheck = (
 						) ?? 0)
 					: 0;
 
-				const cellNames = phandelValue.nodeType?.cellsValues?.find(
+				const cellNames = pHandelValue.nodeType?.cellsValues?.find(
 					(i) => i.specifier === parentName,
 				)?.values;
 				args.push([
@@ -912,14 +917,18 @@ const generateZephyrTypeCheck = (
 				]);
 
 				if (1 + sizeCellValue > values.length - i) {
+					const issueAst = v ?? p.ast;
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.CELL_MISS_MATCH,
-							v ?? p.ast,
-							DiagnosticSeverity.Error,
-							[],
-							[],
-							[p.name, `<${args.at(-1)!.join(' ')}>`],
+							issueAst.rangeTokens,
+							issueAst,
+							{
+								templateStrings: [
+									p.name,
+									`<${args.at(-1)!.join(' ')}>`,
+								],
+							},
 						),
 					);
 					break;
@@ -927,19 +936,19 @@ const generateZephyrTypeCheck = (
 				i += 1 + sizeCellValue;
 
 				const mappingValuesAst = values.slice(i - sizeCellValue, i);
-				const nexusMapping: NexuxMapping = {
+				const nexusMapping: NexusMapping = {
 					mappingValuesAst,
 					specifierSpace: parentName,
-					target: phandelValue,
+					target: pHandelValue,
 				};
 
 				p.nexusMapsTo.push(nexusMapping);
 
-				const mapProperty = phandelValue.getProperty(
+				const mapProperty = pHandelValue.getProperty(
 					`${parentName}-map`,
 				);
 				if (mapProperty) {
-					const match = phandelValue.getNexusMapEntyMatch(
+					const match = pHandelValue.getNexusMapEntryMatch(
 						parentName,
 						macros,
 						mappingValuesAst,
@@ -948,9 +957,9 @@ const generateZephyrTypeCheck = (
 						issues.push(
 							genStandardTypeDiagnostic(
 								StandardTypeIssue.NO_NEXUS_MAP_MATCH,
+								match.entry.rangeTokens,
 								match.entry,
-								DiagnosticSeverity.Error,
-								[mapProperty.ast],
+								{ linkedTo: [mapProperty.ast] },
 							),
 						);
 					} else {
@@ -961,7 +970,7 @@ const generateZephyrTypeCheck = (
 				if (
 					mappingValuesAst.every((ast) => ast instanceof Expression)
 				) {
-					phandelValue.spesifierNexusMapping.push({
+					pHandelValue.spesifierNexusMapping.push({
 						expressions: mappingValuesAst,
 						node: p.parent,
 						property: p,
@@ -977,16 +986,16 @@ const generateZephyrTypeCheck = (
 						issues.push(
 							genStandardTypeDiagnostic(
 								StandardTypeIssue.MISSING_VALUE_NAME,
-								new ASTBase(
-									createTokenIndex(
-										v.firstToken,
-										values.at(i - 1)?.lastToken,
-									),
+								createTokenIndex(
+									v.firstToken,
+									values.at(i - 1)?.lastToken,
 								),
-								DiagnosticSeverity.Warning,
-								[nameProperty.ast],
-								[],
-								[p.name, index.toString()],
+								p.ast,
+								{
+									severity: DiagnosticSeverity.Warning,
+									linkedTo: [nameProperty.ast],
+									templateStrings: [p.name, index.toString()],
+								},
 							),
 						);
 					}

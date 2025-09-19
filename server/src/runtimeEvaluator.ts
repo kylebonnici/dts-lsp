@@ -16,12 +16,7 @@
 
 import { existsSync, readFileSync } from 'fs';
 import { basename } from 'path';
-import {
-	Diagnostic,
-	DiagnosticSeverity,
-	DocumentLink,
-	Position,
-} from 'vscode-languageserver';
+import { Diagnostic, DocumentLink, Position } from 'vscode-languageserver';
 import { ASTBase } from './ast/base';
 import {
 	DtcBaseNode,
@@ -282,11 +277,9 @@ export class ContextAware {
 						this._issues.push(
 							genContextDiagnostic(
 								ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
+								c.rangeTokens,
 								c,
-								DiagnosticSeverity.Error,
-								[],
-								[],
-								[c.value],
+								{ templateStrings: [c.value] },
 							),
 						);
 					}
@@ -317,17 +310,17 @@ export class ContextAware {
 					this._issues.push(
 						genContextDiagnostic(
 							ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH,
+							nodeName.rangeTokens,
 							nodeName,
-							DiagnosticSeverity.Error,
-							[],
-							[],
-							[
-								nodeName.toString(),
-								`${nodePath.pathParts
-									.filter((p) => p?.linksTo)
-									.map((p) => p?.toString())
-									.join('/')}`,
-							],
+							{
+								templateStrings: [
+									nodeName.toString(),
+									`${nodePath.pathParts
+										.filter((p) => p?.linksTo)
+										.map((p) => p?.toString())
+										.join('/')}`,
+								],
+							},
 						),
 					);
 				}
@@ -446,6 +439,7 @@ export class ContextAware {
 					this._issues.push(
 						genContextDiagnostic(
 							ContextIssues.DUPLICATE_NODE_NAME,
+							child.name.rangeTokens,
 							child.name,
 						),
 					);
@@ -561,11 +555,9 @@ export class ContextAware {
 			this._issues.push(
 				genContextDiagnostic(
 					ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
+					reference.rangeTokens,
 					reference,
-					DiagnosticSeverity.Error,
-					[],
-					[],
-					[reference.label?.value ?? ''],
+					{ templateStrings: [reference.label?.value ?? ''] },
 				),
 			);
 			runtime.unlinkedRefNodes.push(element);
@@ -694,6 +686,7 @@ export class ContextAware {
 					this._issues.push(
 						genContextDiagnostic(
 							ContextIssues.NODE_DOES_NOT_EXIST,
+							element.nodeNameOrRef.rangeTokens,
 							element.nodeNameOrRef,
 						),
 					);
@@ -729,11 +722,9 @@ export class ContextAware {
 				this._issues.push(
 					genContextDiagnostic(
 						ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
+						element.nodeNameOrRef.rangeTokens,
 						element.nodeNameOrRef,
-						DiagnosticSeverity.Error,
-						[],
-						[],
-						[element.nodeNameOrRef.value],
+						{ templateStrings: [element.nodeNameOrRef.value] },
 					),
 				);
 			} else {
@@ -795,17 +786,17 @@ export class ContextAware {
 					this._issues.push(
 						genContextDiagnostic(
 							ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH,
+							unresolvedNodeName.rangeTokens,
 							unresolvedNodeName,
-							DiagnosticSeverity.Error,
-							[],
-							[],
-							[
-								unresolvedNodeName.toString(),
-								`${element.nodeNameOrRef.path.pathParts
-									.filter((p) => p?.linksTo)
-									.map((p) => p?.toString())
-									.join('/')}`,
-							],
+							{
+								templateStrings: [
+									unresolvedNodeName.toString(),
+									`${element.nodeNameOrRef.path.pathParts
+										.filter((p) => p?.linksTo)
+										.map((p) => p?.toString())
+										.join('/')}`,
+								],
+							},
 						),
 					);
 				}
@@ -848,6 +839,7 @@ export class ContextAware {
 			this._issues.push(
 				genContextDiagnostic(
 					ContextIssues.PROPERTY_DOES_NOT_EXIST,
+					element.propertyName.rangeTokens,
 					element.propertyName,
 				),
 			);
@@ -888,7 +880,7 @@ export class ContextAware {
 					.forEach((issue) =>
 						ContextAware.#add(
 							issue.diagnostic(),
-							issue.raw.astElement.uri,
+							issue.raw.uri,
 							result,
 						),
 					);
@@ -896,7 +888,7 @@ export class ContextAware {
 				parser.issues.forEach((issue) =>
 					ContextAware.#add(
 						issue.diagnostic(),
-						issue.raw.astElement.uri,
+						issue.raw.uri,
 						result,
 					),
 				);
@@ -914,20 +906,12 @@ export class ContextAware {
 
 			const contextIssues = (await this.getContextIssues()) ?? [];
 			contextIssues.forEach((issue) =>
-				ContextAware.#add(
-					issue.diagnostic(),
-					issue.raw.astElement.uri,
-					result,
-				),
+				ContextAware.#add(issue.diagnostic(), issue.raw.uri, result),
 			);
 
 			const runtime = await this.getRuntime();
 			runtime?.typesIssues.forEach((issue) =>
-				ContextAware.#add(
-					issue.diagnostic(),
-					issue.raw.astElement.uri,
-					result,
-				),
+				ContextAware.#add(issue.diagnostic(), issue.raw.uri, result),
 			);
 			return result;
 		} catch (e) {
@@ -942,7 +926,7 @@ export class ContextAware {
 		)}`;
 	}
 	async serialize() {
-		// make sure we have contexr issues generated
+		// make sure we have context issues generated
 		await this.stable;
 		await this.getDiagnostics();
 		return (await this?.getRuntime())?.rootNode.serialize(

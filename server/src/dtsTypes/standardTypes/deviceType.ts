@@ -47,27 +47,16 @@ export default () => {
 					value instanceof StringValue &&
 					value.value !== property.parent.name
 				) {
-					return property.parent.name === 'cpu'
-						? [
-								genStandardTypeDiagnostic(
-									StandardTypeIssue.EXPECTED_DEVICE_TYPE_CPU,
-									property.ast,
-									DiagnosticSeverity.Error,
-									[],
-									[],
-									[property.name],
-								),
-							]
-						: [
-								genStandardTypeDiagnostic(
-									StandardTypeIssue.EXPECTED_DEVICE_TYPE_MEMORY,
-									property.ast,
-									DiagnosticSeverity.Error,
-									[],
-									[],
-									[property.name],
-								),
-							];
+					return [
+						genStandardTypeDiagnostic(
+							property.parent.name === 'cpu'
+								? StandardTypeIssue.EXPECTED_DEVICE_TYPE_CPU
+								: StandardTypeIssue.EXPECTED_DEVICE_TYPE_MEMORY,
+							property.ast.rangeTokens,
+							property.ast,
+							{ templateStrings: [property.name] },
+						),
+					];
 				}
 			}
 
@@ -75,11 +64,13 @@ export default () => {
 				return [
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.DEPRECATED,
+						property.ast.rangeTokens,
 						property.ast,
-						DiagnosticSeverity.Hint,
-						[],
-						[DiagnosticTag.Deprecated],
-						[property.name],
+						{
+							severity: DiagnosticSeverity.Hint,
+							tags: [DiagnosticTag.Deprecated],
+							templateStrings: [property.name],
+						},
 					),
 				];
 			}
