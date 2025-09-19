@@ -142,7 +142,7 @@ export default () => {
 				const remaining = values.length - i - 1;
 
 				args.push([
-					`${index}_phandel`,
+					`${index}_phandle`,
 					...Array.from(
 						{ length: cellsPropertyValue },
 						(_, j) =>
@@ -217,7 +217,7 @@ export default () => {
 				index++;
 			}
 
-			args.push([`${index}_phandel`, `${index}_interrupt...`]);
+			args.push([`${index}_phandle`, `${index}_interrupt...`]);
 
 			prop.signatureArgs = args.map((arg) =>
 				arg.map((arg) => ParameterInformation.create(arg)),

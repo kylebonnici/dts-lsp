@@ -768,8 +768,8 @@ const generateZephyrTypeCheck = (
 		) {
 			const values = flatNumberValues(p.ast.values);
 			values?.forEach((v) => {
-				const pHandelValue = resolvePhandleNode(v, root);
-				if (!pHandelValue) {
+				const pHandleValue = resolvePhandleNode(v, root);
+				if (!pHandleValue) {
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.UNABLE_TO_RESOLVE_PHANDLE,
@@ -844,8 +844,8 @@ const generateZephyrTypeCheck = (
 			let index = 0;
 			while (values && i < values.length) {
 				const v = values.at(i);
-				const pHandelValue = resolvePhandleNode(v, root);
-				if (!pHandelValue) {
+				const pHandleValue = resolvePhandleNode(v, root);
+				if (!pHandleValue) {
 					const issueAst = v ?? p.ast;
 					issues.push(
 						genStandardTypeDiagnostic(
@@ -865,7 +865,7 @@ const generateZephyrTypeCheck = (
 						myProperty['specifier-space'] ?? name.slice(0, -1);
 				}
 
-				const sizeCellProperty = pHandelValue.getProperty(
+				const sizeCellProperty = pHandleValue.getProperty(
 					`#${parentName}-cells`,
 				);
 
@@ -876,11 +876,11 @@ const generateZephyrTypeCheck = (
 							p.ast.rangeTokens,
 							p.ast,
 							{
-								linkedTo: [...pHandelValue.nodeNameOrLabelRef],
+								linkedTo: [...pHandleValue.nodeNameOrLabelRef],
 								templateStrings: [
 									p.name,
 									`#${parentName}-cells`,
-									`/${pHandelValue.path.slice(1).join('/')}`,
+									`/${pHandleValue.path.slice(1).join('/')}`,
 								],
 							},
 						),
@@ -897,11 +897,11 @@ const generateZephyrTypeCheck = (
 						) ?? 0)
 					: 0;
 
-				const cellNames = pHandelValue.nodeType?.cellsValues?.find(
+				const cellNames = pHandleValue.nodeType?.cellsValues?.find(
 					(i) => i.specifier === parentName,
 				)?.values;
 				args.push([
-					`${index}_phandel`,
+					`${index}_phandle`,
 					...(cellNames?.map((c) => `${index}_${c}`) ?? []),
 					...Array.from(
 						{
@@ -939,16 +939,16 @@ const generateZephyrTypeCheck = (
 				const nexusMapping: NexusMapping = {
 					mappingValuesAst,
 					specifierSpace: parentName,
-					target: pHandelValue,
+					target: pHandleValue,
 				};
 
 				p.nexusMapsTo.push(nexusMapping);
 
-				const mapProperty = pHandelValue.getProperty(
+				const mapProperty = pHandleValue.getProperty(
 					`${parentName}-map`,
 				);
 				if (mapProperty) {
-					const match = pHandelValue.getNexusMapEntryMatch(
+					const match = pHandleValue.getNexusMapEntryMatch(
 						parentName,
 						macros,
 						mappingValuesAst,
@@ -970,7 +970,7 @@ const generateZephyrTypeCheck = (
 				if (
 					mappingValuesAst.every((ast) => ast instanceof Expression)
 				) {
-					pHandelValue.spesifierNexusMapping.push({
+					pHandleValue.spesifierNexusMapping.push({
 						expressions: mappingValuesAst,
 						node: p.parent,
 						property: p,
@@ -1004,7 +1004,7 @@ const generateZephyrTypeCheck = (
 				index++;
 			}
 
-			args.push([`${index}_phandel`, `${index}_cell...`]);
+			args.push([`${index}_phandle`, `${index}_cell...`]);
 
 			type.signatureArgs = args.map((arg) =>
 				arg.map((arg) => ParameterInformation.create(arg)),

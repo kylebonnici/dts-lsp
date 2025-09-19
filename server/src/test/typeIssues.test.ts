@@ -105,7 +105,7 @@ describe('Type Issues', () => {
 				expect(issues.length).toEqual(1);
 				expect(issues[0].raw.issues).toEqual([
 					StandardTypeIssue.EXPECTED_STRING,
-					StandardTypeIssue.EXPECTED_U32, // phandel
+					StandardTypeIssue.EXPECTED_U32, // phandle
 				]);
 				expect(issues[0].raw.templateStrings).toEqual(['abc']);
 			});
@@ -436,7 +436,7 @@ describe('Type Issues', () => {
 				]);
 			});
 
-			test('not unique phandel value', async () => {
+			test('not unique phandle value', async () => {
 				mockReadFileSync(
 					`/{node1 {phandle= <1>;}; node2 {phandle= <1>;}; ${rootDefaults}};`,
 				);

@@ -17,7 +17,7 @@
 import { CompletionItem } from 'vscode-languageserver';
 import { dtMacroToNode } from '../../../dtMacro/macro/dtMacroToNode';
 import { ResolveMacroRequest } from '../../helpers';
-import { dtPhandel } from '../../../dtMacro/macro/properties/dtPhandel';
+import { dtPhandle } from '../../macro/properties/dtPhandle';
 import { genericPropertyCompletion } from './genericProp';
 import { dtPhandleComplitions } from './dtPhandle';
 
@@ -50,7 +50,7 @@ export async function dtPropByPhaComplitions(
 		3,
 		(prop) => !prop.nexusMapsTo.length,
 		() =>
-			dtPhandel(
+			dtPhandle(
 				{
 					...resolveMacroRequest,
 					macro: {

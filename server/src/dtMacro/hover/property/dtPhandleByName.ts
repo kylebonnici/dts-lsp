@@ -17,12 +17,12 @@
 import { Hover } from 'vscode-languageserver';
 import { ResolveMacroRequest } from '../../helpers';
 import { dtMacroToNode } from '../../macro/dtMacroToNode';
-import { dtPhandel } from '../../macro/properties/dtPhandel';
+import { dtPhandleByName } from '../../macro/properties/dtPhandleByName';
 
-export async function dtPhandelHover(
+export async function dtPhandleByNameHover(
 	resolveMacroRequest: ResolveMacroRequest,
 ): Promise<Hover | undefined> {
-	const node = await dtPhandel(resolveMacroRequest, dtMacroToNode);
+	const node = await dtPhandleByName(resolveMacroRequest, dtMacroToNode);
 
 	if (!node) {
 		return;

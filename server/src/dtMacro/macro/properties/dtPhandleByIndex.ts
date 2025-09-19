@@ -16,16 +16,16 @@
 
 import { Node } from '../../../context/node';
 import { ResolveMacroRequest } from '../../helpers';
-import { dtPhandelByNameRaw } from '../raw/properties/dtPhandelByName';
+import { dtPhandleByIndexRaw } from '../raw/properties/dtPhandleByIndex';
 
-export async function dtPhandelByName(
+export async function dtPhandleByIndex(
 	{ document, macro, context, position }: ResolveMacroRequest,
 	dtMacroToNode: (
 		resolveMacroRequest: ResolveMacroRequest,
 	) => Promise<Node | undefined>,
 ) {
 	const args = macro.args;
-	if (macro.macro !== 'DT_PHANDLE_BY_NAME' || args?.length !== 3) {
+	if (macro.macro !== 'DT_PHANDLE_BY_IDX' || args?.length !== 3) {
 		return;
 	}
 
@@ -36,5 +36,5 @@ export async function dtPhandelByName(
 		position,
 	});
 
-	return await dtPhandelByNameRaw(node, args[1].macro, args[2].macro);
+	return dtPhandleByIndexRaw(node, args[1].macro, args.at(2)?.macro);
 }

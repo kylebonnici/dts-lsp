@@ -17,7 +17,7 @@
 import { Node } from '../../../context/node';
 import { ResolveMacroRequest } from '../../helpers';
 import { dtPropOrRaw } from '../raw/properties/dtPropOr';
-import { dtPhandelByIndexRaw } from '../raw/properties/dtPhandelByIndex';
+import { dtPhandleByIndexRaw } from '../raw/properties/dtPhandleByIndex';
 
 export async function dtPropByPhandleIndexOr(
 	{ document, macro, context, position }: ResolveMacroRequest,
@@ -32,7 +32,7 @@ export async function dtPropByPhandleIndexOr(
 		return;
 	}
 
-	const handle = await dtPhandelByIndexRaw(
+	const handle = await dtPhandleByIndexRaw(
 		await dtMacroToNode({
 			document,
 			macro: macro.args[0],

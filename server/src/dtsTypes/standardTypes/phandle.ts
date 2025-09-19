@@ -28,14 +28,14 @@ export default () => {
 		undefined,
 		undefined,
 		(property, macros) => {
-			const phandelValue = getU32ValueFromProperty(
+			const phandleValue = getU32ValueFromProperty(
 				property,
 				0,
 				0,
 				macros,
 			);
-			if (phandelValue) {
-				const nodes = property.parent.root.getAllPhandle(phandelValue);
+			if (phandleValue) {
+				const nodes = property.parent.root.getAllPhandle(phandleValue);
 				if (nodes.length > 1 && nodes.at(-1) === property.parent) {
 					const issueAst =
 						property.ast.values?.values.at(0) ?? property.ast;

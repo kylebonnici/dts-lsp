@@ -34,9 +34,9 @@ import { dtEnumIndexByIndexOr } from './properties/dtEnumIndexByIndexOr';
 import { dtEnumIndexOr } from './properties/dtEnumIndexOr';
 import { dtPhaByIndexOr } from './properties/dtPhaByIndexOr';
 import { dtPhaByNameOr } from './properties/dtPhaByNameOr';
-import { dtPhandel } from './properties/dtPhandel';
-import { dtPhandelByIndex } from './properties/dtPhandelByIndex';
-import { dtPhandelByName } from './properties/dtPhandelByName';
+import { dtPhandle } from './properties/dtPhandle';
+import { dtPhandleByIndex } from './properties/dtPhandleByIndex';
+import { dtPhandleByName } from './properties/dtPhandleByName';
 import { dtPhaOr } from './properties/dtPhaOr';
 import { dtPropByPhandleIndexOr } from './properties/dtPropByPhandleIndexOr';
 import { dtPropLenOr } from './properties/dtPropLenOr';
@@ -106,9 +106,9 @@ export async function dtMacroToNode({
 		dtNodeLabel,
 		dtParent,
 		dtPath,
-		dtPhandel,
-		dtPhandelByIndex,
-		dtPhandelByName,
+		dtPhandle,
+		dtPhandleByIndex,
+		dtPhandleByName,
 		dtPropByIndexNode,
 		dtPropNode,
 		dtPropOrNode,

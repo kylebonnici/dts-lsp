@@ -17,8 +17,8 @@
 import { Property } from '../../context/property';
 import { ResolveMacroRequest, toCIdentifier } from '../helpers';
 import { dtMacroToNode } from './dtMacroToNode';
-import { dtPhandel } from './properties/dtPhandel';
-import { dtPhandelByIndex } from './properties/dtPhandelByIndex';
+import { dtPhandle } from './properties/dtPhandle';
+import { dtPhandleByIndex } from './properties/dtPhandleByIndex';
 
 const simplePropertyMacros = [
 	'DT_PROP',
@@ -87,7 +87,7 @@ export async function dtMacroToProperty({
 		macro.parent?.args?.[0] &&
 		macro.parent?.args?.[1]
 	) {
-		const node = await dtPhandel(
+		const node = await dtPhandle(
 			{
 				document,
 				context,
@@ -114,7 +114,7 @@ export async function dtMacroToProperty({
 		macro.parent?.args?.[1] &&
 		macro.parent?.args?.[3]
 	) {
-		const node = await dtPhandelByIndex(
+		const node = await dtPhandleByIndex(
 			{
 				document,
 				context,

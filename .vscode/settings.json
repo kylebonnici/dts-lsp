@@ -10,5 +10,5 @@
 	"editor.tabSize": 4,
 	"prettier.singleQuote": true,
 	"eslint.enable": true,
-	"cSpell.words": ["phandel", "phandle", "STRINGLIST"]
+	"cSpell.words": ["phandle", "STRINGLIST"]
 }

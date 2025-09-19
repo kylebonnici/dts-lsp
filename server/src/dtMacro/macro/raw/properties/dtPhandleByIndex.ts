@@ -20,7 +20,7 @@ import { NodePathRef } from '../../../../ast/dtc/values/nodePath';
 import { Node } from '../../../../context/node';
 import { toCIdentifier } from '../../../helpers';
 
-export async function dtPhandelByIndexRaw(
+export async function dtPhandleByIndexRaw(
 	node: Node | undefined,
 	propertyName: string,
 	idx: string | number = 0,

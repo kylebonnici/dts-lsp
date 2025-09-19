@@ -16,9 +16,9 @@
 
 import { Node } from '../../../context/node';
 import { ResolveMacroRequest } from '../../helpers';
-import { dtPhandelByIndexRaw } from '../raw/properties/dtPhandelByIndex';
+import { dtPhandleByIndexRaw } from '../raw/properties/dtPhandleByIndex';
 
-export async function dtPhandel(
+export async function dtPhandle(
 	{ document, macro, context, position }: ResolveMacroRequest,
 	dtMacroToNode: (
 		resolveMacroRequest: ResolveMacroRequest,
@@ -36,5 +36,5 @@ export async function dtPhandel(
 		position,
 	});
 
-	return dtPhandelByIndexRaw(node, args[1].macro, 0);
+	return dtPhandleByIndexRaw(node, args[1].macro, 0);
 }

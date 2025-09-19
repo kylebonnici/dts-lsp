@@ -39,15 +39,15 @@ import { dtPathHover } from './node/dtPath';
 import { dtSameNodeHover } from './node/dtSameNode';
 import { dtEnumIndexByIndexHover } from './property/dtEnumIndexByIndex';
 import { dtPhaByIndexHover } from './property/dtPhaByIndex';
-import { dtPhandelByIndexHover } from './property/dtPhandelByIndex';
-import { dtPhandelByNameHover } from './property/dtPhandelByName';
+import { dtPhandleByIndexHover } from './property/dtPhandleByIndex';
+import { dtPhandleByNameHover } from './property/dtPhandleByName';
 import { dtPropHover } from './property/dtProp';
 import { dtPropByIdxHover } from './property/dtPropByIdx';
 import { dtPropOrHover } from './property/dtPropOr';
 import { dtPropByPhandleIndexHover } from './property/dtPropByPhandleIndex';
 import { dtRootHover } from './node/dtRoot';
 import { dtChildNumStatusOkHover } from './node/dtChildNumStausOk';
-import { dtPhandelHover } from './property/dtPhandel';
+import { dtPhandleHover } from './property/dtPhandle';
 import { dtPhaHover } from './property/dtPha';
 import { dtPhaByIndexOrHover } from './property/dtPhaByIndexOr';
 import { dtPhaByNameHover } from './property/dtPhaByName';
@@ -128,9 +128,9 @@ async function getPropertyHover(
 		dtPhaByNameHover,
 		dtPhaByNameOrHover,
 		dtPhaHover,
-		dtPhandelByIndexHover,
-		dtPhandelByNameHover,
-		dtPhandelHover,
+		dtPhandleByIndexHover,
+		dtPhandleByNameHover,
+		dtPhandleHover,
 		dtPhaOrHover,
 		dtPropByIdxHover,
 		dtPropByPhandleHover,
