@@ -22,7 +22,6 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { resetTokenizedDocumentProvider } from '../providers/tokenizedDocument';
 import { ContextAware } from '../runtimeEvaluator';
 import { getDocumentFormatting } from '../getDocumentFormatting';
-import { applyEdits } from '../helpers';
 import { getFakeBindingLoader } from './helpers';
 
 jest.mock('fs', () => ({
@@ -73,7 +72,7 @@ const getNewText = async (documentText: string) => {
 		0,
 		documentText,
 	);
-	return applyEdits(document, await getEdits(document));
+	return getEdits(document);
 };
 
 describe('Document formating', () => {
@@ -1400,6 +1399,17 @@ describe('Document formating', () => {
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
 				'/ {\n\tprop = /* dts-format off  */     <10     20   /* dts-format on  */ 30 40>;\n};',
+			);
+		});
+	});
+
+	describe('Sort Node and prop', () => {
+		test('Prop bottom simple', async () => {
+			const documentText =
+				'/ {\n\tnode {\n\t\tprop;\n};\n\tprop = node;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tprop = node;\n\n\tnode {\n\t\tprop;\n\t};\n};',
 			);
 		});
 	});
