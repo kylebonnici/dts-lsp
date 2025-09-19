@@ -4,11 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.5.4] - Unreleased
+## [0.5.4] - 2025-09-19
 
 ### Fixed
 
 - Fixed an issue with 3rdParty integration where workspace diagnostics are shown even when no dts files are open.
+- Fixed an issue where the active context does not update when switching bwteen tabs.
 
 ## [0.5.3] - 2025-09-18
 

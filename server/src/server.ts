@@ -898,7 +898,7 @@ const updateActiveContext = async (id: ContextId, force = false) => {
 
 	const resolvedSettings = await getResolvedAllContextSettings();
 
-	if (activeContext && !force) {
+	if (activeContext && !force && !resolvedSettings.autoChangeContext) {
 		return false;
 	}
 
@@ -915,9 +915,7 @@ const updateActiveContext = async (id: ContextId, force = false) => {
 	const oldContext = activeContext;
 	const newContext = findContext(contextAware, id);
 
-	const updateActiveContext =
-		oldContext !== newContext &&
-		(resolvedSettings.autoChangeContext || force);
+	const updateActiveContext = oldContext !== newContext;
 
 	if (updateActiveContext) {
 		if (oldContext) {
