@@ -1288,9 +1288,11 @@ ${'\t'.repeat(level - 1)}}; ${isOmmited ? ' */' : ''}`;
 									typeof p.name === 'string'
 										? p.name
 										: p.name.toString(),
+								nameIsRegex: typeof p.name !== 'string',
 								allowedValues: p.allowedValues,
 								type: p.type,
 								description: p.description?.join('\n'),
+								required: p.required(this) === 'required',
 							})),
 						}
 					: undefined,

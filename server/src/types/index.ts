@@ -227,9 +227,11 @@ export type TypeConfig = { types: BindingPropertyType[] };
 
 export type SerializedBindingProperty = {
 	name: string;
+	nameIsRegex: boolean;
 	allowedValues: (number | string)[] | undefined;
 	type: TypeConfig[];
 	description?: string;
+	required: boolean;
 };
 interface SerializedBinding {
 	onBus?: string;
