@@ -734,6 +734,12 @@ export class CPreprocessorParser extends BaseParser {
 		return [...this.dtsIncludes, ...this.nodes, ...this.comments];
 	}
 
+	get ifBlocks(): (IfDefineBlock | IfElIfBlock)[] {
+		return this.nodes.filter(
+			(i) => i instanceof IfDefineBlock || i instanceof IfElIfBlock,
+		);
+	}
+
 	resolveInclude(include: Include) {
 		if (!include.path.path) {
 			return;
