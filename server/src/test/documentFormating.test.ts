@@ -1467,4 +1467,15 @@ describe('Document formating', () => {
 			);
 		});
 	});
+
+	describe('Sort Node and prop', () => {
+		test('Prop bottom simple', async () => {
+			const documentText =
+				'/ {\n\tnode {\n\t\tprop;\n};\n\tprop = node;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tprop = node;\n\n\tnode {\n\t\tprop;\n\t};\n};',
+			);
+		});
+	});
 });
