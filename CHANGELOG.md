@@ -4,11 +4,16 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.5.4] - Unreleased
+## [0.5.5] - Unreleased
+
+### Added
+
+- Diagnostic check to ensure node name and property names are do not overlap.
 
 ### Fixed
 
 - Fixed an issue with server crashing when loading vering binding with `property-allowlist` or `property-blocklist`
+- Fixed issue with reporting `Node name alredy defined` when `node{};` and `node@10{}` where under the same parent.
 
 ## [0.5.4] - 2025-09-19
 

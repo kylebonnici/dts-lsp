@@ -373,9 +373,41 @@ export class ContextAware {
 			.forEach((t, i) => this.sortKeys.set(t, i));
 
 		this.linkPropertiesLabelsAndNodePaths(runtime);
+		this.reportNodeNameAndPropertyClashes(runtime);
 
 		console.log(`(ID: ${this.id}) evaluate`, performance.now() - t);
 		return runtime;
+	}
+
+	private reportNodeNameAndPropertyClashes(runtime: Runtime) {
+		const processNode = (node: Node) => {
+			node.property.forEach((p) => {
+				const conflictingNodes = node.nodes.filter(
+					(n) =>
+						n.address === undefined &&
+						n.name === p.ast.propertyName?.name &&
+						n.definitions.at(-1)?.name,
+				);
+
+				conflictingNodes.forEach((n) =>
+					this._issues.push(
+						genContextDiagnostic(
+							ContextIssues.DUPLICATE_NODE_NAME,
+							n.definitions.at(-1)!.name!.rangeTokens,
+							n.definitions.at(-1)!.name!,
+							{
+								linkedTo: [
+									p.ast,
+									...p.allReplaced.map((pp) => pp.ast),
+								],
+							},
+						),
+					),
+				);
+			});
+			node.nodes.forEach(processNode);
+		};
+		processNode(runtime.rootNode);
 	}
 
 	private processRoot(element: DtcBaseNode, runtime: Runtime) {
@@ -406,41 +438,52 @@ export class ContextAware {
 		runtimeNodeParent: Node,
 	) {
 		const checkMatch = (
-			values: { name: string; address?: number[] }[],
+			values: { name: string; address?: number[]; issueAst: ASTBase }[],
 			nodeName: NodeName,
 		) => {
-			return values.some(
-				(i) =>
-					i.name === nodeName.name &&
-					(i.address === undefined ||
-						nodeName.fullAddress === undefined ||
-						compareWords(i.address, nodeName.fullAddress) === 0),
-			);
+			return values
+				.filter(
+					(i) =>
+						i.name === nodeName.name &&
+						((i.address === nodeName.fullAddress &&
+							i.address === undefined) ||
+							compareWords(
+								i.address ?? [],
+								nodeName.fullAddress ?? [],
+							) === 0),
+				)
+				.map((n) => n.issueAst);
 		};
-		const fullNames: { name: string; address?: number[] }[] =
-			runtimeNodeParent.nodes.map((n) => ({
-				name: n.name,
-				address: n.address,
-			}));
+		const fullNames: {
+			name: string;
+			address?: number[];
+			issueAst: ASTBase;
+		}[] = runtimeNodeParent.nodes.map((n) => ({
+			name: n.name,
+			address: n.address,
+			issueAst: n.definitions[0].name ?? n.definitions[0],
+		}));
 
 		let names: NodeName[] = [];
 
 		element.children.forEach((child) => {
 			if (child instanceof DtcChildNode && child.name) {
-				if (
-					checkMatch(
-						names.map((n) => ({
-							name: n.name,
-							address: n.fullAddress,
-						})),
-						child.name,
-					)
-				) {
+				const conflictingNames = checkMatch(
+					names.map((n) => ({
+						name: n.name,
+						address: n.fullAddress,
+						issueAst: n,
+					})),
+					child.name,
+				);
+
+				if (conflictingNames.length) {
 					this._issues.push(
 						genContextDiagnostic(
 							ContextIssues.DUPLICATE_NODE_NAME,
 							child.name.rangeTokens,
 							child.name,
+							{ linkedTo: conflictingNames },
 						),
 					);
 				}
@@ -452,14 +495,16 @@ export class ContextAware {
 			) {
 				const nodeName = child.nodeNameOrRef;
 				if (checkMatch(fullNames, nodeName)) {
-					names = names.filter((i) =>
-						checkMatch(
-							names.map((n) => ({
-								name: n.name,
-								address: n.fullAddress,
-							})),
-							i,
-						),
+					names = names.filter(
+						(i) =>
+							checkMatch(
+								names.map((n) => ({
+									name: n.name,
+									address: n.fullAddress,
+									issueAst: n,
+								})),
+								i,
+							).length,
 					);
 				}
 			}
