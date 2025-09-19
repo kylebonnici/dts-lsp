@@ -32,7 +32,7 @@ export async function dtAliasRaw(alias: string, context: ContextAware) {
 			true,
 		);
 
-		const property = node?.property.find(
+		const property = node?.properties.find(
 			(p) => toCIdentifier(p.name) === alias,
 		);
 

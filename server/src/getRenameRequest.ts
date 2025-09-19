@@ -166,7 +166,7 @@ function getNodeNameRename(result: SearchableResult | undefined): Location[] {
 	const gentItem = (node: Node) => {
 		const aliases = result.runtime.rootNode.getNode('aliases');
 		const aliaseProperties =
-			aliases?.property
+			aliases?.properties
 				.filter((p) => {
 					const values = p.ast.quickValues;
 					if (values?.length === 1 && typeof values[0] === 'string') {

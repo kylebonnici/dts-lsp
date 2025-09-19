@@ -27,7 +27,7 @@ export async function dtPhaByIndexRaw(
 	cell: string,
 	context: ContextAware,
 ): Promise<number | string | undefined> {
-	const property = node?.property.find(
+	const property = node?.properties.find(
 		(p) => toCIdentifier(p.name) === propertyName,
 	);
 

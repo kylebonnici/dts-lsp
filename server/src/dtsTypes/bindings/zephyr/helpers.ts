@@ -64,7 +64,7 @@ export const getNodeAliasesMacros = (node: Node): string[] => {
 	const macros: string[] = [];
 	const aliases = Runtime.getNodeFromPath(['aliases'], node.root);
 
-	const properties = aliases?.property.filter((p) => {
+	const properties = aliases?.properties.filter((p) => {
 		if (p.ast.quickValues?.at(0) === node.pathString) return true;
 		const value = p.ast.values?.values.at(0)?.value;
 

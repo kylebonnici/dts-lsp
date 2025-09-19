@@ -25,7 +25,7 @@ export async function dtPropLenRaw(
 		return;
 	}
 
-	const property = node?.property.find(
+	const property = node?.properties.find(
 		(p) => toCIdentifier(p.name) === propertyName,
 	);
 

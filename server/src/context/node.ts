@@ -110,7 +110,7 @@ export class Node {
 
 	static toJson(node: Node) {
 		const obj: any = {};
-		node.property.forEach(
+		node.properties.forEach(
 			(p) => (obj[p.name] = p.ast.values?.toJson() ?? true),
 		);
 		node.nodes.forEach((n) => (obj[n.fullName] = Node.toJson(n)));
@@ -284,7 +284,7 @@ export class Node {
 
 	get allBindingsProperties(): Property[] {
 		return [
-			...this.property.filter((p) => p.name === 'compatible'),
+			...this.properties.filter((p) => p.name === 'compatible'),
 			...this._nodes.flatMap((n) => n.allBindingsProperties),
 		];
 	}
@@ -302,7 +302,7 @@ export class Node {
 	}[] {
 		return [
 			...this.labelsMapped,
-			...this.property.flatMap((p) => p.labelsMapped),
+			...this.properties.flatMap((p) => p.labelsMapped),
 			...this._nodes.flatMap((n) => n.allDescendantsLabelsMapped),
 		];
 	}
@@ -411,7 +411,7 @@ export class Node {
 	private missingBinding: FileDiagnostic[] = [];
 	getIssues(macros: Map<string, MacroRegistryItem>): FileDiagnostic[] {
 		const issues = [
-			...this.property.flatMap((p) => p.issues),
+			...this.properties.flatMap((p) => p.issues),
 			...this._nodes.flatMap((n) => n.getIssues(macros)),
 			...this._deletedNodes.flatMap((n) => n.node.getIssues(macros)),
 			...this.deletedPropertiesIssues,
@@ -528,7 +528,7 @@ export class Node {
 		return `/${this.path.slice(1).join('/')}`;
 	}
 
-	get property() {
+	get properties() {
 		return this._properties;
 	}
 
@@ -1217,7 +1217,7 @@ export class Node {
 	toTooltipString(macros: Map<string, MacroRegistryItem>) {
 		return `${this.uniqueLabels().join(' ')}${this.labels.length ? ' ' : ''}${
 			this.fullName
-		} {${this.property.length ? '\n\t' : ''}${this.property
+		} {${this.properties.length ? '\n\t' : ''}${this.properties
 			.map((p) => p.toPrettyString(macros))
 			.join('\n\t')}${
 			this.nodes.length
@@ -1270,8 +1270,8 @@ export class Node {
 			return `/* /omit-if-no-ref/ ${this.labels
 				.map((l) => l.toString())
 				.join(' ')}${this.labels.length ? ' ' : ''}${this.fullName} {${
-				this.property.length ? `\n${'\t'.repeat(level)}` : ''
-			}${this.property
+				this.properties.length ? `\n${'\t'.repeat(level)}` : ''
+			}${this.properties
 				.map((p) => p.toString())
 				.join(`\n${'\t'.repeat(level)}`)}${
 				this.nodes.length
@@ -1290,8 +1290,8 @@ ${'\t'.repeat(level - 1)}}; */`;
 					? `/* /omit-if-no-ref/ */\n${'\t'.repeat(level - 1)}`
 					: ''
 		}${this.uniqueLabels()}${this.labels.length ? ' ' : ''}${this.fullName} {${
-			this.property.length ? `\n${'\t'.repeat(level)}` : ''
-		}${this.property
+			this.properties.length ? `\n${'\t'.repeat(level)}` : ''
+		}${this.properties
 			.map((p) => p.toPrettyString(macros))
 			.join(`\n${'\t'.repeat(level)}`)}${
 			this.nodes.length
@@ -1332,7 +1332,7 @@ ${'\t'.repeat(level - 1)}}; ${isOmmited ? ' */' : ''}`;
 			name: this.fullName,
 			labels: this.labels.map((l) => l.label.value),
 			nodes: nodeAsts.map((d) => d.serialize(macros)),
-			properties: this.property.map((p) => ({
+			properties: this.properties.map((p) => ({
 				...p.ast.serialize(macros),
 				nexusMapEnty: p.nexusMapsTo.map((nexus) => {
 					return {

@@ -76,7 +76,7 @@ export async function dtMacroToProperty({
 			macro: macro.parent.args[0],
 		});
 
-		return node?.property.find(
+		return node?.properties.find(
 			(p) => toCIdentifier(p.name) === macro.macro,
 		);
 	}
@@ -100,7 +100,7 @@ export async function dtMacroToProperty({
 			dtMacroToNode,
 		);
 
-		return node?.property.find(
+		return node?.properties.find(
 			(p) => toCIdentifier(p.name) === macro.macro,
 		);
 	}
@@ -127,7 +127,7 @@ export async function dtMacroToProperty({
 			dtMacroToNode,
 		);
 
-		return node?.property.find(
+		return node?.properties.find(
 			(p) => toCIdentifier(p.name) === macro.macro,
 		);
 	}
@@ -139,6 +139,6 @@ export async function dtMacroToProperty({
 	) {
 		return (await context.getRuntime()).rootNode
 			.getChild(['/', 'chosen'])
-			?.property.find((p) => toCIdentifier(p.name) === macro.macro);
+			?.properties.find((p) => toCIdentifier(p.name) === macro.macro);
 	}
 }

@@ -23,7 +23,7 @@ export async function dtEnumIndexByIndexRaw(
 	propertyName: string,
 	idx: number,
 ) {
-	const property = node?.property.find(
+	const property = node?.properties.find(
 		(p) => toCIdentifier(p.name) === propertyName,
 	);
 

@@ -23,7 +23,7 @@ export async function dtPhandelByNameRaw(
 	propertyName: string,
 	name: string,
 ) {
-	const property = node?.property.find(
+	const property = node?.properties.find(
 		(p) => toCIdentifier(p.name) === propertyName,
 	);
 

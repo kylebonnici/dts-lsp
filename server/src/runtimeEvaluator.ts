@@ -257,7 +257,10 @@ export class ContextAware {
 
 	private linkPropertiesLabelsAndNodePaths(runtime: Runtime) {
 		const getAllProperties = (node: Node): Property[] => {
-			return [...node.property, ...node.nodes.flatMap(getAllProperties)];
+			return [
+				...node.properties,
+				...node.nodes.flatMap(getAllProperties),
+			];
 		};
 		const allProperties = getAllProperties(runtime.rootNode);
 		const allLabels = runtime.rootNode.allDescendantsLabels;
@@ -381,7 +384,7 @@ export class ContextAware {
 
 	private reportNodeNameAndPropertyClashes(runtime: Runtime) {
 		const processNode = (node: Node) => {
-			node.property.forEach((p) => {
+			node.properties.forEach((p) => {
 				const conflictingNodes = node.nodes.filter(
 					(n) =>
 						n.address === undefined &&

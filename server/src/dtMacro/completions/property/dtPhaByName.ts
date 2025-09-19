@@ -35,7 +35,7 @@ export async function getNameCompletion(
 		position,
 	});
 
-	const property = node?.property.find(
+	const property = node?.properties.find(
 		(p) => toCIdentifier(p.name) === macro.parent?.args?.at(1)?.macro,
 	);
 

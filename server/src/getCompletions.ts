@@ -329,7 +329,7 @@ function getDeletePropertyItems(
 
 	const getScopeItems = (node: Node) => {
 		return [
-			...node.property,
+			...node.properties,
 			...node.deletedProperties
 				.filter((n) => !inScope(n.by))
 				.map((n) => n.property),

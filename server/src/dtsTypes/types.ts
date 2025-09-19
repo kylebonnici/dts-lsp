@@ -557,7 +557,7 @@ export class NodeType extends INodeType {
 				propType.name === 'reg' &&
 				propType.required(node) === 'required' &&
 				!node.address &&
-				node.property.find((p) => p.name === 'reg')
+				node.properties.find((p) => p.name === 'reg')
 			) {
 				const nodeAddress = node
 					.regArray(runtime.context.macros)
@@ -605,7 +605,7 @@ export class NodeType extends INodeType {
 				);
 			}
 
-			const properties = node.property.filter((p) =>
+			const properties = node.properties.filter((p) =>
 				propType.getNameMatch(p.name),
 			);
 
@@ -626,10 +626,10 @@ export class NodeType extends INodeType {
 		});
 
 		if (
-			machedSet.size !== node.property.length &&
+			machedSet.size !== node.properties.length &&
 			(this.noMismatchPropertiesAllowed || this.warnMismatchProperties)
 		) {
-			const mismatch = node.property.filter((p) => !machedSet.has(p));
+			const mismatch = node.properties.filter((p) => !machedSet.has(p));
 			mismatch.forEach((p) => {
 				issue.push(
 					genStandardTypeDiagnostic(
@@ -810,7 +810,7 @@ export class NodeType extends INodeType {
 				)
 				.map((p) => {
 					const required = node && p.required(node);
-					const hasProperty = !!node.property.some((pp) =>
+					const hasProperty = !!node.properties.some((pp) =>
 						p.getNameMatch(pp.name),
 					);
 					let sortLetter = 'a';

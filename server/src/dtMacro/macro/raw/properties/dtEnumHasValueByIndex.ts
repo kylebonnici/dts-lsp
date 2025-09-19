@@ -25,7 +25,7 @@ export async function dtEnumHasValueByIndexRaw(
 	idx: number,
 	cmpValue: string,
 ) {
-	const property = node?.property.find(
+	const property = node?.properties.find(
 		(p) => toCIdentifier(p.name) === propertyName,
 	);
 

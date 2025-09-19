@@ -27,7 +27,7 @@ export async function dtStringUnquotedByIndexRaw(
 		return;
 	}
 
-	const property = node?.property.find(
+	const property = node?.properties.find(
 		(p) => toCIdentifier(p.name) === propertyName,
 	);
 

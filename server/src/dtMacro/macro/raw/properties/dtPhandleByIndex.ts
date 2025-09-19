@@ -25,7 +25,7 @@ export async function dtPhandleByIndexRaw(
 	propertyName: string,
 	idx: string | number = 0,
 ) {
-	const property = node?.property.find(
+	const property = node?.properties.find(
 		(p) => toCIdentifier(p.name) === propertyName,
 	);
 

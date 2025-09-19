@@ -26,7 +26,7 @@ export async function dtPropHasNameRaw(
 	nameValue: string,
 	context: ContextAware,
 ) {
-	const property = node?.property.find(
+	const property = node?.properties.find(
 		(p) => toCIdentifier(p.name) === propertyName,
 	);
 

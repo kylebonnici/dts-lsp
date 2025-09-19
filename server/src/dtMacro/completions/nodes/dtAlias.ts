@@ -46,7 +46,7 @@ export async function dtAliasComplitions({
 	const runtime = await context.getRuntime();
 
 	return (
-		runtime.rootNode.getNode('aliases')?.property.map((prop) => {
+		runtime.rootNode.getNode('aliases')?.properties.map((prop) => {
 			const v = prop.ast.getFlatAstValues()?.at(0);
 			let node: Node | undefined;
 			if (v instanceof LabelRef) {

@@ -56,7 +56,9 @@ export async function genericPropertyCompletion(
 
 	const node = await fetchNode(macro.parent.args[0]);
 
-	const properties = filter ? node?.property.filter(filter) : node?.property;
+	const properties = filter
+		? node?.properties.filter(filter)
+		: node?.properties;
 
 	return (
 		properties?.map(
