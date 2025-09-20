@@ -161,6 +161,7 @@ export async function formatText(
 		filePath,
 		text,
 		parser.includes,
+		parser.cPreprocessorParser.ifBlocks,
 	);
 }
 
@@ -170,12 +171,13 @@ async function formatAstBaseItems(
 	uri: string,
 	text: string,
 	includes: Include[],
+	ifDefs: (IfDefineBlock | IfElIfBlock)[],
 ): Promise<string> {
 	const splitDocument = text.split('\n');
 
 	const t = astItems.flatMap((c) =>
 		c instanceof DtcBaseNode
-			? sortNodesAndProperties(c, uri, includes, [], splitDocument)
+			? sortNodesAndProperties(c, uri, includes, ifDefs, splitDocument)
 			: [],
 	);
 
@@ -259,7 +261,10 @@ export async function getDocumentFormatting(
 		fileRootAsts,
 		uri,
 		documentText,
-		fileIncludes,
+		runtime.includes.filter((i) => isPathEqual(i.uri, uri)),
+		fileRootAsts.filter(
+			(i) => i instanceof IfDefineBlock || i instanceof IfElIfBlock,
+		),
 	);
 }
 const pairFormatOnOff = (
@@ -1673,9 +1678,11 @@ function sortNodesAndProperties(
 		return [];
 	}
 
-	const groups: { prop: DtcProperty[]; nodes: DtcBaseNode[] }[] = [
-		{ prop: [], nodes: [] },
-	];
+	const groups: {
+		asFound: (DtcProperty | DtcBaseNode)[];
+		prop: DtcProperty[];
+		nodes: DtcBaseNode[];
+	}[] = [{ prop: [], nodes: [], asFound: [] }];
 
 	const textEdits: TextEdit[] = [];
 
@@ -1699,16 +1706,18 @@ function sortNodesAndProperties(
 			includeAfter.length !== includesInNode.length &&
 			includesInNode.length
 		) {
-			groups.push({ prop: [], nodes: [] });
+			groups.push({ prop: [], nodes: [], asFound: [] });
 			includesInNode = includeAfter;
 		}
 
 		if (c instanceof DtcProperty) {
 			groups.at(-1)?.prop.push(c);
+			groups.at(-1)?.asFound.push(c);
 		} else if (c instanceof DtcBaseNode) {
 			groups.at(-1)?.nodes.push(c);
+			groups.at(-1)?.asFound.push(c);
 		} else if (c instanceof DeleteBase) {
-			groups.push({ prop: [], nodes: [] });
+			groups.push({ prop: [], nodes: [], asFound: [] });
 		}
 	});
 
@@ -1737,51 +1746,52 @@ function sortNodesAndProperties(
 			return;
 		}
 
-		const { start: grpStart } = genStartEnd(expedtedOrder[0]);
-		const grpStartosition = Position.create(
-			grpStart.firstToken.pos.line,
-			grpStart.firstToken.pos.col,
-		);
-
-		expedtedOrder.forEach((item) => {
+		const newText = expedtedOrder.map((item) => {
 			const { start, end } = genStartEnd(item);
+			const startLine =
+				start.firstToken.prevToken?.pos.line ??
+				start.firstToken.pos.line;
+			const startCol =
+				(start.firstToken.prevToken?.pos.colEnd ??
+					start.firstToken.pos.col - 1) + 1;
+			const endLine = end.lastToken.pos.line;
+			const endCol = end.lastToken?.pos.colEnd;
 
-			const sameLine =
-				start.firstToken.pos.line === end.lastToken.pos.line;
+			const sameLine = startLine === endLine;
 			let text = '';
 			if (sameLine) {
-				text = splitDocument[start.firstToken.pos.line].slice(
-					start.firstToken.pos.col,
-					end.lastToken.pos.colEnd,
-				);
+				text = splitDocument[startLine].slice(startCol, endCol);
 			} else {
-				const textLines = splitDocument.slice(
-					start.firstToken.pos.line,
-					end.lastToken.pos.line + 1,
-				);
-				textLines[0] = textLines[0].slice(start.firstToken.pos.col);
+				const textLines = splitDocument.slice(startLine, endLine + 1);
+				textLines[0] = textLines[0].slice(startCol);
 				textLines[textLines.length - 1] = textLines[
 					textLines.length - 1
-				].slice(0, end.lastToken.pos.colEnd);
-				text = textLines.join('\n');
+				].slice(0, endCol);
+				text = textLines.join('');
 			}
 
-			textEdits.push(
-				TextEdit.del(
-					Range.create(
-						Position.create(
-							start.firstToken.pos.line,
-							start.firstToken.pos.col,
-						),
-						Position.create(
-							end.lastToken.pos.line,
-							end.lastToken.pos.colEnd,
-						),
-					),
-				),
-				TextEdit.insert(grpStartosition, `${text}\n`),
-			);
+			return text;
 		});
+
+		const { start: grpStart } = genStartEnd(grp.asFound[0]);
+		const { end: grpEnd } = genStartEnd(grp.asFound.at(-1)!);
+		const grpStartPosition = Position.create(
+			grpStart.firstToken.prevToken?.pos.line ??
+				grpStart.firstToken.pos.line,
+			(grpStart.firstToken.prevToken?.pos.colEnd ??
+				grpStart.firstToken.pos.col - 1) + 1,
+		);
+		const grpEndPosition = Position.create(
+			grpEnd.lastToken.pos.line,
+			grpEnd.lastToken.pos.colEnd,
+		);
+
+		textEdits.push(
+			TextEdit.replace(
+				Range.create(grpStartPosition, grpEndPosition),
+				newText.join('\n'),
+			),
+		);
 	});
 
 	if (!textEdits.length) {
@@ -1798,5 +1808,5 @@ function sortNodesAndProperties(
 		);
 	}
 
-	return textEdits.reverse();
+	return textEdits;
 }
