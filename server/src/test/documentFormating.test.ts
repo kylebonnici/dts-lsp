@@ -1470,11 +1470,46 @@ describe('Document formating', () => {
 
 	describe('Sort Node and prop', () => {
 		test('Prop bottom simple', async () => {
-			const documentText =
-				'/ {\n\tnode {\n\t\tprop;\n};\n\tprop = node;\n};';
+			const documentText = '/ {\n\tnode {\n\t\tprop;\n};\n\tprop;\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\tprop = node;\n\n\tnode {\n\t\tprop;\n\t};\n};',
+				'/ {\n\tprop;\n\n\tnode {\n\t\tprop;\n\t};\n};',
+			);
+		});
+
+		test('Ensure comment travils withProp bottom simple', async () => {
+			const documentText =
+				'/ {\n\tnode {\n\t\tprop;\n};\n\t/*prop cmt */\n\tprop;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\t/*prop cmt */\n\tprop;\n\n\tnode {\n\t\tprop;\n\t};\n};',
+			);
+		});
+
+		test('split groups when we have some include', async () => {
+			const documentText =
+				'/ {\n\tnode1 {\n\t\tprop;\n};\n\t/*prop cmt */\n\tprop1;\n#include <test.dtci>\n\n\tnode2 {\n\t\tprop;\n};\n\t/*prop cmt */\n\tprop2;};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\t/*prop cmt */\n\tprop1;\n\n\tnode1 {\n\t\tprop;\n\t};\n\t#include <test.dtci>\n\t/*prop cmt */\n\tprop2;\n\n\tnode2 {\n\t\tprop;\n\t};\n};',
+			);
+		});
+
+		test('split groups when we have some delete prop', async () => {
+			const documentText =
+				'/ {\n\tnode1 {\n\t\tprop;\n};\n\t/*prop cmt */\n\tprop1;\n/delete-property/ prop1;\n\n\tnode2 {\n\t\tprop;\n};\n\t/*prop cmt */\n\tprop2;};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\t/*prop cmt */\n\tprop1;\n\n\tnode1 {\n\t\tprop;\n\t};\n\t/delete-property/ prop1;\n\t/*prop cmt */\n\tprop2;\n\n\tnode2 {\n\t\tprop;\n\t};\n};',
+			);
+		});
+
+		test('If def will stop any sorting', async () => {
+			const documentText =
+				'/ {\n\tnode1 {\n\t\tprop;\n};\n\t/*prop cmt */\n\tprop1;\n#ifdef ABC\n FOO;\n#endif\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tnode1 {\n\t\tprop;\n\t};\n\t/*prop cmt */\n\tprop1;\n#ifdef ABC\n FOO;\n#endif\n};',
 			);
 		});
 	});
