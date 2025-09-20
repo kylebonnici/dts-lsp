@@ -1348,7 +1348,7 @@ const linkAstAfterComment = <T extends ASTBase>(
 				c.lastToken.pos.line + 1 === astItem.firstToken.pos.line),
 	);
 
-	if (!linkedComment) {
+	if (!linkedComment || linkedComment.astBeforeComment) {
 		return;
 	}
 
