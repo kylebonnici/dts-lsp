@@ -115,7 +115,7 @@ describe('Document formating', () => {
 		test('Node no new line from other root', async () => {
 			const documentText = '/ {};/ {};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {};\n/ {};');
+			expect(newText).toEqual('/ {};\n\n/ {};');
 		});
 
 		test('Node multiple new line from other root', async () => {
@@ -256,9 +256,9 @@ describe('Document formating', () => {
 		});
 
 		test('Node no new line from other Child', async () => {
-			const documentText = '/ {\n\tnode {};node {};\n};';
+			const documentText = '/ {\n\tnode1 {};node2 {};\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tnode {};\n\tnode {};\n};');
+			expect(newText).toEqual('/ {\n\tnode1 {};\n\n\tnode2 {};\n};');
 		});
 
 		test('Node multiple new line from other Child', async () => {
@@ -448,7 +448,7 @@ describe('Document formating', () => {
 		test('Node no new line from other root', async () => {
 			const documentText = '/ {\n};&n1 {\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {};\n&n1 {};');
+			expect(newText).toEqual('/ {};\n\n&n1 {};');
 		});
 
 		test('Node multiple new line from other root', async () => {

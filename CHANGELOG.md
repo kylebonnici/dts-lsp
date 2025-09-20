@@ -13,7 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed an issue with server crashing when loading vering binding with `property-allowlist` or `property-blocklist`
-- Fixed issue with reporting `Node name alredy defined` when `node{};` and `node@10{}` where under the same parent.
+- Fixed an issue with reporting `Node name alredy defined` when `node{};` and `node@10{}` where under the same parent.
+- Fixed an issue with enforcing new lines between nodes when they are on the same line like `node1 {};node2 {};`
 
 ## [0.5.4] - 2025-09-19
 

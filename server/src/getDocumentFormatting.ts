@@ -383,6 +383,7 @@ const pushItemToNewLineAndIndent = (
 	level: number,
 	indentString: string,
 	prefix: string = '',
+	numberOfNewLines = 1,
 ): TextEdit | undefined => {
 	const newLine = token.pos.line === token.prevToken?.pos.line;
 
@@ -395,7 +396,7 @@ const pushItemToNewLineAndIndent = (
 				),
 				Position.create(token.pos.line, token.pos.col),
 			),
-			`\n${''.padStart(level * indentString.length, indentString)}${prefix}`,
+			`${'\n'.repeat(numberOfNewLines)}${''.padStart(level * indentString.length, indentString)}${prefix}`,
 		);
 	}
 };
@@ -1199,6 +1200,7 @@ const ensureOnNewLineAndMax1EmptyLineToPrev = (
 		level,
 		indentString,
 		prefix,
+		expectedNewLines,
 	);
 
 	if (editToMoveToNewLine) {
