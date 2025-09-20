@@ -928,7 +928,7 @@ describe('Document formating', () => {
 				'/ {\n\tval = "XA\nXPLUS\nXB", "XSTR1 \\" plus \\" XSTR2";\n\tprop = <10>;\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\tprop = <10>;\n\tval = "XA\nXPLUS\nXB", "XSTR1 \\" plus \\" XSTR2";\n};',
+				'/ {\n\tval = "XA\nXPLUS\nXB", "XSTR1 \\" plus \\" XSTR2";\n\tprop = <10>;\n};',
 			);
 		});
 
@@ -1367,8 +1367,8 @@ describe('Document formating', () => {
 			expect(newText).toEqual(
 				`sysclk: system-clock {
 	compatible = "fixed-clock";
-	#clock-cells = <0>;
 	clock-frequency = <25000000>;
+	#clock-cells = <0>;
 };`,
 			);
 		});
@@ -1454,6 +1454,24 @@ describe('Document formating', () => {
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
 				'/ {\n\tnode1 {\n\t\tprop;\n\t};\n\t/*prop cmt */\n\tprop1;\n#ifdef ABC\n FOO;\n#endif\n};',
+			);
+		});
+
+		test('Format off all', async () => {
+			const documentText =
+				'/ {\n// dts-format off\n\tnode {\n\t\tprop;\n};\n\tprop;\n// dts-format on\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n// dts-format off\n\tnode {\n\t\tprop;\n};\n\tprop;\n// dts-format on\n};',
+			);
+		});
+
+		test('Format off partial', async () => {
+			const documentText =
+				'/ {\n// dts-format off\n\tnode1 {\n\t\tprop;\n};\n\t/*prop cmt */\n\tprop1;\n// dts-format on\n#include <test.dtci>\n\n\tnode2 {\n\t\tprop;\n};\n\t/*prop cmt */\n\tprop2;};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n// dts-format off\n\tnode1 {\n\t\tprop;\n};\n\t/*prop cmt */\n\tprop1;\n// dts-format on\n\t#include <test.dtci>\n\t/*prop cmt */\n\tprop2;\n\n\tnode2 {\n\t\tprop;\n\t};\n};',
 			);
 		});
 	});
