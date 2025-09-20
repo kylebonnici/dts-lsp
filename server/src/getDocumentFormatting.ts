@@ -174,10 +174,18 @@ async function formatAstBaseItems(
 	ifDefs: (IfDefineBlock | IfElIfBlock)[],
 ): Promise<string> {
 	const splitDocument = text.split('\n');
+	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
 
 	const t = astItems.flatMap((c) =>
 		c instanceof DtcBaseNode
-			? sortNodesAndProperties(c, uri, includes, ifDefs, splitDocument)
+			? sortNodesAndProperties(
+					c,
+					uri,
+					includes,
+					ifDefs,
+					splitDocument,
+					formatOnOffMeta,
+				)
 			: [],
 	);
 
@@ -243,7 +251,6 @@ async function formatAstBaseItems(
 		}
 	}
 
-	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
 	const edits = formatOnOffMeta.length
 		? result.filter(
 				(edit) =>
@@ -1695,6 +1702,7 @@ function sortNodesAndProperties(
 	includes: Include[],
 	ifDefs: (IfDefineBlock | IfElIfBlock)[],
 	splitDocument: string[],
+	formatOff: Range[],
 ): TextEdit[] {
 	if (!isPathEqual(node.uri, uri)) return []; //property may have been included!!
 
@@ -1790,14 +1798,22 @@ function sortNodesAndProperties(
 			return;
 		}
 
-		const newText = expedtedOrder.map((item) => {
+		const { start: grpStart } = genStartEnd(grp.asFound[0]);
+		const grpStartPosition = Position.create(
+			grpStart.firstToken.prevToken?.pos.line ??
+				grpStart.firstToken.pos.line,
+			grpStart.firstToken.prevToken?.pos.colEnd ??
+				grpStart.firstToken.pos.col,
+		);
+
+		const changesMap = expedtedOrder.map((item) => {
 			const { start, end } = genStartEnd(item);
 			const startLine =
 				start.firstToken.prevToken?.pos.line ??
 				start.firstToken.pos.line;
 			const startCol =
-				(start.firstToken.prevToken?.pos.colEnd ??
-					start.firstToken.pos.col - 1) + 1;
+				start.firstToken.prevToken?.pos.colEnd ??
+				start.firstToken.pos.col;
 			const endLine = end.lastToken.pos.line;
 			const endCol = end.lastToken?.pos.colEnd;
 
@@ -1811,31 +1827,45 @@ function sortNodesAndProperties(
 				textLines[textLines.length - 1] = textLines[
 					textLines.length - 1
 				].slice(0, endCol);
-				text = `${textLines[0]}${textLines.slice(1).join('\n')}`;
+				text = textLines.join('\n');
 			}
 
-			return text;
+			return {
+				delete: TextEdit.del(
+					Range.create(
+						Position.create(startLine, startCol),
+						Position.create(endLine, endCol),
+					),
+				),
+				insert: TextEdit.insert(grpStartPosition, text),
+				item,
+				text,
+			};
 		});
 
-		const { start: grpStart } = genStartEnd(grp.asFound[0]);
-		const { end: grpEnd } = genStartEnd(grp.asFound.at(-1)!);
-		const grpStartPosition = Position.create(
-			grpStart.firstToken.prevToken?.pos.line ??
-				grpStart.firstToken.pos.line,
-			(grpStart.firstToken.prevToken?.pos.colEnd ??
-				grpStart.firstToken.pos.col - 1) + 1,
-		);
-		const grpEndPosition = Position.create(
-			grpEnd.lastToken.pos.line,
-			grpEnd.lastToken.pos.colEnd,
-		);
+		const edits = formatOff.length
+			? changesMap.filter(
+					(edit) =>
+						!isFormattingDisabledAt(
+							edit.delete.range.start,
+							formatOff,
+						) &&
+						!isFormattingDisabledAt(
+							edit.delete.range.end,
+							formatOff,
+						),
+				)
+			: changesMap;
 
-		textEdits.push(
-			TextEdit.replace(
-				Range.create(grpStartPosition, grpEndPosition),
-				newText.join('\n'),
-			),
-		);
+		if (edits.length) {
+			textEdits.push(...edits.map((a) => a.delete));
+			textEdits.push(
+				TextEdit.insert(
+					grpStartPosition,
+					edits.map((a) => a.text).join(''),
+				),
+			);
+		}
 	});
 
 	if (!textEdits.length) {
@@ -1847,6 +1877,7 @@ function sortNodesAndProperties(
 						includes,
 						ifDefs,
 						splitDocument,
+						formatOff,
 					)
 				: [],
 		);
@@ -1881,8 +1912,6 @@ function sortProperties(a: DtcProperty, b: DtcProperty) {
 	if (aPriority !== bPriority) {
 		return aPriority - bPriority;
 	}
-	// Same group -> sort alphabetically
-	return (a.propertyName?.name ?? '').localeCompare(
-		b.propertyName?.name ?? '',
-	);
+
+	return 0;
 }
