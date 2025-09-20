@@ -1771,7 +1771,7 @@ function sortNodesAndProperties(
 	});
 
 	groups.forEach((grp) => {
-		const expedtedOrder = [...grp.prop, ...grp.nodes];
+		const expedtedOrder = [...grp.prop.sort(sortProperties), ...grp.nodes];
 		if (
 			!expedtedOrder.length ||
 			expedtedOrder.every(
@@ -1811,7 +1811,7 @@ function sortNodesAndProperties(
 				textLines[textLines.length - 1] = textLines[
 					textLines.length - 1
 				].slice(0, endCol);
-				text = textLines.join('');
+				text = `${textLines[0]}${textLines.slice(1).join('\n')}`;
 			}
 
 			return text;
@@ -1853,4 +1853,36 @@ function sortNodesAndProperties(
 	}
 
 	return textEdits;
+}
+
+const priority: Record<string, number> = {
+	compatible: 0,
+	reg: 1,
+	ranges: 2,
+	status: 99, // status goes last if present
+};
+
+function getPriority(name: string): number {
+	if (priority.hasOwnProperty(name)) {
+		return priority[name];
+	}
+	if (!name.includes(',')) {
+		// Standard/common properties (no vendor prefix)
+		return 3;
+	}
+	// Vendor-specific properties (have vendor prefix)
+	return 4;
+}
+
+function sortProperties(a: DtcProperty, b: DtcProperty) {
+	const aPriority = getPriority(a.propertyName?.name ?? '');
+	const bPriority = getPriority(b.propertyName?.name ?? '');
+
+	if (aPriority !== bPriority) {
+		return aPriority - bPriority;
+	}
+	// Same group -> sort alphabetically
+	return (a.propertyName?.name ?? '').localeCompare(
+		b.propertyName?.name ?? '',
+	);
 }
