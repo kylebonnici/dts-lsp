@@ -928,7 +928,7 @@ describe('Document formating', () => {
 				'/ {\n\tval = "XA\nXPLUS\nXB", "XSTR1 \\" plus \\" XSTR2";\n\tprop = <10>;\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\tval = "XA\nXPLUS\nXB", "XSTR1 \\" plus \\" XSTR2";\n\tprop = <10>;\n};',
+				'/ {\n\tprop = <10>;\n\tval = "XA\nXPLUS\nXB", "XSTR1 \\" plus \\" XSTR2";\n};',
 			);
 		});
 
@@ -1367,8 +1367,8 @@ describe('Document formating', () => {
 			expect(newText).toEqual(
 				`sysclk: system-clock {
 	compatible = "fixed-clock";
-	clock-frequency = <25000000>;
 	#clock-cells = <0>;
+	clock-frequency = <25000000>;
 };`,
 			);
 		});
@@ -1412,12 +1412,21 @@ describe('Document formating', () => {
 			);
 		});
 
-		test('Ensure comment travils withProp bottom simple', async () => {
+		test('Ensure top comment moves withProp', async () => {
 			const documentText =
 				'/ {\n\tnode {\n\t\tprop;\n};\n\t/*prop cmt */\n\tprop;\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
 				'/ {\n\t/*prop cmt */\n\tprop;\n\n\tnode {\n\t\tprop;\n\t};\n};',
+			);
+		});
+
+		test('Ensure last comment move withProp', async () => {
+			const documentText =
+				'/ {\n\tnode {\n\t\tprop;\n};\n\tprop1; /* test1 */\n\tprop2; /* test2 */\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tprop1; /* test1 */\n\tprop2; /* test2 */\n\n\tnode {\n\t\tprop;\n\t};\n};',
 			);
 		});
 
