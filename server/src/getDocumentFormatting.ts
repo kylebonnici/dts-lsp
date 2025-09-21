@@ -23,6 +23,7 @@ import {
 	ResponseError,
 	TextEdit,
 } from 'vscode-languageserver';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ContextAware } from './runtimeEvaluator';
 import {
 	DtcBaseNode,
@@ -42,10 +43,12 @@ import { ByteStringValue } from './ast/dtc/values/byteString';
 import { LabeledValue } from './ast/dtc/values/labeledValue';
 import { Include } from './ast/cPreprocessors/include';
 import {
+	applyEdits,
 	coreSyntaxIssuesFilter,
 	fileURLToPath,
 	getDeepestAstNodeInBetween,
 	isPathEqual,
+	positionAfter,
 	positionInBetween,
 	rangesOverlap,
 	setIndentString,
@@ -58,7 +61,7 @@ import { getPropertyFromChild, isPropertyValueChild } from './ast/helpers';
 import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
 import { Parser } from './parser';
 import { Lexer } from './lexer';
-import { IfDefineBlock } from './ast/cPreprocessors/ifDefine';
+import { IfDefineBlock, IfElIfBlock } from './ast/cPreprocessors/ifDefine';
 
 const findAst = async (token: Token, uri: string, fileRootAsts: ASTBase[]) => {
 	const pos = Position.create(token.pos.line, token.pos.col);
@@ -127,7 +130,7 @@ const getAstItemLevel =
 export async function formatText(
 	documentFormattingParams: DocumentFormattingParams,
 	text: string,
-) {
+): Promise<string> {
 	const filePath = fileURLToPath(documentFormattingParams.textDocument.uri);
 	const parser = new Parser(
 		filePath,
@@ -156,7 +159,9 @@ export async function formatText(
 		documentFormattingParams,
 		parser.allAstItems,
 		filePath,
-		text.split('\n'),
+		text,
+		parser.includes,
+		parser.cPreprocessorParser.ifBlocks,
 	);
 }
 
@@ -164,8 +169,34 @@ async function formatAstBaseItems(
 	documentFormattingParams: DocumentFormattingParams,
 	astItems: ASTBase[],
 	uri: string,
-	splitDocument: string[],
-) {
+	text: string,
+	includes: Include[],
+	ifDefs: (IfDefineBlock | IfElIfBlock)[],
+): Promise<string> {
+	const splitDocument = text.split('\n');
+	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
+
+	const t = astItems.flatMap((c) =>
+		c instanceof DtcBaseNode
+			? sortNodesAndProperties(
+					c,
+					uri,
+					includes,
+					ifDefs,
+					splitDocument,
+					formatOnOffMeta,
+				)
+			: [],
+	);
+
+	if (t.length) {
+		const newText = applyEdits(
+			TextDocument.create(uri, 'devicetree', 0, text),
+			t,
+		);
+		return formatText(documentFormattingParams, newText);
+	}
+
 	const astItemLevel = getAstItemLevel(astItems, uri);
 	const result: TextEdit[] = [];
 	result.push(
@@ -189,22 +220,21 @@ async function formatAstBaseItems(
 		result.push(...removeTrailingWhitespace(splitDocument, result));
 	}
 
-	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
-	return formatOnOffMeta.length
+	const edits = formatOnOffMeta.length
 		? result.filter(
 				(edit) =>
 					!isFormattingDisabledAt(edit.range.start, formatOnOffMeta),
 			)
 		: result;
+
+	return applyEdits(TextDocument.create(uri, 'devicetree', 0, text), edits);
 }
 
 export async function getDocumentFormatting(
 	documentFormattingParams: DocumentFormattingParams,
 	contextAware: ContextAware,
 	documentText: string,
-): Promise<TextEdit[]> {
-	const splitDocument = documentText.split('\n');
-
+): Promise<string> {
 	const uri = fileURLToPath(documentFormattingParams.textDocument.uri);
 
 	const runtime = await contextAware.getRuntime();
@@ -237,7 +267,11 @@ export async function getDocumentFormatting(
 		documentFormattingParams,
 		fileRootAsts,
 		uri,
-		splitDocument,
+		documentText,
+		runtime.includes.filter((i) => isPathEqual(i.uri, uri)),
+		fileRootAsts.filter(
+			(i) => i instanceof IfDefineBlock || i instanceof IfElIfBlock,
+		),
 	);
 }
 const pairFormatOnOff = (
@@ -1616,4 +1650,224 @@ function getTextFromRange(lines: string[], range: Range): string {
 		...middleLines,
 		endLine.substring(0, range.end.character),
 	].join('\n');
+}
+
+function sortNodesAndProperties(
+	node: DtcBaseNode,
+	uri: string,
+	includes: Include[],
+	ifDefs: (IfDefineBlock | IfElIfBlock)[],
+	splitDocument: string[],
+	formatOff: Range[],
+): TextEdit[] {
+	if (!isPathEqual(node.uri, uri)) return []; //property may have been included!!
+
+	if (
+		ifDefs.some(
+			(i) =>
+				positionInBetween(
+					node,
+					uri,
+					Position.create(
+						i.firstToken.pos.line,
+						i.firstToken.pos.col,
+					),
+				) ||
+				positionInBetween(
+					node,
+					uri,
+					Position.create(
+						i.lastToken.pos.line,
+						i.lastToken.pos.colEnd,
+					),
+				),
+		)
+	) {
+		return [];
+	}
+
+	const groups: {
+		asFound: (DtcProperty | DtcBaseNode)[];
+		prop: DtcProperty[];
+		nodes: DtcBaseNode[];
+	}[] = [{ prop: [], nodes: [], asFound: [] }];
+
+	const textEdits: TextEdit[] = [];
+
+	let includesInNode = includes.filter((i) =>
+		positionInBetween(
+			node,
+			uri,
+			Position.create(i.firstToken.pos.line, i.firstToken.pos.col),
+		),
+	);
+
+	node.children.forEach((c) => {
+		const includeAfter = includesInNode.filter((i) =>
+			positionAfter(
+				c.firstToken,
+				uri,
+				Position.create(i.firstToken.pos.line, i.firstToken.pos.col),
+			),
+		);
+		if (
+			includeAfter.length !== includesInNode.length &&
+			includesInNode.length
+		) {
+			groups.push({ prop: [], nodes: [], asFound: [] });
+			includesInNode = includeAfter;
+		}
+
+		if (c instanceof DtcProperty) {
+			groups.at(-1)?.prop.push(c);
+			groups.at(-1)?.asFound.push(c);
+		} else if (c instanceof DtcBaseNode) {
+			groups.at(-1)?.nodes.push(c);
+			groups.at(-1)?.asFound.push(c);
+		} else if (c instanceof DeleteBase) {
+			groups.push({ prop: [], nodes: [], asFound: [] });
+		}
+	});
+
+	const genStartEnd = (item: DtcBaseNode | DtcProperty) => ({
+		start: item.topComment ?? item,
+		end: item.endComment ?? item,
+	});
+
+	groups.forEach((grp) => {
+		const expedtedOrder = [...grp.prop.sort(sortProperties), ...grp.nodes];
+		if (
+			!expedtedOrder.length ||
+			expedtedOrder.every(
+				(item, index) =>
+					!expedtedOrder.at(index + 1) ||
+					positionAfter(
+						item.lastToken,
+						uri,
+						Position.create(
+							expedtedOrder.at(index + 1)!.firstToken.pos.line,
+							expedtedOrder.at(index + 1)!.firstToken.pos.col,
+						),
+					),
+			)
+		) {
+			return;
+		}
+
+		const { start: grpStart } = genStartEnd(grp.asFound[0]);
+		const grpStartPosition = Position.create(
+			grpStart.firstToken.prevToken?.pos.line ??
+				grpStart.firstToken.pos.line,
+			grpStart.firstToken.prevToken?.pos.colEnd ??
+				grpStart.firstToken.pos.col,
+		);
+
+		const changesMap = expedtedOrder.map((item) => {
+			const { start, end } = genStartEnd(item);
+			const startLine =
+				start.firstToken.prevToken?.pos.line ??
+				start.firstToken.pos.line;
+			const startCol =
+				start.firstToken.prevToken?.pos.colEnd ??
+				start.firstToken.pos.col;
+			const endLine = end.lastToken.pos.line;
+			const endCol = end.lastToken?.pos.colEnd;
+
+			const sameLine = startLine === endLine;
+			let text = '';
+			if (sameLine) {
+				text = splitDocument[startLine].slice(startCol, endCol);
+			} else {
+				const textLines = splitDocument.slice(startLine, endLine + 1);
+				textLines[0] = textLines[0].slice(startCol);
+				textLines[textLines.length - 1] = textLines[
+					textLines.length - 1
+				].slice(0, endCol);
+				text = textLines.join('\n');
+			}
+
+			return {
+				delete: TextEdit.del(
+					Range.create(
+						Position.create(startLine, startCol),
+						Position.create(endLine, endCol),
+					),
+				),
+				insert: TextEdit.insert(grpStartPosition, text),
+				item,
+				text,
+			};
+		});
+
+		const edits = formatOff.length
+			? changesMap.filter(
+					(edit) =>
+						!isFormattingDisabledAt(
+							edit.delete.range.start,
+							formatOff,
+						) &&
+						!isFormattingDisabledAt(
+							edit.delete.range.end,
+							formatOff,
+						),
+				)
+			: changesMap;
+
+		if (edits.length) {
+			textEdits.push(...edits.map((a) => a.delete));
+			textEdits.push(
+				TextEdit.insert(
+					grpStartPosition,
+					edits.map((a) => a.text).join(''),
+				),
+			);
+		}
+	});
+
+	if (!textEdits.length) {
+		return node.children.flatMap((c) =>
+			c instanceof DtcBaseNode
+				? sortNodesAndProperties(
+						c,
+						uri,
+						includes,
+						ifDefs,
+						splitDocument,
+						formatOff,
+					)
+				: [],
+		);
+	}
+
+	return textEdits;
+}
+
+const priority: Record<string, number> = {
+	compatible: 0,
+	reg: 1,
+	ranges: 2,
+	status: 99, // status goes last if present
+};
+
+function getPriority(name: string): number {
+	if (priority.hasOwnProperty(name)) {
+		return priority[name];
+	}
+	if (!name.includes(',')) {
+		// Standard/common properties (no vendor prefix)
+		return 3;
+	}
+	// Vendor-specific properties (have vendor prefix)
+	return 4;
+}
+
+function sortProperties(a: DtcProperty, b: DtcProperty) {
+	const aPriority = getPriority(a.propertyName?.name ?? '');
+	const bPriority = getPriority(b.propertyName?.name ?? '');
+
+	if (aPriority !== bPriority) {
+		return aPriority - bPriority;
+	}
+
+	return 0;
 }
