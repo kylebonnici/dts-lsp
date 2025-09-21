@@ -100,7 +100,6 @@ export class Lexer {
 	}
 
 	private move(): boolean {
-		// Optimize: inline endOfFile check to avoid getter overhead
 		if (this.lineNumber >= this.lines.length) return false;
 
 		return this.moveOnLine();
@@ -266,7 +265,6 @@ export class Lexer {
 
 	private lexIt() {
 		while (!this.endOfFile) {
-			// Inline whiteSpace: skip whitespace characters
 			while (this.isWhiteSpace()) {
 				this.move();
 			}
@@ -278,7 +276,6 @@ export class Lexer {
 		}
 	}
 
-	// Optimized lookup tables for fast token processing
 	private static readonly SINGLE_CHAR_TOKENS = new Map<string, LexerToken[]>([
 		['{', [LexerToken.CURLY_OPEN]],
 		['}', [LexerToken.CURLY_CLOSE]],
@@ -328,7 +325,6 @@ export class Lexer {
 	]);
 
 	private process(word: string): boolean {
-		// Fallback to original method chain for everything else
 		let tokenFound = this.isString(word);
 		if (!tokenFound) {
 			const keywordToken = Lexer.KEYWORD_TOKENS.get(word.toLowerCase());
@@ -387,7 +383,6 @@ export class Lexer {
 	}
 
 	private pushToken(token: Omit<Token, 'uri'>) {
-		// Optimize: avoid object spread, create object directly
 		const fullToken: Token = {
 			tokens: token.tokens,
 			pos: token.pos,
@@ -491,7 +486,6 @@ export class Lexer {
 		const firstChar = word[0];
 		// Check if first character is a quote (double or single)
 		if (firstChar === '"' || firstChar === "'") {
-			// Inline rewind: move back to beginning of string just after quote
 			const rewindLength = word.length - 1;
 			if (this.columnNumber + 1 < rewindLength) {
 				throw new Error('Error while rewinding');
