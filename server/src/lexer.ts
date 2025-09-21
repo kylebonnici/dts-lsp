@@ -32,105 +32,132 @@ export class Lexer {
 		readonly text: string,
 		private uri: string,
 	) {
-		this.lines = this.text
-			.replace('\r\n', '\n')
-			.split(/\n/)
-			.map((line) => `${line}\n`);
-		this.lines[this.lines.length - 1] = this.lines[
-			this.lines.length - 1
-		].slice(0, -1);
-		if (text.endsWith('\n')) {
-			this.lines.splice(-1, 1);
+		const normalizedText = this.text.replace(/\r\n/g, '\n').trimEnd();
+		this.lines = normalizedText.split('\n');
+
+		for (let i = 0; i < this.lines.length; i++) {
+			this.lines[i] += '\n';
 		}
+
 		this.lexIt();
 	}
 
 	private isWhiteSpace() {
-		return !!this.currentChar?.match(/\s/);
+		const char = this.currentChar;
+		if (!char) return false;
+		const code = char.charCodeAt(0);
+		// space(32), tab(9), newline(10), carriage return(13), form feed(12), vertical tab(11)
+		return (
+			code === 32 ||
+			code === 9 ||
+			code === 10 ||
+			code === 13 ||
+			code === 12 ||
+			code === 11
+		);
 	}
 
-	get endOfFile() {
+	private get endOfFile() {
 		return this.isOnLastLine && this.isOnLastCharOfLine;
 	}
 
-	get isOnLastLine() {
+	private get isOnLastLine() {
 		return this.lineNumber === this.lines.length - 1;
 	}
 
-	get isOnLastCharOfLine() {
+	private get isOnLastCharOfLine() {
 		return this.lines[this.lineNumber].length <= this.columnNumber;
 	}
 
-	private moveToNextLine() {
-		if (this.isOnLastLine) return false;
+	private moveToNextLine(): boolean {
+		while (!this.isOnLastLine) {
+			this.columnNumber = 0;
+			this.lineNumber++;
 
-		this.columnNumber = 0;
-		this.lineNumber++;
-
-		if (this.lines[this.lineNumber].length === 0) {
-			this.moveToNextLine();
+			// Skip empty lines
+			if (this.lines[this.lineNumber].length > 0) {
+				return true;
+			}
 		}
-
-		return true;
+		return false;
 	}
 
 	private moveOnLine() {
-		if (this.isOnLastCharOfLine) {
+		// Optimize: cache line length to avoid repeated getter calls
+		const currentLine = this.lines[this.lineNumber];
+		const lineLength = currentLine.length;
+
+		if (this.columnNumber >= lineLength) {
 			return this.moveToNextLine();
 		}
 
 		this.columnNumber++;
 
-		if (this.isOnLastCharOfLine) {
+		if (this.columnNumber >= lineLength) {
 			this.moveToNextLine();
 		}
 		return true;
 	}
 
 	private move(): boolean {
-		if (this.endOfFile) return false;
+		if (this.lineNumber >= this.lines.length) return false;
 
 		return this.moveOnLine();
 	}
 
 	private get currentChar() {
-		return this.endOfFile
+		// Optimize: direct bounds checking is faster than endOfFile getter
+		if (this.lineNumber >= this.lines.length) return null;
+		const line = this.lines[this.lineNumber];
+		return this.columnNumber >= line.length
 			? null
-			: this.lines[this.lineNumber].at(this.columnNumber);
+			: line[this.columnNumber];
 	}
-	static isSyntaxChar(char?: string | null) {
+
+	private static readonly SYNTAX_CHARS = new Set([
+		'^',
+		'~',
+		'|',
+		'!',
+		'\\',
+		'<',
+		'>',
+		';',
+		'=',
+		'/',
+		'{',
+		'}',
+		'[',
+		']',
+		'(',
+		')',
+		'*',
+		'%',
+		'&',
+		'.',
+		':',
+		'+',
+		'@',
+		'-',
+		'_',
+		',',
+		'x',
+		'X',
+		'?',
+	]);
+
+	static isSyntaxChar(char?: string | null): boolean {
+		return char ? Lexer.SYNTAX_CHARS.has(char) : false;
+	}
+
+	// Helper function to check if character code is a letter (A-Z, a-z)
+	private static isLetterCode(charCode: number): boolean {
 		return (
-			char === '^' ||
-			char === '~' ||
-			char === '|' ||
-			char === '!' ||
-			char === '\\' ||
-			char === '<' ||
-			char === '>' ||
-			char === ';' ||
-			char === '=' ||
-			char === '/' ||
-			char === '{' ||
-			char === '}' ||
-			char === '[' ||
-			char === ']' ||
-			char === '(' ||
-			char === ')' ||
-			char === '*' ||
-			char === '%' ||
-			char === '&' ||
-			char === '.' ||
-			char === ':' ||
-			char === '+' ||
-			char === '@' ||
-			char === '-' ||
-			char === '_' ||
-			char === ',' ||
-			char === 'x' ||
-			char === 'X' ||
-			char === '?'
+			(charCode >= 65 && charCode <= 90) ||
+			(charCode >= 97 && charCode <= 122)
 		);
 	}
+
 	private getWord(): string {
 		let word = '';
 		while (
@@ -238,10 +265,8 @@ export class Lexer {
 
 	private lexIt() {
 		while (!this.endOfFile) {
-			this.whiteSpace();
-
-			if (this.endOfFile) {
-				break;
+			while (this.isWhiteSpace()) {
+				this.move();
 			}
 
 			const word = this.getWord();
@@ -251,59 +276,92 @@ export class Lexer {
 		}
 	}
 
+	private static readonly SINGLE_CHAR_TOKENS = new Map<string, LexerToken[]>([
+		['{', [LexerToken.CURLY_OPEN]],
+		['}', [LexerToken.CURLY_CLOSE]],
+		['(', [LexerToken.ROUND_OPEN]],
+		[')', [LexerToken.ROUND_CLOSE]],
+		['[', [LexerToken.SQUARE_OPEN]],
+		[']', [LexerToken.SQUARE_CLOSE]],
+		[';', [LexerToken.SEMICOLON]],
+		[':', [LexerToken.COLON]],
+		['=', [LexerToken.ASSIGN_OPERATOR]],
+		['>', [LexerToken.GT_SYM]],
+		['<', [LexerToken.LT_SYM]],
+		['!', [LexerToken.LOGICAL_NOT]],
+		['|', [LexerToken.BIT_OR]],
+		['^', [LexerToken.BIT_XOR]],
+		['&', [LexerToken.AMPERSAND, LexerToken.BIT_AND]],
+		['~', [LexerToken.BIT_NOT]],
+		['/', [LexerToken.FORWARD_SLASH]],
+		['\\', [LexerToken.BACK_SLASH]],
+		['+', [LexerToken.ADD_OPERATOR]],
+		['-', [LexerToken.NEG_OPERATOR]],
+		['*', [LexerToken.MULTI_OPERATOR]],
+		['%', [LexerToken.MODULUS_OPERATOR]],
+		['?', [LexerToken.QUESTION_MARK]],
+		['.', [LexerToken.PERIOD]],
+		['_', [LexerToken.UNDERSCORE]],
+		['@', [LexerToken.AT]],
+		[',', [LexerToken.COMMA]],
+	]);
+
+	private static readonly KEYWORD_TOKENS = new Map<string, LexerToken>([
+		['true', LexerToken.C_TRUE],
+		['false', LexerToken.C_FALSE],
+		['#define', LexerToken.C_DEFINE], //
+		['#include', LexerToken.C_INCLUDE],
+		['#line', LexerToken.C_LINE],
+		['#undef', LexerToken.C_UNDEF],
+		['#error', LexerToken.C_ERROR],
+		['#pragma', LexerToken.C_PRAGMA],
+		['#defined', LexerToken.C_DEFINED],
+		['#if', LexerToken.C_IF],
+		['#ifdef', LexerToken.C_IFDEF],
+		['#ifndef', LexerToken.C_IFNDEF],
+		['#elif', LexerToken.C_ELIF],
+		['#else', LexerToken.C_ELSE],
+		['#endif', LexerToken.C_ENDIF],
+	]);
+
 	private process(word: string): boolean {
-		// order is important!!
-		const tokenFound =
-			this.isString(word) ||
-			// -----
-			this.isCDefine(word) ||
-			this.isCInclude(word) ||
-			this.isCLine(word) ||
-			this.isCUndef(word) ||
-			this.isCError(word) ||
-			this.isCPragma(word) ||
-			this.isCDefined(word) ||
-			this.isCIfDef(word) ||
-			this.isCIfNDef(word) ||
-			this.isCIf(word) ||
-			this.isCElIf(word) ||
-			this.isCElse(word) ||
-			this.isCEndIf(word) ||
-			this.isCFalse(word) ||
-			this.isCTrue(word) ||
-			this.isDigit(word) ||
-			this.isHexDigit(word) ||
-			this.isLetters(word) ||
-			// single char words
-			this.isComma(word) ||
-			this.isBitwiseNot(word) ||
-			this.isBitwiseXOr(word) ||
-			this.isBitwiseOr(word) ||
-			this.isLogicalNot(word) ||
-			this.isGtSym(word) ||
-			this.isLtSym(word) ||
-			this.isSemicolon(word) ||
-			this.isColon(word) ||
-			this.isAssignOperator(word) ||
-			this.isForwardSlash(word) ||
-			this.isRoundOpen(word) ||
-			this.isRoundClose(word) ||
-			this.isCurlyOpen(word) ||
-			this.isCurlyClose(word) ||
-			this.isSquareOpen(word) ||
-			this.isSquareClose(word) ||
-			this.isBackSlash(word) ||
-			this.isMultiplicationOperator(word) ||
-			this.isModulusOperator(word) ||
-			this.isAmpersand(word) ||
-			this.isNegateOperator(word) ||
-			this.isAddOperator(word) ||
-			this.isQuestionMark(word) ||
-			this.isPeriod(word) ||
-			this.isHash(word) ||
-			this.isUnderScore(word) ||
-			this.isAt(word) ||
-			this.unknownToken(word);
+		let tokenFound = this.isString(word);
+		if (!tokenFound) {
+			const keywordToken = Lexer.KEYWORD_TOKENS.get(word.toLowerCase());
+			if (keywordToken) {
+				tokenFound = true;
+				this.pushToken({
+					tokens: [keywordToken],
+					value: word.toLowerCase(),
+					pos: this.generatePos(word, word.toLowerCase()),
+				});
+				return true;
+			}
+		}
+
+		if (!tokenFound) {
+			tokenFound =
+				this.isDigit(word) ||
+				this.isHexDigit(word) ||
+				this.isLetters(word);
+		}
+
+		if (!tokenFound && word.length === 1) {
+			const tokens = Lexer.SINGLE_CHAR_TOKENS.get(word);
+			if (tokens) {
+				tokenFound = true;
+				this.pushToken({
+					tokens,
+					value: word,
+					pos: this.generatePos(word, word),
+				});
+				return true;
+			}
+		}
+
+		if (!tokenFound) {
+			tokenFound = this.isHash(word) || this.unknownToken(word);
+		}
 
 		if (!tokenFound) {
 			throw new Error(
@@ -311,7 +369,7 @@ export class Lexer {
 			);
 		}
 
-		const token = this._tokens.at(-1);
+		const token = this._tokens[this._tokens.length - 1];
 		if (
 			tokenFound &&
 			!token?.tokens.some((t) => t === LexerToken.STRING) &&
@@ -324,16 +382,16 @@ export class Lexer {
 		return true;
 	}
 
-	private whiteSpace() {
-		while (this.isWhiteSpace()) {
-			this.move();
-		}
-	}
-
 	private pushToken(token: Omit<Token, 'uri'>) {
-		const fullToken = { ...token, uri: this.uri };
-		const prevToken = this._tokens.at(-1);
+		const fullToken: Token = {
+			tokens: token.tokens,
+			pos: token.pos,
+			value: token.value,
+			uri: this.uri,
+			adjacentToken: token.adjacentToken,
+		};
 
+		const prevToken = this._tokens[this._tokens.length - 1];
 		fullToken.prevToken = prevToken;
 
 		if (prevToken) {
@@ -344,12 +402,23 @@ export class Lexer {
 	}
 
 	private isLetters(word: string) {
-		const match = word.match(/^[A-Za-z]+/);
-		if (match?.[0]) {
+		const firstCharCode = word[0]?.charCodeAt(0);
+		// Check if first character is a letter using helper function
+		if (Lexer.isLetterCode(firstCharCode)) {
+			// Extract the full letter sequence using character codes
+			let letterSequence = '';
+			for (let i = 0; i < word.length; i++) {
+				const charCode = word.charCodeAt(i);
+				if (Lexer.isLetterCode(charCode)) {
+					letterSequence += word[i];
+				} else {
+					break;
+				}
+			}
 			this.pushToken({
 				tokens: [LexerToken.LETTERS],
-				value: match?.[0],
-				pos: this.generatePos(word, match?.[0]),
+				value: letterSequence,
+				pos: this.generatePos(word, letterSequence),
 			});
 			return true;
 		}
@@ -357,12 +426,14 @@ export class Lexer {
 	}
 
 	private isDigit(word: string) {
-		const match = word.match(/^[0-9]/);
-		if (match?.[0]) {
+		const firstChar = word[0];
+		const charCode = firstChar?.charCodeAt(0);
+		// Check if first character is digit (0-9): char codes 48-57
+		if (charCode >= 48 && charCode <= 57) {
 			this.pushToken({
 				tokens: [LexerToken.HEX, LexerToken.DIGIT],
-				value: match[0],
-				pos: this.generatePos(word, match[0]),
+				value: firstChar,
+				pos: this.generatePos(word, firstChar),
 			});
 			return true;
 		}
@@ -370,64 +441,17 @@ export class Lexer {
 	}
 
 	private isHexDigit(word: string) {
-		const match = word.match(/^[A-Fa-f]/);
-		if (match?.[0]) {
+		const firstChar = word[0];
+		const charCode = firstChar?.charCodeAt(0);
+		// Check if first character is hex letter (A-F, a-f): char codes 65-70, 97-102
+		if (
+			(charCode >= 65 && charCode <= 70) ||
+			(charCode >= 97 && charCode <= 102)
+		) {
 			this.pushToken({
 				tokens: [LexerToken.HEX, LexerToken.LETTERS],
-				value: match[0],
-				pos: this.generatePos(word, match[0]),
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isCurlyOpen(word: string) {
-		const expected = '{';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.CURLY_OPEN],
-				pos: this.generatePos(word, expected),
-				value: '{',
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isCurlyClose(word: string) {
-		const expected = '}';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.CURLY_CLOSE],
-				pos: this.generatePos(word, expected),
-				value: '}',
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isSemicolon(word: string) {
-		const expected = ';';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.SEMICOLON],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isColon(word: string) {
-		const expected = ':';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.COLON],
-				pos: this.generatePos(word, expected),
-				value: expected,
+				value: firstChar,
+				pos: this.generatePos(word, firstChar),
 			});
 			return true;
 		}
@@ -456,519 +480,19 @@ export class Lexer {
 		return true;
 	}
 
-	private isAssignOperator(word: string) {
-		const expected = '=';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.ASSIGN_OPERATOR],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isGtSym(word: string) {
-		const expected = '>';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.GT_SYM],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isLtSym(word: string) {
-		const expected = '<';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.LT_SYM],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isLogicalNot(word: string) {
-		const expected = '!';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.LOGICAL_NOT],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isBitwiseOr(word: string) {
-		const expected = '|';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.BIT_OR],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isBitwiseXOr(word: string) {
-		const expected = '^';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.BIT_XOR],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isAmpersand(word: string) {
-		const expected = '&';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.AMPERSAND, LexerToken.BIT_AND],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isBitwiseNot(word: string) {
-		const expected = '~';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.BIT_NOT],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isRoundOpen(word: string) {
-		const expected = '(';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.ROUND_OPEN],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-
-			return true;
-		}
-		return false;
-	}
-
-	private isRoundClose(word: string) {
-		const expected = ')';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.ROUND_CLOSE],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isSquareOpen(word: string) {
-		const expected = '[';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.SQUARE_OPEN],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isSquareClose(word: string) {
-		const expected = ']';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.SQUARE_CLOSE],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isComma(word: string) {
-		const expected = ',';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.COMMA],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private rewind(word: string) {
-		// word is always on the same line so if col < word len throw
-		if (this.columnNumber + 1 < word.length) {
-			throw new Error('Error while rewinding');
-		}
-
-		this.columnNumber -= word.length;
-	}
-
 	private isString(word: string) {
 		if (this.inComment) return false;
 
-		const match = word.match(/^["']/);
-		if (match?.[0]) {
-			// rewind to beginning of string just after "
-			this.rewind(word.slice(1));
-			this.getString(match[0]);
+		const firstChar = word[0];
+		// Check if first character is a quote (double or single)
+		if (firstChar === '"' || firstChar === "'") {
+			const rewindLength = word.length - 1;
+			if (this.columnNumber + 1 < rewindLength) {
+				throw new Error('Error while rewinding');
+			}
+			this.columnNumber -= rewindLength;
 
-			return true;
-		}
-		return false;
-	}
-
-	private isForwardSlash(word: string) {
-		const expected = '/';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.FORWARD_SLASH],
-				pos: this.generatePos(word, expected),
-				value: '/',
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isBackSlash(word: string) {
-		const expected = '\\';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.BACK_SLASH],
-				pos: this.generatePos(word, expected),
-				value: '\\',
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isAddOperator(word: string) {
-		const expected = '+';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.ADD_OPERATOR],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isQuestionMark(word: string) {
-		const expected = '?';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.QUESTION_MARK],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isPeriod(word: string) {
-		const expected = '.';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.PERIOD],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isNegateOperator(word: string) {
-		const expected = '-';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.NEG_OPERATOR],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isUnderScore(word: string) {
-		const expected = '_';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.UNDERSCORE],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isAt(word: string) {
-		const expected = '@';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.AT],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isMultiplicationOperator(word: string) {
-		const expected = '*';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.MULTI_OPERATOR],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isModulusOperator(word: string) {
-		const expected = '%';
-		if (word === expected) {
-			this.pushToken({
-				tokens: [LexerToken.MODULUS_OPERATOR],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isCDefine(word: string) {
-		const expected = '#define';
-		if (word.toLowerCase() === expected) {
-			this.pushToken({
-				tokens: [LexerToken.C_DEFINE],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isCInclude(word: string) {
-		const expected = '#include';
-		if (word.toLowerCase() === expected) {
-			this.pushToken({
-				tokens: [LexerToken.C_INCLUDE],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isCLine(word: string) {
-		const expected = '#line';
-		if (word.toLowerCase() === expected) {
-			this.pushToken({
-				tokens: [LexerToken.C_LINE],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isCUndef(word: string) {
-		const expected = '#undef';
-		if (word.toLowerCase() === expected) {
-			this.pushToken({
-				tokens: [LexerToken.C_UNDEF],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isCError(word: string) {
-		const expected = '#error';
-		if (word.toLowerCase() === expected) {
-			this.pushToken({
-				tokens: [LexerToken.C_ERROR],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isCPragma(word: string) {
-		const expected = '#pragma';
-		if (word.toLowerCase() === expected) {
-			this.pushToken({
-				tokens: [LexerToken.C_PRAGMA],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isCDefined(word: string) {
-		const expected = '#defined';
-		if (word.toLowerCase() === expected) {
-			this.pushToken({
-				tokens: [LexerToken.C_DEFINED],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isCIf(word: string) {
-		const expected = '#if';
-		if (word.toLowerCase() === expected) {
-			this.pushToken({
-				tokens: [LexerToken.C_IF],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isCIfDef(word: string) {
-		const expected = '#ifdef';
-		if (word.toLowerCase() === expected) {
-			this.pushToken({
-				tokens: [LexerToken.C_IFDEF],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isCIfNDef(word: string) {
-		const expected = '#ifndef';
-		if (word.toLowerCase() === expected) {
-			this.pushToken({
-				tokens: [LexerToken.C_IFNDEF],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isCElIf(word: string) {
-		const expected = '#elif';
-		if (word.toLowerCase() === expected) {
-			this.pushToken({
-				tokens: [LexerToken.C_ELIF],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isCElse(word: string) {
-		const expected = '#else';
-		if (word.toLowerCase() === expected) {
-			this.pushToken({
-				tokens: [LexerToken.C_ELSE],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isCEndIf(word: string) {
-		const expected = '#endif';
-		if (word.toLowerCase() === expected) {
-			this.pushToken({
-				tokens: [LexerToken.C_ENDIF],
-				pos: this.generatePos(word, expected),
-				value: expected,
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isCTrue(word: string) {
-		const expects = 'true';
-		if (word == expects) {
-			this.pushToken({
-				tokens: [LexerToken.C_TRUE],
-				value: expects,
-				pos: this.generatePos(word, expects),
-			});
-			return true;
-		}
-		return false;
-	}
-
-	private isCFalse(word: string) {
-		const expects = 'false';
-		if (word == expects) {
-			this.pushToken({
-				tokens: [LexerToken.C_FALSE],
-				value: expects,
-				pos: this.generatePos(word, expects),
-			});
+			this.getString(firstChar);
 			return true;
 		}
 		return false;
@@ -976,11 +500,12 @@ export class Lexer {
 
 	private generatePos(word: string, expected: string): Position {
 		const col = this.columnNumber - word.length;
+		const len = expected.length;
 		return {
 			line: this.lineNumber,
 			col,
-			len: expected.length,
-			colEnd: col + expected.length,
+			len,
+			colEnd: col + len,
 		};
 	}
 }

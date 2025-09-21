@@ -45,7 +45,17 @@ export class CommentsParser extends BaseParser {
 				this.comments.push(result.comment);
 			}
 		}
-		tokensUsed.reverse().forEach((i) => this.tokens.splice(i, 1));
+
+		if (tokensUsed.length > 0) {
+			const usedSet = new Set(tokensUsed);
+			const filteredTokens: Token[] = [];
+			for (let i = 0; i < this.tokens.length; i++) {
+				if (!usedSet.has(i)) {
+					filteredTokens.push(this.tokens[i]);
+				}
+			}
+			this.tokens = filteredTokens;
+		}
 	}
 
 	get allAstItems(): ASTBase[] {

@@ -1640,14 +1640,14 @@ export class Parser extends BaseParser {
 		}
 
 		while (value) {
-			result = [...result, value];
+			result.push(value);
 			value = processValue();
 		}
 
-		if (result) {
+		if (result.length) {
 			const nextValue = processValue();
 			if (nextValue) {
-				result = [...result, nextValue];
+				result.push(nextValue);
 			}
 		}
 
