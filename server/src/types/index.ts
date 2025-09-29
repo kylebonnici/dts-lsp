@@ -233,7 +233,7 @@ export type SerializedBindingProperty = {
 	description?: string;
 	required: boolean;
 };
-interface SerializedBinding {
+export interface SerializedBinding {
 	onBus?: string;
 	bus?: string[];
 	description?: string;
