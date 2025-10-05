@@ -1980,3 +1980,15 @@ connection.onRequest(
 		return ctx?.bindingLoader?.getZephyrContextBinding();
 	},
 );
+
+connection.onRequest(
+	'devicetree/contextMacroNames',
+	async (id: string): Promise<string[] | undefined> => {
+		await allStable();
+		if (!id) {
+			return;
+		}
+		const ctx = findContext(contextAware, { id });
+		return Array.from(ctx?.macros.keys() ?? []);
+	},
+);

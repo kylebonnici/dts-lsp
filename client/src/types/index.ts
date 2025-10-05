@@ -42,6 +42,7 @@ export interface IDeviceTreeAPI {
 	): Promise<LocationResult>;
 	getActiveContext(): Promise<ContextListItem | undefined>;
 	getZephyrTypeBindings(id: string): Promise<ZephyrBindingYml[] | undefined>;
+	getMacroNames(id: string): Promise<string[] | undefined>;
 	evaluateMacros(macros: string[], ctxId: string): Promise<EvaluatedMacro[]>;
 	copyZephyrCMacroIdentifier(
 		textDocumentPositionParams: TextDocumentPositionParams,

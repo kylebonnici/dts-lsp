@@ -266,4 +266,11 @@ export class API implements IDeviceTreeAPI {
 			id,
 		) as Promise<ZephyrBindingYml[] | undefined>;
 	}
+
+	getMacroNames(id: string) {
+		return this.client.sendRequest(
+			'devicetree/contextMacroNames',
+			id,
+		) as Promise<string[] | undefined>;
+	}
 }
