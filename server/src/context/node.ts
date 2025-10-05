@@ -1383,7 +1383,8 @@ ${'\t'.repeat(level - 1)}};`;
 			issues: nodeAsts.flatMap((n) => n.serializeIssues),
 			path: this.pathString,
 			disabled: this.disabled,
-			name: this.fullName,
+			name: this.name,
+			fullName: this.fullName,
 			labels: this.labels.map((l) => l.label.value),
 			nodes: nodeAsts.map((d) => d.serialize(macros)),
 			properties: this.properties.map((p) => ({
