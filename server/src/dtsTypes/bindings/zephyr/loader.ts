@@ -48,59 +48,16 @@ import {
 	pathToFileURL,
 } from '../../../helpers';
 import { NexusMapping, Property } from '../../../context/property';
-import { BindingPropertyType } from '../../../types/index';
+import {
+	BindingPropertyType,
+	CellSpecifier,
+	ZephyrBindingsProperty,
+	ZephyrBindingYml,
+	ZephyrPropertyType,
+} from '../../../types/index';
 import { ASTBase } from '../../../ast/base';
 import { getSimpleBusType } from '../../../dtsTypes/standardTypes/nodeTypes/simpleBus/node';
 import { Expression } from '../../../ast/cPreprocessors/expression';
-
-type ZephyrPropertyType =
-	| 'string'
-	| 'int'
-	| 'boolean'
-	| 'array'
-	| 'uint8-array'
-	| 'string-array'
-	| 'phandle'
-	| 'phandles'
-	| 'phandle-array'
-	| 'path'
-	| 'compound';
-
-type ZephyrBindingsProperty = {
-	required?: boolean;
-	type?: ZephyrPropertyType;
-	deprecated?: false;
-	default?: string | number | (string | number)[];
-	description?: string;
-	enum?: (string | number)[];
-	const?: string | number | (string | number)[];
-	'specifier-space'?: string;
-};
-interface ZephyrBindingYml {
-	filePath: string;
-	include: {
-		name: string;
-		'property-blocklist'?: string[];
-		'property-allowlist'?: string[];
-	}[];
-	rawInclude: {
-		name: string;
-		'property-blocklist'?: string[];
-		'property-allowlist'?: string[];
-	}[];
-	description?: string;
-	compatible?: string;
-	'child-binding'?: ZephyrBindingYml;
-	bus?: string[];
-	'on-bus'?: string;
-	properties?: {
-		[key: string]: ZephyrBindingsProperty;
-	};
-	[key: CellSpecifier]: string[];
-	extends?: string[]; // our entry to collaps include
-}
-
-type CellSpecifier = `${string}-cells`;
 
 const ZephyrTypeToDTSType = (type: ZephyrPropertyType | undefined) => {
 	switch (type) {
@@ -334,6 +291,7 @@ export class ZephyrBindingsLoader {
 		new Map();
 	private processedFolders = new Set<string>();
 	private zephyrBindingCache: Map<string, ZephyrBindingYml> = new Map();
+	private contextBindingFiles = new WeakMap<ZephyrBindingYml, string[]>();
 
 	static getCompatibleKeys(compatable: string, parent?: Node | null) {
 		if (!parent || !parent.nodeType?.bus?.length) {
@@ -635,6 +593,7 @@ const convertBindingToType = (binding: ZephyrBindingYml, node?: Node) => {
 	nodeType.compatible = binding.compatible;
 	nodeType.description = binding.description;
 	nodeType.bindingsPath = binding.filePath;
+	nodeType.zephyrBinding = binding;
 	nodeType.bus =
 		typeof binding.bus === 'string'
 			? [binding.bus]

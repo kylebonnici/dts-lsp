@@ -249,6 +249,7 @@ export interface SerializedBinding {
 	compatible?: string;
 	extends: string[];
 	properties?: SerializedBindingProperty[];
+	zephyrBinding?: ZephyrBindingYml;
 }
 
 export type SerializableNodeBase =
@@ -331,3 +332,54 @@ export type LocationResult = {
 };
 
 export type EvaluatedMacro = { macro: string; evaluated: string | number };
+
+export type ZephyrPropertyType =
+	| 'string'
+	| 'int'
+	| 'boolean'
+	| 'array'
+	| 'uint8-array'
+	| 'string-array'
+	| 'phandle'
+	| 'phandles'
+	| 'phandle-array'
+	| 'path'
+	| 'compound';
+
+export type CellSpecifier = `${string}-cells`;
+
+export type ZephyrBindingsProperty = {
+	name: string;
+	required?: boolean;
+	type?: ZephyrPropertyType;
+	deprecated?: false;
+	default?: string | number | (string | number)[];
+	description?: string;
+	enum?: (string | number)[];
+	const?: string | number | (string | number)[];
+	'specifier-space'?: string;
+};
+export interface ZephyrBindingYml {
+	filePath: string;
+	include: {
+		name: string;
+		'property-blocklist'?: string[];
+		'property-allowlist'?: string[];
+	}[];
+	rawInclude: {
+		name: string;
+		'property-blocklist'?: string[];
+		'property-allowlist'?: string[];
+	}[];
+	description?: string;
+	compatible?: string;
+	'child-binding'?: ZephyrBindingYml;
+	bus?: string[];
+	'on-bus'?: string;
+	properties?: {
+		[key: string]: ZephyrBindingsProperty;
+	};
+	[key: CellSpecifier]: string[];
+	extends?: string[]; // our entry to collaps include
+	isChildBinding: boolean;
+}
