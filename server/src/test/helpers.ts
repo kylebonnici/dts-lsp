@@ -50,4 +50,5 @@ export const getFakeBindingLoader = (): BindingLoader => ({
 	},
 	getBindings: () => [],
 	getBusTypes: () => [],
+	getZephyrContextBinding: () => undefined,
 });
