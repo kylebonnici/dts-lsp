@@ -1330,6 +1330,7 @@ ${'\t'.repeat(level - 1)}}; ${isOmmited ? ' */' : ''}`;
 								description: p.description?.join('\n'),
 								required: p.required(this) === 'required',
 							})),
+							zephyrBinding: nodeType.zephyrBinding,
 						}
 					: undefined,
 			issues: nodeAsts.flatMap((n) => n.serializeIssues),
