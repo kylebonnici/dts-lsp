@@ -472,6 +472,11 @@ export class ZephyrBindingsLoader {
 									rawInclude: [...simplifiyedInclude],
 									filePath: bindingFile,
 								} as ZephyrBindingYml;
+								Object.entries(obj.properties ?? {}).forEach(
+									([name, prop]) => {
+										prop.name = name;
+									},
+								);
 								this.zephyrBindingCache.set(bindingFile, obj);
 								return obj;
 							} catch (e) {
