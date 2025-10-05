@@ -188,8 +188,7 @@ export type SerializableNexusMapEnty = {
 
 export interface SerializableProperty extends SerializableASTBase {
 	readonly nexusMapEnty: SerializableNexusMapEnty[];
-	readonly name: SerializablePropertyName | null;
-	readonly values: SerializablePropertyValue[] | null;
+	readonly name: SerializablePropertyName;
 }
 
 export type SerializableDtcProperty = Omit<
