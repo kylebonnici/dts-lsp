@@ -47,6 +47,7 @@ import { countParent } from '../getDocumentFormatting';
 import {
 	BindingPropertyType as PropertyType,
 	TypeConfig,
+	ZephyrBindingYml,
 } from '../types/index';
 
 function propertyTypeToString(type: PropertyType): string {
@@ -524,6 +525,7 @@ export abstract class INodeType {
 	bindingsPath?: string;
 	compatible?: string;
 	extends: Set<string> = new Set();
+	zephyrBinding?: ZephyrBindingYml;
 	abstract getPropertyListCompletionItems(node: Node): CompletionItem[];
 }
 
