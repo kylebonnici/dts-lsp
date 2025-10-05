@@ -301,6 +301,7 @@ export type SerializedNode = {
 	issues: Diagnostic[];
 	path: string;
 	name: string;
+	fullName: string;
 	disabled: boolean;
 	nodes: SerializableNodeBase[];
 	properties: SerializableProperty[];
