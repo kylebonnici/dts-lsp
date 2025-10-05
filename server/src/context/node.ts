@@ -90,7 +90,10 @@ export interface Mapping {
 	expressions: Expression[];
 	node: Node;
 	property: Property;
+	specifierSpace: string;
 }
+
+export type InterruptMapping = Omit<Mapping, 'specifierSpace'>;
 
 export class Node {
 	public referencedBy: DtcRefNode[] = [];
@@ -103,7 +106,7 @@ export class Node {
 	private _nodes: Node[] = [];
 	linkedNodeNamePaths: NodeName[] = [];
 	linkedRefLabels: LabelRef[] = [];
-	interrupControlerMapping: Mapping[] = [];
+	interrupControlerMapping: InterruptMapping[] = [];
 	spesifierNexusMapping: Mapping[] = [];
 
 	private _nodeTypes: INodeType[] | undefined;
@@ -1385,7 +1388,9 @@ ${'\t'.repeat(level - 1)}}; ${isOmmited ? ' */' : ''}`;
 			specifierNexusMappings: this.spesifierNexusMapping.map((m) => ({
 				cells: m.expressions.map((e) => e.serialize(macros)),
 				path: m.node.pathString,
+				propertyNodePath: m.property.parent.pathString,
 				property: m.property.ast.serialize(macros),
+				specifierSpace: m.specifierSpace,
 			})),
 		};
 	}
