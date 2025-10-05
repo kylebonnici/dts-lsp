@@ -25,6 +25,7 @@ import type {
 	LocationResult,
 	ResolvedSettings,
 	SerializedNode,
+	ZephyrBindingYml,
 } from 'devicetree-language-server-types';
 import {
 	LanguageClient,
@@ -257,5 +258,12 @@ export class API implements IDeviceTreeAPI {
 		return this.client.sendRequest('devicetree/memoryViews', {
 			ctxId,
 		}) as Promise<unknown[]>;
+	}
+
+	getZephyrTypeBindings(id: string) {
+		return this.client.sendRequest(
+			'devicetree/zephyrTypeBindings',
+			id,
+		) as Promise<ZephyrBindingYml[] | undefined>;
 	}
 }

@@ -22,6 +22,7 @@ import type {
 	LocationResult,
 	ResolvedSettings,
 	SerializedNode,
+	ZephyrBindingYml,
 } from 'devicetree-language-server-types';
 import {
 	Disposable,
@@ -40,6 +41,7 @@ export interface IDeviceTreeAPI {
 		textDocumentPositionParams: TextDocumentPositionParams,
 	): Promise<LocationResult>;
 	getActiveContext(): Promise<ContextListItem | undefined>;
+	getZephyrTypeBindings(id: string): Promise<ZephyrBindingYml[] | undefined>;
 	evaluateMacros(macros: string[], ctxId: string): Promise<EvaluatedMacro[]>;
 	copyZephyrCMacroIdentifier(
 		textDocumentPositionParams: TextDocumentPositionParams,
