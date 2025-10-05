@@ -299,6 +299,8 @@ export type SerializableSpecifierNexusMeta = {
 	cells: (SerializableNumberValue | SerializableExpression)[];
 	path: string;
 	property: SerializableDtcProperty;
+	propertyNodePath: string;
+	specifierSpace: string;
 };
 
 export type SerializedNode = {
