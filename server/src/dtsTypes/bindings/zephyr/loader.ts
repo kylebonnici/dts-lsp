@@ -957,6 +957,7 @@ const generateZephyrTypeCheck = (
 						expressions: mappingValuesAst,
 						node: p.parent,
 						property: p,
+						specifierSpace: parentName,
 					});
 				}
 
