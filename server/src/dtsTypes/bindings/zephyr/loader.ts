@@ -531,12 +531,28 @@ export class ZephyrBindingsLoader {
 			typeCache.set('simple-bus', () => getSimpleBusType());
 			this.typeCache.set(key, typeCache);
 		}
+
+		resolvedBindings.forEach((b) => {
+			const keys = this.contextBindingFiles.get(b);
+			if (!keys) {
+				this.contextBindingFiles.set(b, [key]);
+			} else {
+				keys.push(key);
+			}
+		});
+
 		convertBindingsToType(resolvedBindings, typeCache);
 	}
 
 	getBindings(key: string) {
 		return Array.from(this.typeCache.get(key)?.keys() ?? []).map(
 			(b) => b.split('::', 1)[0],
+		);
+	}
+
+	getZephyrContextBinding(key: string) {
+		return Array.from(this.zephyrBindingCache.values()).filter((b) =>
+			this.contextBindingFiles.get(b)?.includes(key),
 		);
 	}
 
