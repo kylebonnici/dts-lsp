@@ -525,6 +525,7 @@ export abstract class INodeType {
 	bindingsPath?: string;
 	compatible?: string;
 	extends: Set<string> = new Set();
+	hasParentBinding = false;
 	zephyrBinding?: ZephyrBindingYml;
 	abstract getPropertyListCompletionItems(node: Node): CompletionItem[];
 }

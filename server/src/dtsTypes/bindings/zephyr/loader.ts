@@ -162,10 +162,15 @@ const resolveBinding = (
 		binding['child-binding'].include = simplifyInclude(
 			binding['child-binding'].include,
 		);
+
 		binding['child-binding'] = resolveBinding(
 			bindings,
 			binding['child-binding'],
 		);
+
+		if (binding['child-binding']) {
+			binding['child-binding'].isChildBinding = true;
+		}
 	}
 
 	if (!binding.include.length) {
@@ -656,8 +661,11 @@ const convertBindingToType = (binding: ZephyrBindingYml, node?: Node) => {
 
 	if (binding['child-binding']) {
 		const childBinding = binding['child-binding'];
-		nodeType.childNodeType = (n: Node) =>
-			convertBindingToType(childBinding, n);
+		nodeType.childNodeType = (n: Node) => {
+			const binding = convertBindingToType(childBinding, n);
+			binding.hasParentBinding = true;
+			return binding;
+		};
 	}
 
 	return nodeType;
