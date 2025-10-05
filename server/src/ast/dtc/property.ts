@@ -60,7 +60,7 @@ export class DtcProperty extends ASTBase {
 	public assignOperatorToken?: Token;
 
 	constructor(
-		public readonly propertyName: PropertyName | null,
+		public readonly propertyName: PropertyName,
 		public readonly labels: LabelAssign[] = [],
 	) {
 		super();
