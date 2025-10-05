@@ -1317,7 +1317,7 @@ ${'\t'.repeat(level - 1)}}; ${isOmmited ? ' */' : ''}`;
 			nodeType:
 				nodeType instanceof NodeType
 					? {
-							...this.nodeType,
+							...nodeType,
 							extends: Array.from(this.nodeType?.extends ?? []),
 							properties: nodeType.properties.map((p) => ({
 								name:
@@ -1341,6 +1341,7 @@ ${'\t'.repeat(level - 1)}}; ${isOmmited ? ' */' : ''}`;
 			nodes: nodeAsts.map((d) => d.serialize(macros)),
 			properties: this.properties.map((p) => ({
 				...p.ast.serialize(macros),
+				nodePath: this.pathString,
 				nexusMapEnty: p.nexusMapsTo.map((nexus) => {
 					return {
 						mappingValuesAst: nexus.mappingValuesAst.map((v) =>
