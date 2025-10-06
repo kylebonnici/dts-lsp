@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fixed an issue with server crashing when loading zephyr binding with `property-allowlist` or `property-blocklist`
 - Fixed an issue with reporting `Node name alredy defined` when `node{};` and `node@10{}` under the same parent.
 - Fixed an issue with enforcing new lines between nodes when they are on the same line such as `node1 {};node2 {};`
+- Fixed an issue with parsing block comment after line comment when block comment has "'" or '"' inside of it.
 
 ## [0.5.4] - 2025-09-19
 

@@ -2562,6 +2562,19 @@ describe('Parser', () => {
 			expect(comment.lastToken.pos.col).toEqual(16);
 		});
 
+		test('Line comment and block comment with singl quite', async () => {
+			mockReadFileSync("// foo bar\n/* foo bar's */\n/{};");
+			const parser = new Parser('/folder/dts.dts', []);
+			await parser.stable;
+
+			expect(parser.issues.length).toEqual(0);
+			expect(parser.allAstItems.length).toEqual(3);
+
+			expect(parser.allAstItems[0] instanceof Comment).toBeTruthy();
+			expect(parser.allAstItems[1] instanceof CommentBlock).toBeTruthy();
+			expect(parser.allAstItems[2] instanceof DtcRootNode).toBeTruthy();
+		});
+
 		test('Multi line on multi line', async () => {
 			mockReadFileSync('    /* foo \nbar */ ');
 			const parser = new Parser('/folder/dts.dts', []);

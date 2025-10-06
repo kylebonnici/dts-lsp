@@ -187,6 +187,8 @@ export class Lexer {
 			if (this.currentChar === '/') {
 				// only line comments
 				this.inCommentLineStart = this.lineNumber;
+			} else {
+				this.inCommentLineStart = undefined;
 			}
 		} else if (
 			(this.inComment && word === '*' && this.currentChar === '/') ||
