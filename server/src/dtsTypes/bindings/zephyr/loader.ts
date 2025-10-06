@@ -132,6 +132,9 @@ const resolveBinding = (
 	bindings: ZephyrBindingYml[],
 	binding: ZephyrBindingYml,
 ): ZephyrBindingYml | undefined => {
+	Object.entries(binding.properties ?? {}).forEach(([name, prop]) => {
+		prop.name = name;
+	});
 	binding.extends ??= [];
 	binding = binding.include.reduce((p, c) => {
 		const toMergeIn = bindings.find((b) => basename(b.filePath) === c.name);
@@ -501,11 +504,6 @@ export class ZephyrBindingsLoader {
 									rawInclude: [...simplifiedInclude],
 									filePath: bindingFile,
 								} as ZephyrBindingYml;
-								Object.entries(obj.properties ?? {}).forEach(
-									([name, prop]) => {
-										prop.name = name;
-									},
-								);
 								this.zephyrBindingCache.set(bindingFile, obj);
 								return obj;
 							} catch (e) {
