@@ -3438,6 +3438,69 @@ describe('Parser', () => {
 		});
 
 		describe('If elif', () => {
+			test('negated If - does not exists', async () => {
+				mockReadFileSync('#IF !defined(HELLO)\nsome\nstuff\n#endif');
+				const parser = new CPreprocessorParser(
+					'/folder/dts.dts',
+					[],
+					new Map(),
+				);
+				await parser.stable;
+				expect(parser.issues.length).toEqual(0);
+
+				const ifDefineBlocks = parser.allAstItems.filter(
+					(o) => o instanceof IfElIfBlock,
+				) as IfElIfBlock[];
+				expect(ifDefineBlocks.length).toEqual(1);
+
+				const ifDefineBlock = ifDefineBlocks[0];
+				expect(
+					ifDefineBlock.ifBlocks[0].expression instanceof CMacroCall,
+				).toBeTruthy();
+				const expression = ifDefineBlock.ifBlocks[0]
+					.expression as CMacroCall;
+				expect(expression.functionName.name).toEqual('defined');
+				expect(expression.params[0]?.value).toEqual('HELLO');
+				expect(expression.isTrue(parser.macros)).toBeTruthy();
+
+				expect(tokensToString(parser.tokens).trim()).toEqual(
+					'some\nstuff',
+				);
+			});
+
+			test('negated If - exists', async () => {
+				mockReadFileSync(
+					'#define HELLO\n#IF !defined(HELLO)\nsome\nstuff\n#endif',
+				);
+				const parser = new CPreprocessorParser(
+					'/folder/dts.dts',
+					[],
+					new Map(),
+				);
+				await parser.stable;
+				expect(parser.issues.length).toEqual(1);
+				expect(parser.issues[0].raw.issues).toEqual([
+					SyntaxIssue.UNUSED_BLOCK,
+				]);
+
+				const ifDefineBlocks = parser.allAstItems.filter(
+					(o) => o instanceof IfElIfBlock,
+				) as IfElIfBlock[];
+				expect(ifDefineBlocks.length).toEqual(1);
+
+				const ifDefineBlock = ifDefineBlocks[0];
+				expect(
+					ifDefineBlock.ifBlocks[0].expression instanceof CMacroCall,
+				).toBeTruthy();
+				const expression = ifDefineBlock.ifBlocks[0]
+					.expression as CMacroCall;
+				expect(expression.functionName.name).toEqual('defined');
+				expect(expression.params[0]?.value).toEqual('HELLO');
+				expect(expression.isTrue(parser.macros)).toBeFalsy();
+
+				expect(tokensToString(parser.tokens).trim()).toEqual('');
+			});
+
 			test('If def - end - defined - false', async () => {
 				mockReadFileSync('#IF defined(HELLO)\nsome\nstuff\n#endif');
 				const parser = new CPreprocessorParser(

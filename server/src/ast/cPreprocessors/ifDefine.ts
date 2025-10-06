@@ -18,7 +18,6 @@ import { ASTBase } from '../base';
 import { Keyword } from '../keyword';
 import { MacroRegistryItem, Token, TokenIndexes } from '../../types';
 import { CIdentifier } from './cIdentifier';
-import { CMacroCall } from './functionCall';
 import { Expression } from './expression';
 
 export class CPreprocessorContent extends ASTBase {
@@ -67,17 +66,6 @@ export class CIf extends CIfBase {
 	}
 
 	useBlock(macros: Map<string, MacroRegistryItem>) {
-		if (this.expression instanceof CMacroCall) {
-			if (this.expression.functionName.name === 'defined') {
-				return (
-					this.expression &&
-					macros.has(this.expression.params.at(0)?.value ?? '')
-				);
-			}
-
-			return this.expression.isTrue(macros);
-		}
-
 		return this.expression?.isTrue(macros);
 	}
 }

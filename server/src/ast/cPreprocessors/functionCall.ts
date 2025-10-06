@@ -15,7 +15,7 @@
  */
 
 import { DocumentSymbol, SymbolKind } from 'vscode-languageserver';
-import { isPathEqual, toRange } from '../../helpers';
+import { evalExp, isPathEqual, toRange } from '../../helpers';
 import { MacroRegistryItem, Token, TokenIndexes } from '../../types';
 import { CIdentifier } from './cIdentifier';
 import { Expression } from './expression';
@@ -76,11 +76,14 @@ export class CMacroCall extends Expression {
 
 	isTrue(macros: Map<string, MacroRegistryItem>): boolean {
 		if (this.functionName.name === 'defined') {
-			return !!(
+			const defineResult = !!(
 				this.params.length === 1 &&
 				this.params[0] &&
 				macros.has(this.params[0].value)
 			);
+			return this.operator
+				? evalExp(`!!(${this.operator}${defineResult})`)
+				: defineResult;
 		}
 
 		return super.isTrue(macros);

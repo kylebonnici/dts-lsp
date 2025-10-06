@@ -20,7 +20,8 @@ import { ASTBase } from '../base';
 export enum OperatorType {
 	BIT_AND = '&',
 	BIT_OR = '|',
-	BIT_NOT = '!',
+	BIT_NOT = '~',
+	LOGICAL_NOT = '!',
 	BIT_XOR = '^',
 	BIT_RIGHT_SHIFT = '<<',
 	BIT_LEFT_SHIFT = '>>',

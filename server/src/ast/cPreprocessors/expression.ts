@@ -24,6 +24,8 @@ import {
 import { Operator } from './operator';
 
 export abstract class Expression extends ASTBase {
+	operator?: Operator;
+
 	toJson() {
 		return -1;
 	}
@@ -33,11 +35,15 @@ export abstract class Expression extends ASTBase {
 	}
 
 	evaluate(macros: Map<string, MacroRegistryItem>) {
-		return evalExp(this.resolve(macros));
+		return evalExp(
+			`${this.operator ? this.operator.toString() : ''}${this.resolve(macros)}`,
+		);
 	}
 
 	isTrue(macros: Map<string, MacroRegistryItem>): boolean {
-		return evalExp(`!!(${this.resolve(macros)})`);
+		return evalExp(
+			`!!(${this.operator ? this.operator.toString() : ''}${this.resolve(macros)})`,
+		);
 	}
 
 	toPrettyString(macros: Map<string, MacroRegistryItem>) {
@@ -113,6 +119,8 @@ export class ComplexExpression extends Expression {
 				c instanceof Expression ? c.resolve(macros) : c.toString(),
 			)
 			.join(' ')})`;
-		return evalExp(`!!${exp}`);
+		return evalExp(
+			`!!(${this.operator ? this.operator.toString() : ''}${exp})`,
+		);
 	}
 }

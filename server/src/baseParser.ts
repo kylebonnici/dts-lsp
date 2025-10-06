@@ -335,12 +335,14 @@ export abstract class BaseParser {
 				operator = OperatorType.BOOLEAN_AND;
 				end = this.moveToNextToken;
 			}
-		} else if (validToken(start, LexerToken.BIT_NOT)) {
-			operator = OperatorType.BIT_NOT;
+		} else if (validToken(start, LexerToken.LOGICAL_NOT)) {
+			operator = OperatorType.LOGICAL_NOT;
 			if (validToken(this.currentToken, LexerToken.ASSIGN_OPERATOR)) {
 				operator = OperatorType.BOOLEAN_NOT_EQ;
 				end = this.moveToNextToken;
 			}
+		} else if (validToken(start, LexerToken.BIT_NOT)) {
+			operator = OperatorType.BIT_NOT;
 		} else if (validToken(start, LexerToken.BIT_OR)) {
 			operator = OperatorType.BIT_OR;
 			if (validToken(this.currentToken, LexerToken.BIT_OR)) {
@@ -685,6 +687,11 @@ export abstract class BaseParser {
 
 		let expression: Expression | undefined;
 
+		let operator: Operator | undefined;
+		if (complexExpression) {
+			operator = this.isOperator();
+		}
+
 		expression =
 			this.processEnclosedExpression(macros, parent) ||
 			this.isFunctionCall(macros) ||
@@ -694,6 +701,10 @@ export abstract class BaseParser {
 		if (!expression) {
 			this.popStack();
 			return;
+		}
+
+		if (operator) {
+			expression.operator = operator;
 		}
 
 		if (complexExpression) {
