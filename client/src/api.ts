@@ -111,9 +111,9 @@ export class API implements IDeviceTreeAPI {
 	}
 
 	async getActivePathLocation(): Promise<LocationResult | undefined> {
-		const result = await this.getPathLocation(
-			await getCurrentTextDocumentPositionParams(),
-		);
+		const location = getCurrentTextDocumentPositionParams();
+		if (!location) return;
+		const result = await this.getPathLocation(location);
 
 		if (result) {
 			this.event.emit('onActivePath', result);
