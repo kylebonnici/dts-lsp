@@ -14,15 +14,13 @@
  * limitations under the License.
  */
 
-import { TextDocumentPositionParams } from 'vscode-languageclient';
 import * as vscode from 'vscode';
+import { TextDocumentPositionParams } from 'vscode-languageclient';
 
-export async function getCurrentTextDocumentPositionParams(): Promise<
-	TextDocumentPositionParams | undefined
-> {
+export function getCurrentTextDocumentPositionParams() {
 	const editor = vscode.window.activeTextEditor;
 	if (!editor) {
-		return undefined;
+		return;
 	}
 
 	return {
@@ -33,5 +31,5 @@ export async function getCurrentTextDocumentPositionParams(): Promise<
 			line: editor.selection.active.line,
 			character: editor.selection.active.character,
 		},
-	};
+	} satisfies TextDocumentPositionParams;
 }
