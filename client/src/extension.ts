@@ -264,11 +264,13 @@ export async function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand(
 			'devicetree.clipboard.dtMacro',
 			async (textDocumentPositionParams?: TextDocumentPositionParams) => {
+				textDocumentPositionParams ??=
+					getCurrentTextDocumentPositionParams();
+				if (textDocumentPositionParams) {
+					return;
+				}
 				const actions = (
-					await api.getAllowedActions(
-						textDocumentPositionParams ??
-							(await getCurrentTextDocumentPositionParams()),
-					)
+					await api.getAllowedActions(textDocumentPositionParams)
 				).filter(
 					(a): a is ClipboardActions =>
 						a.type === 'dt_zephyr_macro_prop_node_label' ||
@@ -290,11 +292,12 @@ export async function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand(
 			'devicetree.clipboard.nodePath',
 			async () => {
-				const actions = (
-					await api.getAllowedActions(
-						await getCurrentTextDocumentPositionParams(),
-					)
-				).filter((a): a is ClipboardActions => a.type === 'path');
+				const location = getCurrentTextDocumentPositionParams();
+				if (!location) return;
+
+				const actions = (await api.getAllowedActions(location)).filter(
+					(a): a is ClipboardActions => a.type === 'path',
+				);
 
 				copyClipboardAction(actions, 'Pick a path to copy...');
 			},
