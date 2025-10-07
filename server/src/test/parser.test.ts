@@ -2563,7 +2563,9 @@ describe('Parser', () => {
 		});
 
 		test('Line comment and block comment with singl quite', async () => {
-			mockReadFileSync("// foo bar\n/* foo bar's */\n/{};");
+			mockReadFileSync(
+				"// foo bar\n/* http://test.com\nfoo bar's */\n/{};",
+			);
 			const parser = new Parser('/folder/dts.dts', []);
 			await parser.stable;
 

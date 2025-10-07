@@ -179,24 +179,26 @@ export class Lexer {
 			}
 		}
 
-		if (
-			word === '/' &&
-			(this.currentChar === '*' || this.currentChar === '/')
-		) {
-			this.inComment = true;
-			if (this.currentChar === '/') {
-				// only line comments
-				this.inCommentLineStart = this.lineNumber;
-			} else {
-				this.inCommentLineStart = undefined;
-			}
-		} else if (
-			(this.inComment && word === '*' && this.currentChar === '/') ||
-			(this.inCommentLineStart !== undefined &&
-				this.lineNumber !== this.inCommentLineStart)
-		) {
+		if (this.inComment && word === '*' && this.currentChar === '/') {
 			this.inComment = false;
+		}
+
+		if (
+			this.inCommentLineStart !== undefined &&
+			this.lineNumber !== this.inCommentLineStart
+		) {
 			this.inCommentLineStart = undefined;
+			this.inComment = false;
+		}
+
+		if (!this.inComment && word === '/' && this.currentChar === '*') {
+			this.inCommentLineStart = undefined;
+			this.inComment = true;
+		}
+
+		if (!this.inComment && word === '/' && this.currentChar === '/') {
+			this.inCommentLineStart = this.lineNumber;
+			this.inComment = true;
 		}
 
 		return word;
