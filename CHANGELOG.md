@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fixed an issue with enforcing new lines between nodes when they are on the same line such as `node1 {};node2 {};`
 - Fixed an issue with parsing block comment after line comment when block comment has "'" or '"' inside of it.
 - Fixed an issue where logical not '!' in expression was not supported properly.
+- Fixed an issue when formatting properties when `>` or `]` are move on the same line as the last value
+  and there is a line comment after the last value, hence commenting out the `>` or `]`.
 
 ## [0.5.4] - 2025-09-19
 

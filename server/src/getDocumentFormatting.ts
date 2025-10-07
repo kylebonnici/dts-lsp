@@ -754,16 +754,32 @@ const formatValue = (
 			);
 
 			if (value.closeBracket?.prevToken) {
-				result.push(
-					...fixedNumberOfSpaceBetweenTokensAndNext(
-						value.closeBracket.prevToken,
-						documentText,
-						value.closeBracket.prevToken ===
-							value.values.at(-1)?.lastToken
-							? 0
-							: 1,
-					),
-				);
+				if (
+					value.values.at(-1)?.lastToken ===
+						value.closeBracket?.prevToken ||
+					(value.closeBracket?.prevToken.value === '/' &&
+						value.closeBracket?.prevToken?.prevToken?.value === '*')
+				) {
+					result.push(
+						...fixedNumberOfSpaceBetweenTokensAndNext(
+							value.closeBracket.prevToken,
+							documentText,
+							value.closeBracket.prevToken ===
+								value.values.at(-1)?.lastToken
+								? 0
+								: 1,
+						),
+					);
+				} else {
+					result.push(
+						...ensureOnNewLineAndMax1EmptyLineToPrev(
+							value.closeBracket,
+							level,
+							settings.singleIndent,
+							documentText,
+						),
+					);
+				}
 			}
 		}
 	} else if (value instanceof Expression) {
