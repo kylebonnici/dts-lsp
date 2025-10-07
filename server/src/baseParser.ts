@@ -712,7 +712,11 @@ export abstract class BaseParser {
 
 			while (operator) {
 				// complex
-				const nextExpression = this.processExpression(macros, parent);
+				const nextExpression = this.processExpression(
+					macros,
+					parent,
+					true,
+				);
 
 				if (!nextExpression) {
 					this._issues.push(
