@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fixed an issue where logical not '!' in expression was not supported properly.
 - Fixed an issue when formatting properties when `>` or `]` are move on the same line as the last value
   and there is a line comment after the last value, hence commenting out the `>` or `]`.
+- Fixed an issue with lexer when `true` and `false` are next to other tokens e.g. `cavium,false-ide`
 
 ## [0.5.4] - 2025-09-19
 

@@ -559,6 +559,32 @@ describe('Parser', () => {
 	});
 
 	describe('Property', () => {
+		test('with true in name', async () => {
+			mockReadFileSync('/{cavium,true-ide;};');
+			const parser = new Parser('/folder/dts.dts', []);
+			await parser.stable;
+			expect(parser.issues.length).toEqual(0);
+			const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+			expect(rootDts.properties.length).toEqual(1);
+			expect(rootDts.properties[0].propertyName?.name).toEqual(
+				'cavium,true-ide',
+			);
+		});
+
+		test('with false in name', async () => {
+			mockReadFileSync('/{cavium,false-ide;};');
+			const parser = new Parser('/folder/dts.dts', []);
+			await parser.stable;
+			expect(parser.issues.length).toEqual(0);
+			const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+			expect(rootDts.properties.length).toEqual(1);
+			expect(rootDts.properties[0].propertyName?.name).toEqual(
+				'cavium,false-ide',
+			);
+		});
+
 		test('Property in root doc', async () => {
 			mockReadFileSync('prop1=<10>;');
 			const parser = new Parser('/folder/dts.dts', []);

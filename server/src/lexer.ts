@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { adjacentTokens } from './helpers';
 import { LexerToken, Position, Token } from './types';
 
 export class Lexer {
@@ -339,7 +340,20 @@ export class Lexer {
 					value: word.toLowerCase(),
 					pos: this.generatePos(word, word.toLowerCase()),
 				});
-				return true;
+
+				if (
+					keywordToken === LexerToken.C_FALSE ||
+					keywordToken === LexerToken.C_TRUE
+				) {
+					if (
+						adjacentTokens(this.tokens.at(-2), this.tokens.at(-1))
+					) {
+						tokenFound = false;
+						this.tokens.pop();
+					} else {
+						return true;
+					}
+				}
 			}
 		}
 
