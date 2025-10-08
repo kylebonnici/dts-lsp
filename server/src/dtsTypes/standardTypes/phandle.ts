@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { BindingPropertyType } from '../../types/index';
 import { StandardTypeIssue } from '../../types';
 import { genStandardTypeDiagnostic } from '../../helpers';
 import { PropertyNodeType } from '../types';
@@ -23,7 +22,7 @@ import { generateOrTypeObj, getU32ValueFromProperty } from './helpers';
 export default () => {
 	const prop = new PropertyNodeType<number>(
 		'phandle',
-		generateOrTypeObj(BindingPropertyType.U32),
+		generateOrTypeObj('U32'),
 		'optional',
 		undefined,
 		undefined,
