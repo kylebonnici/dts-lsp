@@ -50,7 +50,6 @@ import {
 import { NexusMapping, Property } from '../../../context/property';
 
 import {
-	BindingPropertyType,
 	CellSpecifier,
 	ChildNodeInclude,
 	ZephyrBindingsProperty,
@@ -63,32 +62,29 @@ import { Expression } from '../../../ast/cPreprocessors/expression';
 const ZephyrTypeToDTSType = (type: ZephyrPropertyType | undefined) => {
 	switch (type) {
 		case 'string':
-			return generateOrTypeObj(BindingPropertyType.STRING);
+			return generateOrTypeObj('STRING');
 		case 'int':
-			return generateOrTypeObj(BindingPropertyType.U32);
+			return generateOrTypeObj('U32');
 		case 'boolean':
-			return generateOrTypeObj(BindingPropertyType.EMPTY);
+			return generateOrTypeObj('EMPTY');
 		case 'array':
-			return generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY);
+			return generateOrTypeObj('PROP_ENCODED_ARRAY');
 		case 'uint8-array':
-			return generateOrTypeObj(BindingPropertyType.BYTESTRING);
+			return generateOrTypeObj('BYTESTRING');
 		case 'string-array':
-			return generateOrTypeObj(BindingPropertyType.STRINGLIST);
+			return generateOrTypeObj('STRINGLIST');
 		case 'phandle':
-			return generateOrTypeObj(BindingPropertyType.U32);
+			return generateOrTypeObj('U32');
 		case 'phandles':
-			return generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY);
+			return generateOrTypeObj('PROP_ENCODED_ARRAY');
 		case 'phandle-array':
-			return generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY);
+			return generateOrTypeObj('PROP_ENCODED_ARRAY');
 		case 'path':
-			return generateOrTypeObj([
-				BindingPropertyType.STRING,
-				BindingPropertyType.U32,
-			]);
+			return generateOrTypeObj(['STRING', 'U32']);
 		case 'compound':
-			return generateOrTypeObj(BindingPropertyType.ANY);
+			return generateOrTypeObj('ANY');
 		default:
-			return generateOrTypeObj(BindingPropertyType.ANY);
+			return generateOrTypeObj('ANY');
 	}
 };
 
