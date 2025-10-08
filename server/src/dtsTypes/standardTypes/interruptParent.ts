@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-import { BindingPropertyType } from '../../types/index';
 import { PropertyNodeType } from '../types';
 import { generateOrTypeObj } from './helpers';
 
 export default () => {
 	const prop = new PropertyNodeType(
 		'interrupt-parent',
-		generateOrTypeObj(BindingPropertyType.U32),
+		generateOrTypeObj('U32'),
 	);
 	prop.description = [
 		'Because the hierarchy of the nodes in the interrupt tree might not match the devicetree, the interrupt-parent property is available to make the definition of an interrupt parent explicit. The value is the phandle to the interrupt parent. If this property is missing from a device, its interrupt parent is assumed to be its devicetree parent.',
