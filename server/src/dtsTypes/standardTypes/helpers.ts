@@ -23,7 +23,7 @@ import { PropertyValue } from '../../ast/dtc/values/value';
 import { Node } from '../../context/node';
 import { Property } from '../../context/property';
 import { Expression } from '../../ast/cPreprocessors/expression';
-import { BindingPropertyType, TypeConfig } from '../../types/index';
+import type { BindingPropertyType, TypeConfig } from '../../types/index';
 import { MacroRegistryItem } from '../../types';
 
 export const flatNumberValues = (value: PropertyValues | null | undefined) => {
