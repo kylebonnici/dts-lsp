@@ -216,17 +216,16 @@ export interface SerializableNodeName extends SerializableASTBase {
 	readonly name: string;
 }
 
-export enum BindingPropertyType {
-	EMPTY = 'EMPTY',
-	U32 = 'U32',
-	U64 = 'U64',
-	STRING = 'STRING',
-	PROP_ENCODED_ARRAY = 'PROP_ENCODED_ARRAY',
-	STRINGLIST = 'STRINGLIST',
-	BYTESTRING = 'BYTESTRING',
-	UNKNOWN = 'UNKNOWN',
-	ANY = 'ANY',
-}
+export type BindingPropertyType =
+	| 'EMPTY'
+	| 'U32'
+	| 'U64'
+	| 'STRING'
+	| 'PROP_ENCODED_ARRAY'
+	| 'STRINGLIST'
+	| 'BYTESTRING'
+	| 'UNKNOWN'
+	| 'ANY';
 
 export type TypeConfig = { types: BindingPropertyType[] };
 

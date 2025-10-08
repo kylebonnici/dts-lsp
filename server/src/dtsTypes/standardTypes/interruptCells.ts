@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-import { BindingPropertyType } from '../../types/index';
 import { PropertyNodeType } from '../types';
 import { generateOrTypeObj } from './helpers';
 
 export default () => {
 	const prop = new PropertyNodeType(
 		'#interrupt-cells',
-		generateOrTypeObj(BindingPropertyType.U32),
+		generateOrTypeObj('U32'),
 	);
 	prop.description = [
 		'The #interrupt-cells property defines the number of cells required to encode an interrupt specifier for an interrupt domain.',

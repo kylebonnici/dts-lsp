@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { BindingPropertyType } from '../../../../types/index';
 import { genStandardTypeDiagnostic } from '../../../../helpers';
 import { PropertyNodeType } from '../../../types';
 import { generateOrTypeObj } from '../../helpers';
@@ -49,7 +48,7 @@ export function getChosenNodeType() {
 
 	const bootargsProp = new PropertyNodeType(
 		'bootargs',
-		generateOrTypeObj(BindingPropertyType.STRING),
+		generateOrTypeObj('STRING'),
 	);
 	bootargsProp.description = [
 		`A string that specifies the boot arguments for
@@ -60,7 +59,7 @@ quired.`,
 
 	const stdoutPathProp = new PropertyNodeType(
 		'stdout-path ',
-		generateOrTypeObj(BindingPropertyType.STRING),
+		generateOrTypeObj('STRING'),
 	);
 	stdoutPathProp.description = [
 		`A string that specifies the full path to the node
@@ -74,7 +73,7 @@ theinput device.`,
 
 	const stdinPathProp = new PropertyNodeType(
 		'stdin-path ',
-		generateOrTypeObj(BindingPropertyType.STRING),
+		generateOrTypeObj('STRING'),
 	);
 	stdinPathProp.description = [
 		`A string that specifies the boot arguments for

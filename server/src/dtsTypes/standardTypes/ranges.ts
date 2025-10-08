@@ -18,7 +18,6 @@ import {
 	DiagnosticSeverity,
 	ParameterInformation,
 } from 'vscode-languageserver';
-import { BindingPropertyType } from '../../types/index';
 import { genStandardTypeDiagnostic } from '../../helpers';
 import { PropertyNodeType } from '../types';
 import { FileDiagnostic, StandardTypeIssue } from '../../types';
@@ -27,10 +26,7 @@ import { flatNumberValues, generateOrTypeObj } from './helpers';
 export default () => {
 	const prop = new PropertyNodeType<number>(
 		'ranges',
-		generateOrTypeObj([
-			BindingPropertyType.EMPTY,
-			BindingPropertyType.PROP_ENCODED_ARRAY,
-		]),
+		generateOrTypeObj(['EMPTY', 'PROP_ENCODED_ARRAY']),
 		'optional',
 		undefined,
 		undefined,
