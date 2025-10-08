@@ -14,15 +14,11 @@
  * limitations under the License.
  */
 
-import { BindingPropertyType } from '../../types/index';
 import { PropertyNodeType } from '../types';
 import { generateOrTypeObj } from './helpers';
 
 export default () => {
-	const prop = new PropertyNodeType(
-		'virtual-reg',
-		generateOrTypeObj(BindingPropertyType.U32),
-	);
+	const prop = new PropertyNodeType('virtual-reg', generateOrTypeObj('U32'));
 	prop.description = [
 		`The virtual-res property specifies an effective address that maps to the first physical address specified in the reg property of the device node. This property enables boot programs to provide client programs with virtual-to-physical mappings that have been set up.`,
 	];
