@@ -1,23 +1,22 @@
 {
-  "name": "dts-lsp-client",
-  "description": "Devicetree Language Server",
-  "author": "Kyle Micallef Bonnici",
-  "license": "Apache-2.0",
-  "version": "5",
-  "publisher": "vscode",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/kylebonnici/dts-lsp"
-  },
-  "engines": {
-    "vscode": "^1.75.0"
-  },
-  "dependencies": {
-    "devicetree-language-server-types": "^0.0.2-alpha.14",
-    "vscode-languageclient": "^9.0.1"
-  },
-  "devDependencies": {
-    "@types/vscode": "^1.75.1",
-    "@vscode/test-electron": "^2.3.9"
-  }
+	"name": "dts-lsp-client",
+	"description": "Devicetree Language Server",
+	"author": "Kyle Micallef Bonnici",
+	"license": "Apache-2.0",
+	"version": "5",
+	"publisher": "vscode",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/kylebonnici/dts-lsp"
+	},
+	"engines": {
+		"vscode": "^1.75.0"
+	},
+	"dependencies": {},
+	"devDependencies": {
+		"@types/vscode": "^1.75.1",
+		"@vscode/test-electron": "^2.3.9",
+		"devicetree-language-server-types": "^0.0.2-alpha.14",
+		"vscode-languageclient": "^9.0.1"
+	}
 }

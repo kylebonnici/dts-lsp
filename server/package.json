@@ -31,28 +31,26 @@
 		"type": "git",
 		"url": "https://github.com/kylebonnici/dts-lsp"
 	},
-	"dependencies": {},
 	"scripts": {
 		"test": "jest --silent",
 		"test:coverage": "jest --coverage --silent"
 	},
 	"devDependencies": {
+		"@hyperjump/browser": "^1.2.0",
+		"@hyperjump/json-schema": "^1.10.1",
 		"@jest/globals": "^29.7.0",
 		"@tsconfig/node20": "^20.1.4",
 		"@types/jest": "^29.5.12",
 		"@types/node": "^22.5.1",
-		"jest": "^29.7.0",
-		"ts-jest": "^29.2.5",
-		"ts-node": "^10.9.2",
-		"tslib": "^2.7.0",
-		"typescript": "^5.5.4",
-		"vscode-languageserver-types": "^3.17.5",
-		"@hyperjump/browser": "^1.2.0",
-		"@hyperjump/json-schema": "^1.10.1",
 		"ajv": "^8.17.1",
 		"glob": "^11.0.0",
+		"jest": "^29.7.0",
+		"ts-jest": "^29.4.4",
+		"typescript": "^5.5.4",
 		"vscode-languageserver": "^9.0.1",
 		"vscode-languageserver-textdocument": "^1.0.11",
+		"vscode-languageserver-types": "^3.17.5",
 		"yaml": "^2.6.1"
-	}
+	},
+	"dependencies": {}
 }

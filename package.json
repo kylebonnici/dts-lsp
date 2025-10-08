@@ -217,7 +217,6 @@
 		"lint:fix": "npx eslint 'client/src/**/*.{ts,tsx,js}' 'server/src/**/*.{ts,tsx,js}' --fix"
 	},
 	"devDependencies": {
-		"@types/mocha": "^10.0.6",
 		"@types/node": "^18.14.6",
 		"@typescript-eslint/eslint-plugin": "^8.39.0",
 		"@typescript-eslint/parser": "^8.39.0",
@@ -228,7 +227,6 @@
 		"eslint-plugin-prettier": "^5.5.3",
 		"eslint-plugin-simple-import-sort": "^12.1.1",
 		"eslint-plugin-unused-imports": "^4.1.4",
-		"mocha": "^10.3.0",
 		"typescript": "^5.3.3"
 	}
 }
