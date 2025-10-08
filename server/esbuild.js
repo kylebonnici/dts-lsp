@@ -30,7 +30,6 @@ async function main() {
 		platform: 'node',
 		outfile: 'server/dist/server.js',
 		external: [],
-		metafile: true,
 		logLevel: 'silent',
 		plugins: [esbuildProblemMatcherPlugin],
 	});
