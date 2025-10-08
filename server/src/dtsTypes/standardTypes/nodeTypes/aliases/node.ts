@@ -15,7 +15,6 @@
  */
 
 import { TextEdit } from 'vscode-languageserver';
-import { BindingPropertyType } from '../../../../types/index';
 import {
 	genStandardTypeDiagnostic,
 	toRangeWithTokenIndex,
@@ -78,10 +77,7 @@ export function getAliasesNodeType() {
 
 	const prop = new PropertyNodeType<string | number>(
 		/^[-A-Za-z0-9]+$/,
-		generateOrTypeObj([
-			BindingPropertyType.STRING,
-			BindingPropertyType.U32,
-		]),
+		generateOrTypeObj(['STRING', 'U32']),
 		undefined,
 		undefined,
 		undefined,
