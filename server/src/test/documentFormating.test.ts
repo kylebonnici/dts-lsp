@@ -17,7 +17,10 @@
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { describe, test, jest, expect } from '@jest/globals';
-import { TextDocumentIdentifier } from 'vscode-languageserver';
+import {
+	FormattingOptions,
+	TextDocumentIdentifier,
+} from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { resetTokenizedDocumentProvider } from '../providers/tokenizedDocument';
 import { ContextAware } from '../runtimeEvaluator';
@@ -40,7 +43,10 @@ const mockReadFileSync = (content: string) => {
 	});
 };
 
-const getEdits = async (document: TextDocument) => {
+const getEdits = async (
+	document: TextDocument,
+	options?: Partial<FormattingOptions>,
+) => {
 	mockReadFileSync(document.getText());
 	const textDocument: TextDocumentIdentifier = {
 		uri: document.uri,
@@ -55,6 +61,7 @@ const getEdits = async (document: TextDocument) => {
 		{
 			textDocument,
 			options: {
+				...options,
 				tabSize: 4,
 				insertSpaces: false,
 				trimTrailingWhitespace: true,
@@ -65,7 +72,10 @@ const getEdits = async (document: TextDocument) => {
 	);
 };
 
-const getNewText = async (documentText: string) => {
+const getNewText = async (
+	documentText: string,
+	options?: Partial<FormattingOptions>,
+) => {
 	// Create a text document
 	const document = TextDocument.create(
 		'file:///folder/dts.dts',
@@ -73,12 +83,20 @@ const getNewText = async (documentText: string) => {
 		0,
 		documentText,
 	);
-	return applyEdits(document, await getEdits(document));
+	return applyEdits(document, await getEdits(document, options));
 };
 
 describe('Document formating', () => {
 	beforeEach(() => {
 		resetTokenizedDocumentProvider();
+	});
+
+	test('insertFinalNewline', async () => {
+		const documentText = '/{};';
+		const newText = await getNewText(documentText, {
+			insertFinalNewline: true,
+		});
+		expect(newText).toEqual('/ {};\n');
 	});
 
 	describe('Root Node', () => {

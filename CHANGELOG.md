@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.5.7] - Unreleased
+
+- Fixed support for insertFinalNewline when formating files.
+
 ## [0.5.6] - 2025-10-08
 
 - Fixed an issue with parsing block comment after line comment when block comment has "'" or '"' inside of it.

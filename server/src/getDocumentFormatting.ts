@@ -189,6 +189,15 @@ async function formatAstBaseItems(
 		result.push(...removeTrailingWhitespace(splitDocument, result));
 	}
 
+	if (
+		documentFormattingParams.options.insertFinalNewline &&
+		splitDocument.at(-1)?.trim() !== ''
+	) {
+		result.push(
+			TextEdit.insert(Position.create(splitDocument.length, 0), '\n'),
+		);
+	}
+
 	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
 	return formatOnOffMeta.length
 		? result.filter(
