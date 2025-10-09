@@ -95,6 +95,25 @@ describe('Document formating', () => {
 		const documentText = '/{};';
 		const newText = await getNewText(documentText, {
 			insertFinalNewline: true,
+			trimFinalNewlines: true,
+		});
+		expect(newText).toEqual('/ {};\n');
+	});
+
+	test('trimFinalNewlines', async () => {
+		const documentText = '/{};\n\n\n';
+		const newText = await getNewText(documentText, {
+			insertFinalNewline: true,
+			trimFinalNewlines: true,
+		});
+		expect(newText).toEqual('/ {};\n');
+	});
+
+	test('insertFinalNewline and trimFinalNewlines', async () => {
+		const documentText = '/{};\n';
+		const newText = await getNewText(documentText, {
+			insertFinalNewline: true,
+			trimFinalNewlines: true,
 		});
 		expect(newText).toEqual('/ {};\n');
 	});
