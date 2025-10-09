@@ -295,13 +295,13 @@ let hasDiagnosticRefreshCapability = false;
 let hasSemanticTokensRefreshCapability = false;
 let hasFoldingRangesRefreshCapability = false;
 
-let workspaceFolder: WorkspaceFolder[] | null | undefined;
+let workspaceFolders: WorkspaceFolder[] | null | undefined;
 connection.onInitialize(async (params: InitializeParams) => {
 	// The workspace folder this server is operating on
-	workspaceFolder = params.workspaceFolders ?? [];
+	workspaceFolders = params.workspaceFolders ?? [];
 	connection.console.log(
 		`[Server(${process.pid}) ${
-			workspaceFolder?.at(0)?.uri
+			workspaceFolders?.at(0)?.uri
 		} Version 0.6.0 ] Started and initialize received`,
 	);
 
@@ -390,6 +390,13 @@ connection.onInitialized(() => {
 		});
 	}
 });
+
+connection.onRequest(
+	'workspace/workspaceFolders',
+	async (): Promise<WorkspaceFolder[] | null> => {
+		return workspaceFolders ?? null;
+	},
+);
 
 const getResolvedAdhocContextSettings = async () => {
 	let unresolvedSettings = getUnresolvedAdhocContextSettings();
