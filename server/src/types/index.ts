@@ -105,11 +105,11 @@ export interface SerializableStringValue extends SerializableASTBase {
 
 export interface SerializableByteString extends SerializableASTBase {
 	readonly type: 'BYTESTRING';
-	readonly values: ({
-		value: string;
-		range: Range;
-		evaluated: number;
-	} | null)[];
+	readonly values: (
+		| SerializableNumberValue
+		| SerializableExpression
+		| null
+	)[];
 }
 
 export interface SerializableArrayValue extends SerializableASTBase {
