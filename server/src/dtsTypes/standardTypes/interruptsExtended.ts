@@ -141,14 +141,22 @@ export default () => {
 
 				const remaining = values.length - i - 1;
 
-				args.push([
-					`${index}_phandle`,
-					...Array.from(
-						{ length: cellsPropertyValue },
-						(_, j) =>
-							`${index}_interrupt${cellsPropertyValue > 1 ? j : ''}`,
-					),
-				]);
+				const cells = pHandleNode.bindingLoader?.type
+					? pHandleNode.nodeType?.cellsValues?.find(
+							(c) => c.specifier === 'interrupt',
+						)
+					: undefined;
+				if (cells) {
+					args.push([`phandle`, ...cells.values]);
+				} else {
+					args.push([
+						`phandle`,
+						...Array.from(
+							{ length: cellsPropertyValue },
+							() => `interrupt`,
+						),
+					]);
+				}
 
 				if (cellsPropertyValue > remaining) {
 					issues.push(

@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Support to resolve workspace folders in settings e.g `${workspaceFolder:name}`
+- Support type signature for `interrupts` with Zephyr bindings using `interrupt-cells`
+- Support type signature for `interrupts-extended` with Zephyr bindings using `interrupt-cells`
 
 ## [0.5.7] - 2025-10-09
 

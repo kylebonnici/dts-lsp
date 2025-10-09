@@ -124,16 +124,30 @@ export default () => {
 				return issues;
 			}
 
-			const args = [
+			let args: string[] = [
 				...Array.from(
-					{ length: childInterruptSpecifierValue },
-					(_, i) =>
-						`Interrupt${childInterruptSpecifierValue > 1 ? i : ''}`,
+					{
+						length: childInterruptSpecifierValue,
+					},
+					() => 'Interrupt',
 				),
 			];
-			prop.signatureArgs = args.map((arg) =>
-				ParameterInformation.create(arg),
-			);
+
+			const cells = parentInterruptNode.bindingLoader?.type
+				? parentInterruptNode.nodeType?.cellsValues?.find(
+						(c) => c.specifier === 'interrupt',
+					)
+				: undefined;
+			if (cells) {
+				args = cells.values;
+				prop.signatureArgs = cells.values.map((arg) =>
+					ParameterInformation.create(arg),
+				);
+			} else {
+				prop.signatureArgs = args.map((arg) =>
+					ParameterInformation.create(arg),
+				);
+			}
 
 			const mapProperty =
 				parentInterruptNode.getProperty(`interrupt-map`);
@@ -193,14 +207,7 @@ export default () => {
 							{
 								templateStrings: [
 									property.name,
-									`<${[
-										...Array.from(
-											{
-												length: childInterruptSpecifierValue,
-											},
-											() => 'Interrupt',
-										),
-									].join(' ')}> `,
+									`<${args.join(' ')}> `,
 								],
 							},
 						),
