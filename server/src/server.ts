@@ -296,7 +296,7 @@ let hasSemanticTokensRefreshCapability = false;
 let hasFoldingRangesRefreshCapability = false;
 
 let workspaceFolder: WorkspaceFolder[] | null | undefined;
-connection.onInitialize((params: InitializeParams) => {
+connection.onInitialize(async (params: InitializeParams) => {
 	// The workspace folder this server is operating on
 	workspaceFolder = params.workspaceFolders ?? [];
 	connection.console.log(
@@ -373,6 +373,8 @@ connection.onInitialize((params: InitializeParams) => {
 			},
 		};
 	}
+
+	await updateSetting(params.initializationOptions);
 	return result;
 });
 
@@ -1096,21 +1098,25 @@ documents.onDidChangeContent(async (change) => {
 	await onChange(uri);
 });
 
-connection.onDidChangeConfiguration(async (change) => {
-	if (!change?.settings?.devicetree) {
+const updateSetting = async (config: any) => {
+	if (!config?.settings?.devicetree) {
 		return;
 	}
 
 	lspConfigurationSettings = fixSettingsTypes(
-		deleteTopLevelNulls(change.settings.devicetree) as Settings,
+		deleteTopLevelNulls(config.settings.devicetree) as Settings,
 	);
 
 	console.log(
 		'Configuration changed',
-		JSON.stringify(change, undefined, '\t'),
+		JSON.stringify(config, undefined, '\t'),
 	);
 
 	await onSettingsChanged();
+};
+
+connection.onDidChangeConfiguration(async (change) => {
+	await updateSetting(change);
 });
 
 // Listen on the connection
