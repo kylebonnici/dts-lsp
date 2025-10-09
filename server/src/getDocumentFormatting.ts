@@ -198,7 +198,7 @@ async function formatAstBaseItems(
 		);
 	}
 
-	if (documentFormattingParams.options.trimTrailingWhitespace) {
+	if (documentFormattingParams.options.trimFinalNewlines) {
 		let noOfTrailingNewLines = 0;
 
 		while (splitDocument.at(-(1 + noOfTrailingNewLines))?.trim() === '') {

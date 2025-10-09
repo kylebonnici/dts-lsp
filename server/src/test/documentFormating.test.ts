@@ -16,7 +16,7 @@
 
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { describe, test, jest, expect } from '@jest/globals';
+import { describe, test, jest, expect, beforeEach } from '@jest/globals';
 import {
 	FormattingOptions,
 	TextDocumentIdentifier,
@@ -116,6 +116,15 @@ describe('Document formating', () => {
 			trimFinalNewlines: true,
 		});
 		expect(newText).toEqual('/ {};\n');
+	});
+
+	test('No insertFinalNewline and trimFinalNewlines', async () => {
+		const documentText = '/{};\n\n\n';
+		const newText = await getNewText(documentText, {
+			insertFinalNewline: false,
+			trimFinalNewlines: false,
+		});
+		expect(newText).toEqual('/ {};\n\n\n');
 	});
 
 	describe('Root Node', () => {
