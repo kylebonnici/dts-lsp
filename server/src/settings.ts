@@ -24,7 +24,7 @@ import {
 	ResolvedSettings,
 	Settings,
 } from './types/index';
-import { normalizePath } from './helpers';
+import { fileURLToPath, normalizePath } from './helpers';
 
 const fixToArray = <T>(a: T): T | undefined => {
 	if (!a) return;
@@ -69,11 +69,16 @@ const resolvePathVariable = async (
 ): Promise<string> => {
 	const stringToReplace = [
 		...(workspaceFolders.at(0)
-			? [{ replace: '${workspaceFolder}', uri: workspaceFolders[0].uri }]
+			? [
+					{
+						replace: '${workspaceFolder}',
+						uri: fileURLToPath(workspaceFolders[0].uri),
+					},
+				]
 			: []),
 		...workspaceFolders.map((folder) => ({
 			replace: `\${workspaceFolder:${folder.name}}`,
-			uri: folder.uri,
+			uri: fileURLToPath(folder.uri),
 		})),
 	];
 
