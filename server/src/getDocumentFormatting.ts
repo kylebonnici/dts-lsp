@@ -198,6 +198,28 @@ async function formatAstBaseItems(
 		);
 	}
 
+	if (documentFormattingParams.options.trimTrailingWhitespace) {
+		let noOfTrailingNewLines = 0;
+
+		while (splitDocument.at(-(1 + noOfTrailingNewLines))?.trim() === '') {
+			noOfTrailingNewLines++;
+		}
+
+		if (noOfTrailingNewLines > 1) {
+			result.push(
+				TextEdit.del(
+					Range.create(
+						Position.create(
+							splitDocument.length - noOfTrailingNewLines,
+							0,
+						),
+						Position.create(splitDocument.length - 1, 0),
+					),
+				),
+			);
+		}
+	}
+
 	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
 	return formatOnOffMeta.length
 		? result.filter(

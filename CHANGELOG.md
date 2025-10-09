@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.5.7] - Unreleased
 
 - Fixed support for insertFinalNewline when formating files.
+- Fixed support for trimFinalNewlines when formating files.
 
 ## [0.5.6] - 2025-10-08
 
