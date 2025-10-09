@@ -37,7 +37,7 @@ async function main() {
 	if (watch) {
 		await ctx.watch();
 	} else {
-		const result = await ctx.rebuild();
+		await ctx.rebuild();
 		await generateLicensesWithTempDeps(); // Generate license file after build
 		await ctx.dispose();
 	}
