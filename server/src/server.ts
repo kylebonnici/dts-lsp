@@ -302,7 +302,7 @@ connection.onInitialize((params: InitializeParams) => {
 	connection.console.log(
 		`[Server(${process.pid}) ${
 			workspaceFolder?.at(0)?.uri
-		} Version 0.5.7 ] Started and initialize received`,
+		} Version 0.6.0 ] Started and initialize received`,
 	);
 
 	const capabilities = params.capabilities;
@@ -397,7 +397,7 @@ const getResolvedAdhocContextSettings = async () => {
 		...unresolvedSettings,
 	};
 
-	return resolveSettings(unresolvedSettings, await getRootWorkspace());
+	return resolveSettings(unresolvedSettings, await getWorkspaces());
 };
 
 const getResolvedPersistentContextSettings = async () => {
@@ -408,7 +408,7 @@ const getResolvedPersistentContextSettings = async () => {
 		...unresolvedSettings,
 	};
 
-	return resolveSettings(unresolvedSettings, await getRootWorkspace());
+	return resolveSettings(unresolvedSettings, await getWorkspaces());
 };
 
 const getResolvedUserContextSettings = async () => {
@@ -419,7 +419,7 @@ const getResolvedUserContextSettings = async () => {
 		...unresolvedSettings,
 	};
 
-	return resolveSettings(unresolvedSettings, await getRootWorkspace());
+	return resolveSettings(unresolvedSettings, await getWorkspaces());
 };
 
 const getResolvedAllContextSettings = async () => {
@@ -430,14 +430,11 @@ const getResolvedAllContextSettings = async () => {
 		...unresolvedSettings,
 	};
 
-	return resolveSettings(unresolvedSettings, await getRootWorkspace());
+	return resolveSettings(unresolvedSettings, await getWorkspaces());
 };
 
-const getRootWorkspace = async () => {
-	const workspaceFolders = (
-		(await connection.workspace.getWorkspaceFolders()) ?? workspaceFolder
-	)?.map((p) => fileURLToPath(p.uri));
-	return workspaceFolders?.at(0);
+const getWorkspaces = async () => {
+	return (await connection.workspace.getWorkspaceFolders()) ?? [];
 };
 
 const createContext = async (context: ResolvedContext) => {
@@ -1546,7 +1543,7 @@ connection.onRequest(
 		const resolvedContext = await resolveContextSetting(
 			ctx,
 			resolvedSettings,
-			await getRootWorkspace(),
+			await getWorkspaces(),
 		);
 		console.log('devicetree/requestContext', resolvedContext);
 		const id = generateContextId(resolvedContext);

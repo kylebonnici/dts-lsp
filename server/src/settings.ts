@@ -16,6 +16,7 @@
 
 import path, { basename, resolve } from 'path';
 import { existsSync } from 'fs';
+import { WorkspaceFolder } from 'vscode-languageserver-types';
 import {
 	Context,
 	PartialBy,
@@ -64,11 +65,20 @@ export const fixSettingsTypes = (settings: Settings): Settings => {
 
 const resolvePathVariable = async (
 	path: string,
-	rootWorkspace?: string,
+	workspaceFolders: WorkspaceFolder[] = [],
 ): Promise<string> => {
-	if (rootWorkspace) {
-		path = path.replaceAll('${workspaceFolder}', rootWorkspace);
-	}
+	const stringToReplace = [
+		...(workspaceFolders.at(0)
+			? [{ replace: '${workspaceFolder}', uri: workspaceFolders[0].uri }]
+			: []),
+		...workspaceFolders.map((folder) => ({
+			replace: `\${workspaceFolder:${folder.name}}`,
+			uri: folder.uri,
+		})),
+	];
+
+	stringToReplace.forEach((r) => (path = path.replaceAll(r.replace, r.uri)));
+
 	return path;
 };
 
@@ -87,20 +97,20 @@ export const defaultSettings: ResolvedSettings = {
 export const resolveContextSetting = async (
 	context: Context,
 	defaultSettings: PartialBy<ResolvedSettings, 'contexts'>,
-	rootWorkspace: string | undefined,
+	workspaceFolders?: WorkspaceFolder[],
 ): Promise<ResolvedContext> => {
 	const cwd =
 		(context.cwd
-			? await resolvePathVariable(context.cwd, rootWorkspace)
+			? await resolvePathVariable(context.cwd, workspaceFolders)
 			: undefined) ?? defaultSettings.cwd;
 	let includePaths = await Promise.all(
 		(context.includePaths ?? defaultSettings.defaultIncludePaths).map((v) =>
-			resolvePathVariable(v, rootWorkspace),
+			resolvePathVariable(v, workspaceFolders),
 		),
 	);
 	let zephyrBindings = await Promise.all(
 		(context.zephyrBindings ?? defaultSettings.defaultZephyrBindings).map(
-			(v) => resolvePathVariable(v, rootWorkspace),
+			(v) => resolvePathVariable(v, workspaceFolders),
 		),
 	);
 	const bindingType =
@@ -109,17 +119,17 @@ export const resolveContextSetting = async (
 		(
 			context.deviceOrgTreeBindings ??
 			defaultSettings.defaultDeviceOrgTreeBindings
-		).map((v) => resolvePathVariable(v, rootWorkspace)),
+		).map((v) => resolvePathVariable(v, workspaceFolders)),
 	);
 	let deviceOrgBindingsMetaSchema = await Promise.all(
 		(
 			context.deviceOrgBindingsMetaSchema ??
 			defaultSettings.defaultDeviceOrgBindingsMetaSchema
-		).map((v) => resolvePathVariable(v, rootWorkspace)),
+		).map((v) => resolvePathVariable(v, workspaceFolders)),
 	);
 	let lockRenameEdits = await Promise.all(
 		(context.lockRenameEdits ?? defaultSettings.defaultLockRenameEdits).map(
-			(v) => resolvePathVariable(v, rootWorkspace),
+			(v) => resolvePathVariable(v, workspaceFolders),
 		),
 	);
 
@@ -176,42 +186,42 @@ export const resolveContextSetting = async (
 
 export const resolveSettings = async (
 	globalSettings: Settings,
-	rootWorkspace: string | undefined,
+	workspaceFolders: WorkspaceFolder[],
 ): Promise<ResolvedSettings> => {
 	const cwd = globalSettings.cwd
-		? await resolvePathVariable(globalSettings.cwd, rootWorkspace)
+		? await resolvePathVariable(globalSettings.cwd, workspaceFolders)
 		: undefined;
 
 	const defaultBindingType = globalSettings.defaultBindingType;
 	let defaultDeviceOrgBindingsMetaSchema =
 		(globalSettings.defaultDeviceOrgBindingsMetaSchema = await Promise.all(
 			(globalSettings.defaultDeviceOrgBindingsMetaSchema ?? []).map((v) =>
-				resolvePathVariable(v, rootWorkspace),
+				resolvePathVariable(v, workspaceFolders),
 			),
 		));
 	let defaultDeviceOrgTreeBindings =
 		(globalSettings.defaultDeviceOrgTreeBindings = await Promise.all(
 			(globalSettings.defaultDeviceOrgTreeBindings ?? []).map((v) =>
-				resolvePathVariable(v, rootWorkspace),
+				resolvePathVariable(v, workspaceFolders),
 			),
 		));
 
 	let defaultIncludePaths = (globalSettings.defaultIncludePaths =
 		await Promise.all(
 			(globalSettings.defaultIncludePaths ?? []).map((v) =>
-				resolvePathVariable(v, rootWorkspace),
+				resolvePathVariable(v, workspaceFolders),
 			),
 		));
 	let defaultZephyrBindings = (globalSettings.defaultZephyrBindings =
 		await Promise.all(
 			(globalSettings.defaultZephyrBindings ?? []).map((v) =>
-				resolvePathVariable(v, rootWorkspace),
+				resolvePathVariable(v, workspaceFolders),
 			),
 		));
 	let defaultLockRenameEdits = (globalSettings.defaultLockRenameEdits =
 		await Promise.all(
 			(globalSettings.defaultLockRenameEdits ?? []).map((v) =>
-				resolvePathVariable(v, rootWorkspace),
+				resolvePathVariable(v, workspaceFolders),
 			),
 		));
 
@@ -266,7 +276,7 @@ export const resolveSettings = async (
 				resolveContextSetting(
 					ctx,
 					resolvedGlobalSettings,
-					rootWorkspace,
+					workspaceFolders,
 				),
 			) ?? [],
 		)
