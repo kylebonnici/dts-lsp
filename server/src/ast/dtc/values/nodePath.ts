@@ -52,7 +52,8 @@ export class NodePath extends ASTBase {
 				push(
 					getTokenTypes('operator'),
 					getTokenModifiers('declaration'),
-					child.tokenIndexes,
+					child.firstToken,
+					child.lastToken,
 				);
 			}
 		});

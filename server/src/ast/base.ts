@@ -73,21 +73,17 @@ export class ASTBase {
 	}
 
 	get firstToken(): Token {
-		return this._firstToken ?? this._children[0].tokenIndexes.start;
+		return this._firstToken ?? this._children[0].firstToken;
 	}
 
 	set firstToken(token: Token | undefined) {
 		this._firstToken = token;
 	}
 
-	get rangeTokens() {
-		return { start: this.firstToken, end: this.lastToken };
-	}
-
 	get lastToken(): Token {
 		return (
 			this._lastToken ??
-			this._children.at(-1)?.lastToken ??
+			this._children[this._children.length - 1]?.lastToken ??
 			this.firstToken
 		);
 	}
@@ -103,13 +99,6 @@ export class ASTBase {
 	getTopMostAstNodeForFile(file: string): ASTBase[] {
 		if (isPathEqual(file, this.uri)) return [this];
 		return this.children.flatMap((c) => c.getTopMostAstNodeForFile(file));
-	}
-
-	get tokenIndexes(): TokenIndexes {
-		return {
-			start: this.firstToken,
-			end: this.lastToken,
-		};
 	}
 
 	getDocumentSymbols(uri: string): DocumentSymbol[] {
@@ -183,11 +172,12 @@ export class ASTBase {
 		push(
 			getTokenTypes(this.semanticTokenType),
 			getTokenModifiers(this.semanticTokenModifiers),
-			this.tokenIndexes,
+			this.firstToken,
+			this.lastToken,
 		);
 	}
 
-	get children() {
+	get children(): readonly ASTBase[] {
 		return this._children;
 	}
 
@@ -203,7 +193,7 @@ export class ASTBase {
 	protected addChild(child: ASTBase | null | undefined) {
 		if (child) {
 			child.parentNode = this;
-			this.children.push(child);
+			this._children.push(child);
 		}
 		this.allDescendantsCache = undefined;
 	}

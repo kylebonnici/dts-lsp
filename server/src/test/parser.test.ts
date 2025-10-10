@@ -15,7 +15,7 @@
  */
 
 import fs from 'fs';
-import { describe, test, jest, expect } from '@jest/globals';
+import { describe, test, jest, expect, beforeEach } from '@jest/globals';
 import { Parser } from '../parser';
 import { SyntaxIssue } from '../types';
 import {
@@ -2695,9 +2695,9 @@ describe('Parser', () => {
 
 				const cMacro = cMacros[0];
 				expect(cMacro.name).toEqual('FOO_BAR');
-				expect(cMacro.tokenIndexes.start.pos.col).toEqual(0);
+				expect(cMacro.firstToken.pos.col).toEqual(0);
 
-				expect(cMacro.tokenIndexes.end.pos.colEnd).toEqual(15);
+				expect(cMacro.lastToken.pos.colEnd).toEqual(15);
 
 				expect(cMacro.toString()).toEqual('FOO_BAR');
 			});
@@ -2719,9 +2719,9 @@ describe('Parser', () => {
 
 				const cMacro = cMacros[0];
 				expect(cMacro.name).toEqual('ADD');
-				expect(cMacro.tokenIndexes.start.pos.col).toEqual(0);
+				expect(cMacro.firstToken.pos.col).toEqual(0);
 
-				expect(cMacro.tokenIndexes.end.pos.colEnd).toEqual(22);
+				expect(cMacro.lastToken.pos.colEnd).toEqual(22);
 
 				expect(cMacro.content?.toString()).toEqual('a + b');
 
@@ -2745,10 +2745,10 @@ describe('Parser', () => {
 
 				const cMacro = cMacros[0];
 				expect(cMacro.name).toEqual('ADD');
-				expect(cMacro.tokenIndexes.start.pos.col).toEqual(0);
+				expect(cMacro.firstToken.pos.col).toEqual(0);
 
-				expect(cMacro.tokenIndexes.end.pos.line).toEqual(2);
-				expect(cMacro.tokenIndexes.end.pos.colEnd).toEqual(5);
+				expect(cMacro.lastToken.pos.line).toEqual(2);
+				expect(cMacro.lastToken.pos.colEnd).toEqual(5);
 
 				expect(cMacro.content?.toString()).toEqual('a + b');
 
@@ -2772,7 +2772,7 @@ describe('Parser', () => {
 
 				const cMacro = cMacros[0];
 				expect(cMacro.name).toEqual('ADD');
-				expect(cMacro.tokenIndexes.start.pos.col).toEqual(0);
+				expect(cMacro.firstToken.pos.col).toEqual(0);
 
 				expect(
 					cMacro.identifier instanceof FunctionDefinition,
@@ -2793,7 +2793,7 @@ describe('Parser', () => {
 						.params[2] instanceof Variadic,
 				).toBeTruthy();
 
-				expect(cMacro.tokenIndexes.end.pos.colEnd).toEqual(35);
+				expect(cMacro.lastToken.pos.colEnd).toEqual(35);
 
 				expect(cMacro.content?.toString()).toEqual('a + b + c + d');
 
@@ -2817,10 +2817,10 @@ describe('Parser', () => {
 
 				const cMacro = cMacros[0];
 				expect(cMacro.name).toEqual('ADD');
-				expect(cMacro.tokenIndexes.start.pos.col).toEqual(0);
+				expect(cMacro.firstToken.pos.col).toEqual(0);
 
-				expect(cMacro.tokenIndexes.end.pos.colEnd).toEqual(8);
-				expect(cMacro.tokenIndexes.end.pos.line).toEqual(1);
+				expect(cMacro.lastToken.pos.colEnd).toEqual(8);
+				expect(cMacro.lastToken.pos.line).toEqual(1);
 
 				expect(cMacro.content?.toString()).toEqual('a + b + c + d');
 
@@ -3057,18 +3057,18 @@ describe('Parser', () => {
 
 				const ifDefineBlock = ifDefineBlocks[0];
 				expect(ifDefineBlock.ifDef.identifier?.name).toEqual('HELLO');
+				expect(ifDefineBlock.ifDef.content?.firstToken.pos.col).toEqual(
+					0,
+				);
 				expect(
-					ifDefineBlock.ifDef.content?.tokenIndexes.start.pos.col,
-				).toEqual(0);
-				expect(
-					ifDefineBlock.ifDef.content?.tokenIndexes.start.pos.line,
+					ifDefineBlock.ifDef.content?.firstToken.pos.line,
 				).toEqual(1);
 				expect(
-					ifDefineBlock.ifDef.content!.tokenIndexes.end.pos.colEnd,
+					ifDefineBlock.ifDef.content!.lastToken.pos.colEnd,
 				).toEqual(5);
-				expect(
-					ifDefineBlock.ifDef.content?.tokenIndexes.end.pos.line,
-				).toEqual(2);
+				expect(ifDefineBlock.ifDef.content?.lastToken.pos.line).toEqual(
+					2,
+				);
 				expect(ifDefineBlock.elseOption).toBeUndefined();
 				expect(tokensToString(parser.tokens)).toEqual('');
 			});
@@ -3092,18 +3092,18 @@ describe('Parser', () => {
 
 				const ifDefineBlock = ifDefineBlocks[0];
 				expect(ifDefineBlock.ifDef.identifier?.name).toEqual('HELLO');
+				expect(ifDefineBlock.ifDef.content?.firstToken.pos.col).toEqual(
+					0,
+				);
 				expect(
-					ifDefineBlock.ifDef.content?.tokenIndexes.start.pos.col,
-				).toEqual(0);
-				expect(
-					ifDefineBlock.ifDef.content?.tokenIndexes.start.pos.line,
+					ifDefineBlock.ifDef.content?.firstToken.pos.line,
 				).toEqual(2);
 				expect(
-					ifDefineBlock.ifDef.content!.tokenIndexes.end.pos.colEnd,
+					ifDefineBlock.ifDef.content!.lastToken.pos.colEnd,
 				).toEqual(5);
-				expect(
-					ifDefineBlock.ifDef.content?.tokenIndexes.end.pos.line,
-				).toEqual(3);
+				expect(ifDefineBlock.ifDef.content?.lastToken.pos.line).toEqual(
+					3,
+				);
 				expect(ifDefineBlock.elseOption).toBeUndefined();
 				expect(tokensToString(parser.tokens).trim()).toEqual(
 					'some\nstuff',
@@ -3129,18 +3129,18 @@ describe('Parser', () => {
 
 				const ifDefineBlock = ifDefineBlocks[0];
 				expect(ifDefineBlock.ifDef.identifier?.name).toEqual('HELLO');
+				expect(ifDefineBlock.ifDef.content?.firstToken.pos.col).toEqual(
+					0,
+				);
 				expect(
-					ifDefineBlock.ifDef.content?.tokenIndexes.start.pos.col,
-				).toEqual(0);
-				expect(
-					ifDefineBlock.ifDef.content?.tokenIndexes.start.pos.line,
+					ifDefineBlock.ifDef.content?.firstToken.pos.line,
 				).toEqual(3);
 				expect(
-					ifDefineBlock.ifDef.content!.tokenIndexes.end.pos.colEnd,
+					ifDefineBlock.ifDef.content!.lastToken.pos.colEnd,
 				).toEqual(6);
-				expect(
-					ifDefineBlock.ifDef.content?.tokenIndexes.end.pos.line,
-				).toEqual(8);
+				expect(ifDefineBlock.ifDef.content?.lastToken.pos.line).toEqual(
+					8,
+				);
 				expect(ifDefineBlock.elseOption).toBeUndefined();
 
 				const ifDefineBlockNested = ifDefineBlocks[1];
@@ -3148,20 +3148,16 @@ describe('Parser', () => {
 					'AGAIN',
 				);
 				expect(
-					ifDefineBlockNested.ifDef.content?.tokenIndexes.start.pos
-						.col,
+					ifDefineBlockNested.ifDef.content?.firstToken.pos.col,
 				).toEqual(0);
 				expect(
-					ifDefineBlockNested.ifDef.content?.tokenIndexes.start.pos
-						.line,
+					ifDefineBlockNested.ifDef.content?.firstToken.pos.line,
 				).toEqual(6);
 				expect(
-					ifDefineBlockNested.ifDef.content!.tokenIndexes.end.pos
-						.colEnd,
+					ifDefineBlockNested.ifDef.content!.lastToken.pos.colEnd,
 				).toEqual(3);
 				expect(
-					ifDefineBlockNested.ifDef.content?.tokenIndexes.end.pos
-						.line,
+					ifDefineBlockNested.ifDef.content?.lastToken.pos.line,
 				).toEqual(7);
 				expect(ifDefineBlockNested.elseOption).toBeUndefined();
 
@@ -3192,34 +3188,30 @@ describe('Parser', () => {
 
 				const ifDefineBlock = ifDefineBlocks[0];
 				expect(ifDefineBlock.ifDef.identifier?.name).toEqual('HELLO');
+				expect(ifDefineBlock.ifDef.content?.firstToken.pos.col).toEqual(
+					0,
+				);
 				expect(
-					ifDefineBlock.ifDef.content?.tokenIndexes.start.pos.col,
-				).toEqual(0);
-				expect(
-					ifDefineBlock.ifDef.content?.tokenIndexes.start.pos.line,
+					ifDefineBlock.ifDef.content?.firstToken.pos.line,
 				).toEqual(1);
 				expect(
-					ifDefineBlock.ifDef.content!.tokenIndexes.end.pos.colEnd,
+					ifDefineBlock.ifDef.content!.lastToken.pos.colEnd,
 				).toEqual(5);
-				expect(
-					ifDefineBlock.ifDef.content?.tokenIndexes.end.pos.line,
-				).toEqual(2);
+				expect(ifDefineBlock.ifDef.content?.lastToken.pos.line).toEqual(
+					2,
+				);
 
 				expect(
-					ifDefineBlock.elseOption?.content?.tokenIndexes.start.pos
-						.col,
+					ifDefineBlock.elseOption?.content?.firstToken.pos.col,
 				).toEqual(0);
 				expect(
-					ifDefineBlock.elseOption?.content?.tokenIndexes.start.pos
-						.line,
+					ifDefineBlock.elseOption?.content?.firstToken.pos.line,
 				).toEqual(4);
 				expect(
-					ifDefineBlock.elseOption!.content!.tokenIndexes.end.pos
-						.colEnd,
+					ifDefineBlock.elseOption!.content!.lastToken.pos.colEnd,
 				).toEqual(3);
 				expect(
-					ifDefineBlock.elseOption!.content?.tokenIndexes.end.pos
-						.line,
+					ifDefineBlock.elseOption!.content?.lastToken.pos.line,
 				).toEqual(5);
 				expect(tokensToString(parser.tokens).trim()).toEqual(
 					'foo\nbar',
@@ -3254,36 +3246,30 @@ describe('Parser', () => {
 					'HELLO',
 				);
 				expect(
-					ifDefineBlockOuter.ifDef.content?.tokenIndexes.start.pos
-						.col,
+					ifDefineBlockOuter.ifDef.content?.firstToken.pos.col,
 				).toEqual(0);
 				expect(
-					ifDefineBlockOuter.ifDef.content?.tokenIndexes.start.pos
-						.line,
+					ifDefineBlockOuter.ifDef.content?.firstToken.pos.line,
 				).toEqual(1);
 				expect(
-					ifDefineBlockOuter.ifDef.content!.tokenIndexes.end.pos
-						.colEnd,
+					ifDefineBlockOuter.ifDef.content!.lastToken.pos.colEnd,
 				).toEqual(6);
 				expect(
-					ifDefineBlockOuter.ifDef.content?.tokenIndexes.end.pos.line,
+					ifDefineBlockOuter.ifDef.content?.lastToken.pos.line,
 				).toEqual(7);
 
 				expect(
-					ifDefineBlockOuter.elseOption?.content?.tokenIndexes.start
-						.pos.col,
+					ifDefineBlockOuter.elseOption?.content?.firstToken.pos.col,
 				).toEqual(0);
 				expect(
-					ifDefineBlockOuter.elseOption?.content?.tokenIndexes.start
-						.pos.line,
+					ifDefineBlockOuter.elseOption?.content?.firstToken.pos.line,
 				).toEqual(9);
 				expect(
-					ifDefineBlockOuter.elseOption!.content!.tokenIndexes.end.pos
+					ifDefineBlockOuter.elseOption!.content!.lastToken.pos
 						.colEnd,
 				).toEqual(6);
 				expect(
-					ifDefineBlockOuter.elseOption!.content?.tokenIndexes.end.pos
-						.line,
+					ifDefineBlockOuter.elseOption!.content?.lastToken.pos.line,
 				).toEqual(15);
 
 				const ifDefineBlockInner = ifDefineBlocks[1];
@@ -3291,36 +3277,30 @@ describe('Parser', () => {
 					'HELLO_AGAIN',
 				);
 				expect(
-					ifDefineBlockInner.ifDef.content?.tokenIndexes.start.pos
-						.col,
+					ifDefineBlockInner.ifDef.content?.firstToken.pos.col,
 				).toEqual(0);
 				expect(
-					ifDefineBlockInner.ifDef.content?.tokenIndexes.start.pos
-						.line,
+					ifDefineBlockInner.ifDef.content?.firstToken.pos.line,
 				).toEqual(10);
 				expect(
-					ifDefineBlockInner.ifDef.content!.tokenIndexes.end.pos
-						.colEnd,
+					ifDefineBlockInner.ifDef.content!.lastToken.pos.colEnd,
 				).toEqual(5);
 				expect(
-					ifDefineBlockInner.ifDef.content?.tokenIndexes.end.pos.line,
+					ifDefineBlockInner.ifDef.content?.lastToken.pos.line,
 				).toEqual(11);
 
 				expect(
-					ifDefineBlockInner.elseOption?.content?.tokenIndexes.start
-						.pos.col,
+					ifDefineBlockInner.elseOption?.content?.firstToken.pos.col,
 				).toEqual(0);
 				expect(
-					ifDefineBlockInner.elseOption?.content?.tokenIndexes.start
-						.pos.line,
+					ifDefineBlockInner.elseOption?.content?.firstToken.pos.line,
 				).toEqual(13);
 				expect(
-					ifDefineBlockInner.elseOption!.content!.tokenIndexes.end.pos
+					ifDefineBlockInner.elseOption!.content!.lastToken.pos
 						.colEnd,
 				).toEqual(3);
 				expect(
-					ifDefineBlockInner.elseOption!.content?.tokenIndexes.end.pos
-						.line,
+					ifDefineBlockInner.elseOption!.content?.lastToken.pos.line,
 				).toEqual(14);
 
 				expect(tokensToString(parser.tokens).trim()).toEqual(
@@ -3358,36 +3338,30 @@ describe('Parser', () => {
 					'HELLO',
 				);
 				expect(
-					ifDefineBlockOuter.ifDef.content?.tokenIndexes.start.pos
-						.col,
+					ifDefineBlockOuter.ifDef.content?.firstToken.pos.col,
 				).toEqual(0);
 				expect(
-					ifDefineBlockOuter.ifDef.content?.tokenIndexes.start.pos
-						.line,
+					ifDefineBlockOuter.ifDef.content?.firstToken.pos.line,
 				).toEqual(3);
 				expect(
-					ifDefineBlockOuter.ifDef.content!.tokenIndexes.end.pos
-						.colEnd,
+					ifDefineBlockOuter.ifDef.content!.lastToken.pos.colEnd,
 				).toEqual(6);
 				expect(
-					ifDefineBlockOuter.ifDef.content?.tokenIndexes.end.pos.line,
+					ifDefineBlockOuter.ifDef.content?.lastToken.pos.line,
 				).toEqual(9);
 
 				expect(
-					ifDefineBlockOuter.elseOption?.content?.tokenIndexes.start
-						.pos.col,
+					ifDefineBlockOuter.elseOption?.content?.firstToken.pos.col,
 				).toEqual(0);
 				expect(
-					ifDefineBlockOuter.elseOption?.content?.tokenIndexes.start
-						.pos.line,
+					ifDefineBlockOuter.elseOption?.content?.firstToken.pos.line,
 				).toEqual(11);
 				expect(
-					ifDefineBlockOuter.elseOption!.content!.tokenIndexes.end.pos
+					ifDefineBlockOuter.elseOption!.content!.lastToken.pos
 						.colEnd,
 				).toEqual(6);
 				expect(
-					ifDefineBlockOuter.elseOption!.content?.tokenIndexes.end.pos
-						.line,
+					ifDefineBlockOuter.elseOption!.content?.lastToken.pos.line,
 				).toEqual(18);
 
 				const ifDefineBlockInner = ifDefineBlocks[1];
@@ -3395,36 +3369,30 @@ describe('Parser', () => {
 					'AGAIN',
 				);
 				expect(
-					ifDefineBlockInner.ifDef.content?.tokenIndexes.start.pos
-						.col,
+					ifDefineBlockInner.ifDef.content?.firstToken.pos.col,
 				).toEqual(0);
 				expect(
-					ifDefineBlockInner.ifDef.content?.tokenIndexes.start.pos
-						.line,
+					ifDefineBlockInner.ifDef.content?.firstToken.pos.line,
 				).toEqual(4);
 				expect(
-					ifDefineBlockInner.ifDef.content!.tokenIndexes.end.pos
-						.colEnd,
+					ifDefineBlockInner.ifDef.content!.lastToken.pos.colEnd,
 				).toEqual(5);
 				expect(
-					ifDefineBlockInner.ifDef.content?.tokenIndexes.end.pos.line,
+					ifDefineBlockInner.ifDef.content?.lastToken.pos.line,
 				).toEqual(5);
 
 				expect(
-					ifDefineBlockInner.elseOption?.content?.tokenIndexes.start
-						.pos.col,
+					ifDefineBlockInner.elseOption?.content?.firstToken.pos.col,
 				).toEqual(0);
 				expect(
-					ifDefineBlockInner.elseOption?.content?.tokenIndexes.start
-						.pos.line,
+					ifDefineBlockInner.elseOption?.content?.firstToken.pos.line,
 				).toEqual(7);
 				expect(
-					ifDefineBlockInner.elseOption!.content!.tokenIndexes.end.pos
+					ifDefineBlockInner.elseOption!.content!.lastToken.pos
 						.colEnd,
 				).toEqual(3);
 				expect(
-					ifDefineBlockInner.elseOption!.content?.tokenIndexes.end.pos
-						.line,
+					ifDefineBlockInner.elseOption!.content?.lastToken.pos.line,
 				).toEqual(8);
 
 				expect(tokensToString(parser.tokens).trim()).toEqual(
@@ -3449,18 +3417,18 @@ describe('Parser', () => {
 
 				const ifDefineBlock = ifDefineBlocks[0];
 				expect(ifDefineBlock.ifDef.identifier?.name).toEqual('HELLO');
+				expect(ifDefineBlock.ifDef.content?.firstToken.pos.col).toEqual(
+					0,
+				);
 				expect(
-					ifDefineBlock.ifDef.content?.tokenIndexes.start.pos.col,
-				).toEqual(0);
-				expect(
-					ifDefineBlock.ifDef.content?.tokenIndexes.start.pos.line,
+					ifDefineBlock.ifDef.content?.firstToken.pos.line,
 				).toEqual(1);
 				expect(
-					ifDefineBlock.ifDef.content!.tokenIndexes.end.pos.colEnd,
+					ifDefineBlock.ifDef.content!.lastToken.pos.colEnd,
 				).toEqual(5);
-				expect(
-					ifDefineBlock.ifDef.content?.tokenIndexes.end.pos.line,
-				).toEqual(2);
+				expect(ifDefineBlock.ifDef.content?.lastToken.pos.line).toEqual(
+					2,
+				);
 				expect(ifDefineBlock.elseOption).toBeUndefined();
 			});
 		});

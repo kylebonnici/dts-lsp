@@ -23,11 +23,14 @@ export function getCpusNodeType() {
 	const nodeType = getStandardDefaultType();
 	nodeType.additionalValidations = (_, node) => {
 		if (node.parent?.name !== '/') {
+			const definition = node.definitions[0];
+
 			return [
 				genStandardTypeDiagnostic(
 					StandardTypeIssue.NODE_LOCATION,
-					node.definitions[0].rangeTokens,
-					node.definitions[0],
+					definition.firstToken,
+					definition.lastToken,
+					definition,
 					{
 						linkedTo: node.definitions.slice(1),
 						templateStrings: [
@@ -67,7 +70,8 @@ export function getCpusNodeType() {
 			issues.push(
 				genStandardTypeDiagnostic(
 					StandardTypeIssue.INVALID_VALUE,
-					property.ast.rangeTokens,
+					property.ast.firstToken,
+					property.ast.lastToken,
 					property.ast,
 					{
 						templateStrings: [

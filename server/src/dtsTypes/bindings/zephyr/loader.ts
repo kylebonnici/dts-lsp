@@ -43,7 +43,6 @@ import {
 	StandardTypeIssue,
 } from '../../../types';
 import {
-	createTokenIndex,
 	fileURLToPath,
 	genStandardTypeDiagnostic,
 	pathToFileURL,
@@ -421,7 +420,8 @@ export class ZephyrBindingsLoader {
 				if (busCompats.length) {
 					return genStandardTypeDiagnostic(
 						StandardTypeIssue.BINDING_ON_BUS_NODE,
-						c.ast.rangeTokens,
+						c.ast.firstToken,
+						c.ast.lastToken,
 						c.ast,
 						{ templateStrings: busCompats },
 					);
@@ -432,7 +432,8 @@ export class ZephyrBindingsLoader {
 				: [
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.MISSING_BINDING_FILE,
-							c.ast.rangeTokens,
+							c.ast.firstToken,
+							c.ast.lastToken,
 							c.ast,
 							{
 								severity: DiagnosticSeverity.Hint,
@@ -733,7 +734,8 @@ const generateZephyrTypeCheck = (
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.EXPECTED_VALUE,
-							issueAst.rangeTokens,
+							issueAst.firstToken,
+							issueAst.lastToken,
 							issueAst,
 							{
 								templateStrings: [
@@ -750,7 +752,8 @@ const generateZephyrTypeCheck = (
 			issues.push(
 				genStandardTypeDiagnostic(
 					StandardTypeIssue.DEPRECATED,
-					p.ast.rangeTokens,
+					p.ast.firstToken,
+					p.ast.lastToken,
 					p.ast,
 					{
 						severity: DiagnosticSeverity.Warning,
@@ -773,7 +776,8 @@ const generateZephyrTypeCheck = (
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.UNABLE_TO_RESOLVE_PHANDLE,
-							v.rangeTokens,
+							v.firstToken,
+							v.lastToken,
 							v,
 						),
 					);
@@ -794,7 +798,8 @@ const generateZephyrTypeCheck = (
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.UNABLE_TO_RESOLVE_PATH,
-							path.rangeTokens,
+							path.firstToken,
+							path.lastToken,
 							path,
 							{ templateStrings: [p, `/${resolved.join('/')}`] },
 						),
@@ -824,7 +829,8 @@ const generateZephyrTypeCheck = (
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.MISSING_VALUE_NAME,
-							p.ast.rangeTokens,
+							p.ast.firstToken,
+							p.ast.lastToken,
 							p.ast,
 							{
 								severity: DiagnosticSeverity.Warning,
@@ -850,7 +856,8 @@ const generateZephyrTypeCheck = (
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.UNABLE_TO_RESOLVE_PHANDLE,
-							issueAst.rangeTokens,
+							issueAst.firstToken,
+							issueAst.lastToken,
 							issueAst,
 						),
 					);
@@ -873,7 +880,8 @@ const generateZephyrTypeCheck = (
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
-							p.ast.rangeTokens,
+							p.ast.firstToken,
+							p.ast.lastToken,
 							p.ast,
 							{
 								linkedTo: [...pHandleValue.nodeNameOrLabelRef],
@@ -921,7 +929,8 @@ const generateZephyrTypeCheck = (
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.CELL_MISS_MATCH,
-							issueAst.rangeTokens,
+							issueAst.firstToken,
+							issueAst.lastToken,
 							issueAst,
 							{
 								templateStrings: [
@@ -957,7 +966,8 @@ const generateZephyrTypeCheck = (
 						issues.push(
 							genStandardTypeDiagnostic(
 								StandardTypeIssue.NO_NEXUS_MAP_MATCH,
-								match.entry.rangeTokens,
+								match.entry.firstToken,
+								match.entry.lastToken,
 								match.entry,
 								{ linkedTo: [mapProperty.ast] },
 							),
@@ -986,10 +996,8 @@ const generateZephyrTypeCheck = (
 						issues.push(
 							genStandardTypeDiagnostic(
 								StandardTypeIssue.MISSING_VALUE_NAME,
-								createTokenIndex(
-									v.firstToken,
-									values.at(i - 1)?.lastToken,
-								),
+								v.firstToken,
+								values[i - 1]?.lastToken,
 								p.ast,
 								{
 									severity: DiagnosticSeverity.Warning,

@@ -161,7 +161,8 @@ export class Parser extends BaseParser {
 					this._issues.push(
 						genSyntaxDiagnostic(
 							SyntaxIssue.UNKNOWN,
-							createTokenIndex(token),
+							token,
+							token,
 							null,
 						),
 					);
@@ -178,7 +179,8 @@ export class Parser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.PROPERTY_MUST_BE_IN_NODE,
-					prop.rangeTokens,
+					prop.firstToken,
+					prop.lastToken,
 					prop,
 				),
 			);
@@ -188,7 +190,8 @@ export class Parser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.PROPERTY_DELETE_MUST_BE_IN_NODE,
-					delProp.rangeTokens,
+					delProp.firstToken,
+					delProp.lastToken,
 					delProp,
 				),
 			);
@@ -253,7 +256,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.CURLY_CLOSE,
-						createTokenIndex(prevToken),
+						prevToken,
+						prevToken,
 						dtcNode,
 					),
 				);
@@ -286,7 +290,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.END_STATEMENT,
-						createTokenIndex(this.prevToken),
+						token,
+						token,
 						parentStatement,
 					),
 				);
@@ -308,7 +313,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.NO_STATEMENT,
-						createTokenIndex(token),
+						token,
+						token,
 						null,
 					),
 				);
@@ -334,7 +340,8 @@ export class Parser extends BaseParser {
 					this._issues.push(
 						genSyntaxDiagnostic(
 							SyntaxIssue.UNKNOWN,
-							createTokenIndex(token),
+							token,
+							token,
 							null,
 						),
 					);
@@ -416,10 +423,8 @@ export class Parser extends BaseParser {
 									SyntaxIssue.NODE_PATH_REF,
 									SyntaxIssue.ROOT_NODE_NAME,
 								],
-						createTokenIndex(
-							child.firstToken,
-							this.currentToken?.nextToken,
-						),
+						child.firstToken,
+						this.currentToken?.nextToken,
 						child,
 					),
 				);
@@ -442,7 +447,8 @@ export class Parser extends BaseParser {
 					this._issues.push(
 						genSyntaxDiagnostic(
 							SyntaxIssue.CURLY_OPEN,
-							refOrName.rangeTokens,
+							refOrName.firstToken,
+							refOrName.lastToken,
 							refOrName,
 						),
 					);
@@ -486,7 +492,8 @@ export class Parser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.NODE_ADDRESS_HEX_START,
-					createTokenIndex(hexStartPrepend[0], hexStartPrepend[1]),
+					hexStartPrepend[0],
+					hexStartPrepend[1],
 					parent,
 					{ severity: DiagnosticSeverity.Warning },
 				),
@@ -530,7 +537,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.NODE_ADDRESS,
-						createTokenIndex(prevToken),
+						prevToken,
+						prevToken,
 						parent,
 					),
 				);
@@ -541,7 +549,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.WHITE_SPACE,
-						createTokenIndex(prevToken, addressValid.at(0)),
+						prevToken,
+						addressValid[0],
 						parent,
 						{ inclusiveStart: false, inclusiveEnd: false },
 					),
@@ -553,7 +562,8 @@ export class Parser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.NODE_ADDRESS_ENDS_ULL,
-					createTokenIndex(this.currentToken),
+					this.currentToken,
+					this.currentToken,
 					parent,
 					{ severity: DiagnosticSeverity.Warning },
 				),
@@ -585,7 +595,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.WHITE_SPACE,
-						createTokenIndex(nodeName.lastToken!, atValid[0]),
+						nodeName.lastToken,
+						atValid[0],
 						nodeName,
 						{ inclusiveStart: false, inclusiveEnd: false },
 					),
@@ -604,10 +615,8 @@ export class Parser extends BaseParser {
 						this._issues.push(
 							genSyntaxDiagnostic(
 								SyntaxIssue.WHITE_SPACE,
-								createTokenIndex(
-									this.prevToken,
-									this.currentToken,
-								),
+								this.prevToken,
+								this.currentToken,
 								nodeName,
 								{ inclusiveStart: false, inclusiveEnd: false },
 							),
@@ -634,7 +643,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.UNKNOWN_NODE_ADDRESS_SYNTAX,
-						createTokenIndex(unknownTokenStart, this.currentToken),
+						unknownTokenStart,
+						this.currentToken,
 						nodeName,
 					),
 				);
@@ -685,7 +695,8 @@ export class Parser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.NAME_NODE_NAME_START,
-					node.rangeTokens,
+					node.firstToken,
+					node.lastToken,
 					node,
 				),
 			);
@@ -783,7 +794,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.LABEL_ASSIGN_MISSING_COLON,
-						node.rangeTokens,
+						node.firstToken,
+						node.lastToken,
 						node,
 					),
 				);
@@ -801,7 +813,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.WHITE_SPACE,
-						createTokenIndex(lastNameToken, token),
+						lastNameToken,
+						token,
 						node,
 						{ inclusiveStart: false, inclusiveEnd: false },
 					),
@@ -846,7 +859,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.VALUE,
-						node.rangeTokens,
+						node.firstToken,
+						node.lastToken,
 						node,
 					),
 				);
@@ -897,7 +911,8 @@ export class Parser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.MISSING_FORWARD_SLASH_END,
-					node.rangeTokens,
+					node.firstToken,
+					node.lastToken,
 					node,
 				),
 			);
@@ -941,7 +956,8 @@ export class Parser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.MISSING_FORWARD_SLASH_END,
-					keyword.rangeTokens,
+					keyword.firstToken,
+					keyword.lastToken,
 					keyword,
 				),
 			);
@@ -959,7 +975,8 @@ export class Parser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.EXPECTED_START_ADDRESS,
-					keyword.rangeTokens,
+					keyword.firstToken,
+					keyword.lastToken,
 					keyword,
 				),
 			);
@@ -970,7 +987,8 @@ export class Parser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.EXPECTED_END_ADDRESS,
-					issueAst.rangeTokens,
+					issueAst.firstToken,
+					issueAst.lastToken,
 					node,
 				),
 			);
@@ -1009,7 +1027,8 @@ export class Parser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.MISSING_FORWARD_SLASH_END,
-					keyword.rangeTokens,
+					keyword.firstToken,
+					keyword.lastToken,
 					keyword,
 				),
 			);
@@ -1024,7 +1043,8 @@ export class Parser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.EXPECTED_BITS_SIZE,
-					keyword.rangeTokens,
+					keyword.firstToken,
+					keyword.lastToken,
 					keyword,
 				),
 			);
@@ -1037,7 +1057,8 @@ export class Parser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.INVALID_BITS_SIZE,
-					bitsSize.rangeTokens,
+					bitsSize.firstToken,
+					bitsSize.lastToken,
 					bitsSize,
 				),
 			);
@@ -1046,7 +1067,8 @@ export class Parser extends BaseParser {
 		this._issues.push(
 			genSyntaxDiagnostic(
 				SyntaxIssue.BITS_NON_OFFICIAL_SYNTAX,
-				node.rangeTokens,
+				node.firstToken,
+				node.lastToken,
 				node,
 				{ severity: DiagnosticSeverity.Warning },
 			),
@@ -1110,7 +1132,8 @@ export class Parser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.DELETE_INCOMPLETE,
-					keyword.rangeTokens,
+					keyword.firstToken,
+					keyword.lastToken,
 					keyword,
 				),
 			);
@@ -1138,7 +1161,8 @@ export class Parser extends BaseParser {
 					stringValue.startsWith('/delete-n')
 						? SyntaxIssue.DELETE_NODE_INCOMPLETE
 						: SyntaxIssue.DELETE_INCOMPLETE,
-					keyword.rangeTokens,
+					keyword.firstToken,
+					keyword.lastToken,
 					keyword,
 				),
 			);
@@ -1147,7 +1171,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.MISSING_FORWARD_SLASH_END,
-						keyword.rangeTokens,
+						keyword.firstToken,
+						keyword.lastToken,
 						keyword,
 					),
 				);
@@ -1158,13 +1183,14 @@ export class Parser extends BaseParser {
 		}
 		const node = new DeleteNode(keyword);
 
-		if (sameLine(keyword.tokenIndexes?.end, firstToken)) {
+		if (sameLine(keyword.lastToken, firstToken)) {
 			const nodePathRef = this.processNodePathRef(parent);
 			if (nodePathRef && allow === 'Name') {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.NODE_NAME,
-						nodePathRef.rangeTokens,
+						nodePathRef.firstToken,
+						nodePathRef.lastToken,
 						nodePathRef,
 					),
 				);
@@ -1175,7 +1201,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.NODE_NAME,
-						labelRef.rangeTokens,
+						labelRef.firstToken,
+						labelRef.lastToken,
 						labelRef,
 					),
 				);
@@ -1187,7 +1214,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.NODE_REF,
-						nodeName.rangeTokens,
+						nodeName.firstToken,
+						nodeName.lastToken,
 						nodeName,
 					),
 				);
@@ -1197,7 +1225,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						[SyntaxIssue.NODE_NAME, SyntaxIssue.NODE_REF],
-						node.rangeTokens,
+						node.firstToken,
+						node.lastToken,
 						node,
 					),
 				);
@@ -1208,7 +1237,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.NODE_NAME,
-						keyword.rangeTokens,
+						keyword.firstToken,
+						keyword.lastToken,
 						keyword,
 					),
 				);
@@ -1216,7 +1246,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.NODE_REF,
-						keyword.rangeTokens,
+						keyword.firstToken,
+						keyword.lastToken,
 						keyword,
 					),
 				);
@@ -1260,7 +1291,8 @@ export class Parser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.DELETE_INCOMPLETE,
-					keyword.rangeTokens,
+					keyword.firstToken,
+					keyword.lastToken,
 					keyword,
 				),
 			);
@@ -1288,7 +1320,8 @@ export class Parser extends BaseParser {
 					stringValue.startsWith('/delete-p')
 						? SyntaxIssue.DELETE_PROPERTY_INCOMPLETE
 						: SyntaxIssue.DELETE_INCOMPLETE,
-					keyword.rangeTokens,
+					keyword.firstToken,
+					keyword.lastToken,
 					keyword,
 				),
 			);
@@ -1297,7 +1330,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.MISSING_FORWARD_SLASH_END,
-						keyword.rangeTokens,
+						keyword.firstToken,
+						keyword.lastToken,
 						keyword,
 					),
 				);
@@ -1309,13 +1343,14 @@ export class Parser extends BaseParser {
 
 		const node = new DeleteProperty(keyword);
 
-		if (sameLine(keyword.tokenIndexes?.end, firstToken)) {
+		if (sameLine(keyword.lastToken, firstToken)) {
 			const propertyName = this.isPropertyName();
 			if (!propertyName) {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.PROPERTY_NAME,
-						node.rangeTokens,
+						node.firstToken,
+						node.lastToken,
 						node,
 					),
 				);
@@ -1326,7 +1361,8 @@ export class Parser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.PROPERTY_NAME,
-					keyword.rangeTokens,
+					keyword.firstToken,
+					keyword.lastToken,
 					keyword,
 				),
 			);
@@ -1408,7 +1444,8 @@ export class Parser extends BaseParser {
 					this._issues.push(
 						genSyntaxDiagnostic(
 							SyntaxIssue.VALUE,
-							node.rangeTokens,
+							node.firstToken,
+							node.lastToken,
 							node,
 						),
 					);
@@ -1421,7 +1458,8 @@ export class Parser extends BaseParser {
 					this._issues.push(
 						genSyntaxDiagnostic(
 							SyntaxIssue.MISSING_COMMA,
-							node.rangeTokens,
+							node.firstToken,
+							node.lastToken,
 							node,
 						),
 					);
@@ -1485,7 +1523,8 @@ export class Parser extends BaseParser {
 					value.startsWith('"')
 						? SyntaxIssue.DOUBLE_QUOTE
 						: SyntaxIssue.SINGLE_QUOTE,
-					propValue.rangeTokens,
+					propValue.firstToken,
+					propValue.lastToken,
 					propValue,
 				),
 			);
@@ -1526,7 +1565,12 @@ export class Parser extends BaseParser {
 
 		if (!validToken(this.currentToken, LexerToken.GT_SYM)) {
 			this._issues.push(
-				genSyntaxDiagnostic(SyntaxIssue.GT_SYM, node.rangeTokens, node),
+				genSyntaxDiagnostic(
+					SyntaxIssue.GT_SYM,
+					node.firstToken,
+					node.lastToken,
+					node,
+				),
 			);
 		} else {
 			const t = this.moveToNextToken;
@@ -1572,17 +1616,18 @@ export class Parser extends BaseParser {
 		numberValues.forEach((value) => {
 			let len = 0;
 			if (
-				value.value?.tokenIndexes?.start ===
-				value.value?.tokenIndexes?.end
+				value.value &&
+				value.value.firstToken === value.value.lastToken
 			) {
-				len = value.value?.tokenIndexes?.start?.pos.len ?? 0;
+				len = value.value.firstToken.pos.len;
 			}
 
 			if (len % 2 !== 0) {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.BYTESTRING_EVEN,
-						value.rangeTokens,
+						value.firstToken,
+						value.lastToken,
 						value,
 					),
 				);
@@ -1596,7 +1641,8 @@ export class Parser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.BYTESTRING,
-					byteString.rangeTokens,
+					byteString.firstToken,
+					byteString.lastToken,
 					byteString,
 				),
 			);
@@ -1608,7 +1654,8 @@ export class Parser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.SQUARE_CLOSE,
-					node.rangeTokens,
+					node.firstToken,
+					node.lastToken,
 					node,
 				),
 			);
@@ -1809,7 +1856,8 @@ export class Parser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.LABEL_NAME,
-					createTokenIndex(ampersandToken),
+					ampersandToken,
+					ampersandToken,
 					parent,
 				),
 			);
@@ -1826,7 +1874,8 @@ export class Parser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.WHITE_SPACE,
-					createTokenIndex(ampersandToken, labelName.firstToken),
+					ampersandToken,
+					labelName.firstToken,
 					parent,
 					{ inclusiveStart: false, inclusiveEnd: false },
 				),
@@ -1888,7 +1937,8 @@ export class Parser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					[SyntaxIssue.LABEL_NAME, SyntaxIssue.NODE_PATH],
-					createTokenIndex(firstToken),
+					firstToken,
+					firstToken,
 					parent,
 				),
 			);
@@ -1922,7 +1972,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.FORWARD_SLASH_START_PATH,
-						createTokenIndex(this.prevToken),
+						this.prevToken,
+						this.prevToken,
 						nodePath,
 					),
 				);
@@ -1932,11 +1983,13 @@ export class Parser extends BaseParser {
 		}
 
 		const nodeName = this.isNodeName();
-		if (!nodeName) {
+		const token = firstToken ?? this.prevToken;
+		if (!nodeName && token) {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.NODE_NAME,
-					createTokenIndex(firstToken ?? this.prevToken!),
+					token,
+					token,
 					nodePath,
 				),
 			);
@@ -1980,7 +2033,8 @@ export class Parser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.WHITE_SPACE,
-					createTokenIndex(firstToken, beforePath),
+					firstToken,
+					beforePath,
 					parent,
 					{ inclusiveStart: false, inclusiveEnd: false },
 				),
@@ -2006,7 +2060,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.WHITE_SPACE,
-						createTokenIndex(p.lastToken, afterPath),
+						p.lastToken,
+						afterPath,
 						parent,
 						{ inclusiveStart: false, inclusiveEnd: false },
 					),
@@ -2021,7 +2076,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.WHITE_SPACE,
-						createTokenIndex(beforePath, p?.firstToken),
+						beforePath,
+						p?.firstToken,
 						parent,
 						{ inclusiveStart: false, inclusiveEnd: false },
 					),
@@ -2037,7 +2093,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.WHITE_SPACE,
-						createTokenIndex(p.lastToken, nextPart?.firstToken),
+						p.lastToken,
+						nextPart?.firstToken,
 						parent,
 						{ inclusiveStart: false, inclusiveEnd: false },
 					),
@@ -2050,7 +2107,8 @@ export class Parser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.CURLY_CLOSE,
-						createTokenIndex(this.prevToken),
+						this.prevToken,
+						this.prevToken,
 						parent,
 					),
 				);

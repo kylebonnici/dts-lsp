@@ -359,28 +359,30 @@ export class NodeName extends ASTBase {
 	}
 
 	buildSemanticTokens(push: BuildSemanticTokensPush): void {
-		if (!this.tokenIndexes?.start || !this.tokenIndexes.start.value) return;
+		const firstToken = this.firstToken;
+		if (!firstToken.value) return;
+
 		const nameNewStart = {
-			...this.tokenIndexes.start,
+			...firstToken,
 			pos: {
-				...this.tokenIndexes.start.pos,
+				...firstToken.pos,
 				len: this.name.length,
 			},
 		};
-		push(getTokenTypes('type'), getTokenModifiers('declaration'), {
-			start: nameNewStart,
-			end: nameNewStart,
-		});
+		push(
+			getTokenTypes('type'),
+			getTokenModifiers('declaration'),
+			nameNewStart,
+			nameNewStart,
+		);
 
 		if (this.address !== undefined) {
 			this.address.forEach((a) => {
 				push(
 					getTokenTypes('decorator'),
 					getTokenModifiers('declaration'),
-					{
-						start: a.firstToken,
-						end: a.lastToken,
-					},
+					a.firstToken,
+					a.lastToken,
 				);
 				a.buildSemanticTokens(push);
 			});
@@ -395,20 +397,15 @@ export class NodeName extends ASTBase {
 	}
 
 	serialize(): SerializableFullNodeName {
+		const firstToken = this.firstToken;
 		return {
 			fullName: this.toString(),
 			name: {
 				name: this.name,
 				uri: this.serializeUri,
 				range: Range.create(
-					Position.create(
-						this.tokenIndexes.start.pos.line,
-						this.tokenIndexes.start.pos.col,
-					),
-					Position.create(
-						this.tokenIndexes.start.pos.line,
-						this.tokenIndexes.start.pos.colEnd,
-					),
+					Position.create(firstToken.pos.line, firstToken.pos.col),
+					Position.create(firstToken.pos.line, firstToken.pos.colEnd),
 				),
 				issues: this.serializeIssues,
 			},

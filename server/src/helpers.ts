@@ -91,10 +91,7 @@ export const tokensToString = (tokens: Token[]) => {
 };
 
 export const toRange = (slxBase: ASTBase) => {
-	return toRangeWithTokenIndex(
-		slxBase.tokenIndexes.start,
-		slxBase.tokenIndexes.end,
-	);
+	return toRangeWithTokenIndex(slxBase.firstToken, slxBase.lastToken);
 };
 
 let indentString = '\t';
@@ -148,16 +145,16 @@ export const positionInBetween = (
 	file: string,
 	position: Position,
 ): boolean => {
+	const firstToken = ast.firstToken;
+	const lastToken = ast.lastToken;
 	return !!(
-		isPathEqual(ast.uri, file) &&
-		ast.tokenIndexes?.start &&
-		ast.tokenIndexes?.end &&
-		(ast.tokenIndexes.start.pos.line < position.line ||
-			(ast.tokenIndexes.start.pos.line === position.line &&
-				ast.tokenIndexes.start.pos.col <= position.character)) &&
-		(ast.tokenIndexes.end.pos.line > position.line ||
-			(ast.tokenIndexes.end.pos.line === position.line &&
-				ast.tokenIndexes.end.pos.colEnd >= position.character))
+		(firstToken.pos.line < position.line ||
+			(firstToken.pos.line === position.line &&
+				firstToken.pos.col <= position.character)) &&
+		(lastToken.pos.line > position.line ||
+			(lastToken.pos.line === position.line &&
+				lastToken.pos.colEnd >= position.character)) &&
+		isPathEqual(ast.uri, file)
 	);
 };
 
@@ -166,14 +163,15 @@ export const positionSameLineAndNotAfter = (
 	file: string,
 	position: Position,
 ): boolean => {
+	const firstToken = ast.firstToken;
+	const lastToken = ast.lastToken;
+
 	return !!(
-		isPathEqual(ast.uri, file) &&
 		ast.lastToken.value !== ';' &&
-		ast.tokenIndexes?.start &&
-		ast.tokenIndexes?.end &&
-		(ast.tokenIndexes.start.pos.line === position.line ||
-			ast.tokenIndexes.end.pos.line === position.line) &&
-		position.character >= ast.tokenIndexes.end.pos.colEnd
+		(firstToken.pos.line === position.line ||
+			lastToken.pos.line === position.line) &&
+		position.character >= lastToken.pos.colEnd &&
+		isPathEqual(ast.uri, file)
 	);
 };
 
@@ -189,7 +187,7 @@ export const isLastTokenOnLine = (
 	const lastLineToken = lineTokens.at(-1);
 	if (lastLineToken && lastLineToken.pos.col >= position.character)
 		return false; // we should have matched positionInBetween
-	return ast.tokenIndexes?.end === lastLineToken;
+	return ast.lastToken === lastLineToken;
 };
 
 export const getAstOnLine = (
@@ -257,7 +255,8 @@ export const getDeepestAstNodeBefore = (
 
 export const genSyntaxDiagnostic = (
 	issues: SyntaxIssue | SyntaxIssue[],
-	rangeTokens: { start: Token; end: Token },
+	start: Token,
+	end: Token | undefined = start,
 	issueOwner: ASTBase | null,
 	{
 		severity = DiagnosticSeverity.Error,
@@ -284,15 +283,15 @@ export const genSyntaxDiagnostic = (
 	},
 ): FileDiagnostic => {
 	const range = toRangeWithTokenIndex(
-		rangeTokens.start,
-		rangeTokens.end,
+		start,
+		end,
 		inclusiveStart,
 		inclusiveEnd,
 	);
 	const issue: Issue<SyntaxIssue> = {
 		issues: Array.isArray(issues) ? issues : [issues],
 		range,
-		uri: rangeTokens.start.uri,
+		uri: start.uri,
 		severity,
 		linkedTo: linkedTo.map(({ range, uri }) => ({
 			range,
@@ -318,14 +317,14 @@ export const genSyntaxDiagnostic = (
 			tags: issue.tags,
 			data: {
 				firstToken: {
-					pos: rangeTokens.start.pos,
-					tokens: rangeTokens.start.tokens,
-					value: rangeTokens.start.value,
+					pos: start.pos,
+					tokens: start.tokens,
+					value: start.value,
 				},
 				lastToken: {
-					pos: rangeTokens.end.pos,
-					tokens: rangeTokens.end.tokens,
-					value: rangeTokens.end.value,
+					pos: end.pos,
+					tokens: end.tokens,
+					value: end.value,
 				},
 				issues: {
 					type: 'SyntaxIssue',
@@ -348,7 +347,8 @@ export const genSyntaxDiagnostic = (
 
 export const genContextDiagnostic = (
 	issues: ContextIssues | ContextIssues[],
-	rangeTokens: { start: Token; end: Token },
+	start: Token,
+	end: Token,
 	issueOwner: ASTBase | null,
 	{
 		severity = DiagnosticSeverity.Error,
@@ -373,11 +373,11 @@ export const genContextDiagnostic = (
 		linkedToTemplateStrings: [],
 	},
 ): FileDiagnostic => {
-	const range = toRangeWithTokenIndex(rangeTokens.start, rangeTokens.end);
+	const range = toRangeWithTokenIndex(start, end);
 	const issue: Issue<ContextIssues> = {
 		issues: Array.isArray(issues) ? issues : [issues],
 		range,
-		uri: rangeTokens.start.uri,
+		uri: start.uri,
 		severity,
 		linkedTo: linkedTo.map(({ range, uri }, i) => ({
 			range,
@@ -429,7 +429,8 @@ export const genContextDiagnostic = (
 
 export const genStandardTypeDiagnostic = (
 	issues: StandardTypeIssue | StandardTypeIssue[],
-	rangeTokens: { start: Token; end: Token },
+	start: Token,
+	end: Token,
 	issueOwner: ASTBase | null,
 	{
 		severity = DiagnosticSeverity.Error,
@@ -451,12 +452,12 @@ export const genStandardTypeDiagnostic = (
 		templateStrings: [],
 	},
 ): FileDiagnostic => {
-	const range = toRangeWithTokenIndex(rangeTokens.start, rangeTokens.end);
+	const range = toRangeWithTokenIndex(start, end);
 	const issue: Issue<StandardTypeIssue> = {
 		issues: Array.isArray(issues) ? issues : [issues],
 		range,
 		severity,
-		uri: rangeTokens.start.uri,
+		uri: start.uri,
 		linkedTo: linkedTo.map(({ range, uri }) => ({
 			range,
 			uri,
@@ -490,14 +491,14 @@ export const genStandardTypeDiagnostic = (
 			tags: issue.tags,
 			data: {
 				firstToken: {
-					pos: rangeTokens.start.pos,
-					tokens: rangeTokens.start.tokens,
-					value: rangeTokens.start.value,
+					pos: start.pos,
+					tokens: start.tokens,
+					value: start.value,
 				},
 				lastToken: {
-					pos: rangeTokens.end.pos,
-					tokens: rangeTokens.end.tokens,
-					value: rangeTokens.end.value,
+					pos: end.pos,
+					tokens: end.tokens,
+					value: end.value,
 				},
 				issues: {
 					type: 'StandardTypeIssue',
@@ -534,15 +535,14 @@ export const sortAstForScope = <T extends ASTBase>(
 			return aSortKey - bSortKey;
 		}
 
-		if (!a.tokenIndexes?.end || !b.tokenIndexes?.end) {
-			throw new Error('Must have token indexes');
+		const aLastToken = a.lastToken;
+		const bLastToken = b.lastToken;
+
+		if (aLastToken.pos.line !== bLastToken.pos.line) {
+			return aLastToken.pos.line - bLastToken.pos.line;
 		}
 
-		if (a.tokenIndexes.end.pos.line !== b.tokenIndexes.end.pos.line) {
-			return a.tokenIndexes.end.pos.line - b.tokenIndexes.end.pos.line;
-		}
-
-		return a.tokenIndexes.end.pos.col - b.tokenIndexes.end.pos.col;
+		return aLastToken.pos.col - bLastToken.pos.col;
 	});
 };
 
@@ -569,11 +569,11 @@ export async function nodeFinder<T>(
 	const inScope = (ast: ASTBase) => {
 		const position = location.position;
 		if (isPathEqual(ast.uri, uri)) {
+			const lastToken = ast.lastToken;
 			return !!(
-				ast.tokenIndexes?.end &&
-				(ast.tokenIndexes.end.pos.line < position.line ||
-					(ast.tokenIndexes.end.pos.line === position.line &&
-						ast.tokenIndexes.end.pos.colEnd <= position.character))
+				lastToken.pos.line < position.line ||
+				(lastToken.pos.line === position.line &&
+					lastToken.pos.colEnd <= position.character)
 			);
 		}
 

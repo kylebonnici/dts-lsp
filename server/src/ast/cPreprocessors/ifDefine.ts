@@ -104,15 +104,15 @@ export class IfDefineBlock extends ASTBase {
 		if (!this.ifDef.identifier) {
 			return [
 				{
-					start: getIndex(this.tokenIndexes.start),
-					end: getIndex(this.tokenIndexes.end),
+					start: getIndex(this.firstToken),
+					end: getIndex(this.lastToken),
 				},
 			];
 		}
 
 		invalidRange.push({
-			start: getIndex(this.ifDef.tokenIndexes.start),
-			end: getIndex(this.ifDef.identifier.tokenIndexes.end),
+			start: getIndex(this.ifDef.firstToken),
+			end: getIndex(this.ifDef.identifier.lastToken),
 		});
 
 		const useMainBlock = this.ifDef.useBlock(macrosResolvers);
@@ -124,29 +124,29 @@ export class IfDefineBlock extends ASTBase {
 
 		if (!useMainBlock && this.ifDef.content) {
 			invalidRange.push({
-				start: getIndex(this.ifDef.content.tokenIndexes.start),
-				end: getIndex(this.ifDef.content.tokenIndexes.end),
+				start: getIndex(this.ifDef.content.firstToken),
+				end: getIndex(this.ifDef.content.lastToken),
 			});
 		}
 
 		if (this.elseOption) {
 			invalidRange.push({
-				start: getIndex(this.elseOption.tokenIndexes.start),
-				end: getIndex(this.elseOption.keyword.tokenIndexes.end),
+				start: getIndex(this.elseOption.firstToken),
+				end: getIndex(this.elseOption.keyword.lastToken),
 			});
 
 			if (useMainBlock && this.elseOption.content) {
 				invalidRange.push({
-					start: getIndex(this.elseOption.content.tokenIndexes.start),
-					end: getIndex(this.elseOption.content.tokenIndexes.end),
+					start: getIndex(this.elseOption.content.firstToken),
+					end: getIndex(this.elseOption.content.lastToken),
 				});
 			}
 		}
 
 		if (this.endIf) {
 			invalidRange.push({
-				start: getIndex(this.endIf.tokenIndexes.start),
-				end: getIndex(this.endIf.tokenIndexes.end),
+				start: getIndex(this.endIf.firstToken),
+				end: getIndex(this.endIf.lastToken),
 			});
 		}
 
@@ -177,10 +177,9 @@ export class IfElIfBlock extends ASTBase {
 		let blockFound = false;
 		this.ifBlocks.forEach((ifBlock) => {
 			invalidRange.push({
-				start: getIndex(ifBlock.tokenIndexes.start),
+				start: getIndex(ifBlock.firstToken),
 				end: getIndex(
-					ifBlock.expression?.tokenIndexes.end ??
-						ifBlock.keyword.tokenIndexes.end,
+					ifBlock.expression?.lastToken ?? ifBlock.keyword.lastToken,
 				),
 			});
 
@@ -190,8 +189,8 @@ export class IfElIfBlock extends ASTBase {
 			} else {
 				if (ifBlock.content) {
 					invalidRange.push({
-						start: getIndex(ifBlock.content.tokenIndexes.start),
-						end: getIndex(ifBlock.content.tokenIndexes.end),
+						start: getIndex(ifBlock.content.firstToken),
+						end: getIndex(ifBlock.content.lastToken),
 					});
 				}
 			}
@@ -199,14 +198,14 @@ export class IfElIfBlock extends ASTBase {
 
 		if (this.elseOption) {
 			invalidRange.push({
-				start: getIndex(this.elseOption.keyword.tokenIndexes.start),
-				end: getIndex(this.elseOption.keyword.tokenIndexes.end),
+				start: getIndex(this.elseOption.keyword.firstToken),
+				end: getIndex(this.elseOption.keyword.lastToken),
 			});
 
 			if (blockFound && this.elseOption.content) {
 				invalidRange.push({
-					start: getIndex(this.elseOption.content.tokenIndexes.start),
-					end: getIndex(this.elseOption.content.tokenIndexes.end),
+					start: getIndex(this.elseOption.content.firstToken),
+					end: getIndex(this.elseOption.content.lastToken),
 				});
 			} else {
 				this.elseOption.active = true;
@@ -215,8 +214,8 @@ export class IfElIfBlock extends ASTBase {
 
 		if (this.endIf) {
 			invalidRange.push({
-				start: getIndex(this.endIf.tokenIndexes.start),
-				end: getIndex(this.endIf.tokenIndexes.end),
+				start: getIndex(this.endIf.firstToken),
+				end: getIndex(this.endIf.lastToken),
 			});
 		}
 

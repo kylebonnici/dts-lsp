@@ -22,11 +22,14 @@ export function getCpuNodeType() {
 	const nodeType = getStandardDefaultType();
 	nodeType.additionalValidations = (_, node) => {
 		if (node.parent?.name !== 'cpus') {
+			const definition = node.definitions[0];
+
 			return [
 				genStandardTypeDiagnostic(
 					StandardTypeIssue.NODE_LOCATION,
-					node.definitions[0].rangeTokens,
-					node.definitions[0],
+					definition.firstToken,
+					definition.lastToken,
+					definition,
 					{
 						linkedTo: node.definitions.slice(1),
 						templateStrings: [

@@ -345,7 +345,8 @@ export class Node {
 						if (collidingNodes.length) {
 							return genContextDiagnostic(
 								ContextIssues.ADDRESS_RANGE_COLLIDES,
-								reg.rangeTokens,
+								reg.rangeTokens.start,
+								reg.rangeTokens.end,
 								node.definitions[0],
 								{
 									severity: DiagnosticSeverity.Information,
@@ -421,15 +422,15 @@ export class Node {
 		];
 		if (this.name === '/' && this.definitions.length) {
 			if (!this._nodes.some((n) => n.name === 'cpus')) {
+				const definition =
+					this.definitions[this.definitions.length - 1];
+				const item = definition.name ?? definition;
 				issues.push(
 					genContextDiagnostic(
 						ContextIssues.MISSING_NODE,
-						this.definitions.at(-1)!.name?.rangeTokens ??
-							createTokenIndex(
-								this.definitions.at(-1)!.firstToken,
-							),
-						this.definitions.at(-1)!.name ??
-							this.definitions.at(-1)!,
+						item.firstToken,
+						item.lastToken,
+						item,
 						{
 							severity: DiagnosticSeverity.Error,
 							linkedTo: this.definitions.slice(0, -1),
@@ -460,7 +461,8 @@ export class Node {
 			...this._deletedProperties.flatMap((meta) => [
 				genContextDiagnostic(
 					ContextIssues.DELETE_PROPERTY,
-					meta.property.ast.rangeTokens,
+					meta.property.ast.firstToken,
+					meta.property.ast.lastToken,
 					meta.property.ast,
 					{
 						severity: DiagnosticSeverity.Hint,
@@ -472,7 +474,8 @@ export class Node {
 				...meta.property.allReplaced.map((p) =>
 					genContextDiagnostic(
 						ContextIssues.DELETE_PROPERTY,
-						p.ast.rangeTokens,
+						p.ast.firstToken,
+						p.ast.lastToken,
 						p.ast,
 						{
 							severity: DiagnosticSeverity.Hint,
@@ -505,7 +508,8 @@ export class Node {
 				}
 				return genContextDiagnostic(
 					ContextIssues.DELETE_NODE,
-					node.rangeTokens,
+					node.firstToken,
+					node.lastToken,
 					node,
 					{
 						severity: DiagnosticSeverity.Hint,

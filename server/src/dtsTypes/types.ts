@@ -193,10 +193,12 @@ export class PropertyNodeType<T = string | number> {
 						const token =
 							node.openScope ?? orderedTree[i].lastToken;
 
+						const item = orderedTree[i];
 						return genStandardTypeDiagnostic(
 							StandardTypeIssue.REQUIRED,
-							orderedTree[i].rangeTokens,
-							orderedTree[i],
+							item.firstToken,
+							item.lastToken,
+							item,
 							{
 								templateStrings: [propertyName],
 								edit: TextEdit.insert(
@@ -221,7 +223,8 @@ export class PropertyNodeType<T = string | number> {
 			return [
 				genStandardTypeDiagnostic(
 					StandardTypeIssue.OMITTED,
-					property.ast.rangeTokens,
+					property.ast.firstToken,
+					property.ast.lastToken,
 					property.ast,
 					{ templateStrings: [propertyName] },
 				),
@@ -275,9 +278,15 @@ export class PropertyNodeType<T = string | number> {
 
 				if (issue.length) {
 					issues.push(
-						genStandardTypeDiagnostic(issue, ast.rangeTokens, ast, {
-							templateStrings: [property.name],
-						}),
+						genStandardTypeDiagnostic(
+							issue,
+							ast.firstToken,
+							ast.lastToken,
+							ast,
+							{
+								templateStrings: [property.name],
+							},
+						),
 					);
 				}
 			}
@@ -294,7 +303,8 @@ export class PropertyNodeType<T = string | number> {
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.EXPECTED_COMPOSITE_LENGTH,
-						issueAst.rangeTokens,
+						issueAst.firstToken,
+						issueAst.lastToken,
 						issueAst,
 						{
 							templateStrings: [
@@ -312,7 +322,8 @@ export class PropertyNodeType<T = string | number> {
 						issues.push(
 							genStandardTypeDiagnostic(
 								StandardTypeIssue.EXPECTED_STRINGLIST,
-								issueAst.rangeTokens,
+								issueAst.firstToken,
+								issueAst.lastToken,
 								issueAst,
 							),
 						);
@@ -352,7 +363,8 @@ export class PropertyNodeType<T = string | number> {
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.EXPECTED_ONE,
-						issueAst.rangeTokens,
+						issueAst.firstToken,
+						issueAst.lastToken,
 						issueAst,
 						{
 							linkedTo: (
@@ -392,7 +404,8 @@ export class PropertyNodeType<T = string | number> {
 						issues.push(
 							genStandardTypeDiagnostic(
 								StandardTypeIssue.EXPECTED_ENUM,
-								issueAst.rangeTokens,
+								issueAst.firstToken,
+								issueAst.lastToken,
 								issueAst,
 								{
 									templateStrings: [
@@ -533,7 +546,8 @@ export class NodeType extends INodeType {
 				issue.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.NODE_DISABLED,
-						n.rangeTokens,
+						n.firstToken,
+						n.lastToken,
 						n,
 						{
 							severity: DiagnosticSeverity.Hint,
@@ -569,7 +583,8 @@ export class NodeType extends INodeType {
 				issue.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.EXPECTED_NODE_ADDRESS,
-						issueAst.rangeTokens,
+						issueAst.firstToken,
+						issueAst.lastToken,
 						issueAst,
 						{
 							linkedTo: node.definitions
@@ -636,7 +651,8 @@ export class NodeType extends INodeType {
 						this.warnMismatchProperties
 							? StandardTypeIssue.PROPERTY_NOT_IN_BINDING
 							: StandardTypeIssue.PROPERTY_NOT_ALLOWED,
-						p.ast.rangeTokens,
+						p.ast.firstToken,
+						p.ast.lastToken,
 						p.ast,
 						{
 							severity: this.warnMismatchProperties

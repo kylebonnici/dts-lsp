@@ -216,11 +216,13 @@ export class Runtime implements Searchable {
 				);
 
 				if (!allSameOwner || !firstLabeledNode) {
+					const label = otherOwners[0].label;
 					issues.push(
 						genContextDiagnostic(
 							ContextIssues.LABEL_ALREADY_IN_USE,
-							otherOwners[0].label.rangeTokens,
-							otherOwners[0].label,
+							label.firstToken,
+							label.lastToken,
+							label,
 							{
 								linkedTo: otherOwners
 									.slice(1)

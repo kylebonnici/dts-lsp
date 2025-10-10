@@ -280,7 +280,8 @@ export class ContextAware {
 						this._issues.push(
 							genContextDiagnostic(
 								ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
-								c.rangeTokens,
+								c.firstToken,
+								c.lastToken,
 								c,
 								{ templateStrings: [c.value] },
 							),
@@ -313,7 +314,8 @@ export class ContextAware {
 					this._issues.push(
 						genContextDiagnostic(
 							ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH,
-							nodeName.rangeTokens,
+							nodeName.firstToken,
+							nodeName.lastToken,
 							nodeName,
 							{
 								templateStrings: [
@@ -392,12 +394,14 @@ export class ContextAware {
 						n.definitions.at(-1)?.name,
 				);
 
-				conflictingNodes.forEach((n) =>
+				conflictingNodes.forEach((n) => {
+					const name = n.definitions[n.definitions.length - 1].name!;
 					this._issues.push(
 						genContextDiagnostic(
 							ContextIssues.DUPLICATE_NODE_NAME,
-							n.definitions.at(-1)!.name!.rangeTokens,
-							n.definitions.at(-1)!.name!,
+							name.firstToken,
+							name.lastToken,
+							name,
 							{
 								linkedTo: [
 									p.ast,
@@ -405,8 +409,8 @@ export class ContextAware {
 								],
 							},
 						),
-					),
-				);
+					);
+				});
 			});
 			node.nodes.forEach(processNode);
 		};
@@ -484,7 +488,8 @@ export class ContextAware {
 					this._issues.push(
 						genContextDiagnostic(
 							ContextIssues.DUPLICATE_NODE_NAME,
-							child.name.rangeTokens,
+							child.name.firstToken,
+							child.name.lastToken,
 							child.name,
 							{ linkedTo: conflictingNames },
 						),
@@ -603,7 +608,8 @@ export class ContextAware {
 			this._issues.push(
 				genContextDiagnostic(
 					ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
-					reference.rangeTokens,
+					reference.firstToken,
+					reference.lastToken,
 					reference,
 					{ templateStrings: [reference.label?.value ?? ''] },
 				),
@@ -734,7 +740,8 @@ export class ContextAware {
 					this._issues.push(
 						genContextDiagnostic(
 							ContextIssues.NODE_DOES_NOT_EXIST,
-							element.nodeNameOrRef.rangeTokens,
+							element.nodeNameOrRef.firstToken,
+							element.nodeNameOrRef.lastToken,
 							element.nodeNameOrRef,
 						),
 					);
@@ -770,7 +777,8 @@ export class ContextAware {
 				this._issues.push(
 					genContextDiagnostic(
 						ContextIssues.UNABLE_TO_RESOLVE_CHILD_NODE,
-						element.nodeNameOrRef.rangeTokens,
+						element.nodeNameOrRef.firstToken,
+						element.nodeNameOrRef.lastToken,
 						element.nodeNameOrRef,
 						{ templateStrings: [element.nodeNameOrRef.value] },
 					),
@@ -834,7 +842,8 @@ export class ContextAware {
 					this._issues.push(
 						genContextDiagnostic(
 							ContextIssues.UNABLE_TO_RESOLVE_NODE_PATH,
-							unresolvedNodeName.rangeTokens,
+							unresolvedNodeName.firstToken,
+							unresolvedNodeName.lastToken,
 							unresolvedNodeName,
 							{
 								templateStrings: [
@@ -887,7 +896,8 @@ export class ContextAware {
 			this._issues.push(
 				genContextDiagnostic(
 					ContextIssues.PROPERTY_DOES_NOT_EXIST,
-					element.propertyName.rangeTokens,
+					element.propertyName.firstToken,
+					element.propertyName.lastToken,
 					element.propertyName,
 				),
 			);

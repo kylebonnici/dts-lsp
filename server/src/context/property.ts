@@ -130,7 +130,8 @@ export class Property {
 				? [
 						genContextDiagnostic(
 							ContextIssues.DUPLICATE_PROPERTY_NAME,
-							this.replaces.ast.rangeTokens,
+							this.replaces.ast.firstToken,
+							this.replaces.ast.lastToken,
 							this.replaces.ast,
 							{
 								severity: DiagnosticSeverity.Hint,

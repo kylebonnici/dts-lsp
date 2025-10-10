@@ -48,7 +48,8 @@ export default () => {
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.IGNORED,
-						interrupts.ast.rangeTokens,
+						interrupts.ast.firstToken,
+						interrupts.ast.lastToken,
 						interrupts.ast,
 						{
 							severity: DiagnosticSeverity.Warning,
@@ -67,7 +68,8 @@ export default () => {
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.IGNORED,
-						interruptParent.ast.rangeTokens,
+						interruptParent.ast.firstToken,
+						interruptParent.ast.lastToken,
 						interruptParent.ast,
 						{
 							severity: DiagnosticSeverity.Warning,
@@ -95,11 +97,13 @@ export default () => {
 				const pHandleNode = resolvePhandleNode(values[i], root);
 
 				if (!pHandleNode) {
+					const valueItem = values[i];
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
-							values[i].rangeTokens,
-							values[i],
+							valueItem.firstToken,
+							valueItem.lastToken,
+							valueItem,
 						),
 					);
 					return issues;
@@ -112,7 +116,8 @@ export default () => {
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
-							property.ast.rangeTokens,
+							property.ast.firstToken,
+							property.ast.lastToken,
 							property.ast,
 							{
 								linkedTo: [...pHandleNode.nodeNameOrLabelRef],
@@ -159,11 +164,13 @@ export default () => {
 				}
 
 				if (cellsPropertyValue > remaining) {
+					const valueItem = values[values.length - 1];
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.CELL_MISS_MATCH,
-							values.at(-1)!.rangeTokens,
-							values.at(-1)!,
+							valueItem.firstToken,
+							valueItem.lastToken,
+							valueItem,
 							{
 								templateStrings: [
 									property.name,
@@ -201,7 +208,8 @@ export default () => {
 						issues.push(
 							genStandardTypeDiagnostic(
 								StandardTypeIssue.NO_NEXUS_MAP_MATCH,
-								match.entry.rangeTokens,
+								match.entry.firstToken,
+								match.entry.lastToken,
 								match.entry,
 								{ linkedTo: [mapProperty.ast] },
 							),
