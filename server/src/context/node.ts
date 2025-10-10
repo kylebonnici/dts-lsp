@@ -94,7 +94,8 @@ export interface Mapping {
 	specifierSpace: string;
 }
 
-export type InterruptMapping = Omit<Mapping, 'specifierSpace'>;
+export type InterruptMapping = Omit<Mapping, 'specifierSpace'> &
+	Partial<Pick<Mapping, 'specifierSpace'>>;
 
 export class Node {
 	public referencedBy: DtcRefNode[] = [];
@@ -1430,6 +1431,7 @@ ${'\t'.repeat(level - 1)}};`;
 					cells: m.expressions.map((e) => e.serialize(macros)),
 					path: m.node.pathString,
 					property: m.property.ast.serialize(macros),
+					specifierSpace: m.specifierSpace,
 				}),
 			),
 			specifierNexusMappings: this.spesifierNexusMapping.map((m) => ({

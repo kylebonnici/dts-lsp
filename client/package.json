@@ -15,7 +15,7 @@
 	"devDependencies": {
 		"@types/vscode": "^1.75.1",
 		"@vscode/test-electron": "^2.3.9",
-		"devicetree-language-server-types": "^0.0.2-alpha.19",
+		"devicetree-language-server-types": "^0.0.2-alpha.20",
 		"vscode-languageclient": "^9.0.1"
 	}
 }

@@ -232,6 +232,10 @@ export default () => {
 				const nexusMapping: NexusMapping = {
 					mappingValuesAst,
 					target: parentInterruptNode,
+					specifierSpace:
+						parentInterruptNode.bindingLoader?.type === 'Zephyr'
+							? 'interrupt'
+							: undefined,
 				};
 
 				property.nexusMapsTo.push(nexusMapping);
@@ -265,6 +269,10 @@ export default () => {
 						expressions: mappingValuesAst,
 						node,
 						property,
+						specifierSpace:
+							parentInterruptNode.bindingLoader?.type === 'Zephyr'
+								? 'interrupt'
+								: undefined,
 					});
 				}
 
