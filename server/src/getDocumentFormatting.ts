@@ -393,10 +393,7 @@ const removeNewLinesBetweenTokenAndPrev = (
 							: token.pos.col,
 					),
 				),
-				''.padEnd(
-					expectedNewLines - (forceExpectedNewLines ? 1 : 0),
-					'\n',
-				),
+				'\n'.repeat(expectedNewLines - (forceExpectedNewLines ? 1 : 0)),
 			);
 		}
 	} else if (token.pos.line) {
@@ -471,7 +468,7 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
 
 	if (token.nextToken?.pos.line !== token.pos.line) {
 		if (keepNewLines) {
-			return []; // todo remove white space
+			return [];
 		}
 		const removeNewLinesEdit = removeNewLinesBetweenTokenAndPrev(
 			token.nextToken,
@@ -482,7 +479,7 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
 			throw new Error('remove new LinesEdit must be defined');
 		}
 		if (expectedSpaces) {
-			removeNewLinesEdit.newText = `${''.padEnd(expectedSpaces, ' ')}${
+			removeNewLinesEdit.newText = `${' '.repeat(expectedSpaces)}${
 				removeNewLinesEdit.newText
 			}`;
 		}
@@ -513,7 +510,7 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
 					token.nextToken.pos.line,
 					token.nextToken.pos.col,
 				),
-				''.padEnd(expectedSpaces, ' '),
+				' '.repeat(expectedSpaces),
 			),
 		];
 	}
@@ -527,7 +524,7 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
 					token.nextToken.pos.col,
 				),
 			),
-			''.padEnd(expectedSpaces, ' '),
+			' '.repeat(expectedSpaces),
 		),
 	];
 };
