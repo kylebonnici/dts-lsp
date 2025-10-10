@@ -34,6 +34,7 @@ import {
 	createTokenIndex,
 	genSyntaxDiagnostic,
 	isPathEqual,
+	startsWithLetter,
 	validateToken,
 	validateValue,
 	validToken,
@@ -288,12 +289,12 @@ export abstract class BaseParser {
 			return undefined;
 		}
 
-		const name = valid.map((v) => v.value).join('');
-
-		if (!name.match(/^[_A-Za-z]/)) {
+		if (!startsWithLetter(valid?.[0]?.value)) {
 			this.popStack();
 			return;
 		}
+
+		const name = valid.map((v) => v.value).join('');
 
 		const identifier = new CIdentifier(
 			name,

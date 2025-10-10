@@ -1424,3 +1424,11 @@ export const coreSyntaxIssuesFilter = (
 		!syntaxIssuesToIgnore.some((i) => issue.issues.includes(i))
 	);
 };
+
+export function startsWithLetter(value: string | undefined): boolean {
+	const first = value?.charAt(0);
+	return (
+		!!first &&
+		((first >= 'A' && first <= 'Z') || (first >= 'a' && first <= 'z'))
+	);
+}

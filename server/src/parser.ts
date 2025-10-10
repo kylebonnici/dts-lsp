@@ -31,6 +31,7 @@ import {
 	linkAstToComments,
 	normalizePath,
 	sameLine,
+	startsWithLetter,
 	validateToken,
 	validateValue,
 	validToken,
@@ -680,7 +681,7 @@ export class Parser extends BaseParser {
 		const addresses = this.processNodeAddresses(node);
 		node.address = addresses;
 
-		if (!name.match(/^[A-Za-z]/)) {
+		if (!startsWithLetter(name)) {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.NAME_NODE_NAME_START,
@@ -735,14 +736,17 @@ export class Parser extends BaseParser {
 			return undefined;
 		}
 
-		const name = valid.map((v) => v.value).join('');
-
-		if (!name.match(/^[A-Za-z]/)) {
+		if (!startsWithLetter(valid?.[0].value)) {
 			this.popStack();
 			return;
 		}
 
-		const node = new Label(name, createTokenIndex(valid[0], valid.at(-1)));
+		const name = valid.map((v) => v.value).join('');
+
+		const node = new Label(
+			name,
+			createTokenIndex(valid[0], valid[valid.length - 1]),
+		);
 		this.mergeStack();
 		return node;
 	}
@@ -760,12 +764,12 @@ export class Parser extends BaseParser {
 			return;
 		}
 
-		const name = valid.map((v) => v.value).join('');
-
-		if (!name.match(/^[A-Za-z]/)) {
+		if (!startsWithLetter(valid?.[0].value)) {
 			this.popStack();
 			return;
 		}
+
+		const name = valid.map((v) => v.value).join('');
 
 		const token = this.currentToken;
 		const hasColon = token && validToken(token, LexerToken.COLON);
