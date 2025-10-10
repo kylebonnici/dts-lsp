@@ -294,13 +294,13 @@ let hasDiagnosticRefreshCapability = false;
 let hasSemanticTokensRefreshCapability = false;
 let hasFoldingRangesRefreshCapability = false;
 
-let workspaceFolder: WorkspaceFolder[] | null | undefined;
-connection.onInitialize((params: InitializeParams) => {
+let workspaceFolders: WorkspaceFolder[] | null | undefined;
+connection.onInitialize(async (params: InitializeParams) => {
 	// The workspace folder this server is operating on
-	workspaceFolder = params.workspaceFolders ?? [];
+	workspaceFolders = params.workspaceFolders ?? [];
 	connection.console.log(
 		`[Server(${process.pid}) ${
-			workspaceFolder?.at(0)?.uri
+			workspaceFolders?.at(0)?.uri
 		} Version 0.6.0 ] Started and initialize received`,
 	);
 
@@ -372,6 +372,8 @@ connection.onInitialize((params: InitializeParams) => {
 			},
 		};
 	}
+
+	await updateSetting(params.initializationOptions);
 	return result;
 });
 
@@ -387,6 +389,13 @@ connection.onInitialized(() => {
 		});
 	}
 });
+
+connection.onRequest(
+	'workspace/workspaceFolders',
+	async (): Promise<WorkspaceFolder[] | null> => {
+		return workspaceFolders ?? null;
+	},
+);
 
 const getResolvedAdhocContextSettings = async () => {
 	let unresolvedSettings = getUnresolvedAdhocContextSettings();
@@ -1088,21 +1097,25 @@ documents.onDidChangeContent(async (change) => {
 	await onChange(uri);
 });
 
-connection.onDidChangeConfiguration(async (change) => {
-	if (!change?.settings?.devicetree) {
+const updateSetting = async (config: any) => {
+	if (!config?.settings?.devicetree) {
 		return;
 	}
 
 	lspConfigurationSettings = fixSettingsTypes(
-		deleteTopLevelNulls(change.settings.devicetree) as Settings,
+		deleteTopLevelNulls(config.settings.devicetree) as Settings,
 	);
 
 	console.log(
 		'Configuration changed',
-		JSON.stringify(change, undefined, '\t'),
+		JSON.stringify(config, undefined, '\t'),
 	);
 
 	await onSettingsChanged();
+};
+
+connection.onDidChangeConfiguration(async (change) => {
+	await updateSetting(change);
 });
 
 // Listen on the connection
