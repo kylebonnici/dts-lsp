@@ -131,7 +131,7 @@ export interface SerializableNodePath extends SerializableASTBase {
 }
 
 export interface SerializableExpressionBase extends SerializableASTBase {
-	readonly value: string | null;
+	readonly value: string;
 	readonly evaluated: number | string;
 }
 
@@ -288,6 +288,7 @@ export type InterruptControlerSerializedMapping = {
 	cells: (SerializableNumberValue | SerializableExpression)[];
 	path: string;
 	property: SerializableDtcProperty;
+	specifierSpace?: string;
 };
 
 export type SerializableSpecifierNexusMeta = {
