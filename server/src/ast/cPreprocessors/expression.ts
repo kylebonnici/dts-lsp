@@ -30,20 +30,26 @@ export abstract class Expression extends ASTBase {
 		return -1;
 	}
 
+	#resolved?: string;
 	resolve(macros: Map<string, MacroRegistryItem>) {
-		return expandMacros(this.toString(), macros);
+		this.#resolved ??= expandMacros(this.toString(), macros);
+		return this.#resolved;
 	}
 
+	#evaluate?: any;
 	evaluate(macros: Map<string, MacroRegistryItem>) {
-		return evalExp(
+		this.#evaluate ??= evalExp(
 			`${this.operator ? this.operator.toString() : ''}${this.resolve(macros)}`,
 		);
+		return this.#evaluate;
 	}
 
+	#isTrue?: boolean;
 	isTrue(macros: Map<string, MacroRegistryItem>): boolean {
-		return evalExp(
+		this.#isTrue ??= evalExp(
 			`!!(${this.operator ? this.operator.toString() : ''}${this.resolve(macros)})`,
-		);
+		) as boolean;
+		return this.#isTrue;
 	}
 
 	toPrettyString(macros: Map<string, MacroRegistryItem>) {

@@ -33,6 +33,18 @@ export class NumberValue extends Expression {
 		this.semanticTokenModifiers = 'declaration';
 	}
 
+	resolve(_: Map<string, MacroRegistryItem>) {
+		return this.value.toString();
+	}
+
+	evaluate(_: Map<string, MacroRegistryItem>) {
+		return this.value;
+	}
+
+	isTrue(_: Map<string, MacroRegistryItem>) {
+		return !!this.value;
+	}
+
 	toString(radix?: number) {
 		return this.value.toString(radix);
 	}

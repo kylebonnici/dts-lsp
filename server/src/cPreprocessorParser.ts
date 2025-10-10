@@ -231,7 +231,8 @@ export class CPreprocessorParser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE,
-					keyword.rangeTokens,
+					keyword.firstToken,
+					keyword.lastToken,
 					keyword,
 				),
 			);
@@ -286,7 +287,8 @@ export class CPreprocessorParser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.EXPECTED_IDENTIFIER_FUNCTION_LIKE,
-					keyword.rangeTokens,
+					keyword.firstToken,
+					keyword.lastToken,
 					keyword,
 				),
 			);
@@ -352,7 +354,8 @@ export class CPreprocessorParser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.MISSING_COMMA,
-						param.rangeTokens,
+						param.firstToken,
+						param.lastToken,
 						param,
 					),
 				);
@@ -373,7 +376,8 @@ export class CPreprocessorParser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.MISSING_ROUND_CLOSE,
-					issueAST.rangeTokens,
+					issueAST.firstToken,
+					issueAST.lastToken,
 					issueAST,
 				),
 			);
@@ -484,7 +488,8 @@ export class CPreprocessorParser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.UNUSED_BLOCK,
-						b.content.rangeTokens,
+						b.content.firstToken,
+						b.content.lastToken,
 						b.content,
 						{
 							severity: DiagnosticSeverity.Hint,
@@ -520,7 +525,8 @@ export class CPreprocessorParser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.EXPECTED_IDENTIFIER,
-					ifDefKeyword.rangeTokens,
+					ifDefKeyword.firstToken,
+					ifDefKeyword.lastToken,
 					ifDefKeyword,
 				),
 			);
@@ -573,7 +579,8 @@ export class CPreprocessorParser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.MISSING_ENDIF,
-					ifDefKeyword.rangeTokens,
+					ifDefKeyword.firstToken,
+					ifDefKeyword.lastToken,
 					ifDefKeyword,
 				),
 			);
@@ -635,7 +642,8 @@ export class CPreprocessorParser extends BaseParser {
 					this._issues.push(
 						genSyntaxDiagnostic(
 							SyntaxIssue.EXPECTED_IDENTIFIER,
-							ifKeyword.rangeTokens,
+							ifKeyword.firstToken,
+							ifKeyword.lastToken,
 							ifKeyword,
 						),
 					);
@@ -673,7 +681,8 @@ export class CPreprocessorParser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.MISSING_ENDIF,
-					ifKeyword.rangeTokens,
+					ifKeyword.firstToken,
+					ifKeyword.lastToken,
 					ifKeyword,
 				),
 			);
@@ -783,7 +792,8 @@ export class CPreprocessorParser extends BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.GT_SYM,
-						node.rangeTokens,
+						node.firstToken,
+						node.lastToken,
 						node,
 					),
 				);
@@ -803,7 +813,8 @@ export class CPreprocessorParser extends BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.UNABLE_TO_RESOLVE_INCLUDE,
-					node.path.rangeTokens,
+					node.path.firstToken,
+					node.path.lastToken,
 					node.path,
 					{ severity: DiagnosticSeverity.Warning },
 				),
@@ -813,7 +824,7 @@ export class CPreprocessorParser extends BaseParser {
 		if (resolvedPath && !this.skipIncludes) {
 			getTokenizedDocumentProvider().requestTokens(resolvedPath, true);
 			const fileParser =
-				await getCachedCPreprocessorParserProvider().getCPreprocessorParser(
+				getCachedCPreprocessorParserProvider().getCPreprocessorParser(
 					resolvedPath,
 					this.incudes,
 					this.macros,

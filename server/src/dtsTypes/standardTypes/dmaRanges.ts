@@ -83,7 +83,8 @@ export default () => {
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.CELL_MISS_MATCH,
-						issueAst.rangeTokens,
+						issueAst.firstToken,
+						issueAst.lastToken,
 						issueAst,
 						{
 							templateStrings: [

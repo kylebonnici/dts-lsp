@@ -54,7 +54,8 @@ const matchRootNode = (
 		issues.push(
 			genStandardTypeDiagnostic(
 				StandardTypeIssue.INVALID_VALUE,
-				property.ast.rangeTokens,
+				property.ast.firstToken,
+				property.ast.lastToken,
 				property.ast,
 				{
 					linkedTo: [...(rootNode?.ast ? [rootNode.ast] : [])],

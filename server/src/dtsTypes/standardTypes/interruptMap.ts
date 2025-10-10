@@ -51,7 +51,8 @@ export default () => {
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
-						property.ast.rangeTokens,
+						property.ast.firstToken,
+						property.ast.lastToken,
 						property.ast,
 						{
 							linkedTo: [...property.parent.nodeNameOrLabelRef],
@@ -72,7 +73,8 @@ export default () => {
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
-						property.ast.rangeTokens,
+						property.ast.firstToken,
+						property.ast.lastToken,
 						property.ast,
 						{
 							linkedTo: [...node.nodeNameOrLabelRef],
@@ -132,11 +134,13 @@ export default () => {
 						i +
 						childAddressCellsValue +
 						childInterruptSpecifierValue;
+					const valueItem = values[values.length - 1];
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.MAP_ENTRY_INCOMPLETE,
-							values[values.length - 1].rangeTokens,
-							values[values.length - 1],
+							valueItem.firstToken,
+							valueItem.lastToken,
+							valueItem,
 							{
 								templateStrings: [
 									property.name,
@@ -195,11 +199,13 @@ export default () => {
 					childAddressCellsValue + childInterruptSpecifierValue + 1;
 
 				if (values.length < i + 1) {
+					const valueItem = values[values.length - 1];
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.MAP_ENTRY_INCOMPLETE,
-							values[values.length - 1].rangeTokens,
-							values[values.length - 1],
+							valueItem.firstToken,
+							valueItem.lastToken,
+							valueItem,
 							{
 								templateStrings: [
 									property.name,
@@ -223,11 +229,13 @@ export default () => {
 				}
 				const interruptParent = resolvePhandleNode(values[i], root);
 				if (!interruptParent) {
+					const valueItem = values[i];
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
-							values[i].rangeTokens,
-							values[i],
+							valueItem.firstToken,
+							valueItem.lastToken,
+							valueItem,
 						),
 					);
 					break;
@@ -239,11 +247,13 @@ export default () => {
 					interruptParent.getProperty('#interrupt-cells');
 
 				if (!parentInterruptSpecifier) {
+					const valueItem = values[i];
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
-							values[i].rangeTokens,
-							values[i],
+							valueItem.firstToken,
+							valueItem.lastToken,
+							valueItem,
 							{
 								linkedTo: [
 									...interruptParent.nodeNameOrLabelRef,
@@ -307,11 +317,13 @@ export default () => {
 						1 +
 						parentUnitAddressValue +
 						parentInterruptSpecifierValue;
+					const valueItem = values[values.length - 1];
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.MAP_ENTRY_INCOMPLETE,
-							values[values.length - 1].rangeTokens,
-							values[values.length - 1],
+							valueItem.firstToken,
+							valueItem.lastToken,
+							valueItem,
 							{
 								templateStrings: [
 									property.name,
@@ -383,11 +395,13 @@ export default () => {
 
 			Object.values(keys).forEach((v) => {
 				if (v.length > 1) {
+					const valueItem = v[v.length - 1];
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.DUPLICATE_MAP_ENTRY,
-							v[v.length - 1].rangeTokens,
-							v[v.length - 1],
+							valueItem.firstToken,
+							valueItem.lastToken,
+							valueItem,
 							{ linkedTo: v.slice(0, -1) },
 						),
 					);

@@ -61,7 +61,8 @@ export class DevicetreeOrgNodeType extends INodeType {
 				issue.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.NODE_DISABLED,
-						n.rangeTokens,
+						n.firstToken,
+						n.lastToken,
 						n,
 						{
 							severity: DiagnosticSeverity.Hint,
@@ -185,7 +186,8 @@ const convertToError = (
 		return [
 			genStandardTypeDiagnostic(
 				StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
-				property.ast.rangeTokens,
+				property.ast.firstToken,
+				property.ast.lastToken,
 				property.ast,
 				{
 					templateStrings: [
@@ -214,7 +216,8 @@ const convertToError = (
 		return [
 			genStandardTypeDiagnostic(
 				StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
-				prop.ast.rangeTokens,
+				prop.ast.firstToken,
+				prop.ast.lastToken,
 				prop.ast,
 				{
 					templateStrings: [
@@ -230,18 +233,20 @@ const convertToError = (
 		const orderedTree = getNodeNameOrNodeLabelRef(childOrRefNode);
 
 		return childOrRefNode.map((node, i) => {
-			const token = node.openScope ?? orderedTree[i].lastToken;
+			const item = orderedTree[i];
+			const token = node.openScope ?? item.lastToken;
 
 			return genStandardTypeDiagnostic(
 				StandardTypeIssue.REQUIRED,
-				orderedTree[i].rangeTokens,
-				orderedTree[i],
+				item.firstToken,
+				item.lastToken,
+				item,
 				{
 					templateStrings: [propertyName],
 					edit: TextEdit.insert(
 						Position.create(token.pos.line, token.pos.col + 1),
 						`\n${''.padEnd(
-							countParent(orderedTree[i].uri, node) *
+							countParent(item.uri, node) *
 								getIndentString().length,
 							getIndentString(),
 						)}${propertyName};`,
@@ -258,7 +263,8 @@ const convertToError = (
 		return [
 			genStandardTypeDiagnostic(
 				StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
-				property.ast.rangeTokens,
+				property.ast.firstToken,
+				property.ast.lastToken,
 				property.ast,
 				{
 					templateStrings: [
@@ -276,7 +282,8 @@ const convertToError = (
 		return [
 			genStandardTypeDiagnostic(
 				StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
-				property.ast.rangeTokens,
+				property.ast.firstToken,
+				property.ast.lastToken,
 				property.ast,
 				{
 					templateStrings: [
@@ -299,7 +306,8 @@ const convertToError = (
 		return [
 			genStandardTypeDiagnostic(
 				StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
-				property.ast.rangeTokens,
+				property.ast.firstToken,
+				property.ast.lastToken,
 				property.ast,
 				{
 					templateStrings: [
@@ -314,7 +322,8 @@ const convertToError = (
 		return [
 			genStandardTypeDiagnostic(
 				StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
-				meta.property.ast.rangeTokens,
+				meta.property.ast.firstToken,
+				meta.property.ast.lastToken,
 				meta.property.ast,
 				{
 					templateStrings: [
@@ -335,7 +344,8 @@ const convertToError = (
 	return [
 		genStandardTypeDiagnostic(
 			StandardTypeIssue.DEVICETREE_ORG_BINDINGS,
-			issueAst.rangeTokens,
+			issueAst.firstToken,
+			issueAst.lastToken,
 			issueAst,
 			{
 				templateStrings: [

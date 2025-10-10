@@ -31,7 +31,8 @@ export default () => {
 		(property) => [
 			genStandardTypeDiagnostic(
 				StandardTypeIssue.DEPRECATED,
-				property.ast.rangeTokens,
+				property.ast.firstToken,
+				property.ast.lastToken,
 				property.ast,
 				{
 					severity: DiagnosticSeverity.Warning,

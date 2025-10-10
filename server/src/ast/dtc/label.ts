@@ -64,10 +64,12 @@ export class Label extends ASTBase {
 			return;
 		}
 
-		push(getTokenTypes('type'), getTokenModifiers('declaration'), {
-			start: this.firstToken,
-			end: this.lastToken,
-		});
+		push(
+			getTokenTypes('type'),
+			getTokenModifiers('declaration'),
+			this.firstToken,
+			this.lastToken,
+		);
 	}
 
 	toString() {

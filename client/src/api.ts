@@ -25,7 +25,6 @@ import type {
 	LocationResult,
 	ResolvedSettings,
 	SerializedNode,
-	StableResult,
 } from 'devicetree-language-server-types';
 import {
 	LanguageClient,
@@ -46,10 +45,10 @@ const newActiveContextNotification = new NotificationType<
 	ContextListItem | undefined
 >('devicetree/newActiveContext');
 
-const activeContextStableNotification = new NotificationType<StableResult>(
+const activeContextStableNotification = new NotificationType<ContextListItem>(
 	'devicetree/activeContextStableNotification',
 );
-const contextStableNotification = new NotificationType<StableResult>(
+const contextStableNotification = new NotificationType<ContextListItem>(
 	'devicetree/contextStableNotification',
 );
 
@@ -179,7 +178,7 @@ export class API implements IDeviceTreeAPI {
 		};
 	}
 
-	onActiveContextStable(listener: (result: StableResult) => void) {
+	onActiveContextStable(listener: (ctx: ContextListItem) => void) {
 		this.event.addListener('onActiveContextStable', listener);
 		return {
 			dispose: () => {
@@ -197,7 +196,7 @@ export class API implements IDeviceTreeAPI {
 		};
 	}
 
-	onContextStable(listener: (result: StableResult) => void) {
+	onContextStable(listener: (ctx: ContextListItem) => void) {
 		this.event.addListener('onContextStable', listener);
 		return {
 			dispose: () => {

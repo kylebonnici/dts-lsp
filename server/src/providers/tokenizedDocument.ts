@@ -27,11 +27,27 @@ class TokenizedDocumentProvider {
 	private fileMap = new Map<string, Lexer>();
 
 	static clone(tokens: Token[]) {
-		const newList = tokens.map((t) => ({ ...t }));
-		newList.forEach((t, i) => {
-			t.prevToken = newList[i - 1];
-			t.nextToken = newList[i + 1];
-		});
+		const len = tokens.length;
+		if (len === 0) return [];
+
+		const newList: Token[] = new Array(len);
+		let prev: Token | undefined = undefined;
+
+		for (let i = 0; i < len; i++) {
+			const token = tokens[i];
+			const t: Token = {
+				tokens: token.tokens,
+				pos: token.pos,
+				value: token.value,
+				uri: token.uri,
+				prevToken: prev,
+				nextToken: undefined,
+			};
+			if (prev) prev.nextToken = t;
+			newList[i] = t;
+			prev = t;
+		}
+
 		return newList;
 	}
 

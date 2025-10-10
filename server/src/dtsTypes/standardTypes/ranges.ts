@@ -87,7 +87,8 @@ export default () => {
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.CELL_MISS_MATCH,
-						issueAst.rangeTokens,
+						issueAst.firstToken,
+						issueAst.lastToken,
 						issueAst,
 						{
 							templateStrings: [
@@ -124,7 +125,8 @@ export default () => {
 							issues.push(
 								genStandardTypeDiagnostic(
 									StandardTypeIssue.UNABLE_TO_FIND_MAPPING,
-									mappedAddress.regRangeTokens,
+									mappedAddress.regRangeTokens.start,
+									mappedAddress.regRangeTokens.end,
 									property.ast,
 									{
 										severity: DiagnosticSeverity.Warning,
@@ -146,7 +148,8 @@ export default () => {
 							issues.push(
 								genStandardTypeDiagnostic(
 									StandardTypeIssue.EXCEEDS_MAPPING_ADDRESS,
-									mappedAddress.regRangeTokens,
+									mappedAddress.regRangeTokens.start,
+									mappedAddress.regRangeTokens.end,
 									property.ast,
 									{
 										severity: DiagnosticSeverity.Warning,

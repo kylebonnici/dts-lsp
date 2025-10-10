@@ -27,13 +27,13 @@ import {
 	MacroRegistryItem,
 	SyntaxIssue,
 	Token,
-	TokenIndexes,
 } from './types';
 import {
 	adjacentTokens,
 	createTokenIndex,
 	genSyntaxDiagnostic,
 	isPathEqual,
+	startsWithLetter,
 	validateToken,
 	validateValue,
 	validToken,
@@ -228,25 +228,22 @@ export abstract class BaseParser {
 		const push = (
 			tokenType: number,
 			tokenModifiers: number,
-			tokenIndexes?: TokenIndexes,
+			start: Token,
+			end: Token,
 		) => {
 			if (
-				!tokenIndexes?.start ||
-				!tokenIndexes?.end ||
-				!isPathEqual(tokenIndexes.start.uri, uri) ||
-				!isPathEqual(tokenIndexes.end.uri, uri)
+				!start ||
+				!end ||
+				!isPathEqual(start.uri, uri) ||
+				!isPathEqual(end.uri, uri)
 			)
 				return;
 
-			const lengthEnd =
-				tokenIndexes.end.pos.colEnd - tokenIndexes.start.pos.col;
+			const lengthEnd = end.pos.colEnd - start.pos.col;
 			result.push({
-				line: tokenIndexes.start.pos.line,
-				char: tokenIndexes.start.pos.col,
-				length:
-					tokenIndexes.end === tokenIndexes.start
-						? tokenIndexes.end.pos.len
-						: lengthEnd,
+				line: start.pos.line,
+				char: start.pos.col,
+				length: end === start ? end.pos.len : lengthEnd,
 				tokenType,
 				tokenModifiers,
 			});
@@ -288,12 +285,12 @@ export abstract class BaseParser {
 			return undefined;
 		}
 
-		const name = valid.map((v) => v.value).join('');
-
-		if (!name.match(/^[_A-Za-z]/)) {
+		if (!startsWithLetter(valid?.[0]?.value)) {
 			this.popStack();
 			return;
 		}
+
+		const name = valid.map((v) => v.value).join('');
 
 		const identifier = new CIdentifier(
 			name,
@@ -306,7 +303,8 @@ export abstract class BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.UNKNOWN_MACRO,
-						identifier.rangeTokens,
+						identifier.firstToken,
+						identifier.lastToken,
 						identifier,
 					),
 				);
@@ -512,7 +510,8 @@ export abstract class BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS,
-						identifier.rangeTokens,
+						identifier.firstToken,
+						identifier.lastToken,
 						identifier,
 					),
 				);
@@ -520,7 +519,8 @@ export abstract class BaseParser {
 				this._issues.push(
 					genSyntaxDiagnostic(
 						SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS,
-						identifier.rangeTokens,
+						identifier.firstToken,
+						identifier.lastToken,
 						identifier,
 					),
 				);
@@ -532,7 +532,8 @@ export abstract class BaseParser {
 					this._issues.push(
 						genSyntaxDiagnostic(
 							SyntaxIssue.EXPECTED_FUNCTION_LIKE,
-							identifier.rangeTokens,
+							identifier.firstToken,
+							identifier.lastToken,
 							identifier,
 						),
 					);
@@ -540,7 +541,8 @@ export abstract class BaseParser {
 					this._issues.push(
 						genSyntaxDiagnostic(
 							SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS,
-							identifier.rangeTokens,
+							identifier.firstToken,
+							identifier.lastToken,
 							identifier,
 							{ linkedTo: [macro] },
 						),
@@ -549,7 +551,8 @@ export abstract class BaseParser {
 					this._issues.push(
 						genSyntaxDiagnostic(
 							SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS,
-							identifier.rangeTokens,
+							identifier.firstToken,
+							identifier.lastToken,
 							identifier,
 							{ linkedTo: [macro] },
 						),
@@ -569,7 +572,7 @@ export abstract class BaseParser {
 
 		const validStart = this.checkConcurrentTokens([
 			validateValue('0'),
-			validateValue('x', true),
+			validateValue('x', { caseInsensitive: true }),
 		]);
 
 		if (validStart.length !== 2) {
@@ -659,7 +662,8 @@ export abstract class BaseParser {
 					this._issues.push(
 						genSyntaxDiagnostic(
 							SyntaxIssue.MISSING_ROUND_CLOSE,
-							createTokenIndex(start),
+							start,
+							start,
 							parent,
 						),
 					);
@@ -722,7 +726,8 @@ export abstract class BaseParser {
 					this._issues.push(
 						genSyntaxDiagnostic(
 							SyntaxIssue.EXPECTED_EXPRESSION,
-							operator.rangeTokens,
+							operator.firstToken,
+							operator.lastToken,
 							parent,
 						),
 					);
@@ -810,11 +815,7 @@ export abstract class BaseParser {
 
 		if (report) {
 			this._issues.push(
-				genSyntaxDiagnostic(
-					SyntaxIssue.UNKNOWN,
-					createTokenIndex(start, end),
-					null,
-				),
+				genSyntaxDiagnostic(SyntaxIssue.UNKNOWN, start, end, null),
 			);
 		}
 

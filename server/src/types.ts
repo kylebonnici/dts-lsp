@@ -268,7 +268,6 @@ export interface Token {
 	pos: Position;
 	value: string;
 	uri: string;
-	adjacentToken?: Token;
 }
 
 export interface TokenIndexes {
@@ -279,7 +278,8 @@ export interface TokenIndexes {
 export type BuildSemanticTokensPush = (
 	tokenType: number,
 	tokenModifiers: number,
-	tokenIndexes?: TokenIndexes,
+	firstToken: Token,
+	lastToken: Token,
 ) => void;
 
 export type IssueTypes = SyntaxIssue | ContextIssues | StandardTypeIssue;

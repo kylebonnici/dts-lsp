@@ -208,7 +208,6 @@ export class Lexer {
 	private getString(quote: string) {
 		let strLine = quote;
 
-		let prevToken: Token | undefined;
 		while (this.currentChar !== quote) {
 			if (this.currentChar === '\n') {
 				const line = this.lineNumber;
@@ -223,9 +222,7 @@ export class Lexer {
 						len,
 						colEnd,
 					},
-					adjacentToken: prevToken,
 				});
-				prevToken = this._tokens.at(-1);
 
 				strLine = '';
 			} else if (this.currentChar === '\\') {
@@ -262,7 +259,6 @@ export class Lexer {
 				len,
 				colEnd,
 			},
-			adjacentToken: prevToken,
 		});
 
 		this.move();
@@ -345,8 +341,12 @@ export class Lexer {
 					keywordToken === LexerToken.C_FALSE ||
 					keywordToken === LexerToken.C_TRUE
 				) {
+					const lastIndex = this.tokens.length - 1;
 					if (
-						adjacentTokens(this.tokens.at(-2), this.tokens.at(-1))
+						adjacentTokens(
+							this.tokens[lastIndex - 1],
+							this.tokens[lastIndex],
+						)
 					) {
 						tokenFound = false;
 						this.tokens.pop();
@@ -406,7 +406,6 @@ export class Lexer {
 			pos: token.pos,
 			value: token.value,
 			uri: this.uri,
-			adjacentToken: token.adjacentToken,
 		};
 
 		const prevToken = this._tokens[this._tokens.length - 1];

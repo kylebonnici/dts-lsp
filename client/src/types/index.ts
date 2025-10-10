@@ -22,7 +22,6 @@ import type {
 	LocationResult,
 	ResolvedSettings,
 	SerializedNode,
-	StableResult,
 } from 'devicetree-language-server-types';
 import {
 	Disposable,
@@ -53,9 +52,9 @@ export interface IDeviceTreeAPI {
 	onActiveContextChange(
 		listener: (ctx: ContextListItem | undefined) => void,
 	): Disposable;
-	onActiveContextStable(listener: (result: StableResult) => void): Disposable;
+	onActiveContextStable(listener: (ctx: ContextListItem) => void): Disposable;
 	onActivePath(listener: (result: LocationResult) => void): Disposable;
-	onContextStable(listener: (result: StableResult) => void): Disposable;
+	onContextStable(listener: (ctx: ContextListItem) => void): Disposable;
 	onContextDeleted(listener: (ctx: ContextListItem) => void): Disposable;
 	onContextCreated(listener: (ctx: ContextListItem) => void): Disposable;
 	onSettingsChanged(

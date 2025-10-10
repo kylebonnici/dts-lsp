@@ -29,11 +29,13 @@ export function getAliasesNodeType() {
 	const nodeType = new NodeType((_, node) => {
 		const issues: FileDiagnostic[] = [];
 		if (node.parent?.name !== '/') {
+			const definition = node.definitions[0];
 			issues.push(
 				genStandardTypeDiagnostic(
 					StandardTypeIssue.NODE_LOCATION,
-					node.definitions[0].rangeTokens,
-					node.definitions[0],
+					definition.firstToken,
+					definition.lastToken,
+					definition,
 					{
 						linkedTo: node.definitions.slice(1),
 						templateStrings: [
@@ -49,7 +51,8 @@ export function getAliasesNodeType() {
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.NODE_LOCATION,
-						ast.tokenIndexes,
+						ast.firstToken,
+						ast.lastToken,
 						ast,
 						{
 							templateStrings: [
@@ -91,7 +94,8 @@ export function getAliasesNodeType() {
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.UNABLE_TO_RESOLVE_PATH,
-							issueAst.rangeTokens,
+							issueAst.firstToken,
+							issueAst.lastToken,
 							issueAst,
 							{ templateStrings: [values[0], property.name] },
 						),
@@ -102,7 +106,8 @@ export function getAliasesNodeType() {
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.UNABLE_TO_RESOLVE_PATH,
-							issueAst.rangeTokens,
+							issueAst.firstToken,
+							issueAst.lastToken,
 							issueAst,
 							{ templateStrings: ['', values[0]] },
 						),
@@ -125,7 +130,8 @@ export function getAliasesNodeType() {
 						issues.push(
 							genStandardTypeDiagnostic(
 								StandardTypeIssue.UNABLE_TO_RESOLVE_PATH,
-								issueAst.rangeTokens,
+								issueAst.firstToken,
+								issueAst.lastToken,
 								issueAst,
 								{ templateStrings: [name, lastNode.fullName] },
 							),

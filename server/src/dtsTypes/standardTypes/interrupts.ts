@@ -57,7 +57,8 @@ export default () => {
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
-							property.ast.rangeTokens,
+							property.ast.firstToken,
+							property.ast.lastToken,
 							property.ast,
 							{
 								linkedTo: [
@@ -80,7 +81,8 @@ export default () => {
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.INTERRUPTS_PARENT_NODE_NOT_FOUND,
-						issueAST.rangeTokens,
+						issueAST.firstToken,
+						issueAST.lastToken,
 						issueAST,
 					),
 				);
@@ -96,7 +98,8 @@ export default () => {
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
-						property.ast.rangeTokens,
+						property.ast.firstToken,
+						property.ast.lastToken,
 						property.ast,
 						{
 							linkedTo: [
@@ -158,7 +161,8 @@ export default () => {
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
-						issueAST.rangeTokens,
+						issueAST.firstToken,
+						issueAST.lastToken,
 						issueAST,
 						{
 							linkedTo: [...property.parent.nodeNameOrLabelRef],
@@ -176,7 +180,8 @@ export default () => {
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
-						property.ast.rangeTokens,
+						property.ast.firstToken,
+						property.ast.lastToken,
 						property.ast,
 						{
 							linkedTo: [
@@ -199,11 +204,13 @@ export default () => {
 				const remaining = values.length - i;
 
 				if (childInterruptSpecifierValue > remaining) {
+					const valueItem = values[values.length - 1];
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.CELL_MISS_MATCH,
-							values.at(-1)!.rangeTokens,
-							values.at(-1)!,
+							valueItem.firstToken,
+							valueItem.lastToken,
+							valueItem,
 							{
 								templateStrings: [
 									property.name,
@@ -241,7 +248,8 @@ export default () => {
 						issues.push(
 							genStandardTypeDiagnostic(
 								StandardTypeIssue.NO_NEXUS_MAP_MATCH,
-								match.entry.rangeTokens,
+								match.entry.firstToken,
+								match.entry.lastToken,
 								match.entry,
 								{ linkedTo: [mapProperty.ast] },
 							),

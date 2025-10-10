@@ -52,7 +52,8 @@ export default () => {
 							property.parent.name === 'cpu'
 								? StandardTypeIssue.EXPECTED_DEVICE_TYPE_CPU
 								: StandardTypeIssue.EXPECTED_DEVICE_TYPE_MEMORY,
-							property.ast.rangeTokens,
+							property.ast.firstToken,
+							property.ast.lastToken,
 							property.ast,
 							{ templateStrings: [property.name] },
 						),
@@ -64,7 +65,8 @@ export default () => {
 				return [
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.DEPRECATED,
-						property.ast.rangeTokens,
+						property.ast.firstToken,
+						property.ast.lastToken,
 						property.ast,
 						{
 							severity: DiagnosticSeverity.Hint,

@@ -15,7 +15,7 @@
  */
 
 import fs from 'fs';
-import { describe, test, jest, expect } from '@jest/globals';
+import { describe, test, jest, expect, beforeEach } from '@jest/globals';
 import { DiagnosticTag } from 'vscode-languageserver';
 import { StandardTypeIssue } from '../types';
 import { resetTokenizedDocumentProvider } from '../providers/tokenizedDocument';

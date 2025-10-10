@@ -95,7 +95,10 @@ export async function activate(context: vscode.ExtensionContext) {
 	// If the extension is launched in debug mode then the debug server options are used
 	// Otherwise the run options are used
 	const serverOptions: ServerOptions = {
-		run: { module: serverModule, transport: TransportKind.ipc },
+		run: {
+			module: serverModule,
+			transport: TransportKind.ipc,
+		},
 		debug: {
 			module: serverModule,
 			transport: TransportKind.ipc,

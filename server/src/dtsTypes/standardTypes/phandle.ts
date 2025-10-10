@@ -42,7 +42,8 @@ export default () => {
 					return [
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.EXPECTED_UNIQUE_PHANDLE,
-							issueAst.rangeTokens,
+							issueAst.firstToken,
+							issueAst.lastToken,
 							issueAst,
 							{
 								linkedTo: nodes

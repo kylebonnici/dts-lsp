@@ -27,11 +27,13 @@ export function getChosenNodeType() {
 		const issues: FileDiagnostic[] = [];
 
 		if (node.parent?.name !== '/') {
+			const definition = node.definitions[0];
 			issues.push(
 				genStandardTypeDiagnostic(
 					StandardTypeIssue.NODE_LOCATION,
-					node.definitions[0].rangeTokens,
-					node.definitions[0],
+					definition.firstToken,
+					definition.lastToken,
+					definition,
 					{
 						linkedTo: node.definitions.slice(1),
 						templateStrings: [
