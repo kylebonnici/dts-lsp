@@ -90,7 +90,6 @@ import type {
 	ResolvedContext,
 	SerializedNode,
 	Settings,
-	StableResult,
 } from './types/index';
 import {
 	defaultSettings,
@@ -729,38 +728,31 @@ const onChange = async (uri: string) => {
 							});
 						}
 
-						context.serialize().then(async (node) => {
-							const [meta, fileTree] = await Promise.all([
-								contextMeta(context),
-								context.getFileTree(),
-							]);
+						const [meta, fileTree] = await Promise.all([
+							contextMeta(context),
+							context.getFileTree(),
+						]);
 
-							const stableResult = {
-								node,
-								ctx: {
-									ctxNames: context.ctxNames.map((c) =>
-										c.toString(),
-									),
-									id: context.id,
-									...fileTree,
-									settings: context.settings,
-									active: isActive,
-									type: meta.type,
-								} as ContextListItem,
-							} satisfies StableResult;
+						const ctx = {
+							ctxNames: context.ctxNames.map((c) => c.toString()),
+							id: context.id,
+							...fileTree,
+							settings: context.settings,
+							active: isActive,
+							type: meta.type,
+						} satisfies ContextListItem;
 
-							if (activeContext === context) {
-								connection.sendNotification(
-									'devicetree/activeContextStableNotification',
-									stableResult,
-								);
-							}
-
+						if (activeContext === context) {
 							connection.sendNotification(
-								'devicetree/contextStableNotification',
-								stableResult,
+								'devicetree/activeContextStableNotification',
+								ctx,
 							);
-						});
+						}
+
+						connection.sendNotification(
+							'devicetree/contextStableNotification',
+							ctx,
+						);
 
 						resolve();
 						console.log('reevaluate', performance.now() - t);
