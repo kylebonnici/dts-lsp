@@ -1509,7 +1509,8 @@ export class Parser extends BaseParser {
 		const value = str.map((s) => s.value).join('\n');
 		let trimmedValue = value;
 
-		if (trimmedValue.match(/["']$/)) {
+		const endsWithQuote = ['"', "'"].some((c) => trimmedValue.endsWith(c));
+		if (endsWithQuote) {
 			trimmedValue = trimmedValue.slice(1, -1);
 		}
 		const propValue = new StringValue(
@@ -1517,7 +1518,7 @@ export class Parser extends BaseParser {
 			createTokenIndex(str[0], str.at(-1)),
 		);
 
-		if (!value.match(/["']$/)) {
+		if (!endsWithQuote) {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					value.startsWith('"')
