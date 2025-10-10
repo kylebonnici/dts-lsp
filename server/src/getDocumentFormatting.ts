@@ -1219,7 +1219,7 @@ const formatDtcProperty = (
 	if (property.lastToken.value === ';') {
 		result.push(
 			...moveNextTo(
-				property.children.at(-1)!.lastToken,
+				property.children[property.children.length - 1].lastToken,
 				property.lastToken,
 			),
 		);
@@ -1334,7 +1334,7 @@ const formatDtcDelete = (
 	if (deleteItem.lastToken.value === ';') {
 		result.push(
 			...moveNextTo(
-				deleteItem.children.at(-1)!.lastToken,
+				deleteItem.children[deleteItem.children.length - 1].lastToken,
 				deleteItem.lastToken,
 			),
 		);
