@@ -43,7 +43,7 @@ import {
 	FileDiagnostic,
 	MacroRegistryItem,
 	RangeMapping,
-	NexusMapEnty,
+	NexusMapEntry,
 	SearchableResult,
 	RegMapping,
 	TokenIndexes,
@@ -1168,7 +1168,7 @@ export class Node {
 	getNexusMap(
 		specifier: string,
 		macros: Map<string, MacroRegistryItem>,
-	): { map: NexusMapEnty[]; mapMask: number[] } | undefined {
+	): { map: NexusMapEntry[]; mapMask: number[] } | undefined {
 		const nexusMap = this.getProperty(`${specifier}-map`);
 		const values = flatNumberValues(nexusMap?.ast.values);
 		if (!values?.length) {
@@ -1197,7 +1197,7 @@ export class Node {
 			childSpecifierCellsValue += this.addressCells(macros);
 		}
 
-		const map: NexusMapEnty[] = [];
+		const map: NexusMapEntry[] = [];
 
 		let i = 0;
 		while (i < values.length) {
@@ -1393,7 +1393,7 @@ ${'\t'.repeat(level - 1)}};`;
 			properties: this.properties.map((p) => ({
 				...p.ast.serialize(macros),
 				nodePath: this.pathString,
-				nexusMapEnty: p.nexusMapsTo.map((nexus) => {
+				nexusMapEntry: p.nexusMapsTo.map((nexus) => {
 					return {
 						mappingValuesAst: nexus.mappingValuesAst.map((v) =>
 							v.serialize(macros),

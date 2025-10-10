@@ -25,7 +25,7 @@ import {
 	ContextIssues,
 	FileDiagnostic,
 	MacroRegistryItem,
-	NexusMapEnty as NexusMapEntry,
+	NexusMapEntry as NexusMapEntry,
 	SearchableResult,
 } from '../types';
 import { DtcProperty } from '../ast/dtc/property';
