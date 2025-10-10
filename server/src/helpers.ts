@@ -619,9 +619,10 @@ export const sameLine = (tokenA?: Token, tokenB?: Token) => {
 
 export const adjacentTokens = (tokenA?: Token, tokenB?: Token) => {
 	if (
-		(tokenA?.adjacentToken &&
-			tokenA.adjacentToken.value === tokenB?.value) ||
-		(tokenB?.adjacentToken && tokenB.adjacentToken.value === tokenA?.value)
+		tokenA?.tokens[0] === LexerToken.STRING &&
+		tokenB?.tokens[0] === LexerToken.STRING &&
+		((tokenA?.prevToken && tokenA.prevToken.value === tokenB?.value) ||
+			(tokenB?.prevToken && tokenB.prevToken.value === tokenA?.value))
 	) {
 		return true;
 	}
@@ -629,8 +630,8 @@ export const adjacentTokens = (tokenA?: Token, tokenB?: Token) => {
 	return (
 		!!tokenA &&
 		!!tokenB &&
-		sameLine(tokenA, tokenB) &&
-		tokenA.pos.colEnd === tokenB.pos.col
+		tokenA.pos.colEnd === tokenB.pos.col &&
+		sameLine(tokenA, tokenB)
 	);
 };
 
