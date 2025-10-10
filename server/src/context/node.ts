@@ -590,35 +590,37 @@ export class Node {
 		return this.parent ? this.parent.root : this;
 	}
 
-	getAllPhandle(id: number): Node[] {
+	#phandle?: number;
+	get phandle() {
+		if (this.#phandle !== undefined) {
+			return this.#phandle;
+		}
 		const phandleValue =
 			this.getProperty('phandle')?.ast.values?.values.at(0)?.value;
 
 		if (phandleValue instanceof ArrayValues) {
 			const value = phandleValue.values[0].value;
-			if (value instanceof NumberValue && value.value === id) {
-				return [
-					this,
-					...this._nodes.flatMap((n) => n.getAllPhandle(id)),
-				];
+			if (value instanceof NumberValue) {
+				this.#phandle = value.value;
+				return this.#phandle;
 			}
+		}
+	}
+
+	getAllPhandle(id: number): Node[] {
+		if (id === this.phandle) {
+			return [this, ...this._nodes.flatMap((n) => n.getAllPhandle(id))];
 		}
 
 		return this._nodes.flatMap((n) => n.getAllPhandle(id));
 	}
 
 	getPhandle(id: number): Node | undefined {
-		const phandleValue =
-			this.getProperty('phandle')?.ast.values?.values.at(0)?.value;
-
-		if (phandleValue instanceof ArrayValues) {
-			const value = phandleValue.values[0].value;
-			if (value instanceof NumberValue && value.value === id) {
-				return this;
-			}
+		if (this.phandle === id) {
+			return this;
 		}
 
-		return this._nodes.flatMap((n) => n.getPhandle(id)).find((n) => !!n);
+		return this._nodes.find((n) => !!n.getPhandle(id));
 	}
 
 	getNode(name: string, address?: number[], strict = true) {
