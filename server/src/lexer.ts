@@ -345,8 +345,12 @@ export class Lexer {
 					keywordToken === LexerToken.C_FALSE ||
 					keywordToken === LexerToken.C_TRUE
 				) {
+					const lastIndex = this.tokens.length - 1;
 					if (
-						adjacentTokens(this.tokens.at(-2), this.tokens.at(-1))
+						adjacentTokens(
+							this.tokens[lastIndex - 1],
+							this.tokens[lastIndex],
+						)
 					) {
 						tokenFound = false;
 						this.tokens.pop();
