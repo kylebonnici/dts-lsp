@@ -482,7 +482,7 @@ export class Parser extends BaseParser {
 		this.enqueueToStack();
 		let hexStartPrepend = this.checkConcurrentTokens([
 			validateValue('0'),
-			validateValue('x', true),
+			validateValue('x', { caseInsensitive: true }),
 		]);
 
 		if (hexStartPrepend.length !== 2) {
@@ -1110,9 +1110,9 @@ export class Parser extends BaseParser {
 			validateToken(LexerToken.FORWARD_SLASH),
 			validateValue('d'),
 			validateValue('e'),
-			validateValue('lete'),
+			validateValue('lete', { allowPartial: true }),
 			validateToken(LexerToken.NEG_OPERATOR),
-			validateValue('node'),
+			validateValue('node', { allowPartial: true }),
 		]);
 
 		if (!valid.length) {
@@ -1268,9 +1268,9 @@ export class Parser extends BaseParser {
 			validateToken(LexerToken.FORWARD_SLASH),
 			validateValue('d'),
 			validateValue('e'),
-			validateValue('lete'),
+			validateValue('lete', { allowPartial: true }),
 			validateToken(LexerToken.NEG_OPERATOR),
-			validateValue('property'),
+			validateValue('property', { allowPartial: true }),
 		]);
 
 		if (!valid.length) {

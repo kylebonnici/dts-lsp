@@ -572,7 +572,7 @@ export abstract class BaseParser {
 
 		const validStart = this.checkConcurrentTokens([
 			validateValue('0'),
-			validateValue('x', true),
+			validateValue('x', { caseInsensitive: true }),
 		]);
 
 		if (validStart.length !== 2) {

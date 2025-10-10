@@ -593,14 +593,19 @@ export const validToken = (token: Token | undefined, expected: LexerToken) =>
 	token?.tokens.some((t) => t === expected);
 
 export const validateValue =
-	(expected: string, caseInsensitive = false) =>
+	(
+		expected: string,
+		options?: { caseInsensitive?: boolean; allowPartial?: boolean },
+	) =>
 	(token: Token | undefined) =>
 		token?.value &&
-		(caseInsensitive
+		(options?.caseInsensitive
 			? expected.toLowerCase() === token.value.toLowerCase()
 			: expected === token.value)
 			? 'yes'
-			: validateValueStartsWith(expected)(token);
+			: options?.allowPartial
+				? validateValueStartsWith(expected)(token)
+				: 'no';
 export const validateToken =
 	(expected: LexerToken) => (token: Token | undefined) =>
 		token?.tokens.some((t) => t === expected) ? 'yes' : 'no';
