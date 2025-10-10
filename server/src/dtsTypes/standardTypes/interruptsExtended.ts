@@ -189,6 +189,10 @@ export default () => {
 				const nexusMapping: NexusMapping = {
 					mappingValuesAst,
 					target: pHandleNode,
+					specifierSpace:
+						pHandleNode.bindingLoader?.type === 'Zephyr'
+							? 'interrupt'
+							: undefined,
 				};
 
 				property.nexusMapsTo.push(nexusMapping);
@@ -225,6 +229,10 @@ export default () => {
 						expressions: mappingValuesAst,
 						node,
 						property,
+						specifierSpace:
+							pHandleNode.bindingLoader?.type === 'Zephyr'
+								? 'interrupt'
+								: undefined,
 					});
 				}
 
