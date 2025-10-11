@@ -60,7 +60,7 @@ export class DtcProperty extends ASTBase {
 	public assignOperatorToken?: Token;
 
 	constructor(
-		public readonly propertyName: PropertyName | null,
+		public readonly propertyName: PropertyName,
 		public readonly labels: LabelAssign[] = [],
 	) {
 		super();
@@ -154,9 +154,11 @@ export class DtcProperty extends ASTBase {
 		return {
 			name: this.propertyName?.serialize() ?? null,
 			values:
-				this.values?.values.map(
-					(v) => v?.value?.serialize(macros) ?? null,
-				) ?? null,
+				this.values === undefined
+					? undefined
+					: (this.values?.values.map(
+							(v) => v?.value?.serialize(macros) ?? null,
+						) ?? null),
 			uri: this.serializeUri,
 			range: this.range,
 			issues: this.serializeIssues,

@@ -338,7 +338,7 @@ export type RangeMapping = {
 	rangeTokens: TokenIndexes;
 };
 
-export interface NexusMapEnty {
+export interface NexusMapEntry {
 	mappingValues: (LabelRef | NodePathRef | NumberValue | Expression)[];
 	node: Node;
 	parentValues: (LabelRef | NodePathRef | NumberValue | Expression)[];
