@@ -31,6 +31,7 @@ export interface Context {
 	deviceOrgTreeBindings?: string[];
 	deviceOrgBindingsMetaSchema?: string[];
 	lockRenameEdits?: string[];
+	showFormattingErrorAsDiagnostics?: boolean;
 	compileCommands?: string;
 }
 
@@ -59,6 +60,7 @@ export interface Settings {
 	contexts?: ResolvedContext[];
 	preferredContext?: string | number;
 	defaultLockRenameEdits?: string[];
+	defaultShowFormattingErrorAsDiagnostics?: boolean;
 	autoChangeContext?: boolean;
 	allowAdhocContexts?: boolean;
 }

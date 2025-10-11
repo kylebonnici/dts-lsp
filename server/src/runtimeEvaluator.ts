@@ -90,6 +90,8 @@ export class ContextAware {
 			...settings,
 			ctxName: settings.ctxName ?? basename(settings.dtsFile),
 			lockRenameEdits: [],
+			showFormattingErrorAsDiagnostics:
+				settings.showFormattingErrorAsDiagnostics ?? true,
 		};
 		this.overlays = resolvedSettings.overlays;
 		this.overlays.filter(existsSync);

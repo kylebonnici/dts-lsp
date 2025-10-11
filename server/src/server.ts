@@ -844,7 +844,10 @@ const generateWorkspaceDiagnostics = async (context: ContextAware) => {
 		context.getContextFiles().map(async (file) => {
 			const textDocument = fetchDocument(file);
 			const formattingItems: Diagnostic[] = [];
-			if (textDocument) {
+			if (
+				textDocument &&
+				context.settings.showFormattingErrorAsDiagnostics
+			) {
 				formattingItems.push(
 					...(
 						await getDocumentFormatting(

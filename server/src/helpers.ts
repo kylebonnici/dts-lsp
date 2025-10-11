@@ -948,6 +948,7 @@ export const generateContextId = (ctx: ResolvedContext) => {
 				...ctx.zephyrBindings.map(normalizePath),
 				...ctx.deviceOrgBindingsMetaSchema.map(normalizePath),
 				...ctx.deviceOrgTreeBindings.map(normalizePath),
+				`showFormattingErrorAsDiagnostics-${ctx.showFormattingErrorAsDiagnostics}`,
 			].join(':'),
 		)
 		.digest('hex');
