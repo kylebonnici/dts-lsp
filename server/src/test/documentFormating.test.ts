@@ -68,6 +68,7 @@ const getEdits = async (
 		},
 		context,
 		document.getText(),
+		'New Text',
 	);
 };
 
@@ -91,7 +92,7 @@ describe('Document formating', () => {
 		resetTokenizedDocumentProvider();
 	});
 
-	test('insertFinalNewline', async () => {
+	test('only insertFinalNewline', async () => {
 		const documentText = '/{};';
 		const newText = await getNewText(documentText, {
 			insertFinalNewline: true,

@@ -32,15 +32,29 @@ import { NodePathRef } from './ast/dtc/values/nodePath';
 import { NumberValue } from './ast/dtc/values/number';
 import { Expression } from './ast/cPreprocessors/expression';
 
-export type CodeActionDiagnosticData = {
-	issues: { edit?: TextEdit | TextEdit[]; codeActionTitle?: string } & (
-		| { type: 'SyntaxIssue'; items: SyntaxIssue[] }
-		| { type: 'StandardTypeIssue'; items: StandardTypeIssue[] }
-	);
-	firstToken: Omit<Token, 'prevToken' | 'nextToken' | 'uri'>;
-	lastToken: Omit<Token, 'prevToken' | 'nextToken' | 'uri'>;
-};
-
+export type CodeActionDiagnosticData =
+	| {
+			type: 'SyntaxIssue';
+			edit?: TextEdit | TextEdit[];
+			codeActionTitle?: string;
+			items: SyntaxIssue[];
+			firstToken: Omit<Token, 'prevToken' | 'nextToken' | 'uri'>;
+			lastToken: Omit<Token, 'prevToken' | 'nextToken' | 'uri'>;
+	  }
+	| {
+			type: 'StandardTypeIssue';
+			edit?: TextEdit | TextEdit[];
+			codeActionTitle?: string;
+			items: StandardTypeIssue[];
+			firstToken: Omit<Token, 'prevToken' | 'nextToken' | 'uri'>;
+			lastToken: Omit<Token, 'prevToken' | 'nextToken' | 'uri'>;
+	  }
+	| {
+			type: 'FormattingIssues';
+			edit?: TextEdit | TextEdit[];
+			codeActionTitle?: string;
+			items: FormattingIssues[];
+	  };
 export enum StandardTypeIssue {
 	REQUIRED,
 	EXPECTED_EMPTY,
@@ -150,6 +164,19 @@ export enum ContextIssues {
 	UNABLE_TO_RESOLVE_NODE_PATH,
 	MISSING_NODE,
 	ADDRESS_RANGE_COLLIDES,
+}
+
+export enum FormattingIssues {
+	MISSING_NEW_LINE,
+	TO_MUCH_WHITE_SPACE,
+	TRALING_WHITE_SPACE,
+	TRALING_EOF_NEW_LINES,
+	MISSING_EOF_NEW_LINE,
+	REMOVE_UNNECESSARY_NEW_LINES,
+	WRONG_INDENTATION,
+	INSERT_SPACES,
+	MOVE_NEXT_TO,
+	REMOVE_EXPRESSION_BRACKETS,
 }
 
 export enum LexerToken {
@@ -282,7 +309,11 @@ export type BuildSemanticTokensPush = (
 	lastToken: Token,
 ) => void;
 
-export type IssueTypes = SyntaxIssue | ContextIssues | StandardTypeIssue;
+export type IssueTypes =
+	| SyntaxIssue
+	| ContextIssues
+	| StandardTypeIssue
+	| FormattingIssues;
 export interface Issue<T extends IssueTypes> {
 	issues: T[];
 	range: Range;
@@ -294,6 +325,22 @@ export interface Issue<T extends IssueTypes> {
 	edit?: TextEdit | TextEdit[];
 	codeActionTitle?: string;
 }
+
+export type IssueWithEdits<T extends IssueTypes> = Issue<T> & {
+	edit: TextEdit | TextEdit[];
+	codeActionTitle: string | undefined;
+};
+export type IssueWithEdit<T extends IssueTypes> = Issue<T> & {
+	edit: TextEdit;
+	codeActionTitle: string | undefined;
+};
+export type FileDiagnosticWithEdits = FileDiagnostic & {
+	raw: IssueWithEdits<IssueTypes>;
+};
+
+export type FileDiagnosticWithEdit = FileDiagnostic & {
+	raw: IssueWithEdit<IssueTypes>;
+};
 
 export type SearchableResult = {
 	runtime: Runtime;
