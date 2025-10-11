@@ -38,6 +38,7 @@ import {
 	Location,
 	WorkspaceFolder,
 	DocumentFormattingParams,
+	TextEdit,
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -48,7 +49,6 @@ import {
 	tokenTypes,
 } from './types';
 import {
-	applyEdits,
 	coreSyntaxIssuesFilter,
 	evalExp,
 	expandMacros,
@@ -1395,11 +1395,29 @@ connection.onDocumentFormatting(async (event) => {
 		return [];
 	}
 
-	return getDocumentFormatting(
-		event,
-		context,
-		getTokenizedDocumentProvider().getDocument(filePath).getText(),
-	);
+	const document = getTokenizedDocumentProvider().getDocument(filePath);
+	const text = document.getText();
+	const newText = await getDocumentFormatting(event, context, text);
+
+	if (newText === text) {
+		return [];
+	}
+
+	const lastLine = document.lineCount - 1;
+	const lastLineLength = document.getText({
+		start: { line: lastLine, character: 0 },
+		end: { line: lastLine + 1, character: 0 },
+	}).length;
+
+	return [
+		TextEdit.replace(
+			Range.create(
+				Position.create(0, 0),
+				Position.create(document.lineCount, lastLineLength),
+			),
+			newText,
+		),
+	];
 });
 
 connection.onHover(async (event) => {
@@ -1698,17 +1716,12 @@ const formatWithContext = async (
 	}
 
 	const documentText = getTokenizedDocumentProvider().getDocument(filePath);
-	const edits = await getDocumentFormatting(
+	const newText = await getDocumentFormatting(
 		event,
 		context,
 		documentText.getText(),
 	);
 
-	if (edits.length === 0) {
-		return;
-	}
-
-	const newText = applyEdits(documentText, edits);
 	return newText;
 };
 
@@ -1728,13 +1741,8 @@ connection.onRequest(
 			filePath,
 			event.text,
 		);
-		const edits = await formatText(event, documentText.getText());
+		const newText = await formatText(event, documentText.getText());
 
-		if (edits.length === 0) {
-			return documentText.getText();
-		}
-
-		const newText = applyEdits(documentText, edits);
 		return newText;
 	},
 );

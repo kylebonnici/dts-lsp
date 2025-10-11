@@ -25,7 +25,6 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { resetTokenizedDocumentProvider } from '../providers/tokenizedDocument';
 import { ContextAware } from '../runtimeEvaluator';
 import { getDocumentFormatting } from '../getDocumentFormatting';
-import { applyEdits } from '../helpers';
 import { getFakeBindingLoader } from './helpers';
 
 jest.mock('fs', () => ({
@@ -83,7 +82,8 @@ const getNewText = async (
 		0,
 		documentText,
 	);
-	return applyEdits(document, await getEdits(document, options));
+
+	return getEdits(document, options);
 };
 
 describe('Document formating', () => {

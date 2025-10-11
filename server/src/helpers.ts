@@ -123,7 +123,7 @@ export const positionAfter = (
 
 	if (position.line > token.pos.line) return true;
 
-	return position.character > token.pos.colEnd;
+	return position.character >= token.pos.colEnd;
 };
 
 export const positionBefore = (
