@@ -33,7 +33,6 @@ import {
 	createTokenIndex,
 	genSyntaxDiagnostic,
 	isPathEqual,
-	startsWithLetter,
 	validateToken,
 	validateValue,
 	validToken,
@@ -285,7 +284,7 @@ export abstract class BaseParser {
 			return undefined;
 		}
 
-		if (!startsWithLetter(valid?.[0]?.value)) {
+		if (!valid?.[0]?.value.match(/^[_A-Za-z]/)) {
 			this.popStack();
 			return;
 		}
