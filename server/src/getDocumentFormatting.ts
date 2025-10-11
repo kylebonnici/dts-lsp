@@ -23,6 +23,7 @@ import {
 	ResponseError,
 	TextEdit,
 } from 'vscode-languageserver';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ContextAware } from './runtimeEvaluator';
 import {
 	DtcBaseNode,
@@ -42,6 +43,7 @@ import { ByteStringValue } from './ast/dtc/values/byteString';
 import { LabeledValue } from './ast/dtc/values/labeledValue';
 import { Include } from './ast/cPreprocessors/include';
 import {
+	applyEdits,
 	coreSyntaxIssuesFilter,
 	fileURLToPath,
 	getDeepestAstNodeInBetween,
@@ -127,7 +129,7 @@ const getAstItemLevel =
 export async function formatText(
 	documentFormattingParams: DocumentFormattingParams,
 	text: string,
-) {
+): Promise<string> {
 	const filePath = fileURLToPath(documentFormattingParams.textDocument.uri);
 	const parser = new Parser(
 		filePath,
@@ -156,7 +158,7 @@ export async function formatText(
 		documentFormattingParams,
 		parser.allAstItems,
 		filePath,
-		text.split('\n'),
+		text,
 	);
 }
 
@@ -164,8 +166,11 @@ async function formatAstBaseItems(
 	documentFormattingParams: DocumentFormattingParams,
 	astItems: ASTBase[],
 	uri: string,
-	splitDocument: string[],
-) {
+	text: string,
+): Promise<string> {
+	const splitDocument = text.split('\n');
+	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
+
 	const astItemLevel = getAstItemLevel(astItems, uri);
 	const result: TextEdit[] = [];
 	result.push(
@@ -220,22 +225,21 @@ async function formatAstBaseItems(
 		}
 	}
 
-	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
-	return formatOnOffMeta.length
+	const edits = formatOnOffMeta.length
 		? result.filter(
 				(edit) =>
 					!isFormattingDisabledAt(edit.range.start, formatOnOffMeta),
 			)
 		: result;
+
+	return applyEdits(TextDocument.create(uri, 'devicetree', 0, text), edits);
 }
 
 export async function getDocumentFormatting(
 	documentFormattingParams: DocumentFormattingParams,
 	contextAware: ContextAware,
 	documentText: string,
-): Promise<TextEdit[]> {
-	const splitDocument = documentText.split('\n');
-
+): Promise<string> {
 	const uri = fileURLToPath(documentFormattingParams.textDocument.uri);
 
 	const runtime = await contextAware.getRuntime();
@@ -268,7 +272,7 @@ export async function getDocumentFormatting(
 		documentFormattingParams,
 		fileRootAsts,
 		uri,
-		splitDocument,
+		documentText,
 	);
 }
 const pairFormatOnOff = (
