@@ -406,6 +406,29 @@ const standardTypeIssueToCodeAction = (
 	}
 };
 
+const formattingIssueToCodeAction = (
+	diagnostic: Diagnostic,
+	uri: string,
+	edit?: TextEdit[],
+	codeActionTitle?: string,
+): CodeAction[] | undefined => {
+	if (!edit?.length) return [];
+
+	return [
+		{
+			title: codeActionTitle ?? `TODO`,
+			diagnostics: [diagnostic],
+			kind: CodeActionKind.QuickFix,
+			isPreferred: true,
+			edit: {
+				changes: {
+					[uri]: edit,
+				},
+			},
+		},
+	];
+};
+
 export function getCodeActions(
 	codeActionParams: CodeActionParams,
 ): CodeAction[] {
@@ -414,6 +437,17 @@ export function getCodeActions(
 			const tmp = diagnostic.data as CodeActionDiagnosticData | undefined;
 
 			switch (tmp?.type) {
+				case 'FormattingIssues':
+					return formattingIssueToCodeAction(
+						diagnostic,
+						codeActionParams.textDocument.uri,
+						!tmp.edit
+							? undefined
+							: Array.isArray(tmp.edit)
+								? tmp.edit
+								: [tmp.edit],
+						tmp.codeActionTitle,
+					);
 				case 'SyntaxIssue':
 					return tmp?.items.flatMap((issue) =>
 						syntaxIssueToCodeAction(
