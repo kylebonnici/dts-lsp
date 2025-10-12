@@ -1242,23 +1242,23 @@ export const formattingIssuesToMessage = (issue: Issue<FormattingIssues>) => {
 				case FormattingIssues.MISSING_EOF_NEW_LINE:
 					return `Add end of line to end of file`;
 				case FormattingIssues.TO_MUCH_WHITE_SPACE:
-					return `Remove unnecessary whitespace. Expected ${issue.templateStrings[0]} space(s).`;
+					return `Expecting ${issue.templateStrings[0]} space(s).`;
 				case FormattingIssues.MISSING_NEW_LINE:
 					return `Move to a new line`;
 				case FormattingIssues.TRALING_EOF_NEW_LINES:
-					return `Remove white space at the end of file.`;
+					return `Remove trailing whitespace at the end of file.`;
 				case FormattingIssues.TRALING_WHITE_SPACE:
-					return `Remove traling whitespace`;
+					return `Remove trailing whitespace at the end of the line.`;
 				case FormattingIssues.REMOVE_UNNECESSARY_NEW_LINES:
-					return `Remove unnecessary new lines. Expected ${issue.templateStrings[0]} new line(s)`;
+					return `Expecting ${issue.templateStrings[0]} new line(s)`;
 				case FormattingIssues.WRONG_INDENTATION:
-					return `Fix indentation`;
+					return `Fix indentation. Expecting ${issue.templateStrings[0]}`;
 				case FormattingIssues.INSERT_SPACES:
-					return `Expected ${issue.templateStrings[0]}  spaces.`;
+					return `Expecting ${issue.templateStrings[0]} space(s).`;
 				case FormattingIssues.MOVE_NEXT_TO:
-					return `Move token next to expression`;
+					return `Move token "${issue.templateStrings[0]}" next to expression`;
 				case FormattingIssues.REMOVE_EXPRESSION_BRACKETS:
-					return `(...) should be remove. These are expected to be in the #define of the macro`;
+					return `Remove (...) enclosure. This expression should only be enclosed in the #define of the macro`;
 			}
 		})
 		.join(' or ');

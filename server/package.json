@@ -4,7 +4,7 @@
 	"author": "Kyle Micallef Bonnici",
 	"package-name": "devicetree-language-server",
 	"main": "dist/server.js",
-	"version": "0.6.0-beta1",
+	"version": "0.6.0-beta2",
 	"categories": [
 		"Linters",
 		"Formatters",

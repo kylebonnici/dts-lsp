@@ -598,7 +598,13 @@ const createIndentEdit = (
 			FormattingIssues.WRONG_INDENTATION,
 			token.uri,
 			start,
-			{ edit, codeActionTitle: 'Fix indentation' },
+			{
+				edit,
+				codeActionTitle: 'Fix indentation',
+				templateStrings: [
+					indent.replaceAll(' ', '·').replaceAll('\t', '→'),
+				],
+			},
 			end,
 		),
 	];
@@ -1500,7 +1506,11 @@ const moveNextTo = (token: Token, toMove: Token): FileDiagnostic[] => {
 			FormattingIssues.MOVE_NEXT_TO,
 			token.uri,
 			start,
-			{ edit: edits, codeActionTitle: 'Move token' },
+			{
+				edit: edits,
+				codeActionTitle: 'Move token',
+				templateStrings: [toMove.value],
+			},
 			end,
 		),
 	];
