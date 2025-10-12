@@ -378,10 +378,16 @@ connection.onInitialize(async (params: InitializeParams) => {
 	return result;
 });
 
-connection.onInitialized(() => {
+let defaultEditorSettings: any = undefined;
+
+connection.onInitialized(async () => {
 	if (hasConfigurationCapability) {
 		// Register for all configuration changes.
 		connection.client.register(DidChangeConfigurationNotification.type, {});
+
+		defaultEditorSettings =
+			(await connection.workspace.getConfiguration('[dts]')) ??
+			(await connection.workspace.getConfiguration('editor'));
 	}
 	if (hasWorkspaceFolderCapability) {
 		connection.workspace.onDidChangeWorkspaceFolders(async (_event) => {
@@ -475,6 +481,7 @@ const createContext = async (context: ResolvedContext) => {
 	);
 	const newContext = new ContextAware(
 		context,
+		defaultEditorSettings,
 		context.bindingType
 			? getBindingLoader(
 					{

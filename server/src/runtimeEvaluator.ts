@@ -69,16 +69,10 @@ export class ContextAware {
 	public readonly id: string;
 	private readonly ctxNames_ = new Set<string | number>();
 	private sortKeys = new WeakMap<Token, number>();
-	formattingOptions: FormattingOptions = {
-		tabSize: 8,
-		insertSpaces: false,
-		trimTrailingWhitespace: true,
-		insertFinalNewline: true,
-		trimFinalNewlines: true,
-	};
 
 	constructor(
 		readonly settings: PartialBy<Context, 'ctxName'>,
+		public formattingOptions: FormattingOptions,
 		public readonly bindingLoader?: BindingLoader,
 	) {
 		const resolvedSettings: ResolvedContext = {

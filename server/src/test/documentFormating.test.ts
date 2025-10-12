@@ -52,6 +52,12 @@ const getEdits = async (
 	};
 	const context = new ContextAware(
 		{ dtsFile: fileURLToPath(textDocument.uri) },
+		{
+			...options,
+			tabSize: 4,
+			insertSpaces: false,
+			trimTrailingWhitespace: true,
+		},
 		getFakeBindingLoader(),
 	);
 	await context.parser.stable;
