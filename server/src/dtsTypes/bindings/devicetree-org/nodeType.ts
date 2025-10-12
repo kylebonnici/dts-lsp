@@ -31,7 +31,6 @@ import { Runtime } from '../../../context/runtime';
 import { INodeType } from '../../../dtsTypes/types';
 import {
 	genStandardTypeDiagnostic,
-	getIndentString,
 	toRangeWithTokenIndex,
 } from '../../../helpers';
 import { FileDiagnostic, StandardTypeIssue } from '../../../types';
@@ -246,9 +245,13 @@ const convertToError = (
 					edit: TextEdit.insert(
 						Position.create(token.pos.line, token.pos.col + 1),
 						`\n${''.padEnd(
-							countParent(item.uri, node) *
-								getIndentString().length,
-							getIndentString(),
+							countParent(item.uri, node),
+							runtime.context.formattingOptions.insertSpaces
+								? ' '.repeat(
+										runtime.context.formattingOptions
+											.tabSize,
+									)
+								: '\t',
 						)}${propertyName};`,
 					),
 				},

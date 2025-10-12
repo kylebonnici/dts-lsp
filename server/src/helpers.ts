@@ -98,16 +98,6 @@ export const toRange = (slxBase: ASTBase) => {
 	return toRangeWithTokenIndex(slxBase.firstToken, slxBase.lastToken);
 };
 
-let indentString = '\t';
-
-export const setIndentString = (indent: string) => {
-	indentString = indent;
-};
-
-export const getIndentString = () => {
-	return indentString;
-};
-
 export const getTokenTypes = (type: SemanticTokenType) => {
 	return tokenTypes.findIndex((t) => t === type);
 };

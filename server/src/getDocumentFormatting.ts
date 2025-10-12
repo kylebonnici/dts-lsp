@@ -57,7 +57,6 @@ import {
 	isPathEqual,
 	positionInBetween,
 	rangesOverlap,
-	setIndentString,
 } from './helpers';
 import { Comment, CommentBlock } from './ast/dtc/comment';
 import { LabelAssign } from './ast/dtc/label';
@@ -1800,14 +1799,12 @@ const getTextEdit = async (
 ): Promise<FileDiagnostic[]> => {
 	const delta = documentFormattingParams.options.tabSize;
 	const insertSpaces = documentFormattingParams.options.insertSpaces;
-	const singleIndent = insertSpaces ? ''.padStart(delta, ' ') : '\t';
+	const singleIndent = insertSpaces ? ' '.repeat(delta) : '\t';
 	const settings: FormatingSettings = {
 		tabSize: delta,
 		insertSpaces,
 		singleIndent,
 	};
-
-	setIndentString(singleIndent);
 
 	if (astNode instanceof DtcBaseNode) {
 		return formatDtcNode(

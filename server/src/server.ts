@@ -40,6 +40,7 @@ import {
 	DocumentFormattingParams,
 	TextEdit,
 	Diagnostic,
+	FormattingOptions,
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -378,16 +379,26 @@ connection.onInitialize(async (params: InitializeParams) => {
 	return result;
 });
 
-let defaultEditorSettings: any = undefined;
+let defaultEditorSettings: FormattingOptions = {
+	tabSize: 8,
+	insertSpaces: false,
+	trimTrailingWhitespace: true,
+};
 
 connection.onInitialized(async () => {
 	if (hasConfigurationCapability) {
 		// Register for all configuration changes.
 		connection.client.register(DidChangeConfigurationNotification.type, {});
 
-		defaultEditorSettings =
-			(await connection.workspace.getConfiguration('[dts]')) ??
-			(await connection.workspace.getConfiguration('editor'));
+		const editorSettings =
+			await connection.workspace.getConfiguration('editor');
+		const dtsSettings =
+			await connection.workspace.getConfiguration('[dts]');
+		defaultEditorSettings = {
+			...editorSettings,
+			tabSize: dtsSettings['editor.tabSize'],
+			insertSpaces: dtsSettings['editor.insertSpaces'],
+		};
 	}
 	if (hasWorkspaceFolderCapability) {
 		connection.workspace.onDidChangeWorkspaceFolders(async (_event) => {
