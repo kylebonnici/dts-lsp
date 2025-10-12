@@ -676,7 +676,14 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
 
 	const delta = token.nextToken.pos.col - token.pos.colEnd;
 
-	if (delta === expectedSpaces) return [];
+	if (
+		delta === expectedSpaces &&
+		documentText[token.pos.line].slice(
+			token.pos.colEnd,
+			token.nextToken.pos.col,
+		) === ' '.repeat(expectedSpaces)
+	)
+		return [];
 
 	const start = Position.create(token.pos.line, token.pos.colEnd);
 	const end = Position.create(
