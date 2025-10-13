@@ -4,27 +4,28 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.6.0] - 2025-10-13
+## [0.6.0] - 2025-10-14
 
 ### Added
 
 - Support to resolve workspace folders in settings e.g `${workspaceFolder:name}`
 - Support type signature for `interrupts` with Zephyr bindings using `interrupt-cells`
 - Support type signature for `interrupts-extended` with Zephyr bindings using `interrupt-cells`
-- Added Diagnostic events for formatting issues. These can be diabled by setting the
+- Added Diagnostic events for formatting issues. These can be disabled by setting the
   `defaultShowFormattingErrorAsDiagnostics` or `showFormattingErrorAsDiagnostics` to false
 
 ### Fixed
 
-- Fixed a where dts-lsp was not consuming the initial setting from lsp client such as `yegappan/lsp`
+- Fixed an issue where server was not consuming the initial setting from lsp client such
+  resulting in no context to start `yegappan/lsp`
 - Fixed support for node path reference for root i.e. `&{/}`
 
 ## [0.5.7] - 2025-10-09
 
 ### Fixed
 
-- Fixed support for insertFinalNewline when formating files.
-- Fixed support for trimFinalNewlines when formating files.
+- Fixed support for insertFinalNewline when formatting files.
+- Fixed support for trimFinalNewlines when formatting files.
 
 ## [0.5.6] - 2025-10-08
 
