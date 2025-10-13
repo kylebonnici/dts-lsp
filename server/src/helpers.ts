@@ -556,7 +556,7 @@ export function genFormattingDiagnostic(
 	uri: string,
 	start: Position,
 	{
-		severity = DiagnosticSeverity.Error,
+		severity = DiagnosticSeverity.Warning,
 		linkedTo = [],
 		tags,
 		templateStrings = [],
@@ -570,7 +570,7 @@ export function genFormattingDiagnostic(
 		edit: TextEdit | TextEdit[];
 		codeActionTitle: string | undefined;
 	} = {
-		severity: DiagnosticSeverity.Error,
+		severity: DiagnosticSeverity.Warning,
 		linkedTo: [],
 		templateStrings: [],
 		edit: [],
