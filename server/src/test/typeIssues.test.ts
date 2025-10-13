@@ -20,7 +20,7 @@ import { DiagnosticTag } from 'vscode-languageserver';
 import { StandardTypeIssue } from '../types';
 import { resetTokenizedDocumentProvider } from '../providers/tokenizedDocument';
 import { ContextAware } from '../runtimeEvaluator';
-import { getFakeBindingLoader } from './helpers';
+import { defaultEditorSettings, getFakeBindingLoader } from './helpers';
 
 jest.mock('fs', () => ({
 	readFileSync: jest.fn().mockImplementation(() => {
@@ -51,6 +51,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{ ${rootDefaults} node{aliases{};};};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -69,6 +70,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{ ${rootDefaults} aliases{};};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -81,6 +83,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{ ${rootDefaults} aliases{abc,efg="/"};};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -97,6 +100,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{ ${rootDefaults} aliases{abc=<1 2>};};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -114,6 +118,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{ ${rootDefaults} aliases{node{};};};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -134,6 +139,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{ ${rootDefaults} memory{};};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -152,6 +158,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{ ${rootDefaults} reserved-memory{};};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -180,6 +187,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{ ${rootDefaults} cpus{};};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -204,6 +212,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -226,6 +235,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -250,6 +260,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -274,6 +285,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{ ${rootDefaults} status= <10>;};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -293,6 +305,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -310,6 +323,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -324,6 +338,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -338,6 +353,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{${rootDefaults} node {model= <10>;};};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -355,6 +371,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -369,6 +386,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -386,6 +404,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{${rootDefaults}  phandle= "hello";};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -401,6 +420,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{${rootDefaults}  phandle= <10>;};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -413,6 +433,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{${rootDefaults} phandle= <0x10>;};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -425,6 +446,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{${rootDefaults} phandle= <10 20>;};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -442,6 +464,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -467,6 +490,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -484,6 +508,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -498,6 +523,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -512,6 +538,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -529,6 +556,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -551,6 +579,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -568,6 +597,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -582,6 +612,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -596,6 +627,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -613,6 +645,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -633,6 +666,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -650,6 +684,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -667,6 +702,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -681,6 +717,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -695,6 +732,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -709,6 +747,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -726,6 +765,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -740,6 +780,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -754,6 +795,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -771,6 +813,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -788,6 +831,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -805,6 +849,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{${rootDefaults} virtual-reg= "hello";};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -820,6 +865,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{${rootDefaults} virtual-reg= <10>;};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -832,6 +878,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{${rootDefaults} virtual-reg= <0x10>;};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -844,6 +891,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{${rootDefaults} virtual-reg= <10 20>;};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -861,6 +909,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{${rootDefaults} ranges= "hello";};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -877,6 +926,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{${rootDefaults} ranges;};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -891,6 +941,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -905,6 +956,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -919,6 +971,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -933,6 +986,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -950,6 +1004,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -964,6 +1019,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -978,6 +1034,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -992,6 +1049,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1006,6 +1064,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{${rootDefaults} dma-ranges= "hello";};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1022,6 +1081,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{${rootDefaults} dma-ranges;};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1036,6 +1096,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1050,6 +1111,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1064,6 +1126,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{${rootDefaults} dma-coherent= "hello";};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1079,6 +1142,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{${rootDefaults} dma-coherent;};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1095,6 +1159,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1110,6 +1175,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{${rootDefaults} dma-noncoherent;};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1126,6 +1192,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1144,6 +1211,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1161,6 +1229,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1178,6 +1247,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1196,6 +1266,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1213,6 +1284,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{${rootDefaults} name= <10>;};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1228,6 +1300,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{${rootDefaults} name= "hello";};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1243,6 +1316,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{${rootDefaults} name= "hello","hello2";};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1260,6 +1334,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{${rootDefaults} interrupts= "hello";};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1277,6 +1352,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1291,6 +1367,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1303,6 +1380,7 @@ describe('Type Issues', () => {
 				mockReadFileSync(`/{${rootDefaults} interrupts= <10 20>};`);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1320,6 +1398,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1337,6 +1416,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1353,6 +1433,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1370,6 +1451,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1384,6 +1466,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1398,6 +1481,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1417,6 +1501,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1434,6 +1519,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1459,6 +1545,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1473,6 +1560,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1487,6 +1575,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1501,6 +1590,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1515,6 +1605,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1529,6 +1620,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1543,6 +1635,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1562,6 +1655,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1581,6 +1675,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1607,6 +1702,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1623,6 +1719,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1637,6 +1734,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1654,6 +1752,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1673,6 +1772,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1687,6 +1787,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1704,6 +1805,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1718,6 +1820,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1735,6 +1838,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1749,6 +1853,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1768,6 +1873,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1782,6 +1888,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1801,6 +1908,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1815,6 +1923,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1834,6 +1943,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;
@@ -1848,6 +1958,7 @@ describe('Type Issues', () => {
 				);
 				const context = new ContextAware(
 					{ dtsFile: 'file:///folder/dts.dts' },
+					defaultEditorSettings,
 					getFakeBindingLoader(),
 				);
 				await context.parser.stable;

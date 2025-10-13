@@ -15,11 +15,11 @@
  */
 
 import fs from 'fs';
-import { describe, test, jest, expect } from '@jest/globals';
+import { describe, test, jest, expect, beforeEach } from '@jest/globals';
 import { resetTokenizedDocumentProvider } from '../providers/tokenizedDocument';
 import { ContextAware } from '../runtimeEvaluator';
 import { ContextIssues } from '../types';
-import { getFakeBindingLoader } from './helpers';
+import { defaultEditorSettings, getFakeBindingLoader } from './helpers';
 
 jest.mock('fs', () => ({
 	readFileSync: jest.fn().mockImplementation(() => {
@@ -45,6 +45,7 @@ describe('Context Issues', () => {
 		mockReadFileSync('/{prop1;prop1;cpus{};memory{};};');
 		const context = new ContextAware(
 			{ dtsFile: 'file:///folder/dts.dts' },
+			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
 		await context.parser.stable;
@@ -64,6 +65,7 @@ describe('Context Issues', () => {
 		mockReadFileSync('/{/delete-property/ prop1; cpus{};memory{};};');
 		const context = new ContextAware(
 			{ dtsFile: 'file:///folder/dts.dts' },
+			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
 		await context.parser.stable;
@@ -82,6 +84,7 @@ describe('Context Issues', () => {
 		);
 		const context = new ContextAware(
 			{ dtsFile: 'file:///folder/dts.dts' },
+			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
 		await context.parser.stable;
@@ -98,6 +101,7 @@ describe('Context Issues', () => {
 		mockReadFileSync('/{node{};node{};cpus{};memory{};};');
 		const context = new ContextAware(
 			{ dtsFile: 'file:///folder/dts.dts' },
+			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
 		await context.parser.stable;
@@ -114,6 +118,7 @@ describe('Context Issues', () => {
 		mockReadFileSync('/{node@20{};node@20{};cpus{};memory{};};');
 		const context = new ContextAware(
 			{ dtsFile: 'file:///folder/dts.dts' },
+			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
 		await context.parser.stable;
@@ -130,6 +135,7 @@ describe('Context Issues', () => {
 		mockReadFileSync('/{node@20,30{};node@20,30{};cpus{};memory{};};');
 		const context = new ContextAware(
 			{ dtsFile: 'file:///folder/dts.dts' },
+			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
 		await context.parser.stable;
@@ -147,6 +153,7 @@ describe('Context Issues', () => {
 			mockReadFileSync('/{prop1=&l1; cpus{};memory{};};');
 			const context = new ContextAware(
 				{ dtsFile: 'file:///folder/dts.dts' },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -163,6 +170,7 @@ describe('Context Issues', () => {
 			mockReadFileSync('&nodeLabel{}; /{cpus{};memory{};};');
 			const context = new ContextAware(
 				{ dtsFile: 'file:///folder/dts.dts' },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -181,6 +189,7 @@ describe('Context Issues', () => {
 			);
 			const context = new ContextAware(
 				{ dtsFile: 'file:///folder/dts.dts' },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -201,6 +210,7 @@ describe('Context Issues', () => {
 			);
 			const context = new ContextAware(
 				{ dtsFile: 'file:///folder/dts.dts' },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -219,6 +229,7 @@ describe('Context Issues', () => {
 			mockReadFileSync('/delete-node/ &nodeLabel; /{cpus{};memory{};}');
 			const context = new ContextAware(
 				{ dtsFile: 'file:///folder/dts.dts' },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -236,6 +247,7 @@ describe('Context Issues', () => {
 		mockReadFileSync('/{l1: node1{}; l1: node2{};cpus{};memory{};};');
 		const context = new ContextAware(
 			{ dtsFile: 'file:///folder/dts.dts' },
+			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
 		await context.parser.stable;
@@ -255,6 +267,7 @@ describe('Context Issues', () => {
 		mockReadFileSync('/{/delete-node/ node; cpus{};memory{};};');
 		const context = new ContextAware(
 			{ dtsFile: 'file:///folder/dts.dts' },
+			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
 		await context.parser.stable;
@@ -271,6 +284,7 @@ describe('Context Issues', () => {
 		mockReadFileSync('/{/delete-node/ node; node{};cpus{};memory{};};');
 		const context = new ContextAware(
 			{ dtsFile: 'file:///folder/dts.dts' },
+			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
 		await context.parser.stable;
@@ -290,6 +304,7 @@ describe('Context Issues', () => {
 			);
 			const context = new ContextAware(
 				{ dtsFile: 'file:///folder/dts.dts' },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -308,6 +323,7 @@ describe('Context Issues', () => {
 			);
 			const context = new ContextAware(
 				{ dtsFile: 'file:///folder/dts.dts' },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -338,6 +354,7 @@ describe('Context Issues', () => {
 			);
 			const context = new ContextAware(
 				{ dtsFile: 'file:///folder/dts.dts' },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -357,6 +374,7 @@ describe('Context Issues', () => {
 			);
 			const context = new ContextAware(
 				{ dtsFile: 'file:///folder/dts.dts' },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -373,6 +391,7 @@ describe('Context Issues', () => {
 			);
 			const context = new ContextAware(
 				{ dtsFile: 'file:///folder/dts.dts' },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -389,6 +408,7 @@ describe('Context Issues', () => {
 			);
 			const context = new ContextAware(
 				{ dtsFile: 'file:///folder/dts.dts' },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -405,6 +425,7 @@ describe('Context Issues', () => {
 			);
 			const context = new ContextAware(
 				{ dtsFile: 'file:///folder/dts.dts' },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -426,6 +447,7 @@ describe('Context Issues', () => {
 			);
 			const context = new ContextAware(
 				{ dtsFile: 'file:///folder/dts.dts' },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -445,6 +467,7 @@ describe('Context Issues', () => {
 			);
 			const context = new ContextAware(
 				{ dtsFile: 'file:///folder/dts.dts' },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -464,6 +487,7 @@ describe('Context Issues', () => {
 			);
 			const context = new ContextAware(
 				{ dtsFile: 'file:///folder/dts.dts' },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -485,6 +509,7 @@ describe('Context Issues', () => {
 			);
 			const context = new ContextAware(
 				{ dtsFile: 'file:///folder/dts.dts' },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -504,6 +529,7 @@ describe('Context Issues', () => {
 			);
 			const context = new ContextAware(
 				{ dtsFile: 'file:///folder/dts.dts' },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -521,6 +547,7 @@ describe('Context Issues', () => {
 			mockReadFileSync('/{l1: node1{};}; /{prop1=&l2;cpus{};memory{};};');
 			const context = new ContextAware(
 				{ dtsFile: 'file:///folder/dts.dts' },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -540,6 +567,7 @@ describe('Context Issues', () => {
 			mockReadFileSync('/{memory{};};');
 			const context = new ContextAware(
 				{ dtsFile: 'file:///folder/dts.dts' },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -555,6 +583,7 @@ describe('Context Issues', () => {
 			mockReadFileSync('/{cpus{};};');
 			const context = new ContextAware(
 				{ dtsFile: 'file:///folder/dts.dts' },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;

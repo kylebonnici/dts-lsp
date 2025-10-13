@@ -16,7 +16,7 @@
 
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { describe, test, jest, expect } from '@jest/globals';
+import { describe, test, jest, expect, beforeEach } from '@jest/globals';
 import {
 	Position,
 	TextDocumentIdentifier,
@@ -25,7 +25,7 @@ import {
 import { resetTokenizedDocumentProvider } from '../providers/tokenizedDocument';
 import { ContextAware } from '../runtimeEvaluator';
 import { getDefinitions } from '../findDefinitions';
-import { getFakeBindingLoader } from './helpers';
+import { defaultEditorSettings, getFakeBindingLoader } from './helpers';
 
 jest.mock('fs', () => ({
 	readFileSync: jest.fn().mockImplementation(() => {
@@ -53,6 +53,7 @@ describe('Find definitions', () => {
 		};
 		const context = new ContextAware(
 			{ dtsFile: fileURLToPath(textDocument.uri) },
+			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
 		await context.parser.stable;
@@ -74,6 +75,7 @@ describe('Find definitions', () => {
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -107,6 +109,7 @@ describe('Find definitions', () => {
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -148,6 +151,7 @@ describe('Find definitions', () => {
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -172,6 +176,7 @@ describe('Find definitions', () => {
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -197,6 +202,7 @@ describe('Find definitions', () => {
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -224,6 +230,7 @@ describe('Find definitions', () => {
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -249,6 +256,7 @@ describe('Find definitions', () => {
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -287,6 +295,7 @@ describe('Find definitions', () => {
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -312,6 +321,7 @@ describe('Find definitions', () => {
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -339,6 +349,7 @@ describe('Find definitions', () => {
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -363,6 +374,7 @@ describe('Find definitions', () => {
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -387,6 +399,7 @@ describe('Find definitions', () => {
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -411,6 +424,7 @@ describe('Find definitions', () => {
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -438,6 +452,7 @@ describe('Find definitions', () => {
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;
@@ -465,6 +480,7 @@ describe('Find definitions', () => {
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
+				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
 			await context.parser.stable;

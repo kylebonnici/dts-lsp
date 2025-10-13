@@ -14,9 +14,17 @@
  * limitations under the License.
  */
 
+import { FormattingOptions } from 'vscode-languageserver-types';
 import { getStandardType } from '../dtsTypes/standardTypes';
 import { BindingLoader } from '../dtsTypes/bindings/bindingLoader';
 import { Node } from '../context/node';
+
+export const defaultEditorSettings: FormattingOptions = {
+	tabSize: 4,
+	insertSpaces: false,
+	trimTrailingWhitespace: false,
+	insertFinalNewline: false,
+};
 
 export const getFakeBindingLoader = (): BindingLoader => ({
 	type: 'Zephyr',
