@@ -618,16 +618,14 @@ const convertBindingToType = (binding: ZephyrBindingYml, node?: Node) => {
 	);
 	const cellsValues = cellsKeys.map((k) => ({
 		specifier: k.replace(/-cells$/, ''),
-		values: binding![k as CellSpecifier],
+		values: binding[k as CellSpecifier],
 	}));
+	nodeType.cellsValues = cellsValues;
 
-	if (binding.properties) {
-		Object.keys(binding.properties).forEach((name) => {
-			const property = binding.properties![name];
-			addToNodeType(nodeType, name, property);
-			nodeType.cellsValues = cellsValues;
-		});
-	}
+	Object.keys(binding.properties ?? {}).forEach((name) => {
+		const property = binding.properties![name];
+		addToNodeType(nodeType, name, property);
+	});
 
 	if (binding['child-binding']) {
 		const childBinding = binding['child-binding'];
