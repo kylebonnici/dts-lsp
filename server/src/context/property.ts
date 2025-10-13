@@ -40,10 +40,12 @@ import { LabelAssign } from '../ast/dtc/label';
 import { ASTBase } from '../ast/base';
 import { NumberValue } from '../ast/dtc/values/number';
 import { Expression } from '../ast/cPreprocessors/expression';
+import { NodePathRef } from '../ast/dtc/values/nodePath';
+import { LabelRef } from '../ast/dtc/labelRef';
 import type { Node } from './node';
 
 export interface NexusMapping {
-	mappingValuesAst: (NumberValue | Expression)[];
+	mappingValuesAst: (LabelRef | NodePathRef | NumberValue | Expression)[];
 	specifierSpace?: string;
 	target: Node;
 	mapItem?: NexusMapEntry;
