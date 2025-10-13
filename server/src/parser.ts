@@ -1985,7 +1985,7 @@ export class Parser extends BaseParser {
 
 		const nodeName = this.isNodeName();
 		const token = firstToken ?? this.prevToken;
-		if (!nodeName && token) {
+		if (!nodeName && token && !first) {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.NODE_NAME,
@@ -1996,10 +1996,17 @@ export class Parser extends BaseParser {
 			);
 		}
 
-		nodePath.addPath(
-			nodeName ?? null,
-			firstToken ? new ASTBase(createTokenIndex(firstToken)) : undefined,
-		);
+		if (!first || nodeName) {
+			nodePath.addPath(
+				nodeName ?? null,
+				firstToken
+					? new ASTBase(createTokenIndex(firstToken))
+					: undefined,
+			);
+		} else if (first && !nodeName && firstToken) {
+			nodePath.addPath(new NodeName('/', createTokenIndex(firstToken)));
+			nodePath.firstToken = firstToken;
+		}
 
 		if (first && !firstToken && nodePath.children.length === 0) {
 			this.mergeStack();

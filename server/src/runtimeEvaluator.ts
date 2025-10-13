@@ -310,11 +310,14 @@ export class ContextAware {
 			const nodeName = paths[i];
 
 			if (nodeName) {
-				const child: Node | undefined = node?.getNode(
-					nodeName.name,
-					nodeName.fullAddress,
-					false,
-				);
+				const child: Node | undefined =
+					i === 0 && nodeName.name === '/'
+						? rootNode
+						: node?.getNode(
+								nodeName.name,
+								nodeName.fullAddress,
+								false,
+							);
 				nodeName.linksTo = child;
 				if (!issueFound && !child) {
 					issueFound = true;

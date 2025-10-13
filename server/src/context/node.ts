@@ -683,6 +683,10 @@ export class Node {
 	}
 
 	getChild(path: string[], strict = true): Node | undefined {
+		if (path.length === 1 && path[0] === '/' && this.name === '/') {
+			return this;
+		}
+
 		const copy = [...path];
 		copy.splice(0, 1);
 		const split = copy[0].split('@');

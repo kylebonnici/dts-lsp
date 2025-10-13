@@ -159,7 +159,12 @@ function getNodeLabelRename(
 }
 
 function getNodeNameRename(result: SearchableResult | undefined): Location[] {
-	if (!result || !(result.ast instanceof NodeName)) {
+	if (
+		!result ||
+		!(result.ast instanceof NodeName) ||
+		(result.ast instanceof NodeName &&
+			result.ast.linksTo === result.runtime.rootNode)
+	) {
 		return [];
 	}
 

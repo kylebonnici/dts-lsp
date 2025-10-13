@@ -1861,6 +1861,33 @@ describe('Parser', () => {
 					).path?.pathParts.map((p) => p?.toString()),
 				).toEqual(['node1', 'node2']);
 			});
+
+			test('Root node path ref ', async () => {
+				mockReadFileSync('&{/} {prop=&{/};};');
+				const parser = new Parser('/folder/dts.dts', []);
+				await parser.stable;
+				expect(parser.issues.length).toEqual(0);
+				const rootDts = parser.rootDocument.children[0] as DtcRootNode;
+
+				expect(rootDts.properties.length).toEqual(1);
+				expect(rootDts.properties[0].propertyName?.name).toEqual(
+					'prop',
+				);
+				expect(
+					rootDts.properties[0].values instanceof PropertyValues,
+				).toBeTruthy();
+				expect(rootDts.properties[0].values?.values.length).toEqual(1);
+				expect(
+					rootDts.properties[0].values?.values[0]?.value instanceof
+						NodePathRef,
+				).toBeTruthy();
+				expect(
+					(
+						rootDts.properties[0].values?.values[0]
+							?.value as NodePathRef
+					).path?.pathParts.map((p) => p?.toString()),
+				).toEqual(['/']);
+			});
 		});
 	});
 

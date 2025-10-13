@@ -36,6 +36,24 @@ const mockReadFileSync = (content: string) => {
 	});
 };
 
+describe('Runtime', () => {
+	test('Root node with node path ref', async () => {
+		mockReadFileSync('&{/} {prop1;cpus{};memory{};};');
+		const context = new ContextAware(
+			{ dtsFile: 'file:///folder/dts.dts' },
+			defaultEditorSettings,
+			getFakeBindingLoader(),
+		);
+		await context.parser.stable;
+		const issues = await context.getContextIssues();
+		const runtime = await context.getRuntime();
+		expect(issues.length).toEqual(0);
+
+		expect(runtime.rootNode.properties.length).toEqual(1);
+		expect(runtime.rootNode.nodes.length).toEqual(2);
+	});
+});
+
 describe('Context Issues', () => {
 	beforeEach(() => {
 		resetTokenizedDocumentProvider();
