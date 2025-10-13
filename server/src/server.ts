@@ -379,10 +379,12 @@ connection.onInitialize(async (params: InitializeParams) => {
 	return result;
 });
 
+let lspClientEditorSettings: FormattingOptions | undefined;
 let defaultEditorSettings: FormattingOptions = {
 	tabSize: 8,
 	insertSpaces: false,
 	trimTrailingWhitespace: true,
+	insertFinalNewline: true,
 };
 
 connection.onInitialized(async () => {
@@ -390,15 +392,29 @@ connection.onInitialized(async () => {
 		// Register for all configuration changes.
 		connection.client.register(DidChangeConfigurationNotification.type, {});
 
-		const editorSettings =
-			await connection.workspace.getConfiguration('editor');
-		const dtsSettings =
-			await connection.workspace.getConfiguration('[dts]');
-		defaultEditorSettings = {
-			...editorSettings,
-			tabSize: dtsSettings['editor.tabSize'],
-			insertSpaces: dtsSettings['editor.insertSpaces'],
-		};
+		if (!lspClientEditorSettings) {
+			const editorSettings = await connection.workspace
+				.getConfiguration('editor')
+				.catch(() => undefined);
+			const dtsSettingsRaw = await connection.workspace
+				.getConfiguration('[devicetree]')
+				.catch(() => undefined);
+			const dtsSettings = {
+				tabSize: dtsSettingsRaw?.['editor.tabSize'],
+				insertSpaces: dtsSettingsRaw?.['editor.insertSpaces'],
+				trimFinalNewlines: dtsSettingsRaw?.['editor.trimFinalNewlines'],
+				trimTrailingWhitespace:
+					dtsSettingsRaw?.['editor.trimTrailingWhitespace'],
+				insertFinalNewline:
+					dtsSettingsRaw?.['editor.insertFinalNewline'],
+			};
+			if (editorSettings || dtsSettings) {
+				lspClientEditorSettings = {
+					...editorSettings,
+					...dtsSettings,
+				};
+			}
+		}
 	}
 	if (hasWorkspaceFolderCapability) {
 		connection.workspace.onDidChangeWorkspaceFolders(async (_event) => {
@@ -496,7 +512,7 @@ const createContext = async (context: ResolvedContext) => {
 	);
 	const newContext = new ContextAware(
 		context,
-		defaultEditorSettings,
+		lspClientEditorSettings ?? defaultEditorSettings,
 		context.bindingType
 			? getBindingLoader(
 					{
