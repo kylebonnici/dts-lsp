@@ -406,6 +406,29 @@ const standardTypeIssueToCodeAction = (
 	}
 };
 
+const formattingIssueToCodeAction = (
+	diagnostic: Diagnostic,
+	uri: string,
+	edit?: TextEdit[],
+	codeActionTitle?: string,
+): CodeAction[] | undefined => {
+	if (!edit?.length) return [];
+
+	return [
+		{
+			title: codeActionTitle ?? `TODO`,
+			diagnostics: [diagnostic],
+			kind: CodeActionKind.QuickFix,
+			isPreferred: true,
+			edit: {
+				changes: {
+					[uri]: edit,
+				},
+			},
+		},
+	];
+};
+
 export function getCodeActions(
 	codeActionParams: CodeActionParams,
 ): CodeAction[] {
@@ -413,9 +436,20 @@ export function getCodeActions(
 		.flatMap((diagnostic) => {
 			const tmp = diagnostic.data as CodeActionDiagnosticData | undefined;
 
-			switch (tmp?.issues.type) {
+			switch (tmp?.type) {
+				case 'FormattingIssues':
+					return formattingIssueToCodeAction(
+						diagnostic,
+						codeActionParams.textDocument.uri,
+						!tmp.edit
+							? undefined
+							: Array.isArray(tmp.edit)
+								? tmp.edit
+								: [tmp.edit],
+						tmp.codeActionTitle,
+					);
 				case 'SyntaxIssue':
-					return tmp?.issues.items.flatMap((issue) =>
+					return tmp?.items.flatMap((issue) =>
 						syntaxIssueToCodeAction(
 							tmp.firstToken,
 							tmp.lastToken,
@@ -425,17 +459,17 @@ export function getCodeActions(
 						),
 					);
 				case 'StandardTypeIssue':
-					return tmp?.issues.items.flatMap((issue) =>
+					return tmp?.items.flatMap((issue) =>
 						standardTypeIssueToCodeAction(
 							issue,
 							diagnostic,
 							codeActionParams.textDocument.uri,
-							!tmp.issues.edit
+							!tmp.edit
 								? undefined
-								: Array.isArray(tmp.issues.edit)
-									? tmp.issues.edit
-									: [tmp.issues.edit],
-							tmp.issues.codeActionTitle,
+								: Array.isArray(tmp.edit)
+									? tmp.edit
+									: [tmp.edit],
+							tmp.codeActionTitle,
 						),
 					);
 			}

@@ -39,6 +39,8 @@ import {
 	WorkspaceFolder,
 	DocumentFormattingParams,
 	TextEdit,
+	Diagnostic,
+	FormattingOptions,
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -377,10 +379,26 @@ connection.onInitialize(async (params: InitializeParams) => {
 	return result;
 });
 
-connection.onInitialized(() => {
+let defaultEditorSettings: FormattingOptions = {
+	tabSize: 8,
+	insertSpaces: false,
+	trimTrailingWhitespace: true,
+};
+
+connection.onInitialized(async () => {
 	if (hasConfigurationCapability) {
 		// Register for all configuration changes.
 		connection.client.register(DidChangeConfigurationNotification.type, {});
+
+		const editorSettings =
+			await connection.workspace.getConfiguration('editor');
+		const dtsSettings =
+			await connection.workspace.getConfiguration('[dts]');
+		defaultEditorSettings = {
+			...editorSettings,
+			tabSize: dtsSettings['editor.tabSize'],
+			insertSpaces: dtsSettings['editor.insertSpaces'],
+		};
 	}
 	if (hasWorkspaceFolderCapability) {
 		connection.workspace.onDidChangeWorkspaceFolders(async (_event) => {
@@ -478,6 +496,7 @@ const createContext = async (context: ResolvedContext) => {
 	);
 	const newContext = new ContextAware(
 		context,
+		defaultEditorSettings,
 		context.bindingType
 			? getBindingLoader(
 					{
@@ -843,14 +862,37 @@ const generateWorkspaceDiagnostics = async (context: ContextAware) => {
 	await context.stable();
 	const t = performance.now();
 	const diagnostics = await context.getDiagnostics();
-	const activeContextItems = context.getContextFiles().map((file) => {
-		return {
-			uri: pathToFileURL(file),
-			kind: DocumentDiagnosticReportKind.Full,
-			items: diagnostics.get(file) ?? [],
-			version: fetchDocument(file)?.version ?? null,
-		} satisfies WorkspaceDocumentDiagnosticReport;
-	});
+	const activeContextItems = await Promise.all(
+		context.getContextFiles().map(async (file) => {
+			const textDocument = fetchDocument(file);
+			const formattingItems: Diagnostic[] = [];
+			if (
+				textDocument &&
+				context.settings.showFormattingErrorAsDiagnostics
+			) {
+				formattingItems.push(
+					...(
+						await getDocumentFormatting(
+							{
+								textDocument,
+								options: context.formattingOptions,
+							},
+							context,
+							textDocument?.getText(),
+							'File Diagnostics',
+						)
+					).map((d) => d.diagnostic()),
+				);
+			}
+
+			return {
+				uri: pathToFileURL(file),
+				kind: DocumentDiagnosticReportKind.Full,
+				items: [...(diagnostics.get(file) ?? []), ...formattingItems],
+				version: textDocument?.version ?? null,
+			} satisfies WorkspaceDocumentDiagnosticReport;
+		}),
+	);
 
 	console.log(
 		`(ID: ${context.id})`,
@@ -1401,7 +1443,12 @@ connection.onDocumentFormatting(async (event) => {
 
 	const document = getTokenizedDocumentProvider().getDocument(filePath);
 	const text = document.getText();
-	const newText = await getDocumentFormatting(event, context, text);
+	const newText = await getDocumentFormatting(
+		event,
+		context,
+		text,
+		'New Text',
+	);
 
 	if (newText === text) {
 		return [];
@@ -1724,6 +1771,7 @@ const formatWithContext = async (
 		event,
 		context,
 		documentText.getText(),
+		'New Text',
 	);
 
 	return newText;
@@ -1731,7 +1779,11 @@ const formatWithContext = async (
 
 connection.onRequest(
 	'devicetree/formattingText',
-	async (event: DocumentFormattingParams & { text?: string }) => {
+	async (
+		event: DocumentFormattingParams & {
+			text?: string;
+		},
+	) => {
 		await allStable();
 		const filePath = fileURLToPath(event.textDocument.uri);
 		const context = quickFindContext(filePath);
@@ -1745,9 +1797,12 @@ connection.onRequest(
 			filePath,
 			event.text,
 		);
-		const newText = await formatText(event, documentText.getText());
+		const newText = await formatText(event, documentText.getText(), 'Both');
 
-		return newText;
+		return {
+			text: newText.text,
+			diagnostics: newText.diagnostic.map((d) => d.diagnostic()),
+		};
 	},
 );
 

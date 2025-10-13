@@ -29,7 +29,6 @@ import {
 } from 'vscode-languageserver';
 import {
 	genStandardTypeDiagnostic,
-	getIndentString,
 	isNestedArray,
 	toRangeWithTokenIndex,
 } from '../helpers';
@@ -207,9 +206,15 @@ export class PropertyNodeType<T = string | number> {
 										token.pos.col + 1,
 									),
 									`\n${''.padEnd(
-										countParent(orderedTree[i].uri, node) *
-											getIndentString().length,
-										getIndentString(),
+										countParent(orderedTree[i].uri, node),
+										runtime.context.formattingOptions
+											.insertSpaces
+											? ' '.repeat(
+													runtime.context
+														.formattingOptions
+														.tabSize,
+												)
+											: '\t',
 									)}${propertyName}${assignTest};`,
 								),
 							},

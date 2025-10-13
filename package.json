@@ -171,17 +171,23 @@
 					"default": null,
 					"description": "Locations that Renaming should not be allowrd if any of the edits is a child node of that directory"
 				},
+				"devicetree.allowAdhocContexts": {
+					"scope": "resource",
+					"type": "boolean",
+					"default": null,
+					"description": "Allow LSP to create new context on the file for dts files opened that are not in the context settings"
+				},
 				"devicetree.autoChangeContext": {
 					"scope": "resource",
 					"type": "boolean",
 					"default": null,
 					"description": "Auto chnage active context on file change"
 				},
-				"devicetree.allowAdhocContexts": {
+				"devicetree.defaultShowFormattingErrorAsDiagnostics": {
 					"scope": "resource",
 					"type": "boolean",
 					"default": null,
-					"description": "Allow LSP to create new context on the file for dts files opened that are not in the context settings"
+					"description": "Allow LSP to show any formatting errors as diagnostics in the problem tab"
 				},
 				"devicetree.trace.server": {
 					"scope": "window",

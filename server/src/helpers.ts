@@ -47,6 +47,10 @@ import {
 	FileDiagnostic,
 	RangeMapping,
 	IssueTypes,
+	FormattingIssues,
+	FileDiagnosticWithEdits,
+	IssueWithEdits,
+	FileDiagnosticWithEdit,
 } from './types';
 import { ContextAware } from './runtimeEvaluator';
 import { ResolvedContext } from './types/index';
@@ -92,16 +96,6 @@ export const tokensToString = (tokens: Token[]) => {
 
 export const toRange = (slxBase: ASTBase) => {
 	return toRangeWithTokenIndex(slxBase.firstToken, slxBase.lastToken);
-};
-
-let indentString = '\t';
-
-export const setIndentString = (indent: string) => {
-	indentString = indent;
-};
-
-export const getIndentString = () => {
-	return indentString;
 };
 
 export const getTokenTypes = (type: SemanticTokenType) => {
@@ -326,12 +320,10 @@ export const genSyntaxDiagnostic = (
 					tokens: end.tokens,
 					value: end.value,
 				},
-				issues: {
-					type: 'SyntaxIssue',
-					items: issue.issues,
-					edit: issue.edit,
-					codeActionTitle: issue.codeActionTitle,
-				},
+				type: 'SyntaxIssue',
+				items: issue.issues,
+				edit: issue.edit,
+				codeActionTitle: issue.codeActionTitle,
 			} satisfies CodeActionDiagnosticData,
 		};
 		return diagnostic;
@@ -490,6 +482,7 @@ export const genStandardTypeDiagnostic = (
 			source: 'devicetree',
 			tags: issue.tags,
 			data: {
+				type: 'StandardTypeIssue',
 				firstToken: {
 					pos: start.pos,
 					tokens: start.tokens,
@@ -500,12 +493,9 @@ export const genStandardTypeDiagnostic = (
 					tokens: end.tokens,
 					value: end.value,
 				},
-				issues: {
-					type: 'StandardTypeIssue',
-					items: issue.issues,
-					edit: issue.edit,
-					codeActionTitle: issue.codeActionTitle,
-				},
+				edit: issue.edit,
+				codeActionTitle: issue.codeActionTitle,
+				items: issue.issues,
 			} satisfies CodeActionDiagnosticData,
 		};
 		return diagnostic;
@@ -518,6 +508,128 @@ export const genStandardTypeDiagnostic = (
 		diagnostic: action,
 	};
 };
+
+export function genFormattingDiagnostic(
+	issues: FormattingIssues | FormattingIssues[],
+	uri: string,
+	start: Position,
+	{
+		severity,
+		linkedTo,
+		tags,
+		templateStrings,
+		edit,
+		codeActionTitle,
+	}: {
+		severity?: DiagnosticSeverity;
+		linkedTo?: { range: Range; uri: string }[];
+		tags?: DiagnosticTag[];
+		templateStrings?: string[];
+		edit: TextEdit[];
+		codeActionTitle: string | undefined;
+	},
+	end?: Position,
+): FileDiagnosticWithEdits;
+export function genFormattingDiagnostic(
+	issues: FormattingIssues | FormattingIssues[],
+	uri: string,
+	start: Position,
+	{
+		severity,
+		linkedTo,
+		tags,
+		templateStrings,
+		edit,
+		codeActionTitle,
+	}: {
+		severity?: DiagnosticSeverity;
+		linkedTo?: { range: Range; uri: string }[];
+		tags?: DiagnosticTag[];
+		templateStrings?: string[];
+		edit: TextEdit;
+		codeActionTitle: string | undefined;
+	},
+	end?: Position,
+): FileDiagnosticWithEdit;
+export function genFormattingDiagnostic(
+	issues: FormattingIssues | FormattingIssues[],
+	uri: string,
+	start: Position,
+	{
+		severity = DiagnosticSeverity.Error,
+		linkedTo = [],
+		tags,
+		templateStrings = [],
+		edit,
+		codeActionTitle,
+	}: {
+		severity?: DiagnosticSeverity;
+		linkedTo?: { range: Range; uri: string }[];
+		tags?: DiagnosticTag[];
+		templateStrings?: string[];
+		edit: TextEdit | TextEdit[];
+		codeActionTitle: string | undefined;
+	} = {
+		severity: DiagnosticSeverity.Error,
+		linkedTo: [],
+		templateStrings: [],
+		edit: [],
+		codeActionTitle: undefined,
+	},
+	end: Position = start,
+): FileDiagnosticWithEdits | FileDiagnosticWithEdit {
+	const range = Range.create(start, end);
+	const issue: IssueWithEdits<FormattingIssues> = {
+		issues: Array.isArray(issues) ? issues : [issues],
+		range,
+		severity,
+		uri,
+		linkedTo: linkedTo.map(({ range, uri }) => ({
+			range,
+			uri,
+			templateStrings: [],
+		})),
+		tags,
+		templateStrings,
+		edit,
+		codeActionTitle,
+	};
+
+	let diagnostic: Diagnostic;
+
+	const action = () => {
+		diagnostic ??= {
+			severity: issue.severity,
+			range,
+			message: formattingIssuesToMessage(issue),
+			relatedInformation: [
+				...issue.linkedTo.map((element) => ({
+					message: issue.issues
+						.map(formattingToLinkedMessage)
+						.join(' or '),
+					location: {
+						uri: pathToFileURL(element.uri),
+						range: element.range,
+					},
+				})),
+			],
+			source: 'devicetree',
+			tags: issue.tags,
+			data: {
+				type: 'FormattingIssues',
+				items: issue.issues,
+				edit: issue.edit,
+				codeActionTitle: issue.codeActionTitle,
+			} satisfies CodeActionDiagnosticData,
+		};
+		return diagnostic;
+	};
+
+	return {
+		raw: issue,
+		diagnostic: action,
+	};
+}
 
 export const sortAstForScope = <T extends ASTBase>(
 	ast: T[],
@@ -826,6 +938,7 @@ export const generateContextId = (ctx: ResolvedContext) => {
 				...ctx.zephyrBindings.map(normalizePath),
 				...ctx.deviceOrgBindingsMetaSchema.map(normalizePath),
 				...ctx.deviceOrgTreeBindings.map(normalizePath),
+				`showFormattingErrorAsDiagnostics-${ctx.showFormattingErrorAsDiagnostics}`,
 			].join(':'),
 		)
 		.digest('hex');
@@ -1107,6 +1220,42 @@ export const standardTypeToLinkedMessage = (issue: StandardTypeIssue) => {
 			return `Names property`;
 		case StandardTypeIssue.UNABLE_TO_FIND_MAPPING:
 			return `Range property`;
+		default:
+			return `TODO`;
+	}
+};
+
+export const formattingIssuesToMessage = (issue: Issue<FormattingIssues>) => {
+	return issue.issues
+		.map((i) => {
+			switch (i) {
+				case FormattingIssues.MISSING_EOF_NEW_LINE:
+					return `Add end of line to end of file`;
+				case FormattingIssues.TO_MUCH_WHITE_SPACE:
+					return `Expecting ${issue.templateStrings[0]} space(s).`;
+				case FormattingIssues.MISSING_NEW_LINE:
+					return `Move to a new line`;
+				case FormattingIssues.TRALING_EOF_NEW_LINES:
+					return `Remove trailing whitespace at the end of file.`;
+				case FormattingIssues.TRALING_WHITE_SPACE:
+					return `Remove trailing whitespace at the end of the line.`;
+				case FormattingIssues.REMOVE_UNNECESSARY_NEW_LINES:
+					return `Expecting ${issue.templateStrings[0]} new line(s)`;
+				case FormattingIssues.WRONG_INDENTATION:
+					return `Fix indentation. Expecting ${issue.templateStrings[0]}`;
+				case FormattingIssues.INSERT_SPACES:
+					return `Expecting ${issue.templateStrings[0]} space(s).`;
+				case FormattingIssues.MOVE_NEXT_TO:
+					return `Move token "${issue.templateStrings[0]}" next to expression`;
+				case FormattingIssues.REMOVE_EXPRESSION_BRACKETS:
+					return `Remove (...) enclosure. This expression should only be enclosed in the #define of the macro`;
+			}
+		})
+		.join(' or ');
+};
+
+export const formattingToLinkedMessage = (issue: FormattingIssues) => {
+	switch (issue) {
 		default:
 			return `TODO`;
 	}

@@ -52,6 +52,12 @@ const getEdits = async (
 	};
 	const context = new ContextAware(
 		{ dtsFile: fileURLToPath(textDocument.uri) },
+		{
+			...options,
+			tabSize: 4,
+			insertSpaces: false,
+			trimTrailingWhitespace: true,
+		},
 		getFakeBindingLoader(),
 	);
 	await context.parser.stable;
@@ -68,6 +74,7 @@ const getEdits = async (
 		},
 		context,
 		document.getText(),
+		'New Text',
 	);
 };
 
@@ -91,7 +98,7 @@ describe('Document formating', () => {
 		resetTokenizedDocumentProvider();
 	});
 
-	test('insertFinalNewline', async () => {
+	test('only insertFinalNewline', async () => {
 		const documentText = '/{};';
 		const newText = await getNewText(documentText, {
 			insertFinalNewline: true,

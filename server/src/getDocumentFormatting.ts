@@ -34,7 +34,13 @@ import {
 import { DtcProperty } from './ast/dtc/property';
 import { DeleteBase } from './ast/dtc/delete';
 import { ASTBase } from './ast/base';
-import { Token } from './types';
+import {
+	FileDiagnostic,
+	FileDiagnosticWithEdit,
+	FileDiagnosticWithEdits,
+	FormattingIssues,
+	Token,
+} from './types';
 import { PropertyValues } from './ast/dtc/values/values';
 import { PropertyValue } from './ast/dtc/values/value';
 import { AllValueType } from './ast/dtc/types';
@@ -46,11 +52,11 @@ import {
 	applyEdits,
 	coreSyntaxIssuesFilter,
 	fileURLToPath,
+	genFormattingDiagnostic,
 	getDeepestAstNodeInBetween,
 	isPathEqual,
 	positionInBetween,
 	rangesOverlap,
-	setIndentString,
 } from './helpers';
 import { Comment, CommentBlock } from './ast/dtc/comment';
 import { LabelAssign } from './ast/dtc/label';
@@ -129,7 +135,25 @@ const getAstItemLevel =
 export async function formatText(
 	documentFormattingParams: DocumentFormattingParams,
 	text: string,
-): Promise<string> {
+	returnType: 'Both',
+): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
+export async function formatText(
+	documentFormattingParams: DocumentFormattingParams,
+	text: string,
+	returnType: 'New Text',
+): Promise<string>;
+export async function formatText(
+	documentFormattingParams: DocumentFormattingParams,
+	text: string,
+	returnType: 'File Diagnostics',
+): Promise<FileDiagnostic[]>;
+export async function formatText(
+	documentFormattingParams: DocumentFormattingParams,
+	text: string,
+	returnType: 'New Text' | 'File Diagnostics' | 'Both',
+): Promise<
+	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
+> {
 	const filePath = fileURLToPath(documentFormattingParams.textDocument.uri);
 	const parser = new Parser(
 		filePath,
@@ -159,6 +183,7 @@ export async function formatText(
 		parser.allAstItems,
 		filePath,
 		text,
+		returnType,
 	);
 }
 
@@ -167,39 +192,48 @@ async function formatAstBaseItems(
 	astItems: ASTBase[],
 	uri: string,
 	text: string,
-): Promise<string> {
+	returnType: 'New Text' | 'File Diagnostics' | 'Both',
+): Promise<
+	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
+> {
 	const splitDocument = text.split('\n');
 	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
 
 	const astItemLevel = getAstItemLevel(astItems, uri);
-	const result: TextEdit[] = [];
-	result.push(
-		...(
-			await Promise.all(
-				astItems.flatMap(
-					async (base) =>
-						await getTextEdit(
-							documentFormattingParams,
-							base,
-							uri,
-							astItemLevel,
-							splitDocument,
-						),
-				),
-			)
-		).flat(),
-	);
 
-	if (documentFormattingParams.options.trimTrailingWhitespace) {
-		result.push(...removeTrailingWhitespace(splitDocument, result));
-	}
+	const result: FileDiagnostic[] = (
+		await Promise.all(
+			astItems.flatMap(
+				async (base) =>
+					await getTextEdit(
+						documentFormattingParams,
+						base,
+						uri,
+						astItemLevel,
+						splitDocument,
+					),
+			),
+		)
+	).flat();
 
 	if (
 		documentFormattingParams.options.insertFinalNewline &&
 		splitDocument.at(-1)?.trim() !== ''
 	) {
+		const edit = TextEdit.insert(
+			Position.create(
+				splitDocument.length,
+				splitDocument[splitDocument.length - 1].length,
+			),
+			'\n',
+		);
 		result.push(
-			TextEdit.insert(Position.create(splitDocument.length, 0), '\n'),
+			genFormattingDiagnostic(
+				FormattingIssues.MISSING_EOF_NEW_LINE,
+				uri,
+				Position.create(splitDocument.length, 0),
+				{ edit, codeActionTitle: 'Insert new line' },
+			),
 		);
 	}
 
@@ -211,36 +245,102 @@ async function formatAstBaseItems(
 		}
 
 		if (noOfTrailingNewLines > 1) {
-			result.push(
-				TextEdit.del(
-					Range.create(
-						Position.create(
-							splitDocument.length - noOfTrailingNewLines,
-							0,
-						),
-						Position.create(splitDocument.length - 1, 0),
+			const edit = TextEdit.del(
+				Range.create(
+					Position.create(
+						splitDocument.length - noOfTrailingNewLines,
+						0,
 					),
+					Position.create(splitDocument.length - 1, 0),
+				),
+			);
+			result.push(
+				genFormattingDiagnostic(
+					FormattingIssues.TRALING_EOF_NEW_LINES,
+					uri,
+					Position.create(splitDocument.length, 0),
+					{ edit, codeActionTitle: 'Remove trailing EOF lines' },
 				),
 			);
 		}
 	}
 
-	const edits = formatOnOffMeta.length
-		? result.filter(
-				(edit) =>
-					!isFormattingDisabledAt(edit.range.start, formatOnOffMeta),
-			)
-		: result;
+	const allEdits = result.flatMap((i) => i.raw.edit).filter((i) => !!i);
 
-	return applyEdits(TextDocument.create(uri, 'devicetree', 0, text), edits);
+	if (documentFormattingParams.options.trimTrailingWhitespace) {
+		const issues = removeTrailingWhitespace(splitDocument, allEdits, uri);
+		result.push(...issues);
+	}
+
+	const toText = () => {
+		const edits = formatOnOffMeta.length
+			? result
+					.flatMap((i) => i.raw.edit)
+					.filter((i) => !!i)
+					.filter(
+						(edit) =>
+							!isFormattingDisabledAt(
+								edit.range.start,
+								formatOnOffMeta,
+							),
+					)
+			: result.flatMap((e) => e.raw.edit).filter((e) => !!e);
+		return applyEdits(
+			TextDocument.create(uri, 'devicetree', 0, text),
+			edits,
+		);
+	};
+
+	const toDiagnostic = () => {
+		return formatOnOffMeta.length
+			? result.filter(
+					(issue) =>
+						!isFormattingDisabledAt(
+							issue.raw.range.start,
+							formatOnOffMeta,
+						),
+				)
+			: result;
+	};
+
+	if (returnType === 'New Text') {
+		return toText();
+	} else if (returnType === 'File Diagnostics') {
+		return toDiagnostic();
+	}
+
+	return { text: toText(), diagnostic: toDiagnostic() };
 }
 
 export async function getDocumentFormatting(
 	documentFormattingParams: DocumentFormattingParams,
 	contextAware: ContextAware,
 	documentText: string,
-): Promise<string> {
+	returnType: 'Both',
+): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
+export async function getDocumentFormatting(
+	documentFormattingParams: DocumentFormattingParams,
+	contextAware: ContextAware,
+	documentText: string,
+	returnType: 'File Diagnostics',
+): Promise<FileDiagnostic[]>;
+export async function getDocumentFormatting(
+	documentFormattingParams: DocumentFormattingParams,
+	contextAware: ContextAware,
+	documentText: string,
+	returnType: 'New Text',
+): Promise<string>;
+export async function getDocumentFormatting(
+	documentFormattingParams: DocumentFormattingParams,
+	contextAware: ContextAware,
+	documentText: string,
+	returnType: 'New Text' | 'File Diagnostics' | 'Both',
+): Promise<
+	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
+> {
 	const uri = fileURLToPath(documentFormattingParams.textDocument.uri);
+
+	contextAware.formattingOptions = documentFormattingParams.options;
 
 	const runtime = await contextAware.getRuntime();
 	let fileRootAsts = runtime.fileTopMostAsts(uri);
@@ -273,6 +373,7 @@ export async function getDocumentFormatting(
 		fileRootAsts,
 		uri,
 		documentText,
+		returnType,
 	);
 }
 const pairFormatOnOff = (
@@ -348,8 +449,9 @@ const isFormattingDisabledAt = (
 const removeTrailingWhitespace = (
 	documentText: string[],
 	textEdits: TextEdit[],
-): TextEdit[] => {
-	const result: TextEdit[] = [];
+	uri: string,
+): FileDiagnostic[] => {
+	const result: FileDiagnostic[] = [];
 	documentText.forEach((line, i) => {
 		const endTimmed = line.trimEnd();
 		if (endTimmed.length !== line.length) {
@@ -362,7 +464,18 @@ const removeTrailingWhitespace = (
 					rangesOverlap(rangeToCover, edit.range),
 				)
 			)
-				result.push(TextEdit.del(rangeToCover));
+				result.push(
+					genFormattingDiagnostic(
+						FormattingIssues.TRALING_WHITE_SPACE,
+						uri,
+						rangeToCover.start,
+						{
+							edit: TextEdit.del(rangeToCover),
+							codeActionTitle: 'Remove whitespace',
+						},
+						rangeToCover.end,
+					),
+				);
 		}
 	});
 	return result;
@@ -374,7 +487,7 @@ const removeNewLinesBetweenTokenAndPrev = (
 	expectedNewLines = 1,
 	forceExpectedNewLines = false,
 	prevToken = token.prevToken,
-): TextEdit | undefined => {
+): FileDiagnosticWithEdit | undefined => {
 	if (prevToken) {
 		const diffNumberOfLines = token.pos.line - prevToken.pos.line;
 		const linesToRemove = diffNumberOfLines - expectedNewLines;
@@ -385,27 +498,47 @@ const removeNewLinesBetweenTokenAndPrev = (
 				expectedNewLines === 0 ||
 				forceExpectedNewLines)
 		) {
-			return TextEdit.replace(
-				Range.create(
-					Position.create(prevToken.pos.line, prevToken.pos.colEnd),
-					Position.create(
-						token.pos.line - (expectedNewLines ? 1 : 0),
-						expectedNewLines
-							? documentText[
-									token.pos.line - (expectedNewLines ? 1 : 0)
-								].length
-							: token.pos.col,
-					),
-				),
+			const start = Position.create(
+				prevToken.pos.line,
+				prevToken.pos.colEnd,
+			);
+			const end = Position.create(
+				token.pos.line - (expectedNewLines ? 1 : 0),
+				expectedNewLines
+					? documentText[token.pos.line - (expectedNewLines ? 1 : 0)]
+							.length
+					: token.pos.col,
+			);
+			const edit = TextEdit.replace(
+				Range.create(start, end),
 				'\n'.repeat(expectedNewLines - (forceExpectedNewLines ? 1 : 0)),
+			);
+			return genFormattingDiagnostic(
+				FormattingIssues.REMOVE_UNNECESSARY_NEW_LINES,
+				token.uri,
+				start,
+				{
+					edit,
+					codeActionTitle: 'Remove unnecessary new lines',
+					templateStrings: [expectedNewLines.toString()],
+				},
+				end,
 			);
 		}
 	} else if (token.pos.line) {
-		return TextEdit.del(
-			Range.create(
-				Position.create(0, 0),
-				Position.create(token.pos.line, 0),
-			),
+		const start = Position.create(0, 0);
+		const end = Position.create(token.pos.line, 0);
+		const edit = TextEdit.del(Range.create(start, end));
+		return genFormattingDiagnostic(
+			FormattingIssues.TO_MUCH_WHITE_SPACE,
+			token.uri,
+			start,
+			{
+				edit,
+				codeActionTitle: 'Remove unnecessary new lines',
+				templateStrings: ['0'],
+			},
+			end,
 		);
 	}
 };
@@ -416,19 +549,25 @@ const pushItemToNewLineAndIndent = (
 	indentString: string,
 	prefix: string = '',
 	numberOfNewLines = 1,
-): TextEdit | undefined => {
+): FileDiagnostic | undefined => {
 	const newLine = token.pos.line === token.prevToken?.pos.line;
 
 	if (token.prevToken && newLine) {
-		return TextEdit.replace(
-			Range.create(
-				Position.create(
-					token.prevToken.pos.line,
-					token.prevToken.pos.colEnd,
-				),
-				Position.create(token.pos.line, token.pos.col),
-			),
+		const start = Position.create(
+			token.prevToken.pos.line,
+			token.prevToken.pos.colEnd,
+		);
+		const end = Position.create(token.pos.line, token.pos.col);
+		const edit = TextEdit.replace(
+			Range.create(start, end),
 			`${'\n'.repeat(numberOfNewLines)}${''.padStart(level * indentString.length, indentString)}${prefix}`,
+		);
+		return genFormattingDiagnostic(
+			FormattingIssues.MISSING_NEW_LINE,
+			token.uri,
+			start,
+			{ edit, codeActionTitle: 'Move to new line' },
+			end,
 		);
 	}
 };
@@ -439,25 +578,33 @@ const createIndentEdit = (
 	indentString: string,
 	documentText: string[],
 	prefix: string = '',
-): TextEdit[] => {
+): FileDiagnostic[] => {
 	const indent = `${''.padStart(
 		level * indentString.length,
 		indentString,
 	)}${prefix}`;
-	const range = Range.create(
-		Position.create(token.pos.line, 0),
-		Position.create(token.pos.line, token.pos.col),
-	);
+	const start = Position.create(token.pos.line, 0);
+	const end = Position.create(token.pos.line, token.pos.col);
+	const range = Range.create(start, end);
+
 	const currentText = getTextFromRange(documentText, range);
 	if (indent === currentText) return [];
 
+	const edit = TextEdit.replace(range, indent);
+
 	return [
-		TextEdit.replace(
-			Range.create(
-				Position.create(token.pos.line, 0),
-				Position.create(token.pos.line, token.pos.col),
-			),
-			indent,
+		genFormattingDiagnostic(
+			FormattingIssues.WRONG_INDENTATION,
+			token.uri,
+			start,
+			{
+				edit,
+				codeActionTitle: 'Fix indentation',
+				templateStrings: [
+					indent.replaceAll(' ', '·').replaceAll('\t', '→'),
+				],
+			},
+			end,
 		),
 	];
 };
@@ -467,7 +614,7 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
 	documentText: string[],
 	expectedSpaces = 1,
 	keepNewLines = false,
-): TextEdit[] => {
+): FileDiagnosticWithEdits[] => {
 	if (!token.nextToken) return [];
 
 	if (token.nextToken?.pos.line !== token.pos.line) {
@@ -483,57 +630,91 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
 			throw new Error('remove new LinesEdit must be defined');
 		}
 		if (expectedSpaces) {
-			removeNewLinesEdit.newText = `${' '.repeat(expectedSpaces)}${
-				removeNewLinesEdit.newText
+			removeNewLinesEdit.raw.edit.newText = `${' '.repeat(expectedSpaces)}${
+				removeNewLinesEdit.raw.edit.newText
 			}`;
 		}
 		return [removeNewLinesEdit];
 	}
 
+	// from this point we must be on the same line
+
 	if (expectedSpaces === 0) {
+		if (token.nextToken.pos.col === token.pos.colEnd) return [];
+
+		const start = Position.create(token.pos.line, token.pos.colEnd);
+		const end = Position.create(
+			token.nextToken.pos.line,
+			token.nextToken.pos.col,
+		);
+		const edit = TextEdit.del(Range.create(start, end));
 		return [
-			TextEdit.del(
-				Range.create(
-					Position.create(token.pos.line, token.pos.colEnd),
-					Position.create(
-						token.nextToken.pos.line,
-						token.nextToken.pos.col,
-					),
-				),
+			genFormattingDiagnostic(
+				FormattingIssues.TO_MUCH_WHITE_SPACE,
+				token.uri,
+				start,
+				{ edit, codeActionTitle: 'Remove space(s)' },
+				end,
 			),
 		];
 	}
+
+	if (token.pos.colEnd === token.nextToken.pos.col) {
+		const start = Position.create(
+			token.nextToken.pos.line,
+			token.nextToken.pos.col,
+		);
+		const edit = TextEdit.insert(start, ' '.repeat(expectedSpaces));
+		return [
+			genFormattingDiagnostic(
+				FormattingIssues.INSERT_SPACES,
+				token.uri,
+				start,
+				{
+					edit,
+					codeActionTitle: 'Insert Space(s)',
+					templateStrings: [expectedSpaces.toString()],
+				},
+			),
+		];
+	}
+
+	const delta = token.nextToken.pos.col - token.pos.colEnd;
 
 	if (
-		token.nextToken.pos.line === token.pos.line &&
-		token.pos.colEnd === token.nextToken.pos.col
-	) {
-		return [
-			TextEdit.insert(
-				Position.create(
-					token.nextToken.pos.line,
-					token.nextToken.pos.col,
-				),
-				' '.repeat(expectedSpaces),
-			),
-		];
-	}
+		delta === expectedSpaces &&
+		documentText[token.pos.line].slice(
+			token.pos.colEnd,
+			token.nextToken.pos.col,
+		) === ' '.repeat(expectedSpaces)
+	)
+		return [];
+
+	const start = Position.create(token.pos.line, token.pos.colEnd);
+	const end = Position.create(
+		token.nextToken.pos.line,
+		token.nextToken.pos.col,
+	);
+	const edit = TextEdit.replace(
+		Range.create(start, end),
+		' '.repeat(expectedSpaces),
+	);
 
 	return [
-		TextEdit.replace(
-			Range.create(
-				Position.create(token.pos.line, token.pos.colEnd),
-				Position.create(
-					token.nextToken.pos.line,
-					token.nextToken.pos.col,
-				),
-			),
-			' '.repeat(expectedSpaces),
+		genFormattingDiagnostic(
+			FormattingIssues.TO_MUCH_WHITE_SPACE,
+			token.uri,
+			start,
+			{ edit, codeActionTitle: 'Insert space(s)' },
+			end,
 		),
 	];
 };
 
-const formatLabels = (labels: LabelAssign[], documentText: string[]) => {
+const formatLabels = (
+	labels: LabelAssign[],
+	documentText: string[],
+): FileDiagnostic[] => {
 	return labels
 		.slice(1)
 		.flatMap((label) =>
@@ -554,10 +735,10 @@ const formatDtcNode = async (
 	indentString: string,
 	documentText: string[],
 	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
-): Promise<TextEdit[]> => {
+): Promise<FileDiagnostic[]> => {
 	if (!isPathEqual(node.uri, uri)) return []; // node may have been included!!
 
-	const result: TextEdit[] = [];
+	const result: FileDiagnostic[] = [];
 
 	result.push(
 		...ensureOnNewLineAndMax1EmptyLineToPrev(
@@ -686,8 +867,8 @@ const formatLabeledValue = <T extends ASTBase>(
 	settings: FormatingSettings,
 	openBracket: Token | undefined,
 	documentText: string[],
-): TextEdit[] => {
-	const result: TextEdit[] = [];
+): FileDiagnostic[] => {
+	const result: FileDiagnostic[] = [];
 
 	result.push(...formatLabels(value.labels, documentText));
 
@@ -756,8 +937,8 @@ const formatValue = (
 	level: number,
 	settings: FormatingSettings,
 	documentText: string[],
-): TextEdit[] => {
-	const result: TextEdit[] = [];
+): FileDiagnostic[] => {
+	const result: FileDiagnostic[] = [];
 
 	if (value instanceof ArrayValues || value instanceof ByteStringValue) {
 		if (
@@ -835,7 +1016,7 @@ const formatExpression = (
 	level: number,
 	settings: FormatingSettings,
 	width: number,
-): TextEdit[] => {
+): FileDiagnostic[] => {
 	if (value instanceof CMacroCall) {
 		return formatCMacroCall(value, documentText);
 	}
@@ -856,8 +1037,8 @@ const formatExpression = (
 const formatCMacroCall = (
 	value: CMacroCall,
 	documentText: string[],
-): TextEdit[] => {
-	const result: TextEdit[] = [];
+): FileDiagnostic[] => {
+	const result: FileDiagnostic[] = [];
 
 	result.push(
 		...fixedNumberOfSpaceBetweenTokensAndNext(
@@ -901,8 +1082,8 @@ const formatComplexExpression = (
 	level: number,
 	settings: FormatingSettings,
 	width: number,
-): TextEdit[] => {
-	const result: TextEdit[] = [];
+): FileDiagnostic[] => {
+	const result: FileDiagnostic[] = [];
 
 	if (value.openBracket && value.openBracket.nextToken) {
 		if (
@@ -985,39 +1166,41 @@ const formatComplexExpression = (
 		(value.expression instanceof CMacroCall ||
 			value.expression instanceof CIdentifier)
 	) {
+		const edits: TextEdit[] = [];
+
 		if (value.openBracket) {
-			result.push(
-				TextEdit.del(
-					Range.create(
-						Position.create(
-							value.openBracket.pos.line,
-							value.openBracket.pos.col,
-						),
-						Position.create(
-							value.openBracket.pos.line,
-							value.openBracket.pos.colEnd,
-						),
-					),
-				),
+			const start = Position.create(
+				value.openBracket.pos.line,
+				value.openBracket.pos.col,
 			);
+			const end = Position.create(
+				value.openBracket.pos.line,
+				value.openBracket.pos.colEnd,
+			);
+			edits.push(TextEdit.del(Range.create(start, end)));
 		}
 
 		if (value.closeBracket) {
-			result.push(
-				TextEdit.del(
-					Range.create(
-						Position.create(
-							value.closeBracket.pos.line,
-							value.closeBracket.pos.col,
-						),
-						Position.create(
-							value.closeBracket.pos.line,
-							value.closeBracket.pos.colEnd,
-						),
-					),
-				),
+			const start = Position.create(
+				value.closeBracket.pos.line,
+				value.closeBracket.pos.col,
 			);
+			const end = Position.create(
+				value.closeBracket.pos.line,
+				value.closeBracket.pos.colEnd,
+			);
+			edits.push(TextEdit.del(Range.create(start, end)));
 		}
+
+		result.push(
+			genFormattingDiagnostic(
+				FormattingIssues.REMOVE_EXPRESSION_BRACKETS,
+				value.uri,
+				edits[0].range.start,
+				{ edit: edits, codeActionTitle: 'Remove (...)' },
+				edits[edits.length - 1].range.end,
+			),
+		);
 	}
 
 	if (value.closeBracket && value.closeBracket.prevToken) {
@@ -1039,8 +1222,8 @@ const formatPropertyValue = (
 	level: number,
 	settings: FormatingSettings,
 	documentText: string[],
-): TextEdit[] => {
-	const result: TextEdit[] = [];
+): FileDiagnostic[] => {
+	const result: FileDiagnostic[] = [];
 
 	result.push(...formatLabels(value.startLabels, documentText));
 
@@ -1076,8 +1259,8 @@ const formatPropertyValues = (
 	settings: FormatingSettings,
 	documentText: string[],
 	assignOperator: Token | undefined,
-): TextEdit[] => {
-	const result: TextEdit[] = [];
+): FileDiagnostic[] => {
+	const result: FileDiagnostic[] = [];
 
 	values.values.forEach((value, i) => {
 		if (!value) return [];
@@ -1170,10 +1353,10 @@ const formatDtcProperty = (
 	settings: FormatingSettings,
 	documentText: string[],
 	uri: string,
-): TextEdit[] => {
+): FileDiagnostic[] => {
 	if (!isPathEqual(property.uri, uri)) return []; //property may have been included!!
 
-	const result: TextEdit[] = [];
+	const result: FileDiagnostic[] = [];
 
 	result.push(
 		...ensureOnNewLineAndMax1EmptyLineToPrev(
@@ -1241,7 +1424,7 @@ const ensureOnNewLineAndMax1EmptyLineToPrev = (
 	expectedNewLines?: number,
 	forceExpectedNewLines?: boolean,
 ) => {
-	const result: TextEdit[] = [];
+	const result: FileDiagnostic[] = [];
 
 	const editToMoveToNewLine = pushItemToNewLineAndIndent(
 		token,
@@ -1275,7 +1458,7 @@ const ensureOnNewLineAndMax1EmptyLineToPrev = (
 	return result;
 };
 
-const moveNextTo = (token: Token, toMove: Token) => {
+const moveNextTo = (token: Token, toMove: Token): FileDiagnostic[] => {
 	if (
 		token.pos.line === toMove.pos.line &&
 		token.pos.colEnd + 1 === toMove.pos.colEnd
@@ -1284,30 +1467,50 @@ const moveNextTo = (token: Token, toMove: Token) => {
 	}
 
 	if (token.nextToken === toMove) {
+		const start = Position.create(token.pos.line, token.pos.colEnd);
+		const end = Position.create(toMove.pos.line, toMove.pos.col);
+
+		const edit = TextEdit.del(Range.create(start, end));
 		return [
-			TextEdit.replace(
-				Range.create(
-					Position.create(token.pos.line, token.pos.colEnd),
-					Position.create(toMove.pos.line, toMove.pos.colEnd),
-				),
-				toMove.value,
+			genFormattingDiagnostic(
+				FormattingIssues.TO_MUCH_WHITE_SPACE,
+				token.uri,
+				start,
+				{
+					edit,
+					codeActionTitle: 'Remove Whitesapce',
+					templateStrings: ['0'],
+				},
+				end,
 			),
 		];
 	}
 
-	return [
-		TextEdit.insert(
-			Position.create(token.pos.line, token.pos.colEnd),
-			toMove.value,
-		),
+	const start = Position.create(token.pos.line, token.pos.colEnd);
+	const end = Position.create(toMove.pos.line, toMove.pos.colEnd);
+	const edits = [
+		TextEdit.insert(start, toMove.value),
 		TextEdit.del(
 			Range.create(
 				Position.create(
 					toMove.prevToken?.pos.line ?? toMove.pos.line,
 					toMove.prevToken?.pos.colEnd ?? toMove.pos.col,
 				),
-				Position.create(toMove.pos.line, toMove.pos.colEnd),
+				end,
 			),
+		),
+	];
+	return [
+		genFormattingDiagnostic(
+			FormattingIssues.MOVE_NEXT_TO,
+			token.uri,
+			start,
+			{
+				edit: edits,
+				codeActionTitle: 'Move token',
+				templateStrings: [toMove.value],
+			},
+			end,
 		),
 	];
 };
@@ -1317,8 +1520,8 @@ const formatDtcDelete = (
 	level: number,
 	indentString: string,
 	documentText: string[],
-): TextEdit[] => {
-	const result: TextEdit[] = [];
+): FileDiagnostic[] => {
+	const result: FileDiagnostic[] = [];
 
 	result.push(
 		...ensureOnNewLineAndMax1EmptyLineToPrev(
@@ -1353,13 +1556,13 @@ const formatDtcInclude = (
 	levelMeta: LevelMeta | undefined,
 	indentString: string,
 	documentText: string[],
-): TextEdit[] => {
+): FileDiagnostic[] => {
 	// we should not format this case
 	if (levelMeta === undefined) return [];
 
 	if (!isPathEqual(includeItem.uri, uri)) return []; // may be coming from some other include  hence ignore
 
-	const result: TextEdit[] = [];
+	const result: FileDiagnostic[] = [];
 
 	result.push(
 		...ensureOnNewLineAndMax1EmptyLineToPrev(
@@ -1385,7 +1588,7 @@ const formatCommentBlock = (
 	indentString: string,
 	documentText: string[],
 	settings: FormatingSettings,
-): TextEdit[] => {
+): FileDiagnostic[] => {
 	if (
 		commentItem.comments.length === 1 &&
 		commentItem.firstToken.pos.line ===
@@ -1438,7 +1641,7 @@ const formatBlockCommentLine = (
 	documentText: string[],
 	lineType: 'last' | 'first' | 'comment',
 	settings: FormatingSettings,
-): TextEdit[] => {
+): FileDiagnostic[] => {
 	if (!commentItem.firstToken.prevToken) {
 		return ensureOnNewLineAndMax1EmptyLineToPrev(
 			commentItem.firstToken,
@@ -1475,7 +1678,7 @@ const formatBlockCommentLine = (
 			commentBlock.firstToken.prevToken?.value === '{' ? 1 : 2;
 	}
 
-	const result: TextEdit[] = [];
+	const result: FileDiagnostic[] = [];
 	let prifix: string = '';
 	const commentStr = commentItem.toString();
 	if (
@@ -1541,7 +1744,7 @@ const formatComment = (
 	indentString: string,
 	documentText: string[],
 	settings: FormatingSettings,
-): TextEdit[] => {
+): FileDiagnostic[] => {
 	if (!commentItem.firstToken.prevToken) {
 		return ensureOnNewLineAndMax1EmptyLineToPrev(
 			commentItem.firstToken,
@@ -1593,17 +1796,15 @@ const getTextEdit = async (
 	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
 	documentText: string[],
 	level = 0,
-): Promise<TextEdit[]> => {
+): Promise<FileDiagnostic[]> => {
 	const delta = documentFormattingParams.options.tabSize;
 	const insertSpaces = documentFormattingParams.options.insertSpaces;
-	const singleIndent = insertSpaces ? ''.padStart(delta, ' ') : '\t';
+	const singleIndent = insertSpaces ? ' '.repeat(delta) : '\t';
 	const settings: FormatingSettings = {
 		tabSize: delta,
 		insertSpaces,
 		singleIndent,
 	};
-
-	setIndentString(singleIndent);
 
 	if (astNode instanceof DtcBaseNode) {
 		return formatDtcNode(

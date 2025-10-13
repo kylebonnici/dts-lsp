@@ -16,7 +16,12 @@
 
 import { existsSync, readFileSync } from 'fs';
 import { basename } from 'path';
-import { Diagnostic, DocumentLink, Position } from 'vscode-languageserver';
+import {
+	Diagnostic,
+	DocumentLink,
+	FormattingOptions,
+	Position,
+} from 'vscode-languageserver';
 import { ASTBase } from './ast/base';
 import {
 	DtcBaseNode,
@@ -67,6 +72,7 @@ export class ContextAware {
 
 	constructor(
 		readonly settings: PartialBy<Context, 'ctxName'>,
+		public formattingOptions: FormattingOptions,
 		public readonly bindingLoader?: BindingLoader,
 	) {
 		const resolvedSettings: ResolvedContext = {
@@ -78,6 +84,8 @@ export class ContextAware {
 			...settings,
 			ctxName: settings.ctxName ?? basename(settings.dtsFile),
 			lockRenameEdits: [],
+			showFormattingErrorAsDiagnostics:
+				settings.showFormattingErrorAsDiagnostics ?? true,
 		};
 		this.overlays = resolvedSettings.overlays;
 		this.overlays.filter(existsSync);

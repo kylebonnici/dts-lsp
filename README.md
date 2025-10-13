@@ -20,6 +20,7 @@ interface Context {
 	deviceOrgTreeBindings?: string[];
 	deviceOrgBindingsMetaSchema?: string[];
 	lockRenameEdits?: string[];
+	formattingErrorAsDiagnostics?: boolean;
 	compileCommands?: string;
 }
 
@@ -33,6 +34,7 @@ interface Settings {
 	contexts?: Context[];
 	preferredContext?: string | number;
 	defaultLockRenameEdits?: string[];
+	defaultShowFormattingErrorAsDiagnostics?: boolean;
 	autoChangeContext?: boolean;
 	allowAdhocContexts?: boolean;
 }

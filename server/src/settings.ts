@@ -97,6 +97,7 @@ export const defaultSettings: ResolvedSettings = {
 	defaultLockRenameEdits: [],
 	allowAdhocContexts: true,
 	autoChangeContext: true,
+	defaultShowFormattingErrorAsDiagnostics: true,
 };
 
 export const resolveContextSetting = async (
@@ -186,6 +187,9 @@ export const resolveContextSetting = async (
 		compileCommands: compileCommands
 			? normalizePath(compileCommands)
 			: undefined,
+		showFormattingErrorAsDiagnostics:
+			context.showFormattingErrorAsDiagnostics ??
+			defaultSettings.defaultShowFormattingErrorAsDiagnostics,
 	};
 };
 
@@ -273,6 +277,9 @@ export const resolveSettings = async (
 		allowAdhocContexts:
 			globalSettings.allowAdhocContexts ??
 			defaultSettings.allowAdhocContexts,
+		defaultShowFormattingErrorAsDiagnostics:
+			globalSettings.defaultShowFormattingErrorAsDiagnostics ??
+			defaultSettings.defaultShowFormattingErrorAsDiagnostics,
 	};
 
 	const contexts = (
