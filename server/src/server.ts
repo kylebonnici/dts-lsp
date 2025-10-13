@@ -442,7 +442,11 @@ const getResolvedAllContextSettings = async () => {
 };
 
 const getWorkspaces = async () => {
-	return (await connection.workspace.getWorkspaceFolders()) ?? [];
+	if (hasWorkspaceFolderCapability) {
+		return (await connection.workspace.getWorkspaceFolders()) ?? [];
+	} else {
+		return [];
+	}
 };
 
 const createContext = async (context: ResolvedContext) => {
