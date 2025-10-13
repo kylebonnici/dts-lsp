@@ -519,7 +519,10 @@ const removeNewLinesBetweenTokenAndPrev = (
 				start,
 				{
 					edit,
-					codeActionTitle: 'Remove unnecessary new lines',
+					codeActionTitle:
+						linesToRemove < 0
+							? 'Insert required new lines'
+							: 'Remove unnecessary new lines',
 					templateStrings: [expectedNewLines.toString()],
 				},
 				end,
