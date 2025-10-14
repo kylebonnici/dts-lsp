@@ -1,7 +1,7 @@
 {
 	"name": "devicetree-language-server-types",
 	"package-name": "devicetree-language-server-types",
-	"version": "0.0.2-alpha.21",
+	"version": "0.0.2-alpha.22",
 	"description": "Type definitions devicetree-lsp",
 	"main": "./dist/index.d.ts",
 	"types": "./dist/index.d.ts",
