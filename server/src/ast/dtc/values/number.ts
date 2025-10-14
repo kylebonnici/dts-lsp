@@ -23,6 +23,7 @@ export class NumberValue extends Expression {
 	constructor(
 		public readonly value: number,
 		tokenIndexes: TokenIndexes,
+		private radix = 10,
 	) {
 		super(tokenIndexes);
 		this.docSymbolsMeta = {
@@ -46,17 +47,22 @@ export class NumberValue extends Expression {
 	}
 
 	toString(radix?: number) {
-		return this.value.toString(radix);
+		return this.value.toString(radix ?? this.radix);
 	}
 
 	toJson() {
 		return this.value;
 	}
 
-	toPrettyString(macros: Map<string, MacroRegistryItem>): string {
-		const value = this.evaluate(macros);
+	toPrettyString(_: Map<string, MacroRegistryItem>): string {
+		const value = this.value;
+		if (this.radix == 16) {
+			return `0x${value.toString(16)} /* ${
+				typeof value === 'number' ? `${value.toString(10)}` : ''
+			} */`;
+		}
 
-		return `${value.toString()} /* ${
+		return `${value.toString(10)} /* ${
 			typeof value === 'number' ? `0x${value.toString(16)}` : ''
 		} */`;
 	}
@@ -64,7 +70,7 @@ export class NumberValue extends Expression {
 	serialize(): SerializableNumberValue {
 		return {
 			type: 'NUMBER_VALUE',
-			value: this.toString(),
+			value: `${this.radix === 16 ? '0x' : ''}${this.toString()}`,
 			evaluated: this.value,
 			uri: this.serializeUri,
 			range: this.range,

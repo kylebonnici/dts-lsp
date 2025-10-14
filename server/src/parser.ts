@@ -1765,6 +1765,7 @@ export class Parser extends BaseParser {
 		const numberValue = new NumberValue(
 			num,
 			createTokenIndex(valid[0], valid.at(-1)),
+			16,
 		);
 
 		const node = new LabeledValue(numberValue, labels);

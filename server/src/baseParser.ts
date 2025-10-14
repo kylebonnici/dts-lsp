@@ -595,6 +595,7 @@ export abstract class BaseParser {
 		const numberValue = new NumberValue(
 			num,
 			createTokenIndex(validStart[0], validValue.at(-1)),
+			16,
 		);
 
 		this.mergeStack();
@@ -632,6 +633,7 @@ export abstract class BaseParser {
 		const numberValue = new NumberValue(
 			num,
 			createTokenIndex(operator ?? valid[0], valid.at(-1)),
+			10,
 		);
 
 		this.mergeStack();
