@@ -920,6 +920,25 @@ const generateWorkspaceDiagnostics = async (context: ContextAware) => {
 		items: [...activeContextItems],
 	};
 };
+
+const sendContextDiagnistics = async (context: ContextAware) => {
+	const { items } = await generateWorkspaceDiagnostics(context);
+	items
+		.map(
+			(i) =>
+				({
+					uri: i.uri,
+					version: i.version ?? undefined,
+					diagnostics: i.items,
+				}) satisfies PublishDiagnosticsParams,
+		)
+		.forEach(async (ii) => {
+			connection.sendDiagnostics(ii);
+		});
+
+	hasWorkspaceDiagnostics.set(context, true);
+};
+
 const reportContextList = async () => {
 	const forLogs = await Promise.all(contextAware.map(contextMeta));
 
@@ -1004,24 +1023,7 @@ const updateActiveContext = async (id: ContextId, force = false) => {
 			});
 
 			if (getContextOpenFiles(newContext)?.length) {
-				generateWorkspaceDiagnostics(newContext)
-					.then((d) => {
-						d.items
-							.map(
-								(i) =>
-									({
-										uri: i.uri,
-										version: i.version ?? undefined,
-										diagnostics: i.items,
-									}) satisfies PublishDiagnosticsParams,
-							)
-							.forEach((ii) => {
-								connection.sendDiagnostics(ii);
-							});
-					})
-					.finally(() =>
-						hasWorkspaceDiagnostics.set(newContext, true),
-					);
+				sendContextDiagnistics(newContext);
 			}
 			await reportContextList();
 		} else {
@@ -1096,6 +1098,13 @@ documents.onDidClose(async (e) => {
 						version: documents.get(e.document.uri)?.version,
 						diagnostics: [],
 					} satisfies PublishDiagnosticsParams);
+				} else if (
+					activeContext
+						?.getContextFiles()
+						.some((f) => isPathEqual(f, uri))
+				) {
+					await clearWorkspaceDiagnostics(activeContext);
+					await sendContextDiagnistics(activeContext);
 				}
 			}
 		}),
@@ -1123,23 +1132,12 @@ documents.onDidOpen(async (e) => {
 		await onChange(uri);
 	} else if (ctx !== activeContext) {
 		await updateActiveContext({ id: ctx.id });
-	} else if (ctx === activeContext && !hasWorkspaceDiagnostics.get(ctx)) {
-		generateWorkspaceDiagnostics(ctx)
-			.then(({ items }) =>
-				items
-					.map(
-						(i) =>
-							({
-								uri: i.uri,
-								version: i.version ?? undefined,
-								diagnostics: i.items,
-							}) satisfies PublishDiagnosticsParams,
-					)
-					.forEach(async (ii) => {
-						connection.sendDiagnostics(ii);
-					}),
-			)
-			.finally(() => hasWorkspaceDiagnostics.set(ctx, true));
+	} else if (
+		ctx === activeContext &&
+		(!hasWorkspaceDiagnostics.get(ctx) ||
+			ctx.getContextFiles().some((f) => !isPathEqual(f, uri)))
+	) {
+		await sendContextDiagnistics(ctx);
 	}
 });
 

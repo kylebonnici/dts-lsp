@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.6.1] - Unreleased
+## [0.6.1] - 2025-10-14
 
 ### Changed
 
@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed formatting dignostic warnings are only shown for the open files in the context.
 - Fixed code action title when new lines need to be inserted.
 - Fixed server crash when parsing string token with an empty string token value
 
