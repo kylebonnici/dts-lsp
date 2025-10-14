@@ -1117,8 +1117,8 @@ describe('Parser', () => {
 						'10',
 						'20',
 						'30',
-						(0xff).toString(),
-						(0xaa).toString(),
+						(0xff).toString(16),
+						(0xaa).toString(16),
 					]);
 				});
 
@@ -1734,7 +1734,7 @@ describe('Parser', () => {
 						(values?.values[0]?.value as ArrayValues).values.map(
 							(v) => (v.value as NumberValue).toString(),
 						),
-					).toEqual(['10', (0xaa).toString()]);
+					).toEqual(['10', (0xaa).toString(16)]);
 
 					expect(
 						values?.values[1]?.value instanceof StringValue,
