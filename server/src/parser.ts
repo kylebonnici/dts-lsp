@@ -1501,7 +1501,7 @@ export class Parser extends BaseParser {
 			return;
 		}
 
-		if (str.some((token) => !token?.value)) {
+		if (str.some((token) => token.value === undefined)) {
 			/* istanbul ignore next */
 			throw new Error('Token must have value');
 		}

@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed code action title when new lines need to be inserted.
+- Fixed server crash when parsing string token with an empty string token value
 
 ## [0.6.0] - 2025-10-14
 
