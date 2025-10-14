@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Number values will be shown in the preferred radix as described in the source
-  code when these are visalized for example in hovers. Example:
+  code when these are visualized for example in hovers. Example:
 
 ```devicetree
       reg = <0xff0000 /* 16711680 */ 0x1000 /* 4096 */>;
@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed formatting dignostic warnings are only shown for the open files in the context.
+- Formatting dignostic warnings are only shown for the open files in the context.
 - Fixed code action title when new lines need to be inserted.
 - Fixed server crash when parsing string token with an empty string token value
 
