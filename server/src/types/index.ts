@@ -169,6 +169,7 @@ export type SerializableNexusMapEntry = {
 	)[];
 	specifierSpace?: string;
 	target: string;
+	cellCount: number;
 	mapItem?: {
 		mappingValues: (
 			| SerializableLabelRef
