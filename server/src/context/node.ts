@@ -1365,6 +1365,7 @@ ${'\t'.repeat(level - 1)}};`;
 						mappingValuesAst: nexus.mappingValuesAst.map((v) =>
 							v.serialize(macros),
 						),
+						cellCount: nexus.cellCount,
 						specifierSpace: nexus.specifierSpace,
 						target: nexus.target.pathString,
 						mapItem: nexus.mapItem

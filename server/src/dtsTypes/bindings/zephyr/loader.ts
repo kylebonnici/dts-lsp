@@ -823,6 +823,7 @@ const generateZephyrTypeCheck = (
 		}
 
 		if (myProperty.type === 'phandle-array') {
+			console.log('phandle-array', p.name, p.parent.pathString);
 			const values = flatNumberValues(p.ast.values);
 			let i = 0;
 			const args: string[][] = [];
@@ -927,6 +928,7 @@ const generateZephyrTypeCheck = (
 				const nexusMapping: NexusMapping = {
 					mappingValuesAst,
 					specifierSpace: parentName,
+					cellCount: sizeCellValue,
 					target: pHandleValue,
 				};
 
