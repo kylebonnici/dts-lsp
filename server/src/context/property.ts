@@ -48,6 +48,7 @@ export interface NexusMapping {
 	mappingValuesAst: (LabelRef | NodePathRef | NumberValue | Expression)[];
 	specifierSpace?: string;
 	target: Node;
+	cellCount: number;
 	mapItem?: NexusMapEntry;
 }
 export class Property {
