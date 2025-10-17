@@ -92,6 +92,7 @@ import type {
 	ResolvedContext,
 	SerializedNode,
 	Settings,
+	ZephyrBindingYml,
 } from './types/index';
 import {
 	defaultSettings,
@@ -1867,5 +1868,29 @@ connection.onRequest(
 				evaluated: typeof evaluated === 'number' ? evaluated : expanded,
 			};
 		});
+	},
+);
+
+connection.onRequest(
+	'devicetree/zephyrTypeBindings',
+	async (id: string): Promise<ZephyrBindingYml[] | undefined> => {
+		await allStable();
+		if (!id) {
+			return;
+		}
+		const ctx = findContext(contextAware, { id });
+		return ctx?.bindingLoader?.getZephyrContextBinding();
+	},
+);
+
+connection.onRequest(
+	'devicetree/contextMacroNames',
+	async (id: string): Promise<string[] | undefined> => {
+		await allStable();
+		if (!id) {
+			return;
+		}
+		const ctx = findContext(contextAware, { id });
+		return Array.from(ctx?.macros.keys() ?? []);
 	},
 );

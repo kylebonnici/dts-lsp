@@ -42,7 +42,7 @@ import {
 	FileDiagnostic,
 	MacroRegistryItem,
 	RangeMapping,
-	NexusMapEnty,
+	NexusMapEntry,
 	SearchableResult,
 	RegMapping,
 	TokenIndexes,
@@ -90,7 +90,11 @@ export interface Mapping {
 	expressions: Expression[];
 	node: Node;
 	property: Property;
+	specifierSpace: string;
 }
+
+export type InterruptMapping = Omit<Mapping, 'specifierSpace'> &
+	Partial<Pick<Mapping, 'specifierSpace'>>;
 
 export class Node {
 	public referencedBy: DtcRefNode[] = [];
@@ -103,7 +107,7 @@ export class Node {
 	private _nodes: Node[] = [];
 	linkedNodeNamePaths: NodeName[] = [];
 	linkedRefLabels: LabelRef[] = [];
-	interrupControlerMapping: Mapping[] = [];
+	interrupControlerMapping: InterruptMapping[] = [];
 	spesifierNexusMapping: Mapping[] = [];
 
 	private _nodeTypes: INodeType[] | undefined;
@@ -1125,7 +1129,7 @@ export class Node {
 	getNexusMap(
 		specifier: string,
 		macros: Map<string, MacroRegistryItem>,
-	): { map: NexusMapEnty[]; mapMask: number[] } | undefined {
+	): { map: NexusMapEntry[]; mapMask: number[] } | undefined {
 		const nexusMap = this.getProperty(`${specifier}-map`);
 		const values = flatNumberValues(nexusMap?.ast.values);
 		if (!values?.length) {
@@ -1154,7 +1158,7 @@ export class Node {
 			childSpecifierCellsValue += this.addressCells(macros);
 		}
 
-		const map: NexusMapEnty[] = [];
+		const map: NexusMapEntry[] = [];
 
 		let i = 0;
 		while (i < values.length) {
@@ -1321,7 +1325,7 @@ ${'\t'.repeat(level - 1)}}; ${isOmmited ? ' */' : ''}`;
 			nodeType:
 				nodeType instanceof NodeType
 					? {
-							...this.nodeType,
+							...nodeType,
 							extends: Array.from(this.nodeType?.extends ?? []),
 							properties: nodeType.properties.map((p) => ({
 								name:
@@ -1334,21 +1338,25 @@ ${'\t'.repeat(level - 1)}}; ${isOmmited ? ' */' : ''}`;
 								description: p.description?.join('\n'),
 								required: p.required(this) === 'required',
 							})),
+							zephyrBinding: nodeType.zephyrBinding,
 						}
 					: undefined,
 			issues: nodeAsts.flatMap((n) => n.serializeIssues),
 			path: this.pathString,
 			disabled: this.disabled,
-			name: this.fullName,
+			name: this.name,
+			fullName: this.fullName,
 			labels: this.labels.map((l) => l.label.value),
 			nodes: nodeAsts.map((d) => d.serialize(macros)),
 			properties: this.properties.map((p) => ({
 				...p.ast.serialize(macros),
-				nexusMapEnty: p.nexusMapsTo.map((nexus) => {
+				nodePath: this.pathString,
+				nexusMapEntry: p.nexusMapsTo.map((nexus) => {
 					return {
 						mappingValuesAst: nexus.mappingValuesAst.map((v) =>
 							v.serialize(macros),
 						),
+						cellCount: nexus.cellCount,
 						specifierSpace: nexus.specifierSpace,
 						target: nexus.target.pathString,
 						mapItem: nexus.mapItem
@@ -1381,12 +1389,15 @@ ${'\t'.repeat(level - 1)}}; ${isOmmited ? ' */' : ''}`;
 					cells: m.expressions.map((e) => e.serialize(macros)),
 					path: m.node.pathString,
 					property: m.property.ast.serialize(macros),
+					specifierSpace: m.specifierSpace,
 				}),
 			),
 			specifierNexusMappings: this.spesifierNexusMapping.map((m) => ({
 				cells: m.expressions.map((e) => e.serialize(macros)),
 				path: m.node.pathString,
+				propertyNodePath: m.property.parent.pathString,
 				property: m.property.ast.serialize(macros),
+				specifierSpace: m.specifierSpace,
 			})),
 		};
 	}
