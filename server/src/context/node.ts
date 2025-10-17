@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { relative } from 'path';
 import {
 	DiagnosticSeverity,
 	DiagnosticTag,
@@ -1267,7 +1268,11 @@ export class Node {
 		};
 	}
 
-	toFullString(macros: Map<string, MacroRegistryItem>, level = 1): string {
+	toFullString(
+		macros: Map<string, MacroRegistryItem>,
+		cwd?: string,
+		level = 1,
+	): string {
 		const hasOmitIfNoRef = this.definitions.some(
 			(d) => d instanceof DtcChildNode && d.omitIfNoRef,
 		);
@@ -1298,11 +1303,14 @@ ${'\t'.repeat(level - 1)}}; */`;
 		}${this.uniqueLabels().join(' ')}${this.labels.length ? ' ' : ''}${this.fullName} {${
 			this.properties.length ? `\n${'\t'.repeat(level)}` : ''
 		}${this.properties
-			.map((p) => p.toPrettyString(macros))
+			.map(
+				(p) =>
+					`${p.toPrettyString(macros)}\t/* ${cwd ? `./${relative(cwd, p.ast.uri)}` : p.ast.uri} */`,
+			)
 			.join(`\n${'\t'.repeat(level)}`)}${
 			this.nodes.length
 				? `\n${'\t'.repeat(level)}${this.nodes
-						.map((n) => n.toFullString(macros, level + 1))
+						.map((n) => n.toFullString(macros, cwd, level + 1))
 						.join(`\n${'\t'.repeat(level)}`)}`
 				: ''
 		} 

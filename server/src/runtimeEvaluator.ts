@@ -992,6 +992,7 @@ export class ContextAware {
 	async toFullString() {
 		return `/dts-v1/;\n${(await this.getRuntime()).rootNode.toFullString(
 			(await this.getAllParsers()).at(-1)!.cPreprocessorParser.macros,
+			this.settings.cwd,
 		)}`;
 	}
 	async serialize() {

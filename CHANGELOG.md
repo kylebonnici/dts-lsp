@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.6.2] - Unreleased
 
+### Added
+
+- Generate context output will not show the path from where the property originated
+
 ### Fixed
 
 - Syntax errors in the generated `Generate context output`
@@ -13,7 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.6.1] - 2025-10-14
 
-### Changed
+### c
 
 - Number values will be shown in the preferred radix as described in the source
   code when these are visualized for example in hovers. Example:
