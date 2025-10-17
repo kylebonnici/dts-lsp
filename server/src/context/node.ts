@@ -1277,9 +1277,7 @@ export class Node {
 			this.linkedNodeNamePaths.length === 0;
 
 		if (isOmmited) {
-			return `/* /omit-if-no-ref/ ${this.labels
-				.map((l) => l.toString())
-				.join(' ')}${this.labels.length ? ' ' : ''}${this.fullName} {${
+			return `/* /omit-if-no-ref/ ${this.uniqueLabels().join(' ')}${this.labels.length ? ' ' : ''}${this.fullName} {${
 				this.properties.length ? `\n${'\t'.repeat(level)}` : ''
 			}${this.properties
 				.map((p) => p.toString())
@@ -1294,12 +1292,10 @@ ${'\t'.repeat(level - 1)}}; */`;
 		}
 
 		return `${
-			isOmmited
-				? '/* /omit-if-no-ref/ '
-				: hasOmitIfNoRef
-					? `/* /omit-if-no-ref/ */\n${'\t'.repeat(level - 1)}`
-					: ''
-		}${this.uniqueLabels()}${this.labels.length ? ' ' : ''}${this.fullName} {${
+			hasOmitIfNoRef
+				? `/* /omit-if-no-ref/ */\n${'\t'.repeat(level - 1)}`
+				: ''
+		}${this.uniqueLabels().join(' ')}${this.labels.length ? ' ' : ''}${this.fullName} {${
 			this.properties.length ? `\n${'\t'.repeat(level)}` : ''
 		}${this.properties
 			.map((p) => p.toPrettyString(macros))
@@ -1310,7 +1306,7 @@ ${'\t'.repeat(level - 1)}}; */`;
 						.join(`\n${'\t'.repeat(level)}`)}`
 				: ''
 		} 
-${'\t'.repeat(level - 1)}}; ${isOmmited ? ' */' : ''}`;
+${'\t'.repeat(level - 1)}};`;
 	}
 
 	serialize(macros: Map<string, MacroRegistryItem>): SerializedNode {

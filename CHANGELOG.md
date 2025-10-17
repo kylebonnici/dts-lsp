@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.6.2] - Unreleased
+
+### Fixed
+
+- Syntax errors in the generated `Generate context output`
+- Formatting issues with the generated `Generate context output`
+
 ## [0.6.1] - 2025-10-14
 
 ### Changed

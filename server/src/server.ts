@@ -303,7 +303,7 @@ connection.onInitialize(async (params: InitializeParams) => {
 	connection.console.log(
 		`[Server(${process.pid}) ${
 			workspaceFolders?.at(0)?.uri
-		} Version 0.6.1 ] Started and initialize received`,
+		} Version 0.6.2 ] Started and initialize received`,
 	);
 
 	const capabilities = params.capabilities;
@@ -1700,7 +1700,18 @@ connection.onRequest(
 			return;
 		}
 		const ctx = findContext(contextAware, { id });
-		return ctx?.toFullString();
+		if (!ctx) {
+			return;
+		}
+		const text = await ctx.toFullString();
+		return formatText(
+			{
+				textDocument: { uri: pathToFileURL(ctx.settings.dtsFile) },
+				options: ctx.formattingOptions,
+			},
+			text,
+			'New Text',
+		);
 	},
 );
 
