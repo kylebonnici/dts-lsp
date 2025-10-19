@@ -1343,6 +1343,8 @@ export const formattingIssuesToMessage = (issue: Issue<FormattingIssues>) => {
 					return `Fix indentation. ${issue.templateStrings.at(0)?.length === 0 ? 'No indentation expected' : `Expecting ${issue.templateStrings[0]}`}`;
 				case FormattingIssues.MOVE_NEXT_TO:
 					return `Move token "${issue.templateStrings[0]}" next to expression`;
+				case FormattingIssues.PROPERTY_NODE_SORTING:
+					return `Properties and nodes are not sorted as per https://docs.kernel.org/devicetree/bindings/dts-coding-style.html`;
 				case FormattingIssues.REMOVE_EXPRESSION_BRACKETS:
 					return `Remove (...) enclosure. This expression should only be enclosed in the #define of the macro`;
 			}
