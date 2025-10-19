@@ -272,44 +272,41 @@ async function formatAstBaseItems(
 		result.push(...issues);
 	}
 
+	const resultExcludingOnOfRanges = formatOnOffMeta.length
+		? result.filter((i) => {
+				const edits = Array.isArray(i.raw.edit)
+					? i.raw.edit
+					: i.raw.edit
+						? [i.raw.edit]
+						: undefined;
+				return edits?.every(
+					(e) =>
+						!isFormattingDisabledAt(
+							e.range.start,
+							formatOnOffMeta,
+						) &&
+						!isFormattingDisabledAt(e.range.end, formatOnOffMeta),
+				);
+			})
+		: result;
+
 	const toText = () => {
-		const edits = formatOnOffMeta.length
-			? result
-					.flatMap((i) => i.raw.edit)
-					.filter((i) => !!i)
-					.filter(
-						(edit) =>
-							!isFormattingDisabledAt(
-								edit.range.start,
-								formatOnOffMeta,
-							),
-					)
-			: result.flatMap((e) => e.raw.edit).filter((e) => !!e);
+		const edits = resultExcludingOnOfRanges
+			.flatMap((i) => i.raw.edit)
+			.filter((i) => !!i);
 		return applyEdits(
 			TextDocument.create(uri, 'devicetree', 0, text),
 			edits,
 		);
 	};
 
-	const toDiagnostic = () => {
-		return formatOnOffMeta.length
-			? result.filter(
-					(issue) =>
-						!isFormattingDisabledAt(
-							issue.raw.range.start,
-							formatOnOffMeta,
-						),
-				)
-			: result;
-	};
-
 	if (returnType === 'New Text') {
 		return toText();
 	} else if (returnType === 'File Diagnostics') {
-		return toDiagnostic();
+		return resultExcludingOnOfRanges;
 	}
 
-	return { text: toText(), diagnostic: toDiagnostic() };
+	return { text: toText(), diagnostic: resultExcludingOnOfRanges };
 }
 
 export async function getDocumentFormatting(

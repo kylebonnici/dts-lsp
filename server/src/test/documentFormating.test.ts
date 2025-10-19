@@ -1473,5 +1473,14 @@ describe('Document formating', () => {
 				'/ {\n\tprop = /* dts-format off  */     <10     20   /* dts-format on  */ 30 40>;\n};',
 			);
 		});
+
+		test('in between block comment on off', async () => {
+			const documentText =
+				'/ {\n\tprop   = /* dts-format off  */ <10 20 30 40> /* foo */ /* dts-format on  */;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tprop = /* dts-format off  */ <10 20 30 40> /* foo */ /* dts-format on  */;\n};',
+			);
+		});
 	});
 });
