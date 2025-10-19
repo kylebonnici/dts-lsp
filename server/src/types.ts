@@ -177,6 +177,7 @@ export enum FormattingIssues {
 	INSERT_SPACES,
 	MOVE_NEXT_TO,
 	REMOVE_EXPRESSION_BRACKETS,
+	PROPERTY_NODE_SORTING,
 }
 
 export enum LexerToken {

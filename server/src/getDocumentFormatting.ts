@@ -190,6 +190,29 @@ export async function formatText(
 	);
 }
 
+const filterOnOffEdits = (
+	formatOnOffMeta: Range[],
+	result: FileDiagnostic[],
+) => {
+	return formatOnOffMeta.length
+		? result.filter((i) => {
+				const edits = Array.isArray(i.raw.edit)
+					? i.raw.edit
+					: i.raw.edit
+						? [i.raw.edit]
+						: undefined;
+				return edits?.every(
+					(e) =>
+						!isFormattingDisabledAt(
+							e.range.start,
+							formatOnOffMeta,
+						) &&
+						!isFormattingDisabledAt(e.range.end, formatOnOffMeta),
+				);
+			})
+		: result;
+};
+
 async function formatAstBaseItems(
 	documentFormattingParams: DocumentFormattingParams,
 	astItems: ASTBase[],
@@ -220,8 +243,11 @@ async function formatAstBaseItems(
 	if (t.length) {
 		const newText = applyEdits(
 			TextDocument.create(uri, 'devicetree', 0, text),
-			t,
+			filterOnOffEdits(formatOnOffMeta, t)
+				.flatMap((i) => i.raw.edit)
+				.filter((e) => !!e),
 		);
+
 		switch (returnType) {
 			case 'New Text':
 				return formatText(
@@ -230,16 +256,113 @@ async function formatAstBaseItems(
 					'New Text',
 				);
 			case 'File Diagnostics':
-				return formatText(
-					documentFormattingParams,
-					newText,
-					'File Diagnostics',
-				);
+				return [
+					...t,
+					...(await baseFormatAstBaseItems(
+						documentFormattingParams,
+						astItems,
+						uri,
+						text,
+						'File Diagnostics',
+						formatOnOffMeta,
+						splitDocument,
+					)),
+				];
 			case 'Both':
-				return formatText(documentFormattingParams, newText, 'Both');
+				return {
+					text: await formatText(
+						documentFormattingParams,
+						newText,
+						'New Text',
+					),
+					diagnostic: [
+						...t,
+						...(await baseFormatAstBaseItems(
+							documentFormattingParams,
+							astItems,
+							uri,
+							text,
+							'File Diagnostics',
+							formatOnOffMeta,
+							splitDocument,
+						)),
+					],
+				};
 		}
 	}
 
+	switch (returnType) {
+		case 'New Text':
+			return baseFormatAstBaseItems(
+				documentFormattingParams,
+				astItems,
+				uri,
+				text,
+				returnType,
+				formatOnOffMeta,
+				splitDocument,
+			);
+		case 'File Diagnostics':
+			return baseFormatAstBaseItems(
+				documentFormattingParams,
+				astItems,
+				uri,
+				text,
+				returnType,
+				formatOnOffMeta,
+				splitDocument,
+			);
+		case 'Both':
+			return baseFormatAstBaseItems(
+				documentFormattingParams,
+				astItems,
+				uri,
+				text,
+				returnType,
+				formatOnOffMeta,
+				splitDocument,
+			);
+	}
+}
+
+async function baseFormatAstBaseItems(
+	documentFormattingParams: DocumentFormattingParams,
+	astItems: ASTBase[],
+	uri: string,
+	text: string,
+	returnType: 'New Text',
+	formatOnOffMeta: Range[],
+	splitDocument: string[],
+): Promise<string>;
+async function baseFormatAstBaseItems(
+	documentFormattingParams: DocumentFormattingParams,
+	astItems: ASTBase[],
+	uri: string,
+	text: string,
+	returnType: 'File Diagnostics',
+	formatOnOffMeta: Range[],
+	splitDocument: string[],
+): Promise<FileDiagnostic[]>;
+async function baseFormatAstBaseItems(
+	documentFormattingParams: DocumentFormattingParams,
+	astItems: ASTBase[],
+	uri: string,
+	text: string,
+	returnType: 'Both',
+	formatOnOffMeta: Range[],
+	splitDocument: string[],
+): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
+async function baseFormatAstBaseItems(
+	documentFormattingParams: DocumentFormattingParams,
+	astItems: ASTBase[],
+	uri: string,
+	text: string,
+	returnType: 'New Text' | 'File Diagnostics' | 'Both',
+	formatOnOffMeta: Range[],
+	splitDocument: string[],
+): Promise<
+	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
+> {
 	const astItemLevel = getAstItemLevel(astItems, uri);
 
 	const result: FileDiagnostic[] = (
@@ -313,23 +436,7 @@ async function formatAstBaseItems(
 		result.push(...issues);
 	}
 
-	const resultExcludingOnOfRanges = formatOnOffMeta.length
-		? result.filter((i) => {
-				const edits = Array.isArray(i.raw.edit)
-					? i.raw.edit
-					: i.raw.edit
-						? [i.raw.edit]
-						: undefined;
-				return edits?.every(
-					(e) =>
-						!isFormattingDisabledAt(
-							e.range.start,
-							formatOnOffMeta,
-						) &&
-						!isFormattingDisabledAt(e.range.end, formatOnOffMeta),
-				);
-			})
-		: result;
+	const resultExcludingOnOfRanges = filterOnOffEdits(formatOnOffMeta, result);
 
 	const toText = () => {
 		const edits = resultExcludingOnOfRanges
@@ -1919,7 +2026,7 @@ function sortNodesAndProperties(
 	ifDefs: (IfDefineBlock | IfElIfBlock)[],
 	splitDocument: string[],
 	formatOff: Range[],
-): TextEdit[] {
+): FileDiagnostic[] {
 	if (!isPathEqual(node.uri, uri)) return []; //property may have been included!!
 
 	if (
@@ -1952,7 +2059,7 @@ function sortNodesAndProperties(
 		nodes: DtcBaseNode[];
 	}[] = [{ prop: [], nodes: [], asFound: [] }];
 
-	const textEdits: TextEdit[] = [];
+	const issues: FileDiagnostic[] = [];
 
 	let includesInNode = includes.filter((i) =>
 		positionInBetween(
@@ -2074,17 +2181,28 @@ function sortNodesAndProperties(
 			: changesMap;
 
 		if (edits.length) {
-			textEdits.push(...edits.map((a) => a.delete));
-			textEdits.push(
-				TextEdit.insert(
+			issues.push(
+				genFormattingDiagnostic(
+					FormattingIssues.PROPERTY_NODE_SORTING,
+					uri,
 					grpStartPosition,
-					edits.map((a) => a.text).join(''),
+					{
+						edit: [
+							...edits.map((a) => a.delete),
+							TextEdit.insert(
+								grpStartPosition,
+								edits.map((a) => a.text).join(''),
+							),
+						],
+						codeActionTitle: 'Sort properties and nodes',
+					},
+					edits.at(-1)?.delete.range.end ?? grpStartPosition,
 				),
 			);
 		}
 	});
 
-	if (!textEdits.length) {
+	if (!issues.length) {
 		return node.children.flatMap((c) =>
 			c instanceof DtcBaseNode
 				? sortNodesAndProperties(
@@ -2099,7 +2217,7 @@ function sortNodesAndProperties(
 		);
 	}
 
-	return textEdits;
+	return issues;
 }
 
 const priority: Record<string, number> = {
