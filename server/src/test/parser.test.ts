@@ -2702,6 +2702,28 @@ describe('Parser', () => {
 	});
 
 	describe('C Pre processors', () => {
+		describe('#error', () => {
+			test('consume error line and continue', async () => {
+				mockReadFileSync('#error "Test"\n#define FOO');
+				const parser = new Parser('/folder/dts.dts', [], new Map());
+				await parser.stable;
+				expect(parser.issues.length).toEqual(0);
+				expect(
+					parser.cPreprocessorParser.macros.has('FOO'),
+				).toBeTruthy();
+			});
+
+			test('consume multiline error line and continue', async () => {
+				mockReadFileSync('#error "Test" \\ \n "BAR"\n#define FOO');
+				const parser = new Parser('/folder/dts.dts', [], new Map());
+				await parser.stable;
+				expect(parser.issues.length).toEqual(0);
+				expect(
+					parser.cPreprocessorParser.macros.has('FOO'),
+				).toBeTruthy();
+			});
+		});
+
 		describe('#DEFINE', () => {
 			test('Missing identifier', async () => {
 				mockReadFileSync('#DEFINE');

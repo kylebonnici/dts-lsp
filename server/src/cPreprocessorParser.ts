@@ -201,7 +201,8 @@ export class CPreprocessorParser extends BaseParser {
 			(await this.processInclude()) ||
 			this.processDefinitions() ||
 			this.processUndef() ||
-			this.processIfDefBlocks();
+			this.processError();
+		this.processIfDefBlocks();
 
 		if (token) {
 			this.moveEndOfLine(token, !!found);
@@ -307,6 +308,25 @@ export class CPreprocessorParser extends BaseParser {
 		this.positionStack[this.positionStack.length - 1] = startIndex;
 		this.mergeStack();
 		this.macroStart = false;
+		return true;
+	}
+
+	private processError() {
+		this.enqueueToStack();
+		const startIndex = this.peekIndex();
+		const token = this.moveToNextToken;
+		if (!token || !validToken(token, LexerToken.C_ERROR)) {
+			this.popStack();
+			return false;
+		}
+
+		this.moveEndOfLine(token, false, true);
+		const endIndex = this.peekIndex();
+		this.tokens.splice(startIndex, endIndex - startIndex);
+
+		this.positionStack[this.positionStack.length - 1] = startIndex;
+
+		this.mergeStack();
 		return true;
 	}
 

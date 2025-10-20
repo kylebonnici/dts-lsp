@@ -796,7 +796,11 @@ export abstract class BaseParser {
 		return result;
 	}
 
-	protected moveEndOfLine = (token: Token, report = true) => {
+	protected moveEndOfLine = (
+		token: Token,
+		report = true,
+		continueOnMultiline = false,
+	): Token | undefined => {
 		const line = token.pos.line;
 		if (
 			this.currentToken?.pos.line !== line ||
@@ -818,6 +822,12 @@ export abstract class BaseParser {
 			this._issues.push(
 				genSyntaxDiagnostic(SyntaxIssue.UNKNOWN, start, end, null),
 			);
+		}
+
+		if (continueOnMultiline && end?.value === '\\') {
+			if (end.nextToken) {
+				return this.moveEndOfLine(end.nextToken, report);
+			}
 		}
 
 		return end;
