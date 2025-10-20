@@ -41,6 +41,7 @@ import {
 	TextEdit,
 	Diagnostic,
 	FormattingOptions,
+	DocumentRangeFormattingParams,
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -359,6 +360,7 @@ connection.onInitialize(async (params: InitializeParams) => {
 			declarationProvider: true,
 			referencesProvider: true,
 			documentFormattingProvider: true,
+			documentRangeFormattingProvider: true,
 			hoverProvider: true,
 			signatureHelpProvider: {
 				triggerCharacters: ['<', '('],
@@ -1431,7 +1433,9 @@ connection.onCodeAction(async (event) => {
 	return getCodeActions(event);
 });
 
-connection.onDocumentFormatting(async (event) => {
+const onDocumentFormat = async (
+	event: DocumentFormattingParams | DocumentRangeFormattingParams,
+) => {
 	const filePath = fileURLToPath(event.textDocument.uri);
 	if (!isDtsFile(filePath)) {
 		return;
@@ -1483,7 +1487,11 @@ connection.onDocumentFormatting(async (event) => {
 			newText,
 		),
 	];
-});
+};
+
+connection.onDocumentRangeFormatting(onDocumentFormat);
+
+connection.onDocumentFormatting(onDocumentFormat);
 
 connection.onHover(async (event) => {
 	const filePath = fileURLToPath(event.textDocument.uri);

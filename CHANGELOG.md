@@ -8,7 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Generate context output will not show the path from where the property originated
+- Generate context output will not show the path from where the property originated.
+- Support for Range Formatting.
 
 ### Fixed
 

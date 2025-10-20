@@ -17,6 +17,7 @@
 import {
 	Diagnostic,
 	DocumentFormattingParams,
+	DocumentRangeFormattingParams,
 	ErrorCodes,
 	Position,
 	Range,
@@ -55,6 +56,7 @@ import {
 	genFormattingDiagnostic,
 	getDeepestAstNodeInBetween,
 	isPathEqual,
+	isRangeInRange,
 	positionInBetween,
 	rangesOverlap,
 } from './helpers';
@@ -133,22 +135,30 @@ const getAstItemLevel =
 	};
 
 export async function formatText(
-	documentFormattingParams: DocumentFormattingParams,
+	documentFormattingParams:
+		| DocumentFormattingParams
+		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'Both',
 ): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
 export async function formatText(
-	documentFormattingParams: DocumentFormattingParams,
+	documentFormattingParams:
+		| DocumentFormattingParams
+		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'New Text',
 ): Promise<string>;
 export async function formatText(
-	documentFormattingParams: DocumentFormattingParams,
+	documentFormattingParams:
+		| DocumentFormattingParams
+		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'File Diagnostics',
 ): Promise<FileDiagnostic[]>;
 export async function formatText(
-	documentFormattingParams: DocumentFormattingParams,
+	documentFormattingParams:
+		| DocumentFormattingParams
+		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics' | 'Both',
 ): Promise<
@@ -188,7 +198,9 @@ export async function formatText(
 }
 
 async function formatAstBaseItems(
-	documentFormattingParams: DocumentFormattingParams,
+	documentFormattingParams:
+		| DocumentFormattingParams
+		| DocumentRangeFormattingParams,
 	astItems: ASTBase[],
 	uri: string,
 	text: string,
@@ -272,7 +284,7 @@ async function formatAstBaseItems(
 		result.push(...issues);
 	}
 
-	const resultExcludingOnOfRanges = formatOnOffMeta.length
+	let resultExcludingOnOfRanges = formatOnOffMeta.length
 		? result.filter((i) => {
 				const edits = Array.isArray(i.raw.edit)
 					? i.raw.edit
@@ -289,6 +301,12 @@ async function formatAstBaseItems(
 				);
 			})
 		: result;
+
+	if ('range' in documentFormattingParams) {
+		resultExcludingOnOfRanges = resultExcludingOnOfRanges.filter((d) =>
+			isRangeInRange(documentFormattingParams.range, d.raw.range),
+		);
+	}
 
 	const toText = () => {
 		const edits = resultExcludingOnOfRanges
@@ -310,25 +328,33 @@ async function formatAstBaseItems(
 }
 
 export async function getDocumentFormatting(
-	documentFormattingParams: DocumentFormattingParams,
+	documentFormattingParams:
+		| DocumentFormattingParams
+		| DocumentRangeFormattingParams,
 	contextAware: ContextAware,
 	documentText: string,
 	returnType: 'Both',
 ): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
 export async function getDocumentFormatting(
-	documentFormattingParams: DocumentFormattingParams,
+	documentFormattingParams:
+		| DocumentFormattingParams
+		| DocumentRangeFormattingParams,
 	contextAware: ContextAware,
 	documentText: string,
 	returnType: 'File Diagnostics',
 ): Promise<FileDiagnostic[]>;
 export async function getDocumentFormatting(
-	documentFormattingParams: DocumentFormattingParams,
+	documentFormattingParams:
+		| DocumentFormattingParams
+		| DocumentRangeFormattingParams,
 	contextAware: ContextAware,
 	documentText: string,
 	returnType: 'New Text',
 ): Promise<string>;
 export async function getDocumentFormatting(
-	documentFormattingParams: DocumentFormattingParams,
+	documentFormattingParams:
+		| DocumentFormattingParams
+		| DocumentRangeFormattingParams,
 	contextAware: ContextAware,
 	documentText: string,
 	returnType: 'New Text' | 'File Diagnostics' | 'Both',

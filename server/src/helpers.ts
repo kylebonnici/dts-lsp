@@ -152,6 +152,22 @@ export const positionInBetween = (
 	);
 };
 
+export const isRangeInRange = (
+	outerRange: Range,
+	innerRange: Range,
+): boolean => {
+	const isPositionBeforeOrEqual = (a: Position, b: Position): boolean =>
+		a.line < b.line || (a.line === b.line && a.character <= b.character);
+
+	const isPositionAfterOrEqual = (a: Position, b: Position): boolean =>
+		a.line > b.line || (a.line === b.line && a.character >= b.character);
+
+	return (
+		isPositionBeforeOrEqual(outerRange.start, innerRange.start) &&
+		isPositionAfterOrEqual(outerRange.end, innerRange.end)
+	);
+};
+
 export const positionSameLineAndNotAfter = (
 	ast: ASTBase,
 	file: string,
