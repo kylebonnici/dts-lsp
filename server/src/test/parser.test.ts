@@ -51,6 +51,7 @@ import {
 } from '../ast/cPreprocessors/functionDefinition';
 import { DtsMemreserveNode } from '../ast/dtc/memreserveNode';
 import { tokensToString } from '../helpers';
+import { Keyword } from '../ast/keyword';
 
 jest.mock('fs', () => ({
 	readFileSync: jest.fn().mockImplementation(() => {
@@ -184,6 +185,18 @@ describe('Parser', () => {
 			expect(
 				(parser.others[0] as DtsMemreserveNode).endAddress?.value,
 			).toBeUndefined();
+		});
+	});
+
+	describe('Plugin', () => {
+		test('Valid', async () => {
+			mockReadFileSync('/plugin/;');
+			const parser = new Parser('/folder/dts.dts', []);
+			await parser.stable;
+			expect(parser.issues.length).toEqual(0);
+
+			expect(parser.others.length).toEqual(1);
+			expect(parser.others[0] instanceof Keyword).toBeTruthy();
 		});
 	});
 

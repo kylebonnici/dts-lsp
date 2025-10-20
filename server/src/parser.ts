@@ -146,6 +146,7 @@ export class Parser extends BaseParser {
 				!(
 					this.isDtsDocumentVersion() ||
 					this.isMemreserve() ||
+					this.isPlugin() ||
 					this.isRootNodeDefinition(this.rootDocument) ||
 					this.isDeleteNode(this.rootDocument, 'Ref') ||
 					// Valid use case
@@ -996,6 +997,28 @@ export class Parser extends BaseParser {
 
 		node.lastToken = this.endStatement(node);
 		this.mergeStack();
+		return true;
+	}
+
+	private isPlugin(): boolean {
+		this.enqueueToStack();
+
+		const valid = this.checkConcurrentTokens([
+			validateToken(LexerToken.FORWARD_SLASH),
+			validateValue('plugin'),
+			validateToken(LexerToken.FORWARD_SLASH),
+		]);
+
+		if (valid.length !== 3) {
+			this.popStack();
+			return false;
+		}
+
+		const keyword = new Keyword(createTokenIndex(valid[0], valid.at(-1)));
+
+		keyword.lastToken = this.endStatement(keyword);
+		this.mergeStack();
+		this.others.push(keyword);
 		return true;
 	}
 

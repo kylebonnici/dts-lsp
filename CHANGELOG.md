@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Syntax errors in the generated `Generate context output`
 - Formatting issues with the generated `Generate context output`
 - Respect atomic nature of certain edits when applying dts-format on/off
+- Syntex error on `/plugin/`.
 
 ## [0.6.1] - 2025-10-14
 
