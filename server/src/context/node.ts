@@ -621,7 +621,12 @@ export class Node {
 			return this;
 		}
 
-		return this._nodes.find((n) => !!n.getPhandle(id));
+		for (const n of this._nodes) {
+			const phandle = n.getPhandle(id);
+			if (phandle) {
+				return phandle;
+			}
+		}
 	}
 
 	getNode(name: string, address?: number[], strict = true) {
