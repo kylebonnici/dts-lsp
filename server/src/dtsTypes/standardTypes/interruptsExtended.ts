@@ -189,6 +189,7 @@ export default () => {
 				const nexusMapping: NexusMapping = {
 					mappingValuesAst,
 					target: pHandleNode,
+					cellCount: cellsPropertyValue,
 					specifierSpace:
 						pHandleNode.bindingLoader?.type === 'Zephyr'
 							? 'interrupt'
