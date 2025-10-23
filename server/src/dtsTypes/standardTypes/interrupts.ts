@@ -231,6 +231,7 @@ export default () => {
 					?.at(0)?.startAddress;
 				const nexusMapping: NexusMapping = {
 					mappingValuesAst,
+					cellCount: childInterruptSpecifierValue,
 					target: parentInterruptNode,
 					specifierSpace:
 						parentInterruptNode.bindingLoader?.type === 'Zephyr'

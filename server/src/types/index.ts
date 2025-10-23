@@ -16,6 +16,12 @@
 
 import { Diagnostic, Range } from 'vscode-languageserver-types';
 
+export type SerializedAnyInternalValue =
+	| SerializableLabelRef
+	| SerializableNodePath
+	| SerializableNumberValue
+	| SerializableExpression;
+
 export type BindingType = 'Zephyr' | 'DevicetreeOrg';
 
 export type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
@@ -114,13 +120,7 @@ export interface SerializableByteString extends SerializableASTBase {
 
 export interface SerializableArrayValue extends SerializableASTBase {
 	readonly type: 'ARRAY_VALUE';
-	readonly value: (
-		| SerializableLabelRef
-		| SerializableNodePath
-		| SerializableNumberValue
-		| SerializableExpression
-		| null
-	)[];
+	readonly value: (SerializedAnyInternalValue | null)[];
 }
 
 export interface SerializableLabelRef extends SerializableASTBase {
@@ -163,30 +163,11 @@ export interface SerializablePropertyName extends SerializableASTBase {
 }
 
 export type SerializableNexusMapEntry = {
-	mappingValuesAst: (
-		| SerializableLabelRef
-		| SerializableNodePath
-		| SerializableNumberValue
-		| SerializableExpression
-	)[];
+	mappingValuesAst: SerializedAnyInternalValue[];
 	specifierSpace?: string;
 	target: string;
 	cellCount: number;
-	mapItem?: {
-		mappingValues: (
-			| SerializableLabelRef
-			| SerializableNodePath
-			| SerializableNumberValue
-			| SerializableExpression
-		)[];
-		target: string;
-		parentValues: (
-			| SerializableLabelRef
-			| SerializableNodePath
-			| SerializableNumberValue
-			| SerializableExpression
-		)[];
-	};
+	mapItem?: SerializedNexusMap;
 };
 
 export interface SerializableProperty extends SerializableASTBase {
@@ -318,7 +299,18 @@ export type SerializedNode = {
 	labels: string[];
 	interruptControllerMappings: InterruptControlerSerializedMapping[];
 	specifierNexusMappings: SerializableSpecifierNexusMeta[];
+	nexusMaps: SerializedNexusMap[];
 };
+
+export interface SerializedNexusMap {
+	childCellCount: number;
+	mappingValues: SerializedAnyInternalValue[];
+	target?: string;
+	targetAst?: SerializedAnyInternalValue;
+	parentCellCount?: number;
+	parentValues?: SerializedAnyInternalValue[];
+	specifierSpace: string;
+}
 
 export type Actions = ClipboardActions;
 

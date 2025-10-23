@@ -64,7 +64,7 @@ import { getNodeNameOrNodeLabelRef } from '../ast/helpers';
 import { getStandardType } from '../dtsTypes/standardTypes';
 import { BindingLoader } from '../dtsTypes/bindings/bindingLoader';
 import { INodeType, NodeType } from '../dtsTypes/types';
-import { MemoryView, SerializedNode } from '../types/index';
+import { MemoryView, SerializedNexusMap, SerializedNode } from '../types/index';
 import {
 	flatNumberValues,
 	getU32ValueFromProperty,
@@ -1204,15 +1204,24 @@ export class Node {
 		while (i < values.length) {
 			const mappingValues = values.slice(i, childSpecifierCellsValue + i);
 
+			const mapItem: NexusMapEntry = {
+				childCellCount: childSpecifierCellsValue,
+				mappingValues: mappingValues,
+			};
+			map.push(mapItem);
+
 			i += childSpecifierCellsValue;
 
 			if (values.length < i + 1) {
 				break;
 			}
-			const specifierParent = resolvePhandleNode(values[i], root);
+			mapItem.nodeAst = values[i];
+			const specifierParent = resolvePhandleNode(mapItem.nodeAst, root);
 			if (!specifierParent) {
 				break;
 			}
+
+			mapItem.node = specifierParent;
 
 			const parentSpecifierAddress = specifierParent.getProperty(
 				`#${specifier}-cells`,
@@ -1239,16 +1248,14 @@ export class Node {
 				parentUnitAddressValue += specifierParent.addressCells(macros);
 			}
 
+			mapItem.parentCellCount = parentUnitAddressValue;
+
 			i += parentUnitAddressValue;
 			if (values.length < i) {
 				break;
 			}
-			const parentValues = values.slice(i - parentUnitAddressValue, i);
-			map.push({
-				mappingValues,
-				node: specifierParent,
-				parentValues,
-			});
+
+			mapItem.parentValues = values.slice(i - parentUnitAddressValue, i);
 		}
 
 		const mapMaskProperty = this.getProperty(`${specifier}-map-mask`);
@@ -1403,17 +1410,27 @@ ${'\t'.repeat(level - 1)}};`;
 						specifierSpace: nexus.specifierSpace,
 						target: nexus.target.pathString,
 						mapItem: nexus.mapItem
-							? {
-									parentValues:
-										nexus.mapItem?.parentValues.map((v) =>
-											v.serialize(macros),
-										),
-									target: nexus.mapItem.node.pathString,
+							? ({
+									childCellCount:
+										nexus.mapItem.childCellCount,
 									mappingValues:
 										nexus.mapItem.mappingValues.map((v) =>
 											v.serialize(macros),
 										),
-								}
+									target: nexus.mapItem.node?.pathString,
+									targetAst:
+										nexus.mapItem.nodeAst?.serialize(
+											macros,
+										),
+									parentCellCount:
+										nexus.mapItem.parentCellCount,
+									parentValues:
+										nexus.mapItem.parentValues?.map((v) =>
+											v.serialize(macros),
+										),
+									specifierSpace:
+										nexus.specifierSpace ?? 'interrupt',
+								} satisfies SerializedNexusMap)
 							: undefined,
 					};
 				}),
@@ -1442,6 +1459,31 @@ ${'\t'.repeat(level - 1)}};`;
 				property: m.property.ast.serialize(macros),
 				specifierSpace: m.specifierSpace,
 			})),
+			nexusMaps:
+				this.properties
+					.filter((p) => !!p.name.match(/^(?!no-).*?-map$/))
+					.flatMap((p) => {
+						const specifier = p.name.split('-map', 1)[0];
+						const map =
+							this.getNexusMap(specifier, macros)?.map ?? [];
+
+						return map.map(
+							(m) =>
+								({
+									childCellCount: m.childCellCount,
+									mappingValues: m.mappingValues.map((i) =>
+										i.serialize(macros),
+									),
+									target: m.node?.pathString,
+									targetAst: m.nodeAst?.serialize(macros),
+									parentCellCount: m.parentCellCount,
+									parentValues: m.parentValues?.map((i) =>
+										i.serialize(macros),
+									),
+									specifierSpace: specifier,
+								}) satisfies SerializedNexusMap,
+						);
+					}) ?? [],
 		};
 	}
 
