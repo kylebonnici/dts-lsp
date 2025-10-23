@@ -600,7 +600,7 @@ export class Node {
 			this.getProperty('phandle')?.ast.values?.values.at(0)?.value;
 
 		if (phandleValue instanceof ArrayValues) {
-			const value = phandleValue.values[0].value;
+			const value = phandleValue.values.at(0)?.value;
 			if (value instanceof NumberValue) {
 				this.#phandle = value.value;
 				return this.#phandle;
