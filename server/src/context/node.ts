@@ -357,7 +357,8 @@ export class Node {
 								ContextIssues.ADDRESS_RANGE_COLLIDES,
 								reg.rangeTokens.start,
 								reg.rangeTokens.end,
-								node.definitions[0],
+								node.properties.find((p) => p.name === 'reg')
+									?.ast ?? node.definitions[0],
 								{
 									severity: DiagnosticSeverity.Information,
 									linkedTo: collidingNodes.map((n) => ({

@@ -162,7 +162,10 @@ export class DtcProperty extends ASTBase {
 						) ?? null),
 			uri: this.serializeUri,
 			range: this.range,
-			issues: this.serializeIssues,
+			issues: [
+				...this.serializeIssues,
+				...(this.values?.issues.map((i) => i()) ?? []),
+			],
 		};
 	}
 }
