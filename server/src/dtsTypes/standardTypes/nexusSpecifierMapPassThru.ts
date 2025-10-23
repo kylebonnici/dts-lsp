@@ -16,7 +16,6 @@
 
 import { ParameterInformation } from 'vscode-languageserver-types';
 import { FileDiagnostic, StandardTypeIssue } from '../../types';
-import { BindingPropertyType } from '../../types/index';
 import { PropertyNodeType } from '../types';
 import { genStandardTypeDiagnostic } from '../../helpers';
 import {
@@ -28,7 +27,7 @@ import {
 export default () => {
 	const prop = new PropertyNodeType<number>(
 		/^(?!interrupt-).*?-map-pass-thru$/,
-		generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
+		generateOrTypeObj('PROP_ENCODED_ARRAY'),
 		'optional',
 		undefined,
 		undefined,

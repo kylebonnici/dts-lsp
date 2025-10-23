@@ -15,7 +15,6 @@
  */
 
 import { DiagnosticSeverity, DiagnosticTag } from 'vscode-languageserver';
-import { BindingPropertyType } from '../../types/index';
 import { genStandardTypeDiagnostic } from '../../helpers';
 import { PropertyNodeType } from '../types';
 import { StandardTypeIssue } from '../../types';
@@ -24,7 +23,7 @@ import { generateOrTypeObj } from './helpers';
 export default () => {
 	const prop = new PropertyNodeType<string>(
 		'name',
-		generateOrTypeObj(BindingPropertyType.STRING),
+		generateOrTypeObj('STRING'),
 		'optional',
 		undefined,
 		undefined,
