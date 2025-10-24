@@ -537,14 +537,14 @@ const removeNewLinesBetweenTokenAndPrev = (
 				'\n'.repeat(expectedNewLines - (forceExpectedNewLines ? 1 : 0)),
 			);
 			return genFormattingDiagnostic(
-				FormattingIssues.REMOVE_UNNECESSARY_NEW_LINES,
+				FormattingIssues.INCORRECT_WHITE_SPACE,
 				token.uri,
 				start,
 				{
 					edit,
 					codeActionTitle:
 						linesToRemove < 0
-							? 'Insert required new lines'
+							? 'Insert new lines'
 							: 'Remove unnecessary new lines',
 					templateStrings: [expectedNewLines.toString()],
 				},
@@ -556,7 +556,7 @@ const removeNewLinesBetweenTokenAndPrev = (
 		const end = Position.create(token.pos.line, 0);
 		const edit = TextEdit.del(Range.create(start, end));
 		return genFormattingDiagnostic(
-			FormattingIssues.TO_MUCH_WHITE_SPACE,
+			FormattingIssues.INCORRECT_WHITE_SPACE,
 			token.uri,
 			start,
 			{
@@ -676,10 +676,14 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
 		const edit = TextEdit.del(Range.create(start, end));
 		return [
 			genFormattingDiagnostic(
-				FormattingIssues.TO_MUCH_WHITE_SPACE,
+				FormattingIssues.INCORRECT_WHITE_SPACE,
 				token.uri,
 				start,
-				{ edit, codeActionTitle: 'Remove space(s)' },
+				{
+					edit,
+					codeActionTitle: 'Remove space(s)',
+					templateStrings: ['0'],
+				},
 				end,
 			),
 		];
@@ -693,7 +697,7 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
 		const edit = TextEdit.insert(start, ' '.repeat(expectedSpaces));
 		return [
 			genFormattingDiagnostic(
-				FormattingIssues.INSERT_SPACES,
+				FormattingIssues.INCORRECT_WHITE_SPACE,
 				token.uri,
 				start,
 				{
@@ -728,10 +732,14 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
 
 	return [
 		genFormattingDiagnostic(
-			FormattingIssues.TO_MUCH_WHITE_SPACE,
+			FormattingIssues.INCORRECT_WHITE_SPACE,
 			token.uri,
 			start,
-			{ edit, codeActionTitle: 'Insert space(s)' },
+			{
+				edit,
+				codeActionTitle: 'Insert space(s)',
+				templateStrings: [expectedSpaces.toString()],
+			},
 			end,
 		),
 	];
@@ -1499,12 +1507,12 @@ const moveNextTo = (token: Token, toMove: Token): FileDiagnostic[] => {
 		const edit = TextEdit.del(Range.create(start, end));
 		return [
 			genFormattingDiagnostic(
-				FormattingIssues.TO_MUCH_WHITE_SPACE,
+				FormattingIssues.INCORRECT_WHITE_SPACE,
 				token.uri,
 				start,
 				{
 					edit,
-					codeActionTitle: 'Remove Whitesapce',
+					codeActionTitle: 'Remove white space',
 					templateStrings: ['0'],
 				},
 				end,

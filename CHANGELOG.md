@@ -4,12 +4,13 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.6.3] - Unreleased
+## [0.6.3] - 2025-10-24
 
 ### Fixed
 
 - Fixed reference resolution issue when using numeric phandle values instead of label references or node paths.
 - Fixed Server crash when phandle values are beeing resolved and are in this state `phandle = <>;`
+- Fixed `undefined` in formatting in diagnostic messages
 
 ## [0.6.2] - 2025-10-21
 

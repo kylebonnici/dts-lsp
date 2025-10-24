@@ -1247,20 +1247,16 @@ export const formattingIssuesToMessage = (issue: Issue<FormattingIssues>) => {
 			switch (i) {
 				case FormattingIssues.MISSING_EOF_NEW_LINE:
 					return `Add end of line to end of file`;
-				case FormattingIssues.TO_MUCH_WHITE_SPACE:
-					return `Expecting ${issue.templateStrings[0]} space(s).`;
+				case FormattingIssues.INCORRECT_WHITE_SPACE:
+					return `${issue.codeActionTitle}. Expecting ${issue.templateStrings[0]}.`;
 				case FormattingIssues.MISSING_NEW_LINE:
 					return `Move to a new line`;
 				case FormattingIssues.TRALING_EOF_NEW_LINES:
 					return `Remove trailing whitespace at the end of file.`;
 				case FormattingIssues.TRALING_WHITE_SPACE:
 					return `Remove trailing whitespace at the end of the line.`;
-				case FormattingIssues.REMOVE_UNNECESSARY_NEW_LINES:
-					return `Expecting ${issue.templateStrings[0]} new line(s)`;
 				case FormattingIssues.WRONG_INDENTATION:
 					return `Fix indentation. Expecting ${issue.templateStrings[0]}`;
-				case FormattingIssues.INSERT_SPACES:
-					return `Expecting ${issue.templateStrings[0]} space(s).`;
 				case FormattingIssues.MOVE_NEXT_TO:
 					return `Move token "${issue.templateStrings[0]}" next to expression`;
 				case FormattingIssues.REMOVE_EXPRESSION_BRACKETS:
