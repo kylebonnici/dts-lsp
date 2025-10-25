@@ -40,6 +40,7 @@ export type CodeActionDiagnosticData =
 			items: SyntaxIssue[];
 			firstToken: Omit<Token, 'prevToken' | 'nextToken' | 'uri'>;
 			lastToken: Omit<Token, 'prevToken' | 'nextToken' | 'uri'>;
+			virtual: boolean;
 	  }
 	| {
 			type: 'StandardTypeIssue';
@@ -48,12 +49,14 @@ export type CodeActionDiagnosticData =
 			items: StandardTypeIssue[];
 			firstToken: Omit<Token, 'prevToken' | 'nextToken' | 'uri'>;
 			lastToken: Omit<Token, 'prevToken' | 'nextToken' | 'uri'>;
+			virtual: boolean;
 	  }
 	| {
 			type: 'FormattingIssues';
 			edit?: TextEdit | TextEdit[];
 			codeActionTitle?: string;
 			items: FormattingIssues[];
+			virtual: boolean;
 	  };
 export enum StandardTypeIssue {
 	REQUIRED,
@@ -322,6 +325,7 @@ export interface Issue<T extends IssueTypes> {
 	templateStrings: string[];
 	edit?: TextEdit | TextEdit[];
 	codeActionTitle?: string;
+	virtual?: boolean;
 }
 
 export type IssueWithEdits<T extends IssueTypes> = Issue<T> & {
