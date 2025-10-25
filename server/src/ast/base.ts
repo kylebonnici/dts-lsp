@@ -25,6 +25,7 @@ import {
 } from 'vscode-languageserver';
 import { SerializableASTBase } from '../types/index';
 import {
+	convertVirtualUriToDocumentUri,
 	getTokenModifiers,
 	getTokenTypes,
 	isPathEqual,
@@ -142,10 +143,14 @@ export class ASTBase {
 			return [];
 		}
 
-		const range = toRange(this);
+		const virtialDoc = convertVirtualUriToDocumentUri(this.uri);
+		const range = virtialDoc?.range ?? toRange(this);
 		return [
 			{
-				location: Location.create(pathToFileURL(this.uri), range),
+				location: Location.create(
+					pathToFileURL(virtialDoc?.docUri ?? this.uri),
+					range,
+				),
 				name: this.docSymbolsMeta.name
 					? this.docSymbolsMeta.name
 					: '__UNSET__',

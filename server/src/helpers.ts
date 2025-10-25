@@ -274,10 +274,13 @@ export const convertVirtualUriToDocumentUri = (uri: string) => {
 	const [endLine, endCol] = endRaw.split(':');
 	return {
 		docUri,
-		startLine: Number.parseInt(startLine),
-		startCol: Number.parseInt(startCol),
-		endLine: Number.parseInt(endLine),
-		endCol: Number.parseInt(endCol),
+		range: Range.create(
+			Position.create(
+				Number.parseInt(startLine),
+				Number.parseInt(startCol),
+			),
+			Position.create(Number.parseInt(endLine), Number.parseInt(endCol)),
+		),
 	};
 };
 
@@ -285,27 +288,13 @@ const convertVirtualIssue = <T extends IssueTypes>(issue: Issue<T>) => {
 	const virtialDoc = convertVirtualUriToDocumentUri(issue.uri);
 	if (!virtialDoc) return;
 
-	issue.range = Range.create(
-		Position.create(virtialDoc.startLine, virtialDoc.startCol),
-		Position.create(virtialDoc.endLine, virtialDoc.endCol),
-	);
+	issue.range = virtialDoc.range;
 	issue.uri = virtialDoc?.docUri;
 	issue.virtual = true;
 	issue.linkedTo = issue.linkedTo.map(({ range, uri }) => {
 		const linkedIssueVirtialDoc = convertVirtualUriToDocumentUri(uri);
 		return {
-			range: linkedIssueVirtialDoc
-				? Range.create(
-						Position.create(
-							linkedIssueVirtialDoc.startLine,
-							linkedIssueVirtialDoc.startCol,
-						),
-						Position.create(
-							linkedIssueVirtialDoc.endLine,
-							linkedIssueVirtialDoc.endCol,
-						),
-					)
-				: range,
+			range: linkedIssueVirtialDoc?.range ?? range,
 			uri: linkedIssueVirtialDoc?.docUri ?? uri,
 			templateStrings: [],
 		};
@@ -976,7 +965,9 @@ export function evalExp(str: string) {
 }
 
 export const pathToFileURL = (path: string) => {
-	if (isVirtualUri(path)) return path;
+	if (isVirtualUri(path)) {
+		return path;
+	}
 	return url.pathToFileURL(path).toString();
 };
 
