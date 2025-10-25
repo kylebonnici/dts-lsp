@@ -436,6 +436,10 @@ export function getCodeActions(
 		.flatMap((diagnostic) => {
 			const tmp = diagnostic.data as CodeActionDiagnosticData | undefined;
 
+			if (tmp?.virtual) {
+				return [];
+			}
+
 			switch (tmp?.type) {
 				case 'FormattingIssues':
 					return formattingIssueToCodeAction(
