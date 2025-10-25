@@ -854,6 +854,7 @@ export const parseMacros = (line: string) => {
 	}
 };
 
+let counter = 0; // impliments __counter__
 export const expandMacros = (
 	code: string,
 	macrosResolvers: Map<string, MacroRegistryItem>,
@@ -889,7 +890,10 @@ export const expandMacros = (
 				) {
 					const argList = args
 						.split(',')
-						.map((a: string) => a.trim());
+						.map((a: string) => a.trim())
+						.map((a: string) =>
+							a === '__COUNTER__' ? (counter++).toString() : a,
+						);
 					return (
 						macrosResolvers.get(func)?.resolver as (
 							...args: string[]
