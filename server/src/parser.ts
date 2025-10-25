@@ -355,7 +355,12 @@ export class Parser extends BaseParser {
 
 		let found = false;
 		let child = false;
+
 		do {
+			while (
+				this.injectPreProcessorResults(this.cPreprocessorParser.macros)
+			) {}
+
 			child =
 				this.isChildNode(parent, allow) ||
 				this.isProperty(parent) ||
