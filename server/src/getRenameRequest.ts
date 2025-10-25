@@ -27,7 +27,13 @@ import { Node } from './context/node';
 import { DtcChildNode, NodeName } from './ast/dtc/node';
 import { Label, LabelAssign } from './ast/dtc/label';
 import { LabelRef } from './ast/dtc/labelRef';
-import { fileURLToPath, nodeFinder, pathToFileURL, toRange } from './helpers';
+import {
+	fileURLToPath,
+	isVirtualUri,
+	nodeFinder,
+	pathToFileURL,
+	toRange,
+} from './helpers';
 import { DtcProperty, PropertyName } from './ast/dtc/property';
 import { Property } from './context/property';
 import { DeleteProperty } from './ast/dtc/deleteProperty';
@@ -314,6 +320,10 @@ export async function getPrepareRenameRequest(
 		)
 	) {
 		throw new Error('Path is locked by user setting "lockRenameEdits"');
+	}
+
+	if (locationResult.some((r) => isVirtualUri(r.uri))) {
+		throw new Error('Item was generated using a MACRO.');
 	}
 
 	return { defaultBehavior: !!locationResult.length };
