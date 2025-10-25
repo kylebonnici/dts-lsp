@@ -21,7 +21,12 @@ import { Node } from './context/node';
 import { DtcChildNode, DtcRootNode, NodeName } from './ast/dtc/node';
 import { Label } from './ast/dtc/label';
 import { LabelRef } from './ast/dtc/labelRef';
-import { nodeFinder, pathToFileURL, toRange } from './helpers';
+import {
+	convertVirtualUriToDocumentUri,
+	nodeFinder,
+	pathToFileURL,
+	toRange,
+} from './helpers';
 import { DtcProperty, PropertyName } from './ast/dtc/property';
 import { Property } from './context/property';
 import { DeleteProperty } from './ast/dtc/deleteProperty';
@@ -48,16 +53,23 @@ function getPropertyReferences(
 	};
 
 	const gentItem = (property: Property) => {
+		const deletedBy = property.parent.deletedProperties.find(
+			(p) => p.property === property,
+		)?.by;
 		return [
 			property.ast,
 			...property.allReplaced.map((p) => p.ast),
-			...[
-				property.parent.deletedProperties.find(
-					(p) => p.property === property,
-				)?.by ?? [],
-			],
+			...(deletedBy ? [deletedBy] : []),
 		]
 			.map((dtc) => {
+				const virtialDoc = convertVirtualUriToDocumentUri(dtc.uri);
+				if (virtialDoc) {
+					return Location.create(
+						pathToFileURL(virtialDoc.docUri),
+						virtialDoc.range,
+					);
+				}
+
 				if (dtc instanceof DtcProperty) {
 					return Location.create(
 						pathToFileURL(dtc.uri),
@@ -135,6 +147,15 @@ function getNodeReferences(result: SearchableResult | undefined): Location[] {
 			...deleteNodes,
 		]
 			.map((dtc) => {
+				const virtialDoc =
+					dtc && convertVirtualUriToDocumentUri(dtc?.uri);
+				if (virtialDoc) {
+					return Location.create(
+						pathToFileURL(virtialDoc.docUri),
+						virtialDoc.range,
+					);
+				}
+
 				if (dtc instanceof DtcRootNode) {
 					return Location.create(
 						pathToFileURL(dtc.uri),
