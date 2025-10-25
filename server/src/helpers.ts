@@ -432,7 +432,7 @@ export const genContextDiagnostic = (
 		codeActionTitle,
 	};
 
-	// convertVirtualIssue(issue);
+	convertVirtualIssue(issue);
 
 	let diagnostic: Diagnostic;
 
@@ -511,7 +511,8 @@ export const genStandardTypeDiagnostic = (
 		edit,
 		codeActionTitle,
 	};
-	// convertVirtualIssue(issue);
+
+	convertVirtualIssue(issue);
 
 	let diagnostic: Diagnostic;
 
