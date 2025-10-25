@@ -40,7 +40,10 @@ import {
 import { ASTBase } from './ast/base';
 import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
 import { Operator, OperatorType } from './ast/cPreprocessors/operator';
-import { FunctionDefinition } from './ast/cPreprocessors/functionDefinition';
+import {
+	FunctionDefinition,
+	Variadic,
+} from './ast/cPreprocessors/functionDefinition';
 import { CMacroCall, CMacroCallParam } from './ast/cPreprocessors/functionCall';
 import { ComplexExpression, Expression } from './ast/cPreprocessors/expression';
 import { NumberValue } from './ast/dtc/values/number';
@@ -536,26 +539,30 @@ export abstract class BaseParser {
 							identifier,
 						),
 					);
-				} else if (params.length > macro.identifier.params.length) {
-					this._issues.push(
-						genSyntaxDiagnostic(
-							SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS,
-							identifier.firstToken,
-							identifier.lastToken,
-							identifier,
-							{ linkedTo: [macro] },
-						),
-					);
-				} else if (params.length < macro.identifier.params.length) {
-					this._issues.push(
-						genSyntaxDiagnostic(
-							SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS,
-							identifier.firstToken,
-							identifier.lastToken,
-							identifier,
-							{ linkedTo: [macro] },
-						),
-					);
+				} else if (
+					!(macro.identifier.params.at(-1) instanceof Variadic)
+				) {
+					if (params.length > macro.identifier.params.length) {
+						this._issues.push(
+							genSyntaxDiagnostic(
+								SyntaxIssue.MACRO_EXPECTS_LESS_PARAMS,
+								identifier.firstToken,
+								identifier.lastToken,
+								identifier,
+								{ linkedTo: [macro] },
+							),
+						);
+					} else if (params.length < macro.identifier.params.length) {
+						this._issues.push(
+							genSyntaxDiagnostic(
+								SyntaxIssue.MACRO_EXPECTS_MORE_PARAMS,
+								identifier.firstToken,
+								identifier.lastToken,
+								identifier,
+								{ linkedTo: [macro] },
+							),
+						);
+					}
 				}
 			}
 		}

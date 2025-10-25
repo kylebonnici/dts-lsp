@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.6.4] - Unreleased
+
+### Fixed
+
+- Fixed disgnostic issue `Macro expects less arguments` when calling a variadic macro.
+
 ## [0.6.3] - 2025-10-24
 
 ### Fixed
