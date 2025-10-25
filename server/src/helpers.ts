@@ -263,6 +263,55 @@ export const getDeepestAstNodeBefore = (
 	return deepestAstNode === ast ? undefined : deepestAstNode;
 };
 
+export const isVirtualUri = (uri: string) => uri.startsWith('virtual://');
+
+export const convertVirtualUriToDocumentUri = (uri: string) => {
+	if (!isVirtualUri(uri)) return;
+
+	const [docUri, rangeRaw] = uri.replace('virtual://', '').split('#');
+	const [startRaw, endRaw] = rangeRaw.split('-');
+	const [startLine, startCol] = startRaw.split(':');
+	const [endLine, endCol] = endRaw.split(':');
+	return {
+		docUri,
+		startLine: Number.parseInt(startLine),
+		startCol: Number.parseInt(startCol),
+		endLine: Number.parseInt(endLine),
+		endCol: Number.parseInt(endCol),
+	};
+};
+
+const convertVirtualIssue = <T extends IssueTypes>(issue: Issue<T>) => {
+	const virtialDoc = convertVirtualUriToDocumentUri(issue.uri);
+	if (!virtialDoc) return;
+
+	issue.range = Range.create(
+		Position.create(virtialDoc.startLine, virtialDoc.startCol),
+		Position.create(virtialDoc.endLine, virtialDoc.endCol),
+	);
+	issue.uri = virtialDoc?.docUri;
+	issue.virtual = true;
+	issue.linkedTo = issue.linkedTo.map(({ range, uri }) => {
+		const linkedIssueVirtialDoc = convertVirtualUriToDocumentUri(uri);
+		return {
+			range: linkedIssueVirtialDoc
+				? Range.create(
+						Position.create(
+							linkedIssueVirtialDoc.startLine,
+							linkedIssueVirtialDoc.startCol,
+						),
+						Position.create(
+							linkedIssueVirtialDoc.endLine,
+							linkedIssueVirtialDoc.endCol,
+						),
+					)
+				: range,
+			uri: linkedIssueVirtialDoc?.docUri ?? uri,
+			templateStrings: [],
+		};
+	});
+};
+
 export const genSyntaxDiagnostic = (
 	issues: SyntaxIssue | SyntaxIssue[],
 	start: Token,
