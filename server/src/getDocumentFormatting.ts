@@ -1105,27 +1105,13 @@ const formatComplexExpression = (
 	const result: FileDiagnostic[] = [];
 
 	if (value.openBracket && value.openBracket.nextToken) {
-		if (
-			value.openBracket.pos.line === value.openBracket.nextToken.pos.line
-		) {
-			result.push(
-				...fixedNumberOfSpaceBetweenTokensAndNext(
-					value.openBracket,
-					documentText,
-					0,
-				),
-			);
-		} else {
-			result.push(
-				...ensureOnNewLineAndMax1EmptyLineToPrev(
-					value.openBracket,
-					level,
-					settings.singleIndent,
-					documentText,
-					widthToPrefix(settings, width),
-				),
-			);
-		}
+		result.push(
+			...fixedNumberOfSpaceBetweenTokensAndNext(
+				value.openBracket,
+				documentText,
+				0,
+			),
+		);
 	}
 
 	result.push(

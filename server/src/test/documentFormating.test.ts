@@ -1202,6 +1202,40 @@ describe('Document formating', () => {
 			);
 		});
 
+		test('Complex Expression on multi line', async () => {
+			const documentText = '/ {\n\tprop1 = <(10 +\n20)>;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual('/ {\n\tprop1 = <(10 +\n\t\t\t 20)>;\n};');
+		});
+
+		test('Complex Expression first expression and element on new line', async () => {
+			const documentText = '/ {\n\tprop1 = <(\n10 + 20)>;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual('/ {\n\tprop1 = <(10 + 20)>;\n};');
+		});
+
+		test('Complex Expression second expression and firt element on new line', async () => {
+			const documentText = '/ {\n\tprop1 = <(10 + 20) (\n10 + 20)>;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tprop1 = <(10 + 20) (10 + 20)>;\n};',
+			);
+		});
+
+		test('Complex Expression on multi line', async () => {
+			const documentText = '/ {\n\tprop1 = <(10 +\n20)>;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual('/ {\n\tprop1 = <(10 +\n\t\t\t 20)>;\n};');
+		});
+
+		test('Complex Nested Expression on multi line', async () => {
+			const documentText = '/ {\n\tprop1 = <(5 + (10 +\n20))>;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tprop1 = <(5 + (10 +\n\t\t\t 20))>;\n};',
+			);
+		});
+
 		test('Complex Arg allow on new line(', async () => {
 			const documentText = '/ {\n\tprop1 = <ADD(10,\n\n(10 + 20))>;\n};';
 			const newText = await getNewText(documentText);
