@@ -702,6 +702,12 @@ describe('Document formating', () => {
 			expect(newText).toEqual('/* foo\n * bar\n */');
 		});
 
+		test('Traling spaces', async () => {
+			const documentText = '&node1 {};\n   \n&node2 {};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual('&node1 {};\n\n&node2 {};');
+		});
+
 		test('multiple new lines on top of document', async () => {
 			const documentText = '\n\n/* foo */';
 			const newText = await getNewText(documentText);
@@ -1127,13 +1133,13 @@ describe('Document formating', () => {
 		test('CMacroCall assign param spacing from (', async () => {
 			const documentText = '/ {\n\tprop1 = ADD(   10, 20);\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = ADD(10, 20);\n};');
+			expect(newText).toEqual('/ {\n\tprop1 = ADD(   10, 20);\n};');
 		});
 
 		test('CMacroCall assign in Array param spacing from (', async () => {
 			const documentText = '/ {\n\tprop1 = <ADD(    10, 20)>;\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <ADD(10, 20)>;\n};');
+			expect(newText).toEqual('/ {\n\tprop1 = <ADD(    10, 20)>;\n};');
 		});
 
 		test('CMacroCall assign param spacing from )', async () => {
@@ -1151,13 +1157,13 @@ describe('Document formating', () => {
 		test('CMacroCall assign param spacing from ,', async () => {
 			const documentText = '/ {\n\tprop1 = ADD(10   ,     20);\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = ADD(10, 20);\n};');
+			expect(newText).toEqual('/ {\n\tprop1 = ADD(10   ,     20);\n};');
 		});
 
 		test('CMacroCall assign in Array param spacing from ,', async () => {
 			const documentText = '/ {\n\tprop1 = <ADD(10   ,     20)>;\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <ADD(10, 20)>;\n};');
+			expect(newText).toEqual('/ {\n\tprop1 = <ADD(10   ,     20)>;\n};');
 		});
 
 		test('CMacroCall assign param macro before ,', async () => {
@@ -1165,7 +1171,7 @@ describe('Document formating', () => {
 				'/ {\n\tprop1 = ADD(10 /* foo */    , 20);\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\tprop1 = ADD(10, /* foo */ 20);\n};',
+				'/ {\n\tprop1 = ADD(10 /* foo */    , 20);\n};',
 			);
 		});
 
@@ -1192,7 +1198,15 @@ describe('Document formating', () => {
 				'/ {\n\tprop1 = <(10    +     (10    +     (50 - ADD(  5 ,   50)) * 5  ))>;\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\tprop1 = <(10 + (10 + (50 - ADD(5, 50)) * 5))>;\n};',
+				'/ {\n\tprop1 = <(10 + (10 + (50 - ADD(  5 ,   50)) * 5))>;\n};',
+			);
+		});
+
+		test('Complex Arg allow on new line(', async () => {
+			const documentText = '/ {\n\tprop1 = <ADD(10,\n\n(10 + 20))>;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tprop1 = <ADD(10,\n\n(10 + 20))>;\n};',
 			);
 		});
 

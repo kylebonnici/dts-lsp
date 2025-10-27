@@ -1082,21 +1082,6 @@ const formatCMacroCall = (
 		),
 	);
 
-	value.params.forEach((param, i) => {
-		if (param?.firstToken.prevToken) {
-			result.push(
-				...fixedNumberOfSpaceBetweenTokensAndNext(
-					param?.firstToken.prevToken,
-					documentText,
-					i ? 1 : 0,
-				),
-			);
-		}
-		if (param?.splitToken) {
-			result.push(...moveNextTo(param.lastToken, param.splitToken));
-		}
-	});
-
 	if (value.lastToken.value === ')' && value.lastToken.prevToken) {
 		result.push(
 			...fixedNumberOfSpaceBetweenTokensAndNext(

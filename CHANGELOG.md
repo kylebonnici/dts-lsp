@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed disgnostic issue `Macro expects less arguments` when calling a variadic macro.
+- Fixed formatting issue where arguments of a MACRO call are forced on one line.
+  Formater will no longer format arguments inside a macro call.
 
 ## [0.6.3] - 2025-10-24
 
