@@ -234,6 +234,17 @@ export class Parser extends BaseParser {
 		if (result && typeof evalResult === 'string') {
 			evalResult = sanitizeCExpression(evalResult);
 			const uri = `virtual://${result.uri}#${result.firstToken.pos.line}:${result.firstToken.pos.col}-${result.lastToken.pos.line}:${result.firstToken.pos.col}`;
+
+			// avoid recursive calls
+			if (
+				(result instanceof CIdentifier &&
+					evalResult.includes(result.name)) ||
+				(result instanceof CMacroCall &&
+					evalResult.includes(result.functionName.name))
+			) {
+				return true;
+			}
+
 			const lexer = new Lexer(evalResult, uri);
 			this.tokens.splice(
 				startIndex,
