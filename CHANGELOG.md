@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.6.4] - Unreleased
 
+### Changed
+
+- In a multi-workspace `${workspaceFolder}` now resolves to
+    - The absolute path of the first workspace in which the dtsFile is in
+    - If none are found it falls back to path of the first workspace.
+
 ### Fixed
 
 - Fixed disgnostic issue `Macro expects less arguments` when calling a variadic macro.
