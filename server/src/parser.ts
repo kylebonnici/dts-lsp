@@ -36,6 +36,7 @@ import {
 	validateToken,
 	validateValue,
 	validToken,
+	VIRTUAL_DOC,
 } from './helpers';
 import {
 	DtcBaseNode,
@@ -235,7 +236,7 @@ export class Parser extends BaseParser {
 		let evalResult = result?.resolve(macros);
 		if (result && typeof evalResult === 'string') {
 			evalResult = sanitizeCExpression(evalResult);
-			const uri = `virtual://${result.uri}#${result.firstToken.pos.line}:${result.firstToken.pos.col}-${result.lastToken.pos.line}:${result.firstToken.pos.col}`;
+			const uri = `${result.uri}${VIRTUAL_DOC}${result.firstToken.pos.line}:${result.firstToken.pos.col}-${result.lastToken.pos.line}:${result.firstToken.pos.col}`;
 
 			// avoid recursive calls
 			if (

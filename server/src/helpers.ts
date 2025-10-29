@@ -263,12 +263,13 @@ export const getDeepestAstNodeBefore = (
 	return deepestAstNode === ast ? undefined : deepestAstNode;
 };
 
-export const isVirtualUri = (uri: string) => uri.startsWith('virtual://');
+export const VIRTUAL_DOC = '#virtual#';
+export const isVirtualUri = (uri: string) => uri.includes(VIRTUAL_DOC);
 
 export const convertVirtualUriToDocumentUri = (uri: string) => {
 	if (!isVirtualUri(uri)) return;
 
-	const [docUri, rangeRaw] = uri.replace('virtual://', '').split('#');
+	const [docUri, rangeRaw] = uri.split(VIRTUAL_DOC);
 	const [startRaw, endRaw] = rangeRaw.split('-');
 	const [startLine, startCol] = startRaw.split(':');
 	const [endLine, endCol] = endRaw.split(':');
@@ -966,9 +967,6 @@ export function evalExp(str: string) {
 }
 
 export const pathToFileURL = (path: string) => {
-	if (isVirtualUri(path)) {
-		return path;
-	}
 	return url.pathToFileURL(path).toString();
 };
 
