@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fixed issue where formatter would not format fist value after `(` properly
   when the value is not on the same line as `(`
 - Fixed exception for 3rd party extention API `'devicetree/newActiveContext' failed with message: Cannot read properties of null (reading 'settings')`
+- Fixed an issue with parser when processing files that use macros to generate code.
 
 ## [0.6.3] - 2025-10-24
 
