@@ -273,7 +273,7 @@ export abstract class BaseParser {
 	protected processCIdentifier(
 		macros: Map<string, MacroRegistryItem>,
 		skippingIssueChecking: boolean,
-		existIfUndefined = false,
+		exitIfUndefined = false,
 	): CIdentifier | undefined {
 		this.enqueueToStack();
 
@@ -300,7 +300,7 @@ export abstract class BaseParser {
 			createTokenIndex(valid[0], valid.at(-1)),
 		);
 
-		if (existIfUndefined && !macros.has(identifier.name)) {
+		if (exitIfUndefined && !macros.has(identifier.name)) {
 			this.popStack();
 			return;
 		}
