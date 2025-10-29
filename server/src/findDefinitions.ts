@@ -18,16 +18,16 @@ import { Location, TextDocumentPositionParams } from 'vscode-languageserver';
 import { ContextAware } from './runtimeEvaluator';
 import { SearchableResult } from './types';
 import { Node } from './context/node';
-import {
-	DtcChildNode,
-	DtcRefNode,
-	DtcRootNode,
-	NodeName,
-} from './ast/dtc/node';
+import { NodeName } from './ast/dtc/node';
 import { Label } from './ast/dtc/label';
 import { LabelRef } from './ast/dtc/labelRef';
-import { nodeFinder, pathToFileURL, toRange } from './helpers';
-import { DtcProperty, PropertyName } from './ast/dtc/property';
+import {
+	convertVirtualUriToDocumentUri,
+	nodeFinder,
+	pathToFileURL,
+	toRange,
+} from './helpers';
+import { PropertyName } from './ast/dtc/property';
 import { Property } from './context/property';
 import { DeleteProperty } from './ast/dtc/deleteProperty';
 import { isDeleteChild } from './ast/helpers';
@@ -38,15 +38,15 @@ import { CMacroCallParam } from './ast/cPreprocessors/functionCall';
 export const generateDefinitionsFromNode = (node: Node) => {
 	return [...node.definitions, ...node.referencedBy]
 		.map((dtc) => {
-			if (dtc instanceof DtcRootNode) {
-				return Location.create(pathToFileURL(dtc.uri), toRange(dtc));
+			const virtialDoc = convertVirtualUriToDocumentUri(dtc.uri);
+			if (virtialDoc) {
+				return Location.create(
+					pathToFileURL(virtialDoc.docUri),
+					virtialDoc.range,
+				);
 			}
-			if (dtc instanceof DtcChildNode) {
-				return Location.create(pathToFileURL(dtc.uri), toRange(dtc));
-			}
-			if (dtc instanceof DtcRefNode) {
-				return Location.create(pathToFileURL(dtc.uri), toRange(dtc));
-			}
+
+			return Location.create(pathToFileURL(dtc.uri), toRange(dtc));
 		})
 		.filter((r) => r) as Location[];
 };
@@ -62,12 +62,17 @@ const getTopProperty = (property: Property): Property => {
 export const generatePropertyDefinition = (property: Property): Location[] => {
 	return [property.ast, ...property.allReplaced.map((p) => p.ast)]
 		.map((dtc) => {
-			if (dtc instanceof DtcProperty) {
+			const virtialDoc = convertVirtualUriToDocumentUri(dtc.uri);
+			if (virtialDoc) {
 				return Location.create(
-					pathToFileURL(dtc.uri),
-					toRange(dtc.propertyName ?? dtc),
+					pathToFileURL(virtialDoc.docUri),
+					virtialDoc.range,
 				);
 			}
+			return Location.create(
+				pathToFileURL(dtc.uri),
+				toRange(dtc.propertyName ?? dtc),
+			);
 		})
 		.filter((r) => r) as Location[];
 };

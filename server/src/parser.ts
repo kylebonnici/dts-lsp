@@ -31,10 +31,12 @@ import {
 	linkAstToComments,
 	normalizePath,
 	sameLine,
+	sanitizeCExpression,
 	startsWithLetter,
 	validateToken,
 	validateValue,
 	validToken,
+	VIRTUAL_DOC,
 } from './helpers';
 import {
 	DtcBaseNode,
@@ -66,6 +68,9 @@ import { CPreprocessorParser } from './cPreprocessorParser';
 import { Include } from './ast/cPreprocessors/include';
 import { DtsMemreserveNode } from './ast/dtc/memreserveNode';
 import { DtsBitsNode } from './ast/dtc/bitsNode';
+import { Lexer } from './lexer';
+import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
+import { CMacroCall } from './ast/cPreprocessors/functionCall';
 
 type AllowNodeRef = 'Ref' | 'Name';
 
@@ -149,6 +154,9 @@ export class Parser extends BaseParser {
 					this.isPlugin() ||
 					this.isRootNodeDefinition(this.rootDocument) ||
 					this.isDeleteNode(this.rootDocument, 'Ref') ||
+					this.injectPreProcessorResults(
+						this.cPreprocessorParser.macros,
+					) ||
 					// Valid use case
 					this.isChildNode(this.rootDocument, 'Ref') ||
 					// not valid syntax but we leave this for the next layer to process
@@ -215,6 +223,39 @@ export class Parser extends BaseParser {
 		if (this.positionStack.length !== 1) {
 			/* istanbul ignore next */
 			throw new Error('Incorrect final stack size');
+		}
+	}
+
+	protected injectPreProcessorResults(
+		macros: Map<string, MacroRegistryItem>,
+	) {
+		const startIndex = this.peekIndex();
+		let result =
+			this.isFunctionCall(macros) ||
+			this.processCIdentifier(macros, true, true);
+		let evalResult = result?.resolve(macros);
+		if (result && typeof evalResult === 'string') {
+			evalResult = sanitizeCExpression(evalResult);
+			const uri = `${result.uri}${VIRTUAL_DOC}${result.firstToken.pos.line}:${result.firstToken.pos.col}-${result.lastToken.pos.line}:${result.firstToken.pos.col}`;
+
+			// avoid recursive calls
+			if (
+				(result instanceof CIdentifier &&
+					evalResult.includes(result.name)) ||
+				(result instanceof CMacroCall &&
+					evalResult.includes(result.functionName.name))
+			) {
+				return true;
+			}
+
+			const lexer = new Lexer(evalResult, uri);
+			this.tokens.splice(
+				startIndex,
+				this.peekIndex() - startIndex,
+				...lexer.tokens,
+			);
+			this.positionStack[this.positionStack.length - 1] = startIndex;
+			return true;
 		}
 	}
 
@@ -328,7 +369,12 @@ export class Parser extends BaseParser {
 
 		let found = false;
 		let child = false;
+
 		do {
+			while (
+				this.injectPreProcessorResults(this.cPreprocessorParser.macros)
+			) {}
+
 			child =
 				this.isChildNode(parent, allow) ||
 				this.isProperty(parent) ||

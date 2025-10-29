@@ -18,6 +18,7 @@ import { existsSync, readFileSync } from 'fs';
 import { basename } from 'path';
 import {
 	Diagnostic,
+	DiagnosticSeverity,
 	DocumentLink,
 	FormattingOptions,
 	Position,
@@ -974,14 +975,26 @@ export class ContextAware {
 			await this.getSyntaxIssues(result);
 
 			const contextIssues = (await this.getContextIssues()) ?? [];
-			contextIssues.forEach((issue) =>
-				ContextAware.#add(issue.diagnostic(), issue.raw.uri, result),
-			);
+			contextIssues.forEach((issue) => {
+				if (
+					issue.raw.severity === DiagnosticSeverity.Hint &&
+					issue.raw.virtual
+				) {
+					return;
+				}
+				ContextAware.#add(issue.diagnostic(), issue.raw.uri, result);
+			});
 
 			const runtime = await this.getRuntime();
-			runtime?.typesIssues.forEach((issue) =>
-				ContextAware.#add(issue.diagnostic(), issue.raw.uri, result),
-			);
+			runtime?.typesIssues.forEach((issue) => {
+				if (
+					issue.raw.severity === DiagnosticSeverity.Hint &&
+					issue.raw.virtual
+				) {
+					return;
+				}
+				ContextAware.#add(issue.diagnostic(), issue.raw.uri, result);
+			});
 			return result;
 		} catch (e) {
 			console.error(e);

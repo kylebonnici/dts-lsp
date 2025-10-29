@@ -25,13 +25,26 @@ import { PropertyName } from './ast/dtc/property';
 import { Property } from './context/property';
 import { DeleteProperty } from './ast/dtc/deleteProperty';
 import { isDeleteChild } from './ast/helpers';
-import { nodeFinder, pathToFileURL, toRange } from './helpers';
+import {
+	convertVirtualUriToDocumentUri,
+	nodeFinder,
+	pathToFileURL,
+	toRange,
+} from './helpers';
 import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
 import { StringValue } from './ast/dtc/values/string';
 import { CMacroCallParam } from './ast/cPreprocessors/functionCall';
 
 export const generateNodeDeclaration = (node: Node) => {
 	const declaration = node.definitions.at(0);
+	const virtialDoc =
+		declaration && convertVirtualUriToDocumentUri(declaration.uri);
+	if (virtialDoc) {
+		return Location.create(
+			pathToFileURL(virtialDoc.docUri),
+			virtialDoc.range,
+		);
+	}
 	return declaration
 		? Location.create(pathToFileURL(declaration.uri), toRange(declaration))
 		: undefined;
@@ -49,6 +62,13 @@ export const generatePropertyDeclaration = (
 	property: Property,
 ): Location | undefined => {
 	const fistDefinition = getBottomProperty(property);
+	const virtialDoc = convertVirtualUriToDocumentUri(fistDefinition.ast.uri);
+	if (virtialDoc) {
+		return Location.create(
+			pathToFileURL(virtialDoc.docUri),
+			virtialDoc.range,
+		);
+	}
 	return fistDefinition
 		? Location.create(
 				pathToFileURL(fistDefinition.ast.uri),
@@ -69,6 +89,13 @@ function getPropertyDeclaration(
 	}
 
 	const gentItem = (property: Property) => {
+		const virtialDoc = convertVirtualUriToDocumentUri(property.ast.uri);
+		if (virtialDoc) {
+			return Location.create(
+				pathToFileURL(virtialDoc.docUri),
+				virtialDoc.range,
+			);
+		}
 		return Location.create(
 			pathToFileURL(property.ast.uri),
 			toRange(property.ast.propertyName ?? property.ast),

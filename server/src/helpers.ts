@@ -263,6 +263,45 @@ export const getDeepestAstNodeBefore = (
 	return deepestAstNode === ast ? undefined : deepestAstNode;
 };
 
+export const VIRTUAL_DOC = '#virtual#';
+export const isVirtualUri = (uri: string) => uri.includes(VIRTUAL_DOC);
+
+export const convertVirtualUriToDocumentUri = (uri: string) => {
+	if (!isVirtualUri(uri)) return;
+
+	const [docUri, rangeRaw] = uri.split(VIRTUAL_DOC);
+	const [startRaw, endRaw] = rangeRaw.split('-');
+	const [startLine, startCol] = startRaw.split(':');
+	const [endLine, endCol] = endRaw.split(':');
+	return {
+		docUri,
+		range: Range.create(
+			Position.create(
+				Number.parseInt(startLine),
+				Number.parseInt(startCol),
+			),
+			Position.create(Number.parseInt(endLine), Number.parseInt(endCol)),
+		),
+	};
+};
+
+const convertVirtualIssue = <T extends IssueTypes>(issue: Issue<T>) => {
+	const virtialDoc = convertVirtualUriToDocumentUri(issue.uri);
+	if (!virtialDoc) return;
+
+	issue.range = virtialDoc.range;
+	issue.uri = virtialDoc?.docUri;
+	issue.virtual = true;
+	issue.linkedTo = issue.linkedTo.map(({ range, uri }) => {
+		const linkedIssueVirtialDoc = convertVirtualUriToDocumentUri(uri);
+		return {
+			range: linkedIssueVirtialDoc?.range ?? range,
+			uri: linkedIssueVirtialDoc?.docUri ?? uri,
+			templateStrings: [],
+		};
+	});
+};
+
 export const genSyntaxDiagnostic = (
 	issues: SyntaxIssue | SyntaxIssue[],
 	start: Token,
@@ -292,15 +331,9 @@ export const genSyntaxDiagnostic = (
 		templateStrings: [],
 	},
 ): FileDiagnostic => {
-	const range = toRangeWithTokenIndex(
-		start,
-		end,
-		inclusiveStart,
-		inclusiveEnd,
-	);
 	const issue: Issue<SyntaxIssue> = {
 		issues: Array.isArray(issues) ? issues : [issues],
-		range,
+		range: toRangeWithTokenIndex(start, end, inclusiveStart, inclusiveEnd),
 		uri: start.uri,
 		severity,
 		linkedTo: linkedTo.map(({ range, uri }) => ({
@@ -314,12 +347,14 @@ export const genSyntaxDiagnostic = (
 		codeActionTitle,
 	};
 
+	convertVirtualIssue(issue);
+
 	let diagnostic: Diagnostic;
 
 	const action = () => {
 		diagnostic ??= {
 			severity: issue.severity,
-			range,
+			range: issue.range,
 			message: issue.issues
 				? issue.issues.map(syntaxIssueToMessage).join(' or ')
 				: '',
@@ -340,6 +375,7 @@ export const genSyntaxDiagnostic = (
 				items: issue.issues,
 				edit: issue.edit,
 				codeActionTitle: issue.codeActionTitle,
+				virtual: !!issue.virtual,
 			} satisfies CodeActionDiagnosticData,
 		};
 		return diagnostic;
@@ -381,10 +417,9 @@ export const genContextDiagnostic = (
 		linkedToTemplateStrings: [],
 	},
 ): FileDiagnostic => {
-	const range = toRangeWithTokenIndex(start, end);
 	const issue: Issue<ContextIssues> = {
 		issues: Array.isArray(issues) ? issues : [issues],
-		range,
+		range: toRangeWithTokenIndex(start, end),
 		uri: start.uri,
 		severity,
 		linkedTo: linkedTo.map(({ range, uri }, i) => ({
@@ -398,12 +433,14 @@ export const genContextDiagnostic = (
 		codeActionTitle,
 	};
 
+	convertVirtualIssue(issue);
+
 	let diagnostic: Diagnostic;
 
 	const action = () => {
 		diagnostic ??= {
 			severity: issue.severity,
-			range,
+			range: issue.range,
 			message: contextIssuesToMessage(issue),
 			source: 'devicetree',
 			tags: issue.tags,
@@ -460,10 +497,9 @@ export const genStandardTypeDiagnostic = (
 		templateStrings: [],
 	},
 ): FileDiagnostic => {
-	const range = toRangeWithTokenIndex(start, end);
 	const issue: Issue<StandardTypeIssue> = {
 		issues: Array.isArray(issues) ? issues : [issues],
-		range,
+		range: toRangeWithTokenIndex(start, end),
 		severity,
 		uri: start.uri,
 		linkedTo: linkedTo.map(({ range, uri }) => ({
@@ -477,12 +513,14 @@ export const genStandardTypeDiagnostic = (
 		codeActionTitle,
 	};
 
+	convertVirtualIssue(issue);
+
 	let diagnostic: Diagnostic;
 
 	const action = () => {
 		diagnostic ??= {
 			severity: issue.severity,
-			range,
+			range: issue.range,
 			message: standardTypeIssueIssuesToMessage(issue),
 			relatedInformation: [
 				...issue.linkedTo.map((element) => ({
@@ -512,6 +550,7 @@ export const genStandardTypeDiagnostic = (
 				edit: issue.edit,
 				codeActionTitle: issue.codeActionTitle,
 				items: issue.issues,
+				virtual: !!issue.virtual,
 			} satisfies CodeActionDiagnosticData,
 		};
 		return diagnostic;
@@ -594,12 +633,11 @@ export function genFormattingDiagnostic(
 	},
 	end: Position = start,
 ): FileDiagnosticWithEdits | FileDiagnosticWithEdit {
-	const range = Range.create(start, end);
 	const issue: IssueWithEdits<FormattingIssues> = {
 		issues: Array.isArray(issues) ? issues : [issues],
-		range,
+		range: Range.create(start, end),
 		severity,
-		uri,
+		uri: uri,
 		linkedTo: linkedTo.map(({ range, uri }) => ({
 			range,
 			uri,
@@ -616,7 +654,7 @@ export function genFormattingDiagnostic(
 	const action = () => {
 		diagnostic ??= {
 			severity: issue.severity,
-			range,
+			range: issue.range,
 			message: formattingIssuesToMessage(issue),
 			relatedInformation: [
 				...issue.linkedTo.map((element) => ({
@@ -636,6 +674,7 @@ export function genFormattingDiagnostic(
 				items: issue.issues,
 				edit: issue.edit,
 				codeActionTitle: issue.codeActionTitle,
+				virtual: !!issue.virtual,
 			} satisfies CodeActionDiagnosticData,
 		};
 		return diagnostic;
@@ -854,6 +893,7 @@ export const parseMacros = (line: string) => {
 	}
 };
 
+let counter = 0; // impliments __counter__
 export const expandMacros = (
 	code: string,
 	macrosResolvers: Map<string, MacroRegistryItem>,
@@ -889,7 +929,10 @@ export const expandMacros = (
 				) {
 					const argList = args
 						.split(',')
-						.map((a: string) => a.trim());
+						.map((a: string) => a.trim())
+						.map((a: string) =>
+							a === '__COUNTER__' ? (counter++).toString() : a,
+						);
 					return (
 						macrosResolvers.get(func)?.resolver as (
 							...args: string[]

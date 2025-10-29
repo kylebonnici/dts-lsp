@@ -4006,4 +4006,68 @@ describe('Parser', () => {
 			});
 		});
 	});
+
+	describe('Macro Calls', () => {
+		test('inject node', async () => {
+			mockReadFileSync(`#define TEST_I2C_DEVICE_WITH_ADDR(label, node, addr, ...) \
+	label: node@addr { \
+		reg = <addr>; \
+		__VA_ARGS__ \
+	};
+
+#define TEST_I2C_DEVICE(sensor, ...) \
+	TEST_I2C_DEVICE_WITH_ADDR(test_i2c_##sensor, sensor, __COUNTER__, __VA_ARGS__)
+
+TEST_I2C_DEVICE(apds9253,
+	compatible = "avago,apds9253";
+	int-gpios = <&test_gpio 0 0>;
+	gain = <1>;
+	rate = <2>;
+	resolution = <3>;
+)
+`);
+			const parser = new Parser('/folder/dts.dts', [], new Map());
+			await parser.stable;
+			expect(parser.issues.length).toEqual(0);
+		});
+	});
+
+	test('wrong args count', async () => {
+		mockReadFileSync(`#define TEST_I2C_DEVICE_WITH_ADDR(label, node, addr, ...) \
+	label: node@addr { \
+		reg = <addr>; \
+		__VA_ARGS__ \
+	};
+
+#define TEST_I2C_DEVICE(sensor, ...) \
+	TEST_I2C_DEVICE_WITH_ADDR(test_i2c_##sensor, sensor, __COUNTER__, __VA_ARGS__)
+
+TEST_I2C_DEVICE;
+`);
+		const parser = new Parser('/folder/dts.dts', [], new Map());
+		await parser.stable;
+		expect(parser.issues.length).toEqual(1);
+	});
+
+	test('invalid state', async () => {
+		mockReadFileSync(`#define MAKE_HEX(addr) 0x##addr
+
+#define TEST_I2C_DEVICE_WITH_ADDR(label, node, addr, ...) \
+
+	label: node@addr { \
+	reg = <MAKE_HEX(addr)>; \
+	__VA_ARGS__ \
+	}; \
+};
+
+#define TEST_I2C_DEVICE(sensor, ...) \
+	TEST_I2C_DEVICE_WITH_ADDR(test_i2c_##sensor, sensor, __COUNTER__, __VA_ARGS__)
+
+TEST_I2C_DEVICE(adt7420,
+	compatible = "adi,adt7420";
+	int-gpios = <&test_gpio 0 0>;
+)`);
+		const parser = new Parser('/folder/dts.dts', [], new Map());
+		await parser.stable;
+	});
 });
