@@ -217,7 +217,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		vscode.commands.executeCommand(
 			'setContext',
 			'devicetree.context.type',
-			ctx.settings.bindingType,
+			ctx?.settings.bindingType,
 		);
 	});
 

@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   Formater will no longer format arguments inside a macro call.
 - Fixed issue where formatter would not format fist value after `(` properly
   when the value is not on the same line as `(`
+- Fixed exception for 3rd party extention API `'devicetree/newActiveContext' failed with message: Cannot read properties of null (reading 'settings')`
 
 ## [0.6.3] - 2025-10-24
 
