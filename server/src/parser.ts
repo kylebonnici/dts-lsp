@@ -68,6 +68,8 @@ import { Include } from './ast/cPreprocessors/include';
 import { DtsMemreserveNode } from './ast/dtc/memreserveNode';
 import { DtsBitsNode } from './ast/dtc/bitsNode';
 import { Lexer } from './lexer';
+import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
+import { CMacroCall } from './ast/cPreprocessors/functionCall';
 
 type AllowNodeRef = 'Ref' | 'Name';
 
