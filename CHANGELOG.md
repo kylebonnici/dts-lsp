@@ -4,11 +4,11 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.6.4] - Unreleased
+## [0.6.4] - 2025-10-29
 
 ### Changed
 
-- In a multi-workspace `${workspaceFolder}` now resolves to
+- In a multi-workspace `${workspaceFolder}` now resolves to:
     - The absolute path of the first workspace in which the dtsFile is in
     - If none are found it falls back to path of the first workspace.
 
@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fixed disgnostic issue `Macro expects less arguments` when calling a variadic macro.
 - Fixed formatting issue where arguments of a MACRO call are forced on one line.
   Formater will no longer format arguments inside a macro call.
-- Fixed issue where formatter would not format fist value after `(` properly
+- Fixed issue where formatter would not format first value after `(` properly
   when the value is not on the same line as `(`
 - Fixed exception for 3rd party extention API `'devicetree/newActiveContext' failed with message: Cannot read properties of null (reading 'settings')`
 - Fixed an issue with parser when processing files that use macros to generate code.
