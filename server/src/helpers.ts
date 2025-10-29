@@ -16,7 +16,7 @@
 
 import url from 'url';
 import { createHash } from 'crypto';
-import { normalize } from 'path';
+import { isAbsolute, normalize, relative } from 'path';
 import {
 	Diagnostic,
 	DiagnosticSeverity,
@@ -929,6 +929,11 @@ export const pathToFileURL = (path: string) => {
 
 export const fileURLToPath = (fileUrl: string) => {
 	return normalizePath(url.fileURLToPath(fileUrl));
+};
+
+export const isSubPath = (parent: string, child: string): boolean => {
+	const rel = relative(parent, child);
+	return !!rel && !rel.startsWith('..') && !isAbsolute(rel);
 };
 
 export const isPathEqual = (

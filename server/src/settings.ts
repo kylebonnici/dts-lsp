@@ -24,7 +24,7 @@ import {
 	ResolvedSettings,
 	Settings,
 } from './types/index';
-import { fileURLToPath, normalizePath } from './helpers';
+import { fileURLToPath, isSubPath, normalizePath } from './helpers';
 
 const fixToArray = <T>(a: T): T | undefined => {
 	if (!a) return;
@@ -66,13 +66,22 @@ export const fixSettingsTypes = (settings: Settings): Settings => {
 const resolvePathVariable = async (
 	path: string,
 	workspaceFolders: WorkspaceFolder[] = [],
+	boardfile?: string,
 ): Promise<string> => {
+	const boardWorkspace = boardfile
+		? workspaceFolders
+				.map((w) => fileURLToPath(w.uri))
+				.find((workspace) => isSubPath(workspace, boardfile))
+		: undefined;
+
 	const stringToReplace = [
 		...(workspaceFolders.at(0)
 			? [
 					{
 						replace: '${workspaceFolder}',
-						uri: fileURLToPath(workspaceFolders[0].uri),
+						uri:
+							boardWorkspace ??
+							fileURLToPath(workspaceFolders[0].uri),
 					},
 				]
 			: []),
@@ -103,20 +112,22 @@ export const defaultSettings: ResolvedSettings = {
 export const resolveContextSetting = async (
 	context: Context,
 	defaultSettings: PartialBy<ResolvedSettings, 'contexts'>,
-	workspaceFolders?: WorkspaceFolder[],
+	workspaceFolders: WorkspaceFolder[],
 ): Promise<ResolvedContext> => {
 	const cwd =
-		(context.cwd
-			? await resolvePathVariable(context.cwd, workspaceFolders)
-			: undefined) ?? defaultSettings.cwd;
+		(await resolvePathVariable(
+			context.cwd ?? '${workspaceFolder}',
+			workspaceFolders,
+			context.dtsFile,
+		)) ?? defaultSettings.cwd;
 	let includePaths = await Promise.all(
 		(context.includePaths ?? defaultSettings.defaultIncludePaths).map((v) =>
-			resolvePathVariable(v, workspaceFolders),
+			resolvePathVariable(v, workspaceFolders, context.dtsFile),
 		),
 	);
 	let zephyrBindings = await Promise.all(
 		(context.zephyrBindings ?? defaultSettings.defaultZephyrBindings).map(
-			(v) => resolvePathVariable(v, workspaceFolders),
+			(v) => resolvePathVariable(v, workspaceFolders, context.dtsFile),
 		),
 	);
 	const bindingType =
@@ -125,17 +136,17 @@ export const resolveContextSetting = async (
 		(
 			context.deviceOrgTreeBindings ??
 			defaultSettings.defaultDeviceOrgTreeBindings
-		).map((v) => resolvePathVariable(v, workspaceFolders)),
+		).map((v) => resolvePathVariable(v, workspaceFolders, context.dtsFile)),
 	);
 	let deviceOrgBindingsMetaSchema = await Promise.all(
 		(
 			context.deviceOrgBindingsMetaSchema ??
 			defaultSettings.defaultDeviceOrgBindingsMetaSchema
-		).map((v) => resolvePathVariable(v, workspaceFolders)),
+		).map((v) => resolvePathVariable(v, workspaceFolders, context.dtsFile)),
 	);
 	let lockRenameEdits = await Promise.all(
 		(context.lockRenameEdits ?? defaultSettings.defaultLockRenameEdits).map(
-			(v) => resolvePathVariable(v, workspaceFolders),
+			(v) => resolvePathVariable(v, workspaceFolders, context.dtsFile),
 		),
 	);
 
