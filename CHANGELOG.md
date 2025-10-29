@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.6.5] - Unreleased
+
+### Fixed
+
+- Fixed `undefined` in formatting diagnostic messages when no indentation is needed
+
 ## [0.6.4] - 2025-10-29
 
 ### Changed

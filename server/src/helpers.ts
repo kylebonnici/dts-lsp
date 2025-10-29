@@ -1304,7 +1304,7 @@ export const formattingIssuesToMessage = (issue: Issue<FormattingIssues>) => {
 				case FormattingIssues.TRALING_WHITE_SPACE:
 					return `Remove trailing whitespace at the end of the line.`;
 				case FormattingIssues.WRONG_INDENTATION:
-					return `Fix indentation. Expecting ${issue.templateStrings[0]}`;
+					return `Fix indentation. Expecting '${issue.templateStrings[0]}'`;
 				case FormattingIssues.MOVE_NEXT_TO:
 					return `Move token "${issue.templateStrings[0]}" next to expression`;
 				case FormattingIssues.REMOVE_EXPRESSION_BRACKETS:
