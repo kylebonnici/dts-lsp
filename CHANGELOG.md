@@ -8,7 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed `undefined` in formatting diagnostic messages when no indentation is needed
+- Fixed formatting diagnostic message when no indentation is needed.
+- Fixed formatting diagnostic message when spaces need to be removed.
 
 ## [0.6.4] - 2025-10-29
 

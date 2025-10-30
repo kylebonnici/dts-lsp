@@ -737,7 +737,10 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
 			start,
 			{
 				edit,
-				codeActionTitle: 'Insert space(s)',
+				codeActionTitle:
+					delta > expectedSpaces
+						? 'Remove space(s)'
+						: 'Insert space(s)',
 				templateStrings: [expectedSpaces.toString()],
 			},
 			end,
