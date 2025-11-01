@@ -736,6 +736,8 @@ const onChange = async (uri: string) => {
 				const abort = new AbortController();
 				const promise = new Promise<void>((resolve) => {
 					setTimeout(async () => {
+						context.setStaleUri(uri);
+
 						if (abort.signal.aborted) {
 							resolve();
 							return;
