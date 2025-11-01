@@ -32,6 +32,7 @@ import {
 	NotificationType,
 	TextDocumentPositionParams,
 	Disposable,
+	TextEdit,
 } from 'vscode-languageclient/node';
 import { IDeviceTreeAPI as IDeviceTreeAPI } from './types';
 import { getCurrentTextDocumentPositionParams } from './helpers';
@@ -166,6 +167,13 @@ export class API implements IDeviceTreeAPI {
 			'devicetree/serializedContext',
 			id,
 		) as Promise<SerializedNode | undefined>;
+	}
+
+	formatTextEdits(event) {
+		return this.client.sendRequest(
+			'devicetree/formatTextEdits',
+			event,
+		) as Promise<TextEdit>;
 	}
 
 	onActiveContextChange(
