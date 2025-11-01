@@ -222,7 +222,7 @@ export class ASTBase {
 		);
 	}
 
-	protected get serializeUri() {
+	get serializeUri() {
 		return pathToFileURL(this.uri);
 	}
 

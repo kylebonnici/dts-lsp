@@ -37,6 +37,7 @@ import {
 	positionInBetween,
 	positionSameLineAndNotAfter,
 	toRangeWithTokenIndex,
+	toRange,
 } from '../helpers';
 import {
 	ContextIssues,
@@ -1402,6 +1403,10 @@ ${'\t'.repeat(level - 1)}};`;
 			properties: this.properties.map((p) => ({
 				...p.ast.serialize(macros),
 				nodePath: this.pathString,
+				replaces: p.allReplaced.map((r) => ({
+					range: toRange(r.ast),
+					uri: r.ast.serializeUri,
+				})),
 				nexusMapEntry: p.nexusMapsTo.map((nexus) => {
 					return {
 						mappingValuesAst: nexus.mappingValuesAst.map((v) =>
