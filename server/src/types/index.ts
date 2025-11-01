@@ -169,6 +169,7 @@ export type SerializableNexusMapEntry = {
 };
 
 export interface SerializableProperty extends SerializableASTBase {
+	readonly replaces: Omit<SerializableASTBase, 'issues'>[];
 	readonly nexusMapEntry: SerializableNexusMapEntry[];
 	readonly name: SerializablePropertyName;
 	readonly values?: SerializablePropertyValue[] | null;
@@ -177,7 +178,7 @@ export interface SerializableProperty extends SerializableASTBase {
 
 export type SerializableDtcProperty = Omit<
 	SerializableProperty,
-	'nexusMapEntry' | 'nodePath'
+	'nexusMapEntry' | 'nodePath' | 'replaces'
 >;
 
 export type NodeType = 'ROOT' | 'REF' | 'CHILD';
