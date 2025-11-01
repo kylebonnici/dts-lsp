@@ -143,9 +143,10 @@ type FormattingFlags = {
 };
 
 export async function formatText(
-	documentFormattingParams:
+	documentFormattingParams: (
 		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
+		| DocumentRangeFormattingParams
+	) & { ranges?: Range[] },
 	text: string,
 	returnType: 'Both',
 	options?: FormattingFlags,
@@ -153,9 +154,10 @@ export async function formatText(
 	prevIfBlocks?: (IfDefineBlock | IfElIfBlock)[],
 ): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
 export async function formatText(
-	documentFormattingParams:
+	documentFormattingParams: (
 		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
+		| DocumentRangeFormattingParams
+	) & { ranges?: Range[] },
 	text: string,
 	returnType: 'New Text',
 	options?: FormattingFlags,
@@ -163,9 +165,10 @@ export async function formatText(
 	prevIfBlocks?: (IfDefineBlock | IfElIfBlock)[],
 ): Promise<string>;
 export async function formatText(
-	documentFormattingParams:
+	documentFormattingParams: (
 		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
+		| DocumentRangeFormattingParams
+	) & { ranges?: Range[] },
 	text: string,
 	returnType: 'File Diagnostics',
 	options?: FormattingFlags,
@@ -173,9 +176,10 @@ export async function formatText(
 	prevIfBlocks?: (IfDefineBlock | IfElIfBlock)[],
 ): Promise<FileDiagnostic[]>;
 export async function formatText(
-	documentFormattingParams:
+	documentFormattingParams: (
 		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
+		| DocumentRangeFormattingParams
+	) & { ranges?: Range[] },
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics' | 'Both',
 	options: FormattingFlags = {
