@@ -22,10 +22,14 @@ import type {
 	LocationResult,
 	ResolvedSettings,
 	SerializedNode,
+	ZephyrBindingYml,
 } from 'devicetree-language-server-types';
 import {
 	Disposable,
 	TextDocumentPositionParams,
+	DocumentFormattingParams,
+	DocumentRangeFormattingParams,
+	TextEdit,
 } from 'vscode-languageclient/node';
 
 export interface IDeviceTreeAPI {
@@ -40,6 +44,8 @@ export interface IDeviceTreeAPI {
 		textDocumentPositionParams: TextDocumentPositionParams,
 	): Promise<LocationResult>;
 	getActiveContext(): Promise<ContextListItem | undefined>;
+	getZephyrTypeBindings(id: string): Promise<ZephyrBindingYml[] | undefined>;
+	getMacroNames(id: string): Promise<string[] | undefined>;
 	evaluateMacros(macros: string[], ctxId: string): Promise<EvaluatedMacro[]>;
 	copyZephyrCMacroIdentifier(
 		textDocumentPositionParams: TextDocumentPositionParams,
@@ -48,6 +54,13 @@ export interface IDeviceTreeAPI {
 	removeContext(id: string, name: string): Promise<void>;
 	compiledOutput(id?: string): Promise<string | undefined>;
 	serializedContext(id: string): Promise<SerializedNode | undefined>;
+	formatTextEdits(
+		event: (DocumentFormattingParams | DocumentRangeFormattingParams) & {
+			edits: TextEdit[];
+			text?: string;
+			formatOnlyEdits: boolean;
+		},
+	): Promise<TextEdit>;
 
 	onActiveContextChange(
 		listener: (ctx: ContextListItem | undefined) => void,

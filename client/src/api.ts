@@ -25,12 +25,14 @@ import type {
 	LocationResult,
 	ResolvedSettings,
 	SerializedNode,
+	ZephyrBindingYml,
 } from 'devicetree-language-server-types';
 import {
 	LanguageClient,
 	NotificationType,
 	TextDocumentPositionParams,
 	Disposable,
+	TextEdit,
 } from 'vscode-languageclient/node';
 import { IDeviceTreeAPI as IDeviceTreeAPI } from './types';
 import { getCurrentTextDocumentPositionParams } from './helpers';
@@ -110,9 +112,9 @@ export class API implements IDeviceTreeAPI {
 	}
 
 	async getActivePathLocation(): Promise<LocationResult | undefined> {
-		const result = await this.getPathLocation(
-			await getCurrentTextDocumentPositionParams(),
-		);
+		const location = getCurrentTextDocumentPositionParams();
+		if (!location) return;
+		const result = await this.getPathLocation(location);
 
 		if (result) {
 			this.event.emit('onActivePath', result);
@@ -165,6 +167,13 @@ export class API implements IDeviceTreeAPI {
 			'devicetree/serializedContext',
 			id,
 		) as Promise<SerializedNode | undefined>;
+	}
+
+	formatTextEdits(event) {
+		return this.client.sendRequest(
+			'devicetree/formatTextEdits',
+			event,
+		) as Promise<TextEdit>;
 	}
 
 	onActiveContextChange(
@@ -251,5 +260,19 @@ export class API implements IDeviceTreeAPI {
 			macros,
 			ctxId,
 		}) as Promise<EvaluatedMacro[]>;
+	}
+
+	getZephyrTypeBindings(id: string) {
+		return this.client.sendRequest(
+			'devicetree/zephyrTypeBindings',
+			id,
+		) as Promise<ZephyrBindingYml[] | undefined>;
+	}
+
+	getMacroNames(id: string) {
+		return this.client.sendRequest(
+			'devicetree/contextMacroNames',
+			id,
+		) as Promise<string[] | undefined>;
 	}
 }

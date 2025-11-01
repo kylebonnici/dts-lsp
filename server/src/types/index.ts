@@ -16,6 +16,12 @@
 
 import { Diagnostic, Range } from 'vscode-languageserver-types';
 
+export type SerializedAnyInternalValue =
+	| SerializableLabelRef
+	| SerializableNodePath
+	| SerializableNumberValue
+	| SerializableExpression;
+
 export type BindingType = 'Zephyr' | 'DevicetreeOrg';
 
 export type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
@@ -103,22 +109,16 @@ export interface SerializableStringValue extends SerializableASTBase {
 
 export interface SerializableByteString extends SerializableASTBase {
 	readonly type: 'BYTESTRING';
-	readonly values: ({
-		value: string;
-		range: Range;
-		evaluated: number;
-	} | null)[];
-}
-
-export interface SerializableArrayValue extends SerializableASTBase {
-	readonly type: 'ARRAY_VALUE';
-	readonly value: (
-		| SerializableLabelRef
-		| SerializableNodePath
+	readonly values: (
 		| SerializableNumberValue
 		| SerializableExpression
 		| null
 	)[];
+}
+
+export interface SerializableArrayValue extends SerializableASTBase {
+	readonly type: 'ARRAY_VALUE';
+	readonly value: (SerializedAnyInternalValue | null)[];
 }
 
 export interface SerializableLabelRef extends SerializableASTBase {
@@ -133,7 +133,7 @@ export interface SerializableNodePath extends SerializableASTBase {
 }
 
 export interface SerializableExpressionBase extends SerializableASTBase {
-	readonly value: string | null;
+	readonly value: string;
 	readonly evaluated: number | string;
 }
 
@@ -160,41 +160,25 @@ export interface SerializablePropertyName extends SerializableASTBase {
 	readonly value: string;
 }
 
-export type SerializableNexusMapEnty = {
-	mappingValuesAst: (
-		| SerializableLabelRef
-		| SerializableNodePath
-		| SerializableNumberValue
-		| SerializableExpression
-	)[];
+export type SerializableNexusMapEntry = {
+	mappingValuesAst: SerializedAnyInternalValue[];
 	specifierSpace?: string;
 	target: string;
-	mapItem?: {
-		mappingValues: (
-			| SerializableLabelRef
-			| SerializableNodePath
-			| SerializableNumberValue
-			| SerializableExpression
-		)[];
-		target: string;
-		parentValues: (
-			| SerializableLabelRef
-			| SerializableNodePath
-			| SerializableNumberValue
-			| SerializableExpression
-		)[];
-	};
+	cellCount: number;
+	mapItem?: SerializedNexusMap;
 };
 
 export interface SerializableProperty extends SerializableASTBase {
-	readonly nexusMapEnty: SerializableNexusMapEnty[];
-	readonly name: SerializablePropertyName | null;
-	readonly values: SerializablePropertyValue[] | null;
+	readonly replaces: Omit<SerializableASTBase, 'issues'>[];
+	readonly nexusMapEntry: SerializableNexusMapEntry[];
+	readonly name: SerializablePropertyName;
+	readonly values?: SerializablePropertyValue[] | null;
+	readonly nodePath: string;
 }
 
 export type SerializableDtcProperty = Omit<
 	SerializableProperty,
-	'nexusMapEnty'
+	'nexusMapEntry' | 'nodePath' | 'replaces'
 >;
 
 export type NodeType = 'ROOT' | 'REF' | 'CHILD';
@@ -213,17 +197,16 @@ export interface SerializableNodeName extends SerializableASTBase {
 	readonly name: string;
 }
 
-export enum BindingPropertyType {
-	EMPTY = 'EMPTY',
-	U32 = 'U32',
-	U64 = 'U64',
-	STRING = 'STRING',
-	PROP_ENCODED_ARRAY = 'PROP_ENCODED_ARRAY',
-	STRINGLIST = 'STRINGLIST',
-	BYTESTRING = 'BYTESTRING',
-	UNKNOWN = 'UNKNOWN',
-	ANY = 'ANY',
-}
+export type BindingPropertyType =
+	| 'EMPTY'
+	| 'U32'
+	| 'U64'
+	| 'STRING'
+	| 'PROP_ENCODED_ARRAY'
+	| 'STRINGLIST'
+	| 'BYTESTRING'
+	| 'UNKNOWN'
+	| 'ANY';
 
 export type TypeConfig = { types: BindingPropertyType[] };
 
@@ -249,6 +232,7 @@ export interface SerializedBinding {
 	compatible?: string;
 	extends: string[];
 	properties?: SerializedBindingProperty[];
+	zephyrBinding?: ZephyrBindingYml;
 }
 
 export type SerializableNodeBase =
@@ -289,12 +273,15 @@ export type InterruptControlerSerializedMapping = {
 	cells: (SerializableNumberValue | SerializableExpression)[];
 	path: string;
 	property: SerializableDtcProperty;
+	specifierSpace?: string;
 };
 
 export type SerializableSpecifierNexusMeta = {
 	cells: (SerializableNumberValue | SerializableExpression)[];
 	path: string;
 	property: SerializableDtcProperty;
+	propertyNodePath: string;
+	specifierSpace: string;
 };
 
 export type SerializedNode = {
@@ -302,6 +289,7 @@ export type SerializedNode = {
 	issues: Diagnostic[];
 	path: string;
 	name: string;
+	fullName: string;
 	disabled: boolean;
 	nodes: SerializableNodeBase[];
 	properties: SerializableProperty[];
@@ -310,7 +298,18 @@ export type SerializedNode = {
 	labels: string[];
 	interruptControllerMappings: InterruptControlerSerializedMapping[];
 	specifierNexusMappings: SerializableSpecifierNexusMeta[];
+	nexusMaps: SerializedNexusMap[];
 };
+
+export interface SerializedNexusMap {
+	childCellCount: number;
+	mappingValues: SerializedAnyInternalValue[];
+	target?: string;
+	targetAst?: SerializedAnyInternalValue;
+	parentCellCount?: number;
+	parentValues?: SerializedAnyInternalValue[];
+	specifierSpace: string;
+}
 
 export type Actions = ClipboardActions;
 
@@ -331,3 +330,54 @@ export type LocationResult = {
 };
 
 export type EvaluatedMacro = { macro: string; evaluated: string | number };
+
+export type ZephyrPropertyType =
+	| 'string'
+	| 'int'
+	| 'boolean'
+	| 'array'
+	| 'uint8-array'
+	| 'string-array'
+	| 'phandle'
+	| 'phandles'
+	| 'phandle-array'
+	| 'path'
+	| 'compound';
+
+export type CellSpecifier = `${string}-cells`;
+
+export type ZephyrBindingsProperty = {
+	name: string;
+	required?: boolean;
+	type?: ZephyrPropertyType;
+	deprecated?: false;
+	default?: string | number | (string | number)[];
+	description?: string;
+	enum?: (string | number)[];
+	const?: string | number | (string | number)[];
+	'specifier-space'?: string;
+};
+export interface ZephyrBindingYml {
+	filePath: string;
+	include: {
+		name: string;
+		'property-blocklist'?: string[];
+		'property-allowlist'?: string[];
+	}[];
+	rawInclude: {
+		name: string;
+		'property-blocklist'?: string[];
+		'property-allowlist'?: string[];
+	}[];
+	description?: string;
+	compatible?: string;
+	'child-binding'?: ZephyrBindingYml;
+	bus?: string[];
+	'on-bus'?: string;
+	properties?: {
+		[key: string]: ZephyrBindingsProperty;
+	};
+	[key: CellSpecifier]: string[];
+	extends?: string[]; // our entry to collaps include
+	isChildBinding: boolean;
+}
