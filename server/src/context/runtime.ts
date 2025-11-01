@@ -68,6 +68,7 @@ export class Runtime implements Searchable {
 			...this.context.parser.cPreprocessorParser.allAstItems,
 			...this.roots,
 			...this.references,
+			...this.context.parser.injectedMacros,
 			...this.unlinkedDeletes,
 			...this.unlinkedRefNodes,
 			...this.globalDeletes,
