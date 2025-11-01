@@ -52,6 +52,7 @@ import {
 	tokenTypes,
 } from './types';
 import {
+	applyEdits,
 	coreSyntaxIssuesFilter,
 	evalExp,
 	expandMacros,
@@ -767,6 +768,7 @@ const onChange = async (uri: string) => {
 						context.setStaleUri(uri);
 
 						if (abort.signal.aborted) {
+							console.log('Abort parsing due to new request');
 							resolve();
 							return;
 						}
@@ -925,7 +927,7 @@ const generateWorkspaceDiagnostics = async (context: ContextAware) => {
 								textDocument,
 								options: context.formattingOptions,
 							},
-							textDocument?.getText(),
+							textDocument.getText(),
 							'File Diagnostics',
 						).catch(() => [])
 					).map((d) => d.diagnostic()),
@@ -1183,7 +1185,7 @@ documents.onDidChangeContent(async (change) => {
 	const tokenProvider = getTokenizedDocumentProvider();
 	if (!tokenProvider.needsRenew(uri, text)) return;
 
-	console.log('Content changed');
+	console.log('Content changed', uri);
 	tokenProvider.renewLexer(uri, text);
 	await onChange(uri);
 });
@@ -1490,7 +1492,9 @@ const onDocumentFormat = async (
 		return [];
 	}
 
-	const document = getTokenizedDocumentProvider().getDocument(filePath);
+	const document =
+		documents.get(event.textDocument.uri) ??
+		getTokenizedDocumentProvider().getDocument(filePath);
 	const text = document.getText();
 	const newText = await formatText(event, text, 'New Text').catch(() => text);
 
@@ -1831,6 +1835,61 @@ connection.onRequest(
 			text: newText.text,
 			diagnostics: newText.diagnostic.map((d) => d.diagnostic()),
 		};
+	},
+);
+
+connection.onRequest(
+	'devicetree/formatTextEdits',
+	async (
+		event: DocumentFormattingParams & {
+			edits: TextEdit[];
+			text?: string;
+			formatOnlyEdits: boolean;
+		},
+	) => {
+		await allStable();
+
+		const document = getTokenizedDocumentProvider().getDocument(
+			fileURLToPath(event.textDocument.uri),
+			event.text,
+		);
+
+		const endOfFile = document.positionAt(document.getText().length);
+		const replaceDocumentEdit = TextEdit.replace(
+			Range.create(Position.create(0, 0), endOfFile),
+			'',
+		);
+
+		const textAfterEdits = applyEdits(document, event.edits);
+
+		let formatRanges: Range[] | undefined;
+		if (event.formatOnlyEdits) {
+			formatRanges = event.edits.flatMap((edit) => [
+				edit.newText
+					? Range.create(
+							edit.range.start.line +
+								(edit.newText.startsWith('\n') ? 1 : 0),
+							0,
+							edit.range.end.line +
+								edit.newText.trimStart().split('\n').length,
+							0,
+						)
+					: Range.create(
+							Math.max(0, edit.range.start.line - 1),
+							0,
+							edit.range.end.line,
+							edit.range.end.character,
+						),
+			]);
+		}
+		const newText = await formatText(
+			{ ...event, ranges: formatRanges },
+			textAfterEdits,
+			'New Text',
+		).catch(() => textAfterEdits);
+		replaceDocumentEdit.newText = newText;
+
+		return replaceDocumentEdit;
 	},
 );
 
