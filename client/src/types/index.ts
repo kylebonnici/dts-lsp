@@ -27,6 +27,9 @@ import type {
 import {
 	Disposable,
 	TextDocumentPositionParams,
+	DocumentFormattingParams,
+	DocumentRangeFormattingParams,
+	TextEdit,
 } from 'vscode-languageclient/node';
 
 export interface IDeviceTreeAPI {
@@ -51,6 +54,13 @@ export interface IDeviceTreeAPI {
 	removeContext(id: string, name: string): Promise<void>;
 	compiledOutput(id?: string): Promise<string | undefined>;
 	serializedContext(id: string): Promise<SerializedNode | undefined>;
+	formatTextEdits(
+		event: (DocumentFormattingParams | DocumentRangeFormattingParams) & {
+			edits: TextEdit[];
+			text?: string;
+			formatOnlyEdits: boolean;
+		},
+	): Promise<TextEdit>;
 
 	onActiveContextChange(
 		listener: (ctx: ContextListItem | undefined) => void,
