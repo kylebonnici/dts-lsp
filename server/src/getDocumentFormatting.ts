@@ -134,30 +134,34 @@ const getAstItemLevel =
 	};
 
 export async function formatText(
-	documentFormattingParams:
+	documentFormattingParams: (
 		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
+		| DocumentRangeFormattingParams
+	) & { ranges?: Range[] },
 	text: string,
 	returnType: 'Both',
 ): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
 export async function formatText(
-	documentFormattingParams:
+	documentFormattingParams: (
 		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
+		| DocumentRangeFormattingParams
+	) & { ranges?: Range[] },
 	text: string,
 	returnType: 'New Text',
 ): Promise<string>;
 export async function formatText(
-	documentFormattingParams:
+	documentFormattingParams: (
 		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
+		| DocumentRangeFormattingParams
+	) & { ranges?: Range[] },
 	text: string,
 	returnType: 'File Diagnostics',
 ): Promise<FileDiagnostic[]>;
 export async function formatText(
-	documentFormattingParams:
+	documentFormattingParams: (
 		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
+		| DocumentRangeFormattingParams
+	) & { ranges?: Range[] },
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics' | 'Both',
 ): Promise<
@@ -197,9 +201,10 @@ export async function formatText(
 }
 
 async function formatAstBaseItems(
-	documentFormattingParams:
+	documentFormattingParams: (
 		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
+		| DocumentRangeFormattingParams
+	) & { ranges?: Range[] },
 	astItems: ASTBase[],
 	uri: string,
 	text: string,
@@ -301,9 +306,19 @@ async function formatAstBaseItems(
 			})
 		: result;
 
+	documentFormattingParams.ranges ??= [];
+
 	if ('range' in documentFormattingParams) {
-		resultExcludingOnOfRanges = resultExcludingOnOfRanges.filter((d) =>
-			isRangeInRange(documentFormattingParams.range, d.raw.range),
+		documentFormattingParams.ranges.push(documentFormattingParams.range);
+	}
+
+	if (documentFormattingParams.ranges.length) {
+		resultExcludingOnOfRanges = documentFormattingParams.ranges.flatMap(
+			(range) => {
+				return resultExcludingOnOfRanges.filter((d) =>
+					isRangeInRange(range, d.raw.range),
+				);
+			},
 		);
 	}
 
