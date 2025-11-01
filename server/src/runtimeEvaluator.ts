@@ -349,12 +349,25 @@ export class ContextAware {
 		}
 	}
 
+	private staleUri = new Set<string>();
+	setStaleUri(uri: string) {
+		this.staleUri.add(uri);
+	}
+
 	public async reevaluate(uri: string) {
-		const parser = this.getUriParser(uri);
-		if (!parser) return this._runtime;
+		this.setStaleUri(uri);
+		const parsers = new Set<Parser>();
+		this.staleUri.forEach((u) => {
+			const staleParser = this.getUriParser(u);
+			if (staleParser) {
+				parsers.add(staleParser);
+			}
+		});
+
+		if (!parsers.size) return this._runtime;
 
 		this.sortKeys = new WeakMap<Token, number>();
-		await parser.reparse();
+		await Promise.all(Array.from(parsers).map((v) => v.reparse()));
 
 		this._runtime = this.evaluate();
 		return this._runtime;
@@ -371,6 +384,7 @@ export class ContextAware {
 		await this.stable();
 
 		const runtime = new Runtime(this);
+		this.staleUri.clear();
 		this._issues = [];
 
 		this.parser.rootDocument.resetIssues();

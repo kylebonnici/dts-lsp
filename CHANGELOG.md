@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.6.6] - Unreleased
+
+### Fixed
+
+- Fixed an issue with server crashing when overlays are used and edits are done to multiple files
+  including the overlay.
+
 ## [0.6.5] - 2025-10-31
 
 ### Fixed
