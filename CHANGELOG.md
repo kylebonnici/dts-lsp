@@ -8,9 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed an issue with server crashing when overlays are used and edits are done to multiple files
-  including the overlay.
-- Fixed an issue comments as Macro params beeing formatted. These comments are no no longer
+- Fixed an issue with server crashing when edits are done to multiple files including an overlay.
+- Fixed an issue with LSP reporting incorrect context state when edits are done to multiple files including
+  an overlay file, resulting in other issues such as incorrect formatting, code actions and more.
+- Fixed an issue with comments as Macro params being formatted. These comments are no longer
   touched by formatter.
 
 ## [0.6.5] - 2025-10-31
