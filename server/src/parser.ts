@@ -30,6 +30,7 @@ import {
 	genSyntaxDiagnostic,
 	linkAstToComments,
 	normalizePath,
+	positionInBetween,
 	sameLine,
 	sanitizeCExpression,
 	startsWithLetter,
@@ -237,6 +238,14 @@ export class Parser extends BaseParser {
 		if (result && typeof evalResult === 'string') {
 			evalResult = sanitizeCExpression(evalResult);
 			const uri = `${result.uri}${VIRTUAL_DOC}${result.firstToken.pos.line}:${result.firstToken.pos.col}-${result.lastToken.pos.line}:${result.firstToken.pos.col}`;
+
+			const toRemoveSet = new Set<ASTBase>();
+			this.cPreprocessorParser.comments.forEach((c) => {
+				if (positionInBetween(result, result.uri, c.range.start)) {
+					toRemoveSet.add(c);
+				}
+			});
+			this.cPreprocessorParser.removeComments(toRemoveSet);
 
 			// avoid recursive calls
 			if (

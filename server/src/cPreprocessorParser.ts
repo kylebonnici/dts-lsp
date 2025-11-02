@@ -89,6 +89,11 @@ export class CPreprocessorParser extends BaseParser {
 	get comments() {
 		return this._comments;
 	}
+
+	removeComments(toRemoveSet: Set<ASTBase>) {
+		this._comments = this._comments.filter((c) => !toRemoveSet.has(c));
+	}
+
 	private macroStart = false;
 
 	protected get currentToken(): Token | undefined {

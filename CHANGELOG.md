@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Fixed an issue with server crashing when overlays are used and edits are done to multiple files
   including the overlay.
+- Fixed an issue comments as Macro params beeing formatted. These comments are no no longer
+  touched by formatter.
 
 ## [0.6.5] - 2025-10-31
 
