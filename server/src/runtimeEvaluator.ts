@@ -32,13 +32,7 @@ import {
 	NodeName,
 } from './ast/dtc/node';
 import { DtcProperty } from './ast/dtc/property';
-import {
-	ContextIssues,
-	FileDiagnostic,
-	Issue,
-	IssueTypes,
-	Token,
-} from './types';
+import { ContextIssues, FileDiagnostic, Token } from './types';
 import { DeleteProperty } from './ast/dtc/deleteProperty';
 import { DeleteNode } from './ast/dtc/deleteNode';
 import { LabelRef } from './ast/dtc/labelRef';
@@ -53,6 +47,7 @@ import {
 	positionInBetween,
 	toRange,
 	compareWords,
+	coreSyntaxIssuesFilter,
 } from './helpers';
 import { Parser } from './parser';
 import { NodePath, NodePathRef } from './ast/dtc/values/nodePath';
@@ -70,6 +65,7 @@ export class ContextAware {
 	public readonly id: string;
 	private readonly ctxNames_ = new Set<string | number>();
 	private sortKeys = new WeakMap<Token, number>();
+	readonly isFullContext: boolean;
 
 	constructor(
 		readonly settings: PartialBy<Context, 'ctxName'>,
@@ -88,6 +84,9 @@ export class ContextAware {
 			showFormattingErrorAsDiagnostics:
 				settings.showFormattingErrorAsDiagnostics ?? true,
 		};
+		this.isFullContext = this.settings.dtsFile
+			.toLowerCase()
+			.endsWith('.dts');
 		this.overlays = resolvedSettings.overlays;
 		this.overlays.filter(existsSync);
 
@@ -953,30 +952,67 @@ export class ContextAware {
 		list.push(diagnostic);
 	}
 
+	private getIssues(
+		issues: FileDiagnostic[],
+		result = new Map<string, Diagnostic[]>(),
+		transform: (issue: FileDiagnostic) => FileDiagnostic | undefined = (
+			i,
+		) => {
+			if (i.raw.severity === DiagnosticSeverity.Hint && i.raw.virtual) {
+				return;
+			}
+
+			if (
+				i.raw.severity === DiagnosticSeverity.Error &&
+				!this.isFullContext
+			) {
+				i.raw.severity = DiagnosticSeverity.Warning;
+			}
+
+			return i;
+		},
+	): Map<string, Diagnostic[]> {
+		issues.forEach((issue) => {
+			const i = transform(issue);
+			if (i) {
+				ContextAware.#add(i.diagnostic(), i.raw.uri, result);
+			}
+		});
+
+		return result;
+	}
+
 	async getSyntaxIssues(
 		result = new Map<string, Diagnostic[]>(),
-		filter?: (issue: Issue<IssueTypes>) => boolean,
+		transform: (issue: FileDiagnostic) => FileDiagnostic | undefined = (
+			issue,
+		) => {
+			if (
+				issue.raw.severity === DiagnosticSeverity.Error &&
+				!this.isFullContext &&
+				!coreSyntaxIssuesFilter(issue.raw, issue.raw.uri, false)
+			) {
+				return {
+					...issue,
+					raw: {
+						...issue.raw,
+						severity: DiagnosticSeverity.Warning,
+					},
+				};
+			}
+
+			if (
+				issue.raw.severity === DiagnosticSeverity.Hint &&
+				issue.raw.virtual
+			) {
+				return;
+			}
+
+			return issue;
+		},
 	): Promise<Map<string, Diagnostic[]>> {
 		(await this.getAllParsers()).forEach((parser) => {
-			if (filter) {
-				parser.issues
-					.filter((i) => filter(i.raw))
-					.forEach((issue) =>
-						ContextAware.#add(
-							issue.diagnostic(),
-							issue.raw.uri,
-							result,
-						),
-					);
-			} else {
-				parser.issues.forEach((issue) =>
-					ContextAware.#add(
-						issue.diagnostic(),
-						issue.raw.uri,
-						result,
-					),
-				);
-			}
+			return this.getIssues(parser.issues, result, transform);
 		});
 
 		return result;
@@ -989,26 +1025,11 @@ export class ContextAware {
 			await this.getSyntaxIssues(result);
 
 			const contextIssues = (await this.getContextIssues()) ?? [];
-			contextIssues.forEach((issue) => {
-				if (
-					issue.raw.severity === DiagnosticSeverity.Hint &&
-					issue.raw.virtual
-				) {
-					return;
-				}
-				ContextAware.#add(issue.diagnostic(), issue.raw.uri, result);
-			});
+			this.getIssues(contextIssues, result);
 
 			const runtime = await this.getRuntime();
-			runtime?.typesIssues.forEach((issue) => {
-				if (
-					issue.raw.severity === DiagnosticSeverity.Hint &&
-					issue.raw.virtual
-				) {
-					return;
-				}
-				ContextAware.#add(issue.diagnostic(), issue.raw.uri, result);
-			});
+			this.getIssues(runtime.typesIssues, result);
+
 			return result;
 		} catch (e) {
 			console.error(e);
