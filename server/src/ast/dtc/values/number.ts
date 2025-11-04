@@ -56,7 +56,7 @@ export class NumberValue extends Expression {
 
 	toPrettyString(_: Map<string, MacroRegistryItem>): string {
 		const value = this.value;
-		if (this.radix == 16) {
+		if (this.radix === 16) {
 			return `0x${value.toString(16)} /* ${
 				typeof value === 'number' ? `${value.toString(10)}` : ''
 			} */`;

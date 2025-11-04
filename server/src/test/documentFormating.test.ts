@@ -24,7 +24,7 @@ import {
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { resetTokenizedDocumentProvider } from '../providers/tokenizedDocument';
 import { ContextAware } from '../runtimeEvaluator';
-import { getDocumentFormatting } from '../getDocumentFormatting';
+import { formatText } from '../getDocumentFormatting';
 import { filePathUri, getFakeBindingLoader } from './helpers';
 
 jest.mock('fs', () => ({
@@ -62,7 +62,7 @@ const getEdits = async (
 	);
 	await context.parser.stable;
 
-	return getDocumentFormatting(
+	return formatText(
 		{
 			textDocument,
 			options: {
@@ -72,7 +72,6 @@ const getEdits = async (
 				trimTrailingWhitespace: true,
 			},
 		},
-		context,
 		document.getText(),
 		'New Text',
 	);
@@ -383,9 +382,9 @@ describe('Document formating', () => {
 		});
 
 		test('Nodes with block comment ensure new line - case 3', async () => {
-			const documentText = '/ {\n\n/* abc1 */\n\tnode1 {}\n};';
+			const documentText = '/ {\n\n/* abc1 */\n\tnode1 {};\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\t/* abc1 */\n\tnode1 {}\n};');
+			expect(newText).toEqual('/ {\n\t/* abc1 */\n\tnode1 {};\n};');
 		});
 
 		test('Nodes with multiple block comments ensure new line', async () => {
@@ -421,9 +420,9 @@ describe('Document formating', () => {
 		});
 
 		test('Nodes with comment ensure new line - case 3', async () => {
-			const documentText = '/ {\n\n// abc1\n\tnode1 {}\n};';
+			const documentText = '/ {\n\n// abc1\n\tnode1 {};\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\t// abc1\n\tnode1 {}\n};');
+			expect(newText).toEqual('/ {\n\t// abc1\n\tnode1 {};\n};');
 		});
 
 		test('Nodes with multiple comments ensure new line', async () => {
@@ -605,18 +604,18 @@ describe('Document formating', () => {
 		});
 
 		test('Correct indentation in level 1', async () => {
-			const documentText = '/ {\n/delete-node/ &n1;\n\tnode { };\n};';
+			const documentText = '/ {\n/delete-node/ n1;\n\tnode { };\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\t/delete-node/ &n1;\n\n\tnode {};\n};',
+				'/ {\n\t/delete-node/ n1;\n\n\tnode {};\n};',
 			);
 		});
 
 		test('Correct indentation in level 2', async () => {
-			const documentText = '/ {\n\tnode {\n/delete-node/ &n1;\n\t};\n};';
+			const documentText = '/ {\n\tnode {\n/delete-node/ n1;\n\t};\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\tnode {\n\t\t/delete-node/ &n1;\n\t};\n};',
+				'/ {\n\tnode {\n\t\t/delete-node/ n1;\n\t};\n};',
 			);
 		});
 
@@ -752,28 +751,28 @@ describe('Document formating', () => {
 
 		test('in node', async () => {
 			const documentText =
-				'/ {\n\t\t/* foo */\nnode {\n\tprop1;\n\t/* foo */\n\tnode { };\n};\n}';
+				'/ {\n\t\t/* foo */\nnode {\n\tprop1;\n\t/* foo */\n\tnode { };\n};\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\t/* foo */\n\tnode {\n\t\tprop1;\n\n\t\t/* foo */\n\t\tnode {};\n\t};\n}',
+				'/ {\n\t/* foo */\n\tnode {\n\t\tprop1;\n\n\t\t/* foo */\n\t\tnode {};\n\t};\n};',
 			);
 		});
 
 		test('in property values', async () => {
 			const documentText =
-				'/ {\n\tprop11 = <10> /* foo */,\n<20>\n/* foo */,\n<30> /* foo */;\n}';
+				'/ {\n\tprop11 = <10> /* foo */,\n<20>\n/* foo */,\n<30> /* foo */;\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\tprop11 = <10>, /* foo */\n\t\t\t <20>,\n\t\t\t /* foo */\n\t\t\t <30>; /* foo */\n}',
+				'/ {\n\tprop11 = <10>, /* foo */\n\t\t\t <20>,\n\t\t\t /* foo */\n\t\t\t <30>; /* foo */\n};',
 			);
 		});
 
 		test('in property value', async () => {
 			const documentText =
-				'/ {\n\tprop11 = < /* foo */10 /* foo */\n20\n/* foo */\n30 /* foo */>;\n}';
+				'/ {\n\tprop11 = < /* foo */10 /* foo */\n20\n/* foo */\n30 /* foo */>;\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\tprop11 = < /* foo */ 10 /* foo */\n\t\t\t  20\n\t\t\t  /* foo */\n\t\t\t  30 /* foo */ >;\n}',
+				'/ {\n\tprop11 = < /* foo */ 10 /* foo */\n\t\t\t  20\n\t\t\t  /* foo */\n\t\t\t  30 /* foo */ >;\n};',
 			);
 		});
 
@@ -1355,102 +1354,106 @@ describe('Document formating', () => {
 		});
 
 		test('Macro on multiple lines', async () => {
-			const documentText = '/ {\n\tprop1 = <ADD(10, \\\n\t\t20)>;';
+			const documentText = '/ {\n\tprop1 = <ADD(10, \\\n\t\t20)>;};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <ADD(10, \\\n\t\t20)>;');
+			expect(newText).toEqual(
+				'/ {\n\tprop1 = <ADD(10, \\\n\t\t20)>;\n};',
+			);
 		});
 
 		test('Macro expression with ()', async () => {
-			const documentText = '/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) )>;';
+			const documentText = '/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) )>;};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <ADD(10, \\\n\t\t20)>;');
+			expect(newText).toEqual(
+				'/ {\n\tprop1 = <ADD(10, \\\n\t\t20)>;\n};',
+			);
 		});
 
 		test('Number expression with ()', async () => {
-			const documentText = '/ {\n\tprop1 = <(-10)>;';
+			const documentText = '/ {\n\tprop1 = <(-10)>;};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <(-10)>;');
+			expect(newText).toEqual('/ {\n\tprop1 = <(-10)>;\n};');
 		});
 
 		test('Multiple Macro expression in ()', async () => {
 			const documentText =
-				'/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) + ADD(10, \\\n\t\t20) )>;';
+				'/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) + ADD(10, \\\n\t\t20) )>;};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) + ADD(10, \\\n\t\t20))>;',
+				'/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) + ADD(10, \\\n\t\t20))>;\n};',
 			);
 		});
 
 		test('Multiple Macro and number expression in ()', async () => {
 			const documentText =
-				'/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) + 10 )>;';
+				'/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) + 10 )>;\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) + 10)>;',
+				'/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) + 10)>;\n};',
 			);
 		});
 
 		test('hex with 0XD > on same line', async () => {
-			const documentText = '/ {\n\tprop1 = <0XD>;';
+			const documentText = '/ {\n\tprop1 = <0XD>;\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <0XD>;');
+			expect(newText).toEqual('/ {\n\tprop1 = <0XD>;\n};');
 		});
 
 		test('hex with 0XD > on new line', async () => {
-			const documentText = '/ {\n\tprop1 = <0XD\n>;';
+			const documentText = '/ {\n\tprop1 = <0XD\n>;\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <0XD>;');
+			expect(newText).toEqual('/ {\n\tprop1 = <0XD>;\n};');
 		});
 
 		test('hex with 0XD with line comment > on new line', async () => {
-			const documentText = '/ {\n\tprop1 = <0XD // test\n>;';
+			const documentText = '/ {\n\tprop1 = <0XD // test\n>;\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <0XD // test\n\t>;');
+			expect(newText).toEqual('/ {\n\tprop1 = <0XD // test\n\t>;\n};');
 		});
 
 		test('hex with 0XD with block comment > on new line', async () => {
-			const documentText = '/ {\n\tprop1 = <0XD /* test */\n>;';
+			const documentText = '/ {\n\tprop1 = <0XD /* test */\n>;\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <0XD /* test */ >;');
+			expect(newText).toEqual('/ {\n\tprop1 = <0XD /* test */ >;\n};');
 		});
 
 		test('empty array value with spaces', async () => {
-			const documentText = '/ {\n\tprop1 = < >;';
+			const documentText = '/ {\n\tprop1 = < >;\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <>;');
+			expect(newText).toEqual('/ {\n\tprop1 = <>;\n};');
 		});
 
 		test('empty array value new line', async () => {
-			const documentText = '/ {\n\tprop1 = < \n>;';
+			const documentText = '/ {\n\tprop1 = < \n>;\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <>;');
+			expect(newText).toEqual('/ {\n\tprop1 = <>;\n};');
 		});
 
 		test('empty bytestring value', async () => {
-			const documentText = '/ {\n\tprop1 = [ ];';
+			const documentText = '/ {\n\tprop1 = [ ];\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = [];');
+			expect(newText).toEqual('/ {\n\tprop1 = [];\n};');
 		});
 
 		test('remove first property new line ', async () => {
-			const documentText = '/ {\n\n\tprop1 = [ ];';
+			const documentText = '/ {\n\n\tprop1 = [ ];\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = [];');
+			expect(newText).toEqual('/ {\n\tprop1 = [];\n};');
 		});
 	});
 
 	describe('trailing White space', () => {
 		test('Clean when remove new lines', async () => {
-			const documentText = '{\n    \n}     \n;';
+			const documentText = '/ {\n    \n}     \n;';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('{};');
+			expect(newText).toEqual('/ {};');
 		});
 		test('Clean when remove new lines', async () => {
 			const documentText =
-				'{\n\tprop11 = <10>, \n<20>,            \n<30>;\n};';
+				'/ {\n\tprop11 = <10>, \n<20>,            \n<30>;\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'{\n\tprop11 = <10>,\n\t\t\t <20>,\n\t\t\t <30>;\n};',
+				'/ {\n\tprop11 = <10>,\n\t\t\t <20>,\n\t\t\t <30>;\n};',
 			);
 		});
 
