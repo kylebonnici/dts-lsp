@@ -1453,7 +1453,9 @@ const onDocumentFormat = async (
 
 	const issues = (
 		await context.getSyntaxIssues(undefined, (issue) =>
-			coreSyntaxIssuesFilter(issue, filePath, false),
+			coreSyntaxIssuesFilter(issue.raw, filePath, false)
+				? issue
+				: undefined,
 		)
 	).get(filePath);
 
@@ -1793,7 +1795,9 @@ const formatWithContext = async (
 ) => {
 	const issues = (
 		await context.getSyntaxIssues(undefined, (issue) =>
-			coreSyntaxIssuesFilter(issue, filePath, false),
+			coreSyntaxIssuesFilter(issue.raw, filePath, false)
+				? issue
+				: undefined,
 		)
 	).get(filePath);
 
@@ -1857,7 +1861,9 @@ connection.onRequest(
 			? (await context.getDiagnostics()).get(filePath)
 			: (
 					await context.getSyntaxIssues(undefined, (issue) =>
-						coreSyntaxIssuesFilter(issue, filePath, !!full),
+						coreSyntaxIssuesFilter(issue.raw, filePath, !!full)
+							? issue
+							: undefined,
 					)
 				).get(filePath);
 
