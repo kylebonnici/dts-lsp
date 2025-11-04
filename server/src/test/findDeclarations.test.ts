@@ -25,7 +25,11 @@ import {
 import { resetTokenizedDocumentProvider } from '../providers/tokenizedDocument';
 import { ContextAware } from '../runtimeEvaluator';
 import { getDeclaration } from '../findDeclarations';
-import { defaultEditorSettings, getFakeBindingLoader } from './helpers';
+import {
+	defaultEditorSettings,
+	filePathUri,
+	getFakeBindingLoader,
+} from './helpers';
 
 jest.mock('fs', () => ({
 	readFileSync: jest.fn().mockImplementation(() => {
@@ -49,7 +53,7 @@ describe('Find Decleration', () => {
 	test('No definition to find', async () => {
 		mockReadFileSync('/{prop1;prop2;prop1;};    /{prop1;prop2;prop1;};');
 		const textDocument: TextDocumentIdentifier = {
-			uri: 'file:///folder/dts.dts',
+			uri: filePathUri,
 		};
 		const context = new ContextAware(
 			{ dtsFile: fileURLToPath(textDocument.uri) },
@@ -71,7 +75,7 @@ describe('Find Decleration', () => {
 		test('Duplicate property name samle level', async () => {
 			mockReadFileSync('/{prop1;prop2;prop1;};/{prop1;prop2;prop1;};');
 			const textDocument: TextDocumentIdentifier = {
-				uri: 'file:///folder/dts.dts',
+				uri: filePathUri,
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
@@ -95,7 +99,7 @@ describe('Find Decleration', () => {
 				'/{ node1{prop1; node1{prop1;}};};/{ node1{prop1; node1{prop1;}};};',
 			);
 			const textDocument: TextDocumentIdentifier = {
-				uri: 'file:///folder/dts.dts',
+				uri: filePathUri,
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
@@ -128,7 +132,7 @@ describe('Find Decleration', () => {
 				'/{ l1: node1{prop1; node1{prop1;}};}; /delete-node/ &l1; /{ node1{prop1; node1{prop1;}};};',
 			);
 			const textDocument: TextDocumentIdentifier = {
-				uri: 'file:///folder/dts.dts',
+				uri: filePathUri,
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
@@ -150,7 +154,7 @@ describe('Find Decleration', () => {
 		test('Delete property', async () => {
 			mockReadFileSync('/{prop1;};/{prop1; /delete-property/ prop1;};');
 			const textDocument: TextDocumentIdentifier = {
-				uri: 'file:///folder/dts.dts',
+				uri: filePathUri,
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
@@ -174,7 +178,7 @@ describe('Find Decleration', () => {
 		test('Duplicate node name samle level', async () => {
 			mockReadFileSync('/{node1{};node2{}};/{node1{};node2{};};');
 			const textDocument: TextDocumentIdentifier = {
-				uri: 'file:///folder/dts.dts',
+				uri: filePathUri,
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
@@ -196,7 +200,7 @@ describe('Find Decleration', () => {
 		test('Duplicate node name different level', async () => {
 			mockReadFileSync('/{ node1{node1{};};};/{ node1{node1{};};};');
 			const textDocument: TextDocumentIdentifier = {
-				uri: 'file:///folder/dts.dts',
+				uri: filePathUri,
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
@@ -229,7 +233,7 @@ describe('Find Decleration', () => {
 				'/{ l1: node1{node1{};};}; /delete-node/ &l1; /{ node1{node1{};};};',
 			);
 			const textDocument: TextDocumentIdentifier = {
-				uri: 'file:///folder/dts.dts',
+				uri: filePathUri,
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
@@ -253,7 +257,7 @@ describe('Find Decleration', () => {
 				'/{ l1: node1{node1{};};}; /delete-node/ &l1; /{ node1{node1{};};};',
 			);
 			const textDocument: TextDocumentIdentifier = {
-				uri: 'file:///folder/dts.dts',
+				uri: filePathUri,
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
@@ -277,7 +281,7 @@ describe('Find Decleration', () => {
 				'/{ l1: node1{node1{};};}; /{ node1{node1{};}; /delete-node/ node1;};',
 			);
 			const textDocument: TextDocumentIdentifier = {
-				uri: 'file:///folder/dts.dts',
+				uri: filePathUri,
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
@@ -301,7 +305,7 @@ describe('Find Decleration', () => {
 				'/{ l1: node1{node1{};};}; /{ node1{node1{ prop1=&l1;};};};',
 			);
 			const textDocument: TextDocumentIdentifier = {
-				uri: 'file:///folder/dts.dts',
+				uri: filePathUri,
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
@@ -325,7 +329,7 @@ describe('Find Decleration', () => {
 				'/{ l1: node1{node1{};};}; /{ node1{node1{ prop1=&{/node1/node1};};};};',
 			);
 			const textDocument: TextDocumentIdentifier = {
-				uri: 'file:///folder/dts.dts',
+				uri: filePathUri,
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },

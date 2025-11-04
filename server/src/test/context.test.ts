@@ -19,7 +19,11 @@ import { describe, test, jest, expect, beforeEach } from '@jest/globals';
 import { resetTokenizedDocumentProvider } from '../providers/tokenizedDocument';
 import { ContextAware } from '../runtimeEvaluator';
 import { ContextIssues } from '../types';
-import { defaultEditorSettings, getFakeBindingLoader } from './helpers';
+import {
+	defaultEditorSettings,
+	filePathUri,
+	getFakeBindingLoader,
+} from './helpers';
 
 jest.mock('fs', () => ({
 	readFileSync: jest.fn().mockImplementation(() => {
@@ -40,7 +44,7 @@ describe('Runtime', () => {
 	test('Root node with node path ref', async () => {
 		mockReadFileSync('&{/} {prop1;cpus{};memory{};};');
 		const context = new ContextAware(
-			{ dtsFile: 'file:///folder/dts.dts' },
+			{ dtsFile: filePathUri },
 			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
@@ -62,7 +66,7 @@ describe('Context Issues', () => {
 	test('Duplicate property name', async () => {
 		mockReadFileSync('/{prop1;prop1;cpus{};memory{};};');
 		const context = new ContextAware(
-			{ dtsFile: 'file:///folder/dts.dts' },
+			{ dtsFile: filePathUri },
 			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
@@ -82,7 +86,7 @@ describe('Context Issues', () => {
 	test('Delete non existing property', async () => {
 		mockReadFileSync('/{/delete-property/ prop1; cpus{};memory{};};');
 		const context = new ContextAware(
-			{ dtsFile: 'file:///folder/dts.dts' },
+			{ dtsFile: filePathUri },
 			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
@@ -101,7 +105,7 @@ describe('Context Issues', () => {
 			'/{/delete-property/ prop1; prop1; cpus{};memory{};};',
 		);
 		const context = new ContextAware(
-			{ dtsFile: 'file:///folder/dts.dts' },
+			{ dtsFile: filePathUri },
 			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
@@ -118,7 +122,7 @@ describe('Context Issues', () => {
 	test('Duplicate node name no address in node', async () => {
 		mockReadFileSync('/{node{};node{};cpus{};memory{};};');
 		const context = new ContextAware(
-			{ dtsFile: 'file:///folder/dts.dts' },
+			{ dtsFile: filePathUri },
 			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
@@ -135,7 +139,7 @@ describe('Context Issues', () => {
 	test('Duplicate node name with address in node', async () => {
 		mockReadFileSync('/{node@20{};node@20{};cpus{};memory{};};');
 		const context = new ContextAware(
-			{ dtsFile: 'file:///folder/dts.dts' },
+			{ dtsFile: filePathUri },
 			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
@@ -152,7 +156,7 @@ describe('Context Issues', () => {
 	test('Duplicate node name with address coma separated in node', async () => {
 		mockReadFileSync('/{node@20,30{};node@20,30{};cpus{};memory{};};');
 		const context = new ContextAware(
-			{ dtsFile: 'file:///folder/dts.dts' },
+			{ dtsFile: filePathUri },
 			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
@@ -170,7 +174,7 @@ describe('Context Issues', () => {
 		test('prop with invalid ref', async () => {
 			mockReadFileSync('/{prop1=&l1; cpus{};memory{};};');
 			const context = new ContextAware(
-				{ dtsFile: 'file:///folder/dts.dts' },
+				{ dtsFile: filePathUri },
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -187,7 +191,7 @@ describe('Context Issues', () => {
 		test('Node Ref', async () => {
 			mockReadFileSync('&nodeLabel{}; /{cpus{};memory{};};');
 			const context = new ContextAware(
-				{ dtsFile: 'file:///folder/dts.dts' },
+				{ dtsFile: filePathUri },
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -206,7 +210,7 @@ describe('Context Issues', () => {
 				'/{l1: node1 {}; cpus{};memory{};}; /delete-node/ &l1; &l1{};',
 			);
 			const context = new ContextAware(
-				{ dtsFile: 'file:///folder/dts.dts' },
+				{ dtsFile: filePathUri },
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -227,7 +231,7 @@ describe('Context Issues', () => {
 				'/{l1: node1{}; /delete-node/ node1; cpus{};memory{};}; &l1{};',
 			);
 			const context = new ContextAware(
-				{ dtsFile: 'file:///folder/dts.dts' },
+				{ dtsFile: filePathUri },
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -246,7 +250,7 @@ describe('Context Issues', () => {
 		test('Delete Node with Ref', async () => {
 			mockReadFileSync('/delete-node/ &nodeLabel; /{cpus{};memory{};}');
 			const context = new ContextAware(
-				{ dtsFile: 'file:///folder/dts.dts' },
+				{ dtsFile: filePathUri },
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -264,7 +268,7 @@ describe('Context Issues', () => {
 	test('Duplicate label use', async () => {
 		mockReadFileSync('/{l1: node1{}; l1: node2{};cpus{};memory{};};');
 		const context = new ContextAware(
-			{ dtsFile: 'file:///folder/dts.dts' },
+			{ dtsFile: filePathUri },
 			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
@@ -284,7 +288,7 @@ describe('Context Issues', () => {
 	test('Delete non existing node', async () => {
 		mockReadFileSync('/{/delete-node/ node; cpus{};memory{};};');
 		const context = new ContextAware(
-			{ dtsFile: 'file:///folder/dts.dts' },
+			{ dtsFile: filePathUri },
 			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
@@ -301,7 +305,7 @@ describe('Context Issues', () => {
 	test('Delete node before created node', async () => {
 		mockReadFileSync('/{/delete-node/ node; node{};cpus{};memory{};};');
 		const context = new ContextAware(
-			{ dtsFile: 'file:///folder/dts.dts' },
+			{ dtsFile: filePathUri },
 			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
@@ -321,7 +325,7 @@ describe('Context Issues', () => {
 				'/{node {prop1; /delete-property/ prop1;}; cpus{};memory{};};',
 			);
 			const context = new ContextAware(
-				{ dtsFile: 'file:///folder/dts.dts' },
+				{ dtsFile: filePathUri },
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -340,7 +344,7 @@ describe('Context Issues', () => {
 				'/{node {prop1;}};/{node {prop1; /delete-property/ prop1;};cpus{};memory{};};',
 			);
 			const context = new ContextAware(
-				{ dtsFile: 'file:///folder/dts.dts' },
+				{ dtsFile: filePathUri },
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -371,7 +375,7 @@ describe('Context Issues', () => {
 				'/{node {}; /delete-node/ node; cpus{};memory{};};',
 			);
 			const context = new ContextAware(
-				{ dtsFile: 'file:///folder/dts.dts' },
+				{ dtsFile: filePathUri },
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -391,7 +395,7 @@ describe('Context Issues', () => {
 				'/{node@200 {}; node@300 {}; /delete-node/ node@300;cpus{};memory{};};',
 			);
 			const context = new ContextAware(
-				{ dtsFile: 'file:///folder/dts.dts' },
+				{ dtsFile: filePathUri },
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -408,7 +412,7 @@ describe('Context Issues', () => {
 				'/{l1: node {}; cpus{};memory{};};  /delete-node/ &l1;',
 			);
 			const context = new ContextAware(
-				{ dtsFile: 'file:///folder/dts.dts' },
+				{ dtsFile: filePathUri },
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -425,7 +429,7 @@ describe('Context Issues', () => {
 				'/{l1: node1 {node2 {};};cpus{};memory{};};  /delete-node/ &{/node1/node2};',
 			);
 			const context = new ContextAware(
-				{ dtsFile: 'file:///folder/dts.dts' },
+				{ dtsFile: filePathUri },
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -442,7 +446,7 @@ describe('Context Issues', () => {
 				'/{node {};};/{node {}; /delete-node/ node cpus{};memory{};};',
 			);
 			const context = new ContextAware(
-				{ dtsFile: 'file:///folder/dts.dts' },
+				{ dtsFile: filePathUri },
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -464,7 +468,7 @@ describe('Context Issues', () => {
 				'/{node1{};cpus{};memory{};};/delete-node/ &{/node1/node2};',
 			);
 			const context = new ContextAware(
-				{ dtsFile: 'file:///folder/dts.dts' },
+				{ dtsFile: filePathUri },
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -484,7 +488,7 @@ describe('Context Issues', () => {
 				'/{node1{};}; /{prop1=<&{/node1/node2}>;cpus{};memory{};};',
 			);
 			const context = new ContextAware(
-				{ dtsFile: 'file:///folder/dts.dts' },
+				{ dtsFile: filePathUri },
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -504,7 +508,7 @@ describe('Context Issues', () => {
 				'/{node1{};}; /{prop1=&{/node1/node2};cpus{};memory{};};',
 			);
 			const context = new ContextAware(
-				{ dtsFile: 'file:///folder/dts.dts' },
+				{ dtsFile: filePathUri },
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -526,7 +530,7 @@ describe('Context Issues', () => {
 				'/{l1: node1{};cpus{};memory{};};/delete-node/ &l2;',
 			);
 			const context = new ContextAware(
-				{ dtsFile: 'file:///folder/dts.dts' },
+				{ dtsFile: filePathUri },
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -546,7 +550,7 @@ describe('Context Issues', () => {
 				'/{l1: node1{};}; /{prop1=<&l2>;cpus{};memory{};};',
 			);
 			const context = new ContextAware(
-				{ dtsFile: 'file:///folder/dts.dts' },
+				{ dtsFile: filePathUri },
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -564,7 +568,7 @@ describe('Context Issues', () => {
 		test('property node path ref', async () => {
 			mockReadFileSync('/{l1: node1{};}; /{prop1=&l2;cpus{};memory{};};');
 			const context = new ContextAware(
-				{ dtsFile: 'file:///folder/dts.dts' },
+				{ dtsFile: filePathUri },
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -584,7 +588,7 @@ describe('Context Issues', () => {
 		test('missing cpus', async () => {
 			mockReadFileSync('/{memory{};};');
 			const context = new ContextAware(
-				{ dtsFile: 'file:///folder/dts.dts' },
+				{ dtsFile: filePathUri },
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -600,7 +604,7 @@ describe('Context Issues', () => {
 		test.skip('missing memory', async () => {
 			mockReadFileSync('/{cpus{};};');
 			const context = new ContextAware(
-				{ dtsFile: 'file:///folder/dts.dts' },
+				{ dtsFile: filePathUri },
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);

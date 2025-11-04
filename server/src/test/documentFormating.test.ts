@@ -25,7 +25,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { resetTokenizedDocumentProvider } from '../providers/tokenizedDocument';
 import { ContextAware } from '../runtimeEvaluator';
 import { getDocumentFormatting } from '../getDocumentFormatting';
-import { getFakeBindingLoader } from './helpers';
+import { filePathUri, getFakeBindingLoader } from './helpers';
 
 jest.mock('fs', () => ({
 	readFileSync: jest.fn().mockImplementation(() => {
@@ -84,7 +84,7 @@ const getNewText = async (
 ) => {
 	// Create a text document
 	const document = TextDocument.create(
-		'file:///folder/dts.dts',
+		filePathUri,
 		'devicetree',
 		0,
 		documentText,
