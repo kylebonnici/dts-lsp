@@ -19,6 +19,18 @@ import { getStandardType } from '../dtsTypes/standardTypes';
 import { BindingLoader } from '../dtsTypes/bindings/bindingLoader';
 import { Node } from '../context/node';
 
+export const filePath =
+	process.platform === 'win32' ? 'c:\\folder\\dts.dts' : '/folder/dts.dts';
+
+export const filePathUri = `file:///${filePath}`;
+
+export const filePathSomeOther =
+	process.platform === 'win32'
+		? 'c:\\folder\\some.dtsi'
+		: '/folder/some.dtsi';
+
+export const filePathSomeOtherUri = `file:///${filePathSomeOther}`;
+
 export const defaultEditorSettings: FormattingOptions = {
 	tabSize: 4,
 	insertSpaces: false,

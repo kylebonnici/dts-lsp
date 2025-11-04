@@ -25,7 +25,11 @@ import {
 import { resetTokenizedDocumentProvider } from '../providers/tokenizedDocument';
 import { ContextAware } from '../runtimeEvaluator';
 import { getTypeCompletions } from '../getTypeCompletions';
-import { defaultEditorSettings, getFakeBindingLoader } from './helpers';
+import {
+	defaultEditorSettings,
+	filePathUri,
+	getFakeBindingLoader,
+} from './helpers';
 
 jest.mock('fs', () => ({
 	readFileSync: jest.fn().mockImplementation(() => {
@@ -50,7 +54,7 @@ describe('Find typed completions', () => {
 		test('status first string', async () => {
 			mockReadFileSync('/{node{status= ;};};');
 			const textDocument: TextDocumentIdentifier = {
-				uri: 'file:///folder/dts.dts',
+				uri: filePathUri,
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
@@ -76,7 +80,7 @@ describe('Find typed completions', () => {
 		test('status second string', async () => {
 			mockReadFileSync('/{node{status= "okay", ;};};');
 			const textDocument: TextDocumentIdentifier = {
-				uri: 'file:///folder/dts.dts',
+				uri: filePathUri,
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
@@ -97,7 +101,7 @@ describe('Find typed completions', () => {
 		test('address-cells first value', async () => {
 			mockReadFileSync('/{node{#address-cells= ;};};');
 			const textDocument: TextDocumentIdentifier = {
-				uri: 'file:///folder/dts.dts',
+				uri: filePathUri,
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
@@ -119,7 +123,7 @@ describe('Find typed completions', () => {
 		test('address-cells second value', async () => {
 			mockReadFileSync('/{node{#address-cells= <10>,;};};');
 			const textDocument: TextDocumentIdentifier = {
-				uri: 'file:///folder/dts.dts',
+				uri: filePathUri,
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
@@ -140,7 +144,7 @@ describe('Find typed completions', () => {
 		test('size-cells first value', async () => {
 			mockReadFileSync('/{node{#size-cells= ;};};');
 			const textDocument: TextDocumentIdentifier = {
-				uri: 'file:///folder/dts.dts',
+				uri: filePathUri,
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
@@ -162,7 +166,7 @@ describe('Find typed completions', () => {
 		test('size-cells second value', async () => {
 			mockReadFileSync('/{node{#size-cells= <10>,;};};');
 			const textDocument: TextDocumentIdentifier = {
-				uri: 'file:///folder/dts.dts',
+				uri: filePathUri,
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
@@ -183,7 +187,7 @@ describe('Find typed completions', () => {
 		test('device_type - cpu', async () => {
 			mockReadFileSync('/{cpu{device_type= ;};};');
 			const textDocument: TextDocumentIdentifier = {
-				uri: 'file:///folder/dts.dts',
+				uri: filePathUri,
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },
@@ -205,7 +209,7 @@ describe('Find typed completions', () => {
 		test('device_type - memory', async () => {
 			mockReadFileSync('/{memory{device_type= ;};};');
 			const textDocument: TextDocumentIdentifier = {
-				uri: 'file:///folder/dts.dts',
+				uri: filePathUri,
 			};
 			const context = new ContextAware(
 				{ dtsFile: fileURLToPath(textDocument.uri) },

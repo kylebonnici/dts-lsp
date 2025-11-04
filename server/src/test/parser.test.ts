@@ -52,6 +52,7 @@ import {
 import { DtsMemreserveNode } from '../ast/dtc/memreserveNode';
 import { tokensToString } from '../helpers';
 import { Keyword } from '../ast/keyword';
+import { filePath, filePathSomeOther } from './helpers';
 
 jest.mock('fs', () => ({
 	readFileSync: jest.fn().mockImplementation(() => {
@@ -89,7 +90,7 @@ describe('Parser', () => {
 	describe('Doc version', () => {
 		test('Valid', async () => {
 			mockReadFileSync('/dts-v1/;');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(0);
 
@@ -99,7 +100,7 @@ describe('Parser', () => {
 
 		test('Missing end slash', async () => {
 			mockReadFileSync('/dts-v1');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -112,7 +113,7 @@ describe('Parser', () => {
 	describe('Memreserve', () => {
 		test('Valid', async () => {
 			mockReadFileSync('/memreserve/ 0x123 0x345;');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(0);
 
@@ -128,7 +129,7 @@ describe('Parser', () => {
 
 		test('Missing end slash', async () => {
 			mockReadFileSync('/memreserve 0x123 0x345;');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -147,7 +148,7 @@ describe('Parser', () => {
 
 		test('Missing end address slash', async () => {
 			mockReadFileSync('/memreserve/ 0x123;');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -166,7 +167,7 @@ describe('Parser', () => {
 
 		test('Missing start and end address slash', async () => {
 			mockReadFileSync('/memreserve/;');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(2);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -191,7 +192,7 @@ describe('Parser', () => {
 	describe('Plugin', () => {
 		test('Valid', async () => {
 			mockReadFileSync('/plugin/;');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(0);
 
@@ -204,7 +205,7 @@ describe('Parser', () => {
 		describe('Missing', () => {
 			test('Doc version', async () => {
 				mockReadFileSync('/dts-v1/');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -218,7 +219,7 @@ describe('Parser', () => {
 
 			test('Root Node', async () => {
 				mockReadFileSync('/{}');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -232,7 +233,7 @@ describe('Parser', () => {
 
 			test('Child Node', async () => {
 				mockReadFileSync('/{ node {}};');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -246,7 +247,7 @@ describe('Parser', () => {
 
 			test('Root and Child Node', async () => {
 				mockReadFileSync('/{ node {}}');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(2);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -268,7 +269,7 @@ describe('Parser', () => {
 
 			test('Property no value', async () => {
 				mockReadFileSync('/{ prop1 };');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -282,7 +283,7 @@ describe('Parser', () => {
 
 			test('Property with value', async () => {
 				mockReadFileSync('/{ prop1=<10> };');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -296,7 +297,7 @@ describe('Parser', () => {
 
 			test('Property in node with value', async () => {
 				mockReadFileSync('/{ node {prop1=<10>} };');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(2);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -319,7 +320,7 @@ describe('Parser', () => {
 
 		test('Extra', async () => {
 			mockReadFileSync('/{};;');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -335,7 +336,7 @@ describe('Parser', () => {
 	describe('Missing open curly', () => {
 		test('Child node, with address', async () => {
 			mockReadFileSync('/{node1@20 \n};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -347,7 +348,7 @@ describe('Parser', () => {
 
 		test('Ref Node', async () => {
 			mockReadFileSync('&label ');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -370,7 +371,7 @@ describe('Parser', () => {
 	describe('Missing close curly', () => {
 		test('Ref Node', async () => {
 			mockReadFileSync('&label {');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -381,7 +382,7 @@ describe('Parser', () => {
 
 		test('Root Node', async () => {
 			mockReadFileSync('/{');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -392,7 +393,7 @@ describe('Parser', () => {
 
 		test('Child Node', async () => {
 			mockReadFileSync('/{ node1{}; node{');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(2);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -407,7 +408,7 @@ describe('Parser', () => {
 
 		test('Ref Path', async () => {
 			mockReadFileSync('/{prop=<&{/node1/node2>;};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -420,7 +421,7 @@ describe('Parser', () => {
 	describe('White Space', () => {
 		test('Child node, whitespace between address', async () => {
 			mockReadFileSync('/{node1@ 20{};};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -443,7 +444,7 @@ describe('Parser', () => {
 
 		test('Child node, whitespace between name', async () => {
 			mockReadFileSync('/{node1 @20{};};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -467,7 +468,7 @@ describe('Parser', () => {
 
 		test('Ref Path start', async () => {
 			mockReadFileSync('/{prop=<&{  /node1/node2}>;};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -480,7 +481,7 @@ describe('Parser', () => {
 
 		test('Label assign', async () => {
 			mockReadFileSync('/{l1   : node{};};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -493,7 +494,7 @@ describe('Parser', () => {
 
 		test('Label ref', async () => {
 			mockReadFileSync('/{prop=&  l1;};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -506,7 +507,7 @@ describe('Parser', () => {
 
 		test('Label ref child node', async () => {
 			mockReadFileSync('&  n1{ };');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -519,7 +520,7 @@ describe('Parser', () => {
 
 		test('Ref Path end', async () => {
 			mockReadFileSync('/{prop=<&{/node1/node2    }>;};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -532,7 +533,7 @@ describe('Parser', () => {
 
 		test('Ref Path between - 1', async () => {
 			mockReadFileSync('/{prop=<&{/node1    /node2}>;};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -545,7 +546,7 @@ describe('Parser', () => {
 
 		test('Ref Path between - 2', async () => {
 			mockReadFileSync('/{prop=<&{/node1/    node2}>;};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -560,7 +561,7 @@ describe('Parser', () => {
 	describe('Missing forward slash', () => {
 		test('Ref Path start', async () => {
 			mockReadFileSync('/{prop=<&{node1/node2}>;};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -574,7 +575,7 @@ describe('Parser', () => {
 	describe('Property', () => {
 		test('with true in name', async () => {
 			mockReadFileSync('/{cavium,true-ide;};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(0);
 			const rootDts = parser.rootDocument.children[0] as DtcRootNode;
@@ -587,7 +588,7 @@ describe('Parser', () => {
 
 		test('with false in name', async () => {
 			mockReadFileSync('/{cavium,false-ide;};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(0);
 			const rootDts = parser.rootDocument.children[0] as DtcRootNode;
@@ -600,7 +601,7 @@ describe('Parser', () => {
 
 		test('Property in root doc', async () => {
 			mockReadFileSync('prop1=<10>;');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -614,7 +615,7 @@ describe('Parser', () => {
 			describe('Macro calls', () => {
 				test('At root', async () => {
 					mockReadFileSync('#define FOO(x) \n /{prop=FOO(10);};');
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(0);
 					const rootDts = parser.rootDocument
@@ -644,7 +645,7 @@ describe('Parser', () => {
 
 				test('No Parameters', async () => {
 					mockReadFileSync('#define FOO() ff \n /{prop=FOO();};');
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(0);
 					const rootDts = parser.rootDocument
@@ -676,7 +677,7 @@ describe('Parser', () => {
 					mockReadFileSync(
 						'#define FOO(x,y,z) \n/{prop=FOO(10,,20);};',
 					);
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(0);
 					const rootDts = parser.rootDocument
@@ -711,7 +712,7 @@ describe('Parser', () => {
 			describe('Bytestring value', () => {
 				test('With spaces ', async () => {
 					mockReadFileSync('/{prop=[00 11 22 33];};');
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(0);
 					const rootDts = parser.rootDocument
@@ -741,7 +742,7 @@ describe('Parser', () => {
 
 				test('With no spaces ', async () => {
 					mockReadFileSync('/{prop=[00112233];};');
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(0);
 					const rootDts = parser.rootDocument
@@ -771,7 +772,7 @@ describe('Parser', () => {
 
 				test('Mixed spaces and no spaces ', async () => {
 					mockReadFileSync('/{prop=[00 1122 33];};');
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(0);
 					const rootDts = parser.rootDocument
@@ -801,7 +802,7 @@ describe('Parser', () => {
 
 				test('With no odd values no spaces ', async () => {
 					mockReadFileSync('/{prop=[0011223];};');
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(1);
 					expect(parser.issues[0].raw.issues).toEqual([
@@ -838,7 +839,7 @@ describe('Parser', () => {
 
 				test('With no odd values with spaces - 1', async () => {
 					mockReadFileSync('/{prop=[00 11 22 3];};');
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(1);
 					expect(parser.issues[0].raw.issues).toEqual([
@@ -875,7 +876,7 @@ describe('Parser', () => {
 
 				test('With no odd values with spaces - 1', async () => {
 					mockReadFileSync('/{prop=[00 11 2 33];};');
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(1);
 					expect(parser.issues[0].raw.issues).toEqual([
@@ -912,7 +913,7 @@ describe('Parser', () => {
 			});
 			test('Label ref ', async () => {
 				mockReadFileSync('/{prop=&l1;};');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 				const rootDts = parser.rootDocument.children[0] as DtcRootNode;
@@ -938,7 +939,7 @@ describe('Parser', () => {
 			describe('String value', () => {
 				test('String value single quotes with double quotes inside', async () => {
 					mockReadFileSync('/{prop=\'He said "Hi".\';};');
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(0);
 					const rootDts = parser.rootDocument
@@ -968,7 +969,7 @@ describe('Parser', () => {
 
 				test('String value double quotes and single quotes inside', async () => {
 					mockReadFileSync('/{prop="He said \'Hi\'.";};');
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(0);
 					const rootDts = parser.rootDocument
@@ -998,7 +999,7 @@ describe('Parser', () => {
 
 				test('String value double quotes and double quotes inside', async () => {
 					mockReadFileSync('/{prop="He said \\"Hi\\".";};');
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(0);
 					const rootDts = parser.rootDocument
@@ -1028,7 +1029,7 @@ describe('Parser', () => {
 
 				test('String value Single quotes and Single quotes inside', async () => {
 					mockReadFileSync("/{prop='He said \\'Hi\\'.';};");
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(0);
 					const rootDts = parser.rootDocument
@@ -1060,7 +1061,7 @@ describe('Parser', () => {
 					mockReadFileSync(
 						"/{prop='He said \n nice line breal\n right?';};",
 					);
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(0);
 					const rootDts = parser.rootDocument
@@ -1092,7 +1093,7 @@ describe('Parser', () => {
 			describe('Cell array', () => {
 				test('Number Array', async () => {
 					mockReadFileSync('/{prop=<10 20 30 0xFF 0xaa>;};');
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(0);
 					const rootDts = parser.rootDocument
@@ -1140,7 +1141,7 @@ describe('Parser', () => {
 						mockReadFileSync(
 							'#define ADD(x,y) \n/{prop=<ADD(1,2)>;};',
 						);
-						const parser = new Parser('/folder/dts.dts', []);
+						const parser = new Parser(filePath, []);
 						await parser.stable;
 						expect(parser.issues.length).toEqual(0);
 						const rootDts = parser.rootDocument
@@ -1184,7 +1185,7 @@ describe('Parser', () => {
 						mockReadFileSync(
 							'#define VAL 5 \n/{prop=<10 VAL (1 + 2)>;};',
 						);
-						const parser = new Parser('/folder/dts.dts', []);
+						const parser = new Parser(filePath, []);
 						await parser.stable;
 						expect(parser.issues.length).toEqual(0);
 						const rootDts = parser.rootDocument
@@ -1236,7 +1237,7 @@ describe('Parser', () => {
 						mockReadFileSync(
 							'#define ADD(x) \n/{prop=<ADD(1 2)>;};',
 						);
-						const parser = new Parser('/folder/dts.dts', []);
+						const parser = new Parser(filePath, []);
 						await parser.stable;
 						expect(parser.issues.length).toEqual(0);
 						const rootDts = parser.rootDocument
@@ -1279,7 +1280,7 @@ describe('Parser', () => {
 						mockReadFileSync(
 							'#define ADD(x,y)\n#define MULT(x,y)\n /{prop=<ADD(1,MULT(2, 5))>;};',
 						);
-						const parser = new Parser('/folder/dts.dts', []);
+						const parser = new Parser(filePath, []);
 						await parser.stable;
 						expect(parser.issues.length).toEqual(0);
 						const rootDts = parser.rootDocument
@@ -1323,7 +1324,7 @@ describe('Parser', () => {
 						mockReadFileSync(
 							'#define ADD(x,y) \n/{prop=<ADD(1,(2 + 5) * (50 + 1))>;};',
 						);
-						const parser = new Parser('/folder/dts.dts', []);
+						const parser = new Parser(filePath, []);
 						await parser.stable;
 						expect(parser.issues.length).toEqual(0);
 						const rootDts = parser.rootDocument
@@ -1367,7 +1368,7 @@ describe('Parser', () => {
 						mockReadFileSync(
 							'#define ADD(x,y,z) x+y+z \n/{prop=<ADD(1,\\\n2,\\\n3)>;};',
 						);
-						const parser = new Parser('/folder/dts.dts', []);
+						const parser = new Parser(filePath, []);
 						await parser.stable;
 						expect(parser.issues.length).toEqual(0);
 						const rootDts = parser.rootDocument
@@ -1412,7 +1413,7 @@ describe('Parser', () => {
 						mockReadFileSync(
 							'#define ADD(x,y) \n/{prop=<(ADD(1,\\\n2))>;};',
 						);
-						const parser = new Parser('/folder/dts.dts', []);
+						const parser = new Parser(filePath, []);
 						await parser.stable;
 						expect(parser.issues.length).toEqual(0);
 						const rootDts = parser.rootDocument
@@ -1446,7 +1447,7 @@ describe('Parser', () => {
 					mockReadFileSync(
 						'/{prop=<(10 + 20 * 4 / 5 + (10 + 20 - 30))>;};',
 					);
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(0);
 					const rootDts = parser.rootDocument
@@ -1484,7 +1485,7 @@ describe('Parser', () => {
 
 				test('Single inside label ref ', async () => {
 					mockReadFileSync('/{prop=<&l1>;};');
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(0);
 					const rootDts = parser.rootDocument
@@ -1522,7 +1523,7 @@ describe('Parser', () => {
 
 				test('Single Array Values inside mixed  ', async () => {
 					mockReadFileSync('/{prop=<&l1 &{/node1/node2} 20 >;};');
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(0);
 					const rootDts = parser.rootDocument
@@ -1573,13 +1574,13 @@ describe('Parser', () => {
 						).value,
 					).toEqual(20);
 
-					rootDts.getDocumentSymbols('/folder/dts.dts');
+					rootDts.getDocumentSymbols(filePath);
 				});
 
 				describe('Node Ref Path', () => {
 					test('Ends with extra slash', async () => {
 						mockReadFileSync('/{prop=<&{/node1/node2/}>;};');
-						const parser = new Parser('/folder/dts.dts', []);
+						const parser = new Parser(filePath, []);
 						await parser.stable;
 						expect(parser.issues.length).toEqual(1);
 						expect(parser.issues[0].raw.issues).toEqual([
@@ -1593,7 +1594,7 @@ describe('Parser', () => {
 
 					test('missing ending curly', async () => {
 						mockReadFileSync('/{prop=<&{/node1/node2>;};');
-						const parser = new Parser('/folder/dts.dts', []);
+						const parser = new Parser(filePath, []);
 						await parser.stable;
 						expect(parser.issues.length).toEqual(1);
 						expect(parser.issues[0].raw.issues).toEqual([
@@ -1610,7 +1611,7 @@ describe('Parser', () => {
 					mockReadFileSync(
 						'/{l1: prop=l2: <l3: 10 l4: 20 l5: 30 l6: 0xFF l7: 0xaa l8:> l9: ;};',
 					);
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(0);
 					const rootDts = parser.rootDocument
@@ -1662,7 +1663,7 @@ describe('Parser', () => {
 
 				test('labeled number array Missing :', async () => {
 					mockReadFileSync('/{prop= l1 l2 <10>;};');
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(2);
 					expect(parser.issues[0].raw.issues).toEqual([
@@ -1716,7 +1717,7 @@ describe('Parser', () => {
 					mockReadFileSync(
 						'/{prop=<10 0xaa>, \'Foo\', "Bar", [10 20], [3040], &l1, <&{/node1/node2} 10>;};',
 					);
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(0);
 					const rootDts = parser.rootDocument
@@ -1818,7 +1819,7 @@ describe('Parser', () => {
 
 				test('Missing comma', async () => {
 					mockReadFileSync('/{prop=<10 20> <20 30>;};');
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(1);
 
@@ -1832,7 +1833,7 @@ describe('Parser', () => {
 
 				test('Missing value', async () => {
 					mockReadFileSync('/{prop=<10 20>, ,<20 30>;};');
-					const parser = new Parser('/folder/dts.dts', []);
+					const parser = new Parser(filePath, []);
 					await parser.stable;
 					expect(parser.issues.length).toEqual(1);
 
@@ -1850,7 +1851,7 @@ describe('Parser', () => {
 
 			test('Node path ref ', async () => {
 				mockReadFileSync('/{prop=&{/node1/node2};};');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 				const rootDts = parser.rootDocument.children[0] as DtcRootNode;
@@ -1877,7 +1878,7 @@ describe('Parser', () => {
 
 			test('Root node path ref ', async () => {
 				mockReadFileSync('&{/} {prop=&{/};};');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 				const rootDts = parser.rootDocument.children[0] as DtcRootNode;
@@ -1907,7 +1908,7 @@ describe('Parser', () => {
 	describe('Node syntax', () => {
 		test('Empty Root Node', async () => {
 			mockReadFileSync('/{};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.children.length).toEqual(1);
@@ -1931,7 +1932,7 @@ describe('Parser', () => {
 
 		test('Root Node with properties', async () => {
 			mockReadFileSync('/{prop1; prop2=<10>;};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.children.length).toEqual(1);
@@ -1958,7 +1959,7 @@ describe('Parser', () => {
 
 		test('Root Node with nested nodes', async () => {
 			mockReadFileSync('/{node1{}; node2{};};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.children.length).toEqual(1);
@@ -1985,7 +1986,7 @@ describe('Parser', () => {
 
 		test('Label Ref Node', async () => {
 			mockReadFileSync('&label{};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.children.length).toEqual(1);
@@ -2014,7 +2015,7 @@ describe('Parser', () => {
 
 		test('Node paths ref Node', async () => {
 			mockReadFileSync('&{/node1/node2}{};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.children.length).toEqual(1);
@@ -2050,7 +2051,7 @@ describe('Parser', () => {
 
 		test('Labeled Ref Node', async () => {
 			mockReadFileSync('l1: l2: &label{};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.children.length).toEqual(1);
@@ -2070,7 +2071,7 @@ describe('Parser', () => {
 
 		test('Child node, no address', async () => {
 			mockReadFileSync('/{node1{};};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.children.length).toEqual(1);
@@ -2087,7 +2088,7 @@ describe('Parser', () => {
 
 		test('Child node, with address', async () => {
 			mockReadFileSync('/{node1@20{};};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.children.length).toEqual(1);
@@ -2106,7 +2107,7 @@ describe('Parser', () => {
 
 		test('Child node, with coma separated addresses', async () => {
 			mockReadFileSync('/{node1@20,30{};};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.children.length).toEqual(1);
@@ -2128,7 +2129,7 @@ describe('Parser', () => {
 
 		test('Child node, multiple with labels', async () => {
 			mockReadFileSync('/{l1: l2: node1@20{};};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.children.length).toEqual(1);
@@ -2147,7 +2148,7 @@ describe('Parser', () => {
 
 		test('Child node, with 0x address', async () => {
 			mockReadFileSync('/{node1@0x20{};};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -2169,7 +2170,7 @@ describe('Parser', () => {
 
 		test('Child node with address ending ULL', async () => {
 			mockReadFileSync('/{node1@20ULL{};};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -2191,7 +2192,7 @@ describe('Parser', () => {
 
 		test('Child node address with _', async () => {
 			mockReadFileSync('/{node1@8_000_00{};};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(0);
 			expect(parser.rootDocument.children.length).toEqual(1);
@@ -2210,7 +2211,7 @@ describe('Parser', () => {
 
 		test('Child node address unknown syntax', async () => {
 			mockReadFileSync('/{node1@FOO_BAR{};};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -2229,7 +2230,7 @@ describe('Parser', () => {
 
 		test('Child node, missing address', async () => {
 			mockReadFileSync('/{node1@{};};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -2243,7 +2244,7 @@ describe('Parser', () => {
 
 		test('Child node, coma separated address, missing address', async () => {
 			mockReadFileSync('/{node1@20,,{};};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(2);
 
@@ -2270,7 +2271,7 @@ describe('Parser', () => {
 
 		test('Child node, name starts with number', async () => {
 			mockReadFileSync('/{9node1{};};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -2290,7 +2291,7 @@ describe('Parser', () => {
 
 		test('Root node, missing name or ref', async () => {
 			mockReadFileSync('{};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -2304,7 +2305,7 @@ describe('Parser', () => {
 
 		test('Ref node, no ref label', async () => {
 			mockReadFileSync('&{};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -2316,7 +2317,7 @@ describe('Parser', () => {
 
 		test('Labeled Ref node, no ref label', async () => {
 			mockReadFileSync('label: &{};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -2328,7 +2329,7 @@ describe('Parser', () => {
 
 		test('Child node, missing node name', async () => {
 			mockReadFileSync('/{ {};};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -2340,7 +2341,7 @@ describe('Parser', () => {
 
 		test('Labeled Child node, missing node name', async () => {
 			mockReadFileSync('/{ label: {};};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 			expect(parser.issues.length).toEqual(1);
 			expect(parser.issues[0].raw.issues).toEqual([
@@ -2360,7 +2361,7 @@ describe('Parser', () => {
 		describe('Node', () => {
 			test('with node name no address', async () => {
 				mockReadFileSync('/{/delete-node/ nodeName;};');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 
@@ -2377,7 +2378,7 @@ describe('Parser', () => {
 
 			test('with node name with address', async () => {
 				mockReadFileSync('/{/delete-node/ nodeName@200;};');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 
@@ -2399,7 +2400,7 @@ describe('Parser', () => {
 
 			test('with node path ref in root node - expects node name', async () => {
 				mockReadFileSync('/{/delete-node/ &{/node1/node2@200};};');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -2412,7 +2413,7 @@ describe('Parser', () => {
 
 			test('with label ref in root node - expects node name', async () => {
 				mockReadFileSync('/{/delete-node/ &l1;};');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -2425,7 +2426,7 @@ describe('Parser', () => {
 
 			test('with node path ref in raw doc', async () => {
 				mockReadFileSync('/delete-node/ &{/node1/node2@200};');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 
@@ -2444,7 +2445,7 @@ describe('Parser', () => {
 
 			test('with label ref in raw doc', async () => {
 				mockReadFileSync('/delete-node/ &l1;');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 
@@ -2461,7 +2462,7 @@ describe('Parser', () => {
 
 			test('missing end forad slash', async () => {
 				mockReadFileSync('/{/delete-node nodeName;};');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -2483,7 +2484,7 @@ describe('Parser', () => {
 
 			test('incomplete - 1', async () => {
 				mockReadFileSync('/');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -2496,7 +2497,7 @@ describe('Parser', () => {
 
 			test('incomplete - 2', async () => {
 				mockReadFileSync('/delete-n &l1;');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -2511,7 +2512,7 @@ describe('Parser', () => {
 		describe('Property', () => {
 			test('Delete Property in node', async () => {
 				mockReadFileSync('/{/delete-property/ prop1;};');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 
@@ -2525,7 +2526,7 @@ describe('Parser', () => {
 
 			test('Delete Property in root doc', async () => {
 				mockReadFileSync('/delete-property/ prop1;');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -2537,7 +2538,7 @@ describe('Parser', () => {
 
 			test('missing end forward slash', async () => {
 				mockReadFileSync('/{/delete-property propName;};');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -2556,7 +2557,7 @@ describe('Parser', () => {
 
 			test('incomplete - 1', async () => {
 				mockReadFileSync('/');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -2569,7 +2570,7 @@ describe('Parser', () => {
 
 			test('incomplete - 2', async () => {
 				mockReadFileSync('/{/delete-p p1;};');
-				const parser = new Parser('/folder/dts.dts', []);
+				const parser = new Parser(filePath, []);
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -2585,7 +2586,7 @@ describe('Parser', () => {
 	describe('Comments', () => {
 		test('inline', async () => {
 			mockReadFileSync('    // foo bar    .');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 
 			expect(parser.issues.length).toEqual(0);
@@ -2600,7 +2601,7 @@ describe('Parser', () => {
 
 		test('with open quote inline ', async () => {
 			mockReadFileSync("    // foo bar's foo    .");
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 
 			expect(parser.issues.length).toEqual(0);
@@ -2615,7 +2616,7 @@ describe('Parser', () => {
 
 		test('Multi line on single line ', async () => {
 			mockReadFileSync('    /* foo bar */ ');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 
 			expect(parser.issues.length).toEqual(0);
@@ -2632,7 +2633,7 @@ describe('Parser', () => {
 			mockReadFileSync(
 				"// foo bar\n/* http://test.com\nfoo bar's */\n/{};",
 			);
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 
 			expect(parser.issues.length).toEqual(0);
@@ -2645,7 +2646,7 @@ describe('Parser', () => {
 
 		test('Multi line on multi line', async () => {
 			mockReadFileSync('    /* foo \nbar */ ');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 
 			expect(parser.issues.length).toEqual(0);
@@ -2668,7 +2669,7 @@ describe('Parser', () => {
 
 		test('Multi line between elements', async () => {
 			mockReadFileSync('/{prop= /* foo bar */  <10>;};');
-			const parser = new Parser('/folder/dts.dts', []);
+			const parser = new Parser(filePath, []);
 			await parser.stable;
 
 			expect(parser.issues.length).toEqual(0);
@@ -2705,7 +2706,7 @@ describe('Parser', () => {
 		describe('#error', () => {
 			test('consume error line and continue', async () => {
 				mockReadFileSync('#error "Test"\n#define FOO');
-				const parser = new Parser('/folder/dts.dts', [], new Map());
+				const parser = new Parser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 				expect(
@@ -2715,7 +2716,7 @@ describe('Parser', () => {
 
 			test('consume multiline error line and continue', async () => {
 				mockReadFileSync('#error "Test" \\ \n "BAR"\n#define FOO');
-				const parser = new Parser('/folder/dts.dts', [], new Map());
+				const parser = new Parser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 				expect(
@@ -2727,11 +2728,7 @@ describe('Parser', () => {
 		describe('#DEFINE', () => {
 			test('Missing identifier', async () => {
 				mockReadFileSync('#DEFINE');
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -2742,11 +2739,7 @@ describe('Parser', () => {
 
 			test('Simple name', async () => {
 				mockReadFileSync('#DEFINE FOO_BAR');
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 
@@ -2766,11 +2759,7 @@ describe('Parser', () => {
 
 			test('Function like', async () => {
 				mockReadFileSync('#DEFINE ADD(a,b) a + b');
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 
@@ -2792,11 +2781,7 @@ describe('Parser', () => {
 
 			test('Multi Line like', async () => {
 				mockReadFileSync('#DEFINE \\\nADD(a,b) \\\na + b');
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 
@@ -2819,11 +2804,7 @@ describe('Parser', () => {
 
 			test('Variadic function like', async () => {
 				mockReadFileSync('#DEFINE ADD(a,b, ...) a + b + c + d');
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 
@@ -2864,11 +2845,7 @@ describe('Parser', () => {
 
 			test('Multi line', async () => {
 				mockReadFileSync('#DEFINE ADD(a,b,c,d) a + b \\\n + c + d');
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 
@@ -2891,11 +2868,7 @@ describe('Parser', () => {
 
 			test('Missing comma function like', async () => {
 				mockReadFileSync('#DEFINE ADD(a b) a + b');
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -2906,11 +2879,7 @@ describe('Parser', () => {
 
 			test('Missing close round bracket function like - 1', async () => {
 				mockReadFileSync('#DEFINE ADD(a, b a + b');
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				const issues = parser.issues.filter((i) =>
 					i.raw.issues.some(
@@ -2926,11 +2895,7 @@ describe('Parser', () => {
 
 			test('Missing close round bracket function like - 2', async () => {
 				mockReadFileSync('#DEFINE FOO(');
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -2944,11 +2909,11 @@ describe('Parser', () => {
 			describe('#include', () => {
 				test('Include relative', async () => {
 					mockReadFilesSync({
-						'/folder/dts.dts': '#include "some.dtsi"',
-						'/folder/some.dtsi': '',
+						[filePath]: '#include "some.dtsi"',
+						[filePathSomeOther]: '',
 					});
 					const parser = new CPreprocessorParser(
-						'/folder/dts.dts',
+						filePath,
 						[],
 						new Map(),
 					);
@@ -2959,20 +2924,23 @@ describe('Parser', () => {
 						'some.dtsi',
 					);
 
-					expect(fs.existsSync).toBeCalledWith('/folder/some.dtsi');
-					expect(fs.readFileSync).nthCalledWith(
-						2,
-						'/folder/some.dtsi',
-					);
+					expect(fs.existsSync).toBeCalledWith(filePathSomeOther);
+					expect(fs.readFileSync).nthCalledWith(2, filePathSomeOther);
 				});
 				test('Include absolute', async () => {
+					const includePath =
+						process.platform === 'win32'
+							? 'c:\\my\\includes\\my_includes\\some.dtsi'
+							: '/my/includes/my_includes/some.dtsi';
 					mockReadFilesSync({
-						'/folder/dts.dts': '#include <my_includes/some.dtsi>',
-						'/my/includes/my_includes/some.dtsi': '',
+						[filePath]: '#include <my_includes/some.dtsi>',
+						[includePath]: '',
 					});
 					const parser = new CPreprocessorParser(
-						'/folder/dts.dts',
-						['/my/includes'],
+						filePath,
+						process.platform === 'win32'
+							? ['c:\\my\\includes']
+							: ['/my/includes'],
 						new Map(),
 					);
 					await parser.stable;
@@ -2982,23 +2950,24 @@ describe('Parser', () => {
 						'my_includes/some.dtsi',
 					);
 
-					expect(fs.existsSync).toBeCalledWith(
-						'/my/includes/my_includes/some.dtsi',
-					);
-					expect(fs.readFileSync).nthCalledWith(
-						2,
-						'/my/includes/my_includes/some.dtsi',
-					);
+					expect(fs.existsSync).toBeCalledWith(includePath);
+					expect(fs.readFileSync).nthCalledWith(2, includePath);
 				});
 
 				test('Include absolute', async () => {
+					const includePath =
+						process.platform === 'win32'
+							? 'c:\\my\\includes\\my_includes\\some.dtsi'
+							: '/my/includes/my_includes/some.dtsi';
 					mockReadFilesSync({
-						'/folder/dts.dts': '#include <my_includes/some.dtsi',
-						'/my/includes/my_includes/some.dtsi': '',
+						[filePath]: '#include <my_includes/some.dtsi',
+						[includePath]: '',
 					});
 					const parser = new CPreprocessorParser(
-						'/folder/dts.dts',
-						['/my/includes'],
+						filePath,
+						process.platform === 'win32'
+							? ['c:\\my\\includes']
+							: ['/my/includes'],
 						new Map(),
 					);
 					await parser.stable;
@@ -3015,11 +2984,11 @@ describe('Parser', () => {
 			describe('/include/', () => {
 				test('Include relative', async () => {
 					mockReadFilesSync({
-						'/folder/dts.dts': '/include/ "some.dtsi"',
-						'/folder/some.dtsi': '',
+						[filePath]: '/include/ "some.dtsi"',
+						[filePathSomeOther]: '',
 					});
 					const parser = new CPreprocessorParser(
-						'/folder/dts.dts',
+						filePath,
 						[],
 						new Map(),
 					);
@@ -3030,20 +2999,23 @@ describe('Parser', () => {
 						'some.dtsi',
 					);
 
-					expect(fs.existsSync).toBeCalledWith('/folder/some.dtsi');
-					expect(fs.readFileSync).nthCalledWith(
-						2,
-						'/folder/some.dtsi',
-					);
+					expect(fs.existsSync).toBeCalledWith(filePathSomeOther);
+					expect(fs.readFileSync).nthCalledWith(2, filePathSomeOther);
 				});
 				test('Include absolute', async () => {
+					const includePath =
+						process.platform === 'win32'
+							? 'c:\\my\\includes\\my_includes\\some.dtsi'
+							: '/my/includes/my_includes/some.dtsi';
 					mockReadFilesSync({
-						'/folder/dts.dts': '/include/ <my_includes/some.dtsi>',
-						'/my/includes/my_includes/some.dtsi': '',
+						[filePath]: '/include/ <my_includes/some.dtsi>',
+						[includePath]: '',
 					});
 					const parser = new CPreprocessorParser(
-						'/folder/dts.dts',
-						['/my/includes'],
+						filePath,
+						process.platform === 'win32'
+							? ['c:\\my\\includes']
+							: ['/my/includes'],
 						new Map(),
 					);
 					await parser.stable;
@@ -3053,23 +3025,24 @@ describe('Parser', () => {
 						'my_includes/some.dtsi',
 					);
 
-					expect(fs.existsSync).toBeCalledWith(
-						'/my/includes/my_includes/some.dtsi',
-					);
-					expect(fs.readFileSync).nthCalledWith(
-						2,
-						'/my/includes/my_includes/some.dtsi',
-					);
+					expect(fs.existsSync).toBeCalledWith(includePath);
+					expect(fs.readFileSync).nthCalledWith(2, includePath);
 				});
 
 				test('Include absolute', async () => {
+					const includePath =
+						process.platform === 'win32'
+							? 'c:\\my\\includes\\my_includes\\some.dtsi'
+							: '/my/includes/my_includes/some.dtsi';
 					mockReadFilesSync({
-						'/folder/dts.dts': '/include/ <my_includes/some.dtsi',
-						'/my/includes/my_includes/some.dtsi': '',
+						[filePath]: '/include/ <my_includes/some.dtsi',
+						[includePath]: '',
 					});
 					const parser = new CPreprocessorParser(
-						'/folder/dts.dts',
-						['/my/includes'],
+						filePath,
+						process.platform === 'win32'
+							? ['c:\\my\\includes']
+							: ['/my/includes'],
 						new Map(),
 					);
 					await parser.stable;
@@ -3087,11 +3060,7 @@ describe('Parser', () => {
 		describe('If def', () => {
 			test('Missing identifier', async () => {
 				mockReadFileSync('#IFDEF\n#endif');
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -3101,11 +3070,7 @@ describe('Parser', () => {
 			});
 			test('If def - end - false', async () => {
 				mockReadFileSync('#IFDEF HELLO\nsome\nstuff\n#endif');
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -3139,11 +3104,7 @@ describe('Parser', () => {
 				mockReadFileSync(
 					'#DEFINE HELLO\n#IFDEF HELLO\nsome\nstuff\n#endif',
 				);
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 
@@ -3176,11 +3137,7 @@ describe('Parser', () => {
 				mockReadFileSync(
 					'#DEFINE HELLO\n#DEFINE AGAIN\n#IFDEF HELLO\nsome\nstuff\n#IFDEF AGAIN\nfoo\nbar\n#endif\n#endif',
 				);
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 
@@ -3232,11 +3189,7 @@ describe('Parser', () => {
 				mockReadFileSync(
 					'#IFDEF HELLO\nsome\nstuff\n#else\nfoo\nbar\n#endif',
 				);
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -3284,11 +3237,7 @@ describe('Parser', () => {
 				mockReadFileSync(
 					`#IFDEF HELLO\n#IFDEF AGAIN\nsome\nstuff\n#else\nfoo\nbar\n#endif\n#else\n#IFDEF HELLO_AGAIN\nsome\nstuff\n#else\nfoo\nbar\n#endif\n#endif`,
 				);
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(2);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -3376,11 +3325,7 @@ describe('Parser', () => {
           \nsome\nstuff2\n#else\nfoo\nbar2\n#endif\n#endif`,
 				);
 
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(2);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -3464,11 +3409,7 @@ describe('Parser', () => {
 
 			test('If not def - end', async () => {
 				mockReadFileSync('#IFNDEF HELLO\nsome\nstuff\n#endif');
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 
@@ -3498,11 +3439,7 @@ describe('Parser', () => {
 		describe('If elif', () => {
 			test('negated If - does not exists', async () => {
 				mockReadFileSync('#IF !defined(HELLO)\nsome\nstuff\n#endif');
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 
@@ -3530,11 +3467,7 @@ describe('Parser', () => {
 				mockReadFileSync(
 					'#define HELLO\n#IF !defined(HELLO)\nsome\nstuff\n#endif',
 				);
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -3561,11 +3494,7 @@ describe('Parser', () => {
 
 			test('If def - end - defined - false', async () => {
 				mockReadFileSync('#IF defined(HELLO)\nsome\nstuff\n#endif');
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -3594,11 +3523,7 @@ describe('Parser', () => {
 				mockReadFileSync(
 					'#IF defined(HELLO)\nsome\nstuff\n#else\nfoo\nbar\n#endif',
 				);
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -3629,11 +3554,7 @@ describe('Parser', () => {
 				mockReadFileSync(
 					'#DEFINE AGAIN\n#IF defined(HELLO)\nsome\nstuff\n#ELIF defined(AGAIN)\nFOOBAR\n#ELSE\nfoo\nbar\n#endif',
 				);
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(2);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -3665,11 +3586,7 @@ describe('Parser', () => {
 				mockReadFileSync(
 					'#DEFINE HELLO\n#IF defined(HELLO)\nsome\nstuff\n#endif',
 				);
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 
@@ -3695,11 +3612,7 @@ describe('Parser', () => {
 
 			test('If def - end - simple expression - true', async () => {
 				mockReadFileSync('#IF 10 < 20\nsome\nstuff\n#endif');
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 
@@ -3720,11 +3633,7 @@ describe('Parser', () => {
 
 			test('If def - end - simple expression - false', async () => {
 				mockReadFileSync('#IF 10 > 20\nsome\nstuff\n#endif');
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -3748,11 +3657,7 @@ describe('Parser', () => {
 				mockReadFileSync(
 					'#DEFINE ADD(x,y) x + y\n#IF ADD(6,4) == 10\nsome\nstuff\n#endif',
 				);
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 
@@ -3773,11 +3678,7 @@ describe('Parser', () => {
 
 			test('If def - end - simple long expression - false', async () => {
 				mockReadFileSync('#IF 10 + 5 > 20 - 5\nsome\nstuff\n#endif');
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -3799,11 +3700,7 @@ describe('Parser', () => {
 
 			test('If def - end - simple long expression - true', async () => {
 				mockReadFileSync('#IF 10 + 5 == 20 - 5\nsome\nstuff\n#endif');
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 
@@ -3825,11 +3722,7 @@ describe('Parser', () => {
 				mockReadFileSync(
 					'#DEFINE ADD(x,y) x + y\n#DEFINE SUB(x,y) x - y\n#IF ADD(10, 5) == SUB(20 ,5)\nsome\nstuff\n#endif',
 				);
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 
@@ -3851,11 +3744,7 @@ describe('Parser', () => {
 				mockReadFileSync(
 					'#DEFINE ADD(x,y) x + y\n#DEFINE SUB(x,y) x - y\n#IF ADD(10, 6) == SUB(20 ,5)\nsome\nstuff\n#endif',
 				);
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -3879,11 +3768,7 @@ describe('Parser', () => {
 				mockReadFileSync(
 					'#IF 10 + 5 == 20 - 5 && 5 < 10\nsome\nstuff\n#endif',
 				);
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 
@@ -3906,11 +3791,7 @@ describe('Parser', () => {
 				mockReadFileSync(
 					'#IF 10 + 5 == 20 - 5 && 5 > 10\nsome\nstuff\n#endif',
 				);
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -3933,11 +3814,7 @@ describe('Parser', () => {
 				mockReadFileSync(
 					'#IF 10 + 5 == 20 - 5 && 5 > 10\nsome\nstuff\n#endif',
 				);
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -3958,11 +3835,7 @@ describe('Parser', () => {
 
 			test('If def - end - BODMAS - true', async () => {
 				mockReadFileSync('#IF 10 + 5 * 2 == 20\nsome\nstuff\n#endif');
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(0);
 
@@ -3982,11 +3855,7 @@ describe('Parser', () => {
 
 			test('If def - end - BODMAS - false', async () => {
 				mockReadFileSync('#IF (10 + 5) * 2 == 20\nsome\nstuff\n#endif');
-				const parser = new CPreprocessorParser(
-					'/folder/dts.dts',
-					[],
-					new Map(),
-				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
 				await parser.stable;
 				expect(parser.issues.length).toEqual(1);
 				expect(parser.issues[0].raw.issues).toEqual([
@@ -4026,7 +3895,7 @@ TEST_I2C_DEVICE(apds9253,
 	resolution = <3>;
 )
 `);
-			const parser = new Parser('/folder/dts.dts', [], new Map());
+			const parser = new Parser(filePath, [], new Map());
 			await parser.stable;
 			expect(parser.issues.length).toEqual(0);
 		});
@@ -4044,7 +3913,7 @@ TEST_I2C_DEVICE(apds9253,
 
 TEST_I2C_DEVICE;
 `);
-		const parser = new Parser('/folder/dts.dts', [], new Map());
+		const parser = new Parser(filePath, [], new Map());
 		await parser.stable;
 		expect(parser.issues.length).toEqual(1);
 	});
@@ -4067,7 +3936,7 @@ TEST_I2C_DEVICE(adt7420,
 	compatible = "adi,adt7420";
 	int-gpios = <&test_gpio 0 0>;
 )`);
-		const parser = new Parser('/folder/dts.dts', [], new Map());
+		const parser = new Parser(filePath, [], new Map());
 		await parser.stable;
 	});
 });

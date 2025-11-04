@@ -4,12 +4,16 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.6.7] - Unreleased
+## [0.6.7] - 2025-11-04
 
 ### Changed
 
 - When a context is not for a `.dts` file, diagnostic errors not related to syntax are
   downgraded set to warnings
+
+### Fixed
+
+- Fixed an issue with formatting traling whitespace on windows.
 
 ## [0.6.6] - 2025-11-02
 

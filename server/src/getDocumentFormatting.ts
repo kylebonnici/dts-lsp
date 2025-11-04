@@ -476,11 +476,12 @@ const removeTrailingWhitespace = (
 ): FileDiagnostic[] => {
 	const result: FileDiagnostic[] = [];
 	documentText.forEach((line, i) => {
-		const endTimmed = line.trimEnd();
-		if (endTimmed.length !== line.length) {
+		const removeReturn = line.endsWith('\r') ? line.slice(0, -1) : line;
+		const endTimmed = removeReturn.trimEnd();
+		if (endTimmed.length !== removeReturn.length) {
 			const rangeToCover = Range.create(
 				Position.create(i, endTimmed.length),
-				Position.create(i, line.length),
+				Position.create(i, removeReturn.length),
 			);
 			if (
 				!textEdits.some((edit) =>
