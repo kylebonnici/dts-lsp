@@ -992,13 +992,7 @@ export class ContextAware {
 				!this.isFullContext &&
 				!coreSyntaxIssuesFilter(issue.raw, issue.raw.uri, false)
 			) {
-				return {
-					...issue,
-					raw: {
-						...issue.raw,
-						severity: DiagnosticSeverity.Warning,
-					},
-				};
+				issue.raw.severity = DiagnosticSeverity.Warning;
 			}
 
 			if (

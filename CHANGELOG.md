@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.6.8] - Unreleased
+
+### Fixed
+
+- Fixed an issue with downgrading some diagnostics issues related to macros when
+  not on a `.dts` context
+
 ## [0.6.7] - 2025-11-04
 
 ### Changed
