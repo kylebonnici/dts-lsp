@@ -8,8 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- When a context is not for a `.dts` file, diagnostic errors not related to syntax are
-  downgraded set to warnings
+- When a context is not for a `.dts` file, diagnostic errors not related to syntax errors
+  are downgraded to warnings.
 
 ### Fixed
 
