@@ -729,8 +729,25 @@ export async function nodeFinder<T>(
 
 	const t = performance.now();
 	const runtime = await context.getRuntime();
-	const locationMeta = runtime.getDeepestAstNode(uri, location.position);
-	const sortKey = context.getSortKey(locationMeta?.ast);
+	let locationMeta: SearchableResult | undefined;
+	let sortKey: number | undefined;
+
+	const macro = runtime.context.allParsers
+		.flatMap((p) => p.injectedMacros)
+		.find((m) => positionInBetween(m, uri, location.position));
+	if (macro) {
+		locationMeta = {
+			runtime,
+			item: null,
+			ast: getDeepestAstNodeInBetween(macro, uri, location.position),
+		};
+		sortKey = Number.MAX_SAFE_INTEGER;
+	}
+
+	if (!locationMeta) {
+		locationMeta = runtime.getDeepestAstNode(uri, location.position);
+		sortKey = context.getSortKey(locationMeta?.ast);
+	}
 	console.log(`search: ${performance.now() - t}ms`);
 
 	const inScope = (ast: ASTBase) => {

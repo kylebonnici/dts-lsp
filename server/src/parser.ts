@@ -82,6 +82,7 @@ export class Parser extends BaseParser {
 	others: ASTBase[] = [];
 	rootDocument = new DtcBaseNode();
 	unhandledStatements = new DtcRootNode();
+	injectedMacros: (CMacroCall | CIdentifier)[] = [];
 
 	constructor(
 		public readonly uri: string,
@@ -267,6 +268,7 @@ export class Parser extends BaseParser {
 				}
 			});
 			this.cPreprocessorParser.removeComments(toRemoveSet);
+			this.injectedMacros.push(result);
 
 			// avoid recursive calls
 			if (
