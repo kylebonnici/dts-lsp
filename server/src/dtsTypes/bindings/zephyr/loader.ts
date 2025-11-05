@@ -285,6 +285,19 @@ const mergeAintoB = (
 		resolvedB.bus.push(...(resolvedA.bus ?? []));
 	}
 
+	// merge children
+	if (resolvedA['child-binding']) {
+		mergeAintoB(
+			bindings,
+			resolvedA['child-binding'],
+			resolvedB['child-binding'] ?? {
+				filePath: resolvedB.filePath,
+				include: [],
+				rawInclude: [],
+			},
+		);
+	}
+
 	return resolvedB;
 };
 
