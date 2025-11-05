@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Fixed an issue with downgrading some diagnostics issues related to macros when
   not on a `.dts` context
+- Fixed issue where left shift, right shift operators where swapped in the toString().
 
 ## [0.6.7] - 2025-11-04
 
