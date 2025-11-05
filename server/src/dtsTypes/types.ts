@@ -651,6 +651,14 @@ export class NodeType extends INodeType {
 		) {
 			const mismatch = node.properties.filter((p) => !machedSet.has(p));
 			mismatch.forEach((p) => {
+				if (
+					runtime.context.bindingLoader?.type === 'Zephyr' &&
+					p.name.endsWith('-controller')
+				) {
+					// this is allowe in Zephyr
+					// https://github.com/zephyrproject-rtos/zephyr/blob/0f5e03f1fcba4326baf4507c343f3609bf32c524/scripts/dts/python-devicetree/src/devicetree/edtlib.py#L1657-L1662
+					return;
+				}
 				issue.push(
 					genStandardTypeDiagnostic(
 						this.warnMismatchProperties
