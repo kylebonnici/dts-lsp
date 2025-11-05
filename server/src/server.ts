@@ -218,10 +218,10 @@ const contextFullyOverlaps = async (a: ContextAware, b: ContextAware) => {
 		return true;
 	}
 
-	const contextAIncludes = (await a.getAllParsers())
+	const contextAIncludes = (await a.getAllStableParsers())
 		.flatMap((p) => p.cPreprocessorParser.dtsIncludes)
 		.filter((i) => i.resolvedPath);
-	const contextBIncludes = (await b.getAllParsers())
+	const contextBIncludes = (await b.getAllStableParsers())
 		.flatMap((p) => p.cPreprocessorParser.dtsIncludes)
 		.filter((i) => i.resolvedPath);
 
@@ -1273,7 +1273,7 @@ connection.onWorkspaceSymbol(async () => {
 	const context = activeContext;
 	if (!context) return [];
 
-	return (await context.getAllParsers()).flatMap((p) =>
+	return (await context.getAllStableParsers()).flatMap((p) =>
 		p.getWorkspaceSymbols(),
 	) satisfies WorkspaceSymbol[];
 });
@@ -1295,7 +1295,7 @@ connection.languages.semanticTokens.on(async (h) => {
 			return { data: [] };
 		}
 
-		(await context.getAllParsers()).forEach((parser) =>
+		(await context.getAllStableParsers()).forEach((parser) =>
 			parser.buildSemanticTokens(tokensBuilder, uri),
 		);
 
@@ -1531,7 +1531,7 @@ connection.onFoldingRanges(async (event) => {
 		return [];
 	}
 
-	const parser = (await context.getAllParsers()).find((p) =>
+	const parser = (await context.getAllStableParsers()).find((p) =>
 		p.getFiles().some((i) => i === filePath),
 	);
 

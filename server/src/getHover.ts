@@ -44,7 +44,7 @@ async function getMacros(
 		if (macro) {
 			const call = getCMacroCall(result.ast);
 			const lastParser = (
-				await result.runtime.context.getAllParsers()
+				await result.runtime.context.getAllStableParsers()
 			).at(-1)!;
 
 			if (call) {
@@ -92,7 +92,9 @@ async function getNode(
 		return;
 	}
 
-	const lastParser = (await result.runtime.context.getAllParsers()).at(-1)!;
+	const lastParser = (await result.runtime.context.getAllStableParsers()).at(
+		-1,
+	)!;
 
 	if (result?.ast instanceof NodeName) {
 		const node = result.ast.linksTo;
