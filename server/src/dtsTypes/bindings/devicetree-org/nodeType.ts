@@ -56,7 +56,7 @@ export class DevicetreeOrgNodeType extends INodeType {
 
 		if (node.disabled) {
 			const statusProperty = node.getProperty('status');
-			[...node.definitions, ...node.referencedBy].forEach((n) =>
+			node.implimentations.forEach((n) =>
 				issue.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.NODE_DISABLED,
@@ -340,9 +340,10 @@ const convertToError = (
 	}
 
 	const issueAst =
-		meta.node.definitions[0] instanceof DtcRootNode
-			? meta.node.definitions[0]
-			: (meta.node.definitions[0].name ?? meta.node.definitions[0]);
+		meta.node.implimentations[0] instanceof DtcRootNode
+			? meta.node.implimentations[0]
+			: (meta.node.implimentations[0].identifierAst ??
+				meta.node.implimentations[0]);
 
 	return [
 		genStandardTypeDiagnostic(

@@ -22,7 +22,7 @@ export function getCpuNodeType() {
 	const nodeType = getStandardDefaultType();
 	nodeType.additionalValidations = (_, node) => {
 		if (node.parent?.name !== 'cpus') {
-			const definition = node.definitions[0];
+			const definition = node.implimentations[0];
 
 			return [
 				genStandardTypeDiagnostic(
@@ -31,7 +31,7 @@ export function getCpuNodeType() {
 					definition.lastToken,
 					definition,
 					{
-						linkedTo: node.definitions.slice(1),
+						linkedTo: node.implimentations.slice(1),
 						templateStrings: [
 							'`cpu` node can only be a child of `cpus` node',
 						],
