@@ -26,7 +26,7 @@ export function getChosenNodeType() {
 		const issues: FileDiagnostic[] = [];
 
 		if (node.parent?.name !== '/') {
-			const definition = node.definitions[0];
+			const definition = node.implimentations[0];
 			issues.push(
 				genStandardTypeDiagnostic(
 					StandardTypeIssue.NODE_LOCATION,
@@ -34,7 +34,7 @@ export function getChosenNodeType() {
 					definition.lastToken,
 					definition,
 					{
-						linkedTo: node.definitions.slice(1),
+						linkedTo: node.implimentations.slice(1),
 						templateStrings: [
 							'Chosen node can only be added to a root node',
 						],
