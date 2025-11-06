@@ -23,7 +23,7 @@ export function getCpusNodeType() {
 	const nodeType = getStandardDefaultType();
 	nodeType.additionalValidations = (_, node) => {
 		if (node.parent?.name !== '/') {
-			const definition = node.definitions[0];
+			const definition = node.implimentations[0];
 
 			return [
 				genStandardTypeDiagnostic(
@@ -32,7 +32,7 @@ export function getCpusNodeType() {
 					definition.lastToken,
 					definition,
 					{
-						linkedTo: node.definitions.slice(1),
+						linkedTo: node.implimentations.slice(1),
 						templateStrings: [
 							'Cpus node can only be added to a root node',
 						],
