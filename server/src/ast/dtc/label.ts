@@ -16,9 +16,14 @@
 
 import { SymbolKind } from 'vscode-languageserver';
 import { ASTBase } from '../base';
-import { BuildSemanticTokensPush, TokenIndexes } from '../../types';
+import {
+	BuildSemanticTokensPush,
+	MacroRegistryItem,
+	TokenIndexes,
+} from '../../types';
 import { getTokenModifiers, getTokenTypes } from '../../helpers';
 import { Node } from '../../context/node';
+import { SerializableASTLabel } from '../../types/index';
 import { LabelRef } from './labelRef';
 
 export class LabelAssign extends ASTBase {
@@ -40,6 +45,13 @@ export class LabelAssign extends ASTBase {
 
 	toString() {
 		return `${this.label.toString()}:`;
+	}
+
+	serialize(macros: Map<string, MacroRegistryItem>): SerializableASTLabel {
+		return {
+			value: this.label.value,
+			...super.serialize(macros),
+		};
 	}
 }
 
