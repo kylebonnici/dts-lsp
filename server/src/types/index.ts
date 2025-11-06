@@ -242,11 +242,19 @@ export type SerializableNodeBase =
 	| SerializableRootNode
 	| SerializableChildNode;
 
+export interface SerializableASTLabel {
+	readonly value: string;
+	readonly uri: string;
+	readonly range: Range;
+	readonly issues: Diagnostic[];
+}
+
 export interface SerializableNodeRef extends SerializableASTBase {
 	readonly type: 'REF';
 	readonly name: SerializableLabelRef | SerializableNodePath | null;
 	readonly properties: SerializableDtcProperty[];
 	readonly nodes: SerializableNodeBase[];
+	readonly labels: SerializableASTLabel[];
 }
 
 export interface SerializableRootNode extends SerializableASTBase {
@@ -260,6 +268,7 @@ export interface SerializableChildNode extends SerializableASTBase {
 	readonly type: 'CHILD';
 	readonly properties: SerializableDtcProperty[];
 	readonly nodes: SerializableNodeBase[];
+	readonly labels: SerializableASTLabel[];
 }
 
 type SerializedMappedReg = {
@@ -297,7 +306,6 @@ export type SerializedNode = {
 	properties: SerializableProperty[];
 	childNodes: SerializedNode[];
 	reg?: SerializedMappedReg[];
-	labels: string[];
 	interruptControllerMappings: InterruptControlerSerializedMapping[];
 	specifierNexusMappings: SerializableSpecifierNexusMeta[];
 	nexusMaps: SerializedNexusMap[];
