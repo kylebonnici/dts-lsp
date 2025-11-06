@@ -36,7 +36,7 @@ import { StringValue } from './ast/dtc/values/string';
 import { CMacroCallParam } from './ast/cPreprocessors/functionCall';
 
 export const generateDefinitionsFromNode = (node: Node) => {
-	return [...node.definitions, ...node.referencedBy]
+	return node.implimentations
 		.map((dtc) => {
 			const virtualDoc = convertVirtualUriToDocumentUri(dtc.uri);
 			if (virtualDoc) {
