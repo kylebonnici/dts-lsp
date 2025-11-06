@@ -205,6 +205,7 @@ export class DtcRefNode extends DtcBaseNode {
 	serialize(macros: Map<string, MacroRegistryItem>): SerializableRefNode {
 		return {
 			type: 'REF',
+			labels: this.labels.map((l) => l.serialize(macros)),
 			name: this.reference?.serialize() ?? null,
 			properties: this.properties.map((p) => p.serialize(macros)),
 			nodes: this.nodes.map((n) => n.serialize(macros)),
@@ -275,6 +276,7 @@ export class DtcChildNode extends DtcBaseNode {
 	serialize(macros: Map<string, MacroRegistryItem>): SerializableChildNode {
 		return {
 			type: 'CHILD',
+			labels: this.labels.map((l) => l.serialize(macros)),
 			name: this.name?.serialize() ?? null,
 			properties: this.properties.map((p) => p.serialize(macros)),
 			nodes: this.nodes.map((n) => n.serialize(macros)),
