@@ -16,7 +16,10 @@
 
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 
-import { DiagnosticSeverity } from 'vscode-languageserver';
+import {
+	DiagnosticSeverity,
+	SemanticTokensBuilder,
+} from 'vscode-languageserver';
 import {
 	FileDiagnostic,
 	LexerToken,
@@ -2283,5 +2286,23 @@ export class Parser extends BaseParser {
 			...this.unhandledStatements.deleteProperties,
 			...this.unhandledStatements.nodes,
 		];
+	}
+
+	buildSemanticTokens(tokensBuilder: SemanticTokensBuilder, uri: string) {
+		const result: {
+			line: number;
+			char: number;
+			length: number;
+			tokenType: number;
+			tokenModifiers: number;
+		}[] = [];
+
+		this.injectedMacros.forEach((a) => {
+			a.buildSemanticTokens((...args) =>
+				BaseParser.push(...args, uri, result),
+			);
+		});
+
+		super.buildSemanticTokens(tokensBuilder, uri, result);
 	}
 }
