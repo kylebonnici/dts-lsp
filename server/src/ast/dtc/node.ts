@@ -103,8 +103,14 @@ export class DtcRootNode extends DtcBaseNode {
 		return this.children.filter((child) => child instanceof DtcProperty);
 	}
 
+	#name: NodeName | undefined;
 	get name() {
-		return new NodeName('/', createTokenIndex(this.firstToken));
+		this.#name ??= new NodeName('/', createTokenIndex(this.firstToken));
+		return this.#name;
+	}
+
+	get identifierAst() {
+		return this.name;
 	}
 
 	get deleteProperties() {
@@ -152,6 +158,10 @@ export class DtcRefNode extends DtcBaseNode {
 		return [...this.issues, ...(this.reference?.issues ?? [])].map((i) =>
 			i(),
 		);
+	}
+
+	get identifierAst() {
+		return this.reference;
 	}
 
 	set reference(reference: LabelRef | NodePathRef | null) {
@@ -236,6 +246,10 @@ export class DtcChildNode extends DtcBaseNode {
 		labels.forEach((label) => {
 			this.addChild(label);
 		});
+	}
+
+	get identifierAst() {
+		return this.name;
 	}
 
 	get serializeIssues() {

@@ -430,7 +430,8 @@ export class ContextAware {
 				);
 
 				conflictingNodes.forEach((n) => {
-					const name = n.definitions[n.definitions.length - 1].name!;
+					const definitions = n.definitions;
+					const name = definitions[definitions.length - 1].name!;
 					this._issues.push(
 						genContextDiagnostic(
 							ContextIssues.DUPLICATE_NODE_NAME,
@@ -500,11 +501,14 @@ export class ContextAware {
 			name: string;
 			address?: number[];
 			issueAst: ASTBase;
-		}[] = runtimeNodeParent.nodes.map((n) => ({
-			name: n.name,
-			address: n.address,
-			issueAst: n.definitions[0].name ?? n.definitions[0],
-		}));
+		}[] = runtimeNodeParent.nodes.map((n) => {
+			const definition = n.definitions[0];
+			return {
+				name: n.name,
+				address: n.address,
+				issueAst: definition.name ?? definition,
+			};
+		});
 
 		let names: NodeName[] = [];
 
@@ -586,8 +590,7 @@ export class ContextAware {
 	}
 
 	private processDtcRootNode(element: DtcRootNode, runtime: Runtime) {
-		runtime.roots.push(element);
-		runtime.rootNode.definitions.push(element);
+		runtime.rootNode.implimentations.push(element);
 		this.checkNodeUniqueNames(element, runtime.rootNode);
 		element.children.forEach((child) =>
 			this.processChild(child, runtime.rootNode, runtime),
@@ -615,7 +618,7 @@ export class ContextAware {
 					element.name.fullAddress,
 					runtimeNodeParent,
 				);
-			child.definitions.push(element);
+			child.implimentations.push(element);
 			element.labels.forEach((l) => (l.lastLinkedTo = child));
 
 			runtimeNodeParent = child;
@@ -656,7 +659,7 @@ export class ContextAware {
 			reference.linksTo = runtimeNode;
 			element.labels.forEach((l) => (l.lastLinkedTo = runtimeNode));
 			runtimeNode?.linkedRefLabels.push(reference);
-			runtimeNode?.referencedBy.push(element);
+			runtimeNode?.implimentations.push(element);
 
 			element.labels.forEach((label) => {
 				runtime.labelsUsedCache.set(label.label.value, resolvedPath);
@@ -693,7 +696,7 @@ export class ContextAware {
 			element.resolveNodePath ??= resolvedPath;
 			runtimeNode = runtime.rootNode.getChild(resolvedPath);
 			element.labels.forEach((l) => (l.lastLinkedTo = runtimeNode));
-			runtimeNode?.referencedBy.push(element);
+			runtimeNode?.implimentations.push(element);
 
 			element.labels.forEach((label) => {
 				runtime.labelsUsedCache.set(label.label.value, resolvedPath);

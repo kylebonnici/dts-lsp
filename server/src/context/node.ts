@@ -99,8 +99,7 @@ export type InterruptMapping = Omit<Mapping, 'specifierSpace'> &
 	Partial<Pick<Mapping, 'specifierSpace'>>;
 
 export class Node {
-	public referencedBy: DtcRefNode[] = [];
-	public definitions: (DtcChildNode | DtcRootNode)[] = [];
+	public implimentations: (DtcChildNode | DtcRootNode | DtcRefNode)[] = [];
 	private _properties: Property[] = [];
 	private _deletedProperties: { property: Property; by: DeleteProperty }[] =
 		[];
@@ -113,6 +112,12 @@ export class Node {
 	spesifierNexusMapping: Mapping[] = [];
 
 	private _nodeTypes: INodeType[] | undefined;
+
+	get definitions(): (DtcChildNode | DtcRootNode)[] {
+		return this.implimentations.filter(
+			(i) => i instanceof DtcChildNode || i instanceof DtcRootNode,
+		);
+	}
 
 	static toJson(node: Node) {
 		const obj: any = {};
@@ -179,7 +184,10 @@ export class Node {
 	}
 
 	public getReferenceBy(node: DtcRefNode): Node | undefined {
-		if (this.referencedBy.some((n) => n === node)) {
+		const referancesImp = this.implimentations.filter(
+			(i) => i instanceof DtcRefNode,
+		);
+		if (referancesImp.some((n) => n === node)) {
 			return this;
 		}
 
@@ -189,17 +197,14 @@ export class Node {
 	}
 
 	get nodeNameOrLabelRef(): (NodeName | LabelRef)[] {
-		return getNodeNameOrNodeLabelRef([
-			...this.definitions,
-			...this.referencedBy,
-		]);
+		return getNodeNameOrNodeLabelRef(this.implimentations);
 	}
 
 	getDeepestAstNode(
 		file: string,
 		position: Position,
 	): Omit<SearchableResult, 'runtime'> | undefined {
-		const inNode = [...this.definitions, ...this.referencedBy].find((i) =>
+		const inNode = this.implimentations.find((i) =>
 			positionInBetween(i, file, position),
 		);
 
@@ -276,14 +281,9 @@ export class Node {
 	}
 
 	get labels(): LabelAssign[] {
-		return [
-			...this.referencedBy.flatMap((r) => r.labels),
-			...(
-				this.definitions.filter(
-					(def) => def instanceof DtcChildNode,
-				) as DtcChildNode[]
-			).flatMap((def) => def.labels),
-		];
+		return this.implimentations.flatMap((i) =>
+			i instanceof DtcRootNode ? [] : i.labels,
+		);
 	}
 
 	get labelsMapped() {
@@ -359,7 +359,7 @@ export class Node {
 								reg.rangeTokens.start,
 								reg.rangeTokens.end,
 								node.properties.find((p) => p.name === 'reg')
-									?.ast ?? node.definitions[0],
+									?.ast ?? node.implimentations[0],
 								{
 									severity: DiagnosticSeverity.Information,
 									linkedTo: collidingNodes.map((n) => ({
@@ -432,11 +432,11 @@ export class Node {
 			...this.missingBinding,
 			...this.getOverlappingNodeAddressesIssues(macros),
 		];
-		if (this.name === '/' && this.definitions.length) {
+		if (this.name === '/' && this.implimentations.length) {
 			if (!this._nodes.some((n) => n.name === 'cpus')) {
 				const definition =
-					this.definitions[this.definitions.length - 1];
-				const item = definition.name ?? definition;
+					this.implimentations[this.implimentations.length - 1];
+				const item = definition.identifierAst ?? definition;
 				issues.push(
 					genContextDiagnostic(
 						ContextIssues.MISSING_NODE,
@@ -445,7 +445,7 @@ export class Node {
 						item,
 						{
 							severity: DiagnosticSeverity.Error,
-							linkedTo: this.definitions.slice(0, -1),
+							linkedTo: this.implimentations.slice(0, -1),
 							templateStrings: ['/', 'cpus'],
 						},
 					),
@@ -504,33 +504,32 @@ export class Node {
 
 	get deletedNodesIssues(): FileDiagnostic[] {
 		return this._deletedNodes.flatMap((meta) => [
-			...[
-				...(meta.node.definitions.filter(
-					(node) => node instanceof DtcChildNode,
-				) as DtcChildNode[]),
-				...meta.node.referencedBy,
-			].flatMap((node) => {
-				let name: string;
-				if (node instanceof DtcChildNode) {
-					name = node.name!.toString();
-				} else if (node.reference instanceof LabelRef) {
-					name = node.reference!.label!.value;
-				} else {
-					name = node.reference!.path!.pathParts.at(-1)!.name;
-				}
-				return genContextDiagnostic(
-					ContextIssues.DELETE_NODE,
-					node.firstToken,
-					node.lastToken,
-					node,
-					{
-						severity: DiagnosticSeverity.Hint,
-						linkedTo: [meta.by],
-						tags: [DiagnosticTag.Deprecated],
-						templateStrings: [name],
-					},
-				);
-			}),
+			...meta.node.implimentations
+				.filter(
+					(i) => i instanceof DtcChildNode || i instanceof DtcRefNode,
+				)
+				.flatMap((node) => {
+					let name: string;
+					if (node instanceof DtcChildNode) {
+						name = node.name!.toString();
+					} else if (node.reference instanceof LabelRef) {
+						name = node.reference!.label!.value;
+					} else {
+						name = node.reference!.path!.pathParts.at(-1)!.name;
+					}
+					return genContextDiagnostic(
+						ContextIssues.DELETE_NODE,
+						node.firstToken,
+						node.lastToken,
+						node,
+						{
+							severity: DiagnosticSeverity.Hint,
+							linkedTo: [meta.by],
+							tags: [DiagnosticTag.Deprecated],
+							templateStrings: [name],
+						},
+					);
+				}),
 		]);
 	}
 
@@ -1325,7 +1324,7 @@ export class Node {
 		cwd?: string,
 		level = 1,
 	): string {
-		const hasOmitIfNoRef = this.definitions.some(
+		const hasOmitIfNoRef = this.implimentations.some(
 			(d) => d instanceof DtcChildNode && d.omitIfNoRef,
 		);
 		const isOmitted =
@@ -1371,7 +1370,7 @@ ${'\t'.repeat(level - 1)}};`;
 
 	serialize(macros: Map<string, MacroRegistryItem>): SerializedNode {
 		const mappedRegs = this.mappedReg(macros);
-		const nodeAsts = [...this.definitions, ...this.referencedBy];
+		const nodeAsts = this.implimentations;
 		const nodeType = this.nodeType;
 		return {
 			nodeType:

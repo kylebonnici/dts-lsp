@@ -518,7 +518,7 @@ export class NodeType extends INodeType {
 
 		if (node.disabled) {
 			const statusProperty = node.getProperty('status');
-			[...node.definitions, ...node.referencedBy].forEach((n) =>
+			node.implimentations.forEach((n) =>
 				issue.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.NODE_DISABLED,
@@ -554,8 +554,9 @@ export class NodeType extends INodeType {
 					?.at(0)
 					?.startAddress.map((a) => a.toString(16))
 					.join(',');
-				const issueAst =
-					node.definitions.at(-1)!.name ?? node.definitions.at(-1)!;
+				const definitions = node.definitions;
+				const definition = definitions[definitions.length - 1];
+				const issueAst = definition.name ?? definition;
 				issue.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.EXPECTED_NODE_ADDRESS,
@@ -563,11 +564,11 @@ export class NodeType extends INodeType {
 						issueAst.lastToken,
 						issueAst,
 						{
-							linkedTo: node.definitions
+							linkedTo: definitions
 								.slice(0, -1)
 								.map((n) => n.name ?? n),
 							edit: nodeAddress
-								? node.definitions
+								? definitions
 										.filter((n) => !!n.name)
 										.map((n) =>
 											TextEdit.insert(

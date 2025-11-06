@@ -24,7 +24,7 @@ import {
 import { ContextAware } from './runtimeEvaluator';
 import { SearchableResult } from './types';
 import { Node } from './context/node';
-import { DtcChildNode, NodeName } from './ast/dtc/node';
+import { DtcChildNode, DtcRefNode, NodeName } from './ast/dtc/node';
 import { Label, LabelAssign } from './ast/dtc/label';
 import { LabelRef } from './ast/dtc/labelRef';
 import {
@@ -128,12 +128,11 @@ function getNodeLabelRename(
 
 	const gentItem = (node: Node) => {
 		return [
-			...(
-				node.definitions.filter(
-					(d) => d instanceof DtcChildNode,
-				) as DtcChildNode[]
-			).flatMap((d) => d.labels.map((l) => l.label)),
-			...node.referencedBy.flatMap((d) => d.labels.map((l) => l.label)),
+			...node.implimentations
+				.filter(
+					(d) => d instanceof DtcChildNode || d instanceof DtcRefNode,
+				)
+				.flatMap((d) => d.labels.map((l) => l.label)),
 			...node.linkedRefLabels.map((l) => l.label),
 		]
 			.filter((l) => l?.value === labelValue)

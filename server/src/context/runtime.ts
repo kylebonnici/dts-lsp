@@ -47,7 +47,6 @@ import { Node } from './node';
 export class Runtime implements Searchable {
 	public comments: Comment[] = [];
 	public includes: Include[] = [];
-	public roots: DtcRootNode[] = [];
 	public references: DtcRefNode[] = [];
 	public unlinkedDeletes: DeleteNode[] = [];
 	public unlinkedRefNodes: DtcRefNode[] = [];
@@ -65,7 +64,7 @@ export class Runtime implements Searchable {
 		if (cache) return cache;
 		// TODO consider a different way to operation this as this is costly
 		const result = [
-			...this.roots,
+			...this.rootNode.implimentations,
 			...this.references,
 			...this.unlinkedDeletes,
 			...this.unlinkedRefNodes,
@@ -255,9 +254,6 @@ export class Runtime implements Searchable {
 	}
 
 	getOrderedNodeAst(node: Node) {
-		return sortAstForScope(
-			[...node.definitions, ...node.referencedBy],
-			this.context,
-		);
+		return sortAstForScope(node.implimentations, this.context);
 	}
 }
