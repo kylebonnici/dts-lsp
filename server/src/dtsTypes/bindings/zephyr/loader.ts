@@ -262,7 +262,12 @@ const mergeAIntoB = (
 		mergeAIntoB(
 			bindings,
 			resolvedA['child-binding'],
-			resolvedB['child-binding'],
+			resolvedB['child-binding'] ?? {
+				filePath: resolvedB.filePath,
+				include: [],
+				rawInclude: [],
+				isChildBinding: true,
+			},
 			childBindingFilter?.['property-blocklist'],
 			childBindingFilter?.['property-allowlist'],
 			childBindingFilter?.['child-binding'],
