@@ -255,6 +255,7 @@ const mergeAintoB = (
 				filePath: resolvedB.filePath,
 				include: [],
 				rawInclude: [],
+				isChildBinding: true,
 			},
 		);
 	}
