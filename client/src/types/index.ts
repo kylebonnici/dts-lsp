@@ -20,6 +20,7 @@ import type {
 	EvaluatedMacro,
 	IntegrationSettings,
 	LocationResult,
+	PositionScopeInformation,
 	ResolvedSettings,
 	SerializedNode,
 	ZephyrBindingYml,
@@ -46,6 +47,9 @@ export interface IDeviceTreeAPI {
 	getActiveContext(): Promise<ContextListItem | undefined>;
 	getZephyrTypeBindings(id: string): Promise<ZephyrBindingYml[] | undefined>;
 	getMacroNames(id: string): Promise<string[] | undefined>;
+	getLocationScpoedInformation(
+		event: TextDocumentPositionParams & { id: string },
+	): Promise<PositionScopeInformation | undefined>;
 	evaluateMacros(macros: string[], ctxId: string): Promise<EvaluatedMacro[]>;
 	copyZephyrCMacroIdentifier(
 		textDocumentPositionParams: TextDocumentPositionParams,

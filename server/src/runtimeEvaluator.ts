@@ -48,6 +48,8 @@ import {
 	toRange,
 	compareWords,
 	coreSyntaxIssuesFilter,
+	positionBefore,
+	positionAfter,
 } from './helpers';
 import { Parser } from './parser';
 import { NodePath, NodePathRef } from './ast/dtc/values/nodePath';
@@ -385,7 +387,8 @@ export class ContextAware {
 	public getSortKey(obj: ASTBase | undefined) {
 		if (!obj) return undefined;
 
-		return this.sortKeys.get(obj.firstToken);
+		let key = this.sortKeys.get(obj.firstToken);
+		if (key) return key;
 	}
 
 	public async evaluate() {
@@ -417,6 +420,51 @@ export class ContextAware {
 
 		console.log(`(ID: ${this.id}) evaluate`, performance.now() - t);
 		return runtime;
+	}
+
+	public getSortKeyFile(position: Position, fsPath: string) {
+		let token = this.findTokenBeforePosition(position, fsPath);
+		let key = token ? this.sortKeys.get(token) : undefined;
+		while (token && !key) {
+			token = token.prevToken;
+			key = token ? this.sortKeys.get(token) : undefined;
+		}
+
+		return key;
+	}
+
+	private findTokenBeforePosition(position: Position, fsPath: string) {
+		const meta = [this.parser, ...this.overlayParsers].flatMap((p) => ({
+			parser: p,
+			tokens: p.tokens,
+		}));
+
+		for (const [index, item] of meta.entries()) {
+			// empty overly or empty main board file
+			if (item.tokens.length === 0 && item.parser.uri === fsPath) {
+				const prev = meta[index - 1];
+				return index ? prev.tokens[prev.tokens.length - 1] : null;
+			}
+
+			const found = item.tokens.find(
+				(tt) =>
+					positionAfter(tt, fsPath, position) &&
+					(!tt.nextToken ||
+						positionBefore(tt.nextToken, fsPath, position)),
+			);
+
+			if (found) {
+				return found;
+			}
+
+			const includeFile = item.parser.includes.find(
+				(i) => i.resolvedPath === fsPath,
+			);
+
+			if (includeFile) {
+				return includeFile.firstToken;
+			}
+		}
 	}
 
 	private reportNodeNameAndPropertyClashes(runtime: Runtime) {
