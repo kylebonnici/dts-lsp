@@ -1089,7 +1089,7 @@ export const syntaxIssueToMessage = (issue: SyntaxIssue) => {
 		case SyntaxIssue.PROPERTY_MUST_BE_IN_NODE:
 			return 'Properties can only be defined in a node';
 		case SyntaxIssue.NODE_NAME_IN_ROOT:
-			return 'Node name syntax can only be usind inside a node.';
+			return 'Node name syntax can only be used inside a node definition.';
 		case SyntaxIssue.PROPERTY_DELETE_MUST_BE_IN_NODE:
 			return 'Properties can only be deleted inside a node';
 		case SyntaxIssue.UNABLE_TO_RESOLVE_INCLUDE:
