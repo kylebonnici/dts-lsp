@@ -102,6 +102,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		debug: {
 			module: serverModule,
 			transport: TransportKind.ipc,
+			options: { execArgv: ['--nolazy', '--inspect=6009'] },
 		},
 	};
 
