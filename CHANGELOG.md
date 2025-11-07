@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fixed for zephyr bindings a warning 'Property "\*-controller" name is not defined in the
   type binding for this node'.
 - Fixed diagnostic not showing issue for sytax like `node {};` in the root of the document
+- Fixed issue with parser for syntax like `#IF defined (BUFSIZE) && BUFSIZE >= 1024`.
 
 ## [0.6.7] - 2025-11-04
 

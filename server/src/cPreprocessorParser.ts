@@ -643,9 +643,18 @@ export class CPreprocessorParser extends BaseParser {
 
 			this.macroStart = true;
 
-			const expression =
+			let expression =
 				this.processExpression(this.macros, keyword, true) ||
 				this.processCIdentifier(this.macros, true);
+
+			if (
+				expression instanceof CIdentifier &&
+				expression.name.toLowerCase() === 'defined'
+			) {
+				expression =
+					this.processExpression(this.macros, keyword, true) ||
+					this.processCIdentifier(this.macros, true);
+			}
 
 			this.macroStart = false;
 

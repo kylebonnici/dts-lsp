@@ -3744,6 +3744,29 @@ describe('Parser', () => {
 				);
 			});
 
+			test('If defined not as a function - true', async () => {
+				mockReadFileSync(
+					'#define BUFSIZE 1024\n#IF defined (BUFSIZE) && BUFSIZE >= 1024\nsome\nstuff\n#endif',
+				);
+				const parser = new CPreprocessorParser(filePath, [], new Map());
+				await parser.stable;
+				expect(parser.issues.length).toEqual(0);
+
+				const ifDefineBlocks = parser.allAstItems.filter(
+					(o) => o instanceof IfElIfBlock,
+				) as IfElIfBlock[];
+				expect(ifDefineBlocks.length).toEqual(1);
+
+				const ifDefineBlock = ifDefineBlocks[0];
+
+				const expression = ifDefineBlock.ifBlocks[0].expression;
+				expect(expression?.isTrue(parser.macros)).toBeTruthy();
+
+				expect(tokensToString(parser.tokens).trim()).toEqual(
+					'some\nstuff',
+				);
+			});
+
 			test('If def - end - simple longer expression - false', async () => {
 				mockReadFileSync(
 					'#IF 10 + 5 == 20 - 5 && 5 > 10\nsome\nstuff\n#endif',
