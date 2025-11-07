@@ -35,13 +35,15 @@ import {
 	getDeepestAstNodeBefore,
 	getDeepestAstNodeInBetween,
 	positionAfter,
+	toRange,
 } from '../helpers';
+import type { ASTBase } from '../ast/base';
 import { LabelAssign } from '../ast/dtc/label';
-import { ASTBase } from '../ast/base';
 import { NumberValue } from '../ast/dtc/values/number';
 import { Expression } from '../ast/cPreprocessors/expression';
 import { NodePathRef } from '../ast/dtc/values/nodePath';
 import { LabelRef } from '../ast/dtc/labelRef';
+import type { SerializableProperty, SerializedNexusMap } from '../types/index';
 import type { Node } from './node';
 
 export interface NexusMapping {
@@ -188,5 +190,48 @@ export class Property {
 
 	toPrettyString(macros: Map<string, MacroRegistryItem>, level?: number) {
 		return this.ast.toPrettyString(macros, level);
+	}
+
+	serialize(
+		macros: Map<string, MacroRegistryItem>,
+		inScope: (ast: ASTBase) => boolean,
+	): SerializableProperty {
+		const p =
+			[this, ...this.allReplaced].find((p) => inScope(p.ast)) ?? this;
+		return {
+			...p.ast.serialize(macros),
+			nodePath: this.parent.pathString,
+			replaces: p.allReplaced.map((r) => ({
+				range: toRange(r.ast),
+				uri: r.ast.serializeUri,
+			})),
+			nexusMapEntry: p.nexusMapsTo.map((nexus) => {
+				return {
+					mappingValuesAst: nexus.mappingValuesAst.map((v) =>
+						v.serialize(macros),
+					),
+					cellCount: nexus.cellCount,
+					specifierSpace: nexus.specifierSpace,
+					target: nexus.target.pathString,
+					mapItem: nexus.mapItem
+						? ({
+								childCellCount: nexus.mapItem.childCellCount,
+								mappingValues: nexus.mapItem.mappingValues.map(
+									(v) => v.serialize(macros),
+								),
+								target: nexus.mapItem.node?.pathString,
+								targetAst:
+									nexus.mapItem.nodeAst?.serialize(macros),
+								parentCellCount: nexus.mapItem.parentCellCount,
+								parentValues: nexus.mapItem.parentValues?.map(
+									(v) => v.serialize(macros),
+								),
+								specifierSpace:
+									nexus.specifierSpace ?? 'interrupt',
+							} satisfies SerializedNexusMap)
+						: undefined,
+				};
+			}),
+		};
 	}
 }
