@@ -20,6 +20,7 @@ import {
 	genContextDiagnostic,
 	getDeepestAstNodeInBetween,
 	isLastTokenOnLine,
+	isPathEqual,
 	positionInBetween,
 	sortAstForScope,
 } from '../helpers';
@@ -87,15 +88,36 @@ export class Runtime implements Searchable {
 	): SearchableResult | undefined {
 		const fileAsts = this.fileTopMostAsts(file);
 
-		const dtcNode = fileAsts.find(
-			(i) =>
-				positionInBetween(i, file, position) ||
-				isLastTokenOnLine(
-					getTokenizedDocumentProvider().requestTokens(file, false),
-					i,
-					position,
-				),
-		);
+		const dtcNode =
+			fileAsts.find(
+				(i) =>
+					positionInBetween(i, file, position) ||
+					isLastTokenOnLine(
+						getTokenizedDocumentProvider().requestTokens(
+							file,
+							false,
+						),
+						i,
+						position,
+					),
+			) ?? fileAsts.at(-1)?.parentNode;
+
+		if (dtcNode) {
+			const include = [
+				this.context.parser,
+				...this.context.overlayParsers,
+			]
+				.flatMap((p) => p.includes)
+				.find((i) => isPathEqual(i.resolvedPath, file));
+
+			if (include) {
+				file = include.uri;
+				position = Position.create(
+					include.lastToken.pos.line,
+					include.lastToken.pos.colEnd,
+				);
+			}
+		}
 
 		if (dtcNode instanceof DtcRefNode) {
 			const refByNode = this.rootNode.getReferenceBy(dtcNode);
