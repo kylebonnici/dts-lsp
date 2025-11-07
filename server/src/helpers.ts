@@ -1088,6 +1088,8 @@ export const syntaxIssueToMessage = (issue: SyntaxIssue) => {
 			return 'White space is not allowed';
 		case SyntaxIssue.PROPERTY_MUST_BE_IN_NODE:
 			return 'Properties can only be defined in a node';
+		case SyntaxIssue.NODE_NAME_IN_ROOT:
+			return 'Node name syntax can only be usind inside a node.';
 		case SyntaxIssue.PROPERTY_DELETE_MUST_BE_IN_NODE:
 			return 'Properties can only be deleted inside a node';
 		case SyntaxIssue.UNABLE_TO_RESOLVE_INCLUDE:
@@ -1629,6 +1631,7 @@ export const coreSyntaxIssuesFilter = (
 		syntaxIssuesToIgnore.push(
 			SyntaxIssue.UNKNOWN_NODE_ADDRESS_SYNTAX,
 			SyntaxIssue.PROPERTY_MUST_BE_IN_NODE,
+			SyntaxIssue.NODE_NAME_IN_ROOT,
 			SyntaxIssue.NODE_ADDRESS,
 			SyntaxIssue.NAME_NODE_NAME_START,
 		);

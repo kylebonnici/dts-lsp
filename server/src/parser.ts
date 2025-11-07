@@ -185,27 +185,40 @@ export class Parser extends BaseParser {
 			await process();
 		}
 
-		this.unhandledStatements.properties.forEach((prop) => {
-			this._issues.push(
-				genSyntaxDiagnostic(
-					SyntaxIssue.PROPERTY_MUST_BE_IN_NODE,
-					prop.firstToken,
-					prop.lastToken,
-					prop,
-				),
-			);
-		});
+		if (!this.uri.endsWith('.dtsi')) {
+			this.unhandledStatements.nodes.forEach((node) => {
+				this._issues.push(
+					genSyntaxDiagnostic(
+						SyntaxIssue.NODE_NAME_IN_ROOT,
+						node.firstToken,
+						node.lastToken,
+						node,
+					),
+				);
+			});
 
-		this.unhandledStatements.deleteProperties.forEach((delProp) => {
-			this._issues.push(
-				genSyntaxDiagnostic(
-					SyntaxIssue.PROPERTY_DELETE_MUST_BE_IN_NODE,
-					delProp.firstToken,
-					delProp.lastToken,
-					delProp,
-				),
-			);
-		});
+			this.unhandledStatements.properties.forEach((prop) => {
+				this._issues.push(
+					genSyntaxDiagnostic(
+						SyntaxIssue.PROPERTY_MUST_BE_IN_NODE,
+						prop.firstToken,
+						prop.lastToken,
+						prop,
+					),
+				);
+			});
+
+			this.unhandledStatements.deleteProperties.forEach((delProp) => {
+				this._issues.push(
+					genSyntaxDiagnostic(
+						SyntaxIssue.PROPERTY_DELETE_MUST_BE_IN_NODE,
+						delProp.firstToken,
+						delProp.lastToken,
+						delProp,
+					),
+				);
+			});
+		}
 
 		const allAstItems = this.allAstItems.flatMap((n) => [
 			n,

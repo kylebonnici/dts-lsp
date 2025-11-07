@@ -153,6 +153,7 @@ export enum SyntaxIssue {
 	NODE_ADDRESS_HEX_START,
 	NODE_ADDRESS_ENDS_ULL,
 	UNKNOWN_NODE_ADDRESS_SYNTAX,
+	NODE_NAME_IN_ROOT,
 }
 
 export enum ContextIssues {

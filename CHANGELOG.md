@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   included another binding and both have `child-binding`
 - Fixed for zephyr bindings a warning 'Property "\*-controller" name is not defined in the
   type binding for this node'.
+- Fixed diagnostic not showing issue for sytax like `node {};` in the root of the document
 
 ## [0.6.7] - 2025-11-04
 
