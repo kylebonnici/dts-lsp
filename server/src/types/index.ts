@@ -300,6 +300,7 @@ export type SerializedNode = {
 	name: string;
 	fullName: string;
 	disabled: boolean;
+	labels: string[];
 	nodes: SerializableNodeBase[];
 	properties: SerializableProperty[];
 	childNodes: SerializedNode[];
@@ -388,4 +389,9 @@ export interface ZephyrBindingYml {
 	[key: CellSpecifier]: string[];
 	extends?: string[]; // our entry to collaps include
 	isChildBinding: boolean;
+}
+
+export interface PositionScopeInformation {
+	inNode: boolean;
+	inScope: SerializedNode;
 }
