@@ -37,7 +37,6 @@ import {
 	positionInBetween,
 	positionSameLineAndNotAfter,
 	toRangeWithTokenIndex,
-	toRange,
 } from '../helpers';
 import {
 	ContextIssues,
@@ -1368,9 +1367,12 @@ ${'\t'.repeat(level - 1)}}; */`;
 ${'\t'.repeat(level - 1)}};`;
 	}
 
-	serialize(macros: Map<string, MacroRegistryItem>): SerializedNode {
+	serialize(
+		macros: Map<string, MacroRegistryItem>,
+		inScope: (ast: ASTBase) => boolean = () => true,
+	): SerializedNode {
 		const mappedRegs = this.mappedReg(macros);
-		const nodeAsts = this.implimentations;
+		const nodeAsts = this.implimentations.filter(inScope);
 		const nodeType = this.nodeType;
 		return {
 			nodeType:
@@ -1397,49 +1399,16 @@ ${'\t'.repeat(level - 1)}};`;
 			disabled: this.disabled,
 			name: this.name,
 			fullName: this.fullName,
-			nodes: nodeAsts.map((d) => d.serialize(macros)),
-			properties: this.properties.map((p) => ({
-				...p.ast.serialize(macros),
-				nodePath: this.pathString,
-				replaces: p.allReplaced.map((r) => ({
-					range: toRange(r.ast),
-					uri: r.ast.serializeUri,
-				})),
-				nexusMapEntry: p.nexusMapsTo.map((nexus) => {
-					return {
-						mappingValuesAst: nexus.mappingValuesAst.map((v) =>
-							v.serialize(macros),
-						),
-						cellCount: nexus.cellCount,
-						specifierSpace: nexus.specifierSpace,
-						target: nexus.target.pathString,
-						mapItem: nexus.mapItem
-							? ({
-									childCellCount:
-										nexus.mapItem.childCellCount,
-									mappingValues:
-										nexus.mapItem.mappingValues.map((v) =>
-											v.serialize(macros),
-										),
-									target: nexus.mapItem.node?.pathString,
-									targetAst:
-										nexus.mapItem.nodeAst?.serialize(
-											macros,
-										),
-									parentCellCount:
-										nexus.mapItem.parentCellCount,
-									parentValues:
-										nexus.mapItem.parentValues?.map((v) =>
-											v.serialize(macros),
-										),
-									specifierSpace:
-										nexus.specifierSpace ?? 'interrupt',
-								} satisfies SerializedNexusMap)
-							: undefined,
-					};
-				}),
-			})),
-			childNodes: this.nodes.map((n) => n.serialize(macros)),
+			labels: Array.from(
+				new Set(this.labels.filter(inScope).map((l) => l.label.value)),
+			),
+			nodes: nodeAsts.filter(inScope).map((d) => d.serialize(macros)),
+			properties: this.properties.map((p) =>
+				p.serialize(macros, inScope),
+			),
+			childNodes: this.nodes
+				.filter((n) => n.implimentations.some(inScope))
+				.map((n) => n.serialize(macros, inScope)),
 			reg: mappedRegs?.map((mappedReg) => ({
 				mappedStartAddress: mappedReg?.startAddress,
 				mappedEndAddress: mappedReg?.endAddress,

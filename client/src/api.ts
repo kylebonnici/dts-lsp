@@ -23,6 +23,7 @@ import type {
 	EvaluatedMacro,
 	IntegrationSettings,
 	LocationResult,
+	PositionScopeInformation,
 	ResolvedSettings,
 	SerializedNode,
 	ZephyrBindingYml,
@@ -280,5 +281,14 @@ export class API implements IDeviceTreeAPI {
 			'devicetree/contextMacroNames',
 			id,
 		) as Promise<string[] | undefined>;
+	}
+
+	getLocationScpoedInformation(
+		event: TextDocumentPositionParams & { id: string },
+	) {
+		return this.client.sendRequest(
+			'devicetree/locationScopeInformation',
+			event,
+		) as Promise<PositionScopeInformation | undefined>;
 	}
 }

@@ -94,6 +94,7 @@ import type {
 	GroupedMemoryView,
 	IntegrationSettings,
 	LocationResult,
+	PositionScopeInformation,
 	ResolvedContext,
 	SerializedNode,
 	Settings,
@@ -2049,5 +2050,57 @@ connection.onRequest(
 		}
 		const ctx = findContext(contextAware, { id });
 		return Array.from(ctx?.macros.keys() ?? []);
+	},
+);
+
+connection.onRequest(
+	'devicetree/locationScopeInformation',
+	async (
+		event: TextDocumentPositionParams & { id: string },
+	): Promise<PositionScopeInformation | undefined> => {
+		await allStable();
+
+		const ctx = findContext(contextAware, { id: event.id });
+
+		const filePath = fileURLToPath(event.textDocument.uri);
+		if (!ctx || !ctx.isInContext(filePath)) {
+			return;
+		}
+
+		return new Promise<PositionScopeInformation>(async (resolve) => {
+			const runtime = await ctx.getRuntime();
+			const result = await nodeFinder(event, ctx, (result, inScope) => {
+				const macros = runtime.context.macros;
+				if (!result?.item) {
+					return [
+						{
+							inNode: false,
+							inScope: runtime.rootNode.serialize(
+								macros,
+								inScope,
+							),
+						} as PositionScopeInformation,
+					];
+				}
+
+				let node: Node | null = null;
+				if (result.item instanceof Node) {
+					node = result.item;
+				} else {
+					node = result.item?.parent;
+				}
+
+				return [
+					{
+						inNode: true,
+						inScope: node.serialize(
+							result.runtime.context.macros,
+							inScope,
+						),
+					} as PositionScopeInformation,
+				];
+			});
+			resolve(result[0]);
+		});
 	},
 );
