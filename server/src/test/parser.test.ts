@@ -3879,10 +3879,10 @@ describe('Parser', () => {
 	describe('Macro Calls', () => {
 		test('inject node', async () => {
 			mockReadFileSync(`#define TEST_I2C_DEVICE_WITH_ADDR(label, node, addr, ...) \
-	label: node@addr { \
+	/ { label: node@addr { \
 		reg = <addr>; \
 		__VA_ARGS__ \
-	};
+	};};
 
 #define TEST_I2C_DEVICE(sensor, ...) \
 	TEST_I2C_DEVICE_WITH_ADDR(test_i2c_##sensor, sensor, __COUNTER__, __VA_ARGS__)
