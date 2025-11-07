@@ -57,7 +57,9 @@ async function getMacroFuncSignatureHelp(
 		return;
 	}
 
-	const lastParser = (await result.runtime.context.getAllParsers()).at(-1)!;
+	const lastParser = (await result.runtime.context.getAllStableParsers()).at(
+		-1,
+	)!;
 	const macroDef = lastParser.cPreprocessorParser.macros.get(
 		macroCall.functionName.name,
 	)?.macro.identifier;

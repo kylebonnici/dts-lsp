@@ -25,7 +25,6 @@ import {
 	TextEdit,
 } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ContextAware } from './runtimeEvaluator';
 import {
 	DtcBaseNode,
 	DtcChildNode,
@@ -327,78 +326,6 @@ async function formatAstBaseItems(
 	return { text: toText(), diagnostic: resultExcludingOnOfRanges };
 }
 
-export async function getDocumentFormatting(
-	documentFormattingParams:
-		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
-	contextAware: ContextAware,
-	documentText: string,
-	returnType: 'Both',
-): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
-export async function getDocumentFormatting(
-	documentFormattingParams:
-		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
-	contextAware: ContextAware,
-	documentText: string,
-	returnType: 'File Diagnostics',
-): Promise<FileDiagnostic[]>;
-export async function getDocumentFormatting(
-	documentFormattingParams:
-		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
-	contextAware: ContextAware,
-	documentText: string,
-	returnType: 'New Text',
-): Promise<string>;
-export async function getDocumentFormatting(
-	documentFormattingParams:
-		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
-	contextAware: ContextAware,
-	documentText: string,
-	returnType: 'New Text' | 'File Diagnostics' | 'Both',
-): Promise<
-	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
-> {
-	const uri = fileURLToPath(documentFormattingParams.textDocument.uri);
-
-	contextAware.formattingOptions = documentFormattingParams.options;
-
-	const runtime = await contextAware.getRuntime();
-	let fileRootAsts = runtime.fileTopMostAsts(uri);
-
-	const fileIncludes = runtime.includes.filter((i) =>
-		isPathEqual(i.resolvedPath, uri),
-	);
-
-	if (fileIncludes.length > 1) {
-		const tmp: ASTBase[] = [];
-
-		fileRootAsts.forEach((ast) => {
-			if (
-				tmp.some(
-					(r) =>
-						r.firstToken.pos.line === ast.firstToken.pos.line &&
-						r.firstToken.pos.col === ast.firstToken.pos.col,
-				)
-			) {
-				return;
-			}
-			tmp.push(ast);
-		});
-
-		fileRootAsts = tmp;
-	}
-
-	return formatAstBaseItems(
-		documentFormattingParams,
-		fileRootAsts,
-		uri,
-		documentText,
-		returnType,
-	);
-}
 const pairFormatOnOff = (
 	fileRootAsts: ASTBase[],
 	documentLines: string[],

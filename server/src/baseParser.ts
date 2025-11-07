@@ -219,40 +219,53 @@ export abstract class BaseParser {
 		return this.allAstItems.flatMap((o) => o.getWorkspaceSymbols());
 	}
 
-	buildSemanticTokens(tokensBuilder: SemanticTokensBuilder, uri: string) {
-		const result: {
+	static push(
+		tokenType: number,
+		tokenModifiers: number,
+		start: Token,
+		end: Token,
+		uri: string,
+		result: {
 			line: number;
 			char: number;
 			length: number;
 			tokenType: number;
 			tokenModifiers: number;
-		}[] = [];
-		const push = (
-			tokenType: number,
-			tokenModifiers: number,
-			start: Token,
-			end: Token,
-		) => {
-			if (
-				!start ||
-				!end ||
-				!isPathEqual(start.uri, uri) ||
-				!isPathEqual(end.uri, uri)
-			)
-				return;
+		}[],
+	) {
+		if (
+			!start ||
+			!end ||
+			!isPathEqual(start.uri, uri) ||
+			!isPathEqual(end.uri, uri)
+		)
+			return;
 
-			const lengthEnd = end.pos.colEnd - start.pos.col;
-			result.push({
-				line: start.pos.line,
-				char: start.pos.col,
-				length: end === start ? end.pos.len : lengthEnd,
-				tokenType,
-				tokenModifiers,
-			});
-		};
+		const lengthEnd = end.pos.colEnd - start.pos.col;
+		result.push({
+			line: start.pos.line,
+			char: start.pos.col,
+			length: end === start ? end.pos.len : lengthEnd,
+			tokenType,
+			tokenModifiers,
+		});
+	}
 
+	buildSemanticTokens(
+		tokensBuilder: SemanticTokensBuilder,
+		uri: string,
+		result: {
+			line: number;
+			char: number;
+			length: number;
+			tokenType: number;
+			tokenModifiers: number;
+		}[] = [],
+	) {
 		this.allAstItems.forEach((a) => {
-			a.buildSemanticTokens(push);
+			a.buildSemanticTokens((...args) =>
+				BaseParser.push(...args, uri, result),
+			);
 		});
 
 		result

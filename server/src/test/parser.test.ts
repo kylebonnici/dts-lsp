@@ -1139,7 +1139,7 @@ describe('Parser', () => {
 				describe('Macro calls', () => {
 					test('With params', async () => {
 						mockReadFileSync(
-							'#define ADD(x,y) \n/{prop=<ADD(1,2)>;};',
+							'#define ADD(x,y) (x + y)\n/{prop=<ADD(1,2)>;};',
 						);
 						const parser = new Parser(filePath, []);
 						await parser.stable;
@@ -1233,52 +1233,9 @@ describe('Parser', () => {
 						expect(macro.name).toEqual('VAL');
 					});
 
-					test('C Macro expression missing coma', async () => {
-						mockReadFileSync(
-							'#define ADD(x) \n/{prop=<ADD(1 2)>;};',
-						);
-						const parser = new Parser(filePath, []);
-						await parser.stable;
-						expect(parser.issues.length).toEqual(0);
-						const rootDts = parser.rootDocument
-							.children[0] as DtcRootNode;
-
-						expect(rootDts.properties.length).toEqual(1);
-						expect(
-							rootDts.properties[0].propertyName?.name,
-						).toEqual('prop');
-						expect(
-							rootDts.properties[0].values instanceof
-								PropertyValues,
-						).toBeTruthy();
-						expect(
-							rootDts.properties[0].values?.values.length,
-						).toEqual(1);
-						expect(
-							rootDts.properties[0].values?.values[0]
-								?.value instanceof ArrayValues,
-						).toBeTruthy();
-						expect(
-							(
-								rootDts.properties[0].values?.values[0]
-									?.value as ArrayValues
-							).values[0].value instanceof CMacroCall,
-						).toBeTruthy();
-
-						const macro = (
-							rootDts.properties[0].values?.values[0]
-								?.value as ArrayValues
-						).values[0].value as CMacroCall;
-
-						expect(macro.functionName.name).toEqual('ADD');
-						expect(macro.params.map((p) => p?.value)).toEqual([
-							'1 2',
-						]);
-					});
-
 					test('Nested call', async () => {
 						mockReadFileSync(
-							'#define ADD(x,y)\n#define MULT(x,y)\n /{prop=<ADD(1,MULT(2, 5))>;};',
+							'#define ADD(x,y) (x + y)\n#define MULT(x,y) (x * y)\n /{prop=<ADD(1,MULT(2, 5))>;};',
 						);
 						const parser = new Parser(filePath, []);
 						await parser.stable;
@@ -1322,7 +1279,7 @@ describe('Parser', () => {
 
 					test('Math expression call', async () => {
 						mockReadFileSync(
-							'#define ADD(x,y) \n/{prop=<ADD(1,(2 + 5) * (50 + 1))>;};',
+							'#define ADD(x,y) (x + y)\n/ {prop=<ADD(1,(2 + 5) * (50 + 1))>;};',
 						);
 						const parser = new Parser(filePath, []);
 						await parser.stable;

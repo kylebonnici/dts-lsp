@@ -75,7 +75,7 @@ import { getDefinitions as getDTMacroDefinitions } from './dtMacro/definitions/f
 import { getDeclaration } from './findDeclarations';
 import { getDeclaration as getDTMacroDeclaration } from './dtMacro/declarations/findDeclarations';
 import { getCodeActions } from './getCodeActions';
-import { formatText, getDocumentFormatting } from './getDocumentFormatting';
+import { formatText } from './getDocumentFormatting';
 import { getTypeCompletions } from './getTypeCompletions';
 import { getHover } from './getHover';
 import { getHover as getDTMacroHover } from './dtMacro/hover/getHover';
@@ -218,10 +218,10 @@ const contextFullyOverlaps = async (a: ContextAware, b: ContextAware) => {
 		return true;
 	}
 
-	const contextAIncludes = (await a.getAllParsers())
+	const contextAIncludes = (await a.getAllStableParsers())
 		.flatMap((p) => p.cPreprocessorParser.dtsIncludes)
 		.filter((i) => i.resolvedPath);
-	const contextBIncludes = (await b.getAllParsers())
+	const contextBIncludes = (await b.getAllStableParsers())
 		.flatMap((p) => p.cPreprocessorParser.dtsIncludes)
 		.filter((i) => i.resolvedPath);
 
@@ -892,15 +892,14 @@ const generateWorkspaceDiagnostics = async (context: ContextAware) => {
 			) {
 				formattingItems.push(
 					...(
-						await getDocumentFormatting(
+						await formatText(
 							{
 								textDocument,
 								options: context.formattingOptions,
 							},
-							context,
 							textDocument?.getText(),
 							'File Diagnostics',
-						)
+						).catch(() => [])
 					).map((d) => d.diagnostic()),
 				);
 			}
@@ -1274,7 +1273,7 @@ connection.onWorkspaceSymbol(async () => {
 	const context = activeContext;
 	if (!context) return [];
 
-	return (await context.getAllParsers()).flatMap((p) =>
+	return (await context.getAllStableParsers()).flatMap((p) =>
 		p.getWorkspaceSymbols(),
 	) satisfies WorkspaceSymbol[];
 });
@@ -1296,7 +1295,7 @@ connection.languages.semanticTokens.on(async (h) => {
 			return { data: [] };
 		}
 
-		(await context.getAllParsers()).forEach((parser) =>
+		(await context.getAllStableParsers()).forEach((parser) =>
 			parser.buildSemanticTokens(tokensBuilder, uri),
 		);
 
@@ -1465,12 +1464,7 @@ const onDocumentFormat = async (
 
 	const document = getTokenizedDocumentProvider().getDocument(filePath);
 	const text = document.getText();
-	const newText = await getDocumentFormatting(
-		event,
-		context,
-		text,
-		'New Text',
-	);
+	const newText = await formatText(event, text, 'New Text').catch(() => text);
 
 	if (newText === text) {
 		return [];
@@ -1537,7 +1531,7 @@ connection.onFoldingRanges(async (event) => {
 		return [];
 	}
 
-	const parser = (await context.getAllParsers()).find((p) =>
+	const parser = (await context.getAllStableParsers()).find((p) =>
 		p.getFiles().some((i) => i === filePath),
 	);
 
@@ -1723,7 +1717,7 @@ connection.onRequest(
 			},
 			text,
 			'New Text',
-		);
+		).catch(() => text);
 	},
 );
 
@@ -1788,34 +1782,6 @@ connection.onRequest('devicetree/activeFileUri', async (uri: string) => {
 	updateActiveContext({ uri });
 });
 
-const formatWithContext = async (
-	event: DocumentFormattingParams,
-	context: ContextAware,
-	filePath: string,
-) => {
-	const issues = (
-		await context.getSyntaxIssues(undefined, (issue) =>
-			coreSyntaxIssuesFilter(issue.raw, filePath, false)
-				? issue
-				: undefined,
-		)
-	).get(filePath);
-
-	if (issues?.length) {
-		throw new Error('Unable to format. Files has syntax issues.');
-	}
-
-	const documentText = getTokenizedDocumentProvider().getDocument(filePath);
-	const newText = await getDocumentFormatting(
-		event,
-		context,
-		documentText.getText(),
-		'New Text',
-	);
-
-	return newText;
-};
-
 connection.onRequest(
 	'devicetree/formattingText',
 	async (
@@ -1825,17 +1791,10 @@ connection.onRequest(
 	) => {
 		await allStable();
 		const filePath = fileURLToPath(event.textDocument.uri);
-		const context = quickFindContext(filePath);
 
-		if (context) {
-			updateActiveContext({ uri: filePath });
-			return formatWithContext(event, context, filePath);
-		}
-
-		const documentText = getTokenizedDocumentProvider().getDocument(
-			filePath,
-			event.text,
-		);
+		const documentText =
+			fetchDocument(filePath) ??
+			getTokenizedDocumentProvider().getDocument(filePath, event.text);
 		const newText = await formatText(event, documentText.getText(), 'Both');
 
 		return {

@@ -16,7 +16,10 @@
 
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 
-import { DiagnosticSeverity } from 'vscode-languageserver';
+import {
+	DiagnosticSeverity,
+	SemanticTokensBuilder,
+} from 'vscode-languageserver';
 import {
 	FileDiagnostic,
 	LexerToken,
@@ -82,13 +85,14 @@ export class Parser extends BaseParser {
 	others: ASTBase[] = [];
 	rootDocument = new DtcBaseNode();
 	unhandledStatements = new DtcRootNode();
+	injectedMacros: (CMacroCall | CIdentifier)[] = [];
 
 	constructor(
 		public readonly uri: string,
 		private incudes: string[],
 		macros?: Map<string, MacroRegistryItem>,
 		getTokens?: () => Token[],
-		skipIncludes?: boolean,
+		optimizeForFormatting?: boolean,
 	) {
 		super();
 		this.cPreprocessorParser = new CPreprocessorParser(
@@ -96,7 +100,7 @@ export class Parser extends BaseParser {
 			this.incudes,
 			macros,
 			getTokens,
-			skipIncludes,
+			optimizeForFormatting,
 		);
 	}
 
@@ -155,7 +159,7 @@ export class Parser extends BaseParser {
 					this.isPlugin() ||
 					this.isRootNodeDefinition(this.rootDocument) ||
 					this.isDeleteNode(this.rootDocument, 'Ref') ||
-					this.injectPreProcessorResults(
+					this.processInjectPreProcessorMacros(
 						this.cPreprocessorParser.macros,
 					) ||
 					// Valid use case
@@ -240,13 +244,21 @@ export class Parser extends BaseParser {
 		}
 	}
 
-	protected injectPreProcessorResults(
+	protected processInjectPreProcessorMacros(
 		macros: Map<string, MacroRegistryItem>,
 	) {
 		const startIndex = this.peekIndex();
 		let result =
 			this.isFunctionCall(macros) ||
 			this.processCIdentifier(macros, true, true);
+		return this.injectPreProcessorResults(macros, result, startIndex);
+	}
+
+	protected injectPreProcessorResults(
+		macros: Map<string, MacroRegistryItem>,
+		result: CMacroCall | CIdentifier | undefined,
+		startIndex: number,
+	) {
 		let evalResult = result?.resolve(macros);
 		if (result && typeof evalResult === 'string') {
 			evalResult = sanitizeCExpression(evalResult);
@@ -259,6 +271,7 @@ export class Parser extends BaseParser {
 				}
 			});
 			this.cPreprocessorParser.removeComments(toRemoveSet);
+			this.injectedMacros.push(result);
 
 			// avoid recursive calls
 			if (
@@ -394,7 +407,9 @@ export class Parser extends BaseParser {
 
 		do {
 			while (
-				this.injectPreProcessorResults(this.cPreprocessorParser.macros)
+				this.processInjectPreProcessorMacros(
+					this.cPreprocessorParser.macros,
+				)
 			) {}
 
 			child =
@@ -1736,6 +1751,7 @@ export class Parser extends BaseParser {
 					byteString.firstToken,
 					byteString.lastToken,
 					byteString,
+					{ severity: DiagnosticSeverity.Information },
 				),
 			);
 		}
@@ -1806,11 +1822,42 @@ export class Parser extends BaseParser {
 				| LabeledValue<
 						NumberValue | LabelRef | NodePathRef | Expression
 				  >
-				| undefined =>
-				this.processRefValue(parent, false) ||
-				this.processLabeledHex(false) ||
-				this.processLabeledDec(false) ||
-				this.processLabeledExpression(true, false, parent),
+				| undefined => {
+				const action = () =>
+					this.processRefValue(parent, false) ||
+					this.processLabeledHex(false) ||
+					this.processLabeledDec(false) ||
+					this.processLabeledExpression(true, false, parent);
+
+				const startIndex = this.peekIndex();
+				const result = action();
+
+				// we should not get any expressions that are string... so in this case we resolve file
+				// and inject and reparse
+				if (
+					result &&
+					!this.cPreprocessorParser.optimizeForFormatting &&
+					((result.value instanceof CMacroCall &&
+						this.cPreprocessorParser.macros.has(
+							result.value.functionName.name,
+						)) ||
+						(result.value instanceof CIdentifier &&
+							this.cPreprocessorParser.macros.has(
+								result.value.name,
+							))) &&
+					typeof result.value.evaluate(
+						this.cPreprocessorParser.macros,
+					) === 'string'
+				) {
+					this.injectPreProcessorResults(
+						this.cPreprocessorParser.macros,
+						result.value,
+						startIndex,
+					);
+					return action();
+				}
+				return result;
+			},
 		);
 
 		const node = new ArrayValues(result);
@@ -2239,5 +2286,23 @@ export class Parser extends BaseParser {
 			...this.unhandledStatements.deleteProperties,
 			...this.unhandledStatements.nodes,
 		];
+	}
+
+	buildSemanticTokens(tokensBuilder: SemanticTokensBuilder, uri: string) {
+		const result: {
+			line: number;
+			char: number;
+			length: number;
+			tokenType: number;
+			tokenModifiers: number;
+		}[] = [];
+
+		this.injectedMacros.forEach((a) => {
+			a.buildSemanticTokens((...args) =>
+				BaseParser.push(...args, uri, result),
+			);
+		});
+
+		super.buildSemanticTokens(tokensBuilder, uri, result);
 	}
 }

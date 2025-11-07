@@ -729,8 +729,25 @@ export async function nodeFinder<T>(
 
 	const t = performance.now();
 	const runtime = await context.getRuntime();
-	const locationMeta = runtime.getDeepestAstNode(uri, location.position);
-	const sortKey = context.getSortKey(locationMeta?.ast);
+	let locationMeta: SearchableResult | undefined;
+	let sortKey: number | undefined;
+
+	const macro = runtime.context.allParsers
+		.flatMap((p) => p.injectedMacros)
+		.find((m) => positionInBetween(m, uri, location.position));
+	if (macro) {
+		locationMeta = {
+			runtime,
+			item: null,
+			ast: getDeepestAstNodeInBetween(macro, uri, location.position),
+		};
+		sortKey = Number.MAX_SAFE_INTEGER;
+	}
+
+	if (!locationMeta) {
+		locationMeta = runtime.getDeepestAstNode(uri, location.position);
+		sortKey = context.getSortKey(locationMeta?.ast);
+	}
 	console.log(`search: ${performance.now() - t}ms`);
 
 	const inScope = (ast: ASTBase) => {
@@ -856,9 +873,9 @@ export const findContexts = (contextAware: ContextAware[], uri: string) => {
 
 export const parseMacros = (line: string) => {
 	// Regular expressions to match macro definitions
-	const macroRegex = /^(\w+)\s+(.+)$/;
-	const funcMacroRegex = /^(\w+)\(([^)]*)\)\s+(.+)$/;
-	const variadicMacroRegex = /^(\w+)\(([^)]*),\s*\.\.\.\)\s+(.+)$/;
+	const macroRegex = /^(\w+)\s+(.*)$/;
+	const funcMacroRegex = /^(\w+)\(([^)]*)\)\s+(.*)$/;
+	const variadicMacroRegex = /^(\w+)\(([^)]*),\s*\.\.\.\)\s+(.*)$/;
 
 	let match;
 	if ((match = variadicMacroRegex.exec(line))) {
@@ -893,6 +910,26 @@ export const parseMacros = (line: string) => {
 	}
 };
 
+function splitArgsRespectingParens(argString: string) {
+	if (!argString.trim()) return [];
+	const args = [];
+	let current = '';
+	let depth = 0;
+	for (let i = 0; i < argString.length; i++) {
+		const c = argString[i];
+		if (c === ',' && depth === 0) {
+			args.push(current.trim());
+			current = '';
+		} else {
+			if (c === '(') depth++;
+			else if (c === ')') depth--;
+			current += c;
+		}
+	}
+	if (current.trim()) args.push(current.trim());
+	return args;
+}
+
 let counter = 0; // impliments __counter__
 export const expandMacros = (
 	code: string,
@@ -914,7 +951,7 @@ export const expandMacros = (
 		expandedCode = handleTokenConcatenation(prevCode); // Handle ## operator
 		expandedCode = handleStringification(expandedCode); // Handle # operator
 		expandedCode = expandedCode.replace(
-			/\b(\w+)\(([^)]*)\)|\b(\w+)\b/g,
+			/\b(\w+)\(([^()]*(?:\([^()]*\)[^()]*)*)\)|\b(\w+)\b/g,
 			(match, func, args, simple) => {
 				if (func === 'defined') {
 					const argList = args
@@ -927,8 +964,7 @@ export const expandMacros = (
 					func &&
 					typeof macrosResolvers.get(func)?.resolver === 'function'
 				) {
-					const argList = args
-						.split(',')
+					const argList = splitArgsRespectingParens(args)
 						.map((a: string) => a.trim())
 						.map((a: string) =>
 							a === '__COUNTER__' ? (counter++).toString() : a,
@@ -960,9 +996,7 @@ export function sanitizeCExpression(expr: string) {
 export function evalExp(str: string) {
 	try {
 		return (0, eval)(sanitizeCExpression(str));
-	} catch (e) {
-		console.log(e instanceof Error ? e.message : e);
-	}
+	} catch {}
 	return str;
 }
 

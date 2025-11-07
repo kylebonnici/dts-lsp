@@ -110,8 +110,7 @@ export class ContextAware {
 	}
 
 	get macros() {
-		return [this.parser, ...this.overlayParsers].at(-1)!.cPreprocessorParser
-			.macros;
+		return this.allParsers.at(-1)!.cPreprocessorParser.macros;
 	}
 
 	get ctxNames() {
@@ -198,8 +197,12 @@ export class ContextAware {
 		return parser;
 	}
 
-	async getAllParsers(): Promise<Parser[]> {
+	async getAllStableParsers(): Promise<Parser[]> {
 		await this.stable();
+		return this.allParsers;
+	}
+
+	get allParsers() {
 		return [this.parser, ...this.overlayParsers];
 	}
 
@@ -398,7 +401,7 @@ export class ContextAware {
 			(a) => a instanceof Comment,
 		);
 
-		(await this.getAllParsers())
+		(await this.getAllStableParsers())
 			.flatMap((p) => p.tokens)
 			.forEach((t, i) => this.sortKeys.set(t, i));
 
@@ -1005,7 +1008,7 @@ export class ContextAware {
 			return issue;
 		},
 	): Promise<Map<string, Diagnostic[]>> {
-		(await this.getAllParsers()).forEach((parser) => {
+		(await this.getAllStableParsers()).forEach((parser) => {
 			return this.getIssues(parser.issues, result, transform);
 		});
 
@@ -1033,7 +1036,8 @@ export class ContextAware {
 
 	async toFullString() {
 		return `/dts-v1/;\n${(await this.getRuntime()).rootNode.toFullString(
-			(await this.getAllParsers()).at(-1)!.cPreprocessorParser.macros,
+			(await this.getAllStableParsers()).at(-1)!.cPreprocessorParser
+				.macros,
 			this.settings.cwd,
 		)}`;
 	}
@@ -1042,7 +1046,8 @@ export class ContextAware {
 		await this.stable;
 		await this.getDiagnostics();
 		return (await this?.getRuntime())?.rootNode.serialize(
-			(await this.getAllParsers()).at(-1)!.cPreprocessorParser.macros,
+			(await this.getAllStableParsers()).at(-1)!.cPreprocessorParser
+				.macros,
 		);
 	}
 }

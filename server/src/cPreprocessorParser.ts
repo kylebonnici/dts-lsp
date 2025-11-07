@@ -75,7 +75,7 @@ export class CPreprocessorParser extends BaseParser {
 		private incudes: string[],
 		macros?: Map<string, MacroRegistryItem>,
 		private getTokens?: () => Token[],
-		private skipIncludes?: boolean,
+		readonly optimizeForFormatting?: boolean,
 	) {
 		super();
 		if (macros) {
@@ -846,7 +846,7 @@ export class CPreprocessorParser extends BaseParser {
 			);
 		}
 
-		if (resolvedPath && !this.skipIncludes) {
+		if (resolvedPath && !this.optimizeForFormatting) {
 			getTokenizedDocumentProvider().requestTokens(resolvedPath, true);
 			const fileParser =
 				getCachedCPreprocessorParserProvider().getCPreprocessorParser(

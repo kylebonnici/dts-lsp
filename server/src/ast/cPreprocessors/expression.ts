@@ -112,7 +112,13 @@ export class ComplexExpression extends Expression {
 	}
 
 	toString() {
-		const exp = this.children.map((c) => c.toString()).join(' ');
+		const exp = this.children
+			.map((c) =>
+				'radix' in c && c.radix === 16
+					? `0x${c.toString()}`
+					: c.toString(),
+			)
+			.join(' ');
 		if (this.wrapped) {
 			return `(${exp})`;
 		}

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.6.8] - Unreleased
 
+### Added
+
+- Support for macros resolving to strings inside array values.
+
 ### Fixed
 
 - Fixed an issue with downgrading some diagnostics issues related to macros when
