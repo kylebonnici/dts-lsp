@@ -1729,7 +1729,10 @@ connection.onRequest(
 			return;
 		}
 		const ctx = findContext(contextAware, { id });
-		return ctx?.serialize();
+		const t = performance.now();
+		return ctx?.serialize().finally(() => {
+			console.info('serializedContext', performance.now() - t);
+		});
 	},
 );
 
