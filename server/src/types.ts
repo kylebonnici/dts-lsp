@@ -179,6 +179,7 @@ export enum FormattingIssues {
 	WRONG_INDENTATION,
 	MOVE_NEXT_TO,
 	REMOVE_EXPRESSION_BRACKETS,
+	LONG_LINE_WRAP,
 }
 
 export enum LexerToken {

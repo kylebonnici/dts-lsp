@@ -19,6 +19,7 @@ import {
 	DocumentFormattingParams,
 	DocumentRangeFormattingParams,
 	ErrorCodes,
+	FormattingOptions,
 	Position,
 	Range,
 	ResponseError,
@@ -58,6 +59,7 @@ import {
 	isRangeInRange,
 	positionInBetween,
 	rangesOverlap,
+	toPosition,
 } from './helpers';
 import { Comment, CommentBlock } from './ast/dtc/comment';
 import { LabelAssign } from './ast/dtc/label';
@@ -68,6 +70,9 @@ import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
 import { Parser } from './parser';
 import { Lexer } from './lexer';
 import { IfDefineBlock } from './ast/cPreprocessors/ifDefine';
+import { LabelRef } from './ast/dtc/labelRef';
+import { StringValue } from './ast/dtc/values/string';
+import { NodePathRef } from './ast/dtc/values/nodePath';
 
 const findAst = async (token: Token, uri: string, fileRootAsts: ASTBase[]) => {
 	const pos = Position.create(token.pos.line, token.pos.col);
@@ -139,6 +144,10 @@ export async function formatText(
 		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'Both',
+	options?: {
+		runBaseCheck: boolean;
+		runLongLinesCheck: boolean;
+	},
 ): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
 export async function formatText(
 	documentFormattingParams:
@@ -146,6 +155,10 @@ export async function formatText(
 		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'New Text',
+	options?: {
+		runBaseCheck: boolean;
+		runLongLinesCheck: boolean;
+	},
 ): Promise<string>;
 export async function formatText(
 	documentFormattingParams:
@@ -153,6 +166,10 @@ export async function formatText(
 		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'File Diagnostics',
+	options?: {
+		runBaseCheck: boolean;
+		runLongLinesCheck: boolean;
+	},
 ): Promise<FileDiagnostic[]>;
 export async function formatText(
 	documentFormattingParams:
@@ -160,6 +177,13 @@ export async function formatText(
 		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics' | 'Both',
+	options: {
+		runBaseCheck: boolean;
+		runLongLinesCheck: boolean;
+	} = {
+		runBaseCheck: true,
+		runLongLinesCheck: true,
+	},
 ): Promise<
 	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
 > {
@@ -187,19 +211,229 @@ export async function formatText(
 		);
 	}
 
-	return formatAstBaseItems(
-		documentFormattingParams,
-		parser.allAstItems,
-		filePath,
-		text,
-		returnType,
-	);
+	const wordWrapColumn =
+		typeof documentFormattingParams.options.wordWrapColumn === 'number'
+			? documentFormattingParams.options.wordWrapColumn
+			: 100;
+
+	if (returnType === 'New Text') {
+		let finalText = text;
+		if (options.runBaseCheck) {
+			const r = await formatAstBaseItems(
+				{
+					...documentFormattingParams,
+					options: {
+						...documentFormattingParams.options,
+						wordWrapColumn,
+					},
+				},
+				parser.allAstItems,
+				filePath,
+				text,
+				returnType,
+			);
+			finalText = r;
+		}
+
+		if (options.runLongLinesCheck) {
+			let allAstItems = parser.allAstItems;
+			if (finalText !== text) {
+				const parser = new Parser(
+					filePath,
+					[],
+					undefined,
+					() => {
+						const lexer = new Lexer(finalText, filePath);
+						return lexer.tokens;
+					},
+					true,
+				);
+				await parser.stable;
+				allAstItems = parser.allAstItems;
+			}
+
+			const r = await formatLongLines(
+				{
+					...documentFormattingParams,
+					options: {
+						...documentFormattingParams.options,
+						wordWrapColumn,
+					},
+				},
+				allAstItems,
+				filePath,
+				finalText,
+				returnType,
+			);
+			finalText = r;
+
+			if (finalText !== text) {
+				return formatText(
+					documentFormattingParams,
+					finalText,
+					'New Text',
+					{ runLongLinesCheck: true, runBaseCheck: false },
+				);
+			}
+		}
+
+		return finalText;
+	}
+
+	if (returnType === 'Both') {
+		let finalText = text;
+		let diagnostic: FileDiagnostic[] = [];
+		if (options.runBaseCheck) {
+			const r = await formatAstBaseItems(
+				{
+					...documentFormattingParams,
+					options: {
+						...documentFormattingParams.options,
+						wordWrapColumn,
+					},
+				},
+				parser.allAstItems,
+				filePath,
+				text,
+				returnType,
+			);
+			finalText = r.text;
+			diagnostic.push(...r.diagnostic);
+		}
+
+		if (options.runLongLinesCheck) {
+			diagnostic.push(
+				...(await formatLongLines(
+					{
+						...documentFormattingParams,
+						options: {
+							...documentFormattingParams.options,
+							wordWrapColumn,
+						},
+					},
+					parser.allAstItems,
+					filePath,
+					text,
+					'File Diagnostics',
+				)),
+			);
+
+			finalText = await formatText(
+				documentFormattingParams,
+				finalText,
+				'New Text',
+				{ runLongLinesCheck: true, runBaseCheck: false },
+			);
+		}
+
+		return {
+			text: finalText,
+			diagnostic,
+		};
+	}
+
+	let diagnostic: FileDiagnostic[] = [];
+	if (options.runBaseCheck) {
+		const r = await formatAstBaseItems(
+			{
+				...documentFormattingParams,
+				options: {
+					...documentFormattingParams.options,
+					wordWrapColumn,
+				},
+			},
+			parser.allAstItems,
+			filePath,
+			text,
+			returnType,
+		);
+		diagnostic.push(...r);
+	}
+
+	if (options.runLongLinesCheck) {
+		const r = await formatLongLines(
+			{
+				...documentFormattingParams,
+				options: {
+					...documentFormattingParams.options,
+					wordWrapColumn,
+				},
+			},
+			parser.allAstItems,
+			filePath,
+			text,
+			returnType,
+		);
+		diagnostic.push(...r);
+	}
+
+	return diagnostic;
 }
 
+const filterOnOffEdits = (
+	formatOnOffMeta: Range[],
+	settings: CustomDocumentFormattingParams,
+	result: FileDiagnostic[],
+) => {
+	let resultExcludingOnOfRanges = formatOnOffMeta.length
+		? result.filter((i) => {
+				const edits = Array.isArray(i.raw.edit)
+					? i.raw.edit
+					: i.raw.edit
+						? [i.raw.edit]
+						: undefined;
+				return edits?.every(
+					(e) =>
+						!isFormattingDisabledAt(
+							e.range.start,
+							formatOnOffMeta,
+						) &&
+						!isFormattingDisabledAt(e.range.end, formatOnOffMeta),
+				);
+			})
+		: result;
+
+	if ('range' in settings) {
+		resultExcludingOnOfRanges = resultExcludingOnOfRanges.filter((d) =>
+			isRangeInRange(settings.range, d.raw.range),
+		);
+	}
+
+	return resultExcludingOnOfRanges;
+};
+
+type CustomDocumentFormattingParams = (
+	| DocumentFormattingParams
+	| DocumentRangeFormattingParams
+) & {
+	options: FormattingOptions & {
+		wordWrapColumn: number;
+	};
+};
+
 async function formatAstBaseItems(
-	documentFormattingParams:
-		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
+	documentFormattingParams: CustomDocumentFormattingParams,
+	astItems: ASTBase[],
+	uri: string,
+	text: string,
+	returnType: 'Both',
+): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
+async function formatAstBaseItems(
+	documentFormattingParams: CustomDocumentFormattingParams,
+	astItems: ASTBase[],
+	uri: string,
+	text: string,
+	returnType: 'File Diagnostics',
+): Promise<FileDiagnostic[]>;
+async function formatAstBaseItems(
+	documentFormattingParams: CustomDocumentFormattingParams,
+	astItems: ASTBase[],
+	uri: string,
+	text: string,
+	returnType: 'New Text',
+): Promise<string>;
+async function formatAstBaseItems(
+	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
 	uri: string,
 	text: string,
@@ -210,6 +444,44 @@ async function formatAstBaseItems(
 	const splitDocument = text.split('\n');
 	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
 
+	let newText = text;
+	const edits: FileDiagnostic[] = [];
+
+	edits.push(
+		...(await baseFormatAstBaseItems(
+			documentFormattingParams,
+			astItems,
+			uri,
+			splitDocument,
+		)),
+	);
+
+	newText = applyEdits(
+		TextDocument.create(uri, 'devicetree', 0, text),
+		filterOnOffEdits(formatOnOffMeta, documentFormattingParams, edits)
+			.flatMap((i) => i.raw.edit)
+			.filter((e) => !!e),
+	);
+
+	switch (returnType) {
+		case 'New Text':
+			return newText;
+		case 'File Diagnostics':
+			return edits;
+		case 'Both':
+			return {
+				text: newText,
+				diagnostic: edits,
+			};
+	}
+}
+
+async function baseFormatAstBaseItems(
+	documentFormattingParams: CustomDocumentFormattingParams,
+	astItems: ASTBase[],
+	uri: string,
+	splitDocument: string[],
+): Promise<FileDiagnostic[]> {
 	const astItemLevel = getAstItemLevel(astItems, uri);
 
 	const result: FileDiagnostic[] = (
@@ -283,47 +555,7 @@ async function formatAstBaseItems(
 		result.push(...issues);
 	}
 
-	let resultExcludingOnOfRanges = formatOnOffMeta.length
-		? result.filter((i) => {
-				const edits = Array.isArray(i.raw.edit)
-					? i.raw.edit
-					: i.raw.edit
-						? [i.raw.edit]
-						: undefined;
-				return edits?.every(
-					(e) =>
-						!isFormattingDisabledAt(
-							e.range.start,
-							formatOnOffMeta,
-						) &&
-						!isFormattingDisabledAt(e.range.end, formatOnOffMeta),
-				);
-			})
-		: result;
-
-	if ('range' in documentFormattingParams) {
-		resultExcludingOnOfRanges = resultExcludingOnOfRanges.filter((d) =>
-			isRangeInRange(documentFormattingParams.range, d.raw.range),
-		);
-	}
-
-	const toText = () => {
-		const edits = resultExcludingOnOfRanges
-			.flatMap((i) => i.raw.edit)
-			.filter((i) => !!i);
-		return applyEdits(
-			TextDocument.create(uri, 'devicetree', 0, text),
-			edits,
-		);
-	};
-
-	if (returnType === 'New Text') {
-		return toText();
-	} else if (returnType === 'File Diagnostics') {
-		return resultExcludingOnOfRanges;
-	}
-
-	return { text: toText(), diagnostic: resultExcludingOnOfRanges };
+	return result;
 }
 
 const pairFormatOnOff = (
@@ -526,6 +758,14 @@ const pushItemToNewLineAndIndent = (
 	}
 };
 
+const createIndentString = (
+	level: number,
+	indentString: string,
+	prefix: string,
+) => {
+	return `${''.padStart(level * indentString.length, indentString)}${prefix}`;
+};
+
 const createIndentEdit = (
 	token: Token,
 	level: number,
@@ -533,10 +773,7 @@ const createIndentEdit = (
 	documentText: string[],
 	prefix: string = '',
 ): FileDiagnostic[] => {
-	const indent = `${''.padStart(
-		level * indentString.length,
-		indentString,
-	)}${prefix}`;
+	const indent = createIndentString(level, indentString, prefix);
 	const start = Position.create(token.pos.line, 0);
 	const end = Position.create(token.pos.line, token.pos.col);
 	const range = Range.create(start, end);
@@ -693,7 +930,7 @@ const formatLabels = (
 };
 
 const formatDtcNode = async (
-	documentFormattingParams: DocumentFormattingParams,
+	documentFormattingParams: CustomDocumentFormattingParams,
 	node: DtcBaseNode,
 	uri: string,
 	level: number,
@@ -1723,10 +1960,11 @@ type FormatingSettings = {
 	tabSize: number;
 	insertSpaces: boolean;
 	singleIndent: string;
+	wordWrapColumn: number;
 };
 
 const getTextEdit = async (
-	documentFormattingParams: DocumentFormattingParams,
+	documentFormattingParams: CustomDocumentFormattingParams,
 	astNode: ASTBase,
 	uri: string,
 	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
@@ -1740,6 +1978,7 @@ const getTextEdit = async (
 		tabSize: delta,
 		insertSpaces,
 		singleIndent,
+		wordWrapColumn: documentFormattingParams.options.wordWrapColumn,
 	};
 
 	if (astNode instanceof DtcBaseNode) {
@@ -1802,3 +2041,479 @@ function getTextFromRange(lines: string[], range: Range): string {
 		endLine.substring(0, range.end.character),
 	].join('\n');
 }
+
+async function formatLongLines(
+	documentFormattingParams: CustomDocumentFormattingParams,
+	astItems: ASTBase[],
+	uri: string,
+	text: string,
+	returnType: 'Both',
+): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
+async function formatLongLines(
+	documentFormattingParams: CustomDocumentFormattingParams,
+	astItems: ASTBase[],
+	uri: string,
+	text: string,
+	returnType: 'File Diagnostics' | 'Both',
+): Promise<FileDiagnostic[]>;
+async function formatLongLines(
+	documentFormattingParams: CustomDocumentFormattingParams,
+	astItems: ASTBase[],
+	uri: string,
+	text: string,
+	returnType: 'New Text',
+): Promise<string>;
+async function formatLongLines(
+	documentFormattingParams: CustomDocumentFormattingParams,
+	astItems: ASTBase[],
+	uri: string,
+	text: string,
+	returnType: 'New Text' | 'File Diagnostics' | 'Both',
+): Promise<
+	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
+> {
+	const splitDocument = text.split('\n');
+	const hasLongLines = splitDocument.find(
+		(l) =>
+			l.trimEnd().length >
+			documentFormattingParams.options.wordWrapColumn,
+	);
+
+	if (!hasLongLines) {
+		switch (returnType) {
+			case 'New Text':
+				return text;
+			case 'File Diagnostics':
+				return [];
+			case 'Both':
+				return {
+					text: text,
+					diagnostic: [],
+				};
+		}
+	}
+	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
+
+	let newText = text;
+	const edits: FileDiagnostic[] = [];
+
+	edits.push(
+		...(await baseFormatLongLines(
+			documentFormattingParams,
+			astItems,
+			uri,
+			splitDocument,
+		)),
+	);
+
+	newText = applyEdits(
+		TextDocument.create(uri, 'devicetree', 0, text),
+		filterOnOffEdits(formatOnOffMeta, documentFormattingParams, edits)
+			.flatMap((i) => i.raw.edit)
+			.filter((e) => !!e),
+	);
+
+	switch (returnType) {
+		case 'New Text':
+			return newText;
+		case 'File Diagnostics':
+			return edits;
+		case 'Both':
+			return {
+				text: newText,
+				diagnostic: edits,
+			};
+	}
+}
+
+const baseFormatLongLines = async (
+	documentFormattingParams: CustomDocumentFormattingParams,
+	astNodes: ASTBase[],
+	uri: string,
+	documentText: string[],
+): Promise<FileDiagnostic[]> => {
+	const computeLevel = getAstItemLevel(astNodes, uri);
+	return (
+		await Promise.all(
+			astNodes.flatMap((c) =>
+				itemLongLineTextEdit(
+					documentFormattingParams,
+					c,
+					uri,
+					computeLevel,
+					documentText,
+				),
+			),
+		)
+	).flat();
+};
+
+const itemLongLineTextEdit = async (
+	documentFormattingParams: CustomDocumentFormattingParams,
+	astNode: ASTBase,
+	uri: string,
+	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
+	documentText: string[],
+	level = 0,
+): Promise<FileDiagnostic[]> => {
+	const delta = documentFormattingParams.options.tabSize;
+	const insertSpaces = documentFormattingParams.options.insertSpaces;
+	const wordWrapColumn = documentFormattingParams.options.wordWrapColumn;
+	const singleIndent = insertSpaces ? ' '.repeat(delta) : '\t';
+	const settings: FormatingSettings = {
+		tabSize: delta,
+		insertSpaces,
+		singleIndent,
+		wordWrapColumn,
+	};
+
+	if (astNode instanceof DtcBaseNode) {
+		return (
+			await Promise.all(
+				astNode.children.flatMap((c) =>
+					itemLongLineTextEdit(
+						documentFormattingParams,
+						c,
+						uri,
+						computeLevel,
+						documentText,
+						level + 1,
+					),
+				),
+			)
+		).flat();
+	} else if (astNode instanceof DtcProperty) {
+		return formatDtcPropertyLongLines(
+			astNode,
+			level,
+			settings,
+			documentText,
+		);
+	}
+
+	return [];
+};
+
+const formatDtcPropertyLongLines = (
+	property: DtcProperty,
+	level: number,
+	settings: FormatingSettings,
+	documentText: string[],
+): FileDiagnostic[] => {
+	const result: FileDiagnostic[] = [];
+
+	if (property.values) {
+		result.push(
+			...formatPropertyValuesLongLines(
+				property.propertyName?.name.length ?? 0,
+				property.values,
+				level,
+				settings,
+				documentText,
+			),
+		);
+	}
+
+	return result;
+};
+
+const formatPropertyValuesLongLines = (
+	propertyNameWidth: number,
+	values: PropertyValues,
+	level: number,
+	settings: FormatingSettings,
+	documentText: string[],
+): FileDiagnostic[] => {
+	const result: FileDiagnostic[] = [];
+
+	for (const v of values.values) {
+		if (!v) continue;
+		const r = formatPropertyValueLongLines(
+			propertyNameWidth,
+			v,
+			values,
+			level,
+			settings,
+			documentText,
+		);
+		if (r.length) return r;
+	}
+
+	return result;
+};
+
+function isLineLengthOk(
+	settings: FormatingSettings,
+	documentText: string[],
+	startToken: Token,
+	endToken: Token,
+): boolean {
+	if (startToken.pos.line !== endToken.pos.line) {
+		return false;
+	}
+
+	const lineStr = documentText[endToken.pos.line].slice(
+		0,
+		endToken.pos.colEnd,
+	);
+	const len = lineStr.replaceAll('\t', ' '.repeat(settings.tabSize)).length;
+
+	return len <= settings.wordWrapColumn;
+}
+
+const formatPropertyValueLongLines = (
+	propertyNameWidth: number,
+	value: PropertyValue,
+	values: PropertyValues,
+	level: number,
+	settings: FormatingSettings,
+	documentText: string[],
+): FileDiagnostic[] => {
+	let propToEquals = level + propertyNameWidth + 3;
+
+	if (
+		isLineLengthOk(
+			settings,
+			documentText,
+			value.firstToken,
+			value.lastToken,
+		)
+	) {
+		// does ',; exceededs aand hecnce we need to wrap?
+		if (
+			!value.nextValueSeparator ||
+			isLineLengthOk(
+				settings,
+				documentText,
+				value.firstToken,
+				value.nextValueSeparator,
+			)
+		)
+			return [];
+
+		const moveValueToNewLine = wrapValue(
+			propertyNameWidth,
+			settings,
+			value.value,
+			values.values.map((v) => v?.value ?? null),
+			level,
+		);
+		if (moveValueToNewLine?.length) {
+			return moveValueToNewLine;
+		}
+		// Consider pushing the whole value
+
+		// Noting we can do for these types
+		// Consider showing diagostic only
+		if (
+			value.value instanceof StringValue ||
+			value.value instanceof LabelRef ||
+			value.value instanceof NodePathRef
+		) {
+			return [];
+		}
+
+		if (
+			(value.value instanceof ArrayValues ||
+				value.value instanceof ByteStringValue) &&
+			value.value.values.length >= 3 // if we have 2 or less element we cannot break this down as
+			// other rule will pull this back up as first and last value are bount to [ ] or < > and
+			// and `,` is bounf to > or ]
+		) {
+			const mindPoint =
+				(value.value.lastToken.pos.colEnd -
+					value.value.firstToken.pos.col) /
+					2 +
+				value.value.firstToken.pos.col;
+			const midItem = value.value.values
+				.slice(1, -1)
+				.find((v) => v.firstToken.pos.col >= mindPoint)!;
+
+			return wrapArrayItem(
+				propertyNameWidth,
+				settings,
+				value.value,
+				level,
+				midItem,
+			);
+		}
+
+		if (value.value) {
+			// TODO EXPRERSSION
+		}
+	}
+
+	const moveValueToNewLine = wrapValue(
+		propertyNameWidth,
+		settings,
+		value.value,
+		values.values.map((v) => v?.value ?? null),
+		level,
+	);
+
+	if (moveValueToNewLine?.length) {
+		return moveValueToNewLine;
+	}
+
+	if (
+		value.value instanceof StringValue ||
+		value.value instanceof LabelRef ||
+		value.value instanceof NodePathRef
+	) {
+		return [];
+	}
+
+	if (
+		value.value instanceof ArrayValues ||
+		value.value instanceof ByteStringValue
+	) {
+		const indentWidth = propToEquals + 1; // we add one for [ or <
+
+		const valueToWrap = value.value.values.find(
+			(v) =>
+				!isLineLengthOk(
+					settings,
+					documentText,
+					v.firstToken,
+					v.lastToken,
+				),
+		)!;
+
+		if (valueToWrap && indentWidth !== valueToWrap.firstToken.pos.col) {
+			return wrapArrayItem(
+				propertyNameWidth,
+				settings,
+				value.value,
+				level,
+				valueToWrap,
+			);
+		}
+	}
+
+	return [];
+};
+
+const getFirstToken = (value: ASTBase) => {
+	if (
+		value instanceof ArrayValues ||
+		(value instanceof ByteStringValue && value.openBracket)
+	) {
+		return value.openBracket ?? value.firstToken;
+	}
+
+	return value.firstToken;
+};
+
+const wrapValue = (
+	propertyNameWidth: number,
+	settings: FormatingSettings,
+	value: AllValueType,
+	values: AllValueType[] | null,
+	level: number,
+) => {
+	let tokenToPush = value && getFirstToken(value);
+
+	if (!value || !tokenToPush) {
+		return [];
+	}
+
+	let propToEquals = level + propertyNameWidth + 3;
+	if (tokenToPush.pos.col === propToEquals) {
+		// nothing to do we are already first on the new line
+		return;
+	}
+
+	const otherItem =
+		tokenToPush &&
+		values?.find(
+			(v) => !!v && getFirstToken(v).pos.line > tokenToPush?.pos.line,
+		);
+
+	const indentString = settings.insertSpaces
+		? ' '.repeat(settings.tabSize)
+		: '\t';
+	return [
+		genFormattingDiagnostic(
+			FormattingIssues.LONG_LINE_WRAP,
+			tokenToPush.uri,
+			toPosition(value.firstToken, false),
+			{
+				edit: [
+					TextEdit.replace(
+						Range.create(
+							toPosition(tokenToPush.prevToken!),
+							toPosition(tokenToPush, false),
+						),
+						`\n${createIndentString(level, indentString, widthToPrefix(settings, propertyNameWidth + 3))}`,
+					),
+					...(otherItem
+						? [
+								TextEdit.replace(
+									Range.create(
+										toPosition(
+											getFirstToken(otherItem).prevToken!,
+										),
+										toPosition(
+											getFirstToken(otherItem),
+											false,
+										),
+									),
+									' ',
+								),
+							]
+						: []),
+				],
+				codeActionTitle: `Move ...${value.toString()}... to a new line`,
+			},
+			toPosition(value.lastToken),
+		),
+	];
+};
+
+const wrapArrayItem = (
+	propertyNameWidth: number,
+	settings: FormatingSettings,
+	value: ArrayValues | ByteStringValue,
+	level: number,
+	wrapItem: ASTBase,
+) => {
+	const indentString = settings.insertSpaces
+		? ' '.repeat(settings.tabSize)
+		: '\t';
+	const otherItem = value.values.find(
+		(v) => v.firstToken.pos.line > wrapItem.firstToken.pos.line,
+	);
+	return [
+		genFormattingDiagnostic(
+			FormattingIssues.LONG_LINE_WRAP,
+			value.uri,
+			toPosition(wrapItem.firstToken, false),
+			{
+				edit: [
+					TextEdit.replace(
+						Range.create(
+							toPosition(wrapItem.firstToken.prevToken!),
+							toPosition(wrapItem.firstToken, false),
+						),
+						`\n${createIndentString(level, indentString, widthToPrefix(settings, propertyNameWidth + 4))}`,
+					),
+					...(otherItem
+						? [
+								TextEdit.replace(
+									Range.create(
+										toPosition(
+											otherItem.firstToken.prevToken!,
+										),
+										toPosition(otherItem.firstToken, false),
+									),
+									' ',
+								),
+							]
+						: []),
+				],
+				codeActionTitle: `Move ...${wrapItem.toString()}... to a new line`,
+			},
+			toPosition(wrapItem.lastToken),
+		),
+	];
+};
