@@ -54,7 +54,6 @@ import {
 	fileURLToPath,
 	genFormattingDiagnostic,
 	getDeepestAstNodeInBetween,
-	isPathEqual,
 	isRangeInRange,
 	positionInBetween,
 	rangesOverlap,
@@ -68,6 +67,9 @@ import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
 import { Parser } from './parser';
 import { Lexer } from './lexer';
 import { IfDefineBlock } from './ast/cPreprocessors/ifDefine';
+import { StringValue } from './ast/dtc/values/string';
+import { LabelRef } from './ast/dtc/labelRef';
+import { NodePathRef } from './ast/dtc/values/nodePath';
 
 const findAst = async (token: Token, uri: string, fileRootAsts: ASTBase[]) => {
 	const pos = Position.create(token.pos.line, token.pos.col);
@@ -92,8 +94,7 @@ export const countParent = (
 	node?: DtcBaseNode,
 	count = 0,
 ): number => {
-	if (!node || !isPathEqual(node.uri, uri) || !node.parentNode?.uri)
-		return count;
+	if (!node || !node.parentNode?.uri) return count;
 
 	const closeAst = getClosestAstNode(node.parentNode);
 	return countParent(uri, closeAst, count + 1);
@@ -701,8 +702,6 @@ const formatDtcNode = async (
 	documentText: string[],
 	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
 ): Promise<FileDiagnostic[]> => {
-	if (!isPathEqual(node.uri, uri)) return []; // node may have been included!!
-
 	const result: FileDiagnostic[] = [];
 
 	result.push(
@@ -1288,10 +1287,7 @@ const formatDtcProperty = (
 	level: number,
 	settings: FormatingSettings,
 	documentText: string[],
-	uri: string,
 ): FileDiagnostic[] => {
-	if (!isPathEqual(property.uri, uri)) return []; //property may have been included!!
-
 	const result: FileDiagnostic[] = [];
 
 	result.push(
@@ -1488,15 +1484,12 @@ const formatDtcDelete = (
 
 const formatDtcInclude = (
 	includeItem: Include,
-	uri: string,
 	levelMeta: LevelMeta | undefined,
 	indentString: string,
 	documentText: string[],
 ): FileDiagnostic[] => {
 	// we should not format this case
 	if (levelMeta === undefined) return [];
-
-	if (!isPathEqual(includeItem.uri, uri)) return []; // may be coming from some other include  hence ignore
 
 	const result: FileDiagnostic[] = [];
 
@@ -1723,6 +1716,7 @@ type FormatingSettings = {
 	tabSize: number;
 	insertSpaces: boolean;
 	singleIndent: string;
+	wordWrapColumn: number;
 };
 
 const getTextEdit = async (
@@ -1735,11 +1729,16 @@ const getTextEdit = async (
 ): Promise<FileDiagnostic[]> => {
 	const delta = documentFormattingParams.options.tabSize;
 	const insertSpaces = documentFormattingParams.options.insertSpaces;
+	const wordWrapColumn =
+		typeof documentFormattingParams.options.wordWrapColumn === 'number'
+			? documentFormattingParams.options.wordWrapColumn
+			: 100;
 	const singleIndent = insertSpaces ? ' '.repeat(delta) : '\t';
 	const settings: FormatingSettings = {
 		tabSize: delta,
 		insertSpaces,
 		singleIndent,
+		wordWrapColumn,
 	};
 
 	if (astNode instanceof DtcBaseNode) {
@@ -1753,13 +1752,12 @@ const getTextEdit = async (
 			computeLevel,
 		);
 	} else if (astNode instanceof DtcProperty) {
-		return formatDtcProperty(astNode, level, settings, documentText, uri);
+		return formatDtcProperty(astNode, level, settings, documentText);
 	} else if (astNode instanceof DeleteBase) {
 		return formatDtcDelete(astNode, level, singleIndent, documentText);
 	} else if (astNode instanceof Include) {
 		return formatDtcInclude(
 			astNode,
-			uri,
 			await computeLevel(astNode),
 			singleIndent,
 			documentText,
@@ -1802,3 +1800,202 @@ function getTextFromRange(lines: string[], range: Range): string {
 		endLine.substring(0, range.end.character),
 	].join('\n');
 }
+
+const getLongLineTextEdit = async (
+	documentFormattingParams: DocumentFormattingParams,
+	astNode: ASTBase,
+	uri: string,
+	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
+	documentText: string[],
+	level = 0,
+): Promise<FileDiagnostic[]> => {
+	const delta = documentFormattingParams.options.tabSize;
+	const insertSpaces = documentFormattingParams.options.insertSpaces;
+	const wordWrapColumn =
+		typeof documentFormattingParams.options.wordWrapColumn === 'number'
+			? documentFormattingParams.options.wordWrapColumn
+			: 100;
+	const singleIndent = insertSpaces ? ' '.repeat(delta) : '\t';
+	const settings: FormatingSettings = {
+		tabSize: delta,
+		insertSpaces,
+		singleIndent,
+		wordWrapColumn,
+	};
+
+	if (astNode instanceof DtcBaseNode) {
+		return (
+			await Promise.all(
+				astNode.children.flatMap((c) =>
+					getLongLineTextEdit(
+						documentFormattingParams,
+						c,
+						uri,
+						computeLevel,
+						documentText,
+						level + 1,
+					),
+				),
+			)
+		).flat();
+	} else if (astNode instanceof DtcProperty) {
+		return formatDtcPropertyLongLines(
+			astNode,
+			level,
+			settings,
+			documentText,
+		);
+	}
+
+	return [];
+};
+
+const formatDtcPropertyLongLines = (
+	property: DtcProperty,
+	level: number,
+	settings: FormatingSettings,
+	documentText: string[],
+): FileDiagnostic[] => {
+	const result: FileDiagnostic[] = [];
+
+	result.push(...formatLabels(property.labels, documentText));
+
+	if (property.values) {
+		result.push(
+			...formatPropertyValues(
+				property.propertyName?.name.length ?? 0,
+				property.values,
+				level,
+				settings,
+				documentText,
+				property.assignOperatorToken,
+			),
+		);
+	}
+
+	return result;
+};
+
+const formatPropertyValuesLongLines = (
+	propertyNameWidth: number,
+	values: PropertyValues,
+	level: number,
+	settings: FormatingSettings,
+	documentText: string[],
+): FileDiagnostic[] => {
+	for (const v of values.values) {
+		if (!v) continue;
+		const r = formatPropertyValueLongLines(
+			propertyNameWidth,
+			v,
+			level,
+			settings,
+			documentText,
+		);
+		if (r.length) return r;
+	}
+
+	return [];
+};
+
+function isLineLengthOk(
+	settings: FormatingSettings,
+	documentText: string[],
+	startToken: Token,
+	endToken: Token,
+): boolean {
+	if (startToken.pos.line !== endToken.pos.line) {
+		return false;
+	}
+
+	const lineStr = documentText[endToken.pos.line].slice(
+		0,
+		endToken.pos.colEnd,
+	);
+	const len = lineStr.replaceAll('\t', ' '.repeat(settings.tabSize)).length;
+
+	return len <= settings.wordWrapColumn;
+}
+
+const formatPropertyValueLongLines = (
+	propertyNameWidth: number,
+	value: PropertyValue,
+	level: number,
+	settings: FormatingSettings,
+	documentText: string[],
+): FileDiagnostic[] => {
+	if (
+		isLineLengthOk(
+			settings,
+			documentText,
+			value.firstToken,
+			value.lastToken,
+		)
+	) {
+		if (
+			!value.nextValueSeparator ||
+			isLineLengthOk(
+				settings,
+				documentText,
+				value.firstToken,
+				value.nextValueSeparator,
+			)
+		)
+			return [];
+
+		// TODO split value in half if possible!
+	}
+
+	if (
+		value.value instanceof StringValue ||
+		value.value instanceof LabelRef ||
+		value.value instanceof NodePathRef
+	) {
+		return [];
+	}
+
+	if (
+		value.value instanceof ArrayValues ||
+		value.value instanceof ByteStringValue
+	) {
+		// does moving all of the value solve the issue?
+		let indentWidth = level * settings.tabSize + propertyNameWidth + 3; // 3 -> | = |
+		let itemWidth =
+			value.value.lastToken.pos.colEnd - value.value.firstToken.pos.col;
+
+		if (indentWidth !== value.value.firstToken.pos.col) {
+			// we can wrap the whole value
+		}
+
+		indentWidth++; // we add one for [ or <
+
+		const valueToWrap = value.value.values.find(
+			(v) =>
+				!isLineLengthOk(
+					settings,
+					documentText,
+					v.firstToken,
+					v.lastToken,
+				),
+		)!;
+
+		itemWidth =
+			valueToWrap.lastToken.pos.colEnd - valueToWrap.firstToken.pos.col;
+
+		if (indentWidth !== value.value.firstToken.pos.col) {
+			// we can wrap the whole value
+		}
+	}
+
+	return [];
+};
+
+// const formatPropertyValueLongLines = (
+// 	propertyNameWidth: number,
+// 	value: AllValueType,
+// 	level: number,
+// 	settings: FormatingSettings,
+// 	documentText: string[],
+// ): FileDiagnostic[] => {
+// 	return [];
+// };
