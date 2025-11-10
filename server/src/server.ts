@@ -1824,7 +1824,6 @@ connection.onRequest(
 		event: DocumentFormattingParams & {
 			edits: TextEdit[];
 			text?: string;
-			formatOnlyEdits: boolean;
 		},
 	) => {
 		await allStable();
@@ -1843,25 +1842,7 @@ connection.onRequest(
 		const textAfterEdits = applyEdits(document, event.edits);
 
 		let formatRanges: Range[] | undefined;
-		if (event.formatOnlyEdits) {
-			formatRanges = event.edits.flatMap((edit) => [
-				edit.newText
-					? Range.create(
-							edit.range.start.line +
-								(edit.newText.startsWith('\n') ? 1 : 0),
-							0,
-							edit.range.end.line +
-								edit.newText.trimStart().split('\n').length,
-							0,
-						)
-					: Range.create(
-							Math.max(0, edit.range.start.line - 1),
-							0,
-							edit.range.end.line,
-							edit.range.end.character,
-						),
-			]);
-		}
+
 		const newText = await formatText(
 			{ ...event, ranges: formatRanges },
 			textAfterEdits,
@@ -1950,7 +1931,7 @@ connection.onRequest(
 );
 
 connection.onRequest(
-	'devicetree/locationScopeInformation',
+	'devicetree/locationScopedInformation',
 	async (
 		event: TextDocumentPositionParams & { id: string },
 	): Promise<PositionScopeInformation | undefined> => {
