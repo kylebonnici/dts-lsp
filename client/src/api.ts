@@ -283,11 +283,11 @@ export class API implements IDeviceTreeAPI {
 		) as Promise<string[] | undefined>;
 	}
 
-	getLocationScpoedInformation(
+	getLocationScopedInformation(
 		event: TextDocumentPositionParams & { id: string },
 	) {
 		return this.client.sendRequest(
-			'devicetree/locationScopeInformation',
+			'devicetree/locationScopedInformation',
 			event,
 		) as Promise<PositionScopeInformation | undefined>;
 	}
