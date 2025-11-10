@@ -26,6 +26,7 @@ import {
 	createTokenIndex,
 	getTokenModifiers,
 	getTokenTypes,
+	toPosition,
 } from '../../helpers';
 import { Node } from '../../context/node';
 import { Keyword } from '../keyword';
@@ -135,6 +136,8 @@ export class DtcRootNode extends DtcBaseNode {
 			uri: this.serializeUri,
 			range: this.range,
 			issues: this.serializeIssues,
+			scopeOpen: this.openScope && toPosition(this.openScope),
+			scopeClose: this.closeScope && toPosition(this.closeScope),
 		};
 	}
 }
@@ -222,6 +225,8 @@ export class DtcRefNode extends DtcBaseNode {
 			uri: this.serializeUri,
 			range: this.range,
 			issues: this.serializeIssues,
+			scopeOpen: this.openScope && toPosition(this.openScope),
+			scopeClose: this.closeScope && toPosition(this.closeScope),
 		};
 	}
 }
@@ -297,6 +302,8 @@ export class DtcChildNode extends DtcBaseNode {
 			uri: this.serializeUri,
 			range: this.range,
 			issues: this.serializeIssues,
+			scopeOpen: this.openScope && toPosition(this.openScope),
+			scopeClose: this.closeScope && toPosition(this.closeScope, false),
 		};
 	}
 }

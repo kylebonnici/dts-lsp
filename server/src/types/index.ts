@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Diagnostic, Range } from 'vscode-languageserver-types';
+import { Diagnostic, Position, Range } from 'vscode-languageserver-types';
 
 export type SerializedAnyInternalValue =
 	| SerializableLabelRef
@@ -253,12 +253,16 @@ export interface SerializableNodeRef extends SerializableASTBase {
 	readonly properties: SerializableDtcProperty[];
 	readonly nodes: SerializableNodeBase[];
 	readonly labels: SerializableASTLabel[];
+	readonly scopeOpen?: Position;
+	readonly scopeClose?: Position;
 }
 
 export interface SerializableRootNode extends SerializableASTBase {
 	readonly type: 'ROOT';
 	readonly properties: SerializableDtcProperty[];
 	readonly nodes: SerializableNodeBase[];
+	readonly scopeOpen?: Position;
+	readonly scopeClose?: Position;
 }
 
 export interface SerializableChildNode extends SerializableASTBase {
@@ -267,6 +271,8 @@ export interface SerializableChildNode extends SerializableASTBase {
 	readonly properties: SerializableDtcProperty[];
 	readonly nodes: SerializableNodeBase[];
 	readonly labels: SerializableASTLabel[];
+	readonly scopeOpen?: Position;
+	readonly scopeClose?: Position;
 }
 
 type SerializedMappedReg = {
