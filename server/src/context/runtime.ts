@@ -99,7 +99,6 @@ export class Runtime implements Searchable {
 		);
 
 		if (!dtcNode) {
-			dtcNode = fileAsts.at(-1)?.parentNode;
 			const include = [
 				this.context.parser,
 				...this.context.overlayParsers,
@@ -108,6 +107,7 @@ export class Runtime implements Searchable {
 				.find((i) => isPathEqual(i.resolvedPath, file));
 
 			if (include) {
+				dtcNode = fileAsts.at(-1)?.parentNode;
 				file = include.uri;
 				position = Position.create(
 					include.lastToken.pos.line,
