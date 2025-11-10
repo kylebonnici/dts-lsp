@@ -94,6 +94,13 @@ export const tokensToString = (tokens: Token[]) => {
 		.join('');
 };
 
+export const toPosition = (token: Token, end = true) => {
+	return Position.create(
+		token.pos.line,
+		end ? token.pos.colEnd : token.pos.col,
+	);
+};
+
 export const toRange = (slxBase: ASTBase) => {
 	return toRangeWithTokenIndex(slxBase.firstToken, slxBase.lastToken);
 };

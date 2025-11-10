@@ -47,7 +47,7 @@ export interface IDeviceTreeAPI {
 	getActiveContext(): Promise<ContextListItem | undefined>;
 	getZephyrTypeBindings(id: string): Promise<ZephyrBindingYml[] | undefined>;
 	getMacroNames(id: string): Promise<string[] | undefined>;
-	getLocationScpoedInformation(
+	getLocationScopedInformation(
 		event: TextDocumentPositionParams & { id: string },
 	): Promise<PositionScopeInformation | undefined>;
 	evaluateMacros(macros: string[], ctxId: string): Promise<EvaluatedMacro[]>;
@@ -62,7 +62,6 @@ export interface IDeviceTreeAPI {
 		event: (DocumentFormattingParams | DocumentRangeFormattingParams) & {
 			edits: TextEdit[];
 			text?: string;
-			formatOnlyEdits: boolean;
 		},
 	): Promise<TextEdit>;
 
