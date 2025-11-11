@@ -195,9 +195,9 @@ export class Property {
 	serialize(
 		macros: Map<string, MacroRegistryItem>,
 		inScope: (ast: ASTBase) => boolean,
-	): SerializableProperty {
-		const p =
-			[this, ...this.allReplaced].find((p) => inScope(p.ast)) ?? this;
+	): SerializableProperty | undefined {
+		const p = [this, ...this.allReplaced].find((p) => inScope(p.ast));
+		if (!p) return;
 		return {
 			...p.ast.serialize(macros),
 			nodePath: this.parent.pathString,
