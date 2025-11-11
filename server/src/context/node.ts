@@ -1403,9 +1403,9 @@ ${'\t'.repeat(level - 1)}};`;
 				new Set(this.labels.filter(inScope).map((l) => l.label.value)),
 			),
 			nodes: nodeAsts.filter(inScope).map((d) => d.serialize(macros)),
-			properties: this.properties.map((p) =>
-				p.serialize(macros, inScope),
-			),
+			properties: this.properties
+				.map((p) => p.serialize(macros, inScope))
+				.filter((v) => !!v),
 			childNodes: this.nodes
 				.filter((n) => n.implimentations.some(inScope))
 				.map((n) => n.serialize(macros, inScope)),
