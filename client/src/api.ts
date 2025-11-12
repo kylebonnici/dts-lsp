@@ -55,6 +55,13 @@ const contextStableNotification = new NotificationType<ContextListItem>(
 	'devicetree/contextStableNotification',
 );
 
+const activeContextBusyNotification = new NotificationType<ContextListItem>(
+	'devicetree/activeContextBusyNotification',
+);
+const contextBusyNotification = new NotificationType<ContextListItem>(
+	'devicetree/contextBusyNotification',
+);
+
 const settingsChangedNotification = new NotificationType<ContextListItem>(
 	'devicetree/settingsChanged',
 );
@@ -75,6 +82,12 @@ export class API implements IDeviceTreeAPI {
 		);
 		this.client.onNotification(contextStableNotification, (result) =>
 			this.event.emit('onContextStable', result),
+		);
+		this.client.onNotification(activeContextBusyNotification, (result) =>
+			this.event.emit('onActiveContextBusy', result),
+		);
+		this.client.onNotification(contextBusyNotification, (result) =>
+			this.event.emit('onContextBusy', result),
 		);
 		this.client.onNotification(settingsChangedNotification, (ctx) =>
 			this.event.emit('onSettingsChanged', ctx),
@@ -197,6 +210,15 @@ export class API implements IDeviceTreeAPI {
 		};
 	}
 
+	onActiveContextBusy(listener: (id: string) => void) {
+		this.event.addListener('onActiveContextBusy', listener);
+		return {
+			dispose: () => {
+				this.event.removeListener('onActiveContextBusy', listener);
+			},
+		};
+	}
+
 	onActivePath(listener: (path: LocationResult) => void) {
 		this.event.addListener('onActivePath', listener);
 		return {
@@ -208,6 +230,15 @@ export class API implements IDeviceTreeAPI {
 
 	onContextStable(listener: (ctx: ContextListItem) => void) {
 		this.event.addListener('onContextStable', listener);
+		return {
+			dispose: () => {
+				this.event.removeListener('onContextStable', listener);
+			},
+		};
+	}
+
+	onContextBusy(listener: (id: string) => void) {
+		this.event.addListener('onContextBusy', listener);
 		return {
 			dispose: () => {
 				this.event.removeListener('onContextStable', listener);
