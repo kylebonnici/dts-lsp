@@ -171,7 +171,8 @@ export type SerializableNexusMapEntry = {
 };
 
 export interface SerializableProperty extends SerializableASTBase {
-	readonly replaces: Omit<SerializableASTBase, 'issues'>[];
+	readonly replaces: (Omit<SerializableASTBase, 'issues'> &
+		Pick<SerializableProperty, 'values'>)[];
 	readonly nexusMapEntry: SerializableNexusMapEntry[];
 	readonly name: SerializablePropertyName;
 	readonly values?: SerializablePropertyValue[] | null;

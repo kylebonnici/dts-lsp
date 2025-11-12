@@ -194,7 +194,7 @@ export class Property {
 
 	serialize(
 		macros: Map<string, MacroRegistryItem>,
-		inScope: (ast: ASTBase) => boolean,
+		inScope: (ast: ASTBase) => boolean = () => true,
 	): SerializableProperty | undefined {
 		const p = [this, ...this.allReplaced].find((p) => inScope(p.ast));
 		if (!p) return;
@@ -204,6 +204,12 @@ export class Property {
 			replaces: p.allReplaced.map((r) => ({
 				range: toRange(r.ast),
 				uri: r.ast.serializeUri,
+				values:
+					r.ast.values === undefined
+						? undefined
+						: (r.ast.values?.values.map(
+								(v) => v?.value?.serialize(macros) ?? null,
+							) ?? null),
 			})),
 			nexusMapEntry: p.nexusMapsTo.map((nexus) => {
 				return {
