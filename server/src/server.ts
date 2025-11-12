@@ -774,6 +774,19 @@ const onChange = async (uri: string) => {
 			)
 			.forEach((context) => {
 				debounce.get(context)?.abort.abort();
+
+				if (activeContext === context) {
+					connection.sendNotification(
+						'devicetree/activeContextBusyNotification',
+						context.id,
+					);
+				}
+
+				connection.sendNotification(
+					'devicetree/contextBusyNotification',
+					context.id,
+				);
+
 				const abort = new AbortController();
 				const promise = new Promise<void>((resolve) => {
 					setTimeout(async () => {
