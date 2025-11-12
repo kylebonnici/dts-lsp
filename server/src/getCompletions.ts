@@ -279,7 +279,7 @@ function getDeleteNodeNameItems(
 		]
 			.flatMap((node) => ({
 				node,
-				astNodes: node.definitions.filter(
+				astNodes: node.implimentations.filter(
 					(n) => n instanceof DtcChildNode,
 				),
 			}))

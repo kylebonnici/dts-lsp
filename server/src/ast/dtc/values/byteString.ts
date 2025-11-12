@@ -47,15 +47,7 @@ export class ByteStringValue extends ASTBase {
 	serialize(): SerializableByteString {
 		return {
 			type: 'BYTESTRING',
-			values: this.values.map((v) =>
-				v.value
-					? {
-							value: v.value.toString(16),
-							range: v.value.range,
-							evaluated: v.value.value,
-						}
-					: null,
-			),
+			values: this.values.map((v) => v.value?.serialize() ?? null),
 			uri: this.serializeUri,
 			range: this.range,
 			issues: this.serializeIssues,
