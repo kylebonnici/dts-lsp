@@ -69,8 +69,10 @@ export interface IDeviceTreeAPI {
 		listener: (ctx: ContextListItem | undefined) => void,
 	): Disposable;
 	onActiveContextStable(listener: (ctx: ContextListItem) => void): Disposable;
+	onActiveContextBusy(listener: (id: string) => void): Disposable;
 	onActivePath(listener: (result: LocationResult) => void): Disposable;
 	onContextStable(listener: (ctx: ContextListItem) => void): Disposable;
+	onContextBusy(listener: (id: string) => void): Disposable;
 	onContextDeleted(listener: (ctx: ContextListItem) => void): Disposable;
 	onContextCreated(listener: (ctx: ContextListItem) => void): Disposable;
 	onSettingsChanged(
