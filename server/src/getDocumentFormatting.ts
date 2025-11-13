@@ -19,6 +19,7 @@ import {
 	DocumentFormattingParams,
 	DocumentRangeFormattingParams,
 	ErrorCodes,
+	FormattingOptions,
 	Position,
 	Range,
 	ResponseError,
@@ -139,6 +140,9 @@ export async function formatText(
 		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'Both',
+	options?: {
+		runBaseCheck: boolean;
+	},
 ): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
 export async function formatText(
 	documentFormattingParams:
@@ -146,6 +150,9 @@ export async function formatText(
 		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'New Text',
+	options?: {
+		runBaseCheck: boolean;
+	},
 ): Promise<string>;
 export async function formatText(
 	documentFormattingParams:
@@ -153,6 +160,9 @@ export async function formatText(
 		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'File Diagnostics',
+	options?: {
+		runBaseCheck: boolean;
+	},
 ): Promise<FileDiagnostic[]>;
 export async function formatText(
 	documentFormattingParams:
@@ -160,6 +170,11 @@ export async function formatText(
 		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics' | 'Both',
+	options: {
+		runBaseCheck: boolean;
+	} = {
+		runBaseCheck: true,
+	},
 ): Promise<
 	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
 > {
@@ -187,19 +202,145 @@ export async function formatText(
 		);
 	}
 
-	return formatAstBaseItems(
-		documentFormattingParams,
-		parser.allAstItems,
-		filePath,
-		text,
-		returnType,
-	);
+	const wordWrapColumn =
+		typeof documentFormattingParams.options.wordWrapColumn === 'number'
+			? documentFormattingParams.options.wordWrapColumn
+			: 100;
+
+	if (returnType === 'New Text') {
+		let finalText = text;
+		if (options.runBaseCheck) {
+			const r = await formatAstBaseItems(
+				{
+					...documentFormattingParams,
+					options: {
+						...documentFormattingParams.options,
+						wordWrapColumn,
+					},
+				},
+				parser.allAstItems,
+				filePath,
+				text,
+				returnType,
+			);
+			finalText = r;
+		}
+
+		return finalText;
+	}
+
+	if (returnType === 'Both') {
+		let finalText = text;
+		let diagnostic: FileDiagnostic[] = [];
+		if (options.runBaseCheck) {
+			const r = await formatAstBaseItems(
+				{
+					...documentFormattingParams,
+					options: {
+						...documentFormattingParams.options,
+						wordWrapColumn,
+					},
+				},
+				parser.allAstItems,
+				filePath,
+				text,
+				returnType,
+			);
+			finalText = r.text;
+			diagnostic.push(...r.diagnostic);
+		}
+
+		return {
+			text: finalText,
+			diagnostic,
+		};
+	}
+
+	let diagnostic: FileDiagnostic[] = [];
+	if (options.runBaseCheck) {
+		const r = await formatAstBaseItems(
+			{
+				...documentFormattingParams,
+				options: {
+					...documentFormattingParams.options,
+					wordWrapColumn,
+				},
+			},
+			parser.allAstItems,
+			filePath,
+			text,
+			returnType,
+		);
+		diagnostic.push(...r);
+	}
+
+	return diagnostic;
 }
 
+const filterOnOffEdits = (
+	formatOnOffMeta: Range[],
+	settings: CustomDocumentFormattingParams,
+	result: FileDiagnostic[],
+) => {
+	let resultExcludingOnOfRanges = formatOnOffMeta.length
+		? result.filter((i) => {
+				const edits = Array.isArray(i.raw.edit)
+					? i.raw.edit
+					: i.raw.edit
+						? [i.raw.edit]
+						: undefined;
+				return edits?.every(
+					(e) =>
+						!isFormattingDisabledAt(
+							e.range.start,
+							formatOnOffMeta,
+						) &&
+						!isFormattingDisabledAt(e.range.end, formatOnOffMeta),
+				);
+			})
+		: result;
+
+	if ('range' in settings) {
+		resultExcludingOnOfRanges = resultExcludingOnOfRanges.filter((d) =>
+			isRangeInRange(settings.range, d.raw.range),
+		);
+	}
+
+	return resultExcludingOnOfRanges;
+};
+
+type CustomDocumentFormattingParams = (
+	| DocumentFormattingParams
+	| DocumentRangeFormattingParams
+) & {
+	options: FormattingOptions & {
+		wordWrapColumn: number;
+	};
+};
+
 async function formatAstBaseItems(
-	documentFormattingParams:
-		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
+	documentFormattingParams: CustomDocumentFormattingParams,
+	astItems: ASTBase[],
+	uri: string,
+	text: string,
+	returnType: 'Both',
+): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
+async function formatAstBaseItems(
+	documentFormattingParams: CustomDocumentFormattingParams,
+	astItems: ASTBase[],
+	uri: string,
+	text: string,
+	returnType: 'File Diagnostics',
+): Promise<FileDiagnostic[]>;
+async function formatAstBaseItems(
+	documentFormattingParams: CustomDocumentFormattingParams,
+	astItems: ASTBase[],
+	uri: string,
+	text: string,
+	returnType: 'New Text',
+): Promise<string>;
+async function formatAstBaseItems(
+	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
 	uri: string,
 	text: string,
@@ -210,6 +351,44 @@ async function formatAstBaseItems(
 	const splitDocument = text.split('\n');
 	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
 
+	let newText = text;
+	const edits: FileDiagnostic[] = [];
+
+	edits.push(
+		...(await baseFormatAstBaseItems(
+			documentFormattingParams,
+			astItems,
+			uri,
+			splitDocument,
+		)),
+	);
+
+	newText = applyEdits(
+		TextDocument.create(uri, 'devicetree', 0, text),
+		filterOnOffEdits(formatOnOffMeta, documentFormattingParams, edits)
+			.flatMap((i) => i.raw.edit)
+			.filter((e) => !!e),
+	);
+
+	switch (returnType) {
+		case 'New Text':
+			return newText;
+		case 'File Diagnostics':
+			return edits;
+		case 'Both':
+			return {
+				text: newText,
+				diagnostic: edits,
+			};
+	}
+}
+
+async function baseFormatAstBaseItems(
+	documentFormattingParams: CustomDocumentFormattingParams,
+	astItems: ASTBase[],
+	uri: string,
+	splitDocument: string[],
+): Promise<FileDiagnostic[]> {
 	const astItemLevel = getAstItemLevel(astItems, uri);
 
 	const result: FileDiagnostic[] = (
@@ -283,47 +462,7 @@ async function formatAstBaseItems(
 		result.push(...issues);
 	}
 
-	let resultExcludingOnOfRanges = formatOnOffMeta.length
-		? result.filter((i) => {
-				const edits = Array.isArray(i.raw.edit)
-					? i.raw.edit
-					: i.raw.edit
-						? [i.raw.edit]
-						: undefined;
-				return edits?.every(
-					(e) =>
-						!isFormattingDisabledAt(
-							e.range.start,
-							formatOnOffMeta,
-						) &&
-						!isFormattingDisabledAt(e.range.end, formatOnOffMeta),
-				);
-			})
-		: result;
-
-	if ('range' in documentFormattingParams) {
-		resultExcludingOnOfRanges = resultExcludingOnOfRanges.filter((d) =>
-			isRangeInRange(documentFormattingParams.range, d.raw.range),
-		);
-	}
-
-	const toText = () => {
-		const edits = resultExcludingOnOfRanges
-			.flatMap((i) => i.raw.edit)
-			.filter((i) => !!i);
-		return applyEdits(
-			TextDocument.create(uri, 'devicetree', 0, text),
-			edits,
-		);
-	};
-
-	if (returnType === 'New Text') {
-		return toText();
-	} else if (returnType === 'File Diagnostics') {
-		return resultExcludingOnOfRanges;
-	}
-
-	return { text: toText(), diagnostic: resultExcludingOnOfRanges };
+	return result;
 }
 
 const pairFormatOnOff = (
@@ -526,6 +665,14 @@ const pushItemToNewLineAndIndent = (
 	}
 };
 
+const createIndentString = (
+	level: number,
+	indentString: string,
+	prefix: string,
+) => {
+	return `${''.padStart(level * indentString.length, indentString)}${prefix}`;
+};
+
 const createIndentEdit = (
 	token: Token,
 	level: number,
@@ -533,10 +680,7 @@ const createIndentEdit = (
 	documentText: string[],
 	prefix: string = '',
 ): FileDiagnostic[] => {
-	const indent = `${''.padStart(
-		level * indentString.length,
-		indentString,
-	)}${prefix}`;
+	const indent = createIndentString(level, indentString, prefix);
 	const start = Position.create(token.pos.line, 0);
 	const end = Position.create(token.pos.line, token.pos.col);
 	const range = Range.create(start, end);
@@ -693,7 +837,7 @@ const formatLabels = (
 };
 
 const formatDtcNode = async (
-	documentFormattingParams: DocumentFormattingParams,
+	documentFormattingParams: CustomDocumentFormattingParams,
 	node: DtcBaseNode,
 	uri: string,
 	level: number,
@@ -1726,7 +1870,7 @@ type FormatingSettings = {
 };
 
 const getTextEdit = async (
-	documentFormattingParams: DocumentFormattingParams,
+	documentFormattingParams: CustomDocumentFormattingParams,
 	astNode: ASTBase,
 	uri: string,
 	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
