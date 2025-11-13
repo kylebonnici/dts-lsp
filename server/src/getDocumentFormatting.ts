@@ -93,8 +93,7 @@ export const countParent = (
 	node?: DtcBaseNode,
 	count = 0,
 ): number => {
-	if (!node || !isPathEqual(node.uri, uri) || !node.parentNode?.uri)
-		return count;
+	if (!node || !node.parentNode?.uri) return count;
 
 	const closeAst = getClosestAstNode(node.parentNode);
 	return countParent(uri, closeAst, count + 1);
@@ -845,8 +844,6 @@ const formatDtcNode = async (
 	documentText: string[],
 	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
 ): Promise<FileDiagnostic[]> => {
-	if (!isPathEqual(node.uri, uri)) return []; // node may have been included!!
-
 	const result: FileDiagnostic[] = [];
 
 	result.push(
@@ -1432,10 +1429,7 @@ const formatDtcProperty = (
 	level: number,
 	settings: FormatingSettings,
 	documentText: string[],
-	uri: string,
 ): FileDiagnostic[] => {
-	if (!isPathEqual(property.uri, uri)) return []; //property may have been included!!
-
 	const result: FileDiagnostic[] = [];
 
 	result.push(
@@ -1897,7 +1891,7 @@ const getTextEdit = async (
 			computeLevel,
 		);
 	} else if (astNode instanceof DtcProperty) {
-		return formatDtcProperty(astNode, level, settings, documentText, uri);
+		return formatDtcProperty(astNode, level, settings, documentText);
 	} else if (astNode instanceof DeleteBase) {
 		return formatDtcDelete(astNode, level, singleIndent, documentText);
 	} else if (astNode instanceof Include) {
