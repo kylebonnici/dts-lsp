@@ -1511,7 +1511,7 @@ describe('Document formating', () => {
 				'/ {\n#ifdef ABC\nnode {};node {};\n#else\nnode {};prop;node {};\n#endif\n\tnode1 {};\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n#ifdef ABC\nnode {};node {};\n#else\n\tnode {};\n\n\tprop;\n\n\tnode {};\n#endif\n\tnode1 {};\n};',
+				'/ {\n#ifdef ABC\n\tnode {};\n\n\tnode {};\n#else\n\tnode {};\n\n\tprop;\n\n\tnode {};\n#endif\n\tnode1 {};\n};',
 			);
 		});
 	});

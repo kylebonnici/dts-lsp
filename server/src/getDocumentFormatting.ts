@@ -133,15 +133,19 @@ const getAstItemLevel =
 		};
 	};
 
+type FormattingFlags = {
+	runBaseCheck: boolean;
+	formatComments: boolean;
+};
+
 export async function formatText(
 	documentFormattingParams:
 		| DocumentFormattingParams
 		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'Both',
-	options?: {
-		runBaseCheck: boolean;
-	},
+	options?: FormattingFlags,
+	tokens?: Token[],
 ): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
 export async function formatText(
 	documentFormattingParams:
@@ -149,9 +153,8 @@ export async function formatText(
 		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'New Text',
-	options?: {
-		runBaseCheck: boolean;
-	},
+	options?: FormattingFlags,
+	tokens?: Token[],
 ): Promise<string>;
 export async function formatText(
 	documentFormattingParams:
@@ -159,9 +162,8 @@ export async function formatText(
 		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'File Diagnostics',
-	options?: {
-		runBaseCheck: boolean;
-	},
+	options?: FormattingFlags,
+	tokens?: Token[],
 ): Promise<FileDiagnostic[]>;
 export async function formatText(
 	documentFormattingParams:
@@ -169,25 +171,18 @@ export async function formatText(
 		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics' | 'Both',
-	options: {
-		runBaseCheck: boolean;
-	} = {
+	options: FormattingFlags = {
 		runBaseCheck: true,
+		formatComments: true,
 	},
+	tokens?: Token[],
 ): Promise<
 	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
 > {
 	const filePath = fileURLToPath(documentFormattingParams.textDocument.uri);
-	const parser = new Parser(
-		filePath,
-		[],
-		undefined,
-		() => {
-			const lexer = new Lexer(text, filePath);
-			return lexer.tokens;
-		},
-		true,
-	);
+	tokens ??= new Lexer(text, filePath).tokens;
+	const rawTokens = [...tokens];
+	let parser = new Parser(filePath, [], undefined, () => tokens, true);
 	await parser.stable;
 
 	const issues = parser.issues.filter((issue) =>
@@ -203,8 +198,55 @@ export async function formatText(
 	}
 
 	const ifDefBlocks = parser.cPreprocessorParser.allAstItems.filter(
-		(ast) => ast instanceof IfDefineBlock || ast instanceof IfElIfBlock,
+		(ast) => ast instanceof IfDefineBlock,
 	);
+
+	let variantDocuments: FileDiagnostic[] = [];
+
+	variantDocuments = (
+		await Promise.all(
+			ifDefBlocks
+				.map((block) => {
+					if (block.ifDef.active) {
+						if (block.elseOption) {
+							return {
+								block,
+								branch: block.elseOption,
+							};
+						}
+						return;
+					}
+
+					return {
+						block,
+						branch: block.ifDef,
+					};
+				})
+				.filter((v) => !!v)
+				.flatMap(async (meta) => {
+					const rangeToClean = meta.block
+						.getInValidTokenRangeWhenActiveBlock(
+							meta.branch,
+							rawTokens,
+						)
+						.reverse();
+
+					const newTokenStream = [...rawTokens];
+					rangeToClean.forEach((r) => {
+						newTokenStream.splice(r.start, r.end - r.start + 1);
+					});
+					const range = meta.block.range;
+					return formatText(
+						{ ...documentFormattingParams, range },
+						text,
+						'File Diagnostics',
+						{ ...options, formatComments: false },
+						newTokenStream,
+					);
+				}),
+		)
+	).flat();
+
 	const wordWrapColumn =
 		typeof documentFormattingParams.options.wordWrapColumn === 'number'
 			? documentFormattingParams.options.wordWrapColumn
@@ -212,6 +254,7 @@ export async function formatText(
 
 	if (returnType === 'New Text') {
 		let finalText = text;
+
 		if (options.runBaseCheck) {
 			const r = await formatAstBaseItems(
 				{
@@ -227,6 +270,8 @@ export async function formatText(
 				filePath,
 				text,
 				returnType,
+				options,
+				variantDocuments,
 			);
 			finalText = r;
 		}
@@ -252,6 +297,8 @@ export async function formatText(
 				filePath,
 				text,
 				returnType,
+				options,
+				variantDocuments,
 			);
 			finalText = r.text;
 			diagnostic.push(...r.diagnostic);
@@ -279,6 +326,8 @@ export async function formatText(
 			filePath,
 			text,
 			returnType,
+			options,
+			variantDocuments,
 		);
 		diagnostic.push(...r);
 	}
@@ -335,6 +384,8 @@ async function formatAstBaseItems(
 	uri: string,
 	text: string,
 	returnType: 'Both',
+	options: FormattingFlags,
+	edits?: FileDiagnostic[],
 ): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
 async function formatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
@@ -344,6 +395,8 @@ async function formatAstBaseItems(
 	uri: string,
 	text: string,
 	returnType: 'File Diagnostics',
+	options: FormattingFlags,
+	edits?: FileDiagnostic[],
 ): Promise<FileDiagnostic[]>;
 async function formatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
@@ -353,6 +406,8 @@ async function formatAstBaseItems(
 	uri: string,
 	text: string,
 	returnType: 'New Text',
+	options: FormattingFlags,
+	edits?: FileDiagnostic[],
 ): Promise<string>;
 async function formatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
@@ -362,6 +417,8 @@ async function formatAstBaseItems(
 	uri: string,
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics' | 'Both',
+	options: FormattingFlags,
+	edits: FileDiagnostic[] = [],
 ): Promise<
 	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
 > {
@@ -369,7 +426,6 @@ async function formatAstBaseItems(
 	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
 
 	let newText = text;
-	const edits: FileDiagnostic[] = [];
 
 	edits.push(
 		...(await baseFormatAstBaseItems(
@@ -379,6 +435,7 @@ async function formatAstBaseItems(
 			ifDefBlocks,
 			uri,
 			splitDocument,
+			options,
 		)),
 	);
 
@@ -409,6 +466,7 @@ async function baseFormatAstBaseItems(
 	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
 	uri: string,
 	splitDocument: string[],
+	options: FormattingFlags,
 ): Promise<FileDiagnostic[]> {
 	const astItemLevel = getAstItemLevel(astItems, uri);
 
@@ -424,6 +482,7 @@ async function baseFormatAstBaseItems(
 						splitDocument,
 						includes,
 						ifDefBlocks,
+						options,
 					),
 			),
 		)
@@ -867,6 +926,7 @@ const formatDtcNode = async (
 	uri: string,
 	level: number,
 	indentString: string,
+	options: FormattingFlags,
 	documentText: string[],
 	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
 ): Promise<FileDiagnostic[]> => {
@@ -986,6 +1046,7 @@ const formatDtcNode = async (
 						documentText,
 						includes,
 						ifDefBlocks,
+						options,
 						level + 1,
 					),
 				),
@@ -1971,6 +2032,7 @@ const getTextEdit = async (
 	documentText: string[],
 	includes: Include[],
 	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
+	options: FormattingFlags,
 	level = 0,
 ): Promise<FileDiagnostic[]> => {
 	const delta = documentFormattingParams.options.tabSize;
@@ -1991,6 +2053,7 @@ const getTextEdit = async (
 			uri,
 			level,
 			singleIndent,
+			options,
 			documentText,
 			computeLevel,
 		);
@@ -2014,7 +2077,7 @@ const getTextEdit = async (
 			documentText,
 			settings,
 		);
-	} else if (astNode instanceof CommentBlock) {
+	} else if (options.formatComments && astNode instanceof CommentBlock) {
 		return formatCommentBlock(
 			astNode,
 			ifDefBlocks,

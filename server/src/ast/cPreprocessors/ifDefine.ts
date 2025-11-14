@@ -96,8 +96,6 @@ export class IfDefineBlock extends ASTBase {
 		macrosResolvers: Map<string, MacroRegistryItem>,
 		tokens: Token[],
 	) {
-		const invalidRange: { start: number; end: number }[] = [];
-
 		const getIndex = (token: Token) => tokens.findIndex((t) => t === token);
 
 		// No identifier so ignore all block
@@ -110,12 +108,29 @@ export class IfDefineBlock extends ASTBase {
 			];
 		}
 
+		const useMainBlock = this.ifDef.useBlock(macrosResolvers);
+		return this.getInValidTokenRangeWhenActiveBlock(
+			useMainBlock ? this.ifDef : this.elseOption,
+			tokens,
+		);
+	}
+
+	getInValidTokenRangeWhenActiveBlock(
+		activeBlock: CIfDef | CIfNotDef | CElse | undefined,
+		tokens: Token[],
+	) {
+		const invalidRange: { start: number; end: number }[] = [];
+
+		const getIndex = (token: Token) => tokens.findIndex((t) => t === token);
+
 		invalidRange.push({
 			start: getIndex(this.ifDef.firstToken),
-			end: getIndex(this.ifDef.identifier.lastToken),
+			end: getIndex(
+				(this.ifDef.identifier ?? this.ifDef.keyword).lastToken,
+			),
 		});
 
-		const useMainBlock = this.ifDef.useBlock(macrosResolvers);
+		const useMainBlock = this.ifDef === activeBlock;
 		if (useMainBlock) {
 			this.ifDef.active = true;
 		} else {
@@ -161,6 +176,7 @@ export class IfElIfBlock extends ASTBase {
 		public readonly elseOption?: CElse,
 	) {
 		super();
+
 		ifBlocks.forEach((i) => this.addChild(i));
 		if (elseOption) this.addChild(elseOption);
 		this.addChild(endIf);
@@ -168,6 +184,30 @@ export class IfElIfBlock extends ASTBase {
 
 	getInValidTokenRange(
 		macros: Map<string, MacroRegistryItem>,
+		tokens: Token[],
+	) {
+		const activeIf = this.ifBlocks.find((b) => b.useBlock(macros));
+
+		if (activeIf) {
+			return this.getInValidTokenRangeWhenActiveBlock(activeIf, tokens);
+		} else if (this.elseOption) {
+			return this.getInValidTokenRangeWhenActiveBlock(
+				this.elseOption,
+				tokens,
+			);
+		}
+
+		const getIndex = (token: Token) => tokens.findIndex((t) => t === token);
+		return [
+			{
+				start: getIndex(this.firstToken),
+				end: getIndex(this.lastToken),
+			},
+		];
+	}
+
+	getInValidTokenRangeWhenActiveBlock(
+		activeBlock: CIf | CElse,
 		tokens: Token[],
 	) {
 		const invalidRange: { start: number; end: number }[] = [];
@@ -183,7 +223,7 @@ export class IfElIfBlock extends ASTBase {
 				),
 			});
 
-			if (!blockFound && ifBlock.useBlock(macros)) {
+			if (!blockFound && ifBlock === activeBlock) {
 				ifBlock.active = true;
 				blockFound = true;
 			} else {
