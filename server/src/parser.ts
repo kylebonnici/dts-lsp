@@ -82,6 +82,7 @@ export class Parser extends BaseParser {
 	public tokens: Token[] = [];
 	cPreprocessorParser: CPreprocessorParser;
 
+	injectedMacros: (CMacroCall | CIdentifier)[] = [];
 	others: ASTBase[] = [];
 	rootDocument = new DtcBaseNode();
 	unhandledStatements = new DtcRootNode();
@@ -120,6 +121,7 @@ export class Parser extends BaseParser {
 	protected reset() {
 		super.reset();
 		this.others = [];
+		this.injectedMacros = [];
 		this.rootDocument = new DtcBaseNode();
 		this._issues = [];
 		this.unhandledStatements = new DtcRootNode();
@@ -261,6 +263,7 @@ export class Parser extends BaseParser {
 	) {
 		let evalResult = result?.resolve(macros);
 		if (result && typeof evalResult === 'string') {
+			this.injectedMacros.push(result);
 			evalResult = sanitizeCExpression(evalResult);
 			const uri = `${result.uri}${VIRTUAL_DOC}${result.firstToken.pos.line}:${result.firstToken.pos.col}-${result.lastToken.pos.line}:${result.firstToken.pos.col}`;
 

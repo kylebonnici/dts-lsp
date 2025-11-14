@@ -1656,6 +1656,39 @@ const formatDtcInclude = (
 	return result;
 };
 
+const formatInjectedMacroCalls = (
+	injectedItem: CMacroCall | CIdentifier,
+	uri: string,
+	levelMeta: LevelMeta | undefined,
+	indentString: string,
+	documentText: string[],
+): FileDiagnostic[] => {
+	// we should not format this case
+	if (levelMeta === undefined) return [];
+
+	if (!isPathEqual(injectedItem.uri, uri)) return []; // may be coming from some other include  hence ignore
+
+	const result: FileDiagnostic[] = [];
+
+	if (
+		injectedItem.firstToken.pos.line ===
+		injectedItem.firstToken.prevToken?.pos.line
+	) {
+		return [];
+	}
+
+	result.push(
+		...ensureOnNewLineAndMax1EmptyLineToPrev(
+			injectedItem.firstToken,
+			levelMeta.level,
+			indentString,
+			documentText,
+		),
+	);
+
+	return result;
+};
+
 const formatCommentBlock = (
 	commentItem: CommentBlock,
 	levelMeta: LevelMeta | undefined,
@@ -1896,6 +1929,17 @@ const getTextEdit = async (
 		return formatDtcDelete(astNode, level, singleIndent, documentText);
 	} else if (astNode instanceof Include) {
 		return formatDtcInclude(
+			astNode,
+			uri,
+			await computeLevel(astNode),
+			singleIndent,
+			documentText,
+		);
+	} else if (
+		astNode instanceof CMacroCall ||
+		astNode instanceof CIdentifier
+	) {
+		return formatInjectedMacroCalls(
 			astNode,
 			uri,
 			await computeLevel(astNode),
