@@ -189,6 +189,7 @@ export async function formatText(
 		true,
 	);
 	await parser.stable;
+
 	const issues = parser.issues.filter((issue) =>
 		coreSyntaxIssuesFilter(issue.raw, filePath, false),
 	);
@@ -218,6 +219,7 @@ export async function formatText(
 					},
 				},
 				parser.allAstItems,
+				parser.includes,
 				filePath,
 				text,
 				returnType,
@@ -241,6 +243,7 @@ export async function formatText(
 					},
 				},
 				parser.allAstItems,
+				parser.includes,
 				filePath,
 				text,
 				returnType,
@@ -266,6 +269,7 @@ export async function formatText(
 				},
 			},
 			parser.allAstItems,
+			parser.includes,
 			filePath,
 			text,
 			returnType,
@@ -320,6 +324,7 @@ type CustomDocumentFormattingParams = (
 async function formatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
+	includes: Include[],
 	uri: string,
 	text: string,
 	returnType: 'Both',
@@ -327,6 +332,7 @@ async function formatAstBaseItems(
 async function formatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
+	includes: Include[],
 	uri: string,
 	text: string,
 	returnType: 'File Diagnostics',
@@ -334,6 +340,7 @@ async function formatAstBaseItems(
 async function formatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
+	includes: Include[],
 	uri: string,
 	text: string,
 	returnType: 'New Text',
@@ -341,6 +348,7 @@ async function formatAstBaseItems(
 async function formatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
+	includes: Include[],
 	uri: string,
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics' | 'Both',
@@ -357,6 +365,7 @@ async function formatAstBaseItems(
 		...(await baseFormatAstBaseItems(
 			documentFormattingParams,
 			astItems,
+			includes,
 			uri,
 			splitDocument,
 		)),
@@ -385,6 +394,7 @@ async function formatAstBaseItems(
 async function baseFormatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
+	includes: Include[],
 	uri: string,
 	splitDocument: string[],
 ): Promise<FileDiagnostic[]> {
@@ -400,6 +410,7 @@ async function baseFormatAstBaseItems(
 						uri,
 						astItemLevel,
 						splitDocument,
+						includes,
 					),
 			),
 		)
@@ -838,6 +849,7 @@ const formatLabels = (
 const formatDtcNode = async (
 	documentFormattingParams: CustomDocumentFormattingParams,
 	node: DtcBaseNode,
+	includes: Include[],
 	uri: string,
 	level: number,
 	indentString: string,
@@ -846,6 +858,18 @@ const formatDtcNode = async (
 ): Promise<FileDiagnostic[]> => {
 	const result: FileDiagnostic[] = [];
 
+	const parentNode =
+		node.parentNode instanceof DtcBaseNode ? node.parentNode : undefined;
+	const indexInParent = parentNode?.children.indexOf(node) ?? -1;
+	const topSibling =
+		indexInParent > 0 && parentNode?.children[indexInParent - 1];
+	const isTopSiblingANodeOrProperty =
+		((topSibling instanceof DtcBaseNode ||
+			topSibling instanceof DtcProperty ||
+			topSibling instanceof DeleteBase) &&
+			node.firstToken.prevToken === topSibling.lastToken) ||
+		includes.some((i) => i.lastToken === node.firstToken.prevToken);
+
 	result.push(
 		...ensureOnNewLineAndMax1EmptyLineToPrev(
 			node.firstToken,
@@ -853,11 +877,7 @@ const formatDtcNode = async (
 			indentString,
 			documentText,
 			undefined,
-			node.firstToken.prevToken?.value === '{' && !node.topComment
-				? 1
-				: node.topComment
-					? 1
-					: 2,
+			isTopSiblingANodeOrProperty ? 2 : 1,
 			true,
 		),
 	);
@@ -928,6 +948,7 @@ const formatDtcNode = async (
 						uri,
 						computeLevel,
 						documentText,
+						includes,
 						level + 1,
 					),
 				),
@@ -1432,6 +1453,20 @@ const formatDtcProperty = (
 ): FileDiagnostic[] => {
 	const result: FileDiagnostic[] = [];
 
+	const parentNode =
+		property.parentNode instanceof DtcBaseNode
+			? property.parentNode
+			: undefined;
+	const indexInParent = parentNode?.children.indexOf(property) ?? -1;
+	const forceNewLines =
+		indexInParent === 0 &&
+		parentNode?.openScope === property.firstToken.prevToken;
+	const topSibling =
+		indexInParent > 0 && parentNode?.children[indexInParent - 1];
+	const isTopSiblingANode =
+		topSibling instanceof DtcBaseNode &&
+		property.firstToken.prevToken === topSibling.lastToken;
+
 	result.push(
 		...ensureOnNewLineAndMax1EmptyLineToPrev(
 			property.firstToken,
@@ -1439,8 +1474,8 @@ const formatDtcProperty = (
 			settings.singleIndent,
 			documentText,
 			undefined,
-			undefined,
-			property.firstToken.prevToken?.value === '{',
+			isTopSiblingANode ? 2 : 1,
+			forceNewLines,
 		),
 	);
 
@@ -1869,6 +1904,7 @@ const getTextEdit = async (
 	uri: string,
 	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
 	documentText: string[],
+	includes: Include[],
 	level = 0,
 ): Promise<FileDiagnostic[]> => {
 	const delta = documentFormattingParams.options.tabSize;
@@ -1884,6 +1920,7 @@ const getTextEdit = async (
 		return formatDtcNode(
 			documentFormattingParams,
 			astNode,
+			includes,
 			uri,
 			level,
 			singleIndent,
