@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.6.8] - Unreleased
 
+### Security
+
+- Update `glob` to address CVE-2025-64756
+- Update `js-yaml` to address CVE-2025-64718
+
 ### Added
 
 - Support for macros resolving to strings inside array values.
