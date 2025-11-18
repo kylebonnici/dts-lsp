@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import { Range } from 'vscode-languageserver-types';
+import { toPosition } from '../../helpers';
 import { ASTBase } from '../base';
 import { Keyword } from '../keyword';
 import { MacroRegistryItem, Token, TokenIndexes } from '../../types';
@@ -92,10 +94,31 @@ export class IfDefineBlock extends ASTBase {
 		this.addChild(endIf);
 	}
 
+	get inactiveRanges() {
+		if (this.ifDef.active && this.elseOption) {
+			const start = this.elseOption.firstToken;
+			const end =
+				this.elseOption.content?.firstToken ??
+				this.endIf?.firstToken ??
+				this.lastToken;
+			return [Range.create(toPosition(start), toPosition(end))];
+		}
+
+		if (this.elseOption?.active) {
+			const start = this.ifDef.firstToken;
+			const end = this.ifDef.content?.lastToken ?? this.ifDef.lastToken;
+			return [Range.create(toPosition(start), toPosition(end))];
+		}
+
+		const start = this.firstToken;
+		const end = this.lastToken;
+		return [Range.create(toPosition(start), toPosition(end))];
+	}
+
 	getInValidTokenRange(
 		macrosResolvers: Map<string, MacroRegistryItem>,
 		tokens: Token[],
-	) {
+	): { start: number; end: number }[] {
 		const getIndex = (token: Token) => tokens.findIndex((t) => t === token);
 
 		// No identifier so ignore all block
@@ -123,11 +146,12 @@ export class IfDefineBlock extends ASTBase {
 
 		const getIndex = (token: Token) => tokens.findIndex((t) => t === token);
 
+		const endToken = (this.ifDef.identifier ?? this.ifDef.keyword)
+			.lastToken;
+
 		invalidRange.push({
 			start: getIndex(this.ifDef.firstToken),
-			end: getIndex(
-				(this.ifDef.identifier ?? this.ifDef.keyword).lastToken,
-			),
+			end: getIndex(endToken),
 		});
 
 		const useMainBlock = this.ifDef === activeBlock;
@@ -185,13 +209,47 @@ export class IfElIfBlock extends ASTBase {
 	getInValidTokenRange(
 		macros: Map<string, MacroRegistryItem>,
 		tokens: Token[],
-	) {
+	): { start: number; end: number }[] {
 		const activeIf = this.ifBlocks.find((b) => b.useBlock(macros));
 
 		return this.getInValidTokenRangeWhenActiveBlock(
 			activeIf ? activeIf : this.elseOption,
 			tokens,
 		);
+	}
+
+	get inactiveRanges(): Range[] {
+		const result: Range[] = [];
+		const hasElse = !!this.elseOption;
+		this.ifBlocks.forEach((block, i) => {
+			if (block.active) {
+				return;
+			}
+
+			const start = block.firstToken;
+			const end =
+				i === this.ifBlocks.length - 1
+					? hasElse
+						? this.elseOption.firstToken
+						: this.lastToken
+					: (block.content?.lastToken ??
+						this.ifBlocks[i + 1].firstToken ??
+						block.lastToken);
+			result.push(Range.create(toPosition(start), toPosition(end)));
+		});
+
+		if (this.elseOption && result.length) {
+			const start = this.elseOption.firstToken;
+			const end =
+				this.elseOption.content?.lastToken ??
+				this.endIf?.lastToken ??
+				this.lastToken;
+			return [Range.create(toPosition(start), toPosition(end))];
+		}
+
+		const start = this.firstToken;
+		const end = this.lastToken;
+		return [Range.create(toPosition(start), toPosition(end))];
 	}
 
 	getInValidTokenRangeWhenActiveBlock(
@@ -204,11 +262,11 @@ export class IfElIfBlock extends ASTBase {
 
 		let blockFound = false;
 		this.ifBlocks.forEach((ifBlock) => {
+			const endToken =
+				ifBlock.expression?.lastToken ?? ifBlock.keyword.lastToken;
 			invalidRange.push({
 				start: getIndex(ifBlock.firstToken),
-				end: getIndex(
-					ifBlock.expression?.lastToken ?? ifBlock.keyword.lastToken,
-				),
+				end: getIndex(endToken),
 			});
 
 			if (!blockFound && ifBlock === activeBlock) {

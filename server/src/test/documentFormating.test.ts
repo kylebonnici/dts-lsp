@@ -464,6 +464,15 @@ describe('Document formating', () => {
 				'/ {\n#ifdef ABC\n\t/* foo; */\n#endif\n\tnode1 {};\n};',
 			);
 		});
+
+		test('Comment not linked inside a disabed if def inside node', async () => {
+			const documentText =
+				'/ {\n#ifdef ABC\nnode {\n/* foo; */ };\n#endif\n\tnode1 {};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n#ifdef ABC\n\tnode {\n\t\t/* foo; */\n\t};\n#endif\n\tnode1 {};\n};',
+			);
+		});
 	});
 
 	describe('Ref Node', () => {

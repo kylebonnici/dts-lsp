@@ -20,6 +20,7 @@ import { Token, TokenIndexes } from '../../types';
 export class CommentBlock extends ASTBase {
 	astAfterComment?: ASTBase;
 	astBeforeComment?: ASTBase;
+	disabled: boolean = false;
 
 	constructor(readonly comments: Comment[]) {
 		super();
@@ -33,6 +34,7 @@ export class CommentBlock extends ASTBase {
 export class Comment extends ASTBase {
 	astAfterComment?: ASTBase;
 	astBeforeComment?: ASTBase;
+	disabled: boolean = false;
 
 	constructor(tokenIndexes: TokenIndexes) {
 		super(tokenIndexes);

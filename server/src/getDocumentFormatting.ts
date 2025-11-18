@@ -140,7 +140,6 @@ const getAstItemLevel =
 
 type FormattingFlags = {
 	runBaseCheck: boolean;
-	formatComments: boolean;
 };
 
 export async function formatText(
@@ -151,6 +150,7 @@ export async function formatText(
 	returnType: 'Both',
 	options?: FormattingFlags,
 	tokens?: Token[],
+	prevIfBlocks?: (IfDefineBlock | IfElIfBlock)[],
 ): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
 export async function formatText(
 	documentFormattingParams:
@@ -160,6 +160,7 @@ export async function formatText(
 	returnType: 'New Text',
 	options?: FormattingFlags,
 	tokens?: Token[],
+	prevIfBlocks?: (IfDefineBlock | IfElIfBlock)[],
 ): Promise<string>;
 export async function formatText(
 	documentFormattingParams:
@@ -169,6 +170,7 @@ export async function formatText(
 	returnType: 'File Diagnostics',
 	options?: FormattingFlags,
 	tokens?: Token[],
+	prevIfBlocks?: (IfDefineBlock | IfElIfBlock)[],
 ): Promise<FileDiagnostic[]>;
 export async function formatText(
 	documentFormattingParams:
@@ -178,9 +180,9 @@ export async function formatText(
 	returnType: 'New Text' | 'File Diagnostics' | 'Both',
 	options: FormattingFlags = {
 		runBaseCheck: true,
-		formatComments: true,
 	},
 	tokens?: Token[],
+	prevIfBlocks: (IfDefineBlock | IfElIfBlock)[] = [],
 ): Promise<
 	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
 > {
@@ -208,6 +210,9 @@ export async function formatText(
 	const ifBlocks = parser.cPreprocessorParser.allAstItems.filter(
 		(ast) => ast instanceof IfElIfBlock,
 	);
+
+	prevIfBlocks.push(...ifDefBlocks);
+	prevIfBlocks.push(...ifBlocks);
 
 	let variantDocuments: FileDiagnostic[] = [];
 
@@ -269,8 +274,9 @@ export async function formatText(
 						{ ...documentFormattingParams, range },
 						text,
 						'File Diagnostics',
-						{ ...options, formatComments: false },
+						options,
 						newTokenStream,
+						prevIfBlocks,
 					);
 				}),
 		)
@@ -295,7 +301,7 @@ export async function formatText(
 				},
 				parser.allAstItems,
 				parser.includes,
-				ifDefBlocks,
+				prevIfBlocks,
 				filePath,
 				text,
 				returnType,
@@ -322,7 +328,7 @@ export async function formatText(
 				},
 				parser.allAstItems,
 				parser.includes,
-				ifDefBlocks,
+				prevIfBlocks,
 				filePath,
 				text,
 				returnType,
@@ -351,7 +357,7 @@ export async function formatText(
 			},
 			parser.allAstItems,
 			parser.includes,
-			ifDefBlocks,
+			prevIfBlocks,
 			filePath,
 			text,
 			returnType,
@@ -962,7 +968,7 @@ const formatDtcNode = async (
 	const result: FileDiagnostic[] = [];
 
 	const doNotForceNewLines = ifDefBlocks.some(
-		(b) => b.lastToken.nextToken === node.firstToken,
+		(b) => b.endIf?.lastToken.nextToken === node.firstToken,
 	);
 
 	result.push(
@@ -2098,7 +2104,7 @@ const getTextEdit = async (
 			singleIndent,
 			documentText,
 		);
-	} else if (astNode instanceof Comment) {
+	} else if (astNode instanceof Comment && !astNode.disabled) {
 		return formatComment(
 			astNode,
 			await computeLevel(astNode),
@@ -2106,7 +2112,7 @@ const getTextEdit = async (
 			documentText,
 			settings,
 		);
-	} else if (options.formatComments && astNode instanceof CommentBlock) {
+	} else if (astNode instanceof CommentBlock && !astNode.disabled) {
 		return formatCommentBlock(
 			astNode,
 			ifDefBlocks,
