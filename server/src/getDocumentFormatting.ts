@@ -68,7 +68,7 @@ import { getPropertyFromChild, isPropertyValueChild } from './ast/helpers';
 import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
 import { Parser } from './parser';
 import { Lexer } from './lexer';
-import { IfDefineBlock } from './ast/cPreprocessors/ifDefine';
+import { IfDefineBlock, IfElIfBlock } from './ast/cPreprocessors/ifDefine';
 
 const findAst = async (token: Token, uri: string, fileRootAsts: ASTBase[]) => {
 	const pos = Position.create(token.pos.line, token.pos.col);
@@ -202,6 +202,9 @@ export async function formatText(
 		);
 	}
 
+	const ifDefBlocks = parser.cPreprocessorParser.allAstItems.filter(
+		(ast) => ast instanceof IfDefineBlock || ast instanceof IfElIfBlock,
+	);
 	const wordWrapColumn =
 		typeof documentFormattingParams.options.wordWrapColumn === 'number'
 			? documentFormattingParams.options.wordWrapColumn
@@ -220,6 +223,7 @@ export async function formatText(
 				},
 				parser.allAstItems,
 				parser.includes,
+				ifDefBlocks,
 				filePath,
 				text,
 				returnType,
@@ -244,6 +248,7 @@ export async function formatText(
 				},
 				parser.allAstItems,
 				parser.includes,
+				ifDefBlocks,
 				filePath,
 				text,
 				returnType,
@@ -270,6 +275,7 @@ export async function formatText(
 			},
 			parser.allAstItems,
 			parser.includes,
+			ifDefBlocks,
 			filePath,
 			text,
 			returnType,
@@ -325,6 +331,7 @@ async function formatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
 	includes: Include[],
+	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
 	uri: string,
 	text: string,
 	returnType: 'Both',
@@ -333,6 +340,7 @@ async function formatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
 	includes: Include[],
+	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
 	uri: string,
 	text: string,
 	returnType: 'File Diagnostics',
@@ -341,6 +349,7 @@ async function formatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
 	includes: Include[],
+	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
 	uri: string,
 	text: string,
 	returnType: 'New Text',
@@ -349,6 +358,7 @@ async function formatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
 	includes: Include[],
+	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
 	uri: string,
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics' | 'Both',
@@ -366,6 +376,7 @@ async function formatAstBaseItems(
 			documentFormattingParams,
 			astItems,
 			includes,
+			ifDefBlocks,
 			uri,
 			splitDocument,
 		)),
@@ -395,6 +406,7 @@ async function baseFormatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
 	includes: Include[],
+	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
 	uri: string,
 	splitDocument: string[],
 ): Promise<FileDiagnostic[]> {
@@ -411,6 +423,7 @@ async function baseFormatAstBaseItems(
 						astItemLevel,
 						splitDocument,
 						includes,
+						ifDefBlocks,
 					),
 			),
 		)
@@ -850,6 +863,7 @@ const formatDtcNode = async (
 	documentFormattingParams: CustomDocumentFormattingParams,
 	node: DtcBaseNode,
 	includes: Include[],
+	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
 	uri: string,
 	level: number,
 	indentString: string,
@@ -858,17 +872,9 @@ const formatDtcNode = async (
 ): Promise<FileDiagnostic[]> => {
 	const result: FileDiagnostic[] = [];
 
-	const parentNode =
-		node.parentNode instanceof DtcBaseNode ? node.parentNode : undefined;
-	const indexInParent = parentNode?.children.indexOf(node) ?? -1;
-	const topSibling =
-		indexInParent > 0 && parentNode?.children[indexInParent - 1];
-	const isTopSiblingANodeOrProperty =
-		((topSibling instanceof DtcBaseNode ||
-			topSibling instanceof DtcProperty ||
-			topSibling instanceof DeleteBase) &&
-			node.firstToken.prevToken === topSibling.lastToken) ||
-		includes.some((i) => i.lastToken === node.firstToken.prevToken);
+	const doNotForceNewLines = ifDefBlocks.some(
+		(b) => b.lastToken.nextToken === node.firstToken,
+	);
 
 	result.push(
 		...ensureOnNewLineAndMax1EmptyLineToPrev(
@@ -877,8 +883,38 @@ const formatDtcNode = async (
 			indentString,
 			documentText,
 			undefined,
-			isTopSiblingANodeOrProperty ? 2 : 1,
-			true,
+			doNotForceNewLines
+				? undefined
+				: (node.firstToken.prevToken?.value === '{' &&
+							!node.topComment) ||
+					  ifDefBlocks
+							.flatMap((block) => {
+								if (block instanceof IfDefineBlock) {
+									return [
+										block.ifDef,
+										...(block.elseOption
+											? [block.elseOption]
+											: []),
+									];
+								}
+
+								return [
+									...block.ifBlocks,
+									...(block.elseOption
+										? [block.elseOption]
+										: []),
+								];
+							})
+							.some(
+								(block) =>
+									block.content?.firstToken ===
+									node.firstToken,
+							)
+					? 1
+					: node.topComment
+						? 1
+						: 2,
+			!doNotForceNewLines,
 		),
 	);
 
@@ -949,6 +985,7 @@ const formatDtcNode = async (
 						computeLevel,
 						documentText,
 						includes,
+						ifDefBlocks,
 						level + 1,
 					),
 				),
@@ -1465,7 +1502,8 @@ const formatDtcProperty = (
 		indexInParent > 0 && parentNode?.children[indexInParent - 1];
 	const isTopSiblingANode =
 		topSibling instanceof DtcBaseNode &&
-		property.firstToken.prevToken === topSibling.lastToken;
+		property.firstToken.prevToken ===
+			(topSibling.endComment ?? topSibling).lastToken;
 
 	result.push(
 		...ensureOnNewLineAndMax1EmptyLineToPrev(
@@ -1474,8 +1512,8 @@ const formatDtcProperty = (
 			settings.singleIndent,
 			documentText,
 			undefined,
-			isTopSiblingANode ? 2 : 1,
-			forceNewLines,
+			isTopSiblingANode ? 2 : indexInParent === 0 ? 1 : undefined,
+			isTopSiblingANode || forceNewLines,
 		),
 	);
 
@@ -1693,6 +1731,7 @@ const formatDtcInclude = (
 
 const formatCommentBlock = (
 	commentItem: CommentBlock,
+	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
 	levelMeta: LevelMeta | undefined,
 	indentString: string,
 	documentText: string[],
@@ -1710,6 +1749,7 @@ const formatCommentBlock = (
 		formatBlockCommentLine(
 			c,
 			commentItem,
+			ifDefBlocks,
 			levelMeta,
 			indentString,
 			documentText,
@@ -1745,6 +1785,7 @@ const getPropertyIndentPrefix = (
 const formatBlockCommentLine = (
 	commentItem: Comment,
 	commentBlock: CommentBlock,
+	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
 	levelMeta: LevelMeta | undefined,
 	indentString: string,
 	documentText: string[],
@@ -1783,8 +1824,32 @@ const formatBlockCommentLine = (
 		commentBlock.astAfterComment instanceof DtcBaseNode
 	) {
 		forceNumberOfLines = true;
+		const isFirstInIfDefBlock = ifDefBlocks
+			.flatMap((block) => {
+				if (block instanceof IfDefineBlock) {
+					return [
+						block.ifDef,
+						...(block.elseOption ? [block.elseOption] : []),
+					];
+				}
+
+				return [
+					...block.ifBlocks,
+					...(block.elseOption ? [block.elseOption] : []),
+				];
+			})
+			.some(
+				(block) =>
+					block.content?.firstToken === commentBlock.firstToken,
+			);
 		expectedNumberOfLines =
-			commentBlock.firstToken.prevToken?.value === '{' ? 1 : 2;
+			commentBlock.firstToken.prevToken?.value === '{' ||
+			isFirstInIfDefBlock ||
+			ifDefBlocks.some(
+				(b) => b.lastToken.nextToken === commentBlock.firstToken,
+			)
+				? 1
+				: 2;
 	}
 
 	const result: FileDiagnostic[] = [];
@@ -1905,6 +1970,7 @@ const getTextEdit = async (
 	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
 	documentText: string[],
 	includes: Include[],
+	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
 	level = 0,
 ): Promise<FileDiagnostic[]> => {
 	const delta = documentFormattingParams.options.tabSize;
@@ -1921,6 +1987,7 @@ const getTextEdit = async (
 			documentFormattingParams,
 			astNode,
 			includes,
+			ifDefBlocks,
 			uri,
 			level,
 			singleIndent,
@@ -1950,6 +2017,7 @@ const getTextEdit = async (
 	} else if (astNode instanceof CommentBlock) {
 		return formatCommentBlock(
 			astNode,
+			ifDefBlocks,
 			await computeLevel(astNode),
 			singleIndent,
 			documentText,

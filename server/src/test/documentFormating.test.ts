@@ -303,7 +303,6 @@ describe('Document formating', () => {
 		test('Node more then two new line from top', async () => {
 			const documentText = '/ {\n\n\n\n\tnode {};\n};';
 			const newText = await getNewText(documentText);
-			console.log(newText);
 			expect(newText).toEqual('/ {\n\tnode {};\n};');
 		});
 
@@ -444,7 +443,16 @@ describe('Document formating', () => {
 			const documentText = '/ {\n\tprop1;\n/* foo; */\n\n\tnode1 {};\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\tprop1;\n\t/* foo; */\n\tnode1 {};\n};',
+				'/ {\n\tprop1;\n\t/* foo; */\n\n\tnode1 {};\n};',
+			);
+		});
+
+		test('Comment linked to Node before node', async () => {
+			const documentText =
+				'/ {\n\tprop1;\n/* foo; */\n\t/* bar; */\n\tnode1 {};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tprop1;\n\n\t/* foo; */\n\t/* bar; */\n\tnode1 {};\n};',
 			);
 		});
 
