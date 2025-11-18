@@ -116,7 +116,7 @@ export class IfDefineBlock extends ASTBase {
 	}
 
 	getInValidTokenRangeWhenActiveBlock(
-		activeBlock: CIfDef | CIfNotDef | CElse | undefined,
+		activeBlock: CIfBase | undefined,
 		tokens: Token[],
 	) {
 		const invalidRange: { start: number; end: number }[] = [];
@@ -188,26 +188,14 @@ export class IfElIfBlock extends ASTBase {
 	) {
 		const activeIf = this.ifBlocks.find((b) => b.useBlock(macros));
 
-		if (activeIf) {
-			return this.getInValidTokenRangeWhenActiveBlock(activeIf, tokens);
-		} else if (this.elseOption) {
-			return this.getInValidTokenRangeWhenActiveBlock(
-				this.elseOption,
-				tokens,
-			);
-		}
-
-		const getIndex = (token: Token) => tokens.findIndex((t) => t === token);
-		return [
-			{
-				start: getIndex(this.firstToken),
-				end: getIndex(this.lastToken),
-			},
-		];
+		return this.getInValidTokenRangeWhenActiveBlock(
+			activeIf ? activeIf : this.elseOption,
+			tokens,
+		);
 	}
 
 	getInValidTokenRangeWhenActiveBlock(
-		activeBlock: CIf | CElse,
+		activeBlock: CIfBase | undefined,
 		tokens: Token[],
 	) {
 		const invalidRange: { start: number; end: number }[] = [];

@@ -68,7 +68,12 @@ import { getPropertyFromChild, isPropertyValueChild } from './ast/helpers';
 import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
 import { Parser } from './parser';
 import { Lexer } from './lexer';
-import { IfDefineBlock, IfElIfBlock } from './ast/cPreprocessors/ifDefine';
+import {
+	CElse,
+	CIf,
+	IfDefineBlock,
+	IfElIfBlock,
+} from './ast/cPreprocessors/ifDefine';
 
 const findAst = async (token: Token, uri: string, fileRootAsts: ASTBase[]) => {
 	const pos = Position.create(token.pos.line, token.pos.col);
@@ -200,13 +205,16 @@ export async function formatText(
 	const ifDefBlocks = parser.cPreprocessorParser.allAstItems.filter(
 		(ast) => ast instanceof IfDefineBlock,
 	);
+	const ifBlocks = parser.cPreprocessorParser.allAstItems.filter(
+		(ast) => ast instanceof IfElIfBlock,
+	);
 
 	let variantDocuments: FileDiagnostic[] = [];
 
 	variantDocuments = (
 		await Promise.all(
-			ifDefBlocks
-				.map((block) => {
+			[
+				...ifDefBlocks.map((block) => {
 					if (block.ifDef.active) {
 						if (block.elseOption) {
 							return {
@@ -221,7 +229,28 @@ export async function formatText(
 						block,
 						branch: block.ifDef,
 					};
-				})
+				}),
+				...ifBlocks.flatMap((block) => {
+					const active = block.ifBlocks.find((i) => i.active);
+					const results: {
+						block: IfElIfBlock;
+						branch: CIf | CElse;
+					}[] = block.ifBlocks
+						.filter((v) => v.active)
+						.map((branch) => ({
+							block,
+							branch,
+						}));
+					if (!active && block.elseOption) {
+						results.push({
+							block,
+							branch: block.elseOption,
+						});
+					}
+
+					return results;
+				}),
+			]
 				.filter((v) => !!v)
 				.flatMap(async (meta) => {
 					const rangeToClean = meta.block
