@@ -1601,6 +1601,7 @@ const linkAstAfterComment = <T extends ASTBase>(
 	| undefined => {
 	const linkedComment = comments.find(
 		(c) =>
+			!c.disabled &&
 			c.lastToken === astItem.firstToken.prevToken &&
 			(c.lastToken.pos.line === astItem.firstToken.pos.line ||
 				c.lastToken.pos.line + 1 === astItem.firstToken.pos.line),
@@ -1633,6 +1634,7 @@ const linkAstBeforeComment = <T extends ASTBase>(
 	| undefined => {
 	const linkedComment = comments.find(
 		(c) =>
+			!c.disabled &&
 			c.firstToken.prevToken === astItem.lastToken &&
 			c.firstToken.pos.line === astItem.lastToken.pos.line,
 	);

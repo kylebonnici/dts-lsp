@@ -25,6 +25,7 @@ import {
 	createTokenIndex,
 	genSyntaxDiagnostic,
 	isPathEqual,
+	isRangeInRange,
 	parseMacros,
 	sameLine,
 	validateToken,
@@ -54,11 +55,12 @@ import {
 } from './ast/cPreprocessors/ifDefine';
 import { getCachedCPreprocessorParserProvider } from './providers/cachedCPreprocessorParser';
 import { Expression } from './ast/cPreprocessors/expression';
+import { Comment, CommentBlock } from './ast/dtc/comment';
 
 export class CPreprocessorParser extends BaseParser {
 	public tokens: Token[] = [];
 	private nodes: ASTBase[] = [];
-	private _comments: ASTBase[] = [];
+	private _comments: (Comment | CommentBlock)[] = [];
 	public dtsIncludes: Include[] = [];
 	private macroSnapShot: Map<string, MacroRegistryItem> = new Map<
 		string,
@@ -501,6 +503,13 @@ export class CPreprocessorParser extends BaseParser {
 			.reverse();
 		rangeToClean.forEach((r) => {
 			this.tokens.splice(r.start, r.end - r.start + 1);
+		});
+
+		const commentsRanges = ifDefBlock.inactiveRanges;
+		this._comments.forEach((c) => {
+			if (commentsRanges.some((r) => isRangeInRange(r, c.range))) {
+				c.disabled = true;
+			}
 		});
 
 		[

@@ -68,7 +68,12 @@ import { getPropertyFromChild, isPropertyValueChild } from './ast/helpers';
 import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
 import { Parser } from './parser';
 import { Lexer } from './lexer';
-import { IfDefineBlock, IfElIfBlock } from './ast/cPreprocessors/ifDefine';
+import {
+	CElse,
+	CIf,
+	IfDefineBlock,
+	IfElIfBlock,
+} from './ast/cPreprocessors/ifDefine';
 
 const findAst = async (token: Token, uri: string, fileRootAsts: ASTBase[]) => {
 	const pos = Position.create(token.pos.line, token.pos.col);
@@ -133,15 +138,19 @@ const getAstItemLevel =
 		};
 	};
 
+type FormattingFlags = {
+	runBaseCheck: boolean;
+};
+
 export async function formatText(
 	documentFormattingParams:
 		| DocumentFormattingParams
 		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'Both',
-	options?: {
-		runBaseCheck: boolean;
-	},
+	options?: FormattingFlags,
+	tokens?: Token[],
+	prevIfBlocks?: (IfDefineBlock | IfElIfBlock)[],
 ): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
 export async function formatText(
 	documentFormattingParams:
@@ -149,9 +158,9 @@ export async function formatText(
 		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'New Text',
-	options?: {
-		runBaseCheck: boolean;
-	},
+	options?: FormattingFlags,
+	tokens?: Token[],
+	prevIfBlocks?: (IfDefineBlock | IfElIfBlock)[],
 ): Promise<string>;
 export async function formatText(
 	documentFormattingParams:
@@ -159,9 +168,9 @@ export async function formatText(
 		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'File Diagnostics',
-	options?: {
-		runBaseCheck: boolean;
-	},
+	options?: FormattingFlags,
+	tokens?: Token[],
+	prevIfBlocks?: (IfDefineBlock | IfElIfBlock)[],
 ): Promise<FileDiagnostic[]>;
 export async function formatText(
 	documentFormattingParams:
@@ -169,25 +178,18 @@ export async function formatText(
 		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics' | 'Both',
-	options: {
-		runBaseCheck: boolean;
-	} = {
+	options: FormattingFlags = {
 		runBaseCheck: true,
 	},
+	tokens?: Token[],
+	prevIfBlocks: (IfDefineBlock | IfElIfBlock)[] = [],
 ): Promise<
 	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
 > {
 	const filePath = fileURLToPath(documentFormattingParams.textDocument.uri);
-	const parser = new Parser(
-		filePath,
-		[],
-		undefined,
-		() => {
-			const lexer = new Lexer(text, filePath);
-			return lexer.tokens;
-		},
-		true,
-	);
+	tokens ??= new Lexer(text, filePath).tokens;
+	const rawTokens = [...tokens];
+	let parser = new Parser(filePath, [], undefined, () => tokens, true);
 	await parser.stable;
 
 	const issues = parser.issues.filter((issue) =>
@@ -202,9 +204,15 @@ export async function formatText(
 		);
 	}
 
-	const ifDefBlocks = parser.cPreprocessorParser.allAstItems.filter(
-		(ast) => ast instanceof IfDefineBlock || ast instanceof IfElIfBlock,
+	let variantDocuments = await getDisabledMarcoRangeEdits(
+		documentFormattingParams,
+		parser,
+		prevIfBlocks,
+		rawTokens,
+		text,
+		options,
 	);
+
 	const wordWrapColumn =
 		typeof documentFormattingParams.options.wordWrapColumn === 'number'
 			? documentFormattingParams.options.wordWrapColumn
@@ -212,6 +220,7 @@ export async function formatText(
 
 	if (returnType === 'New Text') {
 		let finalText = text;
+
 		if (options.runBaseCheck) {
 			const r = await formatAstBaseItems(
 				{
@@ -223,10 +232,12 @@ export async function formatText(
 				},
 				parser.allAstItems,
 				parser.includes,
-				ifDefBlocks,
+				prevIfBlocks,
 				filePath,
 				text,
 				returnType,
+				options,
+				variantDocuments,
 			);
 			finalText = r;
 		}
@@ -248,10 +259,12 @@ export async function formatText(
 				},
 				parser.allAstItems,
 				parser.includes,
-				ifDefBlocks,
+				prevIfBlocks,
 				filePath,
 				text,
 				returnType,
+				options,
+				variantDocuments,
 			);
 			finalText = r.text;
 			diagnostic.push(...r.diagnostic);
@@ -275,16 +288,105 @@ export async function formatText(
 			},
 			parser.allAstItems,
 			parser.includes,
-			ifDefBlocks,
+			prevIfBlocks,
 			filePath,
 			text,
 			returnType,
+			options,
+			variantDocuments,
 		);
 		diagnostic.push(...r);
 	}
 
 	return diagnostic;
 }
+
+const getDisabledMarcoRangeEdits = async (
+	documentFormattingParams:
+		| DocumentFormattingParams
+		| DocumentRangeFormattingParams,
+	parser: Parser,
+	prevIfBlocks: (IfDefineBlock | IfElIfBlock)[],
+	rawTokens: Token[],
+	text: string,
+	options: FormattingFlags,
+) => {
+	const ifDefBlocks = parser.cPreprocessorParser.allAstItems.filter(
+		(ast) => ast instanceof IfDefineBlock,
+	);
+	const ifBlocks = parser.cPreprocessorParser.allAstItems.filter(
+		(ast) => ast instanceof IfElIfBlock,
+	);
+
+	prevIfBlocks.push(...ifDefBlocks);
+	prevIfBlocks.push(...ifBlocks);
+
+	return (
+		await Promise.all(
+			[
+				...ifDefBlocks.map((block) => {
+					if (block.ifDef.active) {
+						if (block.elseOption) {
+							return {
+								block,
+								branch: block.elseOption,
+							};
+						}
+						return;
+					}
+
+					return {
+						block,
+						branch: block.ifDef,
+					};
+				}),
+				...ifBlocks.flatMap((block) => {
+					const active = block.ifBlocks.find((i) => i.active);
+					const results: {
+						block: IfElIfBlock;
+						branch: CIf | CElse;
+					}[] = block.ifBlocks
+						.filter((v) => v.active)
+						.map((branch) => ({
+							block,
+							branch,
+						}));
+					if (!active && block.elseOption) {
+						results.push({
+							block,
+							branch: block.elseOption,
+						});
+					}
+
+					return results;
+				}),
+			]
+				.filter((v) => !!v)
+				.flatMap(async (meta) => {
+					const rangeToClean = meta.block
+						.getInValidTokenRangeWhenActiveBlock(
+							meta.branch,
+							rawTokens,
+						)
+						.reverse();
+
+					const newTokenStream = [...rawTokens];
+					rangeToClean.forEach((r) => {
+						newTokenStream.splice(r.start, r.end - r.start + 1);
+					});
+					const range = meta.block.range;
+					return formatText(
+						{ ...documentFormattingParams, range },
+						text,
+						'File Diagnostics',
+						options,
+						newTokenStream,
+						prevIfBlocks,
+					);
+				}),
+		)
+	).flat();
+};
 
 const filterOnOffEdits = (
 	formatOnOffMeta: Range[],
@@ -335,6 +437,8 @@ async function formatAstBaseItems(
 	uri: string,
 	text: string,
 	returnType: 'Both',
+	options: FormattingFlags,
+	edits?: FileDiagnostic[],
 ): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
 async function formatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
@@ -344,6 +448,8 @@ async function formatAstBaseItems(
 	uri: string,
 	text: string,
 	returnType: 'File Diagnostics',
+	options: FormattingFlags,
+	edits?: FileDiagnostic[],
 ): Promise<FileDiagnostic[]>;
 async function formatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
@@ -353,6 +459,8 @@ async function formatAstBaseItems(
 	uri: string,
 	text: string,
 	returnType: 'New Text',
+	options: FormattingFlags,
+	edits?: FileDiagnostic[],
 ): Promise<string>;
 async function formatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
@@ -362,6 +470,8 @@ async function formatAstBaseItems(
 	uri: string,
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics' | 'Both',
+	options: FormattingFlags,
+	edits: FileDiagnostic[] = [],
 ): Promise<
 	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
 > {
@@ -369,7 +479,6 @@ async function formatAstBaseItems(
 	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
 
 	let newText = text;
-	const edits: FileDiagnostic[] = [];
 
 	edits.push(
 		...(await baseFormatAstBaseItems(
@@ -379,25 +488,30 @@ async function formatAstBaseItems(
 			ifDefBlocks,
 			uri,
 			splitDocument,
+			options,
 		)),
+	);
+
+	const rangeEdits = filterOnOffEdits(
+		formatOnOffMeta,
+		documentFormattingParams,
+		edits,
 	);
 
 	newText = applyEdits(
 		TextDocument.create(uri, 'devicetree', 0, text),
-		filterOnOffEdits(formatOnOffMeta, documentFormattingParams, edits)
-			.flatMap((i) => i.raw.edit)
-			.filter((e) => !!e),
+		rangeEdits.flatMap((i) => i.raw.edit).filter((e) => !!e),
 	);
 
 	switch (returnType) {
 		case 'New Text':
 			return newText;
 		case 'File Diagnostics':
-			return edits;
+			return rangeEdits;
 		case 'Both':
 			return {
 				text: newText,
-				diagnostic: edits,
+				diagnostic: rangeEdits,
 			};
 	}
 }
@@ -409,6 +523,7 @@ async function baseFormatAstBaseItems(
 	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
 	uri: string,
 	splitDocument: string[],
+	options: FormattingFlags,
 ): Promise<FileDiagnostic[]> {
 	const astItemLevel = getAstItemLevel(astItems, uri);
 
@@ -424,6 +539,7 @@ async function baseFormatAstBaseItems(
 						splitDocument,
 						includes,
 						ifDefBlocks,
+						options,
 					),
 			),
 		)
@@ -596,7 +712,6 @@ const removeTrailingWhitespace = (
 
 const removeNewLinesBetweenTokenAndPrev = (
 	token: Token,
-	documentText: string[],
 	expectedNewLines = 1,
 	forceExpectedNewLines = false,
 	prevToken = token.prevToken,
@@ -616,15 +731,12 @@ const removeNewLinesBetweenTokenAndPrev = (
 				prevToken.pos.colEnd,
 			);
 			const end = Position.create(
-				token.pos.line - (expectedNewLines ? 1 : 0),
-				expectedNewLines
-					? documentText[token.pos.line - (expectedNewLines ? 1 : 0)]
-							.length
-					: token.pos.col,
+				token.pos.line,
+				expectedNewLines ? 0 : token.pos.col,
 			);
 			const edit = TextEdit.replace(
 				Range.create(start, end),
-				'\n'.repeat(expectedNewLines - (forceExpectedNewLines ? 1 : 0)),
+				'\n'.repeat(expectedNewLines),
 			);
 			return genFormattingDiagnostic(
 				FormattingIssues.INCORRECT_WHITE_SPACE,
@@ -744,7 +856,6 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
 		}
 		const removeNewLinesEdit = removeNewLinesBetweenTokenAndPrev(
 			token.nextToken,
-			documentText,
 			0,
 		);
 		if (!removeNewLinesEdit) {
@@ -867,14 +978,17 @@ const formatDtcNode = async (
 	uri: string,
 	level: number,
 	indentString: string,
+	options: FormattingFlags,
 	documentText: string[],
 	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
 ): Promise<FileDiagnostic[]> => {
 	const result: FileDiagnostic[] = [];
 
-	const doNotForceNewLines = ifDefBlocks.some(
-		(b) => b.lastToken.nextToken === node.firstToken,
-	);
+	const expectedNumberOfLines =
+		node.topComment ||
+		(node.firstToken.prevToken?.value === '{' && !node.topComment)
+			? 1
+			: getNodeExpectedNumberOfNewLines(node.firstToken, ifDefBlocks);
 
 	result.push(
 		...ensureOnNewLineAndMax1EmptyLineToPrev(
@@ -883,38 +997,8 @@ const formatDtcNode = async (
 			indentString,
 			documentText,
 			undefined,
-			doNotForceNewLines
-				? undefined
-				: (node.firstToken.prevToken?.value === '{' &&
-							!node.topComment) ||
-					  ifDefBlocks
-							.flatMap((block) => {
-								if (block instanceof IfDefineBlock) {
-									return [
-										block.ifDef,
-										...(block.elseOption
-											? [block.elseOption]
-											: []),
-									];
-								}
-
-								return [
-									...block.ifBlocks,
-									...(block.elseOption
-										? [block.elseOption]
-										: []),
-								];
-							})
-							.some(
-								(block) =>
-									block.content?.firstToken ===
-									node.firstToken,
-							)
-					? 1
-					: node.topComment
-						? 1
-						: 2,
-			!doNotForceNewLines,
+			expectedNumberOfLines,
+			true,
 		),
 	);
 
@@ -986,6 +1070,7 @@ const formatDtcNode = async (
 						documentText,
 						includes,
 						ifDefBlocks,
+						options,
 						level + 1,
 					),
 				),
@@ -1053,7 +1138,6 @@ const formatLabeledValue = <T extends ASTBase>(
 		) {
 			const edit = removeNewLinesBetweenTokenAndPrev(
 				value.firstToken,
-				documentText,
 				1,
 				true,
 			);
@@ -1444,7 +1528,6 @@ const formatPropertyValues = (
 				} else {
 					const edit = removeNewLinesBetweenTokenAndPrev(
 						value.firstToken,
-						documentText,
 						1,
 						true,
 					);
@@ -1490,20 +1573,10 @@ const formatDtcProperty = (
 ): FileDiagnostic[] => {
 	const result: FileDiagnostic[] = [];
 
-	const parentNode =
-		property.parentNode instanceof DtcBaseNode
-			? property.parentNode
-			: undefined;
-	const indexInParent = parentNode?.children.indexOf(property) ?? -1;
-	const forceNewLines =
-		indexInParent === 0 &&
-		parentNode?.openScope === property.firstToken.prevToken;
-	const topSibling =
-		indexInParent > 0 && parentNode?.children[indexInParent - 1];
-	const isTopSiblingANode =
-		topSibling instanceof DtcBaseNode &&
-		property.firstToken.prevToken ===
-			(topSibling.endComment ?? topSibling).lastToken;
+	const { force, newLines } = getPropertyExpectedNumberOfNewLines(
+		property,
+		property.firstToken,
+	);
 
 	result.push(
 		...ensureOnNewLineAndMax1EmptyLineToPrev(
@@ -1512,8 +1585,8 @@ const formatDtcProperty = (
 			settings.singleIndent,
 			documentText,
 			undefined,
-			isTopSiblingANode ? 2 : indexInParent === 0 ? 1 : undefined,
-			isTopSiblingANode || forceNewLines,
+			newLines,
+			force,
 		),
 	);
 
@@ -1586,7 +1659,6 @@ const ensureOnNewLineAndMax1EmptyLineToPrev = (
 	} else {
 		const edit = removeNewLinesBetweenTokenAndPrev(
 			token,
-			documentText,
 			expectedNewLines,
 			forceExpectedNewLines,
 		);
@@ -1782,6 +1854,64 @@ const getPropertyIndentPrefix = (
 	return `${witdhPrifix}${prifix.trimStart()}`; // +3 ' = ' or + 4 ' = <'
 };
 
+const getNodeExpectedNumberOfNewLines = (
+	token: Token,
+	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
+) => {
+	const isFirstInIfDefBlock = ifDefBlocks
+		.flatMap((block) => {
+			if (block instanceof IfDefineBlock) {
+				return [
+					block.ifDef,
+					...(block.elseOption ? [block.elseOption] : []),
+				];
+			}
+
+			return [
+				...block.ifBlocks,
+				...(block.elseOption ? [block.elseOption] : []),
+			];
+		})
+		.some((block) => block.content?.firstToken === token);
+	return token.prevToken?.value === '{' || isFirstInIfDefBlock ? 1 : 2;
+};
+
+const getPropertyExpectedNumberOfNewLines = (
+	property: DtcProperty,
+	token: Token,
+) => {
+	const parentNode =
+		property.parentNode instanceof DtcBaseNode
+			? property.parentNode
+			: undefined;
+	const indexInParent = parentNode?.children.indexOf(property) ?? -1;
+
+	if (indexInParent === 0 && parentNode?.openScope === token.prevToken) {
+		return {
+			newLines: 1,
+			force: true,
+		};
+	}
+
+	const topSibling =
+		indexInParent > 0 && parentNode?.children[indexInParent - 1];
+	const isTopSiblingANode =
+		topSibling instanceof DtcBaseNode &&
+		property.firstToken.prevToken ===
+			(topSibling.endComment ?? topSibling).lastToken;
+	if (isTopSiblingANode) {
+		return {
+			newLines: 2,
+			force: true,
+		};
+	}
+
+	return {
+		newLines: undefined,
+		force: undefined,
+	};
+};
+
 const formatBlockCommentLine = (
 	commentItem: Comment,
 	commentBlock: CommentBlock,
@@ -1824,32 +1954,22 @@ const formatBlockCommentLine = (
 		commentBlock.astAfterComment instanceof DtcBaseNode
 	) {
 		forceNumberOfLines = true;
-		const isFirstInIfDefBlock = ifDefBlocks
-			.flatMap((block) => {
-				if (block instanceof IfDefineBlock) {
-					return [
-						block.ifDef,
-						...(block.elseOption ? [block.elseOption] : []),
-					];
-				}
+		expectedNumberOfLines = getNodeExpectedNumberOfNewLines(
+			commentBlock.firstToken,
+			ifDefBlocks,
+		);
+	} else if (
+		lineType === 'first' &&
+		!commentBlock.astBeforeComment &&
+		commentBlock.astAfterComment instanceof DtcProperty
+	) {
+		const { force, newLines } = getPropertyExpectedNumberOfNewLines(
+			commentBlock.astAfterComment,
+			commentBlock.firstToken,
+		);
 
-				return [
-					...block.ifBlocks,
-					...(block.elseOption ? [block.elseOption] : []),
-				];
-			})
-			.some(
-				(block) =>
-					block.content?.firstToken === commentBlock.firstToken,
-			);
-		expectedNumberOfLines =
-			commentBlock.firstToken.prevToken?.value === '{' ||
-			isFirstInIfDefBlock ||
-			ifDefBlocks.some(
-				(b) => b.lastToken.nextToken === commentBlock.firstToken,
-			)
-				? 1
-				: 2;
+		forceNumberOfLines = force;
+		expectedNumberOfLines = newLines;
 	}
 
 	const result: FileDiagnostic[] = [];
@@ -1914,6 +2034,7 @@ const formatBlockCommentLine = (
 
 const formatComment = (
 	commentItem: Comment,
+	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
 	levelMeta: LevelMeta | undefined,
 	indentString: string,
 	documentText: string[],
@@ -1942,8 +2063,10 @@ const formatComment = (
 		commentItem.astAfterComment instanceof DtcBaseNode
 	) {
 		forceNumberOfLines = true;
-		expectedNumberOfLines =
-			commentItem.firstToken.prevToken?.value === '{' ? 1 : 2;
+		expectedNumberOfLines = getNodeExpectedNumberOfNewLines(
+			commentItem.firstToken,
+			ifDefBlocks,
+		);
 	}
 
 	return ensureOnNewLineAndMax1EmptyLineToPrev(
@@ -1971,6 +2094,7 @@ const getTextEdit = async (
 	documentText: string[],
 	includes: Include[],
 	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
+	options: FormattingFlags,
 	level = 0,
 ): Promise<FileDiagnostic[]> => {
 	const delta = documentFormattingParams.options.tabSize;
@@ -1991,6 +2115,7 @@ const getTextEdit = async (
 			uri,
 			level,
 			singleIndent,
+			options,
 			documentText,
 			computeLevel,
 		);
@@ -2006,15 +2131,16 @@ const getTextEdit = async (
 			singleIndent,
 			documentText,
 		);
-	} else if (astNode instanceof Comment) {
+	} else if (astNode instanceof Comment && !astNode.disabled) {
 		return formatComment(
 			astNode,
+			ifDefBlocks,
 			await computeLevel(astNode),
 			singleIndent,
 			documentText,
 			settings,
 		);
-	} else if (astNode instanceof CommentBlock) {
+	} else if (astNode instanceof CommentBlock && !astNode.disabled) {
 		return formatCommentBlock(
 			astNode,
 			ifDefBlocks,

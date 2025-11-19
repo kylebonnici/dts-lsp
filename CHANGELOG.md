@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Support for macros resolving to strings inside array values.
+- Formatting for content inside a macro such as #IF & #IFDEF that is not active
 
 ### Fixed
 

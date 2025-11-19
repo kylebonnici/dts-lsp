@@ -18,7 +18,6 @@ import { LexerToken, Token } from './types';
 import { adjacentTokens, createTokenIndex, validToken } from './helpers';
 import { Comment, CommentBlock } from './ast/dtc/comment';
 import { BaseParser } from './baseParser';
-import { ASTBase } from './ast/base';
 import { getTokenizedDocumentProvider } from './providers/tokenizedDocument';
 
 export class CommentsParser extends BaseParser {
@@ -58,7 +57,7 @@ export class CommentsParser extends BaseParser {
 		}
 	}
 
-	get allAstItems(): ASTBase[] {
+	get allAstItems(): (Comment | CommentBlock)[] {
 		return this.comments;
 	}
 
