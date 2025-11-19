@@ -583,7 +583,7 @@ export class CPreprocessorParser extends BaseParser {
 		let cElse: CElse | undefined;
 
 		if (block.splitTokens.length > 1) {
-			const elseToken = block.splitTokens[1].tokens[0].prevToken!;
+			const elseToken = block.separatorTokens[0];
 			const elseKeyword = new Keyword(createTokenIndex(elseToken));
 			let elseContent: CPreprocessorContent | undefined;
 			if (block.splitTokens[1].tokens.length) {
