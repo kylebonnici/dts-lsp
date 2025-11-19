@@ -204,83 +204,14 @@ export async function formatText(
 		);
 	}
 
-	const ifDefBlocks = parser.cPreprocessorParser.allAstItems.filter(
-		(ast) => ast instanceof IfDefineBlock,
+	let variantDocuments = await getDisabledMarcoRangeEdits(
+		documentFormattingParams,
+		parser,
+		prevIfBlocks,
+		rawTokens,
+		text,
+		options,
 	);
-	const ifBlocks = parser.cPreprocessorParser.allAstItems.filter(
-		(ast) => ast instanceof IfElIfBlock,
-	);
-
-	prevIfBlocks.push(...ifDefBlocks);
-	prevIfBlocks.push(...ifBlocks);
-
-	let variantDocuments: FileDiagnostic[] = [];
-
-	variantDocuments = (
-		await Promise.all(
-			[
-				...ifDefBlocks.map((block) => {
-					if (block.ifDef.active) {
-						if (block.elseOption) {
-							return {
-								block,
-								branch: block.elseOption,
-							};
-						}
-						return;
-					}
-
-					return {
-						block,
-						branch: block.ifDef,
-					};
-				}),
-				...ifBlocks.flatMap((block) => {
-					const active = block.ifBlocks.find((i) => i.active);
-					const results: {
-						block: IfElIfBlock;
-						branch: CIf | CElse;
-					}[] = block.ifBlocks
-						.filter((v) => v.active)
-						.map((branch) => ({
-							block,
-							branch,
-						}));
-					if (!active && block.elseOption) {
-						results.push({
-							block,
-							branch: block.elseOption,
-						});
-					}
-
-					return results;
-				}),
-			]
-				.filter((v) => !!v)
-				.flatMap(async (meta) => {
-					const rangeToClean = meta.block
-						.getInValidTokenRangeWhenActiveBlock(
-							meta.branch,
-							rawTokens,
-						)
-						.reverse();
-
-					const newTokenStream = [...rawTokens];
-					rangeToClean.forEach((r) => {
-						newTokenStream.splice(r.start, r.end - r.start + 1);
-					});
-					const range = meta.block.range;
-					return formatText(
-						{ ...documentFormattingParams, range },
-						text,
-						'File Diagnostics',
-						options,
-						newTokenStream,
-						prevIfBlocks,
-					);
-				}),
-		)
-	).flat();
 
 	const wordWrapColumn =
 		typeof documentFormattingParams.options.wordWrapColumn === 'number'
@@ -369,6 +300,93 @@ export async function formatText(
 
 	return diagnostic;
 }
+
+const getDisabledMarcoRangeEdits = async (
+	documentFormattingParams:
+		| DocumentFormattingParams
+		| DocumentRangeFormattingParams,
+	parser: Parser,
+	prevIfBlocks: (IfDefineBlock | IfElIfBlock)[],
+	rawTokens: Token[],
+	text: string,
+	options: FormattingFlags,
+) => {
+	const ifDefBlocks = parser.cPreprocessorParser.allAstItems.filter(
+		(ast) => ast instanceof IfDefineBlock,
+	);
+	const ifBlocks = parser.cPreprocessorParser.allAstItems.filter(
+		(ast) => ast instanceof IfElIfBlock,
+	);
+
+	prevIfBlocks.push(...ifDefBlocks);
+	prevIfBlocks.push(...ifBlocks);
+
+	return (
+		await Promise.all(
+			[
+				...ifDefBlocks.map((block) => {
+					if (block.ifDef.active) {
+						if (block.elseOption) {
+							return {
+								block,
+								branch: block.elseOption,
+							};
+						}
+						return;
+					}
+
+					return {
+						block,
+						branch: block.ifDef,
+					};
+				}),
+				...ifBlocks.flatMap((block) => {
+					const active = block.ifBlocks.find((i) => i.active);
+					const results: {
+						block: IfElIfBlock;
+						branch: CIf | CElse;
+					}[] = block.ifBlocks
+						.filter((v) => v.active)
+						.map((branch) => ({
+							block,
+							branch,
+						}));
+					if (!active && block.elseOption) {
+						results.push({
+							block,
+							branch: block.elseOption,
+						});
+					}
+
+					return results;
+				}),
+			]
+				.filter((v) => !!v)
+				.flatMap(async (meta) => {
+					const rangeToClean = meta.block
+						.getInValidTokenRangeWhenActiveBlock(
+							meta.branch,
+							rawTokens,
+						)
+						.reverse();
+
+					const newTokenStream = [...rawTokens];
+					rangeToClean.forEach((r) => {
+						newTokenStream.splice(r.start, r.end - r.start + 1);
+					});
+					const range = meta.block.range;
+					return formatText(
+						{ ...documentFormattingParams, range },
+						text,
+						'File Diagnostics',
+						options,
+						newTokenStream,
+						prevIfBlocks,
+					);
+				}),
+		)
+	).flat();
+};
 
 const filterOnOffEdits = (
 	formatOnOffMeta: Range[],
@@ -1555,20 +1573,10 @@ const formatDtcProperty = (
 ): FileDiagnostic[] => {
 	const result: FileDiagnostic[] = [];
 
-	const parentNode =
-		property.parentNode instanceof DtcBaseNode
-			? property.parentNode
-			: undefined;
-	const indexInParent = parentNode?.children.indexOf(property) ?? -1;
-	const forceNewLines =
-		indexInParent === 0 &&
-		parentNode?.openScope === property.firstToken.prevToken;
-	const topSibling =
-		indexInParent > 0 && parentNode?.children[indexInParent - 1];
-	const isTopSiblingANode =
-		topSibling instanceof DtcBaseNode &&
-		property.firstToken.prevToken ===
-			(topSibling.endComment ?? topSibling).lastToken;
+	const { force, newLines } = getPropertyExpectedNumberOfNewLines(
+		property,
+		property.firstToken,
+	);
 
 	result.push(
 		...ensureOnNewLineAndMax1EmptyLineToPrev(
@@ -1577,8 +1585,8 @@ const formatDtcProperty = (
 			settings.singleIndent,
 			documentText,
 			undefined,
-			isTopSiblingANode ? 2 : indexInParent === 0 ? 1 : undefined,
-			isTopSiblingANode || forceNewLines,
+			newLines,
+			force,
 		),
 	);
 
@@ -1868,6 +1876,42 @@ const getNodeExpectedNumberOfNewLines = (
 	return token.prevToken?.value === '{' || isFirstInIfDefBlock ? 1 : 2;
 };
 
+const getPropertyExpectedNumberOfNewLines = (
+	property: DtcProperty,
+	token: Token,
+) => {
+	const parentNode =
+		property.parentNode instanceof DtcBaseNode
+			? property.parentNode
+			: undefined;
+	const indexInParent = parentNode?.children.indexOf(property) ?? -1;
+
+	if (indexInParent === 0 && parentNode?.openScope === token.prevToken) {
+		return {
+			newLines: 1,
+			force: true,
+		};
+	}
+
+	const topSibling =
+		indexInParent > 0 && parentNode?.children[indexInParent - 1];
+	const isTopSiblingANode =
+		topSibling instanceof DtcBaseNode &&
+		property.firstToken.prevToken ===
+			(topSibling.endComment ?? topSibling).lastToken;
+	if (isTopSiblingANode) {
+		return {
+			newLines: 2,
+			force: true,
+		};
+	}
+
+	return {
+		newLines: undefined,
+		force: undefined,
+	};
+};
+
 const formatBlockCommentLine = (
 	commentItem: Comment,
 	commentBlock: CommentBlock,
@@ -1914,6 +1958,18 @@ const formatBlockCommentLine = (
 			commentBlock.firstToken,
 			ifDefBlocks,
 		);
+	} else if (
+		lineType === 'first' &&
+		!commentBlock.astBeforeComment &&
+		commentBlock.astAfterComment instanceof DtcProperty
+	) {
+		const { force, newLines } = getPropertyExpectedNumberOfNewLines(
+			commentBlock.astAfterComment,
+			commentBlock.firstToken,
+		);
+
+		forceNumberOfLines = force;
+		expectedNumberOfLines = newLines;
 	}
 
 	const result: FileDiagnostic[] = [];
