@@ -20,6 +20,12 @@
 	"keywords": [
 		"dts",
 		"devicetree",
+		"dtsi",
+		"device tree",
+		"embedded",
+		"linux",
+		"kernel",
+		"syntax highlighting",
 		"lsp",
 		"formatting"
 	],
