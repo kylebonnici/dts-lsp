@@ -474,22 +474,26 @@ async function formatAstBaseItems(
 		)),
 	);
 
+	const rangeEdits = filterOnOffEdits(
+		formatOnOffMeta,
+		documentFormattingParams,
+		edits,
+	);
+
 	newText = applyEdits(
 		TextDocument.create(uri, 'devicetree', 0, text),
-		filterOnOffEdits(formatOnOffMeta, documentFormattingParams, edits)
-			.flatMap((i) => i.raw.edit)
-			.filter((e) => !!e),
+		rangeEdits.flatMap((i) => i.raw.edit).filter((e) => !!e),
 	);
 
 	switch (returnType) {
 		case 'New Text':
 			return newText;
 		case 'File Diagnostics':
-			return edits;
+			return rangeEdits;
 		case 'Both':
 			return {
 				text: newText,
-				diagnostic: edits,
+				diagnostic: rangeEdits,
 			};
 	}
 }
@@ -690,7 +694,6 @@ const removeTrailingWhitespace = (
 
 const removeNewLinesBetweenTokenAndPrev = (
 	token: Token,
-	documentText: string[],
 	expectedNewLines = 1,
 	forceExpectedNewLines = false,
 	prevToken = token.prevToken,
@@ -710,15 +713,12 @@ const removeNewLinesBetweenTokenAndPrev = (
 				prevToken.pos.colEnd,
 			);
 			const end = Position.create(
-				token.pos.line - (expectedNewLines ? 1 : 0),
-				expectedNewLines
-					? documentText[token.pos.line - (expectedNewLines ? 1 : 0)]
-							.length
-					: token.pos.col,
+				token.pos.line,
+				expectedNewLines ? 0 : token.pos.col,
 			);
 			const edit = TextEdit.replace(
 				Range.create(start, end),
-				'\n'.repeat(expectedNewLines - (forceExpectedNewLines ? 1 : 0)),
+				'\n'.repeat(expectedNewLines),
 			);
 			return genFormattingDiagnostic(
 				FormattingIssues.INCORRECT_WHITE_SPACE,
@@ -838,7 +838,6 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
 		}
 		const removeNewLinesEdit = removeNewLinesBetweenTokenAndPrev(
 			token.nextToken,
-			documentText,
 			0,
 		);
 		if (!removeNewLinesEdit) {
@@ -967,9 +966,11 @@ const formatDtcNode = async (
 ): Promise<FileDiagnostic[]> => {
 	const result: FileDiagnostic[] = [];
 
-	const doNotForceNewLines = ifDefBlocks.some(
-		(b) => b.endIf?.lastToken.nextToken === node.firstToken,
-	);
+	const expectedNumberOfLines =
+		node.topComment ||
+		(node.firstToken.prevToken?.value === '{' && !node.topComment)
+			? 1
+			: getNodeExpectedNumberOfNewLines(node.firstToken, ifDefBlocks);
 
 	result.push(
 		...ensureOnNewLineAndMax1EmptyLineToPrev(
@@ -978,38 +979,8 @@ const formatDtcNode = async (
 			indentString,
 			documentText,
 			undefined,
-			doNotForceNewLines
-				? undefined
-				: (node.firstToken.prevToken?.value === '{' &&
-							!node.topComment) ||
-					  ifDefBlocks
-							.flatMap((block) => {
-								if (block instanceof IfDefineBlock) {
-									return [
-										block.ifDef,
-										...(block.elseOption
-											? [block.elseOption]
-											: []),
-									];
-								}
-
-								return [
-									...block.ifBlocks,
-									...(block.elseOption
-										? [block.elseOption]
-										: []),
-								];
-							})
-							.some(
-								(block) =>
-									block.content?.firstToken ===
-									node.firstToken,
-							)
-					? 1
-					: node.topComment
-						? 1
-						: 2,
-			!doNotForceNewLines,
+			expectedNumberOfLines,
+			true,
 		),
 	);
 
@@ -1149,7 +1120,6 @@ const formatLabeledValue = <T extends ASTBase>(
 		) {
 			const edit = removeNewLinesBetweenTokenAndPrev(
 				value.firstToken,
-				documentText,
 				1,
 				true,
 			);
@@ -1540,7 +1510,6 @@ const formatPropertyValues = (
 				} else {
 					const edit = removeNewLinesBetweenTokenAndPrev(
 						value.firstToken,
-						documentText,
 						1,
 						true,
 					);
@@ -1682,7 +1651,6 @@ const ensureOnNewLineAndMax1EmptyLineToPrev = (
 	} else {
 		const edit = removeNewLinesBetweenTokenAndPrev(
 			token,
-			documentText,
 			expectedNewLines,
 			forceExpectedNewLines,
 		);
@@ -1878,6 +1846,28 @@ const getPropertyIndentPrefix = (
 	return `${witdhPrifix}${prifix.trimStart()}`; // +3 ' = ' or + 4 ' = <'
 };
 
+const getNodeExpectedNumberOfNewLines = (
+	token: Token,
+	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
+) => {
+	const isFirstInIfDefBlock = ifDefBlocks
+		.flatMap((block) => {
+			if (block instanceof IfDefineBlock) {
+				return [
+					block.ifDef,
+					...(block.elseOption ? [block.elseOption] : []),
+				];
+			}
+
+			return [
+				...block.ifBlocks,
+				...(block.elseOption ? [block.elseOption] : []),
+			];
+		})
+		.some((block) => block.content?.firstToken === token);
+	return token.prevToken?.value === '{' || isFirstInIfDefBlock ? 1 : 2;
+};
+
 const formatBlockCommentLine = (
 	commentItem: Comment,
 	commentBlock: CommentBlock,
@@ -1920,32 +1910,10 @@ const formatBlockCommentLine = (
 		commentBlock.astAfterComment instanceof DtcBaseNode
 	) {
 		forceNumberOfLines = true;
-		const isFirstInIfDefBlock = ifDefBlocks
-			.flatMap((block) => {
-				if (block instanceof IfDefineBlock) {
-					return [
-						block.ifDef,
-						...(block.elseOption ? [block.elseOption] : []),
-					];
-				}
-
-				return [
-					...block.ifBlocks,
-					...(block.elseOption ? [block.elseOption] : []),
-				];
-			})
-			.some(
-				(block) =>
-					block.content?.firstToken === commentBlock.firstToken,
-			);
-		expectedNumberOfLines =
-			commentBlock.firstToken.prevToken?.value === '{' ||
-			isFirstInIfDefBlock ||
-			ifDefBlocks.some(
-				(b) => b.lastToken.nextToken === commentBlock.firstToken,
-			)
-				? 1
-				: 2;
+		expectedNumberOfLines = getNodeExpectedNumberOfNewLines(
+			commentBlock.firstToken,
+			ifDefBlocks,
+		);
 	}
 
 	const result: FileDiagnostic[] = [];
@@ -2010,6 +1978,7 @@ const formatBlockCommentLine = (
 
 const formatComment = (
 	commentItem: Comment,
+	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
 	levelMeta: LevelMeta | undefined,
 	indentString: string,
 	documentText: string[],
@@ -2038,8 +2007,10 @@ const formatComment = (
 		commentItem.astAfterComment instanceof DtcBaseNode
 	) {
 		forceNumberOfLines = true;
-		expectedNumberOfLines =
-			commentItem.firstToken.prevToken?.value === '{' ? 1 : 2;
+		expectedNumberOfLines = getNodeExpectedNumberOfNewLines(
+			commentItem.firstToken,
+			ifDefBlocks,
+		);
 	}
 
 	return ensureOnNewLineAndMax1EmptyLineToPrev(
@@ -2107,6 +2078,7 @@ const getTextEdit = async (
 	} else if (astNode instanceof Comment && !astNode.disabled) {
 		return formatComment(
 			astNode,
+			ifDefBlocks,
 			await computeLevel(astNode),
 			singleIndent,
 			documentText,

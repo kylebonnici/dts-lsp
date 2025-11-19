@@ -458,10 +458,10 @@ describe('Document formating', () => {
 
 		test('Comment not linked inside a if def', async () => {
 			const documentText =
-				'/ {\n#ifdef ABC\n/* foo; */\n#endif\n\tnode1 {};\n};';
+				'/ {\n#ifdef ABC\n/* foo; */\n#endif\n\n\tnode1 {};\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n#ifdef ABC\n\t/* foo; */\n#endif\n\tnode1 {};\n};',
+				'/ {\n#ifdef ABC\n\t/* foo; */\n#endif\n\n\tnode1 {};\n};',
 			);
 		});
 
@@ -470,7 +470,7 @@ describe('Document formating', () => {
 				'/ {\n#ifdef ABC\nnode {\n/* foo; */ };\n#endif\n\tnode1 {};\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n#ifdef ABC\n\tnode {\n\t\t/* foo; */\n\t};\n#endif\n\tnode1 {};\n};',
+				'/ {\n#ifdef ABC\n\tnode {\n\t\t/* foo; */\n\t};\n#endif\n\n\tnode1 {};\n};',
 			);
 		});
 	});
@@ -1520,7 +1520,7 @@ describe('Document formating', () => {
 				'/ {\n#ifdef ABC\nnode {};node {};\n#else\nnode {};prop;node {};\n#endif\n\tnode1 {};\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n#ifdef ABC\n\tnode {};\n\n\tnode {};\n#else\n\tnode {};\n\n\tprop;\n\n\tnode {};\n#endif\n\tnode1 {};\n};',
+				'/ {\n#ifdef ABC\n\tnode {};\n\n\tnode {};\n#else\n\tnode {};\n\n\tprop;\n\n\tnode {};\n#endif\n\n\tnode1 {};\n};',
 			);
 		});
 	});
