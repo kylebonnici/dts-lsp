@@ -658,8 +658,12 @@ const addToNodeType = (
 		p.getNameMatch(name),
 	);
 	if (existingProperty && typeof existingProperty.name === 'string') {
-		existingProperty.required = () =>
-			property.required ? 'required' : 'optional';
+		if (existingProperty.name !== 'reg') {
+			existingProperty.required = () =>
+				property.required ? 'required' : 'optional';
+		} else if (property.required) {
+			existingProperty.required = () => 'required';
+		}
 		existingProperty.values = () => property.enum ?? [];
 		existingProperty.constValue = ZephyrDefaultTypeDefault(
 			property.type,
