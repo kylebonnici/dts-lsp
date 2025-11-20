@@ -7,18 +7,29 @@ This LSP is intended to be used with DTS Devicetree Specification Release v0.4 (
 ## Table of Contents
 
 - [Features](#features)
-    - [Semantic Tokens](#semantic-tokens)
-    - [Document Symbols](#document-symbols)
-    - [Workspace Symbols](#workspace-symbols)
-    - [Diagnostics](#diagnostics)
     - [Formatting](#formatting)
-    - [Completions](#completions)
+        - [Semantic Tokens](#semantic-tokens)
+        - [Document Symbols](#document-symbols)
+        - [Workspace Symbols](#workspace-symbols)
+        - [Diagnostics](#diagnostics)
+        - [Completions](#completions)
+        - [Code Actions](#code-actions)
+        - [Go to Definition](#go-to-definition)
+        - [Go to Declarations](#go-to-declarations)
+        - [Go to References](#go-to-references---find-all-references)
+        - [Hover](#hover)
 - [Usage](#usage)
     - [Zephyr](#zephyr-configuration-example)
     - [Linux](#linux)
     - [Devicetree-Org](#with-devicetree-org-bindings)
 
 ## Features
+
+### Formatting
+
+This LSP follows the [Zephyr Style Guide](https://docs.zephyrproject.org/latest/contribute/style/devicetree.html) and is used in CI to validate all files upstream.
+
+![alt text](docs/Formatting.gif)
 
 ### Semantic Tokens
 
@@ -30,7 +41,7 @@ Every element in the document will have semantic tokens to help highlight and co
 
 Every element in the document will have document symbols to help navigate the document in a tree format.
 
-![Semantic Tokens](docs/DocumentSymbols.png)
+![Semantic Tokens](docs/DocumentSymbols.gif)
 
 ### Workspace Symbols
 
@@ -88,12 +99,6 @@ You can also navigate the active context using workspace symbols.
 
 ![Bus Type Validation](docs/BusType.png)
 
-### Formatting
-
-This LSP follows the [Zephyr Style Guide](https://docs.zephyrproject.org/latest/contribute/style/devicetree.html) and is used in CI to validate all files upstream.
-
-![alt text](docs/Formatting.gif)
-
 ### Completions
 
 Completions are context aware of the document state on the line the action is requested.
@@ -131,28 +136,32 @@ Completions are context aware of the document state on the line the action is re
     - Between node name, '@' and address
     - In node path reference
 - Removes ';' when used without any statement
-- Suggests solutions for incomplete /delete-node/ keywords
-- Suggests solutions for incomplete /delete-property/ keywords
 - Supports SourceFixAll/QuickFixes
 
-### Find Definition
+### Go to Definition
 
 - On node name/label reference; will list all the places where the node is altered. /delete-node/ cases are not listed.
 - On property name; will list all the places where the property is assigned a value. Note: defining a property name with no assign (empty) is equal to assigning a truthful value and hence it will also be shown.
 
+![Go to Definition](docs/GoToDefinition.gif)
+
 NOTE: If for example a node with name node1 has been created, then deleted, and then created again, depending on where the definition call is made in the file, in one case one will get the definition from before the delete keyword, and in the other case the definition from under the delete keyword.
 
-### Find Declarations
+### Go to Declarations
 
 - On node name/label reference; will list the first places where the node is created.
 - On property name; will list the first places where the property is assigned a value for the first time. Note: defining a property name with no assign (empty) is equal to assigning a truthful value and hence it will also be shown.
 
+![Go to Declarations](docs/GoToDeclarations.gif)
+
 NOTE: The declarations will stop at the definition, hence, if for example a node with name node1 has been created, then deleted, and then created again, depending on where the declarations call is made in the file, in one case one will get the declarations from before the delete keyword up to the delete keyword, and in the other case from the delete keyword (excluded) onwards.
 
-### Find References
+### Go to References - Find All References
 
 - On node name/label reference; will list all the places where the node is used by name, label or in some path.
 - On property name; will list all the places where the property referred to including /delete-property/.
+
+![Go to References](docs/GoToDeclarations.gif)
 
 NOTE: The references will stop at the definition, hence, if for example a node with name node1 has been created, then deleted, and then created again, depending on where the reference call is made in the file, in one case one will get the ones from before the delete keyword up to the delete keyword, and in the other case from the delete keyword (excluded) onwards.
 
