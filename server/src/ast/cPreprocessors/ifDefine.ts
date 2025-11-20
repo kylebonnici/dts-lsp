@@ -132,6 +132,11 @@ export class IfDefineBlock extends ASTBase {
 		}
 
 		const useMainBlock = this.ifDef.useBlock(macrosResolvers);
+		if (useMainBlock) {
+			this.ifDef.active = true;
+		} else if (this.elseOption) {
+			this.elseOption.active = true;
+		}
 		return this.getInValidTokenRangeWhenActiveBlock(
 			useMainBlock ? this.ifDef : this.elseOption,
 			tokens,
@@ -155,12 +160,6 @@ export class IfDefineBlock extends ASTBase {
 		});
 
 		const useMainBlock = this.ifDef === activeBlock;
-		if (useMainBlock) {
-			this.ifDef.active = true;
-		} else {
-			if (this.elseOption) this.elseOption.active = true;
-		}
-
 		if (!useMainBlock && this.ifDef.content) {
 			invalidRange.push({
 				start: getIndex(this.ifDef.content.firstToken),
@@ -211,6 +210,12 @@ export class IfElIfBlock extends ASTBase {
 		tokens: Token[],
 	): { start: number; end: number }[] {
 		const activeIf = this.ifBlocks.find((b) => b.useBlock(macros));
+
+		if (activeIf) {
+			activeIf.active = true;
+		} else if (this.elseOption) {
+			this.elseOption.active = true;
+		}
 
 		return this.getInValidTokenRangeWhenActiveBlock(
 			activeIf ? activeIf : this.elseOption,
@@ -270,7 +275,6 @@ export class IfElIfBlock extends ASTBase {
 			});
 
 			if (!blockFound && ifBlock === activeBlock) {
-				ifBlock.active = true;
 				blockFound = true;
 			} else {
 				if (ifBlock.content) {
@@ -293,8 +297,6 @@ export class IfElIfBlock extends ASTBase {
 					start: getIndex(this.elseOption.content.firstToken),
 					end: getIndex(this.elseOption.content.lastToken),
 				});
-			} else {
-				this.elseOption.active = true;
 			}
 		}
 
