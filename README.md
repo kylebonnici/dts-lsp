@@ -161,7 +161,7 @@ NOTE: The declarations will stop at the definition, hence, if for example a node
 - On node name/label reference; will list all the places where the node is used by name, label or in some path.
 - On property name; will list all the places where the property referred to including /delete-property/.
 
-![Go to References](docs/GoToDeclarations.gif)
+![Go to References](docs/GoToReferences.gif)
 
 NOTE: The references will stop at the definition, hence, if for example a node with name node1 has been created, then deleted, and then created again, depending on where the reference call is made in the file, in one case one will get the ones from before the delete keyword up to the delete keyword, and in the other case from the delete keyword (excluded) onwards.
 
