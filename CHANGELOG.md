@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fixed an issue where Formatter would add an unncessary new line above nodes when these are
   just after some `#IF` or `#IFDEF` etc...
 - Fixed a server crash when there is no code between an #else...#endif
+- Fixed code completion not showing inside macro blocks such as #ifdef...#endif
 
 ## [0.6.7] - 2025-11-04
 

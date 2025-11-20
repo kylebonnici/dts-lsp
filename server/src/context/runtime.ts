@@ -65,7 +65,6 @@ export class Runtime implements Searchable {
 		if (cache) return cache;
 		// TODO consider a different way to operation this as this is costly
 		const result = [
-			...this.context.parser.cPreprocessorParser.allAstItems,
 			...this.roots,
 			...this.references,
 			...this.unlinkedDeletes,
@@ -75,6 +74,7 @@ export class Runtime implements Searchable {
 				...op.cPreprocessorParser.allAstItems,
 				...op.unhandledStatements.children,
 			]),
+			...this.context.parser.cPreprocessorParser.allAstItems,
 			...this.context.parser.unhandledStatements.children,
 		].flatMap((c) => c.getTopMostAstNodeForFile(file));
 
