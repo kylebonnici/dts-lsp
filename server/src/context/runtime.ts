@@ -216,7 +216,7 @@ export class Runtime implements Searchable {
 				);
 
 				if (!allSameOwner || !firstLabeledNode) {
-					const label = otherOwners[0].label;
+					const label = otherOwners[otherOwners.length - 1].label;
 					issues.push(
 						genContextDiagnostic(
 							ContextIssues.LABEL_ALREADY_IN_USE,
@@ -225,7 +225,7 @@ export class Runtime implements Searchable {
 							label,
 							{
 								linkedTo: otherOwners
-									.slice(1)
+									.slice(0, -1)
 									.map((o) => o.label),
 								templateStrings: [
 									otherOwners.at(0)!.label.label.value,

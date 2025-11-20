@@ -278,11 +278,11 @@ describe('Context Issues', () => {
 		expect(issues[0].raw.issues).toEqual([
 			ContextIssues.LABEL_ALREADY_IN_USE,
 		]);
-		expect(issues[0].raw.range.start.character).toEqual(2);
-		expect(issues[0].raw.range.end.character).toEqual(5);
+		expect(issues[0].raw.range.start.character).toEqual(15);
+		expect(issues[0].raw.range.end.character).toEqual(18);
 
-		expect(issues[0].raw.linkedTo[0].range.start.character).toEqual(15);
-		expect(issues[0].raw.linkedTo[0].range.end.character).toEqual(18);
+		expect(issues[0].raw.linkedTo[0].range.start.character).toEqual(2);
+		expect(issues[0].raw.linkedTo[0].range.end.character).toEqual(5);
 	});
 
 	test('Delete non existing node', async () => {
