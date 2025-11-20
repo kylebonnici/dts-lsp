@@ -1,8 +1,21 @@
-![Build Status](https://github.com/kylebonnici/dts-lsp/actions/workflows/node.js.yml/badge.svg)
+![Build Status](https://github.com/kylebonnici/dts-lsp/actions/workflows/build-test.yml/badge.svg)
 
 # DTS Language Server
 
 This LSP is intended to be used with DTS Devicetree Specification Release v0.4 (https://devicetree.org)
+
+## Table of Contents
+
+- [Usage](#usage)
+    - [Zephyr](#zephyr-configuration-example)
+    - [Linux](#linux)
+    - [Devicetree-Org](#with-devicetree-org-bindings)
+- [Features](#features)
+    - [Semantic Tokens](#semantic-tokens)
+    - [Document Symbols](#document-symbols)
+    - [Workspace Symbols](#workspace-symbols)
+    - [Diagnostics](#diagnostics)
+    - [Formatting](#formatting)
 
 ## Usage
 
@@ -40,7 +53,7 @@ interface Settings {
 }
 ```
 
-Sample configuration in VSCode `settings.json`
+### Zephyr configuration example
 
 ```json
 {
@@ -70,13 +83,7 @@ Sample configuration in VSCode `settings.json`
 				"./zephyr/dts/common",
 				"./zephyr/dts/vendor",
 				"./zephyr/include",
-				"./zephyr/dts/xtensa",
-				"./nrf/dts",
-				"./nrf/dts/arm",
-				"./nrf/dts/arm64/",
-				"./nrf/dts/riscv",
-				"./nrf/dts/common",
-				"./nrf/dts/vendor"
+				"./zephyr/dts/xtensa"
 			],
 			"dtsFile": "./zephyr/boards/nordic/nrf52840dk/nrf52840dk_nrf52840.dts",
 			"overlays": ["/User/project/myOverlay.overlay"]
@@ -85,7 +92,19 @@ Sample configuration in VSCode `settings.json`
 }
 ```
 
-## Using Devicetree-Org bindings example VSCode settings
+### Linux
+
+```json
+{
+	"devicetree.cwd": "/Users/user/Workspace/linux/",
+	"devicetree.defaultIncludePaths": ["include"],
+	"devicetree.defaultBindingType": "DevicetreeOrg",
+	"devicetree.defaultDeviceOrgBindingsMetaSchema": [],
+	"devicetree.defaultDeviceOrgTreeBindings": []
+}
+```
+
+#### With Devicetree-Org Bindings
 
 ```json
 {
@@ -102,49 +121,60 @@ Sample configuration in VSCode `settings.json`
 }
 ```
 
-## Functionality
+#### Note
 
-Follows Devicetree Specification Release v0.4
+Devicetree-Org bindings are experimental.
+
+## Features
 
 ### Semantic Tokens
 
 Every element in the document will have semantic tokens to help highlight and color code the items.
 
+![Semantic Tokens](docs/DocumentSymbols.png)
+
 ### Document Symbols
 
 Every element in the document will have document symbols to help navigate the document in a tree format.
 
+![Document Symbols](docs/SemanticTokens.png)
+
+### Workspace Symbols
+
+You can also navigate the active context using workspace symbols.
+
+![Workspace Symbols](docs/WorkspaceSymbols.png)
+
 ### Diagnostics
 
-#### Syntax
-
-- Reports when property has been redefined and provides document link to where it has been redefined
-- Reports when node has been deleted and provides document link to where it has been redefined
+- Reports generic syntax issues such as missing "," , "}" , ">" etc...
+  ![Generic Syntax.png](docs/GenericSyntax.png)
+- Reports when property has been replaced by a later definition and provides document link to where it has been redefined
+  ![Property Replaced](docs/PropertyReplaced.png)
+- Reports when node has been deleted and provides document link to where the delete was done
+  ![Node Delete](docs/NodeDelete.png)
 - Reports when property has been deleted and provides document link to where it has been redefined
-- Reports label reuse conflicts
-- Warns about duplicate node name in the same node
+  ![Property Deleted](docs/PropertyDeleted.png)
+- Reports label conflicts
+  ![Label Conflict](docs/LabelConflict.png)
+- Duplicate node name in the same node
+  ![Duplicate Node Name](docs/DuplicateNodeName.png)
 - Reports when deleting a node/property that does not exist
-- Reports generic syntax issues such as missing "," , "}" , "<" , ">" etc...
-- Reports missing values for properties
-- Reports basic CPreprocessor issues such as missing macro name
+  ![Invalid Delete](docs/InvalidDelete.png)
+- Reports CPreprocessor issues such as missing macro, invalid argument count etc.
+  ![Macro Issues](docs/MacroIssues.png)
+- Compares the node address and ensures that it matches the reg property, and that the reg values use the appropriate number of values as defined `#address-cells`
+  ![Node Address Mismatch](docs/NodeAddressMismatch.png)
+- Reports property type mismatch errors
+  ![Wrong Property Type](docs/PropertyType.png)
+- Reports prop-encoded-values errors when these need to follow some expected pattern e.g interrupts/nexus
+  ![Missing Flag Value](docs/PHandelArray.png)
 
-#### Types
+### Formatting
 
-- Supports standard types as defined in chapter 2 of Devicetree Specification Release v0.4
-    - Reports property type mismatch errors
-    - Reports prop-encoded-values errors when these need to follow some pattern e.g interrupts
-    - Compares the node address and ensures that it matches the reg property, and that the reg values use the appropriate number of values as defined by other properties
-    - And more... (See Chapter 2 of Devicetree Specification Release v0.4 https://devicetree.org)
+This LSP follows the [Zephyr Style Guide](https://docs.zephyrproject.org/latest/contribute/style/devicetree.html) and is used in CI to validate all files upstream.
 
-### Document Formatting
-
-- Fixes indentation
-- Fixes spacing between label names on assign
-- Fixes spacing between node name and '{'
-- Ensures new line between node/property/keywords. If there is one additional line this is kept; any additional lines are cleaned up.
-- Ensures that composite values have single space between ',' and next value
-- Ensures that Bytestring/prop-encoded-array values have single space between each value
-- Ensures that no space exists between ';' and end of statement
+![alt text](docs/Formatting.gif)
 
 ### Completions
 
@@ -209,11 +239,3 @@ Refactoring is possible on the following elements:
 - Property names
 
 Given that in some cases the files included in a devicetree might come from an SDK which should not be edited, one can configure "lockRenameEdits" in the settings to lock refactoring from being permitted on any elements which would otherwise effect edits to the files listed in "lockRenameEdits".
-
-### Road Map
-
-- Formatting
-    - Clean up trailing white spaces
-- Implement syntax for Ternary operator
-- Write more unit tests
-- Let me know what you should be added or changed

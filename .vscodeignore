@@ -20,3 +20,4 @@ dts-lsp-types
 vscode-dts-lsp-types
 eslint.config.mjs
 tsconfig.types.tsbuildinfo
+docs
