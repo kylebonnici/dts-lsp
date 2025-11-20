@@ -98,7 +98,7 @@ export class IfDefineBlock extends ASTBase {
 		if (this.ifDef.active && this.elseOption) {
 			const start = this.elseOption.firstToken;
 			const end =
-				this.elseOption.content?.firstToken ??
+				this.elseOption.content?.lastToken ??
 				this.endIf?.firstToken ??
 				this.lastToken;
 			return [Range.create(toPosition(start), toPosition(end))];
