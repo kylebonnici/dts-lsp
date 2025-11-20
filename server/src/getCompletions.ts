@@ -304,6 +304,7 @@ function getDeleteNodeNameItems(
 		return [
 			{
 				label: '/delete-node/',
+				insertText: `/delete-node/ $1;`,
 				kind: CompletionItemKind.Keyword,
 				insertTextFormat: InsertTextFormat.Snippet,
 				sortText: '~',
@@ -357,7 +358,7 @@ function getDeletePropertyItems(
 		return [
 			{
 				label: '/delete-property/',
-				insertText: `/delete-property/$1;`,
+				insertText: `/delete-property/ $1;`,
 				kind: CompletionItemKind.Keyword,
 				sortText: '~',
 				insertTextFormat: InsertTextFormat.Snippet,
