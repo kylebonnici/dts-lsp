@@ -28,7 +28,7 @@ export function getAliasesNodeType() {
 	const nodeType = new NodeType((_, node) => {
 		const issues: FileDiagnostic[] = [];
 		if (node.parent?.name !== '/') {
-			const definition = node.implimentations[0];
+			const definition = node.implementations[0];
 			issues.push(
 				genStandardTypeDiagnostic(
 					StandardTypeIssue.NODE_LOCATION,
@@ -36,7 +36,7 @@ export function getAliasesNodeType() {
 					definition.lastToken,
 					definition,
 					{
-						linkedTo: node.implimentations.slice(1),
+						linkedTo: node.implementations.slice(1),
 						templateStrings: [
 							'Aliases node can only be added to a root node',
 						],
@@ -46,7 +46,7 @@ export function getAliasesNodeType() {
 		}
 
 		node.nodes.forEach((n) => {
-			n.implimentations.forEach((ast) => {
+			n.implementations.forEach((ast) => {
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.NODE_LOCATION,

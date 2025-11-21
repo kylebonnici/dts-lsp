@@ -518,7 +518,7 @@ export class NodeType extends INodeType {
 
 		if (node.disabled) {
 			const statusProperty = node.getProperty('status');
-			node.implimentations.forEach((n) =>
+			node.implementations.forEach((n) =>
 				issue.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.NODE_DISABLED,
