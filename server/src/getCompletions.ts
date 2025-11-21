@@ -219,6 +219,10 @@ function getDeleteNodeRefItems(
 					kind: CompletionItemKind.Keyword,
 					insertTextFormat: InsertTextFormat.Snippet,
 					sortText: '~',
+					command: {
+						command: 'editor.action.triggerSuggest',
+						title: 'Re-trigger suggestions',
+					},
 				},
 			];
 		}
@@ -231,6 +235,10 @@ function getDeleteNodeRefItems(
 					kind: CompletionItemKind.Keyword,
 					insertTextFormat: InsertTextFormat.Snippet,
 					sortText: '~',
+					command: {
+						command: 'editor.action.triggerSuggest',
+						title: 'Re-trigger suggestions',
+					},
 				},
 			];
 		}
@@ -308,6 +316,10 @@ function getDeleteNodeNameItems(
 				kind: CompletionItemKind.Keyword,
 				insertTextFormat: InsertTextFormat.Snippet,
 				sortText: '~',
+				command: {
+					command: 'editor.action.triggerSuggest',
+					title: 'Re-trigger suggestions',
+				},
 			},
 		];
 	}
@@ -362,6 +374,10 @@ function getDeletePropertyItems(
 				kind: CompletionItemKind.Keyword,
 				sortText: '~',
 				insertTextFormat: InsertTextFormat.Snippet,
+				command: {
+					command: 'editor.action.triggerSuggest',
+					title: 'Re-trigger suggestions',
+				},
 			},
 		];
 	}
