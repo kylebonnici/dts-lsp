@@ -98,7 +98,7 @@ export type InterruptMapping = Omit<Mapping, 'specifierSpace'> &
 	Partial<Pick<Mapping, 'specifierSpace'>>;
 
 export class Node {
-	public implimentations: (DtcChildNode | DtcRootNode | DtcRefNode)[] = [];
+	public implementations: (DtcChildNode | DtcRootNode | DtcRefNode)[] = [];
 	private _properties: Property[] = [];
 	private _deletedProperties: { property: Property; by: DeleteProperty }[] =
 		[];
@@ -113,7 +113,7 @@ export class Node {
 	private _nodeTypes: INodeType[] | undefined;
 
 	get definitions(): (DtcChildNode | DtcRootNode)[] {
-		return this.implimentations.filter(
+		return this.implementations.filter(
 			(i) => i instanceof DtcChildNode || i instanceof DtcRootNode,
 		);
 	}
@@ -183,7 +183,7 @@ export class Node {
 	}
 
 	public getReferenceBy(node: DtcRefNode): Node | undefined {
-		const referancesImp = this.implimentations.filter(
+		const referancesImp = this.implementations.filter(
 			(i) => i instanceof DtcRefNode,
 		);
 		if (referancesImp.some((n) => n === node)) {
@@ -196,14 +196,14 @@ export class Node {
 	}
 
 	get nodeNameOrLabelRef(): (NodeName | LabelRef)[] {
-		return getNodeNameOrNodeLabelRef(this.implimentations);
+		return getNodeNameOrNodeLabelRef(this.implementations);
 	}
 
 	getDeepestAstNode(
 		file: string,
 		position: Position,
 	): Omit<SearchableResult, 'runtime'> | undefined {
-		const inNode = this.implimentations.find((i) =>
+		const inNode = this.implementations.find((i) =>
 			positionInBetween(i, file, position),
 		);
 
@@ -280,7 +280,7 @@ export class Node {
 	}
 
 	get labels(): LabelAssign[] {
-		return this.implimentations.flatMap((i) =>
+		return this.implementations.flatMap((i) =>
 			i instanceof DtcRootNode ? [] : i.labels,
 		);
 	}
@@ -358,7 +358,7 @@ export class Node {
 								reg.rangeTokens.start,
 								reg.rangeTokens.end,
 								node.properties.find((p) => p.name === 'reg')
-									?.ast ?? node.implimentations[0],
+									?.ast ?? node.implementations[0],
 								{
 									severity: DiagnosticSeverity.Information,
 									linkedTo: collidingNodes.map((n) => ({
@@ -431,10 +431,10 @@ export class Node {
 			...this.missingBinding,
 			...this.getOverlappingNodeAddressesIssues(macros),
 		];
-		if (this.name === '/' && this.implimentations.length) {
+		if (this.name === '/' && this.implementations.length) {
 			if (!this._nodes.some((n) => n.name === 'cpus')) {
 				const definition =
-					this.implimentations[this.implimentations.length - 1];
+					this.implementations[this.implementations.length - 1];
 				const item = definition.identifierAst ?? definition;
 				issues.push(
 					genContextDiagnostic(
@@ -444,7 +444,7 @@ export class Node {
 						item,
 						{
 							severity: DiagnosticSeverity.Error,
-							linkedTo: this.implimentations.slice(0, -1),
+							linkedTo: this.implementations.slice(0, -1),
 							templateStrings: ['/', 'cpus'],
 						},
 					),
@@ -503,7 +503,7 @@ export class Node {
 
 	get deletedNodesIssues(): FileDiagnostic[] {
 		return this._deletedNodes.flatMap((meta) => [
-			...meta.node.implimentations
+			...meta.node.implementations
 				.filter(
 					(i) => i instanceof DtcChildNode || i instanceof DtcRefNode,
 				)
@@ -1323,7 +1323,7 @@ export class Node {
 		cwd?: string,
 		level = 1,
 	): string {
-		const hasOmitIfNoRef = this.implimentations.some(
+		const hasOmitIfNoRef = this.implementations.some(
 			(d) => d instanceof DtcChildNode && d.omitIfNoRef,
 		);
 		const isOmitted =
@@ -1372,7 +1372,7 @@ ${'\t'.repeat(level - 1)}};`;
 		inScope: (ast: ASTBase) => boolean = () => true,
 	): SerializedNode {
 		const mappedRegs = this.mappedReg(macros);
-		const nodeAsts = this.implimentations.filter(inScope);
+		const nodeAsts = this.implementations.filter(inScope);
 		const nodeType = this.nodeType;
 		return {
 			nodeType:
@@ -1407,7 +1407,7 @@ ${'\t'.repeat(level - 1)}};`;
 				.map((p) => p.serialize(macros, inScope))
 				.filter((v) => !!v),
 			childNodes: this.nodes
-				.filter((n) => n.implimentations.some(inScope))
+				.filter((n) => n.implementations.some(inScope))
 				.map((n) => n.serialize(macros, inScope)),
 			reg: mappedRegs?.map((mappedReg) => ({
 				mappedStartAddress: mappedReg?.startAddress,

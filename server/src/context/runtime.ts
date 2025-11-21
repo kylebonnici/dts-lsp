@@ -65,7 +65,7 @@ export class Runtime implements Searchable {
 		if (cache) return cache;
 		// TODO consider a different way to operation this as this is costly
 		const result = [
-			...this.rootNode.implimentations,
+			...this.rootNode.implementations,
 			...this.references,
 			...this.unlinkedDeletes,
 			...this.unlinkedRefNodes,
@@ -273,6 +273,6 @@ export class Runtime implements Searchable {
 	}
 
 	getOrderedNodeAst(node: Node) {
-		return sortAstForScope(node.implimentations, this.context);
+		return sortAstForScope(node.implementations, this.context);
 	}
 }

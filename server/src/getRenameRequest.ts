@@ -128,7 +128,7 @@ function getNodeLabelRename(
 
 	const gentItem = (node: Node) => {
 		return [
-			...node.implimentations
+			...node.implementations
 				.filter(
 					(d) => d instanceof DtcChildNode || d instanceof DtcRefNode,
 				)

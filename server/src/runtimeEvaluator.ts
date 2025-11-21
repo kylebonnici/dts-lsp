@@ -638,7 +638,7 @@ export class ContextAware {
 	}
 
 	private processDtcRootNode(element: DtcRootNode, runtime: Runtime) {
-		runtime.rootNode.implimentations.push(element);
+		runtime.rootNode.implementations.push(element);
 		this.checkNodeUniqueNames(element, runtime.rootNode);
 		element.children.forEach((child) =>
 			this.processChild(child, runtime.rootNode, runtime),
@@ -666,7 +666,7 @@ export class ContextAware {
 					element.name.fullAddress,
 					runtimeNodeParent,
 				);
-			child.implimentations.push(element);
+			child.implementations.push(element);
 			element.labels.forEach((l) => (l.lastLinkedTo = child));
 
 			runtimeNodeParent = child;
@@ -707,7 +707,7 @@ export class ContextAware {
 			reference.linksTo = runtimeNode;
 			element.labels.forEach((l) => (l.lastLinkedTo = runtimeNode));
 			runtimeNode?.linkedRefLabels.push(reference);
-			runtimeNode?.implimentations.push(element);
+			runtimeNode?.implementations.push(element);
 
 			element.labels.forEach((label) => {
 				runtime.labelsUsedCache.set(label.label.value, resolvedPath);
@@ -744,7 +744,7 @@ export class ContextAware {
 			element.resolveNodePath ??= resolvedPath;
 			runtimeNode = runtime.rootNode.getChild(resolvedPath);
 			element.labels.forEach((l) => (l.lastLinkedTo = runtimeNode));
-			runtimeNode?.implimentations.push(element);
+			runtimeNode?.implementations.push(element);
 
 			element.labels.forEach((label) => {
 				runtime.labelsUsedCache.set(label.label.value, resolvedPath);
