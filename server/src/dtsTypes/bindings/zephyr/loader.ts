@@ -185,7 +185,7 @@ const resolveBinding = (
 			);
 			p.include = p.include.filter((i) => i !== c);
 			return (
-				mergeAintoB(
+				mergeAIntoB(
 					bindings,
 					toMergeIn,
 					p,
@@ -199,7 +199,7 @@ const resolveBinding = (
 	}, binding);
 
 	if (binding['child-binding']) {
-		binding['child-binding'].include = simplifiyInclude(
+		binding['child-binding'].include = simplifyInclude(
 			binding['child-binding'].include,
 		);
 		binding['child-binding'] = resolveBinding(
@@ -213,7 +213,7 @@ const resolveBinding = (
 	}
 };
 
-const mergeAintoB = (
+const mergeAIntoB = (
 	bindings: ZephyrBindingYml[],
 	a: ZephyrBindingYml,
 	b: ZephyrBindingYml,
@@ -250,7 +250,8 @@ const mergeAintoB = (
 			newProperties = {
 				...newProperties,
 				[name]: {
-					...(propertyFromA ?? propertyFromB),
+					...(propertyFromA ?? {}),
+					...propertyFromB,
 				},
 			};
 	});
@@ -287,7 +288,7 @@ const mergeAintoB = (
 
 	// merge children
 	if (resolvedA['child-binding']) {
-		mergeAintoB(
+		mergeAIntoB(
 			bindings,
 			resolvedA['child-binding'],
 			resolvedB['child-binding'] ?? {
@@ -301,7 +302,7 @@ const mergeAintoB = (
 	return resolvedB;
 };
 
-const simplifiyInclude = (
+const simplifyInclude = (
 	include:
 		| string
 		| (
@@ -495,7 +496,7 @@ export class ZephyrBindingsLoader {
 								const readData = yaml.parse(
 									readFileSync(bindingFile, 'utf-8'),
 								);
-								const simplifiyedInclude = simplifiyInclude(
+								const simplifiyedInclude = simplifyInclude(
 									readData?.include,
 								);
 								const obj = {

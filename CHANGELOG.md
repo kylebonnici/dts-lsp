@@ -33,6 +33,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fixed code completion not showing inside macro blocks such as #ifdef...#endif
 - Fixed an issue where no diagnostic was reported when node has an address and is linked
   to a Zephyr binding and reg is missing.
+- Fixed an issue with Zephyr bindings when a property is defined in multiple includes and the
+  properly was not merged correctly.
 
 ## [0.6.7] - 2025-11-04
 
