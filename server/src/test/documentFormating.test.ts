@@ -821,6 +821,68 @@ describe('Document formating', () => {
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual('/*\n * foo\n */');
 		});
+
+		test('nested macros with linked comments', async () => {
+			const documentText = `#define ABCD
+
+#ifdef ABCD
+/ {
+/* FOO */
+	node {
+			/* FOO */
+		node {};
+	};
+};
+#ifdef ABC
+/ {
+/* FOO */
+	node {
+			/* FOO */
+		node {};
+	};
+};
+#ifdef ABC
+/ {
+/* FOO */
+	node {
+			/* FOO */
+		node {};
+	};
+};
+#endif
+#endif
+#endif`;
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(`#define ABCD
+
+#ifdef ABCD
+/ {
+	/* FOO */
+	node {
+		/* FOO */
+		node {};
+	};
+};
+#ifdef ABC
+/ {
+	/* FOO */
+	node {
+		/* FOO */
+		node {};
+	};
+};
+#ifdef ABC
+/ {
+	/* FOO */
+	node {
+		/* FOO */
+		node {};
+	};
+};
+#endif
+#endif
+#endif`);
+		});
 	});
 
 	describe('Delete property', () => {

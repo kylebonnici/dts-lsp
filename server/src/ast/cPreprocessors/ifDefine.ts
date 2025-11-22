@@ -95,7 +95,7 @@ export class IfDefineBlock extends ASTBase {
 	}
 
 	get inactiveRanges() {
-		if (this.ifDef.active && this.elseOption) {
+		if (this.elseOption && !this.elseOption.active) {
 			const start = this.elseOption.firstToken;
 			const end =
 				this.elseOption.content?.lastToken ??
@@ -104,15 +104,22 @@ export class IfDefineBlock extends ASTBase {
 			return [Range.create(toPosition(start), toPosition(end))];
 		}
 
-		if (this.elseOption?.active) {
+		if (!this.ifDef.active) {
 			const start = this.ifDef.firstToken;
-			const end = this.ifDef.content?.lastToken ?? this.ifDef.lastToken;
-			return [Range.create(toPosition(start), toPosition(end))];
+			const end = this.ifDef.content
+				? this.ifDef.content?.lastToken
+				: this.elseOption
+					? this.elseOption.firstToken
+					: this.endIf?.lastToken;
+			return [
+				Range.create(
+					toPosition(start),
+					toPosition(end ?? this.ifDef.lastToken),
+				),
+			];
 		}
 
-		const start = this.firstToken;
-		const end = this.lastToken;
-		return [Range.create(toPosition(start), toPosition(end))];
+		return [];
 	}
 
 	getInValidTokenRange(
@@ -231,15 +238,15 @@ export class IfElIfBlock extends ASTBase {
 				return;
 			}
 
+			const lastIfBlock = i === this.ifBlocks.length - 1;
 			const start = block.firstToken;
-			const end =
-				i === this.ifBlocks.length - 1
-					? hasElse
-						? this.elseOption.firstToken
-						: this.lastToken
-					: (block.content?.lastToken ??
-						this.ifBlocks[i + 1].firstToken ??
-						block.lastToken);
+			const end = lastIfBlock
+				? hasElse
+					? this.elseOption.firstToken
+					: this.lastToken
+				: (block.content?.lastToken ??
+					this.ifBlocks[i + 1].firstToken ??
+					block.lastToken);
 			result.push(Range.create(toPosition(start), toPosition(end)));
 		});
 
