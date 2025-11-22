@@ -35,6 +35,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   to a Zephyr binding and reg is missing.
 - Fixed an issue with Zephyr bindings when a property is defined in multiple includes and the
   properly was not merged correctly.
+- Fixed an issue with `Go to Definitions` would provide the `Go to Declarations` result
+  on DT_MACROS
 
 ## [0.6.7] - 2025-11-04
 

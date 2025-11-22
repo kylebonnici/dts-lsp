@@ -21,9 +21,9 @@ import {
 } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import {
-	generateNodeDeclaration,
-	generatePropertyDeclaration,
-} from '../../findDeclarations';
+	generateDefinitionsFromNode,
+	generatePropertyDefinition,
+} from 'src/findDefinitions';
 import { ContextAware } from '../../runtimeEvaluator';
 import {
 	DTMacroInfo,
@@ -37,7 +37,7 @@ export async function getDefinitions(
 	location: TextDocumentPositionParams,
 	context: ContextAware,
 	document: TextDocument | undefined,
-): Promise<Location | undefined> {
+): Promise<Location[] | undefined> {
 	if (!document) return;
 	const macro = getMacroAtPosition(document, location.position);
 	return getDefinitionsFrom(macro, location.position, context, document);
@@ -48,7 +48,7 @@ async function getDefinitionsFrom(
 	position: Position,
 	context: ContextAware,
 	document: TextDocument,
-): Promise<Location | undefined> {
+): Promise<Location[] | undefined> {
 	if (!macro?.macro) {
 		return;
 	}
@@ -56,7 +56,7 @@ async function getDefinitionsFrom(
 	const node = await dtMacroToNode({ document, macro, context, position });
 
 	if (node) {
-		return generateNodeDeclaration(node);
+		return generateDefinitionsFromNode(node);
 	}
 
 	const property = await dtMacroToProperty({
@@ -67,7 +67,7 @@ async function getDefinitionsFrom(
 	});
 
 	if (property) {
-		return generatePropertyDeclaration(property);
+		return generatePropertyDefinition(property);
 	}
 
 	const newMacro = await findMacroDefinition(
