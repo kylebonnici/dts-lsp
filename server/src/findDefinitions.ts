@@ -38,11 +38,11 @@ import { CMacroCallParam } from './ast/cPreprocessors/functionCall';
 export const generateDefinitionsFromNode = (node: Node) => {
 	return [...node.definitions, ...node.referencedBy]
 		.map((dtc) => {
-			const virtialDoc = convertVirtualUriToDocumentUri(dtc.uri);
-			if (virtialDoc) {
+			const virtualDoc = convertVirtualUriToDocumentUri(dtc.uri);
+			if (virtualDoc) {
 				return Location.create(
-					pathToFileURL(virtialDoc.docUri),
-					virtialDoc.range,
+					pathToFileURL(virtualDoc.docUri),
+					virtualDoc.range,
 				);
 			}
 
@@ -62,11 +62,11 @@ const getTopProperty = (property: Property): Property => {
 export const generatePropertyDefinition = (property: Property): Location[] => {
 	return [property.ast, ...property.allReplaced.map((p) => p.ast)]
 		.map((dtc) => {
-			const virtialDoc = convertVirtualUriToDocumentUri(dtc.uri);
-			if (virtialDoc) {
+			const virtualDoc = convertVirtualUriToDocumentUri(dtc.uri);
+			if (virtualDoc) {
 				return Location.create(
-					pathToFileURL(virtialDoc.docUri),
-					virtialDoc.range,
+					pathToFileURL(virtualDoc.docUri),
+					virtualDoc.range,
 				);
 			}
 			return Location.create(

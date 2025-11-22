@@ -37,12 +37,12 @@ import { CMacroCallParam } from './ast/cPreprocessors/functionCall';
 
 export const generateNodeDeclaration = (node: Node) => {
 	const declaration = node.definitions.at(0);
-	const virtialDoc =
+	const virtualDoc =
 		declaration && convertVirtualUriToDocumentUri(declaration.uri);
-	if (virtialDoc) {
+	if (virtualDoc) {
 		return Location.create(
-			pathToFileURL(virtialDoc.docUri),
-			virtialDoc.range,
+			pathToFileURL(virtualDoc.docUri),
+			virtualDoc.range,
 		);
 	}
 	return declaration
@@ -62,11 +62,11 @@ export const generatePropertyDeclaration = (
 	property: Property,
 ): Location | undefined => {
 	const fistDefinition = getBottomProperty(property);
-	const virtialDoc = convertVirtualUriToDocumentUri(fistDefinition.ast.uri);
-	if (virtialDoc) {
+	const virtualDoc = convertVirtualUriToDocumentUri(fistDefinition.ast.uri);
+	if (virtualDoc) {
 		return Location.create(
-			pathToFileURL(virtialDoc.docUri),
-			virtialDoc.range,
+			pathToFileURL(virtualDoc.docUri),
+			virtualDoc.range,
 		);
 	}
 	return fistDefinition
@@ -89,11 +89,11 @@ function getPropertyDeclaration(
 	}
 
 	const gentItem = (property: Property) => {
-		const virtialDoc = convertVirtualUriToDocumentUri(property.ast.uri);
-		if (virtialDoc) {
+		const virtualDoc = convertVirtualUriToDocumentUri(property.ast.uri);
+		if (virtualDoc) {
 			return Location.create(
-				pathToFileURL(virtialDoc.docUri),
-				virtialDoc.range,
+				pathToFileURL(virtualDoc.docUri),
+				virtualDoc.range,
 			);
 		}
 		return Location.create(

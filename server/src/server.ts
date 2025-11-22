@@ -924,7 +924,7 @@ const generateWorkspaceDiagnostics = async (context: ContextAware) => {
 	};
 };
 
-const sendContextDiagnistics = async (context: ContextAware) => {
+const sendContextDiagnostics = async (context: ContextAware) => {
 	const { items } = await generateWorkspaceDiagnostics(context);
 	items
 		.map(
@@ -1026,7 +1026,7 @@ const updateActiveContext = async (id: ContextId, force = false) => {
 			});
 
 			if (getContextOpenFiles(newContext)?.length) {
-				sendContextDiagnistics(newContext);
+				sendContextDiagnostics(newContext);
 			}
 			await reportContextList();
 		} else {
@@ -1107,7 +1107,7 @@ documents.onDidClose(async (e) => {
 						.some((f) => isPathEqual(f, uri))
 				) {
 					await clearWorkspaceDiagnostics(activeContext);
-					await sendContextDiagnistics(activeContext);
+					await sendContextDiagnostics(activeContext);
 				}
 			}
 		}),
@@ -1140,7 +1140,7 @@ documents.onDidOpen(async (e) => {
 		(!hasWorkspaceDiagnostics.get(ctx) ||
 			ctx.getContextFiles().some((f) => !isPathEqual(f, uri)))
 	) {
-		await sendContextDiagnistics(ctx);
+		await sendContextDiagnostics(ctx);
 	}
 });
 

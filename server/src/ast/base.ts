@@ -143,12 +143,12 @@ export class ASTBase {
 			return [];
 		}
 
-		const virtialDoc = convertVirtualUriToDocumentUri(this.uri);
-		const range = virtialDoc?.range ?? toRange(this);
+		const virtualDoc = convertVirtualUriToDocumentUri(this.uri);
+		const range = virtualDoc?.range ?? toRange(this);
 		return [
 			{
 				location: Location.create(
-					pathToFileURL(virtialDoc?.docUri ?? this.uri),
+					pathToFileURL(virtualDoc?.docUri ?? this.uri),
 					range,
 				),
 				name: this.docSymbolsMeta.name

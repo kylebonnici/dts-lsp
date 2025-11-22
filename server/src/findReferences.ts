@@ -62,11 +62,11 @@ function getPropertyReferences(
 			...(deletedBy ? [deletedBy] : []),
 		]
 			.map((dtc) => {
-				const virtialDoc = convertVirtualUriToDocumentUri(dtc.uri);
-				if (virtialDoc) {
+				const virtualDoc = convertVirtualUriToDocumentUri(dtc.uri);
+				if (virtualDoc) {
 					return Location.create(
-						pathToFileURL(virtialDoc.docUri),
-						virtialDoc.range,
+						pathToFileURL(virtualDoc.docUri),
+						virtualDoc.range,
 					);
 				}
 
@@ -147,12 +147,12 @@ function getNodeReferences(result: SearchableResult | undefined): Location[] {
 			...deleteNodes,
 		]
 			.map((dtc) => {
-				const virtialDoc =
+				const virtualDoc =
 					dtc && convertVirtualUriToDocumentUri(dtc?.uri);
-				if (virtialDoc) {
+				if (virtualDoc) {
 					return Location.create(
-						pathToFileURL(virtialDoc.docUri),
-						virtialDoc.range,
+						pathToFileURL(virtualDoc.docUri),
+						virtualDoc.range,
 					);
 				}
 

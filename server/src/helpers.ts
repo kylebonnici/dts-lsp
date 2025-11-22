@@ -293,17 +293,17 @@ export const convertVirtualUriToDocumentUri = (uri: string) => {
 };
 
 const convertVirtualIssue = <T extends IssueTypes>(issue: Issue<T>) => {
-	const virtialDoc = convertVirtualUriToDocumentUri(issue.uri);
-	if (!virtialDoc) return;
+	const virtualDoc = convertVirtualUriToDocumentUri(issue.uri);
+	if (!virtualDoc) return;
 
-	issue.range = virtialDoc.range;
-	issue.uri = virtialDoc?.docUri;
+	issue.range = virtualDoc.range;
+	issue.uri = virtualDoc?.docUri;
 	issue.virtual = true;
 	issue.linkedTo = issue.linkedTo.map(({ range, uri }) => {
-		const linkedIssueVirtialDoc = convertVirtualUriToDocumentUri(uri);
+		const linkedIssueVirtualDoc = convertVirtualUriToDocumentUri(uri);
 		return {
-			range: linkedIssueVirtialDoc?.range ?? range,
-			uri: linkedIssueVirtialDoc?.docUri ?? uri,
+			range: linkedIssueVirtualDoc?.range ?? range,
+			uri: linkedIssueVirtualDoc?.docUri ?? uri,
 			templateStrings: [],
 		};
 	});
