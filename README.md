@@ -7,17 +7,18 @@ This LSP is intended to be used with DTS Devicetree Specification Release v0.4 (
 ## Table of Contents
 
 - [Features](#features)
+    - [Go to Definition](#go-to-definition)
+    - [Go to Declarations](#go-to-declarations)
+    - [Go to References](#go-to-references---find-all-references)
+    - [Hover](#hover)
     - [Formatting](#formatting)
-        - [Semantic Tokens](#semantic-tokens)
-        - [Document Symbols](#document-symbols)
-        - [Workspace Symbols](#workspace-symbols)
-        - [Diagnostics](#diagnostics)
-        - [Completions](#completions)
-        - [Code Actions](#code-actions)
-        - [Go to Definition](#go-to-definition)
-        - [Go to Declarations](#go-to-declarations)
-        - [Go to References](#go-to-references---find-all-references)
-        - [Hover](#hover)
+    - [Semantic Tokens](#semantic-tokens)
+    - [Document Symbols](#document-symbols)
+    - [Workspace Symbols](#workspace-symbols)
+    - [Diagnostics](#diagnostics)
+    - [Completions](#completions)
+    - [Refactoring](#refactoring)
+    - [Code Actions](#code-actions)
 - [Usage](#usage)
     - [Zephyr](#zephyr-configuration-example)
     - [Linux](#linux)
@@ -25,11 +26,66 @@ This LSP is intended to be used with DTS Devicetree Specification Release v0.4 (
 
 ## Features
 
+### Go to Definition
+
+On node name/label reference; will list all the places where the node is altered. /delete-node/ cases are not listed.
+On property name; will list all the places where the property is assigned a value. Note: defining a property name with no assign (empty) is equal to assigning a truthful value and hence it will also be shown.
+
+![Go to Definition](docs/GoToDefinition.gif)
+
+NOTE: If for example a node with name node1 has been created, then deleted, and then created again, depending on where the definition call is made in the file, in one case one will get the definition from before the delete keyword, and in the other case the definition from under the delete keyword.
+
+#### Zephyr - DT_MACROS
+
+You can also use `Go to Definition` on a selected number of DT\_ APIs found in zephyr and get Hovers to help explain Node state or even DT_MACRO result for the current active Devicetree context
+
+![DT Macro Go to Definition](docs/DT_Definition.gif)
+
+### Go to Declarations
+
+On node name/label reference; will list the first places where the node is created.
+On property name; will list the first places where the property is assigned a value for the first time. Note: defining a property name with no assign (empty) is equal to assigning a truthful value and hence it will also be shown.
+
+![Go to Declarations](docs/GoToDeclarations.gif)
+
+NOTE: The declarations will stop at the definition, hence, if for example a node with name node1 has been created, then deleted, and then created again, depending on where the declarations call is made in the file, in one case one will get the declarations from before the delete keyword up to the delete keyword, and in the other case from the delete keyword (excluded) onwards.
+
+#### Zephyr - DT_MACROS
+
+You can also use `Go to Declarations` on a selected number of DT\_ APIs found in zephyr and get Hovers to help explain Node state or even DT_MACRO result for the current active Devicetree context
+
+![DT Macro Go to Declarations](docs/DT_Decleration.gif)
+
+### Go to References - Find All References
+
+- On node name/label reference; will list all the places where the node is used by name, label or in some path.
+- On property name; will list all the places where the property referred to including /delete-property/.
+
+![Go to References](docs/GoToReferences.gif)
+
+NOTE: The references will stop at the definition, hence, if for example a node with name node1 has been created, then deleted, and then created again, depending on where the reference call is made in the file, in one case one will get the ones from before the delete keyword up to the delete keyword, and in the other case from the delete keyword (excluded) onwards.
+
+### Hover
+
+On hover over the node name, a tooltip will show the final state of that node. If bindings are used it will also include the description from the binding files.
+
+![On Hover](docs/OnHoverNode.gif)
+
+When hovering over a delete state you can see the state of the item just before the delete action.
+
+![On Hover Deleted State](docs/OnHoverDeleteState.gif)
+
+#### Zephyr - DT_MACROS
+
+You can also hover on a selected number of DT\_ APIs found in zephyr and get Hovers to help explain Node state or even DT_MACRO result for the current active Devicetree context
+
+![DT Hover](docs/DT_Hover.gif)
+
 ### Formatting
 
 This LSP follows the [Zephyr Style Guide](https://docs.zephyrproject.org/latest/contribute/style/devicetree.html) and is used in CI to validate all files upstream.
 
-![alt text](docs/Formatting.gif)
+![Formatting](docs/Formatting.gif)
 
 ### Semantic Tokens
 
@@ -129,45 +185,9 @@ Completions are context aware of the document state on the line the action is re
 
 ![Enum Completion](docs/EnumCompletion.gif)
 
-### Code Actions
+#### Zephyr DT_MACRO Completion
 
-- Adds missing syntax e.g. ';', '<', '>', ',' etc...
-- Removes syntactically incorrect spaces:
-    - Between node name, '@' and address
-    - In node path reference
-- Removes ';' when used without any statement
-- Supports SourceFixAll/QuickFixes
-
-### Go to Definition
-
-- On node name/label reference; will list all the places where the node is altered. /delete-node/ cases are not listed.
-- On property name; will list all the places where the property is assigned a value. Note: defining a property name with no assign (empty) is equal to assigning a truthful value and hence it will also be shown.
-
-![Go to Definition](docs/GoToDefinition.gif)
-
-NOTE: If for example a node with name node1 has been created, then deleted, and then created again, depending on where the definition call is made in the file, in one case one will get the definition from before the delete keyword, and in the other case the definition from under the delete keyword.
-
-### Go to Declarations
-
-- On node name/label reference; will list the first places where the node is created.
-- On property name; will list the first places where the property is assigned a value for the first time. Note: defining a property name with no assign (empty) is equal to assigning a truthful value and hence it will also be shown.
-
-![Go to Declarations](docs/GoToDeclarations.gif)
-
-NOTE: The declarations will stop at the definition, hence, if for example a node with name node1 has been created, then deleted, and then created again, depending on where the declarations call is made in the file, in one case one will get the declarations from before the delete keyword up to the delete keyword, and in the other case from the delete keyword (excluded) onwards.
-
-### Go to References - Find All References
-
-- On node name/label reference; will list all the places where the node is used by name, label or in some path.
-- On property name; will list all the places where the property referred to including /delete-property/.
-
-![Go to References](docs/GoToReferences.gif)
-
-NOTE: The references will stop at the definition, hence, if for example a node with name node1 has been created, then deleted, and then created again, depending on where the reference call is made in the file, in one case one will get the ones from before the delete keyword up to the delete keyword, and in the other case from the delete keyword (excluded) onwards.
-
-### Hover
-
-- On hover over the node name, a tooltip will show the final state of that node. If bindings are used it will also include the description from the binding files.
+![DT MACRO Completion](docs/DT_Completaion.gif)
 
 ### Refactoring
 
@@ -177,7 +197,18 @@ Refactoring is possible on the following elements:
 - Node labels
 - Property names
 
+![Rename Node](docs/RenameNode.gif)
+
 Given that in some cases the files included in a devicetree might come from an SDK which should not be edited, one can configure "lockRenameEdits" in the settings to lock refactoring from being permitted on any elements which would otherwise effect edits to the files listed in "lockRenameEdits".
+
+### Code Actions
+
+- Adds missing syntax e.g. ';', '<', '>', ',' etc...
+- Removes syntactically incorrect spaces:
+    - Between node name, '@' and address
+    - In node path reference
+- Removes ';' when used without any statement
+- Supports SourceFixAll/QuickFixes
 
 ### Something else in mind?
 
