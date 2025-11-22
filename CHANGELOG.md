@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.6.8] - Unreleased
+## [0.6.8] - 2025-11-22
 
 ### Security
 
@@ -25,15 +25,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   included another binding and both have `child-binding`
 - Fixed for zephyr bindings a warning 'Property "\*-controller" name is not defined in the
   type binding for this node'.
-- Fixed diagnostic not showing issue for sytax like `node {};` in the root of the document
+- Fixed diagnostic not showing issue for syntax like `node {};` in the root of the document
 - Fixed issue with parser for syntax like `#IF defined (BUFSIZE) && BUFSIZE >= 1024`.
-- Fixed an issue where Formatter would add an unncessary new line above nodes when these are
+- Fixed an issue where Formatter would add an unnecessary new line above nodes when these are
   just after some `#IF` or `#IFDEF` etc...
 - Fixed a server crash when there is no code between an #else...#endif
 - Fixed code completion not showing inside macro blocks such as #ifdef...#endif
 - Fixed an issue where no diagnostic was reported when node has an address and is linked
   to a Zephyr binding and reg is missing.
-- Fixed an issue with Zephyr bindings when a property is defined in multiple includes and the
+- Fixed an issue with Zephyr bindings when a property is defined in multiple includes as the
   properly was not merged correctly.
 - Fixed an issue with `Go to Definitions` would provide the `Go to Declarations` result
   on DT_MACROS
