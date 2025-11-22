@@ -23,14 +23,13 @@ This LSP is intended to be used with DTS Devicetree Specification Release v0.4 (
 - [Usage](#usage)
     - [Zephyr](#zephyr-configuration-example)
     - [Linux](#linux)
-      - [Devicetree-Org](#with-devicetree-org-bindings)
+        - [Devicetree-Org](#with-devicetree-org-bindings)
     - [Sample Editor configurations](#sample-editor-configurations)
-      - [kakoune](#kakoune)
-      - [Neovim - lazygit](#neovim---lazygit)
-      - [Helix](#helix)
-      - [coc.nvim](#coco-nvim)
-      - [Vim 9 - yegappan lsp](#vim-9---yegappan-lsp)
-
+        - [kakoune](#kakoune)
+        - [Neovim - lazygit](#neovim---lazygit)
+        - [Helix](#helix)
+        - [coc.nvim](#coco-nvim)
+        - [Vim 9 - yegappan lsp](#vim-9---yegappan-lsp)
 
 ## Features
 
@@ -222,13 +221,12 @@ Given that in some cases the files included in a devicetree might come from an S
 
 Contributions are welcome or reach out on GitHub with requests.
 
-
 ## Installation
 
 The language server can be found on https://www.npmjs.com/package/devicetree-language-server.
 
 To install run
-`npm i devicetree-language-server`
+`npm i -g devicetree-language-server`
 
 The LSP has only been tested with Node 20.
 
@@ -461,7 +459,6 @@ return {
   end,
 }
 ```
-
 
 #### Helix
 
