@@ -22,7 +22,7 @@ This LSP is intended to be used with DTS Devicetree Specification Release v0.4 (
 - [Usage](#usage)
     - [Zephyr](#zephyr-configuration-example)
     - [Linux](#linux)
-    	- [Devicetree-Org](#with-devicetree-org-bindings)
+        - [Devicetree-Org](#with-devicetree-org-bindings)
 
 ## Features
 
@@ -165,19 +165,19 @@ Completions are context aware of the document state on the line the action is re
 
 #### Label reference completion reference node creation and property assignment
 
-![Label Reference Completion](/docs/NodePathCompletion.gif)
+![Label Reference Completion](/docs/LabelRefCompletion.gif)
 
 #### Delete Node:
 
-- Suggests appropriate type e.g. by reference or node name
-- Does not suggest keyword if no delete is possible
+Suggests appropriate type e.g. by reference or node name.
+Does not suggest keyword if no delete is possible.
 
 ![Delete Node Completion](/docs/DeleteNodeCompletion.gif)
 
 #### Delete Property:
 
-    - Suggests property names available in that context
-    - Does not suggest keyword if no delete is possible
+Suggests property names available in that context.
+Does not suggest keyword if no delete is possible.
 
 ![Delete Property Completion](/docs/DeletePropertyCompletion.gif)
 
