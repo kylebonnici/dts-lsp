@@ -1352,6 +1352,8 @@ export const formattingIssuesToMessage = (issue: Issue<FormattingIssues>) => {
 					return `Move token "${issue.templateStrings[0]}" next to expression`;
 				case FormattingIssues.REMOVE_EXPRESSION_BRACKETS:
 					return `Remove (...) enclosure. This expression should only be enclosed in the #define of the macro`;
+				case FormattingIssues.LONG_LINE_WRAP:
+					return `Line is too long. ${issue.codeActionTitle}`;
 			}
 		})
 		.join(' or ');

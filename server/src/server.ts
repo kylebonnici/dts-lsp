@@ -387,6 +387,7 @@ let defaultEditorSettings: FormattingOptions = {
 	insertSpaces: false,
 	trimTrailingWhitespace: true,
 	insertFinalNewline: true,
+	wordWrapColumn: 100,
 };
 
 connection.onInitialized(async () => {
@@ -409,6 +410,7 @@ connection.onInitialized(async () => {
 					dtsSettingsRaw?.['editor.trimTrailingWhitespace'],
 				insertFinalNewline:
 					dtsSettingsRaw?.['editor.insertFinalNewline'],
+				wordWrapColumn: dtsSettingsRaw?.['editor.wordWrapColumn'],
 			};
 			if (editorSettings || dtsSettings) {
 				lspClientEditorSettings = {
