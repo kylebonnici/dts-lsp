@@ -718,6 +718,7 @@ export class Parser extends BaseParser {
 				!validToken(this.currentToken, LexerToken.CURLY_OPEN) &&
 				!validToken(this.currentToken, LexerToken.SEMICOLON) &&
 				!validToken(this.currentToken, LexerToken.CURLY_CLOSE) &&
+				!validToken(this.currentToken, LexerToken.FORWARD_SLASH) &&
 				sameLine(this.currentToken, addresses.at(-1)?.lastToken)
 			) {
 				this.moveToNextToken;

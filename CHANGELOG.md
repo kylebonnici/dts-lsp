@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.6.9] - Unreleased
+
+### Fixed
+
+- Fixed and issue when parsing nodePath References where node has a address such as
+  `&{/soc/peripheral@50000000/flash-controller@39000/flash@0/partitions}`.
+
 ## [0.6.8] - 2025-11-22
 
 ### Security
