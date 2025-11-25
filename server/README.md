@@ -78,7 +78,7 @@ On hover over the node name, a tooltip will show the final state of that node. I
 
 ![On Hover](/docs/OnHoverNode.gif)
 
-When hovering over a delete state you can see the state of the item just before the delete action.
+When hovering over a deleted state you can see the state of the item just before the delete action.
 
 ![On Hover Deleted State](/docs/OnHoverDeleteState.gif)
 
