@@ -304,7 +304,7 @@ connection.onInitialize(async (params: InitializeParams) => {
 	connection.console.log(
 		`[Server(${process.pid}) ${
 			workspaceFolders?.at(0)?.uri
-		} Version 0.6.9 ] Started and initialize received`,
+		} Version 0.7.0 ] Started and initialize received`,
 	);
 
 	const capabilities = params.capabilities;
@@ -387,6 +387,7 @@ let defaultEditorSettings: FormattingOptions = {
 	insertSpaces: false,
 	trimTrailingWhitespace: true,
 	insertFinalNewline: true,
+	wordWrapColumn: 100,
 };
 
 connection.onInitialized(async () => {
@@ -409,6 +410,7 @@ connection.onInitialized(async () => {
 					dtsSettingsRaw?.['editor.trimTrailingWhitespace'],
 				insertFinalNewline:
 					dtsSettingsRaw?.['editor.insertFinalNewline'],
+				wordWrapColumn: dtsSettingsRaw?.['editor.wordWrapColumn'],
 			};
 			if (editorSettings || dtsSettings) {
 				lspClientEditorSettings = {

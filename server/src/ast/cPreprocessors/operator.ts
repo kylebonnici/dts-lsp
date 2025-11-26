@@ -44,9 +44,9 @@ export enum OperatorType {
 export class Operator extends ASTBase {
 	constructor(
 		public readonly operator: OperatorType,
-		tokenIndexe: TokenIndexes,
+		tokenIndexes: TokenIndexes,
 	) {
-		super(tokenIndexe);
+		super(tokenIndexes);
 		this.semanticTokenType = 'operator';
 		this.semanticTokenModifiers = 'declaration';
 	}
