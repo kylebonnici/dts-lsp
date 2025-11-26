@@ -2457,7 +2457,6 @@ const getWrapLineEdit = async (
 			astNode,
 			uri,
 			level,
-			singleIndent,
 			options,
 			documentText,
 			computeLevel,
@@ -2468,6 +2467,7 @@ const getWrapLineEdit = async (
 			level,
 			settings,
 			documentText,
+			singleIndent,
 		);
 	}
 
@@ -2479,7 +2479,6 @@ const formatLongLinesDtcNode = async (
 	node: DtcBaseNode,
 	uri: string,
 	level: number,
-	indentString: string,
 	options: FormattingFlags,
 	documentText: string[],
 	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
@@ -2512,6 +2511,7 @@ const formatLongLinesDtcProperty = (
 	level: number,
 	settings: FormattingSettings,
 	documentText: string[],
+	singleIndent: string,
 ): FileDiagnostic[] => {
 	if (
 		needWrapping(
@@ -2531,6 +2531,7 @@ const formatLongLinesDtcProperty = (
 			level,
 			settings,
 			documentText,
+			singleIndent,
 		);
 	}
 
@@ -2543,6 +2544,7 @@ const formatLongLinesPropertyValues = (
 	level: number,
 	settings: FormattingSettings,
 	documentText: string[],
+	singleIndent: string,
 ): FileDiagnostic[] => {
 	for (const [index, value] of values.values.entries()) {
 		if (!value) continue;
@@ -2555,6 +2557,7 @@ const formatLongLinesPropertyValues = (
 			level,
 			settings,
 			documentText,
+			singleIndent,
 		);
 
 		if (wrapEdits) {
@@ -2584,6 +2587,7 @@ const formatLongLinesPropertyValue = (
 	level: number,
 	settings: FormattingSettings,
 	documentText: string[],
+	singleIndent: string,
 ): FileDiagnostic[] | undefined => {
 	const wrapping = needWrapping(
 		value.firstToken,
@@ -2609,15 +2613,31 @@ const formatLongLinesPropertyValue = (
 				level,
 				settings,
 				documentText,
+				singleIndent,
+			);
+		}
+
+		if (innerValue instanceof Expression) {
+			return formatLongLinesExpression(
+				propertyNameWidth,
+				innerValue,
+				level,
+				settings,
+				documentText,
+				singleIndent,
 			);
 		}
 
 		return []; // TODO process one value at a time
 	}
 
-	const minWith = level + propertyNameWidth + 3; // ` = `
+	const line = documentText[value.firstToken.pos.line].substring(
+		0,
+		value.firstToken.pos.col,
+	);
+	const minWidth = level + propertyNameWidth + 3; // ` = `
 	// can we move the whole array to new line?
-	if (value.firstToken.pos.col === minWith) {
+	if (value.firstToken.pos.col === minWidth && line.trimStart() !== '') {
 		// no we cannot we are already on new line
 		const innerValue = value.value;
 
@@ -2631,6 +2651,18 @@ const formatLongLinesPropertyValue = (
 				level,
 				settings,
 				documentText,
+				singleIndent,
+			);
+		}
+
+		if (innerValue instanceof Expression) {
+			return formatLongLinesExpression(
+				propertyNameWidth,
+				innerValue,
+				level,
+				settings,
+				documentText,
+				singleIndent,
 			);
 		}
 	}
@@ -2638,10 +2670,6 @@ const formatLongLinesPropertyValue = (
 	const otherItem = allValues
 		.slice(index)
 		.find((v) => v?.firstToken.pos.line !== value.firstToken.pos.line);
-
-	const indentString = settings.insertSpaces
-		? ' '.repeat(settings.tabSize)
-		: '\t';
 
 	return [
 		genFormattingDiagnostic(
@@ -2655,7 +2683,7 @@ const formatLongLinesPropertyValue = (
 							toPosition(value.firstToken.prevToken!),
 							toPosition(value.firstToken, false),
 						),
-						`\n${createIndentString(level, indentString, widthToPrefix(settings, propertyNameWidth + 3))}`,
+						`\n${createIndentString(level, singleIndent, widthToPrefix(settings, propertyNameWidth + 3))}`,
 					),
 					...(otherItem // wrap other item up to recursively align using least line possible
 						? [
@@ -2687,15 +2715,8 @@ const formatLongLinesArrayValue = (
 	level: number,
 	settings: FormattingSettings,
 	documentText: string[],
+	singleIndent: string,
 ): FileDiagnostic[] | undefined => {
-	const valueToWrapIndex = innerValue.values.findIndex((v) =>
-		needWrapping(v.firstToken, v.lastToken, settings, documentText),
-	);
-
-	if (valueToWrapIndex === -1) {
-		return;
-	}
-
 	for (const [index, value] of innerValue.values.entries()) {
 		const wrapping = needWrapping(
 			value.firstToken,
@@ -2709,32 +2730,27 @@ const formatLongLinesArrayValue = (
 		}
 
 		const isComplexExpression = value.value instanceof ComplexExpression;
-		if (wrapping === null) {
-			if (!isComplexExpression) {
-				// cannot happen .....
-				return [];
-			}
-
-			// Value is on multiple lines so we need to go deeper
-			return []; // TODO format expression
-		}
 
 		if (isComplexExpression) {
-			return []; // TODO format expression
+			return formatLongLinesExpression(
+				propertyNameWidth,
+				value.value,
+				level,
+				settings,
+				documentText,
+				singleIndent,
+				index !== 0,
+			);
 		}
 
-		if (index === 0 || index === innerValue.values.length - 1) {
-			// we cannot format this value.... as fist value must be on same line as ( or [ OR ) ]
+		if (index === 0) {
+			// we cannot format this value.... as fist value must be on same line as ( or [
 			return [];
 		}
 
 		const otherItem = innerValue.values
 			.slice(index)
 			.find((v) => v?.firstToken.pos.line !== value.firstToken.pos.line);
-
-		const indentString = settings.insertSpaces
-			? ' '.repeat(settings.tabSize)
-			: '\t';
 
 		return [
 			genFormattingDiagnostic(
@@ -2748,7 +2764,7 @@ const formatLongLinesArrayValue = (
 								toPosition(value.firstToken.prevToken!),
 								toPosition(value.firstToken, false),
 							),
-							`\n${createIndentString(level, indentString, widthToPrefix(settings, propertyNameWidth + 4))}`,
+							`\n${createIndentString(level, singleIndent, widthToPrefix(settings, propertyNameWidth + 4))}`,
 						),
 						...(otherItem // wrap other item up to recursively align using least line possible
 							? [
@@ -2776,4 +2792,133 @@ const formatLongLinesArrayValue = (
 	}
 
 	return [];
+};
+
+const formatLongLinesExpression = (
+	propertyNameWidth: number,
+	expression: Expression,
+	level: number,
+	settings: FormattingSettings,
+	documentText: string[],
+	indentString: string,
+	canWrapWholeExpression = false,
+	expressionLevel: number = 0,
+): FileDiagnostic[] | undefined => {
+	const line = documentText[expression.firstToken.pos.line].substring(
+		0,
+		expression.firstToken.pos.col,
+	);
+	const minWidth = level + propertyNameWidth + 4; // ` = <`
+	if (
+		canWrapWholeExpression &&
+		expression.firstToken.pos.col !== minWidth &&
+		line.trimStart() !== ''
+	) {
+		return [
+			genFormattingDiagnostic(
+				FormattingIssues.LONG_LINE_WRAP,
+				expression.firstToken.uri,
+				toPosition(expression.firstToken, false),
+				{
+					edit: [
+						TextEdit.replace(
+							Range.create(
+								toPosition(expression.firstToken.prevToken!),
+								toPosition(expression.firstToken, false),
+							),
+							`\n${createIndentString(level, indentString, widthToPrefix(settings, propertyNameWidth + 4))}`,
+						),
+					],
+					codeActionTitle: `Move ...${expression.toString()}... to a new line`,
+				},
+				toPosition(expression.lastToken),
+			),
+		];
+	}
+
+	if (!(expression instanceof ComplexExpression)) {
+		// we cannot do more this is either a macro call and we should not touch the params or macros or this has no
+		// breakable components
+		return [];
+	}
+
+	const flatJoin = expression.flatJoin;
+
+	for (const [index, exp] of flatJoin.entries()) {
+		const wrap = needWrapping(
+			exp.expression.firstToken,
+			flatJoin?.at(index + 1)?.operator.lastToken ??
+				expression.expression.lastToken,
+			settings,
+			documentText,
+		);
+
+		if (wrap === false) {
+			continue;
+		}
+
+		if (wrap === null) {
+			// Value is on multiple lines so we need to go deeper
+			return formatLongLinesExpression(
+				propertyNameWidth,
+				exp.expression,
+				level,
+				settings,
+				documentText,
+				indentString,
+				index !== 0,
+				expressionLevel + 1,
+			);
+		}
+
+		const otherItem = flatJoin
+			.slice(index)
+			.find(
+				(v) =>
+					v.expression.firstToken.pos.line !==
+					exp.expression.firstToken.pos.line,
+			);
+
+		return [
+			genFormattingDiagnostic(
+				FormattingIssues.LONG_LINE_WRAP,
+				exp.expression.firstToken.uri,
+				toPosition(exp.expression.firstToken, false),
+				{
+					edit: [
+						TextEdit.replace(
+							Range.create(
+								toPosition(
+									exp.expression.firstToken.prevToken!,
+								),
+								toPosition(exp.expression.firstToken, false),
+							),
+							`\n${createIndentString(level, indentString, widthToPrefix(settings, propertyNameWidth + 4))}`,
+						),
+						...(otherItem // wrap other item up to recursively align using least line possible
+							? [
+									TextEdit.replace(
+										Range.create(
+											toPosition(
+												otherItem.expression.firstToken
+													.prevToken!,
+											),
+											toPosition(
+												otherItem.expression.firstToken,
+												false,
+											),
+										),
+										' ',
+									),
+								]
+							: []),
+					],
+					codeActionTitle: `Move ...${exp.expression.toString()}... to a new line`,
+				},
+				toPosition(exp.expression.lastToken),
+			),
+		];
+	}
+
+	return;
 };

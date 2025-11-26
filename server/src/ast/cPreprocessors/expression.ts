@@ -26,6 +26,11 @@ import { Operator } from './operator';
 export abstract class Expression extends ASTBase {
 	operator?: Operator;
 
+	get firstToken() {
+		if (this.operator) return this.operator.firstToken;
+		return super.firstToken;
+	}
+
 	toJson() {
 		return -1;
 	}
@@ -134,5 +139,34 @@ export class ComplexExpression extends Expression {
 		return evalExp(
 			`!!(${this.operator ? this.operator.toString() : ''}${exp})`,
 		);
+	}
+
+	get flatJoin(): { operator: Operator; expression: Expression }[] {
+		if (this.wrapped) {
+			return (
+				this.join ??
+				(this.expression instanceof ComplexExpression
+					? this.expression.flatJoin
+					: [])
+			);
+		}
+
+		return [
+			...(this.expression instanceof ComplexExpression
+				? this.expression.flatJoin
+				: []),
+			...(this.join?.flatMap((j) => [
+				{
+					operator: j.operator,
+					expression:
+						j.expression instanceof ComplexExpression
+							? j.expression.expression
+							: j.expression,
+				},
+				...(j.expression instanceof ComplexExpression
+					? j.expression.flatJoin
+					: []),
+			]) ?? []),
+		];
 	}
 }
