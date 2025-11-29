@@ -28,7 +28,7 @@ jobs:
             - run: npm ci
             - run: npm --prefix server ci
             - run: npm --prefix client ci
-            - run: npm vsce:package
+            - run: npm run vsce:package
             - name: Publish to Open VSX Registry
               run: |
                   for package in $(ls *.vsix); do

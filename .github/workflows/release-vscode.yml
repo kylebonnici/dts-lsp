@@ -27,7 +27,7 @@ jobs:
             - run: npm ci
             - run: npm --prefix server ci
             - run: npm --prefix client ci
-            - run: npm vsce:package
+            - run: npm run vsce:package
             - name: VS Code Marketplace
               run: |
                   for package in $(ls *.vsix); do
