@@ -3,6 +3,7 @@ node_modules
 client/server
 .vscode-test
 server/coverage
+server/README.md
 dist
 dts-lsp-types/server
 tsconfig.types.tsbuildinfo

@@ -19,10 +19,17 @@ This LSP is intended to be used with DTS Devicetree Specification Release v0.4 (
     - [Completions](#completions)
     - [Refactoring](#refactoring)
     - [Code Actions](#code-actions)
+- [Installation](#installation)
 - [Usage](#usage)
     - [Zephyr](#zephyr-configuration-example)
     - [Linux](#linux)
         - [Devicetree-Org](#with-devicetree-org-bindings)
+    - [Sample Editor configurations](#sample-editor-configurations)
+        - [kakoune](#kakoune)
+        - [Neovim - lazygit](#neovim---lazygit)
+        - [Helix](#helix)
+        - [coc.nvim](#coco-nvim)
+        - [Vim 9 - yegappan lsp](#vim-9---yegappan-lsp)
 
 ## Features
 
@@ -214,6 +221,15 @@ Given that in some cases the files included in a devicetree might come from an S
 
 Contributions are welcome or reach out on GitHub with requests.
 
+## Installation
+
+The language server can be found on https://www.npmjs.com/package/devicetree-language-server.
+
+To install run
+`npm i -g devicetree-language-server`
+
+The LSP has only been tested with Node 20.
+
 ## Usage
 
 This extension needs a client that supports Configuration Capability. The format for the configuration setting is of the type `Settings` as shown below:
@@ -323,3 +339,331 @@ interface Settings {
 #### Note
 
 Devicetree-Org bindings are experimental.
+
+### Sample Editor configurations
+
+#### kakoune
+
+Sample configuration in for `kakoune` with `Zephyr` 3.7.99 or later.
+Contribution by [topisani](https://github.com/topisani)
+
+```
+hook -group lsp-project-zephyr global BufSetOption filetype=(devicetree) %{
+   eval %sh{
+      root=$(eval "$kak_opt_lsp_find_root" .build_info.yml $(: kak_buffile))
+      [ -e "$root/.build_info.yml" ] || exit 0
+
+      settings=$(cat ".build_info.yml" | yq -c '{ "defaultIncludePaths": .cmake.devicetree."include-dirs", "contexts": [{ "bindingType": "Zephyr", "zephyrBindings": .cmake.devicetree."bindings-dirs", "includePaths": .cmake.devicetree."include-dirs", "dtsFile": .cmake.devicetree.files[0], "overlays": .cmake.devicetree.files[1:] }], "preferredContext": 0 } | { devicetree: {settings: {"_": {devicetree: .}}}}' | yj -jt | sed '/^\[devicetree\]$/d')
+
+      cat <<EOF
+      set-option buffer lsp_servers %{
+         [devicetree]
+         root = '$root'
+         command = "npm"
+         args = ["x", "--", "devicetree-language-server", "--stdio"]
+         # command = "node"
+         # args = ["/home/topisani/git/dts-lsp/server/dist/server.js", "--stdio"]
+         settings_section = "_"
+
+      $settings
+      }
+EOF
+   }
+}
+```
+
+#### Neovim - lazygit
+
+Example setup using [lazygit](https://github.com/jesseduffield/lazygit)
+
+```lua
+return {
+  "neovim/nvim-lspconfig",
+  opts = function(_, opts)
+    -- Don't let Mason try to handle this custom server
+    opts.servers.devicetree_ls = nil
+
+    local lspconfig = require("lspconfig")
+    local configs = require("lspconfig.configs")
+    local capabilities = vim.lsp.protocol.make_client_capabilities()
+
+    -- Enable semantic tokens
+    capabilities.textDocument = capabilities.textDocument or {}
+    capabilities.textDocument.semanticTokens = {
+      dynamicRegistration = false,
+      requests = {
+        range = false,
+        full = true,
+      },
+       tokenTypes = {
+        "namespace", "class", "enum", "interface", "struct", "typeParameter", "type",
+        "parameter", "variable", "property", "enumMember", "decorator", "event", "function",
+        "method", "macro", "label", "comment", "string", "keyword", "number", "regexp", "operator",
+      },
+      tokenModifiers = {
+        "declaration", "definition", "readonly", "static", "deprecated", "abstract",
+        "async", "modification", "documentation", "defaultLibrary",
+      },
+      formats = {'relative'}
+    }
+
+    -- Enable formatting
+    capabilities.textDocument.formatting = {
+      dynamicRegistration = false
+    }
+
+    -- Enable folding range support
+    capabilities.textDocument.foldingRange = {
+      dynamicRegistration = false,
+      lineFoldingOnly = true,
+    }
+
+    if not configs.devicetree_ls then
+      configs.devicetree_ls = {
+        default_config = {
+          cmd = { "devicetree-language-server", "--stdio" },
+          filetypes = { "dts", "dtsi" },
+          root_dir = lspconfig.util.root_pattern("zephyr", ".git", "."),
+          settings = {
+            devicetree = {
+              defaultIncludePaths = {
+                "./zephyr/dts",
+                "./zephyr/dts/arm",
+                "./zephyr/dts/arm64/",
+                "./zephyr/dts/riscv",
+                "./zephyr/dts/common",
+				"./zephyr/dts/vendor",
+                "./zephyr/include"
+              },
+              cwd = "${workspaceFolder}",
+              defaultBindingType = "Zephyr",
+              defaultZephyrBindings = {
+                "./zephyr/dts/bindings"
+              },
+              autoChangeContext = true,
+              allowAdhocContexts = true,
+              contexts = {},
+            },
+          },
+          capabilities = capabilities,
+        },
+      }
+    end
+
+    vim.notify("Custom devicetree_ls LSP loaded with semantic tokens & folding")
+
+    -- Setup the LSP
+    lspconfig.devicetree_ls.setup({
+      capabilities = capabilities,
+    })
+  end,
+}
+```
+
+#### Helix
+
+Contribution by [bextract](https://github.com/bextract)
+
+```
+[[language]]
+name = "devicetree"
+language-servers = ["devicetree_ls"]
+
+[language-server.devicetree_ls]
+command = "devicetree-language-server"
+args = ["--stdio"]
+config = { devicetree = { cwd = "/home/bex/zephyrproject/", defaultIncludePaths = ["./zephyr/dts","./zephyr/dts/arm","./zephyr/dts/arm64","./zephyr/dts/riscv","./zephyr/dts/common","./zephyr/dts/vendor","./zephyr/include","./zephyr/dts/xtensa"], defaultBindingType = "Zephyr", defaultZephyrBindings = ["./zephyr/dts/bindings"], contexts = [] } }
+```
+
+#### coco nvim
+
+```
+{
+  "suggest.completionItemKindLabels": {
+    "keyword": "",
+    "variable": "",
+    "value": "",
+    "operator": "Ψ",
+    "constructor": "",
+    "function": "ƒ",
+    "reference": "渚",
+    "constant": "",
+    "method": "",
+    "struct": "פּ",
+    "class": "",
+    "interface": "",
+    "text": "",
+    "enum": "",
+    "enumMember": "",
+    "module": "",
+    "color": "",
+    "property": "",
+    "field": "料",
+    "unit": "",
+    "event": "鬒",
+    "file": "",
+    "folder": "",
+    "snippet": "",
+    "typeParameter": "",
+    "default": ""
+  },
+  "diagnostic.errorSign": "❗",
+  "diagnostic.warningSign": "💡",
+  "diagnostic.infoSign": "💡",
+  "diagnostic.hintSign": "💡",
+  "diagnostic.signPriority": 100,
+  "languageserver": {
+    "devicetree_ls": {
+      "command": "devicetree-language-server",
+      "args": ["--stdio"],
+      "filetypes": ["dts", "dtsi"],
+      "rootPatterns": [".git"],
+      "initializationOptions": {
+        "AutomaticWorkspaceInit": true
+      },
+      "settings": {
+        "devicetree": {
+          "cwd": "/home/user/Workspace/Kernel/linux",
+          "defaultIncludePaths": ["./include"],
+          "defaultBindingType": "DevicetreeOrg",
+          "contexts": []
+        }
+      }
+    }
+  }
+}
+```
+
+#### Vim 9 - yegappan lsp
+
+Contribution by [jclsn](https://github.com/jclsn)
+
+```
+set encoding=utf-8
+set nocompatible
+colorscheme habamax
+
+call plug#begin('$MYVIMDIR/plugged')
+	Plug 'yegappan/lsp'
+call plug#end()
+
+let lspOpts = #{
+        \   aleSupport: v:false,
+        \   autoComplete: v:true,
+        \   autoHighlight: v:false,
+        \   autoHighlightDiags: v:true,
+        \   autoPopulateDiags: v:false,
+        \   completionMatcher: 'case',
+        \   completionMatcherValue: 1,
+        \   diagSignErrorText: '❗',
+        \   diagSignHintText: '💡',
+        \   diagSignInfoText: '💡',
+        \   diagSignWarningText: '💡',
+        \   diagSignPriority: {
+        \       'Error': 100,
+        \       'Warning': 99,
+        \       'Information': 98,
+        \       'Hint': 97
+        \   },
+        \   echoSignature: v:false,
+        \   hideDisabledCodeActions: v:false,
+        \   highlightDiagInline: v:true,
+        \   hoverInPreview: v:false,
+        \   ignoreMissingServer: v:false,
+        \   keepFocusInDiags: v:true,
+        \   keepFocusInReferences: v:true,
+        \   completionTextEdit: v:true,
+        \   diagVirtualTextAlign: 'above',
+        \   diagVirtualTextWrap: 'default',
+        \   noNewlineInCompletion: v:false,
+        \   omniComplete: v:null,
+        \   omniCompleteAllowBare: v:false,
+        \   outlineOnRight: v:false,
+        \   outlineWinSize: 20,
+        \   popupBorder: v:true,
+        \   popupBorderHighlight: 'Title',
+        \   popupBorderHighlightPeek: 'Special',
+        \   popupBorderSignatureHelp: v:false,
+        \   popupHighlightSignatureHelp: 'Pmenu',
+        \   popupHighlight: 'Normal',
+        \   semanticHighlight: v:true,
+        \   showDiagInBalloon: v:true,
+        \   showDiagInPopup: v:true,
+        \   showDiagOnStatusLine: v:false,
+        \   showDiagWithSign: v:true,
+        \   showDiagWithVirtualText: v:false,
+        \   showInlayHints: v:false,
+        \   showSignature: v:true,
+        \   snippetSupport: v:false,
+        \   ultisnipsSupport: v:false,
+        \   useBufferCompletion: v:false,
+        \   usePopupInCodeAction: v:false,
+        \   useQuickfixForLocations: v:false,
+        \   vsnipSupport: v:false,
+        \   bufferCompletionTimeout: 100,
+        \   customCompletionKinds: v:false,
+        \   completionKinds: {},
+        \   filterCompletionDuplicates: v:false,
+        \   condensedCompletionMenu: v:false,
+	\ }
+autocmd User LspSetup call LspOptionsSet(lspOpts)
+
+let lspServers = [#{
+    \   name: 'devicetree_ls',
+    \   filetype: ['dts', 'dtsi'],
+    \   path: 'devicetree-language-server',
+    \   args: ['--stdio'],
+    \
+    \   root_uri: {server_info -> lsp#utils#path_to_uri(
+    \       lsp#utils#find_nearest_parent_file_directory(expand('%:p'), '.git', '.')
+    \     )
+    \   },
+    \
+    \   initializationOptions: #{
+    \     settings: #{
+    \       devicetree: #{
+    \         cwd: getcwd(),
+    \         defaultIncludePaths: [
+    \           './include',
+    \         ],
+    \         defaultBindingType: 'DevicetreeOrg',
+    \         contexts: []
+    \       }
+    \     }
+    \   }
+    \ }]
+
+autocmd User LspSetup call LspAddServer(lspServers)
+
+" Remap leader key to space
+nnoremap <SPACE> <Nop>
+let mapleader = " "
+let maplocalleader = "-"
+
+nnoremap <leader>ac :LspCodeAction<CR>
+nnoremap <silent> <leader>pe :LspDiagPrev<CR>
+nnoremap <silent> <leader>ne :LspDiagNext<CR>
+nnoremap <silent> <leader>pd :LspPeekDefinition<CR>
+nnoremap <silent> <leader>pdc :LspPeekDeclaration<CR>
+nnoremap <silent> <leader>pr :LspPeekReferences<CR>
+nnoremap <silent> <leader>ol :LspOutline<CR>
+nnoremap <silent> <leader>rn :LspRename<CR>
+nnoremap <leader>cl :LspCodeLens<CR>
+
+function! s:SmartHover() abort
+	let result = execute('LspHover')
+	if result =~ 'Error'
+		call feedkeys('K', 'n')
+	endif
+endfunction
+
+nnoremap <silent> K :call <SID>SmartHover()<CR>
+
+nnoremap <silent> gd :LspGotoDefinition<CR>
+nnoremap <silent> gy :LspGotoTypeDef<CR>
+nnoremap <silent> gi :LspGotoImpl<CR>
+nnoremap <silent> gdc :LspGotoDeclaration<CR>
+
+command! -nargs=0 -bar -range=% Format <line1>,<line2>LspFormat
+set formatexpr=lsp#lsp#FormatExpr() " Map LspFormat to the gq command
+```

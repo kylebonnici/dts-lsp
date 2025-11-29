@@ -24,7 +24,7 @@ jobs:
             - run: npm --prefix server ci
             - run: npm --prefix client ci
             - run: npm install -g @vscode/vsce
-            - run: vsce package
+            - run: npm run vsce:package
             - run: npm run --prefix server test:coverage
             - run: cd server && npm pack
             - name: Archive production artifacts

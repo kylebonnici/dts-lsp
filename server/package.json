@@ -22,7 +22,9 @@
 		"dist/THIRD_PARTY_LICENSES.txt",
 		"meta-schemas/**"
 	],
-	"bin": "dist/server.js",
+	"bin": {
+		"devicetree-language-server": "dist/server.js"
+	},
 	"git repository": "https://github.com/kylebonnici/dts-lsp",
 	"license": "Apache-2.0",
 	"engines": {
@@ -30,11 +32,13 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/kylebonnici/dts-lsp"
+		"url": "git+https://github.com/kylebonnici/dts-lsp.git"
 	},
 	"scripts": {
 		"test": "jest --silent",
-		"test:coverage": "jest --coverage --silent"
+		"test:coverage": "jest --coverage --silent",
+		"prepare-readme": "cp ../README.md ./README.md",
+		"prepublishOnly": "npm run prepare-readme"
 	},
 	"devDependencies": {
 		"@hyperjump/browser": "^1.2.0",

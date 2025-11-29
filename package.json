@@ -223,8 +223,9 @@
 		"watch:server:esbuild": "node ./server/esbuild.js --watch",
 		"watch:client:esbuild": "node ./client/esbuild.js --watch",
 		"watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
-		"vscode:prepublish": "npm run package",
+		"vscode:prepublish": "mv README.md README.md.server && cp ./client/README.md README.md && npm run package",
 		"package": "npm run check-types && npm run compile:prod",
+		"vsce:package": "vsce package && rm README.md && mv README.md.server README.md",
 		"lint": "npx eslint 'client/src/**/*.{ts,tsx,js}' 'server/src/**/*.{ts,tsx,js}'",
 		"lint:fix": "npx eslint 'client/src/**/*.{ts,tsx,js}' 'server/src/**/*.{ts,tsx,js}' --fix"
 	},
