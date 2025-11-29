@@ -1,4 +1,4 @@
-![Build Status](https://github.com/kylebonnici/dts-lsp/actions/workflows/node.js.yml/badge.svg)
+![Build Status](https://github.com/kylebonnici/dts-lsp/actions/workflows/build-test.yml/badge.svg)
 
 # DTS Language Server
 
