@@ -33,7 +33,5 @@ jobs:
               run: |
                   for package in $(ls *.vsix); do
                     echo Package: ${package}
-                    npm install -g ovsx@0.10.5 --ignore-scripts --no-audit --no-fund
+                    ovsx publish ${package} -p ${{ secrets.OPEN_VSX_TOKEN }}
                   done
-              with:
-                  pat: ${{ secrets.OPEN_VSX_TOKEN }}
