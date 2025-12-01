@@ -79,9 +79,10 @@ export class NodePathRef extends ASTBase {
 	}
 
 	serialize(): SerializableNodePath {
+		const nodePath = this.path?.toString();
 		return {
 			type: 'NODE_PATH',
-			nodePath: `/${this.path?.toString() ?? ''}`,
+			nodePath: nodePath === '/' ? nodePath : `/${nodePath ?? ''}`,
 			uri: this.serializeUri,
 			range: this.range,
 			issues: this.serializeIssues,
