@@ -387,8 +387,7 @@ export class ContextAware {
 	public getSortKey(obj: ASTBase | undefined) {
 		if (!obj) return undefined;
 
-		let key = this.sortKeys.get(obj.firstToken);
-		if (key) return key;
+		return this.sortKeys.get(obj.firstToken);
 	}
 
 	public async evaluate() {
