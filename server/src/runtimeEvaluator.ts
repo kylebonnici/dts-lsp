@@ -423,8 +423,20 @@ export class ContextAware {
 	}
 
 	public getSortKeyFile(position: Position, fsPath: string) {
-		let token = this.findTokenBeforePosition(position, fsPath);
+		let foundToken = this.findTokenBeforePosition(position, fsPath);
+		let token = foundToken;
 		let key = token ? this.sortKeys.get(token) : undefined;
+		while (token && !key) {
+			token = token.nextToken;
+			key = token ? this.sortKeys.get(token) : undefined;
+		}
+
+		if (key !== undefined) {
+			return key;
+		}
+
+		token = foundToken;
+		key = token ? this.sortKeys.get(token) : undefined;
 		while (token && !key) {
 			token = token.prevToken;
 			key = token ? this.sortKeys.get(token) : undefined;
@@ -462,7 +474,7 @@ export class ContextAware {
 			);
 
 			if (includeFile) {
-				return includeFile.firstToken;
+				return includeFile.lastToken;
 			}
 		}
 	}

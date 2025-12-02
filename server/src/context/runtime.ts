@@ -23,6 +23,7 @@ import {
 	isPathEqual,
 	positionInBetween,
 	sortAstForScope,
+	toPosition,
 } from '../helpers';
 import {
 	ContextIssues,
@@ -99,12 +100,33 @@ export class Runtime implements Searchable {
 		);
 
 		if (!dtcNode) {
-			const include = [
+			const includes = [
 				this.context.parser,
 				...this.context.overlayParsers,
-			]
-				.flatMap((p) => p.includes)
-				.find((i) => isPathEqual(i.resolvedPath, file));
+			].flatMap((p) => p.includes);
+
+			const getInclude = (
+				file: string,
+				position: Position,
+			): Include | undefined => {
+				const include = includes.find((i) =>
+					isPathEqual(i.resolvedPath, file),
+				);
+
+				if (
+					include &&
+					this.context.getSortKeyFile(position, file) === undefined
+				) {
+					return getInclude(
+						include.lastToken.uri,
+						toPosition(include.lastToken),
+					);
+				}
+
+				return include;
+			};
+
+			const include = getInclude(file, position);
 
 			if (include) {
 				dtcNode = fileAsts.at(-1)?.parentNode;
