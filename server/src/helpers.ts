@@ -1342,9 +1342,9 @@ export const formattingIssuesToMessage = (issue: Issue<FormattingIssues>) => {
 					return `${issue.codeActionTitle}. Expecting ${issue.templateStrings[0]}.`;
 				case FormattingIssues.MISSING_NEW_LINE:
 					return `Move to a new line`;
-				case FormattingIssues.TRALING_EOF_NEW_LINES:
+				case FormattingIssues.TRIALING_EOF_NEW_LINES:
 					return `Remove trailing whitespace at the end of file.`;
-				case FormattingIssues.TRALING_WHITE_SPACE:
+				case FormattingIssues.TRIALING_WHITE_SPACE:
 					return `Remove trailing whitespace at the end of the line.`;
 				case FormattingIssues.WRONG_INDENTATION:
 					return `Fix indentation. ${issue.templateStrings.at(0)?.length === 0 ? 'No indentation expected' : `Expecting ${issue.templateStrings[0]}`}`;
@@ -1354,6 +1354,8 @@ export const formattingIssuesToMessage = (issue: Issue<FormattingIssues>) => {
 					return `Remove (...) enclosure. This expression should only be enclosed in the #define of the macro`;
 				case FormattingIssues.LONG_LINE_WRAP:
 					return `Line is too long. ${issue.codeActionTitle}`;
+				case FormattingIssues.HEX_TO_LOWER_CASE:
+					return `Hex values must be lowercase. ${issue.codeActionTitle}`;
 			}
 		})
 		.join(' or ');

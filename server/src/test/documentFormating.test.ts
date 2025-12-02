@@ -1705,4 +1705,15 @@ describe('Document formating', () => {
 			);
 		});
 	});
+
+	describe('Hex to lower case', () => {
+		test('Node address with reg', async () => {
+			const documentText =
+				'/ {\n\tnode@ABC {\n\t\treg = <0xABC>;\n\t};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tnode@abc {\n\t\treg = <0xabc>;\n\t};\n};',
+			);
+		});
+	});
 });

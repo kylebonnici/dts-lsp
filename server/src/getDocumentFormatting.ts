@@ -61,6 +61,7 @@ import {
 	rangesOverlap,
 	sameLine,
 	toPosition,
+	toRange,
 } from './helpers';
 import { Comment, CommentBlock } from './ast/dtc/comment';
 import { LabelAssign } from './ast/dtc/label';
@@ -76,6 +77,7 @@ import {
 	IfDefineBlock,
 	IfElIfBlock,
 } from './ast/cPreprocessors/ifDefine';
+import { NumberValue } from './ast/dtc/values/number';
 
 const findAst = async (token: Token, uri: string, fileRootAsts: ASTBase[]) => {
 	const pos = Position.create(token.pos.line, token.pos.col);
@@ -712,7 +714,7 @@ async function baseFormatAstBaseItems(
 			);
 			result.push(
 				genFormattingDiagnostic(
-					FormattingIssues.TRALING_EOF_NEW_LINES,
+					FormattingIssues.TRIALING_EOF_NEW_LINES,
 					uri,
 					Position.create(splitDocument.length, 0),
 					{ edit, codeActionTitle: 'Remove trailing EOF lines' },
@@ -822,7 +824,7 @@ const removeTrailingWhitespace = (
 			)
 				result.push(
 					genFormattingDiagnostic(
-						FormattingIssues.TRALING_WHITE_SPACE,
+						FormattingIssues.TRIALING_WHITE_SPACE,
 						uri,
 						rangeToCover.start,
 						{
@@ -1134,6 +1136,38 @@ const formatDtcNode = async (
 
 		if (node instanceof DtcChildNode) {
 			if (
+				node.name?.address?.length &&
+				node.name.address.every((a) => a.toString() !== '')
+			) {
+				node.name.address.forEach((address) => {
+					const rawAddressString = documentText[
+						address.firstToken.pos.line
+					].slice(
+						address.firstToken.pos.col,
+						address.lastToken.pos.colEnd,
+					);
+
+					const lowerCaseAddr = rawAddressString.toLowerCase();
+					if (lowerCaseAddr !== rawAddressString) {
+						result.push(
+							genFormattingDiagnostic(
+								FormattingIssues.HEX_TO_LOWER_CASE,
+								address.uri,
+								toPosition(address.firstToken),
+								{
+									edit: TextEdit.replace(
+										toRange(address),
+										lowerCaseAddr,
+									),
+									codeActionTitle: `Change to '${lowerCaseAddr}'`,
+								},
+								toPosition(address.lastToken),
+							),
+						);
+					}
+				});
+			}
+			if (
 				node.labels.length &&
 				node.name &&
 				node.name.firstToken.prevToken
@@ -1238,6 +1272,7 @@ const formatDtcNode = async (
 
 const formatLabeledValue = <T extends ASTBase>(
 	propertyNameWidth: number,
+	propName: string,
 	value: LabeledValue<T>,
 	level: number,
 	settings: FormattingSettings,
@@ -1255,6 +1290,34 @@ const formatLabeledValue = <T extends ASTBase>(
 				documentText,
 			),
 		);
+	}
+
+	if (propName === 'reg' && value.value instanceof NumberValue) {
+		const rawAddressString = documentText[
+			value.value.firstToken.pos.line
+		].slice(
+			value.value.firstToken.pos.col,
+			value.value.lastToken.pos.colEnd,
+		);
+
+		const lowerCaseAddr = rawAddressString.toLowerCase();
+		if (lowerCaseAddr !== rawAddressString) {
+			result.push(
+				genFormattingDiagnostic(
+					FormattingIssues.HEX_TO_LOWER_CASE,
+					value.value.uri,
+					toPosition(value.value.firstToken),
+					{
+						edit: TextEdit.replace(
+							toRange(value.value),
+							lowerCaseAddr,
+						),
+						codeActionTitle: `Change to '${lowerCaseAddr}'`,
+					},
+					toPosition(value.value.lastToken),
+				),
+			);
+		}
 	}
 
 	if (value.firstToken.prevToken) {
@@ -1308,6 +1371,7 @@ const formatLabeledValue = <T extends ASTBase>(
 
 const formatValue = (
 	propertyNameWidth: number,
+	propName: string,
 	value: AllValueType,
 	level: number,
 	settings: FormattingSettings,
@@ -1332,6 +1396,7 @@ const formatValue = (
 				...value.values.flatMap((v) =>
 					formatLabeledValue(
 						propertyNameWidth,
+						propName,
 						v,
 						level,
 						settings,
@@ -1564,6 +1629,7 @@ const formatComplexExpression = (
 
 const formatPropertyValue = (
 	propertyNameWidth: number,
+	propName: string,
 	value: PropertyValue,
 	level: number,
 	settings: FormattingSettings,
@@ -1576,6 +1642,7 @@ const formatPropertyValue = (
 	result.push(
 		...formatValue(
 			propertyNameWidth,
+			propName,
 			value.value,
 			level,
 			settings,
@@ -1600,6 +1667,7 @@ const widthToPrefix = (settings: FormattingSettings, width: number): string => {
 
 const formatPropertyValues = (
 	propertyNameWidth: number,
+	propName: string,
 	values: PropertyValues,
 	level: number,
 	settings: FormattingSettings,
@@ -1675,6 +1743,7 @@ const formatPropertyValues = (
 		result.push(
 			...formatPropertyValue(
 				propertyNameWidth,
+				propName,
 				value,
 				level,
 				settings,
@@ -1741,6 +1810,7 @@ const formatDtcProperty = (
 		result.push(
 			...formatPropertyValues(
 				property.propertyName?.name.length ?? 0,
+				property.propertyName?.name ?? '',
 				property.values,
 				level,
 				settings,
