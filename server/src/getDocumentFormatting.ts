@@ -1153,7 +1153,7 @@ const formatDtcNode = async (
 							genFormattingDiagnostic(
 								FormattingIssues.HEX_TO_LOWER_CASE,
 								address.uri,
-								toPosition(address.firstToken),
+								toPosition(address.firstToken, false),
 								{
 									edit: TextEdit.replace(
 										toRange(address),
@@ -1306,7 +1306,7 @@ const formatLabeledValue = <T extends ASTBase>(
 				genFormattingDiagnostic(
 					FormattingIssues.HEX_TO_LOWER_CASE,
 					value.value.uri,
-					toPosition(value.value.firstToken),
+					toPosition(value.value.firstToken, false),
 					{
 						edit: TextEdit.replace(
 							toRange(value.value),
