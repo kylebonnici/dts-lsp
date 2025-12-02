@@ -299,15 +299,13 @@ export class Parser extends BaseParser {
 
 		const firstToken = this.moveToNextToken;
 		let nextToken = firstToken;
-		let expectedToken = LexerToken.FORWARD_SLASH;
-		if (!firstToken || !validToken(firstToken, expectedToken)) {
+		if (!firstToken || !validToken(firstToken, LexerToken.FORWARD_SLASH)) {
 			this.popStack();
 			return false;
 		}
 
 		nextToken = this.moveToNextToken;
-		expectedToken = LexerToken.CURLY_OPEN;
-		if (!nextToken || !validToken(nextToken, expectedToken)) {
+		if (!nextToken || !validToken(nextToken, LexerToken.CURLY_OPEN)) {
 			this.popStack();
 			return false;
 		}
