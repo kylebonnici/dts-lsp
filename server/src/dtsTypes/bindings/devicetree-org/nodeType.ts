@@ -172,10 +172,10 @@ const convertToError = (
 ): FileDiagnostic[] => {
 	const meta = getMeta(node, error.instancePath);
 
-	const intanceNode = meta.node;
+	const instanceNode = meta.node;
 
 	if (error.keyword === 'additionalProperties') {
-		const property = intanceNode.getProperty(
+		const property = instanceNode.getProperty(
 			error.params.additionalProperty,
 		);
 
@@ -190,7 +190,7 @@ const convertToError = (
 				property.ast,
 				{
 					templateStrings: [
-						`Node "${intanceNode.name}" ${error.message}: ${property.name}`,
+						`Node "${instanceNode.name}" ${error.message}: ${property.name}`,
 					],
 					edit: TextEdit.del(
 						toRangeWithTokenIndex(
@@ -205,7 +205,7 @@ const convertToError = (
 		];
 	} else if (error.keyword === 'type') {
 		// TODO JSON is not valid as is to check types.....
-		const prop = intanceNode.getProperty(error.instancePath.split('/')[1]);
+		const prop = instanceNode.getProperty(error.instancePath.split('/')[1]);
 
 		if (!prop) {
 			console.warn('unable to find property in node', error);
@@ -228,7 +228,7 @@ const convertToError = (
 	} else if (error.keyword === 'required') {
 		const propertyName = error.params.missingProperty;
 
-		const childOrRefNode = runtime.getOrderedNodeAst(intanceNode);
+		const childOrRefNode = runtime.getOrderedNodeAst(instanceNode);
 		const orderedTree = getNodeNameOrNodeLabelRef(childOrRefNode);
 
 		return childOrRefNode.map((node, i) => {
@@ -298,7 +298,7 @@ const convertToError = (
 			),
 		];
 	} else if (error.keyword === 'maxItems' || error.keyword === 'minItems') {
-		const property = intanceNode.getProperty(
+		const property = instanceNode.getProperty(
 			error.instancePath.split('/').at(-1) ?? '',
 		);
 
