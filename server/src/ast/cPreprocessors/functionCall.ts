@@ -70,7 +70,7 @@ export class CMacroCall extends Expression {
 
 	toString() {
 		return `${this.functionName.toString()}(${this.params
-			.map((p) => p?.toString() ?? '<NULL>')
+			.map((p) => p?.toString() ?? '')
 			.join(',')})`;
 	}
 
