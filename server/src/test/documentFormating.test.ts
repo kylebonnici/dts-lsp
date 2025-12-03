@@ -1642,12 +1642,57 @@ describe('Document formating', () => {
 			);
 		});
 
-		test('single line - Wrap items to new line', async () => {
+		test('single long line - Wrap items to new line', async () => {
 			const documentText =
 				'/ {\n\tprop1 = <10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30>;\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
 				'/ {\n\tprop1 = <10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20\n\t\t\t 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10\n\t\t\t 20 30 10 20 30 10 20 30>;\n};',
+			);
+		});
+
+		test('single number line 101 colons - one value', async () => {
+			const documentText =
+				'/ {\n\tprop1 = <10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20>;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tprop1 = <10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10\n\t\t\t 20>;\n};',
+			);
+		});
+
+		test('single number line with end comment - one value', async () => {
+			const documentText =
+				'/ {\n\tprop1 = <10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20> /* FOO */;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tprop1 = <10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10\n\t\t\t 20>; /* FOO */\n};',
+			);
+		});
+
+		test('single string line 101 colons - two values', async () => {
+			const documentText =
+				'/ {\n\tprop1 = "10 20 30", "10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10";\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tprop1 = "10 20 30",\n\t\t\t"10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10";\n};',
+			);
+		});
+
+		test('single string with end comment - two value', async () => {
+			const documentText =
+				'/ {\n\tprop1 = "10 20 30", "10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10" /* FOO */;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tprop1 = "10 20 30",\n\t\t\t"10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10"; /* FOO */\n};',
+			);
+		});
+
+		test('single line 101 colons - two values ', async () => {
+			const documentText =
+				'/ {\n\tprop1 = <10 20 30 10 20 30 10 20 30 10 20 30 10 20>, <10 20 30 10 20 30 10 20 30 10 20 30 10 20>, <10 20 30>;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tprop1 = <10 20 30 10 20 30 10 20 30 10 20 30 10 20>,\n\t\t\t<10 20 30 10 20 30 10 20 30 10 20 30 10 20>, <10 20 30>;\n};',
 			);
 		});
 
