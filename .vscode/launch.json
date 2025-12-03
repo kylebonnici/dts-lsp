@@ -3,6 +3,15 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"name": "Attach to Remote Server",
+			"type": "node",
+			"request": "attach",
+			"port": 6009,
+			"restart": true,
+			"timeout": 10000,
+			"skipFiles": ["<node_internals>/**"]
+		},
+		{
 			"type": "extensionHost",
 			"request": "launch",
 			"name": "Launch Client",

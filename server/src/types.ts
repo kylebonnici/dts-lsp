@@ -390,8 +390,11 @@ export type RangeMapping = {
 	rangeTokens: TokenIndexes;
 };
 
-export interface NexusMapEnty {
+export interface NexusMapEntry {
+	childCellCount: number;
 	mappingValues: (LabelRef | NodePathRef | NumberValue | Expression)[];
-	node: Node;
-	parentValues: (LabelRef | NodePathRef | NumberValue | Expression)[];
+	node?: Node;
+	nodeAst?: LabelRef | NodePathRef | NumberValue | Expression;
+	parentCellCount?: number;
+	parentValues?: (LabelRef | NodePathRef | NumberValue | Expression)[];
 }
