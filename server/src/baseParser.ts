@@ -318,7 +318,11 @@ export abstract class BaseParser {
 			return;
 		}
 
-		if (!skippingIssueChecking && identifier.name !== 'defined') {
+		if (
+			!skippingIssueChecking &&
+			identifier.firstToken !== identifier.lastToken &&
+			identifier.name !== 'defined'
+		) {
 			const macro = macros.get(identifier.name);
 			if (!macro) {
 				this._issues.push(
