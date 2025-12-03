@@ -4,7 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.7.2] - Unreleased
+## [0.7.2] - 2025-12-03
+
+### Changed
+
+- Format all hex values are changed to lower case not just the ones in
+  property with name 'reg'
 
 ### Fixed
 
