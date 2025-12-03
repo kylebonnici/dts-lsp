@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed incorrect `Unknown macro` error when arguments are empty
+- Fixed incorrect `Unknown macro` error when arguments are empty.
 
 ## [0.7.1] - 2025-12-02
 

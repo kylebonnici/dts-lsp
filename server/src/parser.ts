@@ -1837,6 +1837,7 @@ export class Parser extends BaseParser {
 					result &&
 					!this.cPreprocessorParser.optimizeForFormatting &&
 					((result.value instanceof CMacroCall &&
+						result.value.params.every((v) => !!v) &&
 						this.cPreprocessorParser.macros.has(
 							result.value.functionName.name,
 						)) ||
