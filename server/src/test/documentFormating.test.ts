@@ -1476,25 +1476,25 @@ describe('Document formating', () => {
 		test('hex with 0XD > on same line', async () => {
 			const documentText = '/ {\n\tprop1 = <0XD>;\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <0XD>;\n};');
+			expect(newText).toEqual('/ {\n\tprop1 = <0xd>;\n};');
 		});
 
 		test('hex with 0XD > on new line', async () => {
 			const documentText = '/ {\n\tprop1 = <0XD\n>;\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <0XD>;\n};');
+			expect(newText).toEqual('/ {\n\tprop1 = <0xd>;\n};');
 		});
 
 		test('hex with 0XD with line comment > on new line', async () => {
 			const documentText = '/ {\n\tprop1 = <0XD // test\n>;\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <0XD // test\n\t>;\n};');
+			expect(newText).toEqual('/ {\n\tprop1 = <0xd // test\n\t>;\n};');
 		});
 
 		test('hex with 0XD with block comment > on new line', async () => {
 			const documentText = '/ {\n\tprop1 = <0XD /* test */\n>;\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <0XD /* test */ >;\n};');
+			expect(newText).toEqual('/ {\n\tprop1 = <0xd /* test */ >;\n};');
 		});
 
 		test('empty array value with spaces', async () => {
