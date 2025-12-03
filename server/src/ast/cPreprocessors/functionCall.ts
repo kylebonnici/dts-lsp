@@ -71,7 +71,7 @@ export class CMacroCall extends Expression {
 	toString() {
 		return `${this.functionName.toString()}(${this.params
 			.map((p) => p?.toString() ?? '')
-			.join(',')})`;
+			.join(', ')})`;
 	}
 
 	isTrue(macros: Map<string, MacroRegistryItem>): boolean {
