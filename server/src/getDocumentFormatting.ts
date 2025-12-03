@@ -1286,7 +1286,6 @@ const formatDtcNode = async (
 
 const formatLabeledValue = <T extends ASTBase>(
 	propertyNameWidth: number,
-	propName: string,
 	value: LabeledValue<T>,
 	level: number,
 	settings: FormattingSettings,
@@ -1306,7 +1305,7 @@ const formatLabeledValue = <T extends ASTBase>(
 		);
 	}
 
-	if (propName === 'reg' && value.value instanceof NumberValue) {
+	if (value.value instanceof NumberValue) {
 		const rawAddressString = documentText[
 			value.value.firstToken.pos.line
 		].slice(
@@ -1385,7 +1384,6 @@ const formatLabeledValue = <T extends ASTBase>(
 
 const formatValue = (
 	propertyNameWidth: number,
-	propName: string,
 	value: AllValueType,
 	level: number,
 	settings: FormattingSettings,
@@ -1410,7 +1408,6 @@ const formatValue = (
 				...value.values.flatMap((v) =>
 					formatLabeledValue(
 						propertyNameWidth,
-						propName,
 						v,
 						level,
 						settings,
@@ -1643,7 +1640,6 @@ const formatComplexExpression = (
 
 const formatPropertyValue = (
 	propertyNameWidth: number,
-	propName: string,
 	value: PropertyValue,
 	level: number,
 	settings: FormattingSettings,
@@ -1656,7 +1652,6 @@ const formatPropertyValue = (
 	result.push(
 		...formatValue(
 			propertyNameWidth,
-			propName,
 			value.value,
 			level,
 			settings,
@@ -1757,7 +1752,6 @@ const formatPropertyValues = (
 		result.push(
 			...formatPropertyValue(
 				propertyNameWidth,
-				propName,
 				value,
 				level,
 				settings,
