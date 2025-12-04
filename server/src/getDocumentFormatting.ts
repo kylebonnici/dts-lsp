@@ -2043,20 +2043,20 @@ const formatCommentBlock = (
 const getPropertyIndentPrefix = (
 	settings: FormattingSettings,
 	closestAst?: ASTBase,
-	prifix: string = '',
+	prefix: string = '',
 ) => {
 	const property = closestAst ? getPropertyFromChild(closestAst) : undefined;
-	if (!property) return prifix;
+	if (!property) return prefix;
 	const propertyValueChild = isPropertyValueChild(closestAst);
 	const propertyNameWidth = property.propertyName?.name.length ?? 0;
-	const witdhPrifix = `${widthToPrefix(
+	const widthPrefix = `${widthToPrefix(
 		settings,
 		propertyNameWidth +
 			(propertyValueChild ? 4 : 3) +
-			(prifix.length - prifix.trimStart().length),
+			(prefix.length - prefix.trimStart().length),
 	)}`;
 
-	return `${witdhPrifix}${prifix.trimStart()}`; // +3 ' = ' or + 4 ' = <'
+	return `${widthPrefix}${prefix.trimStart()}`; // +3 ' = ' or + 4 ' = <'
 };
 
 const getNodeExpectedNumberOfNewLines = (
@@ -2178,7 +2178,7 @@ const formatBlockCommentLine = (
 	}
 
 	const result: FileDiagnostic[] = [];
-	let prifix: string = '';
+	let prefix: string = '';
 	const commentStr = commentItem.toString();
 	if (
 		lineType === 'last' &&
@@ -2199,12 +2199,12 @@ const formatBlockCommentLine = (
 
 	switch (lineType) {
 		case 'comment':
-			prifix = commentItem.firstToken.value === '*' ? ' ' : ' * ';
+			prefix = commentItem.firstToken.value === '*' ? ' ' : ' * ';
 			break;
 		case 'first':
 			break;
 		case 'last':
-			prifix = ' ';
+			prefix = ' ';
 			break;
 	}
 
@@ -2215,7 +2215,7 @@ const formatBlockCommentLine = (
 				levelMeta?.level ?? 0,
 				indentString,
 				documentText,
-				prifix,
+				prefix,
 				expectedNumberOfLines,
 				forceNumberOfLines,
 			),
@@ -2227,7 +2227,7 @@ const formatBlockCommentLine = (
 				levelMeta?.level ?? 0,
 				indentString,
 				documentText,
-				getPropertyIndentPrefix(settings, levelMeta?.inAst, prifix),
+				getPropertyIndentPrefix(settings, levelMeta?.inAst, prefix),
 				expectedNumberOfLines,
 				forceNumberOfLines,
 			),
