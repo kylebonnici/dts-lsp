@@ -2067,17 +2067,17 @@ const getNodeExpectedNumberOfNewLines = (
 		.flatMap((block) => {
 			if (block instanceof IfDefineBlock) {
 				return [
-					block.ifDef,
-					...(block.elseOption ? [block.elseOption] : []),
+					block.ifDef.identifier?.lastToken.nextToken,
+					block.elseOption?.keyword.lastToken.nextToken,
 				];
 			}
 
 			return [
-				...block.ifBlocks,
-				...(block.elseOption ? [block.elseOption] : []),
+				...block.ifBlocks.map((b) => b.expression?.lastToken.nextToken),
+				block.elseOption?.lastToken.nextToken,
 			];
 		})
-		.some((block) => block.content?.firstToken === token);
+		.some((t) => t === token);
 	return token.prevToken?.value === '{' || isFirstInIfDefBlock ? 1 : 2;
 };
 
