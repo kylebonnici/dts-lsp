@@ -2793,6 +2793,8 @@ const formatLongLinesPropertyValue = (
 				singleIndent,
 			);
 		}
+
+		return;
 	}
 
 	const otherItem = allValues
