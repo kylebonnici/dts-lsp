@@ -2709,11 +2709,12 @@ const formatLongLinesPropertyValue = (
 	singleIndent: string,
 	semicolon?: Token,
 ): FileDiagnostic[] | undefined => {
+	const valueEnd = value.nextValueSeparator ?? semicolon;
 	const wrapping = needWrapping(
 		value.firstToken,
 		value.nextValueSeparator
 			? value.nextValueSeparator
-			: (semicolon ?? value.lastToken),
+			: (valueEnd ?? value.lastToken),
 		settings,
 		documentText,
 	);
@@ -2736,7 +2737,7 @@ const formatLongLinesPropertyValue = (
 				settings,
 				documentText,
 				singleIndent,
-				semicolon,
+				valueEnd,
 			);
 		}
 
@@ -2779,7 +2780,7 @@ const formatLongLinesPropertyValue = (
 				settings,
 				documentText,
 				singleIndent,
-				semicolon,
+				valueEnd,
 			);
 		}
 
@@ -2846,13 +2847,13 @@ const formatLongLinesArrayValue = (
 	settings: FormattingSettings,
 	documentText: string[],
 	singleIndent: string,
-	semicolon?: Token,
+	valueEnd?: Token,
 ): FileDiagnostic[] | undefined => {
 	for (const [index, value] of innerValue.values.entries()) {
 		const wrapping = needWrapping(
 			value.firstToken,
 			index === innerValue.values.length - 1
-				? (semicolon ?? value.lastToken)
+				? (valueEnd ?? value.lastToken)
 				: value.lastToken,
 			settings,
 			documentText,
