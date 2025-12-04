@@ -2723,9 +2723,13 @@ const formatLongLinesPropertyValue = (
 		0,
 		value.firstToken.pos.col,
 	);
-	const minWidth = level + propertyNameWidth + 3; // ` = `
+	const a = Math.trunc((propertyNameWidth + 3) / settings.tabSize);
+	const b = (propertyNameWidth + 3) % settings.tabSize;
+	const minWidth2 = a + b + level;
+	const minWidth =
+		line.trimStart() !== '' ? level + propertyNameWidth + 3 : minWidth2; // ` = `
 	// can we move the whole array to new line?
-	if (value.firstToken.pos.col === minWidth && line.trimStart() !== '') {
+	if (value.firstToken.pos.col === minWidth) {
 		// no we cannot we are already on new line
 		const innerValue = value.value;
 
@@ -2883,7 +2887,7 @@ const formatLongLinesArrayValue = (
 		];
 	}
 
-	return [];
+	return;
 };
 
 const formatLongLinesExpression = (
@@ -2900,12 +2904,13 @@ const formatLongLinesExpression = (
 		0,
 		expression.firstToken.pos.col,
 	);
-	const minWidth = level + propertyNameWidth + 4; // ` = <`
-	if (
-		canWrapWholeExpression &&
-		expression.firstToken.pos.col !== minWidth &&
-		line.trimStart() !== ''
-	) {
+
+	const a = Math.trunc((propertyNameWidth + 4) / settings.tabSize);
+	const b = (propertyNameWidth + 4) % settings.tabSize;
+	const minWidth2 = a + b + level;
+	const minWidth =
+		line.trimStart() !== '' ? level + propertyNameWidth + 4 : minWidth2; // ` = `
+	if (canWrapWholeExpression && expression.firstToken.pos.col !== minWidth) {
 		return [
 			genFormattingDiagnostic(
 				FormattingIssues.LONG_LINE_WRAP,
