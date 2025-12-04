@@ -860,10 +860,10 @@ const removeTrailingWhitespace = (
 	const result: FileDiagnostic[] = [];
 	documentText.forEach((line, i) => {
 		const removeReturn = line.endsWith('\r') ? line.slice(0, -1) : line;
-		const endTimmed = removeReturn.trimEnd();
-		if (endTimmed.length !== removeReturn.length) {
+		const endTrimmed = removeReturn.trimEnd();
+		if (endTrimmed.length !== removeReturn.length) {
 			const rangeToCover = Range.create(
-				Position.create(i, endTimmed.length),
+				Position.create(i, endTrimmed.length),
 				Position.create(i, removeReturn.length),
 			);
 			if (
