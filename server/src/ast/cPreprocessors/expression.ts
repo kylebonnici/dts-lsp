@@ -54,7 +54,7 @@ export abstract class Expression extends ASTBase {
 		this.#isTrue ??= evalExp(
 			`!!(${this.operator ? this.operator.toString() : ''}${this.resolve(macros)})`,
 		) as boolean;
-		return this.#isTrue;
+		return typeof this.#isTrue === 'boolean' && this.#isTrue;
 	}
 
 	toPrettyString(macros: Map<string, MacroRegistryItem>) {
