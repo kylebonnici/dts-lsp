@@ -333,7 +333,7 @@ export async function formatText(
 				text,
 				returnType,
 				options,
-				variantDocuments,
+				[...variantDocuments],
 			);
 			finalText = r.text;
 			diagnostic.push(...r.diagnostic);
@@ -418,7 +418,7 @@ export async function formatText(
 			text,
 			returnType,
 			options,
-			variantDocuments,
+			[...variantDocuments],
 		);
 		diagnostic.push(...r);
 	}
