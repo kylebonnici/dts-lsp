@@ -156,6 +156,7 @@ export async function formatText(
 	options?: FormattingFlags,
 	tokens?: Token[],
 	prevIfBlocks?: (IfDefineBlock | IfElIfBlock)[],
+	processedPrevIfBlocks?: CIfBase[],
 ): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
 export async function formatText(
 	documentFormattingParams:
@@ -166,6 +167,7 @@ export async function formatText(
 	options?: FormattingFlags,
 	tokens?: Token[],
 	prevIfBlocks?: (IfDefineBlock | IfElIfBlock)[],
+	processedPrevIfBlocks?: CIfBase[],
 ): Promise<string>;
 export async function formatText(
 	documentFormattingParams:
@@ -176,6 +178,7 @@ export async function formatText(
 	options?: FormattingFlags,
 	tokens?: Token[],
 	prevIfBlocks?: (IfDefineBlock | IfElIfBlock)[],
+	processedPrevIfBlocks?: CIfBase[],
 ): Promise<FileDiagnostic[]>;
 export async function formatText(
 	documentFormattingParams:
@@ -189,6 +192,7 @@ export async function formatText(
 	},
 	tokens?: Token[],
 	prevIfBlocks: (IfDefineBlock | IfElIfBlock)[] = [],
+	processedPrevIfBlocks: CIfBase[] = [],
 ): Promise<
 	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
 > {
@@ -225,6 +229,7 @@ export async function formatText(
 		},
 		parser,
 		prevIfBlocks,
+		processedPrevIfBlocks,
 		rawTokens,
 		text,
 		options,
@@ -450,6 +455,7 @@ const getDisabledMarcoRangeEdits = async (
 	documentFormattingParams: CustomDocumentFormattingParams,
 	parser: Parser,
 	prevIfBlocks: (IfDefineBlock | IfElIfBlock)[],
+	processedPrevIfBlocks: CIfBase[],
 	rawTokens: Token[],
 	text: string,
 	options: FormattingFlags,
@@ -461,74 +467,103 @@ const getDisabledMarcoRangeEdits = async (
 		(ast) => ast instanceof IfElIfBlock,
 	);
 
-	prevIfBlocks.push(...ifDefBlocks);
-	prevIfBlocks.push(...ifBlocks);
+	const newIfDefBlocks = ifDefBlocks.filter((b) =>
+		prevIfBlocks.every(
+			(bb) => b.firstToken.pos.line !== bb.firstToken.pos.line,
+		),
+	);
+	const newIfBlocks = ifBlocks.filter((b) =>
+		prevIfBlocks.every(
+			(bb) => b.firstToken.pos.line !== bb.firstToken.pos.line,
+		),
+	);
+	prevIfBlocks.push(...newIfDefBlocks);
+	prevIfBlocks.push(...newIfBlocks);
 
-	return (
-		await Promise.all(
-			[
-				...ifDefBlocks.map((block) => {
-					if (block.ifDef.active) {
-						if (block.elseOption) {
-							return {
-								block,
-								branch: block.elseOption,
-							};
-						}
-						return;
-					}
-
+	const rangesToWorkOn = [
+		...ifDefBlocks.map((block) => {
+			if (block.ifDef.active) {
+				if (block.elseOption) {
 					return {
 						block,
-						branch: block.ifDef,
+						branch: block.elseOption,
 					};
-				}),
-				...ifBlocks.flatMap((block) => {
-					const active = block.ifBlocks.find((i) => i.active);
-					const results: {
-						block: IfElIfBlock;
-						branch: CIf | CElse;
-					}[] = block.ifBlocks
-						.filter((v) => !v.active)
-						.map((branch) => ({
-							block,
-							branch,
-						}));
-					if (!active && block.elseOption) {
-						results.push({
-							block,
-							branch: block.elseOption,
-						});
-					}
+				}
+				return;
+			}
 
-					return results;
-				}),
-			]
-				.filter((v) => !!v)
-				.flatMap(async (meta) => {
-					const rangeToClean = meta.block
-						.getInValidTokenRangeWhenActiveBlock(
-							meta.branch,
-							rawTokens,
-						)
-						.reverse();
+			return {
+				block,
+				branch: block.ifDef,
+			};
+		}),
+		...ifBlocks.flatMap((block) => {
+			const active = block.ifBlocks.find((i) => i.active);
+			const results: {
+				block: IfElIfBlock;
+				branch: CIf | CElse;
+			}[] = block.ifBlocks
+				.filter((v) => !v.active)
+				.map((branch) => ({
+					block,
+					branch,
+				}));
+			if (!active && block.elseOption) {
+				results.push({
+					block,
+					branch: block.elseOption,
+				});
+			}
 
-					const newTokenStream = [...rawTokens];
-					rangeToClean.forEach((r) => {
-						newTokenStream.splice(r.start, r.end - r.start + 1);
-					});
-					const range = meta.block.range;
-					return formatText(
-						{ ...documentFormattingParams, range },
-						text,
-						'File Diagnostics',
-						options,
-						newTokenStream,
-						prevIfBlocks,
-					);
-				}),
+			return results;
+		}),
+	].filter((v) => !!v);
+
+	const action = (
+		meta:
+			| {
+					block: IfDefineBlock;
+					branch: CElse;
+			  }
+			| {
+					block: IfElIfBlock;
+					branch: CIf | CElse;
+			  },
+	) => {
+		const rangeToClean = meta.block
+			.getInValidTokenRangeWhenActiveBlock(meta.branch, rawTokens)
+			.reverse();
+
+		const newTokenStream = [...rawTokens];
+		rangeToClean.forEach((r) => {
+			newTokenStream.splice(r.start, r.end - r.start + 1);
+		});
+		const range = meta.block.range;
+		processedPrevIfBlocks.push(meta.branch);
+		return formatText(
+			{ ...documentFormattingParams, range },
+			text,
+			'File Diagnostics',
+			options,
+			newTokenStream,
+			prevIfBlocks,
+			processedPrevIfBlocks,
+		);
+	};
+
+	const results: FileDiagnostic[] = [];
+	await rangesToWorkOn
+		.filter((r) =>
+			processedPrevIfBlocks.every(
+				(i) => i.firstToken.pos.line !== r.block.firstToken.pos.line,
+			),
 		)
-	).flat();
+		.reduce((acc, curr) => {
+			return acc.then(async () => {
+				results.push(...(await action(curr)));
+			});
+		}, Promise.resolve());
+	return results;
 };
 
 const filterOnOffEdits = (
