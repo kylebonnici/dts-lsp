@@ -1794,7 +1794,6 @@ connection.onRequest(
 			text?: string;
 		},
 	) => {
-		await allStable();
 		const filePath = fileURLToPath(event.textDocument.uri);
 
 		const documentText =
