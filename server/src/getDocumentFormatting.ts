@@ -489,7 +489,7 @@ const getDisabledMarcoRangeEdits = async (
 						block: IfElIfBlock;
 						branch: CIf | CElse;
 					}[] = block.ifBlocks
-						.filter((v) => v.active)
+						.filter((v) => !v.active)
 						.map((branch) => ({
 							block,
 							branch,
