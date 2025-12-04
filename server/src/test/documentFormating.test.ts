@@ -453,12 +453,21 @@ describe('Document formating', () => {
 			);
 		});
 
-		test('Comment not linked inside a disabed if def inside node', async () => {
+		test('Comment not linked inside a disabled if def inside node', async () => {
 			const documentText =
 				'/ {\n#ifdef ABC\nnode {\n/* foo; */ };\n#endif\n\tnode1 {};\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
 				'/ {\n#ifdef ABC\n\tnode {\n\t\t/* foo; */\n\t};\n#endif\n\n\tnode1 {};\n};',
+			);
+		});
+
+		test('Comment linked to node inside ifdef', async () => {
+			const documentText =
+				'/ {\n#ifdef ABC\n/* foo; */\nnode {};\n#endif\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n#ifdef ABC\n\t/* foo; */\n\tnode {};\n#endif\n};',
 			);
 		});
 	});
@@ -721,6 +730,22 @@ describe('Document formating', () => {
 			const documentText = '/ {\n/* foo */\n\tnode { };\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual('/ {\n\t/* foo */\n\tnode {};\n};');
+		});
+
+		test('Nested ifs with comment', async () => {
+			const documentText = `#if PMOD_MTU3
+#if MTU3_COUNTER_Z_PHASE_SIGNAL
+/* SDHI cd pin is muxed with counter Z phase signal */
+&sdhi1 {};
+#endif
+#endif`;
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(`#if PMOD_MTU3
+#if MTU3_COUNTER_Z_PHASE_SIGNAL
+/* SDHI cd pin is muxed with counter Z phase signal */
+&sdhi1 {};
+#endif
+#endif`);
 		});
 
 		test('Correct indentation in level 1 multi line', async () => {
