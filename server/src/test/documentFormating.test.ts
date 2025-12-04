@@ -15,7 +15,6 @@
  */
 
 import fs from 'fs';
-import { fileURLToPath } from 'url';
 import { describe, test, jest, expect, beforeEach } from '@jest/globals';
 import {
 	FormattingOptions,
@@ -23,9 +22,8 @@ import {
 } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { resetTokenizedDocumentProvider } from '../providers/tokenizedDocument';
-import { ContextAware } from '../runtimeEvaluator';
 import { formatText } from '../getDocumentFormatting';
-import { filePathUri, getFakeBindingLoader } from './helpers';
+import { filePathUri } from './helpers';
 
 jest.mock('fs', () => ({
 	readFileSync: jest.fn().mockImplementation(() => {
@@ -50,17 +48,6 @@ const getEdits = async (
 	const textDocument: TextDocumentIdentifier = {
 		uri: document.uri,
 	};
-	const context = new ContextAware(
-		{ dtsFile: fileURLToPath(textDocument.uri) },
-		{
-			...options,
-			tabSize: 4,
-			insertSpaces: false,
-			trimTrailingWhitespace: true,
-		},
-		getFakeBindingLoader(),
-	);
-	await context.parser.stable;
 
 	return formatText(
 		{
