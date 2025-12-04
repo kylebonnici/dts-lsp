@@ -74,6 +74,7 @@ import { Lexer } from './lexer';
 import {
 	CElse,
 	CIf,
+	CIfBase,
 	IfDefineBlock,
 	IfElIfBlock,
 } from './ast/cPreprocessors/ifDefine';
@@ -146,6 +147,17 @@ type FormattingFlags = {
 	runBaseCheck: boolean;
 	runLongLineCheck: boolean;
 };
+const hasLongLines = (text: string, tabSize: number, wordWrapColumn: number) =>
+	!!text
+		.split('\n')
+		.find(
+			(l) =>
+				l
+					.replace(/^\s+/, (prefix) =>
+						prefix.replace(/\t/g, ' '.repeat(tabSize)),
+					)
+					.trimEnd().length > wordWrapColumn,
+		);
 
 export async function formatText(
 	documentFormattingParams:
@@ -235,24 +247,6 @@ export async function formatText(
 		options,
 	);
 
-	const hasLongLines =
-		options.runLongLineCheck &&
-		!!text
-			.split('\n')
-			.find(
-				(l) =>
-					l
-						.replace(/^\s+/, (prefix) =>
-							prefix.replace(
-								/\t/g,
-								' '.repeat(
-									documentFormattingParams.options.tabSize,
-								),
-							),
-						)
-						.trimEnd().length > wordWrapColumn,
-			);
-
 	if (returnType === 'New Text') {
 		let finalText = text;
 
@@ -278,7 +272,13 @@ export async function formatText(
 			finalText = r;
 		}
 
-		if (hasLongLines) {
+		if (
+			hasLongLines(
+				finalText,
+				documentFormattingParams.options.tabSize,
+				wordWrapColumn,
+			)
+		) {
 			let prevText = '';
 			do {
 				prevText = finalText;
@@ -344,7 +344,13 @@ export async function formatText(
 			diagnostic.push(...r.diagnostic);
 		}
 
-		if (hasLongLines) {
+		if (
+			hasLongLines(
+				finalText,
+				documentFormattingParams.options.tabSize,
+				wordWrapColumn,
+			)
+		) {
 			diagnostic.push(
 				...(await formatLongLines(
 					{
@@ -428,7 +434,13 @@ export async function formatText(
 		diagnostic.push(...r);
 	}
 
-	if (hasLongLines) {
+	if (
+		hasLongLines(
+			text,
+			documentFormattingParams.options.tabSize,
+			wordWrapColumn,
+		)
+	) {
 		diagnostic.push(
 			...(await formatLongLines(
 				{
