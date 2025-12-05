@@ -846,7 +846,7 @@ describe('Document formating', () => {
 		node {};
 	};
 };
-#ifdef ABC
+#if ABC
 / {
 /* FOO */
 	node {
@@ -876,7 +876,7 @@ describe('Document formating', () => {
 		node {};
 	};
 };
-#ifdef ABC
+#if ABC
 / {
 	/* FOO */
 	node {
@@ -1589,7 +1589,7 @@ describe('Document formating', () => {
 		});
 	});
 
-	describe('Maco dependent code', () => {
+	describe('Macro dependent code', () => {
 		test('Comment not linked inside a if def', async () => {
 			const documentText =
 				'/ {\n#ifdef ABC\nnode {};node {};\n#else\nnode {};prop;node {};\n#endif\n\tnode1 {};\n};';
