@@ -121,7 +121,8 @@ const getAstItemLevel =
 				!(ast instanceof Include) &&
 				!(ast instanceof Comment) &&
 				!(ast instanceof CommentBlock) &&
-				!(ast instanceof IfDefineBlock),
+				!(ast instanceof IfDefineBlock) &&
+				!(ast instanceof IfElIfBlock),
 		);
 		const parentAst = await findAst(astNode.firstToken, uri, rootItem);
 
