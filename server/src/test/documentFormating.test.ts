@@ -15,7 +15,6 @@
  */
 
 import fs from 'fs';
-import { fileURLToPath } from 'url';
 import { describe, test, jest, expect, beforeEach } from '@jest/globals';
 import {
 	FormattingOptions,
@@ -23,9 +22,8 @@ import {
 } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { resetTokenizedDocumentProvider } from '../providers/tokenizedDocument';
-import { ContextAware } from '../runtimeEvaluator';
 import { formatText } from '../getDocumentFormatting';
-import { filePathUri, getFakeBindingLoader } from './helpers';
+import { filePathUri } from './helpers';
 
 jest.mock('fs', () => ({
 	readFileSync: jest.fn().mockImplementation(() => {
@@ -50,17 +48,6 @@ const getEdits = async (
 	const textDocument: TextDocumentIdentifier = {
 		uri: document.uri,
 	};
-	const context = new ContextAware(
-		{ dtsFile: fileURLToPath(textDocument.uri) },
-		{
-			...options,
-			tabSize: 4,
-			insertSpaces: false,
-			trimTrailingWhitespace: true,
-		},
-		getFakeBindingLoader(),
-	);
-	await context.parser.stable;
 
 	return formatText(
 		{
@@ -466,12 +453,21 @@ describe('Document formating', () => {
 			);
 		});
 
-		test('Comment not linked inside a disabed if def inside node', async () => {
+		test('Comment not linked inside a disabled if def inside node', async () => {
 			const documentText =
 				'/ {\n#ifdef ABC\nnode {\n/* foo; */ };\n#endif\n\tnode1 {};\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
 				'/ {\n#ifdef ABC\n\tnode {\n\t\t/* foo; */\n\t};\n#endif\n\n\tnode1 {};\n};',
+			);
+		});
+
+		test('Comment linked to node inside ifdef', async () => {
+			const documentText =
+				'/ {\n#ifdef ABC\n/* foo; */\nnode {};\n#endif\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n#ifdef ABC\n\t/* foo; */\n\tnode {};\n#endif\n};',
 			);
 		});
 	});
@@ -736,6 +732,22 @@ describe('Document formating', () => {
 			expect(newText).toEqual('/ {\n\t/* foo */\n\tnode {};\n};');
 		});
 
+		test('Nested ifs with comment', async () => {
+			const documentText = `#if PMOD_MTU3
+#if MTU3_COUNTER_Z_PHASE_SIGNAL
+/* SDHI cd pin is muxed with counter Z phase signal */
+&sdhi1 {};
+#endif
+#endif`;
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(`#if PMOD_MTU3
+#if MTU3_COUNTER_Z_PHASE_SIGNAL
+/* SDHI cd pin is muxed with counter Z phase signal */
+&sdhi1 {};
+#endif
+#endif`);
+		});
+
 		test('Correct indentation in level 1 multi line', async () => {
 			const documentText = '/ {\n/* foo\n* bar\n*/\n\tnode { };\n};';
 			const newText = await getNewText(documentText);
@@ -834,7 +846,7 @@ describe('Document formating', () => {
 		node {};
 	};
 };
-#ifdef ABC
+#if ABC
 / {
 /* FOO */
 	node {
@@ -864,7 +876,7 @@ describe('Document formating', () => {
 		node {};
 	};
 };
-#ifdef ABC
+#if ABC
 / {
 	/* FOO */
 	node {
@@ -1577,7 +1589,7 @@ describe('Document formating', () => {
 		});
 	});
 
-	describe('Maco dependent code', () => {
+	describe('Macro dependent code', () => {
 		test('Comment not linked inside a if def', async () => {
 			const documentText =
 				'/ {\n#ifdef ABC\nnode {};node {};\n#else\nnode {};prop;node {};\n#endif\n\tnode1 {};\n};';
@@ -1625,6 +1637,14 @@ describe('Document formating', () => {
 		});
 	});
 	describe('Ling lines', () => {
+		test('single line - very long string ', async () => {
+			const documentText =
+				'/ {\n\tprop1 = "10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30";\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tprop1 = "10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30";\n};',
+			);
+		});
 		test('single line - String array', async () => {
 			const documentText =
 				'/ {\n\tprop1 = "10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30", "10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30", "10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30" ;\n};';
@@ -1747,6 +1767,15 @@ describe('Document formating', () => {
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
 				'/ {\n\tprop1 = <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <(10 + (20 +\n\t\t\t 10 + 20 + 30 + 10 + 20 + 30 + 10 + 20 + 30 + 10 + 20 + 30 + 10 + 20 + 30 + 10 + 20 +\n\t\t\t 30 + 10 + 20 + 30 + 10 + 20 + 30))>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>,\n\t\t\t<10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>;\n};',
+			);
+		});
+
+		test('multi line - value at 100 columns >, are out', async () => {
+			const documentText =
+				'/ {\n\tprop1 = <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <100>,\n\t\t\t<10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <100>,\n\t\t\t<10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <100>;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tprop1 = <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>,\n\t\t\t<100>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>,\n\t\t\t<10 20 30>, <100>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>,\n\t\t\t<10 20 30>, <10 20 30>, <100>;\n};',
 			);
 		});
 	});

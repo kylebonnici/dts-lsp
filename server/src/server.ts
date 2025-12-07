@@ -304,7 +304,7 @@ connection.onInitialize(async (params: InitializeParams) => {
 	connection.console.log(
 		`[Server(${process.pid}) ${
 			workspaceFolders?.at(0)?.uri
-		} Version 0.7.2 ] Started and initialize received`,
+		} Version 0.7.3 ] Started and initialize received`,
 	);
 
 	const capabilities = params.capabilities;
@@ -1794,7 +1794,6 @@ connection.onRequest(
 			text?: string;
 		},
 	) => {
-		await allStable();
 		const filePath = fileURLToPath(event.textDocument.uri);
 
 		const documentText =

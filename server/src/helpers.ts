@@ -1590,19 +1590,17 @@ export const linkAstToComments = (
 	const before = linkAstBeforeComment(astItem, comments);
 
 	if (after) {
-		astItem.topComment = after.comment;
+		astItem.topComment = after;
 	}
 	if (before) {
-		astItem.endComment = before.comment;
+		astItem.endComment = before;
 	}
 };
 
 const linkAstAfterComment = <T extends ASTBase>(
 	astItem: T,
 	comments: (CommentBlock | Comment)[],
-):
-	| { comment: CommentBlock | Comment; commentIsBefore: boolean }
-	| undefined => {
+): CommentBlock | Comment | undefined => {
 	const linkedComment = comments.find(
 		(c) =>
 			!c.disabled &&
@@ -1620,22 +1618,17 @@ const linkAstAfterComment = <T extends ASTBase>(
 	const result = linkAstAfterComment(linkedComment, comments);
 
 	if (result) {
-		result.comment.astAfterComment = astItem;
+		result.astAfterComment = astItem;
 		linkedComment.astAfterComment = undefined;
 	}
 
-	return {
-		comment: result?.comment ?? linkedComment,
-		commentIsBefore: true,
-	};
+	return result ?? linkedComment;
 };
 
 const linkAstBeforeComment = <T extends ASTBase>(
 	astItem: T,
 	comments: (CommentBlock | Comment)[],
-):
-	| { comment: CommentBlock | Comment; commentIsBefore: boolean }
-	| undefined => {
+): CommentBlock | Comment | undefined => {
 	const linkedComment = comments.find(
 		(c) =>
 			!c.disabled &&
@@ -1652,14 +1645,11 @@ const linkAstBeforeComment = <T extends ASTBase>(
 	const result = linkAstBeforeComment(linkedComment, comments);
 
 	if (result) {
-		result.comment.astBeforeComment = astItem;
+		result.astBeforeComment = astItem;
 		linkedComment.astBeforeComment = undefined;
 	}
 
-	return {
-		comment: result?.comment ?? linkedComment,
-		commentIsBefore: false,
-	};
+	return result ?? linkedComment;
 };
 
 export const coreSyntaxIssuesFilter = (

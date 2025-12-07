@@ -569,12 +569,12 @@ export class CPreprocessorParser extends BaseParser {
 		this.macroStart = false;
 
 		let ifDefContent: CPreprocessorContent | undefined;
-		const contentStart =
-			identifier?.lastToken.nextToken ?? ifDefKeyword.lastToken.nextToken;
-		if (
-			contentStart &&
-			block.splitTokens[0].tokens.find((t) => t === contentStart)
-		) {
+		const contentStartIndex =
+			block.splitTokens[0].tokens.indexOf(
+				identifier?.lastToken ?? ifDefKeyword.lastToken,
+			) + 1;
+		const contentStart = block.splitTokens[0].tokens[contentStartIndex];
+		if (contentStartIndex && contentStart) {
 			ifDefContent = new CPreprocessorContent(
 				createTokenIndex(
 					contentStart,
@@ -693,13 +693,13 @@ export class CPreprocessorParser extends BaseParser {
 				}
 
 				let content: CPreprocessorContent | undefined;
+				const contentStartIndex =
+					block.splitTokens[0].tokens.indexOf(
+						expression?.lastToken ?? ifKeyword.lastToken,
+					) + 1;
 				const contentStart =
-					expression?.lastToken.nextToken ??
-					ifKeyword.lastToken.nextToken;
-				if (
-					contentStart &&
-					scope.tokens.find((t) => t === contentStart)
-				) {
+					block.splitTokens[0].tokens[contentStartIndex];
+				if (contentStartIndex && contentStart) {
 					content = new CPreprocessorContent(
 						createTokenIndex(
 							contentStart,

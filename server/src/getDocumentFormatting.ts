@@ -74,6 +74,7 @@ import { Lexer } from './lexer';
 import {
 	CElse,
 	CIf,
+	CIfBase,
 	IfDefineBlock,
 	IfElIfBlock,
 } from './ast/cPreprocessors/ifDefine';
@@ -120,7 +121,8 @@ const getAstItemLevel =
 				!(ast instanceof Include) &&
 				!(ast instanceof Comment) &&
 				!(ast instanceof CommentBlock) &&
-				!(ast instanceof IfDefineBlock),
+				!(ast instanceof IfDefineBlock) &&
+				!(ast instanceof IfElIfBlock),
 		);
 		const parentAst = await findAst(astNode.firstToken, uri, rootItem);
 
@@ -146,6 +148,17 @@ type FormattingFlags = {
 	runBaseCheck: boolean;
 	runLongLineCheck: boolean;
 };
+const hasLongLines = (text: string, tabSize: number, wordWrapColumn: number) =>
+	!!text
+		.split('\n')
+		.find(
+			(l) =>
+				l
+					.replace(/^\s+/, (prefix) =>
+						prefix.replace(/\t/g, ' '.repeat(tabSize)),
+					)
+					.trimEnd().length > wordWrapColumn,
+		);
 
 export async function formatText(
 	documentFormattingParams:
@@ -156,6 +169,7 @@ export async function formatText(
 	options?: FormattingFlags,
 	tokens?: Token[],
 	prevIfBlocks?: (IfDefineBlock | IfElIfBlock)[],
+	processedPrevIfBlocks?: CIfBase[],
 ): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
 export async function formatText(
 	documentFormattingParams:
@@ -166,6 +180,7 @@ export async function formatText(
 	options?: FormattingFlags,
 	tokens?: Token[],
 	prevIfBlocks?: (IfDefineBlock | IfElIfBlock)[],
+	processedPrevIfBlocks?: CIfBase[],
 ): Promise<string>;
 export async function formatText(
 	documentFormattingParams:
@@ -176,6 +191,7 @@ export async function formatText(
 	options?: FormattingFlags,
 	tokens?: Token[],
 	prevIfBlocks?: (IfDefineBlock | IfElIfBlock)[],
+	processedPrevIfBlocks?: CIfBase[],
 ): Promise<FileDiagnostic[]>;
 export async function formatText(
 	documentFormattingParams:
@@ -189,6 +205,7 @@ export async function formatText(
 	},
 	tokens?: Token[],
 	prevIfBlocks: (IfDefineBlock | IfElIfBlock)[] = [],
+	processedPrevIfBlocks: CIfBase[] = [],
 ): Promise<
 	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
 > {
@@ -225,28 +242,11 @@ export async function formatText(
 		},
 		parser,
 		prevIfBlocks,
+		processedPrevIfBlocks,
 		rawTokens,
 		text,
 		options,
 	);
-
-	const hasLongLines =
-		options.runLongLineCheck &&
-		!!text
-			.split('\n')
-			.find(
-				(l) =>
-					l
-						.replace(/^\s+/, (prefix) =>
-							prefix.replace(
-								/\t/g,
-								' '.repeat(
-									documentFormattingParams.options.tabSize,
-								),
-							),
-						)
-						.trimEnd().length > wordWrapColumn,
-			);
 
 	if (returnType === 'New Text') {
 		let finalText = text;
@@ -273,7 +273,13 @@ export async function formatText(
 			finalText = r;
 		}
 
-		if (hasLongLines) {
+		if (
+			hasLongLines(
+				finalText,
+				documentFormattingParams.options.tabSize,
+				wordWrapColumn,
+			)
+		) {
 			let prevText = '';
 			do {
 				prevText = finalText;
@@ -333,13 +339,19 @@ export async function formatText(
 				text,
 				returnType,
 				options,
-				variantDocuments,
+				[...variantDocuments],
 			);
 			finalText = r.text;
 			diagnostic.push(...r.diagnostic);
 		}
 
-		if (hasLongLines) {
+		if (
+			hasLongLines(
+				finalText,
+				documentFormattingParams.options.tabSize,
+				wordWrapColumn,
+			)
+		) {
 			diagnostic.push(
 				...(await formatLongLines(
 					{
@@ -418,12 +430,18 @@ export async function formatText(
 			text,
 			returnType,
 			options,
-			variantDocuments,
+			[...variantDocuments],
 		);
 		diagnostic.push(...r);
 	}
 
-	if (hasLongLines) {
+	if (
+		hasLongLines(
+			text,
+			documentFormattingParams.options.tabSize,
+			wordWrapColumn,
+		)
+	) {
 		diagnostic.push(
 			...(await formatLongLines(
 				{
@@ -450,6 +468,7 @@ const getDisabledMarcoRangeEdits = async (
 	documentFormattingParams: CustomDocumentFormattingParams,
 	parser: Parser,
 	prevIfBlocks: (IfDefineBlock | IfElIfBlock)[],
+	processedPrevIfBlocks: CIfBase[],
 	rawTokens: Token[],
 	text: string,
 	options: FormattingFlags,
@@ -461,74 +480,103 @@ const getDisabledMarcoRangeEdits = async (
 		(ast) => ast instanceof IfElIfBlock,
 	);
 
-	prevIfBlocks.push(...ifDefBlocks);
-	prevIfBlocks.push(...ifBlocks);
+	const newIfDefBlocks = ifDefBlocks.filter((b) =>
+		prevIfBlocks.every(
+			(bb) => b.firstToken.pos.line !== bb.firstToken.pos.line,
+		),
+	);
+	const newIfBlocks = ifBlocks.filter((b) =>
+		prevIfBlocks.every(
+			(bb) => b.firstToken.pos.line !== bb.firstToken.pos.line,
+		),
+	);
+	prevIfBlocks.push(...newIfDefBlocks);
+	prevIfBlocks.push(...newIfBlocks);
 
-	return (
-		await Promise.all(
-			[
-				...ifDefBlocks.map((block) => {
-					if (block.ifDef.active) {
-						if (block.elseOption) {
-							return {
-								block,
-								branch: block.elseOption,
-							};
-						}
-						return;
-					}
-
+	const rangesToWorkOn = [
+		...ifDefBlocks.map((block) => {
+			if (block.ifDef.active) {
+				if (block.elseOption) {
 					return {
 						block,
-						branch: block.ifDef,
+						branch: block.elseOption,
 					};
-				}),
-				...ifBlocks.flatMap((block) => {
-					const active = block.ifBlocks.find((i) => i.active);
-					const results: {
-						block: IfElIfBlock;
-						branch: CIf | CElse;
-					}[] = block.ifBlocks
-						.filter((v) => v.active)
-						.map((branch) => ({
-							block,
-							branch,
-						}));
-					if (!active && block.elseOption) {
-						results.push({
-							block,
-							branch: block.elseOption,
-						});
-					}
+				}
+				return;
+			}
 
-					return results;
-				}),
-			]
-				.filter((v) => !!v)
-				.flatMap(async (meta) => {
-					const rangeToClean = meta.block
-						.getInValidTokenRangeWhenActiveBlock(
-							meta.branch,
-							rawTokens,
-						)
-						.reverse();
+			return {
+				block,
+				branch: block.ifDef,
+			};
+		}),
+		...ifBlocks.flatMap((block) => {
+			const active = block.ifBlocks.find((i) => i.active);
+			const results: {
+				block: IfElIfBlock;
+				branch: CIf | CElse;
+			}[] = block.ifBlocks
+				.filter((v) => !v.active)
+				.map((branch) => ({
+					block,
+					branch,
+				}));
+			if (!active && block.elseOption) {
+				results.push({
+					block,
+					branch: block.elseOption,
+				});
+			}
 
-					const newTokenStream = [...rawTokens];
-					rangeToClean.forEach((r) => {
-						newTokenStream.splice(r.start, r.end - r.start + 1);
-					});
-					const range = meta.block.range;
-					return formatText(
-						{ ...documentFormattingParams, range },
-						text,
-						'File Diagnostics',
-						options,
-						newTokenStream,
-						prevIfBlocks,
-					);
-				}),
+			return results;
+		}),
+	].filter((v) => !!v);
+
+	const action = (
+		meta:
+			| {
+					block: IfDefineBlock;
+					branch: CElse;
+			  }
+			| {
+					block: IfElIfBlock;
+					branch: CIf | CElse;
+			  },
+	) => {
+		const rangeToClean = meta.block
+			.getInValidTokenRangeWhenActiveBlock(meta.branch, rawTokens)
+			.reverse();
+
+		const newTokenStream = [...rawTokens];
+		rangeToClean.forEach((r) => {
+			newTokenStream.splice(r.start, r.end - r.start + 1);
+		});
+		const range = meta.block.range;
+		processedPrevIfBlocks.push(meta.branch);
+		return formatText(
+			{ ...documentFormattingParams, range },
+			text,
+			'File Diagnostics',
+			options,
+			newTokenStream,
+			prevIfBlocks,
+			processedPrevIfBlocks,
+		);
+	};
+
+	const results: FileDiagnostic[] = [];
+	await rangesToWorkOn
+		.filter((r) =>
+			processedPrevIfBlocks.every(
+				(i) => i.firstToken.pos.line !== r.block.firstToken.pos.line,
+			),
 		)
-	).flat();
+		.reduce((acc, curr) => {
+			return acc.then(async () => {
+				results.push(...(await action(curr)));
+			});
+		}, Promise.resolve());
+	return results;
 };
 
 const filterOnOffEdits = (
@@ -825,10 +873,10 @@ const removeTrailingWhitespace = (
 	const result: FileDiagnostic[] = [];
 	documentText.forEach((line, i) => {
 		const removeReturn = line.endsWith('\r') ? line.slice(0, -1) : line;
-		const endTimmed = removeReturn.trimEnd();
-		if (endTimmed.length !== removeReturn.length) {
+		const endTrimmed = removeReturn.trimEnd();
+		if (endTrimmed.length !== removeReturn.length) {
 			const rangeToCover = Range.create(
-				Position.create(i, endTimmed.length),
+				Position.create(i, endTrimmed.length),
 				Position.create(i, removeReturn.length),
 			);
 			if (
@@ -2043,20 +2091,20 @@ const formatCommentBlock = (
 const getPropertyIndentPrefix = (
 	settings: FormattingSettings,
 	closestAst?: ASTBase,
-	prifix: string = '',
+	prefix: string = '',
 ) => {
 	const property = closestAst ? getPropertyFromChild(closestAst) : undefined;
-	if (!property) return prifix;
+	if (!property) return prefix;
 	const propertyValueChild = isPropertyValueChild(closestAst);
 	const propertyNameWidth = property.propertyName?.name.length ?? 0;
-	const witdhPrifix = `${widthToPrefix(
+	const widthPrefix = `${widthToPrefix(
 		settings,
 		propertyNameWidth +
 			(propertyValueChild ? 4 : 3) +
-			(prifix.length - prifix.trimStart().length),
+			(prefix.length - prefix.trimStart().length),
 	)}`;
 
-	return `${witdhPrifix}${prifix.trimStart()}`; // +3 ' = ' or + 4 ' = <'
+	return `${widthPrefix}${prefix.trimStart()}`; // +3 ' = ' or + 4 ' = <'
 };
 
 const getNodeExpectedNumberOfNewLines = (
@@ -2067,17 +2115,17 @@ const getNodeExpectedNumberOfNewLines = (
 		.flatMap((block) => {
 			if (block instanceof IfDefineBlock) {
 				return [
-					block.ifDef,
-					...(block.elseOption ? [block.elseOption] : []),
+					block.ifDef.identifier?.lastToken.nextToken,
+					block.elseOption?.keyword.lastToken.nextToken,
 				];
 			}
 
 			return [
-				...block.ifBlocks,
-				...(block.elseOption ? [block.elseOption] : []),
+				...block.ifBlocks.map((b) => b.expression?.lastToken.nextToken),
+				block.elseOption?.lastToken.nextToken,
 			];
 		})
-		.some((block) => block.content?.firstToken === token);
+		.some((t) => t === token);
 	return token.prevToken?.value === '{' || isFirstInIfDefBlock ? 1 : 2;
 };
 
@@ -2178,7 +2226,7 @@ const formatBlockCommentLine = (
 	}
 
 	const result: FileDiagnostic[] = [];
-	let prifix: string = '';
+	let prefix: string = '';
 	const commentStr = commentItem.toString();
 	if (
 		lineType === 'last' &&
@@ -2199,12 +2247,12 @@ const formatBlockCommentLine = (
 
 	switch (lineType) {
 		case 'comment':
-			prifix = commentItem.firstToken.value === '*' ? ' ' : ' * ';
+			prefix = commentItem.firstToken.value === '*' ? ' ' : ' * ';
 			break;
 		case 'first':
 			break;
 		case 'last':
-			prifix = ' ';
+			prefix = ' ';
 			break;
 	}
 
@@ -2215,7 +2263,7 @@ const formatBlockCommentLine = (
 				levelMeta?.level ?? 0,
 				indentString,
 				documentText,
-				prifix,
+				prefix,
 				expectedNumberOfLines,
 				forceNumberOfLines,
 			),
@@ -2227,7 +2275,7 @@ const formatBlockCommentLine = (
 				levelMeta?.level ?? 0,
 				indentString,
 				documentText,
-				getPropertyIndentPrefix(settings, levelMeta?.inAst, prifix),
+				getPropertyIndentPrefix(settings, levelMeta?.inAst, prefix),
 				expectedNumberOfLines,
 				forceNumberOfLines,
 			),
@@ -2674,11 +2722,12 @@ const formatLongLinesPropertyValue = (
 	singleIndent: string,
 	semicolon?: Token,
 ): FileDiagnostic[] | undefined => {
+	const valueEnd = value.nextValueSeparator ?? semicolon;
 	const wrapping = needWrapping(
 		value.firstToken,
 		value.nextValueSeparator
 			? value.nextValueSeparator
-			: (semicolon ?? value.lastToken),
+			: (valueEnd ?? value.lastToken),
 		settings,
 		documentText,
 	);
@@ -2701,7 +2750,7 @@ const formatLongLinesPropertyValue = (
 				settings,
 				documentText,
 				singleIndent,
-				semicolon,
+				valueEnd,
 			);
 		}
 
@@ -2723,9 +2772,13 @@ const formatLongLinesPropertyValue = (
 		0,
 		value.firstToken.pos.col,
 	);
-	const minWidth = level + propertyNameWidth + 3; // ` = `
+	const a = Math.trunc((propertyNameWidth + 3) / settings.tabSize);
+	const b = (propertyNameWidth + 3) % settings.tabSize;
+	const minWidth2 = a + b + level;
+	const minWidth =
+		line.trimStart() !== '' ? level + propertyNameWidth + 3 : minWidth2; // ` = `
 	// can we move the whole array to new line?
-	if (value.firstToken.pos.col === minWidth && line.trimStart() !== '') {
+	if (value.firstToken.pos.col === minWidth) {
 		// no we cannot we are already on new line
 		const innerValue = value.value;
 
@@ -2740,7 +2793,7 @@ const formatLongLinesPropertyValue = (
 				settings,
 				documentText,
 				singleIndent,
-				semicolon,
+				valueEnd,
 			);
 		}
 
@@ -2754,6 +2807,8 @@ const formatLongLinesPropertyValue = (
 				singleIndent,
 			);
 		}
+
+		return;
 	}
 
 	const otherItem = allValues
@@ -2805,13 +2860,13 @@ const formatLongLinesArrayValue = (
 	settings: FormattingSettings,
 	documentText: string[],
 	singleIndent: string,
-	semicolon?: Token,
+	valueEnd?: Token,
 ): FileDiagnostic[] | undefined => {
 	for (const [index, value] of innerValue.values.entries()) {
 		const wrapping = needWrapping(
 			value.firstToken,
 			index === innerValue.values.length - 1
-				? (semicolon ?? value.lastToken)
+				? (valueEnd ?? value.lastToken)
 				: value.lastToken,
 			settings,
 			documentText,
@@ -2883,7 +2938,7 @@ const formatLongLinesArrayValue = (
 		];
 	}
 
-	return [];
+	return;
 };
 
 const formatLongLinesExpression = (
@@ -2900,12 +2955,13 @@ const formatLongLinesExpression = (
 		0,
 		expression.firstToken.pos.col,
 	);
-	const minWidth = level + propertyNameWidth + 4; // ` = <`
-	if (
-		canWrapWholeExpression &&
-		expression.firstToken.pos.col !== minWidth &&
-		line.trimStart() !== ''
-	) {
+
+	const a = Math.trunc((propertyNameWidth + 4) / settings.tabSize);
+	const b = (propertyNameWidth + 4) % settings.tabSize;
+	const minWidth2 = a + b + level;
+	const minWidth =
+		line.trimStart() !== '' ? level + propertyNameWidth + 4 : minWidth2; // ` = `
+	if (canWrapWholeExpression && expression.firstToken.pos.col !== minWidth) {
 		return [
 			genFormattingDiagnostic(
 				FormattingIssues.LONG_LINE_WRAP,
