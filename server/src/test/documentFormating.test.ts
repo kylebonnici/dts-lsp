@@ -1488,25 +1488,25 @@ describe('Document formating', () => {
 		test('hex with 0XD > on same line', async () => {
 			const documentText = '/ {\n\tprop1 = <0XD>;\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <0xd>;\n};');
+			expect(newText).toEqual('/ {\n\tprop1 = <0XD>;\n};');
 		});
 
 		test('hex with 0XD > on new line', async () => {
 			const documentText = '/ {\n\tprop1 = <0XD\n>;\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <0xd>;\n};');
+			expect(newText).toEqual('/ {\n\tprop1 = <0XD>;\n};');
 		});
 
 		test('hex with 0XD with line comment > on new line', async () => {
 			const documentText = '/ {\n\tprop1 = <0XD // test\n>;\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <0xd // test\n\t>;\n};');
+			expect(newText).toEqual('/ {\n\tprop1 = <0XD // test\n\t>;\n};');
 		});
 
 		test('hex with 0XD with block comment > on new line', async () => {
 			const documentText = '/ {\n\tprop1 = <0XD /* test */\n>;\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <0xd /* test */ >;\n};');
+			expect(newText).toEqual('/ {\n\tprop1 = <0XD /* test */ >;\n};');
 		});
 
 		test('empty array value with spaces', async () => {
@@ -1653,6 +1653,14 @@ describe('Document formating', () => {
 				'/ {\n\tprop1 = "10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30",\n\t\t\t"10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30",\n\t\t\t"10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30";\n};',
 			);
 		});
+		test('single line - comma exceeds wrap length', async () => {
+			const documentText =
+				'/ {\n\tprop1 = "10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30", "10 20 30 10", "20 30 10 20 30 10 20 30 10", "20 30 10 20 30 10 20 30 10 20 30", "10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30" ;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tprop1 = "10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30",\n\t\t\t"10 20 30 10", "20 30 10 20 30 10 20 30 10", "20 30 10 20 30 10 20 30 10 20 30",\n\t\t\t"10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30";\n};',
+			);
+		});
 		test('single line - Wrap array to new line', async () => {
 			const documentText =
 				'/ {\n\tprop1 = <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>;\n};';
@@ -1776,17 +1784,6 @@ describe('Document formating', () => {
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
 				'/ {\n\tprop1 = <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>,\n\t\t\t<100>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>,\n\t\t\t<10 20 30>, <100>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>,\n\t\t\t<10 20 30>, <10 20 30>, <100>;\n};',
-			);
-		});
-	});
-
-	describe('Hex to lower case', () => {
-		test('Node address with reg', async () => {
-			const documentText =
-				'/ {\n\tnode@ABC {\n\t\treg = <0xABC>;\n\t};\n};';
-			const newText = await getNewText(documentText);
-			expect(newText).toEqual(
-				'/ {\n\tnode@abc {\n\t\treg = <0xabc>;\n\t};\n};',
 			);
 		});
 	});

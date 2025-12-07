@@ -61,7 +61,6 @@ import {
 	rangesOverlap,
 	sameLine,
 	toPosition,
-	toRange,
 } from './helpers';
 import { Comment, CommentBlock } from './ast/dtc/comment';
 import { LabelAssign } from './ast/dtc/label';
@@ -78,7 +77,6 @@ import {
 	IfDefineBlock,
 	IfElIfBlock,
 } from './ast/cPreprocessors/ifDefine';
-import { NumberValue } from './ast/dtc/values/number';
 
 const findAst = async (token: Token, uri: string, fileRootAsts: ASTBase[]) => {
 	const pos = Position.create(token.pos.line, token.pos.col);
@@ -1198,38 +1196,6 @@ const formatDtcNode = async (
 
 		if (node instanceof DtcChildNode) {
 			if (
-				node.name?.address?.length &&
-				node.name.address.every((a) => a.toString() !== '')
-			) {
-				node.name.address.forEach((address) => {
-					const rawAddressString = documentText[
-						address.firstToken.pos.line
-					].slice(
-						address.firstToken.pos.col,
-						address.lastToken.pos.colEnd,
-					);
-
-					const lowerCaseAddr = rawAddressString.toLowerCase();
-					if (lowerCaseAddr !== rawAddressString) {
-						result.push(
-							genFormattingDiagnostic(
-								FormattingIssues.HEX_TO_LOWER_CASE,
-								address.uri,
-								toPosition(address.firstToken, false),
-								{
-									edit: TextEdit.replace(
-										toRange(address),
-										lowerCaseAddr,
-									),
-									codeActionTitle: `Change to '${lowerCaseAddr}'`,
-								},
-								toPosition(address.lastToken),
-							),
-						);
-					}
-				});
-			}
-			if (
 				node.labels.length &&
 				node.name &&
 				node.name.firstToken.prevToken
@@ -1351,34 +1317,6 @@ const formatLabeledValue = <T extends ASTBase>(
 				documentText,
 			),
 		);
-	}
-
-	if (value.value instanceof NumberValue) {
-		const rawAddressString = documentText[
-			value.value.firstToken.pos.line
-		].slice(
-			value.value.firstToken.pos.col,
-			value.value.lastToken.pos.colEnd,
-		);
-
-		const lowerCaseAddr = rawAddressString.toLowerCase();
-		if (lowerCaseAddr !== rawAddressString) {
-			result.push(
-				genFormattingDiagnostic(
-					FormattingIssues.HEX_TO_LOWER_CASE,
-					value.value.uri,
-					toPosition(value.value.firstToken, false),
-					{
-						edit: TextEdit.replace(
-							toRange(value.value),
-							lowerCaseAddr,
-						),
-						codeActionTitle: `Change to '${lowerCaseAddr}'`,
-					},
-					toPosition(value.value.lastToken),
-				),
-			);
-		}
 	}
 
 	if (value.firstToken.prevToken) {
