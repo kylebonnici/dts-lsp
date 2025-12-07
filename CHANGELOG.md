@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.7.3] - 2025-12-07
+
+### Fixed
+
+- Fixed server hanging when formatting certain cases of long line wrapping.
+- Fixed server performance when formatting multiple disabled `#ifdef/#if` blocks.
+- Fixed formatting comments in `#ifdef/#if` blocks when these are the only content.
+- Fixed `#if` block expression evaluation checks
+- Fixed long line wrapping when value does not exceed the limit but the `>,` do.
+
 ## [0.7.2] - 2025-12-03
 
 ### Changed
