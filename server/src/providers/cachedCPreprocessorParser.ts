@@ -28,7 +28,7 @@ class CachedCPreprocessorParserProvider {
 
 	getCPreprocessorParser(
 		uri: string,
-		inludes: string[],
+		includes: string[],
 		macros: Map<string, MacroRegistryItem>,
 		parent: string,
 	) {
@@ -42,8 +42,8 @@ class CachedCPreprocessorParserProvider {
 			return cache;
 		}
 
-		console.log('No cpreprocess cache', uri);
-		const header = new CPreprocessorParser(uri, inludes, macros);
+		console.log('No c-preprocess cache', uri);
+		const header = new CPreprocessorParser(uri, includes, macros);
 		const set = this.includeOwners.get(header) ?? new Set();
 		set.add(parent);
 		this.includeOwners.set(header, set);
@@ -60,7 +60,7 @@ class CachedCPreprocessorParserProvider {
 		if (headers)
 			Array.from(headers).forEach((header) => {
 				if (header[1]) {
-					console.log('disposing cpreprocessor cache for', uri);
+					console.log('disposing c-preprocessor cache for', uri);
 					Array.from(this.includeOwners.get(header[1]) ?? []).forEach(
 						this.reset.bind(this),
 					);
