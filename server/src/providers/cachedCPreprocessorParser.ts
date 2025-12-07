@@ -42,7 +42,7 @@ class CachedCPreprocessorParserProvider {
 			return cache;
 		}
 
-		console.log('No c-preprocess cache', uri);
+		console.log('No c-preprocessor cache', uri);
 		const header = new CPreprocessorParser(uri, includes, macros);
 		const set = this.includeOwners.get(header) ?? new Set();
 		set.add(parent);
