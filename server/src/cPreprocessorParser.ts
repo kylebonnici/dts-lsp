@@ -101,23 +101,24 @@ export class CPreprocessorParser extends BaseParser {
 	protected get currentToken(): Token | undefined {
 		// allow to break line at end of line with \
 		const prevToken = this.prevToken;
+		const peekIndex = this.peekIndex();
+		const tokenAtPeekIndex = this.tokens.at(peekIndex);
 		const tokenPartOfMacro =
-			sameLine(prevToken, this.tokens.at(this.peekIndex())) ||
+			sameLine(prevToken, tokenAtPeekIndex) ||
 			!prevToken ||
 			(validToken(prevToken, LexerToken.BACK_SLASH) &&
-				prevToken.pos.line + 1 ===
-					this.tokens.at(this.peekIndex())?.pos.line);
+				prevToken.pos.line + 1 === tokenAtPeekIndex?.pos.line);
 		if (this.macroStart && !tokenPartOfMacro) return;
 
 		if (
 			this.macroStart &&
-			validToken(this.tokens.at(this.peekIndex()), LexerToken.BACK_SLASH)
+			validToken(tokenAtPeekIndex, LexerToken.BACK_SLASH)
 		) {
 			this.moveStackIndex();
 			return this.currentToken;
 		}
 
-		return this.tokens.at(this.peekIndex());
+		return tokenAtPeekIndex;
 	}
 
 	protected reset(macros?: Map<string, MacroRegistryItem>) {
