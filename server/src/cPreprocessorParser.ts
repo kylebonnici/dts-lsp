@@ -70,6 +70,7 @@ export class CPreprocessorParser extends BaseParser {
 		string,
 		MacroRegistryItem
 	>();
+	public rangesToClean = new Set<Token>();
 
 	// tokens must be filtered out from comments by now
 	constructor(
@@ -138,6 +139,7 @@ export class CPreprocessorParser extends BaseParser {
 
 		this.nodes = [];
 		this.dtsIncludes = [];
+		this.rangesToClean = new Set<Token>();
 	}
 
 	public async reparse(
@@ -184,6 +186,10 @@ export class CPreprocessorParser extends BaseParser {
 			await this.lineProcessor();
 		}
 
+		if (this.rangesToClean.size && !this.uri.endsWith('.h')) {
+			this.tokens = this.tokens.filter((t) => !this.rangesToClean.has(t));
+		}
+
 		if (this.positionStack.length !== 1) {
 			/* istanbul ignore next */
 			throw new Error('Incorrect final stack size');
@@ -217,6 +223,15 @@ export class CPreprocessorParser extends BaseParser {
 		}
 
 		this.mergeStack();
+	}
+
+	private addTokensToClean(range: { start: number; count: number }) {
+		for (let i = range.start; i < range.start + range.count; i++) {
+			const token = this.tokens[i];
+			if (token) {
+				this.rangesToClean.add(token);
+			}
+		}
 	}
 
 	private processDefinitions() {
@@ -269,9 +284,11 @@ export class CPreprocessorParser extends BaseParser {
 		this.nodes.push(macro);
 
 		const endIndex = this.peekIndex();
-		this.tokens.splice(startIndex, endIndex - startIndex);
+		this.addTokensToClean({
+			start: startIndex,
+			count: endIndex - startIndex,
+		});
 
-		this.positionStack[this.positionStack.length - 1] = startIndex;
 		this.mergeStack();
 		this.macroStart = false;
 		return true;
@@ -311,9 +328,11 @@ export class CPreprocessorParser extends BaseParser {
 		this.nodes.push(macro);
 
 		const endIndex = this.peekIndex();
-		this.tokens.splice(startIndex, endIndex - startIndex);
+		this.addTokensToClean({
+			start: startIndex,
+			count: endIndex - startIndex,
+		});
 
-		this.positionStack[this.positionStack.length - 1] = startIndex;
 		this.mergeStack();
 		this.macroStart = false;
 		return true;
@@ -330,9 +349,10 @@ export class CPreprocessorParser extends BaseParser {
 
 		this.moveEndOfLine(token, false, true);
 		const endIndex = this.peekIndex();
-		this.tokens.splice(startIndex, endIndex - startIndex);
-
-		this.positionStack[this.positionStack.length - 1] = startIndex;
+		this.addTokensToClean({
+			start: startIndex,
+			count: endIndex - startIndex,
+		});
 
 		this.mergeStack();
 		return true;
@@ -499,12 +519,16 @@ export class CPreprocessorParser extends BaseParser {
 
 		this.nodes.push(ifDefBlock);
 
-		const rangeToClean = ifDefBlock
+		const tokensToClean = new WeakSet();
+		ifDefBlock
 			.getInValidTokenRange(this.macros, this.tokens)
-			.reverse();
-		rangeToClean.forEach((r) => {
-			this.tokens.splice(r.start, r.end - r.start + 1);
-		});
+			.forEach((r) => {
+				for (let i = r.start; i <= r.end; i++) {
+					tokensToClean.add(this.tokens[i]);
+				}
+			});
+
+		this.tokens = this.tokens.filter((t) => !tokensToClean.has(t));
 
 		const commentsRanges = ifDefBlock.inactiveRanges;
 		this._comments.forEach((c) => {
@@ -885,22 +909,28 @@ export class CPreprocessorParser extends BaseParser {
 			);
 
 			if (resolvedPath.endsWith('.h')) {
-				this.tokens.splice(startIndex, endIndex - startIndex);
+				this.addTokensToClean({
+					start: startIndex,
+					count: endIndex - startIndex,
+				});
 			} else {
 				this.tokens.splice(
 					startIndex,
 					endIndex - startIndex,
 					...fileParser.tokens,
 				);
+				this.positionStack[this.positionStack.length - 1] = startIndex;
 			}
 
 			this.nodes.push(...fileParser.nodes);
 			this.dtsIncludes.push(...fileParser.dtsIncludes);
 		} else {
-			this.tokens.splice(startIndex, endIndex - startIndex);
+			this.addTokensToClean({
+				start: startIndex,
+				count: endIndex - startIndex,
+			});
 		}
 
-		this.positionStack[this.positionStack.length - 1] = startIndex;
 		return true;
 	}
 }

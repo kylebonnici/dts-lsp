@@ -304,7 +304,7 @@ connection.onInitialize(async (params: InitializeParams) => {
 	connection.console.log(
 		`[Server(${process.pid}) ${
 			workspaceFolders?.at(0)?.uri
-		} Version 0.7.3 ] Started and initialize received`,
+		} Version 0.7.4 ] Started and initialize received`,
 	);
 
 	const capabilities = params.capabilities;
@@ -537,7 +537,11 @@ const createContext = async (context: ResolvedContext) => {
 	);
 
 	contextAware.push(newContext);
+	const t = performance.now();
 	await newContext.stable();
+	console.log(
+		`(ID: ${id}) New context took ${performance.now() - t}ms to start [${context.ctxName}]`,
+	);
 	watchContextFiles(newContext);
 	const meta = await contextMeta(newContext);
 
