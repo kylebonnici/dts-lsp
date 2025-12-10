@@ -762,20 +762,21 @@ async function baseFormatAstBaseItems(
 		}
 
 		if (noOfTrailingNewLines > 1) {
+			const lineNumber = splitDocument.length - 1;
 			const edit = TextEdit.del(
 				Range.create(
 					Position.create(
 						splitDocument.length - noOfTrailingNewLines,
 						0,
 					),
-					Position.create(splitDocument.length - 1, 0),
+					Position.create(lineNumber, 0),
 				),
 			);
 			result.push(
 				genFormattingDiagnostic(
 					FormattingIssues.TRIALING_EOF_NEW_LINES,
 					uri,
-					Position.create(splitDocument.length, 0),
+					Position.create(lineNumber, 0),
 					{ edit, codeActionTitle: 'Remove trailing EOF lines' },
 				),
 			);
