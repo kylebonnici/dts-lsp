@@ -9,6 +9,7 @@
 	"editor.formatOnSave": true,
 	"editor.tabSize": 4,
 	"prettier.singleQuote": true,
+	"jest.runMode": "on-demand",
 	"eslint.enable": true,
 	"cSpell.words": ["phandle", "STRINGLIST"]
 }
