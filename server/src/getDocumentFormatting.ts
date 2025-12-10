@@ -543,14 +543,11 @@ const getDisabledMarcoRangeEdits = async (
 					branch: CIf | CElse;
 			  },
 	) => {
-		const rangeToClean = meta.block
-			.getInValidTokenRangeWhenActiveBlock(meta.branch, rawTokens)
-			.reverse();
+		const rangeToClean = meta.block.getInValidTokenRangeWhenActiveBlock(
+			meta.branch,
+		);
 
-		const newTokenStream = [...rawTokens];
-		rangeToClean.forEach((r) => {
-			newTokenStream.splice(r.start, r.end - r.start + 1);
-		});
+		const newTokenStream = rawTokens.filter((t) => !rangeToClean.has(t));
 		const range = meta.block.range;
 		processedPrevIfBlocks.push(meta.branch);
 		return formatText(

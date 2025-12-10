@@ -82,6 +82,17 @@ export class CElse extends CIfBase {}
 
 export class CEndIf extends Keyword {}
 
+const getRangeTokens = (startToken: Token, endToken: Token) => {
+	let token: Token | undefined = startToken;
+	const tokens: Token[] = [];
+	while (token) {
+		tokens.push(token);
+		if (token === endToken) break;
+		token = token.nextToken;
+	}
+	return tokens;
+};
+
 export class IfDefineBlock extends ASTBase {
 	constructor(
 		public readonly ifDef: CIfDef | CIfNotDef,
@@ -124,18 +135,10 @@ export class IfDefineBlock extends ASTBase {
 
 	getInValidTokenRange(
 		macrosResolvers: Map<string, MacroRegistryItem>,
-		tokens: Token[],
-	): { start: number; end: number }[] {
-		const getIndex = (token: Token) => tokens.findIndex((t) => t === token);
-
+	): WeakSet<Token> {
 		// No identifier so ignore all block
 		if (!this.ifDef.identifier) {
-			return [
-				{
-					start: getIndex(this.firstToken),
-					end: getIndex(this.lastToken),
-				},
-			];
+			return new WeakSet(getRangeTokens(this.firstToken, this.lastToken));
 		}
 
 		const useMainBlock = this.ifDef.useBlock(macrosResolvers);
@@ -146,53 +149,45 @@ export class IfDefineBlock extends ASTBase {
 		}
 		return this.getInValidTokenRangeWhenActiveBlock(
 			useMainBlock ? this.ifDef : this.elseOption,
-			tokens,
 		);
 	}
 
-	getInValidTokenRangeWhenActiveBlock(
-		activeBlock: CIfBase | undefined,
-		tokens: Token[],
-	) {
-		const invalidRange: { start: number; end: number }[] = [];
-
-		const getIndex = (token: Token) => tokens.findIndex((t) => t === token);
+	getInValidTokenRangeWhenActiveBlock(activeBlock: CIfBase | undefined) {
+		const invalidRange = new WeakSet<Token>();
 
 		const endToken = (this.ifDef.identifier ?? this.ifDef.keyword)
 			.lastToken;
 
-		invalidRange.push({
-			start: getIndex(this.ifDef.firstToken),
-			end: getIndex(endToken),
-		});
+		getRangeTokens(this.ifDef.firstToken, endToken).forEach((t) =>
+			invalidRange.add(t),
+		);
 
 		const useMainBlock = this.ifDef === activeBlock;
 		if (!useMainBlock && this.ifDef.content) {
-			invalidRange.push({
-				start: getIndex(this.ifDef.content.firstToken),
-				end: getIndex(this.ifDef.content.lastToken),
-			});
+			getRangeTokens(
+				this.ifDef.content.firstToken,
+				this.ifDef.content.lastToken,
+			).forEach((t) => invalidRange.add(t));
 		}
 
 		if (this.elseOption) {
-			invalidRange.push({
-				start: getIndex(this.elseOption.firstToken),
-				end: getIndex(this.elseOption.keyword.lastToken),
-			});
+			getRangeTokens(
+				this.elseOption.firstToken,
+				this.elseOption.keyword.lastToken,
+			).forEach((t) => invalidRange.add(t));
 
 			if (useMainBlock && this.elseOption.content) {
-				invalidRange.push({
-					start: getIndex(this.elseOption.content.firstToken),
-					end: getIndex(this.elseOption.content.lastToken),
-				});
+				getRangeTokens(
+					this.elseOption.content.firstToken,
+					this.elseOption.content.lastToken,
+				).forEach((t) => invalidRange.add(t));
 			}
 		}
 
 		if (this.endIf) {
-			invalidRange.push({
-				start: getIndex(this.endIf.firstToken),
-				end: getIndex(this.endIf.lastToken),
-			});
+			getRangeTokens(this.endIf.firstToken, this.endIf.lastToken).forEach(
+				(t) => invalidRange.add(t),
+			);
 		}
 
 		return invalidRange;
@@ -214,8 +209,7 @@ export class IfElIfBlock extends ASTBase {
 
 	getInValidTokenRange(
 		macros: Map<string, MacroRegistryItem>,
-		tokens: Token[],
-	): { start: number; end: number }[] {
+	): WeakSet<Token> {
 		const activeIf = this.ifBlocks.find((b) => b.useBlock(macros));
 
 		if (activeIf) {
@@ -226,7 +220,6 @@ export class IfElIfBlock extends ASTBase {
 
 		return this.getInValidTokenRangeWhenActiveBlock(
 			activeIf ? activeIf : this.elseOption,
-			tokens,
 		);
 	}
 
@@ -264,54 +257,47 @@ export class IfElIfBlock extends ASTBase {
 		return [Range.create(toPosition(start), toPosition(end))];
 	}
 
-	getInValidTokenRangeWhenActiveBlock(
-		activeBlock: CIfBase | undefined,
-		tokens: Token[],
-	) {
-		const invalidRange: { start: number; end: number }[] = [];
-
-		const getIndex = (token: Token) => tokens.findIndex((t) => t === token);
+	getInValidTokenRangeWhenActiveBlock(activeBlock: CIfBase | undefined) {
+		const invalidRange = new WeakSet<Token>();
 
 		let blockFound = false;
 		this.ifBlocks.forEach((ifBlock) => {
 			const endToken =
 				ifBlock.expression?.lastToken ?? ifBlock.keyword.lastToken;
-			invalidRange.push({
-				start: getIndex(ifBlock.firstToken),
-				end: getIndex(endToken),
-			});
+			getRangeTokens(ifBlock.firstToken, endToken).forEach((t) =>
+				invalidRange.add(t),
+			);
 
 			if (!blockFound && ifBlock === activeBlock) {
 				blockFound = true;
 			} else {
 				if (ifBlock.content) {
-					invalidRange.push({
-						start: getIndex(ifBlock.content.firstToken),
-						end: getIndex(ifBlock.content.lastToken),
-					});
+					getRangeTokens(
+						ifBlock.content.firstToken,
+						ifBlock.content.lastToken,
+					).forEach((t) => invalidRange.add(t));
 				}
 			}
 		});
 
 		if (this.elseOption) {
-			invalidRange.push({
-				start: getIndex(this.elseOption.keyword.firstToken),
-				end: getIndex(this.elseOption.keyword.lastToken),
-			});
+			getRangeTokens(
+				this.elseOption.keyword.firstToken,
+				this.elseOption.keyword.lastToken,
+			).forEach((t) => invalidRange.add(t));
 
 			if (blockFound && this.elseOption.content) {
-				invalidRange.push({
-					start: getIndex(this.elseOption.content.firstToken),
-					end: getIndex(this.elseOption.content.lastToken),
-				});
+				getRangeTokens(
+					this.elseOption.content.firstToken,
+					this.elseOption.content.lastToken,
+				).forEach((t) => invalidRange.add(t));
 			}
 		}
 
 		if (this.endIf) {
-			invalidRange.push({
-				start: getIndex(this.endIf.firstToken),
-				end: getIndex(this.endIf.lastToken),
-			});
+			getRangeTokens(this.endIf.firstToken, this.endIf.lastToken).forEach(
+				(t) => invalidRange.add(t),
+			);
 		}
 
 		return invalidRange;

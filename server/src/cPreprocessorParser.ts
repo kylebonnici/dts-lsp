@@ -519,15 +519,7 @@ export class CPreprocessorParser extends BaseParser {
 
 		this.nodes.push(ifDefBlock);
 
-		const tokensToClean = new WeakSet();
-		ifDefBlock
-			.getInValidTokenRange(this.macros, this.tokens)
-			.forEach((r) => {
-				for (let i = r.start; i <= r.end; i++) {
-					tokensToClean.add(this.tokens[i]);
-				}
-			});
-
+		const tokensToClean = ifDefBlock.getInValidTokenRange(this.macros);
 		this.tokens = this.tokens.filter((t) => !tokensToClean.has(t));
 
 		const commentsRanges = ifDefBlock.inactiveRanges;
