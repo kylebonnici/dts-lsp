@@ -3507,7 +3507,7 @@ describe('Parser', () => {
 				);
 			});
 
-			test('If def - eldif - else - end - use elif', async () => {
+			test('If def - elif - else - end - use elif', async () => {
 				mockReadFileSync(
 					'#DEFINE AGAIN\n#IF defined(HELLO)\nsome\nstuff\n#ELIF defined(AGAIN)\nFOOBAR\n#ELSE\nfoo\nbar\n#endif',
 				);
