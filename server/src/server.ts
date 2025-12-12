@@ -52,6 +52,7 @@ import {
 	tokenTypes,
 } from './types';
 import {
+	applyEdits,
 	coreSyntaxIssuesFilter,
 	evalExp,
 	expandMacros,
@@ -90,9 +91,11 @@ import type {
 	EvaluatedMacro,
 	IntegrationSettings,
 	LocationResult,
+	PositionScopeInformation,
 	ResolvedContext,
 	SerializedNode,
 	Settings,
+	ZephyrBindingYml,
 } from './types/index';
 import {
 	defaultSettings,
@@ -739,12 +742,26 @@ const onChange = async (uri: string) => {
 			)
 			.forEach((context) => {
 				debounce.get(context)?.abort.abort();
+
+				if (activeContext === context) {
+					connection.sendNotification(
+						'devicetree/activeContextBusyNotification',
+						context.id,
+					);
+				}
+
+				connection.sendNotification(
+					'devicetree/contextBusyNotification',
+					context.id,
+				);
+
 				const abort = new AbortController();
 				const promise = new Promise<void>((resolve) => {
 					setTimeout(async () => {
 						context.setStaleUri(uri);
 
 						if (abort.signal.aborted) {
+							console.log('Abort parsing due to new request');
 							resolve();
 							return;
 						}
@@ -903,7 +920,7 @@ const generateWorkspaceDiagnostics = async (context: ContextAware) => {
 								textDocument,
 								options: context.formattingOptions,
 							},
-							textDocument?.getText(),
+							textDocument.getText(),
 							'File Diagnostics',
 						).catch(() => [])
 					).map((d) => d.diagnostic()),
@@ -1161,7 +1178,7 @@ documents.onDidChangeContent(async (change) => {
 	const tokenProvider = getTokenizedDocumentProvider();
 	if (!tokenProvider.needsRenew(uri, text)) return;
 
-	console.log('Content changed');
+	console.log('Content changed', uri);
 	tokenProvider.renewLexer(uri, text);
 	await onChange(uri);
 });
@@ -1468,7 +1485,9 @@ const onDocumentFormat = async (
 		return [];
 	}
 
-	const document = getTokenizedDocumentProvider().getDocument(filePath);
+	const document =
+		documents.get(event.textDocument.uri) ??
+		getTokenizedDocumentProvider().getDocument(filePath);
 	const text = document.getText();
 	const newText = await formatText(event, text, 'New Text').catch(() => text);
 
@@ -1813,6 +1832,42 @@ connection.onRequest(
 );
 
 connection.onRequest(
+	'devicetree/formatTextEdits',
+	async (
+		event: DocumentFormattingParams & {
+			edits: TextEdit[];
+			text?: string;
+		},
+	) => {
+		await allStable();
+
+		const document = getTokenizedDocumentProvider().getDocument(
+			fileURLToPath(event.textDocument.uri),
+			event.text,
+		);
+
+		const endOfFile = document.positionAt(document.getText().length);
+		const replaceDocumentEdit = TextEdit.replace(
+			Range.create(Position.create(0, 0), endOfFile),
+			'',
+		);
+
+		const textAfterEdits = applyEdits(document, event.edits);
+
+		let formatRanges: Range[] | undefined;
+
+		const newText = await formatText(
+			{ ...event, ranges: formatRanges },
+			textAfterEdits,
+			'New Text',
+		).catch(() => textAfterEdits);
+		replaceDocumentEdit.newText = newText;
+
+		return replaceDocumentEdit;
+	},
+);
+
+connection.onRequest(
 	'devicetree/diagnosticIssues',
 	async ({ uri, full }: { uri: string; full?: boolean }) => {
 		await allStable();
@@ -1860,6 +1915,82 @@ connection.onRequest(
 				macro,
 				evaluated: typeof evaluated === 'number' ? evaluated : expanded,
 			};
+		});
+	},
+);
+
+connection.onRequest(
+	'devicetree/zephyrTypeBindings',
+	async (id: string): Promise<ZephyrBindingYml[] | undefined> => {
+		await allStable();
+		if (!id) {
+			return;
+		}
+		const ctx = findContext(contextAware, { id });
+		return ctx?.bindingLoader?.getZephyrContextBinding();
+	},
+);
+
+connection.onRequest(
+	'devicetree/contextMacroNames',
+	async (id: string): Promise<string[] | undefined> => {
+		await allStable();
+		if (!id) {
+			return;
+		}
+		const ctx = findContext(contextAware, { id });
+		return Array.from(ctx?.macros.keys() ?? []);
+	},
+);
+
+connection.onRequest(
+	'devicetree/locationScopedInformation',
+	async (
+		event: TextDocumentPositionParams & { id: string },
+	): Promise<PositionScopeInformation | undefined> => {
+		await allStable();
+
+		const ctx = findContext(contextAware, { id: event.id });
+
+		const filePath = fileURLToPath(event.textDocument.uri);
+		if (!ctx || !ctx.isInContext(filePath)) {
+			return;
+		}
+
+		return new Promise<PositionScopeInformation>(async (resolve) => {
+			const runtime = await ctx.getRuntime();
+			const result = await nodeFinder(event, ctx, (result, inScope) => {
+				const macros = runtime.context.macros;
+				if (!result?.item) {
+					return [
+						{
+							inNode: false,
+							inScope: runtime.rootNode.serialize(
+								macros,
+								inScope,
+							),
+						} as PositionScopeInformation,
+					];
+				}
+
+				let node: Node | null = null;
+				if (result.item instanceof Node) {
+					node = result.item;
+				} else {
+					node = result.item?.parent;
+				}
+
+				return [
+					{
+						inNode: true,
+						inScope: node.serialize(
+							result.runtime.context.macros,
+							inScope,
+						),
+					} as PositionScopeInformation,
+				];
+			});
+			resolve(result[0]);
 		});
 	},
 );
