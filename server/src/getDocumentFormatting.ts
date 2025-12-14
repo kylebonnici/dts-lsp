@@ -310,7 +310,7 @@ export async function formatText(
 					allAstItems,
 					filePath,
 					prevText,
-					returnType,
+					'New Text',
 					options,
 					[...variantDocuments],
 				);
@@ -2456,15 +2456,6 @@ async function formatLongLines(
 	astItems: ASTBase[],
 	uri: string,
 	text: string,
-	returnType: 'Both',
-	options: FormattingFlags,
-	edits?: FileDiagnostic[],
-): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
-async function formatLongLines(
-	documentFormattingParams: CustomDocumentFormattingParams,
-	astItems: ASTBase[],
-	uri: string,
-	text: string,
 	returnType: 'File Diagnostics',
 	options: FormattingFlags,
 	edits?: FileDiagnostic[],
@@ -2483,7 +2474,7 @@ async function formatLongLines(
 	astItems: ASTBase[],
 	uri: string,
 	text: string,
-	returnType: 'New Text' | 'File Diagnostics' | 'Both',
+	returnType: 'New Text' | 'File Diagnostics',
 	options: FormattingFlags,
 	edits: FileDiagnostic[] = [],
 ): Promise<
@@ -2520,11 +2511,6 @@ async function formatLongLines(
 			return newText;
 		case 'File Diagnostics':
 			return rangeEdits;
-		case 'Both':
-			return {
-				text: newText,
-				diagnostic: rangeEdits,
-			};
 	}
 }
 
