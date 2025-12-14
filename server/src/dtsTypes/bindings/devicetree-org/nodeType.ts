@@ -35,7 +35,7 @@ import {
 } from '../../../helpers';
 import { FileDiagnostic, StandardTypeIssue } from '../../../types';
 import { getNodeNameOrNodeLabelRef } from '../../../ast/helpers';
-import { countParent } from '../../../getDocumentFormatting';
+import { countParent } from '../../../formatting/getDocumentFormatting';
 import { DtcRootNode } from '../../../ast/dtc/node';
 import { Property } from '../../../context/property';
 

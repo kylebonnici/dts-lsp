@@ -75,7 +75,7 @@ import { getDefinitions as getDTMacroDefinitions } from './dtMacro/definitions/f
 import { getDeclaration } from './findDeclarations';
 import { getDeclaration as getDTMacroDeclaration } from './dtMacro/declarations/findDeclarations';
 import { getCodeActions } from './getCodeActions';
-import { formatText } from './getDocumentFormatting';
+import { formatText } from './formatting/getDocumentFormatting';
 import { getTypeCompletions } from './getTypeCompletions';
 import { getHover } from './getHover';
 import { getHover as getDTMacroHover } from './dtMacro/hover/getHover';

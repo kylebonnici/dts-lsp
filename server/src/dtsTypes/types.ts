@@ -43,7 +43,7 @@ import { ArrayValues } from '../ast/dtc/values/arrayValue';
 import { LabelRef } from '../ast/dtc/labelRef';
 import { NodePathRef } from '../ast/dtc/values/nodePath';
 import { getNodeNameOrNodeLabelRef } from '../ast/helpers';
-import { countParent } from '../getDocumentFormatting';
+import { countParent } from '../formatting/getDocumentFormatting';
 import {
 	BindingPropertyType as PropertyType,
 	TypeConfig,

@@ -22,7 +22,7 @@ import {
 } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { resetTokenizedDocumentProvider } from '../providers/tokenizedDocument';
-import { formatText } from '../getDocumentFormatting';
+import { formatText } from '../formatting/getDocumentFormatting';
 import { filePathUri } from './helpers';
 
 jest.mock('fs', () => ({

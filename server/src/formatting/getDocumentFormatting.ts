@@ -31,24 +31,24 @@ import {
 	DtcChildNode,
 	DtcRefNode,
 	DtcRootNode,
-} from './ast/dtc/node';
-import { DtcProperty } from './ast/dtc/property';
-import { DeleteBase } from './ast/dtc/delete';
-import { ASTBase } from './ast/base';
+} from '../ast/dtc/node';
+import { DtcProperty } from '../ast/dtc/property';
+import { DeleteBase } from '../ast/dtc/delete';
+import { ASTBase } from '../ast/base';
 import {
 	FileDiagnostic,
 	FileDiagnosticWithEdit,
 	FileDiagnosticWithEdits,
 	FormattingIssues,
 	Token,
-} from './types';
-import { PropertyValues } from './ast/dtc/values/values';
-import { PropertyValue } from './ast/dtc/values/value';
-import { AllValueType } from './ast/dtc/types';
-import { ArrayValues } from './ast/dtc/values/arrayValue';
-import { ByteStringValue } from './ast/dtc/values/byteString';
-import { LabeledValue } from './ast/dtc/values/labeledValue';
-import { Include } from './ast/cPreprocessors/include';
+} from '../types';
+import { PropertyValues } from '../ast/dtc/values/values';
+import { PropertyValue } from '../ast/dtc/values/value';
+import { AllValueType } from '../ast/dtc/types';
+import { ArrayValues } from '../ast/dtc/values/arrayValue';
+import { ByteStringValue } from '../ast/dtc/values/byteString';
+import { LabeledValue } from '../ast/dtc/values/labeledValue';
+import { Include } from '../ast/cPreprocessors/include';
 import {
 	applyEdits,
 	coreSyntaxIssuesFilter,
@@ -62,23 +62,26 @@ import {
 	sameLine,
 	toPosition,
 	toRange,
-} from './helpers';
-import { Comment, CommentBlock } from './ast/dtc/comment';
-import { LabelAssign } from './ast/dtc/label';
-import { ComplexExpression, Expression } from './ast/cPreprocessors/expression';
-import { CMacroCall } from './ast/cPreprocessors/functionCall';
-import { getPropertyFromChild, isPropertyValueChild } from './ast/helpers';
-import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
-import { Parser } from './parser';
-import { Lexer } from './lexer';
+} from '../helpers';
+import { Comment, CommentBlock } from '../ast/dtc/comment';
+import { LabelAssign } from '../ast/dtc/label';
+import {
+	ComplexExpression,
+	Expression,
+} from '../ast/cPreprocessors/expression';
+import { CMacroCall } from '../ast/cPreprocessors/functionCall';
+import { getPropertyFromChild, isPropertyValueChild } from '../ast/helpers';
+import { CIdentifier } from '../ast/cPreprocessors/cIdentifier';
+import { Parser } from '../parser';
+import { Lexer } from '../lexer';
 import {
 	CElse,
 	CIf,
 	CIfBase,
 	IfDefineBlock,
 	IfElIfBlock,
-} from './ast/cPreprocessors/ifDefine';
-import { NumberValue } from './ast/dtc/values/number';
+} from '../ast/cPreprocessors/ifDefine';
+import { NumberValue } from '../ast/dtc/values/number';
 
 const findAst = async (token: Token, uri: string, fileRootAsts: ASTBase[]) => {
 	const pos = Position.create(token.pos.line, token.pos.col);
