@@ -1687,3 +1687,23 @@ export function startsWithLetter(value: string | undefined): boolean {
 		((first >= 'A' && first <= 'Z') || (first >= 'a' && first <= 'z'))
 	);
 }
+
+export const getClosestAstNode = (ast?: ASTBase): DtcBaseNode | undefined => {
+	if (!ast) {
+		return;
+	}
+	return ast instanceof DtcBaseNode
+		? ast
+		: getClosestAstNode(ast?.parentNode);
+};
+
+export const countParent = (
+	uri: string,
+	node?: DtcBaseNode,
+	count = 0,
+): number => {
+	if (!node || !node.parentNode?.uri) return count;
+
+	const closeAst = getClosestAstNode(node.parentNode);
+	return countParent(uri, closeAst, count + 1);
+};

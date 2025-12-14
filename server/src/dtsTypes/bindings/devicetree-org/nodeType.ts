@@ -30,12 +30,12 @@ import { Node } from '../../../context/node';
 import { Runtime } from '../../../context/runtime';
 import { INodeType } from '../../../dtsTypes/types';
 import {
+	countParent,
 	genStandardTypeDiagnostic,
 	toRangeWithTokenIndex,
 } from '../../../helpers';
 import { FileDiagnostic, StandardTypeIssue } from '../../../types';
 import { getNodeNameOrNodeLabelRef } from '../../../ast/helpers';
-import { countParent } from '../../../formatting/getDocumentFormatting';
 import { DtcRootNode } from '../../../ast/dtc/node';
 import { Property } from '../../../context/property';
 
