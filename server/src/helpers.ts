@@ -471,7 +471,7 @@ export const genContextDiagnostic = (
 		return diagnostic;
 	};
 
-	issueOwner?.resetableIssues.push(action);
+	issueOwner?.resettableIssues.push(action);
 
 	return {
 		raw: issue,
@@ -563,7 +563,7 @@ export const genStandardTypeDiagnostic = (
 		return diagnostic;
 	};
 
-	issueOwner?.resetableIssues.push(action);
+	issueOwner?.resettableIssues.push(action);
 
 	return {
 		raw: issue,

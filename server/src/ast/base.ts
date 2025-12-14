@@ -53,13 +53,13 @@ export class ASTBase {
 	private allDescendantsCache?: ASTBase[];
 
 	syntaxIssues: (() => Diagnostic)[] = [];
-	resetableIssues: (() => Diagnostic)[] = [];
+	resettableIssues: (() => Diagnostic)[] = [];
 	get issues(): (() => Diagnostic)[] {
-		return [...this.syntaxIssues, ...this.resetableIssues];
+		return [...this.syntaxIssues, ...this.resettableIssues];
 	}
 
 	resetIssues() {
-		this.resetableIssues = [];
+		this.resettableIssues = [];
 		this.children.forEach((c) => c.resetIssues());
 	}
 
