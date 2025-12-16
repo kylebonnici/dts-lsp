@@ -375,16 +375,13 @@ const formatExpression = (
 		return;
 	}
 
-	const start = Position.create(
-		expression.firstToken.prevToken!.pos.line,
-		expression.firstToken.prevToken!.pos.colEnd,
-	);
+	const start = Position.create(expression.firstToken.pos.line, 0);
 	const end = Position.create(
 		expression.firstToken.pos.line,
 		expression.firstToken.pos.col,
 	);
 	const range = Range.create(start, end);
-	const edit = TextEdit.replace(range, `\n${indent}`);
+	const edit = TextEdit.replace(range, indent);
 
 	return [
 		genFormattingDiagnostic(
