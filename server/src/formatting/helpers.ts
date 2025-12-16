@@ -15,7 +15,6 @@
  */
 
 import { Position, Range } from 'vscode-languageserver-types';
-import { DtcProperty } from 'src/ast/dtc/property';
 import { ASTBase } from '../ast/base';
 import { Comment, CommentBlock } from '../ast/dtc/comment';
 import { FileDiagnostic, Token } from '../types';
@@ -214,23 +213,6 @@ export const getFirstEnclosedExpression = (
 
 	return parent;
 };
-
-function getExpressionLevel(
-	property: DtcProperty,
-	expression: Expression,
-	level = 0,
-): number {
-	if (expression.firstToken.pos.line === property.firstToken.pos.line) {
-		return level;
-	}
-
-	const parent = getFirstEnclosedExpression(expression);
-	if (!parent) {
-		return level;
-	}
-
-	return getExpressionLevel(property, parent, level + 1);
-}
 
 export function getExpressionCol(
 	expression: Expression,
