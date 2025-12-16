@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Formatting of expressions will now indent to align with the group they are in example:
+- Formatting of expressions will now indent to align w the group they are in example:
 
 Was
 
