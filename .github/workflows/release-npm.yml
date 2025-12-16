@@ -29,5 +29,5 @@ jobs:
             - run: npm ci
             - run: npm --prefix server ci
             - run: npm run compile:server:prod
-            - run: npm publish --provenance --access public
+            - run: npm publish --provenance --access public --tag beta
               working-directory: server
