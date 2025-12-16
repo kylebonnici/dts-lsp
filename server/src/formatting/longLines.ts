@@ -34,6 +34,7 @@ import {
 	ComplexExpression,
 	Expression,
 } from '../ast/cPreprocessors/expression';
+import { CMacroCall } from '../ast/cPreprocessors/functionCall';
 import { LabelAssign } from '../ast/dtc/label';
 import type {
 	CustomDocumentFormattingParams,
@@ -45,6 +46,7 @@ import {
 	createIndentString,
 	filterOnOffEdits,
 	getAstItemLevel,
+	getExpressionCol,
 	pairFormatOnOff,
 	widthToPrefix,
 } from './helpers';
@@ -56,6 +58,17 @@ function needWrapping(
 	documentLines: string[],
 ) {
 	if (!sameLine(firstToken, lastToken)) {
+		let prevToken = lastToken.prevToken;
+		while (firstToken !== prevToken) {
+			if (prevToken && sameLine(firstToken, prevToken)) {
+				if (
+					needWrapping(firstToken, prevToken, settings, documentLines)
+				) {
+					return true;
+				}
+			}
+			prevToken = prevToken?.prevToken;
+		}
 		return null;
 	}
 
@@ -201,6 +214,7 @@ const getWrapLineEdit = async (
 			astNode,
 			level,
 			settings,
+			options,
 			documentText,
 			singleIndent,
 		);
@@ -356,6 +370,7 @@ const formatLongLinesDtcProperty = (
 	property: DtcProperty,
 	level: number,
 	settings: FormattingSettings,
+	options: FormattingFlags,
 	documentText: string[],
 	singleIndent: string,
 ): FileDiagnostic[] => {
@@ -376,6 +391,7 @@ const formatLongLinesDtcProperty = (
 			property.values,
 			level,
 			settings,
+			options,
 			documentText,
 			singleIndent,
 			property.lastToken,
@@ -390,6 +406,7 @@ const formatLongLinesPropertyValues = (
 	values: PropertyValues,
 	level: number,
 	settings: FormattingSettings,
+	options: FormattingFlags,
 	documentText: string[],
 	singleIndent: string,
 	semicolon?: Token,
@@ -404,6 +421,7 @@ const formatLongLinesPropertyValues = (
 			index,
 			level,
 			settings,
+			options,
 			documentText,
 			singleIndent,
 			index === values.values.length - 1 &&
@@ -438,16 +456,15 @@ const formatLongLinesPropertyValue = (
 	index: number,
 	level: number,
 	settings: FormattingSettings,
+	options: FormattingFlags,
 	documentText: string[],
 	singleIndent: string,
 	semicolon?: Token,
 ): FileDiagnostic[] | undefined => {
-	const valueEnd = value.nextValueSeparator ?? semicolon;
+	const valueEnd = value.nextValueSeparator ?? semicolon ?? value.lastToken;
 	const wrapping = needWrapping(
 		value.firstToken,
-		value.nextValueSeparator
-			? value.nextValueSeparator
-			: (valueEnd ?? value.lastToken),
+		valueEnd,
 		settings,
 		documentText,
 	);
@@ -468,6 +485,7 @@ const formatLongLinesPropertyValue = (
 				innerValue,
 				level,
 				settings,
+				options,
 				documentText,
 				singleIndent,
 				valueEnd,
@@ -480,6 +498,7 @@ const formatLongLinesPropertyValue = (
 				innerValue,
 				level,
 				settings,
+				options,
 				documentText,
 				singleIndent,
 			);
@@ -511,6 +530,7 @@ const formatLongLinesPropertyValue = (
 				innerValue,
 				level,
 				settings,
+				options,
 				documentText,
 				singleIndent,
 				valueEnd,
@@ -523,6 +543,7 @@ const formatLongLinesPropertyValue = (
 				innerValue,
 				level,
 				settings,
+				options,
 				documentText,
 				singleIndent,
 			);
@@ -578,6 +599,7 @@ const formatLongLinesArrayValue = (
 	innerValue: ArrayValues | ByteStringValue,
 	level: number,
 	settings: FormattingSettings,
+	options: FormattingFlags,
 	documentText: string[],
 	singleIndent: string,
 	valueEnd?: Token,
@@ -604,6 +626,7 @@ const formatLongLinesArrayValue = (
 				value.value,
 				level,
 				settings,
+				options,
 				documentText,
 				singleIndent,
 				index !== 0,
@@ -663,24 +686,49 @@ const formatLongLinesArrayValue = (
 
 const formatLongLinesExpression = (
 	propertyNameWidth: number,
-	expression: Expression,
+	expressionRaw: Expression,
 	level: number,
 	settings: FormattingSettings,
+	options: FormattingFlags,
 	documentText: string[],
 	indentString: string,
 	canWrapWholeExpression = false,
 	expressionLevel: number = 0,
 ): FileDiagnostic[] | undefined => {
+	const map = new Map<Token, Expression>();
+	expressionRaw.allDescendants.forEach((c) => {
+		if (c instanceof Expression && !(c.parentNode instanceof CMacroCall)) {
+			map.set(c.firstToken, c);
+		}
+	});
+
+	const expression = Array.from(map.values()).find((e) =>
+		needWrapping(e.firstToken, e.lastToken, settings, documentText),
+	);
+
+	if (!expression) {
+		return;
+	}
+
 	const line = documentText[expression.firstToken.pos.line].substring(
 		0,
 		expression.firstToken.pos.col,
 	);
 
-	const a = Math.trunc((propertyNameWidth + 4) / settings.tabSize);
-	const b = (propertyNameWidth + 4) % settings.tabSize;
+	const expectedCol = options.runExpressionIndentationCheck
+		? getExpressionCol(
+				expression,
+				settings,
+				documentText,
+				level,
+				propertyNameWidth + 4,
+			)
+		: propertyNameWidth + 4;
+
+	const a = Math.trunc(expectedCol / settings.tabSize);
+	const b = expectedCol % settings.tabSize;
 	const minWidth2 = a + b + level;
-	const minWidth =
-		line.trimStart() !== '' ? level + propertyNameWidth + 4 : minWidth2; // ` = `
+	const minWidth = line.trimStart() !== '' ? level + expectedCol : minWidth2; // ` = `
 	if (canWrapWholeExpression && expression.firstToken.pos.col !== minWidth) {
 		return [
 			genFormattingDiagnostic(
@@ -694,7 +742,7 @@ const formatLongLinesExpression = (
 								toPosition(expression.firstToken.prevToken!),
 								toPosition(expression.firstToken, false),
 							),
-							`\n${createIndentString(level, indentString, widthToPrefix(settings, propertyNameWidth + 4))}`,
+							`\n${createIndentString(level, indentString, widthToPrefix(settings, expectedCol))}`,
 						),
 					],
 					codeActionTitle: `Move ...${expression.toString()}... to a new line`,
@@ -725,6 +773,16 @@ const formatLongLinesExpression = (
 			continue;
 		}
 
+		const expectedCol = options.runExpressionIndentationCheck
+			? getExpressionCol(
+					exp.expression,
+					settings,
+					documentText,
+					level,
+					propertyNameWidth + 4,
+				)
+			: propertyNameWidth + 4;
+
 		if (wrap === null) {
 			// Value is on multiple lines so we need to go deeper
 			return formatLongLinesExpression(
@@ -732,6 +790,7 @@ const formatLongLinesExpression = (
 				exp.expression,
 				level,
 				settings,
+				options,
 				documentText,
 				indentString,
 				index !== 0,
@@ -761,7 +820,7 @@ const formatLongLinesExpression = (
 								),
 								toPosition(exp.expression.firstToken, false),
 							),
-							`\n${createIndentString(level, indentString, widthToPrefix(settings, propertyNameWidth + 4))}`,
+							`\n${createIndentString(level, indentString, widthToPrefix(settings, expectedCol))}`,
 						),
 						...(otherItem // wrap other item up to recursively align using least line possible
 							? [

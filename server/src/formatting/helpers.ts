@@ -15,6 +15,7 @@
  */
 
 import { Position, Range } from 'vscode-languageserver-types';
+import { DtcProperty } from 'src/ast/dtc/property';
 import { ASTBase } from '../ast/base';
 import { Comment, CommentBlock } from '../ast/dtc/comment';
 import { FileDiagnostic, Token } from '../types';
@@ -27,6 +28,10 @@ import {
 } from '../helpers';
 import { Include } from '../ast/cPreprocessors/include';
 import { IfDefineBlock, IfElIfBlock } from '../ast/cPreprocessors/ifDefine';
+import {
+	ComplexExpression,
+	Expression,
+} from '../ast/cPreprocessors/expression';
 import type {
 	CustomDocumentFormattingParams,
 	FormattingSettings,
@@ -195,3 +200,58 @@ export const createIndentString = (
 ) => {
 	return `${''.padStart(level * indentString.length, indentString)}${prefix}`;
 };
+
+export const getFirstEnclosedExpression = (
+	expression: Expression,
+): ComplexExpression | undefined => {
+	const parent = expression.parentNode;
+	if (!parent || !(parent instanceof Expression)) {
+		return;
+	}
+	if (!(parent instanceof ComplexExpression) || !parent.openBracket) {
+		return getFirstEnclosedExpression(parent);
+	}
+
+	return parent;
+};
+
+function getExpressionLevel(
+	property: DtcProperty,
+	expression: Expression,
+	level = 0,
+): number {
+	if (expression.firstToken.pos.line === property.firstToken.pos.line) {
+		return level;
+	}
+
+	const parent = getFirstEnclosedExpression(expression);
+	if (!parent) {
+		return level;
+	}
+
+	return getExpressionLevel(property, parent, level + 1);
+}
+
+export function getExpressionCol(
+	expression: Expression,
+	settings: FormattingSettings,
+	documentLines: string[],
+	level: number,
+	fallBack: number,
+): number {
+	const enclosedParent = getFirstEnclosedExpression(expression);
+	if (!enclosedParent) {
+		return fallBack;
+	}
+
+	const lineText = documentLines[enclosedParent.firstToken.pos.line].slice(
+		0,
+		enclosedParent.firstToken.pos.colEnd,
+	);
+
+	const length = lineText.replace(/^\s+/, (prefix) =>
+		prefix.replace(/\t/g, ' '.repeat(settings.tabSize)),
+	).length;
+
+	return length - settings.tabSize * level;
+}

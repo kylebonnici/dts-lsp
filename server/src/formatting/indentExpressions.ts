@@ -1,0 +1,404 @@
+/*
+ * Copyright 2024 Kyle Micallef Bonnici
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import { Position, Range, TextEdit } from 'vscode-languageserver';
+import { DtcBaseNode } from '../ast/dtc/node';
+import { DtcProperty } from '../ast/dtc/property';
+import { ASTBase } from '../ast/base';
+import { FileDiagnostic, FormattingIssues, Token } from '../types';
+import { PropertyValues } from '../ast/dtc/values/values';
+import { PropertyValue } from '../ast/dtc/values/value';
+import { ArrayValues } from '../ast/dtc/values/arrayValue';
+import { ByteStringValue } from '../ast/dtc/values/byteString';
+import { applyEdits, genFormattingDiagnostic } from '../helpers';
+import {
+	ComplexExpression,
+	Expression,
+} from '../ast/cPreprocessors/expression';
+import { CMacroCall } from '../ast/cPreprocessors/functionCall';
+import type {
+	CustomDocumentFormattingParams,
+	FormattingFlags,
+	FormattingSettings,
+	LevelMeta,
+} from './types';
+import {
+	createIndentString,
+	filterOnOffEdits,
+	getAstItemLevel,
+	getExpressionCol,
+	pairFormatOnOff,
+	widthToPrefix,
+} from './helpers';
+
+export async function formatExpressionIndentation(
+	documentFormattingParams: CustomDocumentFormattingParams,
+	astItems: ASTBase[],
+	uri: string,
+	text: string,
+	returnType: 'File Diagnostics',
+	options: FormattingFlags,
+): Promise<FileDiagnostic[]>;
+export async function formatExpressionIndentation(
+	documentFormattingParams: CustomDocumentFormattingParams,
+	astItems: ASTBase[],
+	uri: string,
+	text: string,
+	returnType: 'Both',
+	options: FormattingFlags,
+): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
+export async function formatExpressionIndentation(
+	documentFormattingParams: CustomDocumentFormattingParams,
+	astItems: ASTBase[],
+	uri: string,
+	text: string,
+	returnType: 'New Text',
+	options: FormattingFlags,
+): Promise<string>;
+export async function formatExpressionIndentation(
+	documentFormattingParams: CustomDocumentFormattingParams,
+	astItems: ASTBase[],
+	uri: string,
+	text: string,
+	returnType: 'New Text' | 'File Diagnostics' | 'Both',
+	options: FormattingFlags,
+): Promise<
+	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
+> {
+	const splitDocument = text.split('\n');
+	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
+
+	let newText = text;
+
+	const edits = await baseIndentExpression(
+		documentFormattingParams,
+		splitDocument,
+		astItems,
+		uri,
+		options,
+	);
+
+	const rangeEdits = filterOnOffEdits(
+		formatOnOffMeta,
+		documentFormattingParams,
+		edits,
+	);
+
+	newText = applyEdits(
+		TextDocument.create(uri, 'devicetree', 0, text),
+		rangeEdits.flatMap((i) => i.raw.edit).filter((e) => !!e),
+	);
+
+	switch (returnType) {
+		case 'New Text':
+			return newText;
+		case 'File Diagnostics':
+			return rangeEdits;
+		case 'Both':
+			return { text: newText, diagnostic: rangeEdits };
+	}
+}
+
+async function baseIndentExpression(
+	documentFormattingParams: CustomDocumentFormattingParams,
+	documentText: string[],
+	astItems: ASTBase[],
+	uri: string,
+	options: FormattingFlags,
+): Promise<FileDiagnostic[]> {
+	const astItemLevel = getAstItemLevel(astItems, uri);
+
+	const result: FileDiagnostic[] = (
+		await Promise.all(
+			astItems.flatMap(
+				async (base) =>
+					await indentExpressionEdits(
+						documentFormattingParams,
+						documentText,
+						base,
+						uri,
+						astItemLevel,
+						options,
+					),
+			),
+		)
+	).flat();
+
+	return result;
+}
+
+const indentExpressionEdits = async (
+	documentFormattingParams: CustomDocumentFormattingParams,
+	documentText: string[],
+	astNode: ASTBase,
+	uri: string,
+	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
+	options: FormattingFlags,
+	level = 0,
+): Promise<FileDiagnostic[]> => {
+	const delta = documentFormattingParams.options.tabSize;
+	const insertSpaces = documentFormattingParams.options.insertSpaces;
+	const singleIndent = insertSpaces ? ' '.repeat(delta) : '\t';
+	const settings: FormattingSettings = {
+		tabSize: delta,
+		insertSpaces,
+		singleIndent,
+		wordWrapColumn: documentFormattingParams.options.wordWrapColumn,
+	};
+
+	if (astNode instanceof DtcBaseNode) {
+		return formatDtcNode(
+			documentFormattingParams,
+			documentText,
+			astNode,
+			uri,
+			level,
+			options,
+			computeLevel,
+		);
+	} else if (astNode instanceof DtcProperty) {
+		return formatDtcProperty(
+			astNode,
+			level,
+			settings,
+			documentText,
+			singleIndent,
+		);
+	}
+
+	return [];
+};
+
+const formatDtcNode = async (
+	documentFormattingParams: CustomDocumentFormattingParams,
+	documentText: string[],
+	node: DtcBaseNode,
+	uri: string,
+	level: number,
+	options: FormattingFlags,
+	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
+): Promise<FileDiagnostic[]> => {
+	const result: FileDiagnostic[] = [];
+
+	result.push(
+		...(
+			await Promise.all(
+				node.children.flatMap((c) =>
+					indentExpressionEdits(
+						documentFormattingParams,
+						documentText,
+						c,
+						uri,
+						computeLevel,
+						options,
+						level + 1,
+					),
+				),
+			)
+		).flat(),
+	);
+
+	return result;
+};
+
+const formatDtcProperty = (
+	property: DtcProperty,
+	level: number,
+	settings: FormattingSettings,
+	documentText: string[],
+	singleIndent: string,
+): FileDiagnostic[] => {
+	if (property.firstToken.pos.line === property.lastToken.pos.line) {
+		return [];
+	}
+
+	if (property.values) {
+		return formatPropertyValues(
+			property.propertyName?.name.length ?? 0,
+			property.values,
+			level,
+			settings,
+			documentText,
+			singleIndent,
+		);
+	}
+
+	return [];
+};
+
+const formatPropertyValues = (
+	propertyNameWidth: number,
+	values: PropertyValues,
+	level: number,
+	settings: FormattingSettings,
+	documentText: string[],
+	singleIndent: string,
+): FileDiagnostic[] => {
+	return values.values.flatMap((v) =>
+		v
+			? formatPropertyValue(
+					propertyNameWidth,
+					v,
+					level,
+					settings,
+					documentText,
+					singleIndent,
+				)
+			: [],
+	);
+};
+
+const formatPropertyValue = (
+	propertyNameWidth: number,
+	value: PropertyValue,
+	level: number,
+	settings: FormattingSettings,
+	documentText: string[],
+	singleIndent: string,
+): FileDiagnostic[] => {
+	// Value is on multiple lines so we need to go deeper
+	const innerValue = value.value;
+
+	if (innerValue instanceof ArrayValues) {
+		return (
+			formatArrayValue(
+				propertyNameWidth,
+				innerValue,
+				level,
+				settings,
+				documentText,
+				singleIndent,
+			) ?? []
+		);
+	}
+
+	return [];
+};
+
+const formatArrayValue = (
+	propertyNameWidth: number,
+	innerValue: ArrayValues | ByteStringValue,
+	level: number,
+	settings: FormattingSettings,
+	documentText: string[],
+	singleIndent: string,
+): FileDiagnostic[] | undefined => {
+	for (const [_, value] of innerValue.values.entries()) {
+		const isComplexExpression = value.value instanceof ComplexExpression;
+
+		if (isComplexExpression) {
+			const map = new Map<Token, Expression>();
+			value.value.allDescendants.forEach((c) => {
+				if (
+					c instanceof Expression &&
+					!(c.parentNode instanceof CMacroCall)
+				) {
+					map.set(c.firstToken, c);
+				}
+			});
+
+			const expressions = Array.from(map.values());
+
+			for (const exp of expressions) {
+				const result = formatExpression(
+					propertyNameWidth,
+					exp,
+					settings,
+					documentText,
+					singleIndent,
+					level,
+				);
+
+				if (result) {
+					return result;
+				}
+			}
+		}
+	}
+
+	return;
+};
+
+const formatExpression = (
+	propertyNameWidth: number,
+	expression: Expression,
+	settings: FormattingSettings,
+	documentText: string[],
+	indentString: string,
+	level: number,
+): FileDiagnostic[] | undefined => {
+	// is first token on line
+	if (
+		expression.firstToken.pos.line ===
+		expression.firstToken.prevToken?.pos.line
+	) {
+		return;
+	}
+
+	const width = getExpressionCol(
+		expression,
+		settings,
+		documentText,
+		level,
+		propertyNameWidth + 4,
+	);
+	if (!width) {
+		return;
+	}
+
+	const indent = createIndentString(
+		level,
+		indentString,
+		widthToPrefix(settings, width),
+	);
+
+	const currentIndent = documentText[expression.firstToken.pos.line].slice(
+		0,
+		expression.firstToken.pos.col,
+	);
+
+	if (currentIndent === indent) {
+		return;
+	}
+
+	const start = Position.create(
+		expression.firstToken.prevToken!.pos.line,
+		expression.firstToken.prevToken!.pos.colEnd,
+	);
+	const end = Position.create(
+		expression.firstToken.pos.line,
+		expression.firstToken.pos.col,
+	);
+	const range = Range.create(start, end);
+	const edit = TextEdit.replace(range, `\n${indent}`);
+
+	return [
+		genFormattingDiagnostic(
+			FormattingIssues.WRONG_INDENTATION,
+			expression.uri,
+			start,
+			{
+				edit,
+				codeActionTitle: 'Fix indentation',
+				templateStrings: [
+					indent.replaceAll(' ', '·').replaceAll('\t', '→'),
+				],
+			},
+			end,
+		),
+	];
+};
