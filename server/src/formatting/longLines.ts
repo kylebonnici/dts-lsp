@@ -387,6 +387,7 @@ const formatLongLinesDtcProperty = (
 
 	if (property.values) {
 		return formatLongLinesPropertyValues(
+			property,
 			property.propertyName?.name.length ?? 0,
 			property.values,
 			level,
@@ -402,6 +403,7 @@ const formatLongLinesDtcProperty = (
 };
 
 const formatLongLinesPropertyValues = (
+	property: DtcProperty,
 	propertyNameWidth: number,
 	values: PropertyValues,
 	level: number,
@@ -481,6 +483,7 @@ const formatLongLinesPropertyValue = (
 			innerValue instanceof ByteStringValue
 		) {
 			return formatLongLinesArrayValue(
+				value,
 				propertyNameWidth,
 				innerValue,
 				level,
@@ -494,6 +497,7 @@ const formatLongLinesPropertyValue = (
 
 		if (innerValue instanceof Expression) {
 			return formatLongLinesExpression(
+				value,
 				propertyNameWidth,
 				innerValue,
 				level,
@@ -526,6 +530,7 @@ const formatLongLinesPropertyValue = (
 			innerValue instanceof ByteStringValue
 		) {
 			return formatLongLinesArrayValue(
+				value,
 				propertyNameWidth,
 				innerValue,
 				level,
@@ -539,6 +544,7 @@ const formatLongLinesPropertyValue = (
 
 		if (innerValue instanceof Expression) {
 			return formatLongLinesExpression(
+				value,
 				propertyNameWidth,
 				innerValue,
 				level,
@@ -595,6 +601,7 @@ const formatLongLinesPropertyValue = (
 };
 
 const formatLongLinesArrayValue = (
+	propertyValue: PropertyValue,
 	propertyNameWidth: number,
 	innerValue: ArrayValues | ByteStringValue,
 	level: number,
@@ -622,6 +629,7 @@ const formatLongLinesArrayValue = (
 
 		if (isComplexExpression) {
 			return formatLongLinesExpression(
+				propertyValue,
 				propertyNameWidth,
 				value.value,
 				level,
@@ -685,6 +693,7 @@ const formatLongLinesArrayValue = (
 };
 
 const formatLongLinesExpression = (
+	propertyValue: PropertyValue,
 	propertyNameWidth: number,
 	expressionRaw: Expression,
 	level: number,
@@ -717,11 +726,13 @@ const formatLongLinesExpression = (
 
 	const expectedCol = options.runExpressionIndentationCheck
 		? getExpressionCol(
+				propertyValue,
 				expression,
 				settings,
 				documentText,
 				level,
 				propertyNameWidth + 4,
+				true,
 			)
 		: propertyNameWidth + 4;
 
@@ -775,17 +786,20 @@ const formatLongLinesExpression = (
 
 		const expectedCol = options.runExpressionIndentationCheck
 			? getExpressionCol(
+					propertyValue,
 					exp.expression,
 					settings,
 					documentText,
 					level,
 					propertyNameWidth + 4,
+					!!wrap,
 				)
 			: propertyNameWidth + 4;
 
 		if (wrap === null) {
 			// Value is on multiple lines so we need to go deeper
 			return formatLongLinesExpression(
+				propertyValue,
 				propertyNameWidth,
 				exp.expression,
 				level,
