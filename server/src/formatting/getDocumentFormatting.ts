@@ -241,27 +241,23 @@ export async function formatText(
 		}
 
 		if (options.runExpressionIndentationCheck) {
-			let prevText = '';
-			do {
-				prevText = finalText;
-				const allAstItems =
-					(await getAstItems(filePath, text, finalText)) ??
-					parser.allAstItems;
-				finalText = await formatExpressionIndentation(
-					{
-						...documentFormattingParams,
-						options: {
-							...documentFormattingParams.options,
-							wordWrapColumn,
-						},
+			const allAstItems =
+				(await getAstItems(filePath, text, finalText)) ??
+				parser.allAstItems;
+			finalText = await formatExpressionIndentation(
+				{
+					...documentFormattingParams,
+					options: {
+						...documentFormattingParams.options,
+						wordWrapColumn,
 					},
-					allAstItems,
-					filePath,
-					finalText,
-					returnType,
-					options,
-				);
-			} while (prevText !== finalText);
+				},
+				allAstItems,
+				filePath,
+				finalText,
+				returnType,
+				options,
+			);
 		}
 
 		if (
@@ -343,28 +339,24 @@ export async function formatText(
 				)),
 			);
 
-			let prevText = '';
-			do {
-				prevText = finalText;
-				const allAstItems =
-					(await getAstItems(filePath, text, finalText)) ??
-					parser.allAstItems;
-				const r = await formatExpressionIndentation(
-					{
-						...documentFormattingParams,
-						options: {
-							...documentFormattingParams.options,
-							wordWrapColumn,
-						},
+			const allAstItems =
+				(await getAstItems(filePath, text, finalText)) ??
+				parser.allAstItems;
+			const r = await formatExpressionIndentation(
+				{
+					...documentFormattingParams,
+					options: {
+						...documentFormattingParams.options,
+						wordWrapColumn,
 					},
-					allAstItems,
-					filePath,
-					finalText,
-					returnType,
-					options,
-				);
-				finalText = r.text;
-			} while (prevText !== finalText);
+				},
+				allAstItems,
+				filePath,
+				finalText,
+				returnType,
+				options,
+			);
+			finalText = r.text;
 		}
 
 		if (

@@ -80,7 +80,7 @@ const getNewText = async (
 	return getEdits(document, options);
 };
 
-describe('Document formating', () => {
+describe('Document formatting', () => {
 	beforeEach(() => {
 		resetTokenizedDocumentProvider();
 	});
