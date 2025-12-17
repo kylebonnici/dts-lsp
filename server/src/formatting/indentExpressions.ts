@@ -276,6 +276,7 @@ const formatPropertyValue = (
 	if (innerValue instanceof ArrayValues) {
 		return (
 			formatArrayValue(
+				value,
 				propertyNameWidth,
 				innerValue,
 				level,
@@ -290,13 +291,14 @@ const formatPropertyValue = (
 };
 
 const formatArrayValue = (
+	propertyValue: PropertyValue,
 	propertyNameWidth: number,
 	innerValue: ArrayValues | ByteStringValue,
 	level: number,
 	settings: FormattingSettings,
 	documentText: string[],
 	singleIndent: string,
-): FileDiagnostic[] | undefined => {
+): FileDiagnostic[] => {
 	for (const [_, value] of innerValue.values.entries()) {
 		const isComplexExpression = value.value instanceof ComplexExpression;
 
@@ -313,43 +315,42 @@ const formatArrayValue = (
 
 			const expressions = Array.from(map.values());
 
-			for (const exp of expressions) {
-				const result = formatExpression(
+			return expressions.flatMap((exp) =>
+				formatExpression(
+					propertyValue,
 					propertyNameWidth,
 					exp,
 					settings,
 					documentText,
 					singleIndent,
 					level,
-				);
-
-				if (result) {
-					return result;
-				}
-			}
+				),
+			);
 		}
 	}
 
-	return;
+	return [];
 };
 
 const formatExpression = (
+	propertyValue: PropertyValue,
 	propertyNameWidth: number,
 	expression: Expression,
 	settings: FormattingSettings,
 	documentText: string[],
 	indentString: string,
 	level: number,
-): FileDiagnostic[] | undefined => {
+): FileDiagnostic[] => {
 	// is first token on line
 	if (
 		expression.firstToken.pos.line ===
 		expression.firstToken.prevToken?.pos.line
 	) {
-		return;
+		return [];
 	}
 
 	const width = getExpressionCol(
+		propertyValue,
 		expression,
 		settings,
 		documentText,
@@ -357,7 +358,7 @@ const formatExpression = (
 		propertyNameWidth + 4,
 	);
 	if (!width) {
-		return;
+		return [];
 	}
 
 	const indent = createIndentString(
@@ -372,7 +373,7 @@ const formatExpression = (
 	);
 
 	if (currentIndent === indent) {
-		return;
+		return [];
 	}
 
 	const start = Position.create(expression.firstToken.pos.line, 0);

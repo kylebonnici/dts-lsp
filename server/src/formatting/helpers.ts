@@ -24,6 +24,7 @@ import {
 	getDeepestAstNodeInBetween,
 	isRangeInRange,
 	positionInBetween,
+	sameLine,
 } from '../helpers';
 import { Include } from '../ast/cPreprocessors/include';
 import { IfDefineBlock, IfElIfBlock } from '../ast/cPreprocessors/ifDefine';
@@ -31,6 +32,7 @@ import {
 	ComplexExpression,
 	Expression,
 } from '../ast/cPreprocessors/expression';
+import { PropertyValue } from '../ast/dtc/values/value';
 import type {
 	CustomDocumentFormattingParams,
 	FormattingSettings,
@@ -215,25 +217,50 @@ export const getFirstEnclosedExpression = (
 };
 
 export function getExpressionCol(
+	propertyValue: PropertyValue,
 	expression: Expression,
 	settings: FormattingSettings,
 	documentLines: string[],
 	level: number,
 	fallBack: number,
+	wrap = false,
 ): number {
+	if (!wrap && sameLine(expression.firstToken, propertyValue.firstToken)) {
+		const lineText = documentLines[expression.firstToken.pos.line].slice(
+			0,
+			expression.firstToken.pos.col,
+		);
+
+		const length = lineText.replace(/^\s+/, (prefix) =>
+			prefix.replace(/\t/g, ' '.repeat(settings.tabSize)),
+		).length;
+
+		return length - settings.tabSize * level;
+	}
+
 	const enclosedParent = getFirstEnclosedExpression(expression);
 	if (!enclosedParent) {
 		return fallBack;
 	}
-
-	const lineText = documentLines[enclosedParent.firstToken.pos.line].slice(
-		0,
-		enclosedParent.firstToken.pos.colEnd,
+	const parentCol = getExpressionCol(
+		propertyValue,
+		enclosedParent,
+		settings,
+		documentLines,
+		level,
+		fallBack,
 	);
 
-	const length = lineText.replace(/^\s+/, (prefix) =>
-		prefix.replace(/\t/g, ' '.repeat(settings.tabSize)),
-	).length;
+	let expressionCol = parentCol;
+	if (!wrap && sameLine(expression.firstToken, enclosedParent.firstToken)) {
+		expressionCol +=
+			expression.firstToken.pos.col - enclosedParent.firstToken.pos.col;
+	} else if (
+		enclosedParent instanceof ComplexExpression &&
+		enclosedParent.openBracket
+	) {
+		++expressionCol;
+	}
 
-	return length - settings.tabSize * level;
+	return expressionCol;
 }
