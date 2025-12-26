@@ -177,10 +177,23 @@ const deleteContext = async (context: ContextAware) => {
 	}
 
 	if (!context.settings.disableFileWatchers) {
-		context
-			.getContextFiles()
-			.map((file) => fileWatchers.get(file)?.unwatch());
+		context.getContextFiles().map((file) => {
+			fileWatchers.get(file)?.unwatch();
+		});
 	}
+
+	setTimeout(async () => {
+		await allStable();
+		const usedFiles = new Set(
+			contextAware.flatMap((c) => c.getContextFiles()),
+		);
+		context.getContextFiles().map((file) => {
+			if (!usedFiles.has(file)) {
+				getTokenizedDocumentProvider().reset(file);
+			}
+		});
+	}, 2000); // allow for new context to be requested to preserve needed caches
+
 	context.bindingLoader?.dispose();
 };
 

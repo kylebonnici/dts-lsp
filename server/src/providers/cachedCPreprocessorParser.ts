@@ -58,14 +58,12 @@ class CachedCPreprocessorParserProvider {
 		uri = normalizePath(uri);
 		const headers = this.headerFiles.get(uri);
 		if (headers)
-			Array.from(headers).forEach((header) => {
-				if (header[1]) {
-					console.log('disposing c-preprocessor cache for', uri);
-					Array.from(this.includeOwners.get(header[1]) ?? []).forEach(
-						this.reset.bind(this),
-					);
-					this.headerFiles.delete(uri);
-				}
+			Array.from(headers).forEach(([_, value]) => {
+				console.log('disposing c-preprocessor cache for', uri);
+				Array.from(this.includeOwners.get(value) ?? []).forEach(
+					this.reset.bind(this),
+				);
+				this.headerFiles.delete(uri);
 			});
 	}
 }
