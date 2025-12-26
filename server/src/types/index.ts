@@ -33,6 +33,7 @@ export interface Context {
 	lockRenameEdits?: string[];
 	showFormattingErrorAsDiagnostics?: boolean;
 	compileCommands?: string;
+	disableFileWatchers?: boolean;
 }
 
 export type IntegrationSettings = Omit<
@@ -63,6 +64,7 @@ export interface Settings {
 	defaultShowFormattingErrorAsDiagnostics?: boolean;
 	autoChangeContext?: boolean;
 	allowAdhocContexts?: boolean;
+	disableFileWatchers?: boolean;
 }
 
 export type ContextType = 'Ad Hoc' | 'User' | '3rd Party';

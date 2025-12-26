@@ -1041,6 +1041,7 @@ export const generateContextId = (ctx: ResolvedContext) => {
 				...ctx.deviceOrgBindingsMetaSchema.map(normalizePath),
 				...ctx.deviceOrgTreeBindings.map(normalizePath),
 				`showFormattingErrorAsDiagnostics-${ctx.showFormattingErrorAsDiagnostics}`,
+				`disableFileWatchers-${ctx.disableFileWatchers}`,
 			].join(':'),
 		)
 		.digest('hex');

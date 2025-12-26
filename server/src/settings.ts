@@ -107,6 +107,7 @@ export const defaultSettings: ResolvedSettings = {
 	allowAdhocContexts: true,
 	autoChangeContext: true,
 	defaultShowFormattingErrorAsDiagnostics: true,
+	disableFileWatchers: false,
 };
 
 export const resolveContextSetting = async (
@@ -201,6 +202,8 @@ export const resolveContextSetting = async (
 		showFormattingErrorAsDiagnostics:
 			context.showFormattingErrorAsDiagnostics ??
 			defaultSettings.defaultShowFormattingErrorAsDiagnostics,
+		disableFileWatchers:
+			context.disableFileWatchers ?? defaultSettings.disableFileWatchers,
 	};
 };
 
@@ -291,6 +294,7 @@ export const resolveSettings = async (
 		defaultShowFormattingErrorAsDiagnostics:
 			globalSettings.defaultShowFormattingErrorAsDiagnostics ??
 			defaultSettings.defaultShowFormattingErrorAsDiagnostics,
+		disableFileWatchers: globalSettings.disableFileWatchers ?? false,
 	};
 
 	const contexts = (

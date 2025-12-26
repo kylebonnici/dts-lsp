@@ -83,6 +83,7 @@ export class ContextAware {
 			lockRenameEdits: [],
 			showFormattingErrorAsDiagnostics:
 				settings.showFormattingErrorAsDiagnostics ?? true,
+			disableFileWatchers: settings.disableFileWatchers ?? false,
 		};
 		this.isFullContext = this.settings.dtsFile
 			.toLowerCase()

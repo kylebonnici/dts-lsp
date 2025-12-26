@@ -117,6 +117,9 @@ const fileWatchers = new Map<string, FileWatcher>();
 initHeapMonitor();
 
 const watchContextFiles = (context: ContextAware) => {
+	if (context.settings.disableFileWatchers) {
+		return;
+	}
 	context.getContextFiles().forEach((file) => {
 		if (!fileWatchers.has(file)) {
 			fileWatchers.set(
@@ -173,7 +176,11 @@ const deleteContext = async (context: ContextAware) => {
 		}
 	}
 
-	context.getContextFiles().map((file) => fileWatchers.get(file)?.unwatch());
+	if (!context.settings.disableFileWatchers) {
+		context
+			.getContextFiles()
+			.map((file) => fileWatchers.get(file)?.unwatch());
+	}
 	context.bindingLoader?.dispose();
 };
 
