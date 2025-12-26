@@ -636,8 +636,7 @@ const convertBindingToType = (binding: ZephyrBindingYml, node?: Node) => {
 	}));
 	nodeType.cellsValues = cellsValues;
 
-	Object.keys(binding.properties ?? {}).forEach((name) => {
-		const property = binding.properties![name];
+	Object.entries(binding.properties ?? {}).forEach(([name, property]) => {
 		addToNodeType(nodeType, name, property);
 	});
 
