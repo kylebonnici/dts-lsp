@@ -943,10 +943,7 @@ export const expandMacros = (
 	macrosResolvers: Map<string, MacroRegistryItem>,
 ): string => {
 	const handleTokenConcatenation = (code: string): string => {
-		return code.replace(
-			/(\w+)\s*##\s*(\w+)/g,
-			(match, left, right) => left + right,
-		);
+		return code.replace(/\s*##\s*/g, '');
 	};
 	const handleStringification = (code: string): string => {
 		return code.replace(/#(\w+)/g, (_, param) => `"${param}"`);
