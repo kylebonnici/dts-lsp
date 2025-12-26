@@ -91,6 +91,7 @@ import {
 	widthToPrefix,
 } from './helpers';
 import { formatLongLines } from './longLines';
+import { formatExpressionIndentation } from './indentExpressions';
 
 const hasLongLines = (text: string, tabSize: number, wordWrapColumn: number) =>
 	!!text
@@ -103,6 +104,27 @@ const hasLongLines = (text: string, tabSize: number, wordWrapColumn: number) =>
 					)
 					.trimEnd().length > wordWrapColumn,
 		);
+
+const getAstItems = async (
+	filePath: string,
+	startText: string,
+	currentText: string,
+) => {
+	if (startText !== currentText) {
+		const parser = new Parser(
+			filePath,
+			[],
+			undefined,
+			() => {
+				const lexer = new Lexer(currentText, filePath);
+				return lexer.tokens;
+			},
+			true,
+		);
+		await parser.stable;
+		return parser.allAstItems;
+	}
+};
 
 export async function formatText(
 	documentFormattingParams:
@@ -146,6 +168,7 @@ export async function formatText(
 	options: FormattingFlags = {
 		runBaseCheck: true,
 		runLongLineCheck: true,
+		runExpressionIndentationCheck: true,
 	},
 	tokens?: Token[],
 	prevIfBlocks: (IfDefineBlock | IfElIfBlock)[] = [],
@@ -217,7 +240,28 @@ export async function formatText(
 			finalText = r;
 		}
 
+		if (options.runExpressionIndentationCheck) {
+			const allAstItems =
+				(await getAstItems(filePath, text, finalText)) ??
+				parser.allAstItems;
+			finalText = await formatExpressionIndentation(
+				{
+					...documentFormattingParams,
+					options: {
+						...documentFormattingParams.options,
+						wordWrapColumn,
+					},
+				},
+				allAstItems,
+				filePath,
+				finalText,
+				returnType,
+				options,
+			);
+		}
+
 		if (
+			options.runLongLineCheck &&
 			hasLongLines(
 				finalText,
 				documentFormattingParams.options.tabSize,
@@ -227,21 +271,9 @@ export async function formatText(
 			let prevText = '';
 			do {
 				prevText = finalText;
-				let allAstItems = parser.allAstItems;
-				if (prevText !== text) {
-					const parser = new Parser(
-						filePath,
-						[],
-						undefined,
-						() => {
-							const lexer = new Lexer(prevText, filePath);
-							return lexer.tokens;
-						},
-						true,
-					);
-					await parser.stable;
-					allAstItems = parser.allAstItems;
-				}
+				const allAstItems =
+					(await getAstItems(filePath, text, prevText)) ??
+					parser.allAstItems;
 
 				finalText = await formatLongLines(
 					{
@@ -289,7 +321,46 @@ export async function formatText(
 			diagnostic.push(...r.diagnostic);
 		}
 
+		if (options.runExpressionIndentationCheck) {
+			diagnostic.push(
+				...(await formatExpressionIndentation(
+					{
+						...documentFormattingParams,
+						options: {
+							...documentFormattingParams.options,
+							wordWrapColumn,
+						},
+					},
+					parser.allAstItems,
+					filePath,
+					finalText,
+					'File Diagnostics',
+					options,
+				)),
+			);
+
+			const allAstItems =
+				(await getAstItems(filePath, text, finalText)) ??
+				parser.allAstItems;
+			const r = await formatExpressionIndentation(
+				{
+					...documentFormattingParams,
+					options: {
+						...documentFormattingParams.options,
+						wordWrapColumn,
+					},
+				},
+				allAstItems,
+				filePath,
+				finalText,
+				returnType,
+				options,
+			);
+			finalText = r.text;
+		}
+
 		if (
+			options.runLongLineCheck &&
 			hasLongLines(
 				finalText,
 				documentFormattingParams.options.tabSize,
@@ -317,21 +388,9 @@ export async function formatText(
 			let prevText = '';
 			do {
 				prevText = finalText;
-				let allAstItems = parser.allAstItems;
-				if (prevText !== text) {
-					const parser = new Parser(
-						filePath,
-						[],
-						undefined,
-						() => {
-							const lexer = new Lexer(prevText, filePath);
-							return lexer.tokens;
-						},
-						true,
-					);
-					await parser.stable;
-					allAstItems = parser.allAstItems;
-				}
+				let allAstItems =
+					(await getAstItems(filePath, text, prevText)) ??
+					parser.allAstItems;
 
 				finalText = await formatLongLines(
 					{
@@ -379,7 +438,26 @@ export async function formatText(
 		diagnostic.push(...r);
 	}
 
+	if (options.runExpressionIndentationCheck) {
+		const r = await formatExpressionIndentation(
+			{
+				...documentFormattingParams,
+				options: {
+					...documentFormattingParams.options,
+					wordWrapColumn,
+				},
+			},
+			parser.allAstItems,
+			filePath,
+			text,
+			returnType,
+			options,
+		);
+		diagnostic.push(...r);
+	}
+
 	if (
+		options.runLongLineCheck &&
 		hasLongLines(
 			text,
 			documentFormattingParams.options.tabSize,
@@ -1160,6 +1238,7 @@ const formatLabeledValue = <T extends ASTBase>(
 	value: LabeledValue<T>,
 	level: number,
 	settings: FormattingSettings,
+	options: FormattingFlags,
 	openBracket: Token | undefined,
 	documentText: string[],
 ): FileDiagnostic[] => {
@@ -1245,6 +1324,7 @@ const formatLabeledValue = <T extends ASTBase>(
 				documentText,
 				level,
 				settings,
+				options,
 				propertyNameWidth + 4,
 			),
 		);
@@ -1258,6 +1338,7 @@ const formatValue = (
 	value: AllValueType,
 	level: number,
 	settings: FormattingSettings,
+	options: FormattingFlags,
 	documentText: string[],
 ): FileDiagnostic[] => {
 	const result: FileDiagnostic[] = [];
@@ -1282,6 +1363,7 @@ const formatValue = (
 						v,
 						level,
 						settings,
+						options,
 						value.openBracket,
 						documentText,
 					),
@@ -1324,6 +1406,7 @@ const formatValue = (
 				documentText,
 				level,
 				settings,
+				options,
 				propertyNameWidth,
 			),
 		);
@@ -1337,6 +1420,7 @@ const formatExpression = (
 	documentText: string[],
 	level: number,
 	settings: FormattingSettings,
+	options: FormattingFlags,
 	width: number,
 ): FileDiagnostic[] => {
 	if (value instanceof CMacroCall) {
@@ -1349,6 +1433,7 @@ const formatExpression = (
 			documentText,
 			level,
 			settings,
+			options,
 			width,
 		);
 	}
@@ -1388,6 +1473,7 @@ const formatComplexExpression = (
 	documentText: string[],
 	level: number,
 	settings: FormattingSettings,
+	options: FormattingFlags,
 	width: number,
 ): FileDiagnostic[] => {
 	const result: FileDiagnostic[] = [];
@@ -1408,6 +1494,7 @@ const formatComplexExpression = (
 			documentText,
 			level,
 			settings,
+			options,
 			width,
 		),
 	);
@@ -1439,6 +1526,9 @@ const formatComplexExpression = (
 					settings.singleIndent,
 					documentText,
 					widthToPrefix(settings, width),
+					undefined,
+					undefined,
+					!options.runExpressionIndentationCheck,
 				),
 			);
 		}
@@ -1448,6 +1538,7 @@ const formatComplexExpression = (
 				documentText,
 				level,
 				settings,
+				options,
 				width,
 			),
 		);
@@ -1514,6 +1605,7 @@ const formatPropertyValue = (
 	value: PropertyValue,
 	level: number,
 	settings: FormattingSettings,
+	options: FormattingFlags,
 	documentText: string[],
 ): FileDiagnostic[] => {
 	const result: FileDiagnostic[] = [];
@@ -1526,6 +1618,7 @@ const formatPropertyValue = (
 			value.value,
 			level,
 			settings,
+			options,
 			documentText,
 		),
 	);
@@ -1537,10 +1630,10 @@ const formatPropertyValue = (
 
 const formatPropertyValues = (
 	propertyNameWidth: number,
-	propName: string,
 	values: PropertyValues,
 	level: number,
 	settings: FormattingSettings,
+	options: FormattingFlags,
 	documentText: string[],
 	assignOperator: Token | undefined,
 ): FileDiagnostic[] => {
@@ -1616,6 +1709,7 @@ const formatPropertyValues = (
 				value,
 				level,
 				settings,
+				options,
 				documentText,
 			),
 		);
@@ -1634,6 +1728,7 @@ const formatDtcProperty = (
 	property: DtcProperty,
 	level: number,
 	settings: FormattingSettings,
+	options: FormattingFlags,
 	documentText: string[],
 ): FileDiagnostic[] => {
 	const result: FileDiagnostic[] = [];
@@ -1679,10 +1774,10 @@ const formatDtcProperty = (
 		result.push(
 			...formatPropertyValues(
 				property.propertyName?.name.length ?? 0,
-				property.propertyName?.name ?? '',
 				property.values,
 				level,
 				settings,
+				options,
 				documentText,
 				property.assignOperatorToken,
 			),
@@ -1709,6 +1804,7 @@ const ensureOnNewLineAndMax1EmptyLineToPrev = (
 	prefix?: string,
 	expectedNewLines?: number,
 	forceExpectedNewLines?: boolean,
+	indent = true,
 ) => {
 	const result: FileDiagnostic[] = [];
 
@@ -1729,15 +1825,18 @@ const ensureOnNewLineAndMax1EmptyLineToPrev = (
 			forceExpectedNewLines,
 		);
 		if (edit) result.push(edit);
-		result.push(
-			...createIndentEdit(
-				token,
-				level,
-				indentString,
-				documentText,
-				prefix,
-			),
-		);
+
+		if (indent) {
+			result.push(
+				...createIndentEdit(
+					token,
+					level,
+					indentString,
+					documentText,
+					prefix,
+				),
+			);
+		}
 	}
 
 	return result;
@@ -2181,7 +2280,13 @@ const getTextEdit = async (
 			computeLevel,
 		);
 	} else if (astNode instanceof DtcProperty) {
-		return formatDtcProperty(astNode, level, settings, documentText);
+		return formatDtcProperty(
+			astNode,
+			level,
+			settings,
+			options,
+			documentText,
+		);
 	} else if (astNode instanceof DeleteBase) {
 		return formatDtcDelete(astNode, level, singleIndent, documentText);
 	} else if (astNode instanceof Include) {
