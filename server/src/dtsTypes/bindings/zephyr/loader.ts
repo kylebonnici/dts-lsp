@@ -335,14 +335,14 @@ export class ZephyrBindingsLoader {
 	private processedFolders = new Set<string>();
 	private zephyrBindingCache: Map<string, ZephyrBindingYml> = new Map();
 
-	static getCompatibleKeys(compatable: string, parent?: Node | null) {
+	static getCompatibleKeys(compatible: string, parent?: Node | null) {
 		if (!parent || !parent.nodeType?.bus?.length) {
-			return [compatable];
+			return [compatible];
 		}
 
 		return [
-			...parent.nodeType.bus.map((bus) => `${compatable}::${bus}`),
-			compatable,
+			...parent.nodeType.bus.map((bus) => `${compatible}::${bus}`),
+			compatible,
 		];
 	}
 
@@ -496,7 +496,7 @@ export class ZephyrBindingsLoader {
 								const readData = yaml.parse(
 									readFileSync(bindingFile, 'utf-8'),
 								);
-								const simplifiyedInclude = simplifyInclude(
+								const simplifiedInclude = simplifyInclude(
 									readData?.include,
 								);
 								const obj = {
@@ -506,8 +506,8 @@ export class ZephyrBindingsLoader {
 											? readData.bus
 											: [readData.bus]
 										: undefined,
-									include: simplifiyedInclude,
-									rawInclude: [...simplifiyedInclude],
+									include: simplifiedInclude,
+									rawInclude: [...simplifiedInclude],
 									filePath: bindingFile,
 								} as ZephyrBindingYml;
 								this.zephyrBindingCache.set(bindingFile, obj);
