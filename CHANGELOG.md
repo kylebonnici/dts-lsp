@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Macro resolution for `##` when expression is complex i.e. multiple `##` in same expression
+- Load `base.yaml` to all nodes that do not have a binding when using zephyr bindings
 
 ## [0.7.6] - 2025-12-26
 

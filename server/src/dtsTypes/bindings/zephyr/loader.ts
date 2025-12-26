@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { resolve, basename } from 'path';
+import path, { resolve, basename } from 'path';
 import { readFileSync } from 'fs';
 import p from 'path';
 import yaml from 'yaml';
@@ -346,6 +346,32 @@ export class ZephyrBindingsLoader {
 		];
 	}
 
+	getBaseZephyrType(key: string) {
+		const folders = key.split(':');
+		const bindings = Array.from(this.zephyrBindingCache.keys())
+			.filter((p) => folders.some((f) => p.startsWith(f)))
+			.flatMap((path) => this.zephyrBindingCache.get(path)!);
+
+		return bindings.find((b) =>
+			b.filePath.endsWith(`${path.sep}base.yaml`),
+		);
+	}
+
+	getBaseNodeType(node: Node, key: string) {
+		const base = this.getBaseZephyrType(key);
+		const baseType = base ? convertBindingToType(base, node) : undefined;
+		if (baseType) {
+			baseType.warnMismatchProperties = false;
+			const compat = baseType.properties.find(
+				(p) => p.name === 'compatible',
+			);
+			if (compat) {
+				compat.required = () => 'optional';
+			}
+		}
+		return baseType;
+	}
+
 	static getNodeCompatible(node: Node) {
 		const compatible = node.getProperty('compatible');
 		const values = compatible?.ast.values;
@@ -380,35 +406,11 @@ export class ZephyrBindingsLoader {
 			| undefined;
 
 		if (!compatible?.length) {
-			if (node.name === 'zephyr,user') {
-				const folders = key.split(':');
-				const bindings = Array.from(this.zephyrBindingCache.keys())
-					.filter((p) => folders.some((f) => p.startsWith(f)))
-					.flatMap((path) => this.zephyrBindingCache.get(path)!);
-
-				const base = bindings.find((b) =>
-					b.filePath.endsWith(`/base.yaml`),
-				);
-				const baseType = base
-					? convertBindingToType(base, node)
-					: undefined;
-				if (baseType) {
-					baseType.warnMismatchProperties = false;
-					const compat = baseType.properties.find(
-						(p) => p.name === 'compatible',
-					);
-					if (compat) {
-						compat.required = () => 'optional';
-					}
-				}
-
-				return {
-					type: [baseType ?? getStandardType(node)],
-					issues: [],
-				};
-			}
-
-			return { type: [getStandardType(node)], issues: [] };
+			const baseType = this.getBaseNodeType(node, key);
+			return {
+				type: [baseType ?? getStandardType(node)],
+				issues: [],
+			};
 		}
 
 		const out = compatible.flatMap((c) =>
@@ -529,10 +531,20 @@ export class ZephyrBindingsLoader {
 		let typeCache = this.typeCache.get(key);
 		if (!typeCache) {
 			typeCache = new Map();
-			typeCache.set('simple-bus', () => getSimpleBusType());
 			this.typeCache.set(key, typeCache);
 		}
 		convertBindingsToType(resolvedBindings, typeCache);
+
+		if (!typeCache.has('simple-bus')) {
+			const baseZephyr = this.getBaseZephyrType(key);
+			if (baseZephyr) {
+				const simpleBus = convertSimpleBusToType(baseZephyr);
+				return {
+					type: [simpleBus],
+					issues: [],
+				};
+			}
+		}
 	}
 
 	getBindings(key: string) {
@@ -645,6 +657,32 @@ const convertBindingToType = (binding: ZephyrBindingYml, node?: Node) => {
 		nodeType.childNodeType = (n: Node) =>
 			convertBindingToType(childBinding, n);
 	}
+
+	return nodeType;
+};
+
+const convertSimpleBusToType = (binding: ZephyrBindingYml) => {
+	const nodeType = getSimpleBusType();
+	nodeType.bus =
+		typeof binding.bus === 'string'
+			? [binding.bus]
+			: Array.from(new Set(binding.bus));
+	nodeType.onBus = binding['on-bus'];
+	binding.extends?.forEach((e) => nodeType.extends.add(e));
+	nodeType.warnMismatchProperties = true;
+
+	const cellsKeys = Object.keys(binding).filter((key) =>
+		key.endsWith('-cells'),
+	);
+	const cellsValues = cellsKeys.map((k) => ({
+		specifier: k.replace(/-cells$/, ''),
+		values: binding[k as CellSpecifier],
+	}));
+	nodeType.cellsValues = cellsValues;
+
+	Object.entries(binding.properties ?? {}).forEach(([name, property]) => {
+		addToNodeType(nodeType, name, property);
+	});
 
 	return nodeType;
 };
