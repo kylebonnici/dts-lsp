@@ -174,6 +174,7 @@ const deleteContext = async (context: ContextAware) => {
 	}
 
 	context.getContextFiles().map((file) => fileWatchers.get(file)?.unwatch());
+	context.bindingLoader?.dispose();
 };
 
 const isStable = (context: ContextAware) => {

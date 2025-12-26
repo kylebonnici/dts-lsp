@@ -30,6 +30,7 @@ export interface BindingLoader {
 	getBindings(): string[];
 	getBusTypes(): string[];
 	getDocumentLinks?(document?: TextDocument): DocumentLink[];
+	dispose(): void;
 }
 
 export interface BindingLoaderFileType {
@@ -38,12 +39,14 @@ export interface BindingLoaderFileType {
 	deviceOrgTreeBindings: string[];
 }
 
+let keyUsedCount = new Map<string, number>();
 export const getBindingLoader = (
 	files: BindingLoaderFileType,
 	type: BindingType,
 ): BindingLoader => {
 	const zephyrKey = files.zephyrBindings.join(':');
 	if (type === 'Zephyr') {
+		keyUsedCount.set(zephyrKey, (keyUsedCount.get(zephyrKey) ?? 0) + 1);
 		getZephyrBindingsLoader().loadTypeAndCache(
 			files.zephyrBindings,
 			zephyrKey,
@@ -103,6 +106,17 @@ export const getBindingLoader = (
 
 				case 'DevicetreeOrg':
 					return [];
+			}
+		},
+		dispose: () => {
+			if (type === 'Zephyr') {
+				const count = keyUsedCount.get(zephyrKey) ?? 0;
+				if (count <= 1) {
+					keyUsedCount.delete(zephyrKey);
+					getZephyrBindingsLoader().resetCache(zephyrKey);
+				} else {
+					keyUsedCount.set(zephyrKey, count - 1);
+				}
 			}
 		},
 	};

@@ -602,6 +602,10 @@ export class ZephyrBindingsLoader {
 
 		return links;
 	}
+
+	resetCache(key: string) {
+		this.typeCache.delete(key);
+	}
 }
 
 let zephyrBindingsLoader: ZephyrBindingsLoader | undefined;
