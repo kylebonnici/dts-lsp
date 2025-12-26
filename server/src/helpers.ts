@@ -1707,3 +1707,33 @@ export const countParent = (
 	const closeAst = getClosestAstNode(node.parentNode);
 	return countParent(uri, closeAst, count + 1);
 };
+
+// avoid using Array.splice to avoid stack overflow on large arrays
+export function safeSplice<T>(
+	array: T[],
+	startIndex: number,
+	endIndex: number,
+	insertArray: T[],
+): T[] {
+	const removeCount = endIndex - startIndex;
+	const insertCount = insertArray.length;
+
+	const newLength = array.length - removeCount + insertCount;
+	const result = new Array(newLength);
+
+	let i = 0;
+
+	for (let j = 0; j < startIndex; j++, i++) {
+		result[i] = array[j];
+	}
+
+	for (let j = 0; j < insertCount; j++, i++) {
+		result[i] = insertArray[j];
+	}
+
+	for (let j = endIndex; j < array.length; j++, i++) {
+		result[i] = array[j];
+	}
+
+	return result;
+}

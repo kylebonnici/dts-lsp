@@ -27,6 +27,7 @@ import {
 	isPathEqual,
 	isRangeInRange,
 	parseMacros,
+	safeSplice,
 	sameLine,
 	validateToken,
 	validateValue,
@@ -906,11 +907,13 @@ export class CPreprocessorParser extends BaseParser {
 					count: endIndex - startIndex,
 				});
 			} else {
-				this.tokens.splice(
+				this.tokens = safeSplice(
+					this.tokens,
 					startIndex,
-					endIndex - startIndex,
-					...fileParser.tokens,
+					endIndex,
+					fileParser.tokens,
 				);
+
 				this.positionStack[this.positionStack.length - 1] = startIndex;
 			}
 
