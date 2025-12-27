@@ -217,34 +217,36 @@ export class ContextAware {
 		const runtime = await this.getRuntime();
 
 		const bindingLinks =
-			(runtime.rootNode.allBindingsProperties
+			runtime.rootNode.allBindingsProperties
 				.filter(
 					(p) =>
 						isPathEqual(p.ast.uri, file) &&
 						(!position || positionInBetween(p.ast, file, position)),
 				)
 				.flatMap((p) =>
-					p.ast.values?.values.flatMap((v) => {
-						const node = p.parent;
-						const nodeType = node?.nodeTypes.find(
-							(t) =>
-								v?.value instanceof StringValue &&
-								t.compatible === v.value.value,
-						);
-						return nodeType
-							? {
-									range: toRange(v!.value!),
-									target: pathToFileURL(
-										nodeType.bindingsPath!,
-									),
-								}
-							: undefined;
-					}),
+					p.ast.values?.values.flatMap<DocumentLink | undefined>(
+						(v) => {
+							const node = p.parent;
+							const nodeType = node?.nodeTypes.find(
+								(t) =>
+									v?.value instanceof StringValue &&
+									t.compatible === v.value.value,
+							);
+							return nodeType
+								? {
+										range: toRange(v!.value!),
+										target: pathToFileURL(
+											nodeType.bindingsPath!,
+										),
+									}
+								: undefined;
+						},
+					),
 				)
-				.filter((v) => v) as DocumentLink[]) ?? [];
+				.filter((v) => !!v) ?? [];
 
 		return [
-			...((this.parser.cPreprocessorParser.dtsIncludes
+			...(this.parser.cPreprocessorParser.dtsIncludes
 				.filter(
 					(include) =>
 						isPathEqual(include.uri, file) &&
@@ -262,7 +264,7 @@ export class ContextAware {
 						return link;
 					}
 				})
-				.filter((r) => r) as DocumentLink[]) ?? []),
+				.filter((r) => !!r) ?? []),
 			...bindingLinks,
 		];
 	}
