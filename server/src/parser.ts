@@ -31,6 +31,7 @@ import {
 	adjacentTokens,
 	createTokenIndex,
 	genSyntaxDiagnostic,
+	isVirtualUri,
 	linkAstToComments,
 	normalizePath,
 	positionInBetween,
@@ -626,7 +627,8 @@ export class Parser extends BaseParser {
 				);
 			} else if (
 				!Number.isNaN(address) &&
-				!adjacentTokens(prevToken, addressValid[0])
+				!adjacentTokens(prevToken, addressValid[0]) &&
+				!isVirtualUri(addressValid[0].uri)
 			) {
 				this._issues.push(
 					genSyntaxDiagnostic(
@@ -687,6 +689,9 @@ export class Parser extends BaseParser {
 
 			const addresses: NodeAddress[] = [];
 			const consumeAllAddresses = () => {
+				this.processInjectPreProcessorMacros(
+					this.cPreprocessorParser.macros,
+				);
 				addresses.push(this.processNodeAddress(nodeName));
 
 				if (validToken(this.currentToken, LexerToken.COMMA)) {
