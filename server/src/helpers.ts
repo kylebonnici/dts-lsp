@@ -972,7 +972,8 @@ export const expandMacros = (
 						.map((a: string) => a.trim())
 						.map((a: string) =>
 							a === '__COUNTER__' ? (counter++).toString() : a,
-						);
+						)
+						.map((a: string) => expandMacros(a, macrosResolvers));
 					return (
 						macrosResolvers.get(func)?.resolver as (
 							...args: string[]
