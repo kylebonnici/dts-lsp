@@ -42,13 +42,6 @@ export function getCpuNodeType() {
 		return [];
 	};
 
-	const deviceTypeProp = nodeType.properties.find(
-		(p) => p.name === 'device_type',
-	);
-	deviceTypeProp!.required = () => {
-		return 'required';
-	};
-
 	const regProp = nodeType.properties.find((p) => p.name === 'reg');
 	regProp!.required = () => 'required';
 	regProp!.description = [
