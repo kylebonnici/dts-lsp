@@ -288,14 +288,15 @@ const mergeAIntoB = (
 
 	// merge children
 	if (resolvedA['child-binding']) {
+		resolvedB['child-binding'] ??= {
+			filePath: resolvedB.filePath,
+			include: [],
+			rawInclude: [],
+		};
 		mergeAIntoB(
 			bindings,
 			resolvedA['child-binding'],
-			resolvedB['child-binding'] ?? {
-				filePath: resolvedB.filePath,
-				include: [],
-				rawInclude: [],
-			},
+			resolvedB['child-binding'],
 		);
 	}
 
