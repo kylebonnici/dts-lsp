@@ -6,10 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.7.7] - unreleased
 
+### Changes
+
+- `device_type` is not longer required on `cpu` nodes.
+
 ### Fixed
 
 - Macro resolution for `##` when expression is complex i.e. multiple `##` in same expression
+- Macro argument expansion order.
 - Load `base.yaml` to all nodes that do not have a binding when using zephyr bindings
+- Fixed an issue with zephyr bindings where `child-binding` where not merged when a binding
+  included another binding and both have `child-binding`
+- Fixed an issue with zephyr bindings where child-binding `property-blocklist` and `property-allowlist` where not respected for includes
 
 ## [0.7.6] - 2025-12-26
 
