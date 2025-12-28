@@ -245,15 +245,11 @@ describe('Type Issues', () => {
 				await context.parser.stable;
 				const runtime = await context.getRuntime();
 				const issues = runtime.typesIssues;
-				expect(issues.length).toEqual(2);
+				expect(issues.length).toEqual(1);
 				expect(issues[0].raw.issues).toEqual([
 					StandardTypeIssue.REQUIRED,
 				]);
 				expect(issues[0].raw.templateStrings).toEqual(['reg']);
-				expect(issues[1].raw.issues).toEqual([
-					StandardTypeIssue.REQUIRED,
-				]);
-				expect(issues[1].raw.templateStrings).toEqual(['device_type']);
 			});
 		});
 
@@ -1239,9 +1235,12 @@ describe('Type Issues', () => {
 				await context.parser.stable;
 				const runtime = await context.getRuntime();
 				const issues = runtime.typesIssues;
-				expect(issues.length).toEqual(1);
+				expect(issues.length).toEqual(2);
 				expect(issues[0].raw.issues).toEqual([
 					StandardTypeIssue.EXPECTED_NODE_ADDRESS,
+				]);
+				expect(issues[1].raw.issues).toEqual([
+					StandardTypeIssue.DEPRECATED,
 				]);
 			});
 
