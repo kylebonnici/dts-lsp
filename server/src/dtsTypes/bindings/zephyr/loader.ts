@@ -76,13 +76,23 @@ type ZephyrBindingsProperty = {
 	const?: string | number | (string | number)[];
 	'specifier-space'?: string;
 };
+
+interface BlockAllowList {
+	'property-blocklist'?: string[];
+	'property-allowlist'?: string[];
+}
+
+interface ChildNodeInclude extends BlockAllowList {
+	'child-binding'?: ChildNodeInclude;
+}
+
+interface Include extends BlockAllowList {
+	name: string;
+	'child-binding'?: ChildNodeInclude;
+}
 interface ZephyrBindingYml {
 	filePath: string;
-	include: {
-		name: string;
-		'property-blocklist'?: string[];
-		'property-allowlist'?: string[];
-	}[];
+	include: Include[];
 	rawInclude: {
 		name: string;
 		'property-blocklist'?: string[];
@@ -183,6 +193,7 @@ const resolveBinding = (
 			binding.extends?.push(
 				...p.include.map((i) => basename(i.name, '.yaml')),
 			);
+			const childBindingFilter = c['child-binding'];
 			p.include = p.include.filter((i) => i !== c);
 			return (
 				mergeAIntoB(
@@ -191,6 +202,7 @@ const resolveBinding = (
 					p,
 					propertiesToExclude,
 					propertiesToInclude,
+					childBindingFilter,
 				) ?? p
 			);
 		}
@@ -219,6 +231,7 @@ const mergeAIntoB = (
 	b: ZephyrBindingYml,
 	propertiesToExclude: string[] = [],
 	propertiesToInclude?: string[],
+	childBindingFilter?: ChildNodeInclude,
 ): ZephyrBindingYml | undefined => {
 	const resolvedA = resolveBinding(bindings, a);
 	const resolvedB = resolveBinding(bindings, b);
@@ -297,6 +310,9 @@ const mergeAIntoB = (
 			bindings,
 			resolvedA['child-binding'],
 			resolvedB['child-binding'],
+			childBindingFilter?.['property-blocklist'],
+			childBindingFilter?.['property-allowlist'],
+			childBindingFilter?.['child-binding'],
 		);
 	}
 
