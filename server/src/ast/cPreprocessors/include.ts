@@ -19,8 +19,11 @@ import { SymbolKind } from 'vscode-languageserver';
 import { ASTBase } from '../base';
 import { Keyword } from '../keyword';
 import { TokenIndexes } from '../../types';
+import { Comment, CommentBlock } from '../dtc/comment';
 
 export class Include extends ASTBase {
+	public topComment?: Comment | CommentBlock;
+	public endComment?: Comment | CommentBlock;
 	private _resolvedPath?: string;
 
 	constructor(

@@ -58,6 +58,7 @@ import { CMacroCall } from './ast/cPreprocessors/functionCall';
 import { Comment, CommentBlock } from './ast/dtc/comment';
 import { DtcBaseNode } from './ast/dtc/node';
 import { DtcProperty } from './ast/dtc/property';
+import { Include } from './ast/cPreprocessors/include';
 
 export const toRangeWithTokenIndex = (
 	start?: Token,
@@ -1605,7 +1606,7 @@ export function rangesOverlap(r1: Range, r2: Range): boolean {
 }
 
 export const linkAstToComments = (
-	astItem: DtcBaseNode | DtcProperty,
+	astItem: DtcBaseNode | DtcProperty | Include,
 	comments: (CommentBlock | Comment)[],
 ) => {
 	const after = linkAstAfterComment(astItem, comments);

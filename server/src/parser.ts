@@ -234,7 +234,11 @@ export class Parser extends BaseParser {
 
 		if (allComments.length) {
 			allAstItems.forEach((ast) => {
-				if (ast instanceof DtcBaseNode || ast instanceof DtcProperty) {
+				if (
+					ast instanceof DtcBaseNode ||
+					ast instanceof DtcProperty ||
+					ast instanceof Include
+				) {
 					linkAstToComments(ast, allComments);
 				}
 			});
