@@ -31,6 +31,7 @@ export type FormattingSettings = {
 export type FormattingFlags = {
 	runBaseCheck: boolean;
 	runLongLineCheck: boolean;
+	runExpressionIndentationCheck: boolean;
 };
 
 export type CustomDocumentFormattingParams = (
