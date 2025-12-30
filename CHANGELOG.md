@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.8.0] - Unreleased
 
+### Changed
+
+- `#includes` are not longer indented depending on the depth of the node they are in.
+
 ### Added
 
 - Formatting of expressions will now indent to align w the group they are in example:

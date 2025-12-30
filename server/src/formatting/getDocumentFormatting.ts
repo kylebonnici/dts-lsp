@@ -1937,13 +1937,9 @@ const formatDtcDelete = (
 const formatDtcInclude = (
 	includeItem: Include,
 	uri: string,
-	levelMeta: LevelMeta | undefined,
 	indentString: string,
 	documentText: string[],
 ): FileDiagnostic[] => {
-	// we should not format this case
-	if (levelMeta === undefined) return [];
-
 	if (!isPathEqual(includeItem.uri, uri)) return []; // may be coming from some other include  hence ignore
 
 	const result: FileDiagnostic[] = [];
@@ -1951,7 +1947,7 @@ const formatDtcInclude = (
 	result.push(
 		...ensureOnNewLineAndMax1EmptyLineToPrev(
 			includeItem.firstToken,
-			levelMeta.level,
+			0,
 			indentString,
 			documentText,
 		),
@@ -2137,6 +2133,9 @@ const formatBlockCommentLine = (
 		expectedNumberOfLines = newLines;
 	}
 
+	const level =
+		commentBlock.astAfterComment instanceof Include ? 0 : levelMeta.level;
+
 	const result: FileDiagnostic[] = [];
 	let prefix: string = '';
 	const commentStr = commentItem.toString();
@@ -2149,7 +2148,7 @@ const formatBlockCommentLine = (
 		result.push(
 			...ensureOnNewLineAndMax1EmptyLineToPrev(
 				commentItem.lastToken.prevToken,
-				levelMeta?.level ?? 0,
+				level,
 				indentString,
 				documentText,
 				' ',
@@ -2172,7 +2171,7 @@ const formatBlockCommentLine = (
 		result.push(
 			...ensureOnNewLineAndMax1EmptyLineToPrev(
 				commentItem.firstToken,
-				levelMeta?.level ?? 0,
+				level,
 				indentString,
 				documentText,
 				prefix,
@@ -2184,7 +2183,7 @@ const formatBlockCommentLine = (
 		result.push(
 			...ensureOnNewLineAndMax1EmptyLineToPrev(
 				commentItem.firstToken,
-				levelMeta?.level ?? 0,
+				level,
 				indentString,
 				documentText,
 				getPropertyIndentPrefix(settings, levelMeta?.inAst, prefix),
@@ -2290,13 +2289,7 @@ const getTextEdit = async (
 	} else if (astNode instanceof DeleteBase) {
 		return formatDtcDelete(astNode, level, singleIndent, documentText);
 	} else if (astNode instanceof Include) {
-		return formatDtcInclude(
-			astNode,
-			uri,
-			await computeLevel(astNode),
-			singleIndent,
-			documentText,
-		);
+		return formatDtcInclude(astNode, uri, singleIndent, documentText);
 	} else if (astNode instanceof Comment && !astNode.disabled) {
 		return formatComment(
 			astNode,
