@@ -2025,13 +2025,9 @@ const formatDtcDelete = (
 const formatDtcInclude = (
 	includeItem: Include,
 	fsPath: string,
-	levelMeta: LevelMeta | undefined,
 	indentString: string,
 	documentText: string[],
 ): FileDiagnostic[] => {
-	// we should not format this case
-	if (levelMeta === undefined) return [];
-
 	if (!isPathEqual(includeItem.fsPath, fsPath)) return []; // may be coming from some other include  hence ignore
 
 	const result: FileDiagnostic[] = [];
@@ -2039,7 +2035,7 @@ const formatDtcInclude = (
 	result.push(
 		...ensureOnNewLineAndMax1EmptyLineToPrev(
 			includeItem.firstToken,
-			levelMeta.level,
+			0,
 			indentString,
 			documentText,
 		),
@@ -2378,13 +2374,7 @@ const getTextEdit = async (
 	} else if (astNode instanceof DeleteBase) {
 		return formatDtcDelete(astNode, level, singleIndent, documentText);
 	} else if (astNode instanceof Include) {
-		return formatDtcInclude(
-			astNode,
-			fsPath,
-			await computeLevel(astNode),
-			singleIndent,
-			documentText,
-		);
+		return formatDtcInclude(astNode, fsPath, singleIndent, documentText);
 	} else if (astNode instanceof Comment && !astNode.disabled) {
 		return formatComment(
 			astNode,

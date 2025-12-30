@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.8.1] - Unreleased
 
+### Changed
+
+- `#includes` are not longer indented depending on the depth of the node they are in.
+
 ### Added
 
 - Formatting node names are formatted to not have `0x` and `ULL`
