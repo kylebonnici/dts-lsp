@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changes
 
 - `device_type` is not longer required on `cpu` nodes.
+- When using zephyr binding `dts` folder next to the board file is added to the include list.
 
 ### Fixed
 
@@ -17,7 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Load `base.yaml` to all nodes that do not have a binding when using zephyr bindings
 - Fixed an issue with zephyr bindings where `child-binding` where not merged when a binding
   included another binding and both have `child-binding`
-- Fixed an issue with zephyr bindings where child-binding `property-blocklist` and `property-allowlist` where not respected for includes
+- Fixed an issue with zephyr bindings where child-binding `property-blocklist` and
+  `property-allowlist` where not respected for includes
 
 ## [0.7.6] - 2025-12-26
 

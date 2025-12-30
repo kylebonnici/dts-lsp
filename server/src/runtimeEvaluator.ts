@@ -15,7 +15,7 @@
  */
 
 import { existsSync, readFileSync } from 'fs';
-import { basename } from 'path';
+import { basename, dirname, join } from 'path';
 import {
 	Diagnostic,
 	DiagnosticSeverity,
@@ -91,10 +91,14 @@ export class ContextAware {
 		this.overlays = resolvedSettings.overlays;
 		this.overlays.filter(existsSync);
 
-		this.parser = new Parser(
-			resolvedSettings.dtsFile,
-			resolvedSettings.includePaths,
-		);
+		const includePaths =
+			this.isFullContext && bindingLoader?.type === 'Zephyr'
+				? [
+						join(dirname(this.settings.dtsFile), 'dts'),
+						...resolvedSettings.includePaths,
+					]
+				: resolvedSettings.includePaths;
+		this.parser = new Parser(resolvedSettings.dtsFile, includePaths);
 		this.ctxNames_.add(resolvedSettings.ctxName);
 		this.id = generateContextId(resolvedSettings);
 		this.parser.stable.then(() => {
@@ -103,7 +107,7 @@ export class ContextAware {
 					(overlay) =>
 						new Parser(
 							overlay,
-							resolvedSettings.includePaths,
+							includePaths,
 							this.parser.cPreprocessorParser.macros,
 						),
 				) ?? [];
