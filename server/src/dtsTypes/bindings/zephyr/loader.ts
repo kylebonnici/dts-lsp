@@ -49,7 +49,6 @@ import {
 } from '../../../helpers';
 import { NexusMapping, Property } from '../../../context/property';
 import { BindingPropertyType } from '../../../types/index';
-import { ASTBase } from '../../../ast/base';
 import { getSimpleBusType } from '../../../dtsTypes/standardTypes/nodeTypes/simpleBus/node';
 import { Expression } from '../../../ast/cPreprocessors/expression';
 
@@ -414,13 +413,8 @@ export class ZephyrBindingsLoader {
 		key: string,
 	): { type: NodeType[]; issues: FileDiagnostic[] } {
 		const compatible = ZephyrBindingsLoader.getNodeCompatible(node)?.filter(
-			(v) => v,
-		) as
-			| {
-					name: string;
-					ast: ASTBase;
-			  }[]
-			| undefined;
+			(v) => !!v,
+		);
 
 		if (!compatible?.length) {
 			const baseType = this.getBaseNodeType(node, key);
