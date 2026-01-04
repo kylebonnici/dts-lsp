@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Load `base.yaml` to all nodes that do not have a binding when using zephyr bindings
 - Fixed an issue with zephyr bindings where `child-binding` where not merged when a binding
   included another binding and both have `child-binding`
+- Fixed an issue where the `compatible` inside of a child node did not override the `child-binding`
+  of parent when using `Zephyr` bindings.
 - Fixed an issue with zephyr bindings where child-binding `property-blocklist` and
   `property-allowlist` where not respected for includes
 

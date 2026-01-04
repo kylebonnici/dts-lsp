@@ -140,16 +140,21 @@ export class Node {
 			return this._nodeTypes;
 		}
 
-		const childType = this.parent?.nodeType?.childNodeType?.(this);
-
-		if (childType) {
-			this._nodeTypes = [childType];
+		if (!this.bindingLoader) {
+			this._nodeTypes = [getStandardType(this)];
 			return this._nodeTypes;
 		}
 
-		this._nodeTypes = this.bindingLoader?.getNodeTypes(this).type ?? [
-			getStandardType(this),
-		];
+		if (!this.getProperty('compatible')) {
+			const childType = this.parent?.nodeType?.childNodeType?.(this);
+
+			if (childType) {
+				this._nodeTypes = [childType];
+				return this._nodeTypes;
+			}
+		}
+
+		this._nodeTypes = this.bindingLoader.getNodeTypes(this).type;
 		return this._nodeTypes;
 	}
 
