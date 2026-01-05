@@ -19,7 +19,6 @@ import {
 	ParameterInformation,
 } from 'vscode-languageserver';
 import { NexusMapping } from '../../context/property';
-import { BindingPropertyType } from '../../types/index';
 import { FileDiagnostic, StandardTypeIssue } from '../../types';
 import { PropertyNodeType } from '../types';
 import { genStandardTypeDiagnostic } from '../../helpers';
@@ -34,7 +33,7 @@ import {
 export default () => {
 	const prop = new PropertyNodeType<number>(
 		'interrupts-extended',
-		generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
+		generateOrTypeObj('PROP_ENCODED_ARRAY'),
 		'optional',
 		undefined,
 		undefined,
@@ -190,6 +189,11 @@ export default () => {
 				const nexusMapping: NexusMapping = {
 					mappingValuesAst,
 					target: pHandleNode,
+					cellCount: cellsPropertyValue,
+					specifierSpace:
+						pHandleNode.bindingLoader?.type === 'Zephyr'
+							? 'interrupt'
+							: undefined,
 				};
 
 				property.nexusMapsTo.push(nexusMapping);
@@ -226,6 +230,10 @@ export default () => {
 						expressions: mappingValuesAst,
 						node,
 						property,
+						specifierSpace:
+							pHandleNode.bindingLoader?.type === 'Zephyr'
+								? 'interrupt'
+								: undefined,
 					});
 				}
 
