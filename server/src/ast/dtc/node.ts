@@ -137,7 +137,7 @@ export class DtcRootNode extends DtcBaseNode {
 			range: this.range,
 			issues: this.serializeIssues,
 			scopeOpen: this.openScope && toPosition(this.openScope),
-			scopeClose: this.closeScope && toPosition(this.closeScope),
+			scopeClose: this.closeScope && toPosition(this.closeScope, false),
 		};
 	}
 }
@@ -226,7 +226,7 @@ export class DtcRefNode extends DtcBaseNode {
 			range: this.range,
 			issues: this.serializeIssues,
 			scopeOpen: this.openScope && toPosition(this.openScope),
-			scopeClose: this.closeScope && toPosition(this.closeScope),
+			scopeClose: this.closeScope && toPosition(this.closeScope, false),
 		};
 	}
 }
