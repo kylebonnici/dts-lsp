@@ -1798,7 +1798,7 @@ connection.onRequest(
 
 connection.onRequest(
 	'devicetree/serializedContext',
-	async (id: string): Promise<SerializedNode | undefined> => {
+	async (id: string): Promise<Record<string, SerializedNode> | undefined> => {
 		await allStable();
 		if (!id) {
 			return;
@@ -2011,14 +2011,14 @@ connection.onRequest(
 			const runtime = await ctx.getRuntime();
 			const result = await nodeFinder(event, ctx, (result, inScope) => {
 				const macros = runtime.context.macros;
+				const scopedList: Record<string, SerializedNode> = {};
 				if (!result?.item) {
+					runtime.rootNode.serialize(scopedList, macros, inScope);
 					return [
 						{
 							inNode: false,
-							inScope: runtime.rootNode.serialize(
-								macros,
-								inScope,
-							),
+							inScope: scopedList,
+							parentNode: runtime.rootNode.pathString,
 						} as PositionScopeInformation,
 					];
 				}
@@ -2030,13 +2030,12 @@ connection.onRequest(
 					node = result.item?.parent;
 				}
 
+				node.serialize(scopedList, runtime.context.macros, inScope);
 				return [
 					{
 						inNode: true,
-						inScope: node.serialize(
-							result.runtime.context.macros,
-							inScope,
-						),
+						inScope: scopedList,
+						parentNode: node.pathString,
 					} as PositionScopeInformation,
 				];
 			});
