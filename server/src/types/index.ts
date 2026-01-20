@@ -287,7 +287,7 @@ type SerializedMappedReg = {
 	inMappingRange?: boolean;
 };
 
-export type InterruptControlerSerializedMapping = {
+export type InterruptControllerSerializedMapping = {
 	cells: (SerializableNumberValue | SerializableExpression)[];
 	path: string;
 	property: SerializableDtcProperty;
@@ -312,9 +312,9 @@ export type SerializedNode = {
 	labels: string[];
 	nodes: SerializableNodeBase[];
 	properties: SerializableProperty[];
-	childNodes: SerializedNode[];
+	childNodes: string[];
 	reg?: SerializedMappedReg[];
-	interruptControllerMappings: InterruptControlerSerializedMapping[];
+	interruptControllerMappings: InterruptControllerSerializedMapping[];
 	specifierNexusMappings: SerializableSpecifierNexusMeta[];
 	nexusMaps: SerializedNexusMap[];
 };
@@ -437,5 +437,6 @@ export interface ZephyrBindingYml {
 
 export interface PositionScopeInformation {
 	inNode: boolean;
-	inScope: SerializedNode;
+	inScope: Record<string, SerializedNode>;
+	parentNode: string;
 }

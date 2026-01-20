@@ -56,7 +56,13 @@ import { NodePath, NodePathRef } from './ast/dtc/values/nodePath';
 import { BindingLoader } from './dtsTypes/bindings/bindingLoader';
 import { StringValue } from './ast/dtc/values/string';
 import { Comment } from './ast/dtc/comment';
-import type { File, Context, PartialBy, ResolvedContext } from './types/index';
+import type {
+	File,
+	Context,
+	PartialBy,
+	ResolvedContext,
+	SerializedNode,
+} from './types/index';
 
 export class ContextAware {
 	_issues: FileDiagnostic[] = [];
@@ -1110,13 +1116,17 @@ export class ContextAware {
 			this.settings.cwd,
 		)}`;
 	}
-	async serialize() {
+	async serialize(): Promise<Record<string, SerializedNode>> {
+		const result: Record<string, SerializedNode> = {};
 		// make sure we have context issues generated
 		await this.stable;
 		await this.getDiagnostics();
-		return (await this?.getRuntime())?.rootNode.serialize(
+		(await this?.getRuntime())?.rootNode.serialize(
+			result,
 			(await this.getAllStableParsers()).at(-1)!.cPreprocessorParser
 				.macros,
 		);
+
+		return result;
 	}
 }

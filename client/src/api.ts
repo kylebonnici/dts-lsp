@@ -180,7 +180,7 @@ export class API implements IDeviceTreeAPI {
 		return this.client.sendRequest(
 			'devicetree/serializedContext',
 			id,
-		) as Promise<SerializedNode | undefined>;
+		) as Promise<Record<string, SerializedNode> | undefined>;
 	}
 
 	formatTextEdits(event) {
