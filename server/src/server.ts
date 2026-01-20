@@ -877,7 +877,7 @@ const onChange = async (uri: string) => {
 
 						resolve();
 						console.log('reevaluate', performance.now() - t);
-					}, 50);
+					});
 				});
 
 				debounce.set(context, { abort, promise });
