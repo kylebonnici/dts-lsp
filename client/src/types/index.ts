@@ -57,7 +57,9 @@ export interface IDeviceTreeAPI {
 	requestContext(ctx: Context): Promise<ContextListItem>;
 	removeContext(id: string, name: string): Promise<void>;
 	compiledOutput(id?: string): Promise<string | undefined>;
-	serializedContext(id: string): Promise<SerializedNode | undefined>;
+	serializedContext(
+		id: string,
+	): Promise<Record<string, SerializedNode> | undefined>;
 	formatTextEdits(
 		event: (DocumentFormattingParams | DocumentRangeFormattingParams) & {
 			edits: TextEdit[];
