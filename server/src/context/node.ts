@@ -1339,13 +1339,14 @@ ${'\t'.repeat(level - 1)}};`;
 	}
 
 	serialize(
+		result: Record<string, SerializedNode>,
 		macros: Map<string, MacroRegistryItem>,
 		inScope: (ast: ASTBase) => boolean = () => true,
-	): SerializedNode {
+	) {
 		const mappedRegs = this.mappedReg(macros);
 		const nodeAsts = this.implementations.filter(inScope);
 		const nodeType = this.nodeType;
-		return {
+		result[this.pathString] = {
 			nodeType:
 				nodeType instanceof NodeType
 					? {
@@ -1379,7 +1380,7 @@ ${'\t'.repeat(level - 1)}};`;
 				.filter((v) => !!v),
 			childNodes: this.nodes
 				.filter((n) => n.implementations.some(inScope))
-				.map((n) => n.serialize(macros, inScope)),
+				.map((n) => n.pathString),
 			reg: mappedRegs?.map((mappedReg) => ({
 				mappedStartAddress: mappedReg?.startAddress,
 				mappedEndAddress: mappedReg?.endAddress,
@@ -1429,5 +1430,9 @@ ${'\t'.repeat(level - 1)}};`;
 						);
 					}) ?? [],
 		};
+
+		this.nodes
+			.filter((n) => n.implementations.some(inScope))
+			.forEach((n) => n.serialize(result, macros, inScope));
 	}
 }
