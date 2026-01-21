@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   of parent when using `Zephyr` bindings.
 - Fixed an issue with zephyr bindings where child-binding `property-blocklist` and
   `property-allowlist` where not respected for includes
+- Fixed `Request textDocument/hover failed` in C code
 
 ## [0.7.6] - 2025-12-26
 

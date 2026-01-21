@@ -165,8 +165,15 @@ export async function getHover(
 	document: TextDocument | undefined,
 ): Promise<Hover | undefined> {
 	if (!document) return;
-	const macro = getMacroAtPosition(document, hoverParams.position);
-	return getHoverFrom(macro, hoverParams.position, context, document);
+	try {
+		const macro = getMacroAtPosition(document, hoverParams.position);
+		return await getHoverFrom(
+			macro,
+			hoverParams.position,
+			context,
+			document,
+		);
+	} catch {}
 }
 
 async function getHoverFrom(
