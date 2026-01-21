@@ -971,17 +971,30 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
 const formatLabels = (
 	labels: LabelAssign[],
 	documentText: string[],
+	level: number,
+	indentString: string,
+	sameLine: boolean,
 ): FileDiagnostic[] => {
-	return labels
-		.slice(1)
-		.flatMap((label) =>
-			label.firstToken.prevToken
-				? fixedNumberOfSpaceBetweenTokensAndNext(
-						label.firstToken.prevToken,
-						documentText,
-					)
-				: [],
+	return labels.slice(1).flatMap((label) => {
+		if (
+			(sameLine && label.firstToken.prevToken) ||
+			label.firstToken.pos.line === label.firstToken.prevToken?.pos.line
+		) {
+			return fixedNumberOfSpaceBetweenTokensAndNext(
+				label.firstToken.prevToken,
+				documentText,
+			);
+		}
+		return ensureOnNewLineAndMax1EmptyLineToPrev(
+			label.firstToken,
+			level,
+			indentString,
+			documentText,
+			undefined,
+			1,
+			true,
 		);
+	});
 };
 
 const formatDtcNode = async (
@@ -1017,7 +1030,15 @@ const formatDtcNode = async (
 	);
 
 	if (node instanceof DtcChildNode || node instanceof DtcRefNode) {
-		result.push(...formatLabels(node.labels, documentText));
+		result.push(
+			...formatLabels(
+				node.labels,
+				documentText,
+				level,
+				indentString,
+				false,
+			),
+		);
 
 		if (node instanceof DtcChildNode) {
 			if (
@@ -1052,17 +1073,30 @@ const formatDtcNode = async (
 					}
 				});
 			}
-			if (
-				node.labels.length &&
-				node.name &&
-				node.name.firstToken.prevToken
-			) {
-				result.push(
-					...fixedNumberOfSpaceBetweenTokensAndNext(
-						node.name.firstToken.prevToken,
-						documentText,
-					),
-				);
+			if (node.labels.length && node.name) {
+				if (
+					node.name.firstToken.pos.line !==
+					node.name.firstToken.prevToken?.pos.line
+				) {
+					result.push(
+						...ensureOnNewLineAndMax1EmptyLineToPrev(
+							node.name.firstToken,
+							level,
+							indentString,
+							documentText,
+							undefined,
+							1,
+							true,
+						),
+					);
+				} else {
+					result.push(
+						...fixedNumberOfSpaceBetweenTokensAndNext(
+							node.name.firstToken.prevToken,
+							documentText,
+						),
+					);
+				}
 			}
 			const nodeNameAndOpenCurlySpacing =
 				node.name && node.openScope
@@ -1165,7 +1199,15 @@ const formatLabeledValue = <T extends ASTBase>(
 ): FileDiagnostic[] => {
 	const result: FileDiagnostic[] = [];
 
-	result.push(...formatLabels(value.labels, documentText));
+	result.push(
+		...formatLabels(
+			value.labels,
+			documentText,
+			level,
+			settings.singleIndent,
+			true,
+		),
+	);
 
 	if (value.labels.length && value.value?.firstToken.prevToken) {
 		result.push(
@@ -1518,7 +1560,15 @@ const formatPropertyValue = (
 ): FileDiagnostic[] => {
 	const result: FileDiagnostic[] = [];
 
-	result.push(...formatLabels(value.startLabels, documentText));
+	result.push(
+		...formatLabels(
+			value.startLabels,
+			documentText,
+			level,
+			settings.singleIndent,
+			true,
+		),
+	);
 
 	result.push(
 		...formatValue(
@@ -1530,7 +1580,15 @@ const formatPropertyValue = (
 		),
 	);
 
-	result.push(...formatLabels(value.endLabels, documentText));
+	result.push(
+		...formatLabels(
+			value.endLabels,
+			documentText,
+			level,
+			settings.singleIndent,
+			true,
+		),
+	);
 
 	return result;
 };
@@ -1655,7 +1713,15 @@ const formatDtcProperty = (
 		),
 	);
 
-	result.push(...formatLabels(property.labels, documentText));
+	result.push(
+		...formatLabels(
+			property.labels,
+			documentText,
+			level,
+			settings.singleIndent,
+			true,
+		),
+	);
 
 	if (property.labels.length && property.propertyName?.firstToken.prevToken) {
 		result.push(

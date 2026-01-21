@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - `device_type` is not longer required on `cpu` nodes.
 - When using zephyr binding `dts` folder next to the board file is added to the include list.
+- Now new lines are permitted between labels and node name. This address use case where wordWrapColumn
+  length is exceed.
 
 ### Fixed
 
@@ -23,6 +25,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fixed an issue with zephyr bindings where child-binding `property-blocklist` and
   `property-allowlist` where not respected for includes
 - Fixed `Request textDocument/hover failed` in C code
+- Fixed formatting issue when labels assigned to a node are pushed on one line even if
+  these will exceed wordWrapColumn. Now new lines are permitted between
 
 ## [0.7.6] - 2025-12-26
 

@@ -233,12 +233,12 @@ describe('Document formating', () => {
 		test('Labels with new lines space', async () => {
 			const documentText = '/ {\n\tn1:\nn2:\n\nn3:node {};\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tn1: n2: n3: node {};\n};');
+			expect(newText).toEqual('/ {\n\tn1:\n\tn2:\n\tn3: node {};\n};');
 		});
 		test('labels with new line before name', async () => {
 			const documentText = '/ {\n\tn1:\nnode { };\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tn1: node {};\n};');
+			expect(newText).toEqual('/ {\n\tn1:\n\tnode {};\n};');
 		});
 		test('No space between name and { no address', async () => {
 			const documentText = '/ {\n\tnode{\n\t};\n};';
@@ -479,9 +479,9 @@ describe('Document formating', () => {
 			expect(newText).toEqual('n1: n2: n3: &n1 {};');
 		});
 		test('Labels with new lines space', async () => {
-			const documentText = 'n1:\nn2:\nn3:&n1 {\n};';
+			const documentText = 'n1:\n\nn2:\n\nn3:&n1 {\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('n1: n2: n3: &n1 {};');
+			expect(newText).toEqual('n1:\nn2:\nn3: &n1 {};');
 		});
 		test('labels with new line before referance', async () => {
 			const documentText = 'n1:\n&n1 {\n};';
@@ -1011,7 +1011,7 @@ describe('Document formating', () => {
 			expect(newText).toEqual('/ {\n\tprop1 = l1: l2: l3: <10>;\n};');
 		});
 		test('labels with new lines property array value', async () => {
-			const documentText = '/ {\n\tprop1= l1:\nl2:\n\nl3:<10>;\n};';
+			const documentText = '/ {\n\tprop1= l1:\n\nl2:\n\nl3:<10>;\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual('/ {\n\tprop1 = l1: l2: l3: <10>;\n};');
 		});
@@ -1776,6 +1776,24 @@ describe('Document formating', () => {
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
 				'/ {\n\tprop1 = <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>,\n\t\t\t<100>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>,\n\t\t\t<10 20 30>, <100>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>, <10 20 30>,\n\t\t\t<10 20 30>, <10 20 30>, <100>;\n};',
+			);
+		});
+
+		test('too many labels exceeding long line - wrapped labels', async () => {
+			const documentText =
+				'/ {\n\tl1: l2: l3: l4: l5: l6: l7: l8: l9: l10: l11: l12: l13: l14: l15: l16: l17:\n\nl18: l19: l20: node {};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tl1: l2: l3: l4: l5: l6: l7: l8: l9: l10: l11: l12: l13: l14: l15: l16: l17:\n\tl18: l19: l20: node {};\n};',
+			);
+		});
+
+		test('too many labels exceeding long line', async () => {
+			const documentText =
+				'/ {\n\tl1: l2: l3: l4: l5: l6: l7: l8: l9: l10: l11: l12: l13: l14: l15: l16: l17: l18: l19: l20:\n\tnode {};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tl1: l2: l3: l4: l5: l6: l7: l8: l9: l10: l11: l12: l13: l14: l15: l16: l17: l18: l19: l20:\n\tnode {};\n};',
 			);
 		});
 	});
