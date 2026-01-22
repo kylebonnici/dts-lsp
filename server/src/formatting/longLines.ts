@@ -16,7 +16,7 @@
 
 import { Range, TextEdit } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { DtcBaseNode } from '../ast/dtc/node';
+import { DtcBaseNode, DtcChildNode, DtcRefNode } from '../ast/dtc/node';
 import { DtcProperty } from '../ast/dtc/property';
 import { ASTBase } from '../ast/base';
 import { FileDiagnostic, FormattingIssues, Token } from '../types';
@@ -34,6 +34,7 @@ import {
 	ComplexExpression,
 	Expression,
 } from '../ast/cPreprocessors/expression';
+import { LabelAssign } from '../ast/dtc/label';
 import type {
 	CustomDocumentFormattingParams,
 	FormattingFlags,
@@ -190,6 +191,7 @@ const getWrapLineEdit = async (
 			astNode,
 			uri,
 			level,
+			settings,
 			options,
 			documentText,
 			computeLevel,
@@ -212,11 +214,63 @@ const formatLongLinesDtcNode = async (
 	node: DtcBaseNode,
 	uri: string,
 	level: number,
+	settings: FormattingSettings,
 	options: FormattingFlags,
 	documentText: string[],
 	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
 ): Promise<FileDiagnostic[]> => {
 	const result: FileDiagnostic[] = [];
+
+	if (node instanceof DtcChildNode || node instanceof DtcRefNode) {
+		const labelsEdits = await formatLabels(
+			node.labels,
+			level,
+			settings,
+			documentText,
+			settings.singleIndent,
+		);
+
+		if (labelsEdits.length > 0) {
+			result.push(...labelsEdits);
+		} else {
+			const nameAst =
+				node instanceof DtcChildNode ? node.name : node.reference;
+			if (
+				nameAst &&
+				needWrapping(
+					nameAst.firstToken,
+					node.openScope ?? nameAst.lastToken,
+					settings,
+					documentText,
+				)
+			) {
+				result.push(
+					genFormattingDiagnostic(
+						FormattingIssues.LONG_LINE_WRAP,
+						uri,
+						toPosition(nameAst.firstToken, false),
+						{
+							edit: [
+								TextEdit.replace(
+									Range.create(
+										toPosition(
+											nameAst.firstToken.prevToken!,
+										),
+										toPosition(nameAst.firstToken, false),
+									),
+									`\n${createIndentString(
+										level,
+										settings.singleIndent,
+									)}`,
+								),
+							],
+							codeActionTitle: `Move ...${nameAst.toString()}... to a new line`,
+						},
+					),
+				);
+			}
+		}
+	}
 
 	result.push(
 		...(
@@ -237,6 +291,65 @@ const formatLongLinesDtcNode = async (
 	);
 
 	return result;
+};
+
+const formatLabels = (
+	labels: LabelAssign[],
+	level: number,
+	settings: FormattingSettings,
+	documentText: string[],
+	singleIndent: string,
+): FileDiagnostic[] => {
+	const labelToWrapIndex = labels.findIndex((label) =>
+		needWrapping(label.firstToken, label.lastToken, settings, documentText),
+	);
+
+	if (labelToWrapIndex === -1) {
+		return [];
+	}
+
+	const labelToWrap = labels[labelToWrapIndex];
+	const labelToPull = labels.find(
+		(label, index) =>
+			index > labelToWrapIndex &&
+			label.firstToken.pos.line !== labelToWrap.lastToken.pos.line,
+	);
+
+	return [
+		genFormattingDiagnostic(
+			FormattingIssues.LONG_LINE_WRAP,
+			labelToWrap.firstToken.uri,
+			toPosition(labelToWrap.firstToken, false),
+			{
+				edit: [
+					TextEdit.replace(
+						Range.create(
+							toPosition(labelToWrap.firstToken.prevToken!),
+							toPosition(labelToWrap.firstToken, false),
+						),
+						`\n${createIndentString(level, singleIndent)}`,
+					),
+					...(labelToPull
+						? [
+								TextEdit.replace(
+									Range.create(
+										toPosition(
+											labelToPull.firstToken.prevToken!,
+										),
+										toPosition(
+											labelToPull.firstToken,
+											false,
+										),
+									),
+									' ',
+								),
+							]
+						: []),
+				],
+				codeActionTitle: `Move ...${labelToWrap.toString()}... to a new line`,
+			},
+		),
+	];
 };
 
 const formatLongLinesDtcProperty = (

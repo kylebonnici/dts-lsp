@@ -191,7 +191,7 @@ export const widthToPrefix = (
 export const createIndentString = (
 	level: number,
 	indentString: string,
-	prefix: string,
+	prefix: string = '',
 ) => {
 	return `${''.padStart(level * indentString.length, indentString)}${prefix}`;
 };

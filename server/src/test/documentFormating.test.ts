@@ -1788,12 +1788,30 @@ describe('Document formating', () => {
 			);
 		});
 
-		test('too many labels exceeding long line', async () => {
+		test('too many labels exceeding long line wrapped', async () => {
 			const documentText =
 				'/ {\n\tl1: l2: l3: l4: l5: l6: l7: l8: l9: l10: l11: l12: l13: l14: l15: l16: l17: l18: l19: l20:\n\tnode {};\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
 				'/ {\n\tl1: l2: l3: l4: l5: l6: l7: l8: l9: l10: l11: l12: l13: l14: l15: l16: l17: l18: l19: l20:\n\tnode {};\n};',
+			);
+		});
+
+		test('too many labels exceeding long line auto wrap node', async () => {
+			const documentText =
+				'/ {\n\tl1: l2: l3: l4: l5: l6: l7: l8: l9: l10: l11: l12: l13: l14: l15: l16: l17: l18: l19: l20: node {};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tl1: l2: l3: l4: l5: l6: l7: l8: l9: l10: l11: l12: l13: l14: l15: l16: l17: l18: l19: l20:\n\tnode {};\n};',
+			);
+		});
+
+		test('too many labels exceeding long line auto wrap label', async () => {
+			const documentText =
+				'/ {\n\tl1: l2: l3: l4: l5: l6: l7: l8: l9: l10: l11: l12: l13: l14: l15: l16: l17: l18: l19: l20: l21: l22: node {};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tl1: l2: l3: l4: l5: l6: l7: l8: l9: l10: l11: l12: l13: l14: l15: l16: l17: l18: l19: l20: l21:\n\tl22: node {};\n};',
 			);
 		});
 	});
