@@ -483,7 +483,7 @@ export const genStandardTypeDiagnostic = (
 	issues: StandardTypeIssue | StandardTypeIssue[],
 	start: Token,
 	end: Token,
-	issueOwner: ASTBase | null,
+	issueOwner: ASTBase | ASTBase[] | null,
 	{
 		severity = DiagnosticSeverity.Error,
 		linkedTo = [],
@@ -563,7 +563,11 @@ export const genStandardTypeDiagnostic = (
 		return diagnostic;
 	};
 
-	issueOwner?.resettableIssues.push(action);
+	if (Array.isArray(issueOwner)) {
+		issueOwner.forEach((owner) => owner.resettableIssues.push(action));
+	} else {
+		issueOwner?.resettableIssues.push(action);
+	}
 
 	return {
 		raw: issue,

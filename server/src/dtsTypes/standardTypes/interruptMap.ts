@@ -17,7 +17,7 @@
 import { ParameterInformation } from 'vscode-languageserver';
 import { FileDiagnostic, StandardTypeIssue } from '../../types';
 import { PropertyNodeType } from '../types';
-import { createTokenIndex, genStandardTypeDiagnostic } from '../../helpers';
+import { genStandardTypeDiagnostic } from '../../helpers';
 import { ArrayValues } from '../../ast/dtc/values/arrayValue';
 import { ASTBase } from '../../ast/base';
 import { Expression } from '../../ast/cPreprocessors/expression';
@@ -98,7 +98,7 @@ export default () => {
 				macros,
 			);
 
-			const keys: { [key: string]: ASTBase[] } = {};
+			const keys: { [key: string]: ASTBase[][] } = {};
 
 			if (childInterruptSpecifierValue == null) {
 				return issues;
@@ -162,16 +162,9 @@ export default () => {
 					break;
 				}
 
-				const keyItem = new ASTBase(
-					createTokenIndex(
-						values.at(i)!.firstToken,
-						values.at(
-							childAddressCellsValue +
-								childInterruptSpecifierValue +
-								i -
-								1,
-						)!.lastToken,
-					),
+				const keyItems = values.slice(
+					i,
+					childAddressCellsValue + childInterruptSpecifierValue + i,
 				);
 
 				let key = '';
@@ -190,7 +183,7 @@ export default () => {
 				}
 
 				keys[key] ??= [];
-				keys[key].push(keyItem);
+				keys[key].push(keyItems);
 
 				i += childAddressCellsValue + childInterruptSpecifierValue;
 
@@ -398,10 +391,10 @@ export default () => {
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.DUPLICATE_MAP_ENTRY,
-							valueItem.firstToken,
-							valueItem.lastToken,
+							valueItem[0].firstToken,
+							valueItem.at(-1)!.lastToken,
 							valueItem,
-							{ linkedTo: v.slice(0, -1) },
+							{ linkedTo: v.slice(0, -1).flat() },
 						),
 					);
 				}
