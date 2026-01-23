@@ -483,7 +483,7 @@ export const genStandardTypeDiagnostic = (
 	issues: StandardTypeIssue | StandardTypeIssue[],
 	start: Token,
 	end: Token,
-	issueOwner: ASTBase | null,
+	issueOwner: ASTBase | ASTBase[] | null,
 	{
 		severity = DiagnosticSeverity.Error,
 		linkedTo = [],
@@ -563,7 +563,11 @@ export const genStandardTypeDiagnostic = (
 		return diagnostic;
 	};
 
-	issueOwner?.resettableIssues.push(action);
+	if (Array.isArray(issueOwner)) {
+		issueOwner.forEach((owner) => owner.resettableIssues.push(action));
+	} else {
+		issueOwner?.resettableIssues.push(action);
+	}
 
 	return {
 		raw: issue,
@@ -728,7 +732,7 @@ export async function nodeFinder<T>(
 		inScope: (ast: ASTBase) => boolean,
 	) => T[] | Promise<T[]>,
 ): Promise<T[]> {
-	const uri = fileURLToPath(location.textDocument.uri);
+	const fsPath = fileURLToPath(location.textDocument.uri);
 
 	if (!context) {
 		return [];
@@ -736,30 +740,34 @@ export async function nodeFinder<T>(
 
 	const t = performance.now();
 	const runtime = await context.getRuntime();
+
 	let locationMeta: SearchableResult | undefined;
 	let sortKey: number | undefined;
 
 	const macro = runtime.context.allParsers
 		.flatMap((p) => p.injectedMacros)
-		.find((m) => positionInBetween(m, uri, location.position));
+		.find((m) => positionInBetween(m, fsPath, location.position));
 	if (macro) {
 		locationMeta = {
 			runtime,
 			item: null,
-			ast: getDeepestAstNodeInBetween(macro, uri, location.position),
+			ast: getDeepestAstNodeInBetween(macro, fsPath, location.position),
 		};
 		sortKey = Number.MAX_SAFE_INTEGER;
 	}
 
 	if (!locationMeta) {
-		locationMeta = runtime.getDeepestAstNode(uri, location.position);
-		sortKey = context.getSortKey(locationMeta?.ast);
+		locationMeta = runtime.getDeepestAstNode(fsPath, location.position);
+		sortKey =
+			context.getSortKey(locationMeta?.ast) ??
+			context.getSortKeyFile(location.position, fsPath);
 	}
+
 	console.log(`search: ${performance.now() - t}ms`);
 
 	const inScope = (ast: ASTBase) => {
 		const position = location.position;
-		if (isPathEqual(ast.uri, uri)) {
+		if (isPathEqual(ast.uri, fsPath)) {
 			const lastToken = ast.lastToken;
 			return !!(
 				lastToken.pos.line < position.line ||

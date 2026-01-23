@@ -48,13 +48,21 @@ import {
 	toRange,
 	compareWords,
 	coreSyntaxIssuesFilter,
+	positionBefore,
+	positionAfter,
 } from './helpers';
 import { Parser } from './parser';
 import { NodePath, NodePathRef } from './ast/dtc/values/nodePath';
 import { BindingLoader } from './dtsTypes/bindings/bindingLoader';
 import { StringValue } from './ast/dtc/values/string';
 import { Comment } from './ast/dtc/comment';
-import type { File, Context, PartialBy, ResolvedContext } from './types/index';
+import type {
+	File,
+	Context,
+	PartialBy,
+	ResolvedContext,
+	SerializedNode,
+} from './types/index';
 
 export class ContextAware {
 	_issues: FileDiagnostic[] = [];
@@ -419,6 +427,63 @@ export class ContextAware {
 		return runtime;
 	}
 
+	public getSortKeyFile(position: Position, fsPath: string) {
+		let foundToken = this.findTokenBeforePosition(position, fsPath);
+		let token = foundToken;
+		let key = token ? this.sortKeys.get(token) : undefined;
+		while (token && !key) {
+			token = token.nextToken;
+			key = token ? this.sortKeys.get(token) : undefined;
+		}
+
+		if (key !== undefined) {
+			return key;
+		}
+
+		token = foundToken;
+		key = token ? this.sortKeys.get(token) : undefined;
+		while (token && !key) {
+			token = token.prevToken;
+			key = token ? this.sortKeys.get(token) : undefined;
+		}
+
+		return key;
+	}
+
+	private findTokenBeforePosition(position: Position, fsPath: string) {
+		const meta = [this.parser, ...this.overlayParsers].flatMap((p) => ({
+			parser: p,
+			tokens: p.tokens,
+		}));
+
+		for (const [index, item] of meta.entries()) {
+			// empty overly or empty main board file
+			if (item.tokens.length === 0 && item.parser.uri === fsPath) {
+				const prev = meta[index - 1];
+				return index ? prev.tokens[prev.tokens.length - 1] : null;
+			}
+
+			const found = item.tokens.find(
+				(tt) =>
+					positionAfter(tt, fsPath, position) &&
+					(!tt.nextToken ||
+						positionBefore(tt.nextToken, fsPath, position)),
+			);
+
+			if (found) {
+				return found;
+			}
+
+			const includeFile = item.parser.includes.find(
+				(i) => i.resolvedPath === fsPath,
+			);
+
+			if (includeFile) {
+				return includeFile.lastToken;
+			}
+		}
+	}
+
 	private reportNodeNameAndPropertyClashes(runtime: Runtime) {
 		const processNode = (node: Node) => {
 			node.properties.forEach((p) => {
@@ -430,7 +495,8 @@ export class ContextAware {
 				);
 
 				conflictingNodes.forEach((n) => {
-					const name = n.definitions[n.definitions.length - 1].name!;
+					const definitions = n.definitions;
+					const name = definitions[definitions.length - 1].name!;
 					this._issues.push(
 						genContextDiagnostic(
 							ContextIssues.DUPLICATE_NODE_NAME,
@@ -500,11 +566,14 @@ export class ContextAware {
 			name: string;
 			address?: number[];
 			issueAst: ASTBase;
-		}[] = runtimeNodeParent.nodes.map((n) => ({
-			name: n.name,
-			address: n.address,
-			issueAst: n.definitions[0].name ?? n.definitions[0],
-		}));
+		}[] = runtimeNodeParent.nodes.map((n) => {
+			const definition = n.definitions[0];
+			return {
+				name: n.name,
+				address: n.address,
+				issueAst: definition.name ?? definition,
+			};
+		});
 
 		let names: NodeName[] = [];
 
@@ -586,8 +655,7 @@ export class ContextAware {
 	}
 
 	private processDtcRootNode(element: DtcRootNode, runtime: Runtime) {
-		runtime.roots.push(element);
-		runtime.rootNode.definitions.push(element);
+		runtime.rootNode.implementations.push(element);
 		this.checkNodeUniqueNames(element, runtime.rootNode);
 		element.children.forEach((child) =>
 			this.processChild(child, runtime.rootNode, runtime),
@@ -615,7 +683,7 @@ export class ContextAware {
 					element.name.fullAddress,
 					runtimeNodeParent,
 				);
-			child.definitions.push(element);
+			child.implementations.push(element);
 			element.labels.forEach((l) => (l.lastLinkedTo = child));
 
 			runtimeNodeParent = child;
@@ -656,7 +724,7 @@ export class ContextAware {
 			reference.linksTo = runtimeNode;
 			element.labels.forEach((l) => (l.lastLinkedTo = runtimeNode));
 			runtimeNode?.linkedRefLabels.push(reference);
-			runtimeNode?.referencedBy.push(element);
+			runtimeNode?.implementations.push(element);
 
 			element.labels.forEach((label) => {
 				runtime.labelsUsedCache.set(label.label.value, resolvedPath);
@@ -693,7 +761,7 @@ export class ContextAware {
 			element.resolveNodePath ??= resolvedPath;
 			runtimeNode = runtime.rootNode.getChild(resolvedPath);
 			element.labels.forEach((l) => (l.lastLinkedTo = runtimeNode));
-			runtimeNode?.referencedBy.push(element);
+			runtimeNode?.implementations.push(element);
 
 			element.labels.forEach((label) => {
 				runtime.labelsUsedCache.set(label.label.value, resolvedPath);
@@ -1048,13 +1116,17 @@ export class ContextAware {
 			this.settings.cwd,
 		)}`;
 	}
-	async serialize() {
+	async serialize(): Promise<Record<string, SerializedNode>> {
+		const result: Record<string, SerializedNode> = {};
 		// make sure we have context issues generated
 		await this.stable;
 		await this.getDiagnostics();
-		return (await this?.getRuntime())?.rootNode.serialize(
+		(await this?.getRuntime())?.rootNode.serialize(
+			result,
 			(await this.getAllStableParsers()).at(-1)!.cPreprocessorParser
 				.macros,
 		);
+
+		return result;
 	}
 }
