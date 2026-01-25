@@ -4,6 +4,26 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.8.0] - Unreleased
+
+### Added
+
+- Formatting of expressions will now indent to align w the group they are in example:
+
+Was
+
+```devicetree
+dmas = <&dma2 1 0 (STM32_DMA_MODE_NORMAL | STM32_DMA_PRIORITY_HIGH |
+ 		STM32_DMA_16BITS) 0>;
+```
+
+Now
+
+```devicetree
+dmas = <&dma2 1 0 (STM32_DMA_MODE_NORMAL | STM32_DMA_PRIORITY_HIGH |
+				   STM32_DMA_16BITS) 0>;
+```
+
 ## [0.7.8] - 2026-01-25
 
 - Fixed an issue with loading `base.yaml` to all nodes that do not have a binding when
