@@ -1331,7 +1331,7 @@ describe('Document formatting', () => {
 			const documentText = '/ {\n\tprop1 = <ADD(10,\n\n(10 + 20))>;\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\tprop1 = <ADD(10,\n\n(10 + 20))>;\n};',
+				'/ {\n\tprop1 = <ADD(10,\n\n\t\t\t\t (10 + 20))>;\n};',
 			);
 		});
 
@@ -1449,7 +1449,7 @@ describe('Document formatting', () => {
 			const documentText = '/ {\n\tprop1 = <ADD(10, \\\n\t\t20)>;};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\tprop1 = <ADD(10, \\\n\t\t20)>;\n};',
+				'/ {\n\tprop1 = <ADD(10, \\\n\t\t\t\t 20)>;\n};',
 			);
 		});
 
@@ -1457,7 +1457,7 @@ describe('Document formatting', () => {
 			const documentText = '/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) )>;};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\tprop1 = <ADD(10, \\\n\t\t20)>;\n};',
+				'/ {\n\tprop1 = <ADD(10, \\\n\t\t\t\t 20)>;\n};',
 			);
 		});
 
@@ -1472,7 +1472,7 @@ describe('Document formatting', () => {
 				'/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) + ADD(10, \\\n\t\t20) )>;};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) + ADD(10, \\\n\t\t20))>;\n};',
+				'/ {\n\tprop1 = <(ADD(10, \\\n\t\t\t\t  20) + ADD(10, \\\n\t\t\t\t  20))>;\n};',
 			);
 		});
 
@@ -1481,7 +1481,7 @@ describe('Document formatting', () => {
 				'/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) + 10 )>;\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) + 10)>;\n};',
+				'/ {\n\tprop1 = <(ADD(10, \\\n\t\t\t\t  20) + 10)>;\n};',
 			);
 		});
 
@@ -1812,7 +1812,7 @@ describe('Document formatting', () => {
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
 				'/ {\n\tl1: l2: l3: l4: l5: l6: l7: l8: l9: l10: l11: l12: l13: l14: l15: l16: l17: l18: l19: l20: l21:\n\tl22: node {};\n};',
-);
+			);
 		});
 		test('Expression Operator exceeds 100 columns', async () => {
 			const documentText =
@@ -1851,6 +1851,55 @@ describe('Document formatting', () => {
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
 				'/ {\n\tnode {\n\t\treg = <10 20 (10 + 20 + 30 + (10 + 20 +\n\t\t\t\t\t\t\t\t\t  31))>;\n\t};\n};',
+			);
+		});
+
+		test('Format macro call', async () => {
+			const documentText =
+				'/ {\n\tnode {\n\t\treg = FOO(20, \n30,\n40);\n\t};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tnode {\n\t\treg = FOO(20,\n\t\t\t\t  30,\n\t\t\t\t  40);\n\t};\n};',
+			);
+		});
+
+		test('Format array with macro call', async () => {
+			const documentText =
+				'/ {\n\tnode {\n\t\treg = <FOO(20, \n30,\n40)>;\n\t};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tnode {\n\t\treg = <FOO(20,\n\t\t\t\t   30,\n\t\t\t\t   40)>;\n\t};\n};',
+			);
+		});
+
+		test('Format array with complex expression with macro call', async () => {
+			const documentText =
+				'/ {\n\tnode {\n\t\treg = <(10 + FOO(20, \n30,\n40))>;\n\t};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tnode {\n\t\treg = <(10 + FOO(20,\n\t\t\t\t\t\t 30,\n\t\t\t\t\t\t 40))>;\n\t};\n};',
+			);
+		});
+
+		test('Multiple macros in Array', async () => {
+			const documentText = `/ {
+	node {
+		rdc = <(RDC_DOMAIN_PERM(A9_DOMAIN_ID, \\
+					RDC_DOMAIN_PERM_RW) |
+				RDC_DOMAIN_PERM(M4_DOMAIN_ID, \\
+										RDC_DOMAIN_PERM_RW))>;
+										};
+										};`;
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				`/ {
+	node {
+		rdc = <(RDC_DOMAIN_PERM(A9_DOMAIN_ID, \\
+								RDC_DOMAIN_PERM_RW) |
+				RDC_DOMAIN_PERM(M4_DOMAIN_ID, \\
+								RDC_DOMAIN_PERM_RW))>;
+	};
+};`,
 			);
 		});
 	});
