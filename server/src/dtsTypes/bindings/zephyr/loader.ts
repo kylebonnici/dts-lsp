@@ -416,60 +416,82 @@ export class ZephyrBindingsLoader {
 			(v) => !!v,
 		);
 
-		if (!compatible?.length) {
-			const baseType = this.getBaseNodeType(node, key);
+		const out =
+			compatible?.flatMap((c) =>
+				ZephyrBindingsLoader.getCompatibleKeys(c.name, node.parent)
+					.map((compatKey) =>
+						this.typeCache.get(key)?.get(compatKey)?.(node),
+					)
+					.filter((v) => !!v),
+			) ?? [];
+
+		if (!out.length) {
+			const folders = key.split(':');
+			const bindings = Array.from(this.zephyrBindingCache.keys())
+				.filter((p) => folders.some((f) => p.startsWith(f)))
+				.flatMap((path) => this.zephyrBindingCache.get(path)!);
+
+			const base = bindings.find(
+				(b) => basename(b.filePath) === `base.yaml`,
+			);
+			const baseType = base
+				? convertBindingToType(base, node)
+				: undefined;
+			if (baseType) {
+				baseType.warnMismatchProperties = false;
+				const compat = baseType.properties.find(
+					(p) => p.name === 'compatible',
+				);
+				if (compat) {
+					compat.required = () => 'optional';
+				}
+			}
+
 			return {
 				type: [baseType ?? getStandardType(node)],
 				issues: [],
 			};
 		}
 
-		const out = compatible.flatMap((c) =>
-			ZephyrBindingsLoader.getCompatibleKeys(c.name, node.parent)
-				.map((compatKey) =>
-					this.typeCache.get(key)?.get(compatKey)?.(node),
-				)
-				.filter((v) => !!v),
-		);
-
 		const allBusTypes = this.getBusTypes();
 
-		const issues = compatible.flatMap((c) => {
-			const match = ZephyrBindingsLoader.getCompatibleKeys(
-				c.name,
-				node.parent,
-			).some((compatKey) => this.typeCache.get(key)?.has(compatKey));
-			if (!match) {
-				const busCompats = allBusTypes.filter((bus) =>
-					this.typeCache.get(key)?.has(`${c.name}::${bus}`),
-				);
-
-				if (busCompats.length) {
-					return genStandardTypeDiagnostic(
-						StandardTypeIssue.BINDING_ON_BUS_NODE,
-						c.ast.firstToken,
-						c.ast.lastToken,
-						c.ast,
-						{ templateStrings: busCompats },
+		const issues =
+			compatible?.flatMap((c) => {
+				const match = ZephyrBindingsLoader.getCompatibleKeys(
+					c.name,
+					node.parent,
+				).some((compatKey) => this.typeCache.get(key)?.has(compatKey));
+				if (!match) {
+					const busCompats = allBusTypes.filter((bus) =>
+						this.typeCache.get(key)?.has(`${c.name}::${bus}`),
 					);
-				}
-			}
-			return match
-				? []
-				: [
-						genStandardTypeDiagnostic(
-							StandardTypeIssue.MISSING_BINDING_FILE,
+
+					if (busCompats.length) {
+						return genStandardTypeDiagnostic(
+							StandardTypeIssue.BINDING_ON_BUS_NODE,
 							c.ast.firstToken,
 							c.ast.lastToken,
 							c.ast,
-							{
-								severity: DiagnosticSeverity.Hint,
-								tags: [DiagnosticTag.Unnecessary],
-								templateStrings: [c.name],
-							},
-						),
-					];
-		});
+							{ templateStrings: busCompats },
+						);
+					}
+				}
+				return match
+					? []
+					: [
+							genStandardTypeDiagnostic(
+								StandardTypeIssue.MISSING_BINDING_FILE,
+								c.ast.firstToken,
+								c.ast.lastToken,
+								c.ast,
+								{
+									severity: DiagnosticSeverity.Hint,
+									tags: [DiagnosticTag.Unnecessary],
+									templateStrings: [c.name],
+								},
+							),
+						];
+			}) ?? [];
 
 		return {
 			type: out.length ? out : [getStandardType(node)],
