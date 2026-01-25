@@ -29,7 +29,10 @@ import {
 	ComplexExpression,
 	Expression,
 } from '../ast/cPreprocessors/expression';
-import { CMacroCall } from '../ast/cPreprocessors/functionCall';
+import {
+	CMacroCall,
+	CMacroCallParam,
+} from '../ast/cPreprocessors/functionCall';
 import type {
 	CustomDocumentFormattingParams,
 	FormattingFlags,
@@ -287,7 +290,106 @@ const formatPropertyValue = (
 		);
 	}
 
+	if (innerValue instanceof CMacroCall) {
+		return formatCMacroCallParameters(
+			value,
+			propertyNameWidth,
+			innerValue,
+			settings,
+			documentText,
+			singleIndent,
+			level,
+		);
+	}
+
 	return [];
+};
+
+const formatCMacroCallParameters = (
+	propertyValue: PropertyValue,
+	propertyNameWidth: number,
+	macroCall: CMacroCall,
+	settings: FormattingSettings,
+	documentText: string[],
+	indentString: string,
+	level: number,
+): FileDiagnostic[] => {
+	const width = getExpressionCol(
+		propertyValue,
+		macroCall,
+		settings,
+		documentText,
+		level,
+		propertyNameWidth + 4,
+	);
+
+	return macroCall.params.flatMap((param) =>
+		formatCMacroCallParam(
+			param,
+			settings,
+			documentText,
+			indentString,
+			level,
+			width + macroCall.functionName.name.length + 1,
+		),
+	);
+};
+
+const formatCMacroCallParam = (
+	param: CMacroCallParam | null,
+	settings: FormattingSettings,
+	documentText: string[],
+	indentString: string,
+	level: number,
+	width: number,
+): FileDiagnostic[] => {
+	if (!param) {
+		return [];
+	}
+
+	const firstToken =
+		param.firstToken.value === '\\'
+			? param.firstToken.nextToken
+			: param.firstToken;
+	if (!firstToken || firstToken.pos.line === firstToken.prevToken?.pos.line) {
+		return [];
+	}
+
+	const lineText = documentText[firstToken?.pos.line].slice(
+		0,
+		firstToken.pos.col,
+	);
+
+	const indent = createIndentString(
+		level,
+		indentString,
+		widthToPrefix(settings, width),
+	);
+
+	if (lineText === indent) {
+		return [];
+	}
+
+	const start = Position.create(firstToken.pos.line, 0);
+	const end = Position.create(firstToken.pos.line, firstToken.pos.col);
+	const range = Range.create(start, end);
+	const edit = TextEdit.replace(range, indent);
+
+	return [
+		genFormattingDiagnostic(
+			FormattingIssues.WRONG_INDENTATION,
+			param.uri,
+			start,
+			{
+				edit,
+				codeActionTitle: 'Fix indentation',
+				templateStrings: [
+					indent.replaceAll(' ', '·').replaceAll('\t', '→'),
+				],
+			},
+			end,
+		),
+	];
 };
 
 const formatArrayValue = (
@@ -304,6 +406,8 @@ const formatArrayValue = (
 
 		if (isComplexExpression) {
 			const map = new Map<Token, Expression>();
+			// const cMacroCallsSet = new Set<CMacroCall>();
+
 			value.value.allDescendants.forEach((c) => {
 				if (
 					c instanceof Expression &&
@@ -314,6 +418,7 @@ const formatArrayValue = (
 			});
 
 			const expressions = Array.from(map.values());
+			// const cMacroCalls = Array.from(cMacroCallsSet.values());
 
 			return expressions.flatMap((exp) =>
 				formatExpression(
@@ -325,6 +430,18 @@ const formatArrayValue = (
 					singleIndent,
 					level,
 				),
+			);
+		}
+
+		if (value.value instanceof CMacroCall) {
+			return formatCMacroCallParameters(
+				propertyValue,
+				propertyNameWidth,
+				value.value,
+				settings,
+				documentText,
+				singleIndent,
+				level,
 			);
 		}
 	}
@@ -346,6 +463,17 @@ const formatExpression = (
 		expression.firstToken.pos.line ===
 		expression.firstToken.prevToken?.pos.line
 	) {
+		if (expression instanceof CMacroCall) {
+			return formatCMacroCallParameters(
+				propertyValue,
+				propertyNameWidth,
+				expression,
+				settings,
+				documentText,
+				indentString,
+				level,
+			);
+		}
 		return [];
 	}
 
@@ -373,6 +501,17 @@ const formatExpression = (
 	);
 
 	if (currentIndent === indent) {
+		if (expression instanceof CMacroCall) {
+			return formatCMacroCallParameters(
+				propertyValue,
+				propertyNameWidth,
+				expression,
+				settings,
+				documentText,
+				indentString,
+				level,
+			);
+		}
 		return [];
 	}
 
