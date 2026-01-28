@@ -124,11 +124,13 @@ const watchContextFiles = (context: ContextAware) => {
 		if (!fileWatchers.has(file)) {
 			fileWatchers.set(
 				file,
-				new FileWatcher(
-					file,
-					onChange,
-					(file) => !!fetchDocument(file),
-				),
+				new FileWatcher(file, onChange, (file) => {
+					if (!isPathEqual(file, activeFileUri)) {
+						return dirtyState.has(file);
+					}
+
+					return false;
+				}),
 			);
 		}
 		fileWatchers.get(file)?.watch();
@@ -843,6 +845,7 @@ const onChange = async (uri: string) => {
 	}
 };
 
+const dirtyState = new Set<string>();
 const fetchDocumentUri = (file: string) => {
 	return documents.keys().find((f) => isPathEqual(fileURLToPath(f), file));
 };
@@ -1085,6 +1088,11 @@ const getContextOpenFiles = (context: ContextAware | undefined) => {
 	return context?.getContextFiles()?.filter((f) => fetchDocument(f));
 };
 
+documents.onDidSave(async (e) => {
+	const uri = fileURLToPath(e.document.uri);
+	dirtyState.delete(uri);
+});
+
 // Only keep settings for open documents
 documents.onDidClose(async (e) => {
 	const uri = fileURLToPath(e.document.uri);
@@ -1092,6 +1100,8 @@ documents.onDidClose(async (e) => {
 	if (!isDtsFile(uri)) {
 		return;
 	}
+
+	dirtyState.delete(uri);
 
 	const contexts = findContexts(contextAware, uri);
 	if (contexts.length === 0) {
@@ -1177,6 +1187,8 @@ documents.onDidChangeContent(async (change) => {
 	if (!isDtsFile(uri)) {
 		return;
 	}
+
+	dirtyState.add(uri);
 
 	const text = change.document.getText();
 	const tokenProvider = getTokenizedDocumentProvider();

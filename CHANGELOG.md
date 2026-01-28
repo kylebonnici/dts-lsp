@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed an issue with `simple-bus` binding not found when using zephyr bindings.
+- Fixed an issue where external file change events via the file watchers where ignored
+  if the file is open and saved in the editor.
 
 ## [0.7.8] - 2026-01-25
 

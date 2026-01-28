@@ -14,13 +14,20 @@
  * limitations under the License.
  */
 
-import { unwatchFile, watchFile } from 'fs';
+import { readFileSync, unwatchFile, watchFile } from 'fs';
 import { getTokenizedDocumentProvider } from './providers/tokenizedDocument';
 
 const onChange = (file: string, cb: (uri: string) => void) => {
-	getTokenizedDocumentProvider().reset(file);
-	getTokenizedDocumentProvider().requestTokens(file, true);
-	cb(file);
+	const newText = readFileSync(file).toString();
+	if (getTokenizedDocumentProvider().needsRenew(file, newText)) {
+		getTokenizedDocumentProvider().renewLexer(file, newText);
+		cb(file);
+	} else {
+		return console.log(
+			'file changed event has the same text, skipping.',
+			file,
+		);
+	}
 };
 
 export class FileWatcher {
@@ -28,7 +35,7 @@ export class FileWatcher {
 	constructor(
 		readonly file: string,
 		private cb: (uri: string) => void,
-		private hasDocumentOpen: (uri: string) => boolean,
+		private hasDirtyState: (uri: string) => boolean,
 	) {}
 
 	private onChange?: () => void;
@@ -40,8 +47,11 @@ export class FileWatcher {
 			const file = this.file;
 			const cb = this.cb;
 			this.onChange = () => {
-				if (this.hasDocumentOpen(file)) {
-					console.log('skipping on change document is open', file);
+				if (this.hasDirtyState(file)) {
+					console.log(
+						'skipping on change document is open and dirty.',
+						file,
+					);
 					return;
 				}
 				console.log('onChange', file);
