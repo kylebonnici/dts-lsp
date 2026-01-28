@@ -35,7 +35,6 @@ export class FileWatcher {
 	constructor(
 		readonly file: string,
 		private cb: (uri: string) => void,
-		private hasDirtyState: (uri: string) => boolean,
 	) {}
 
 	private onChange?: () => void;
@@ -47,14 +46,7 @@ export class FileWatcher {
 			const file = this.file;
 			const cb = this.cb;
 			this.onChange = () => {
-				if (this.hasDirtyState(file)) {
-					console.log(
-						'skipping on change document is open and dirty.',
-						file,
-					);
-					return;
-				}
-				console.log('onChange', file);
+				console.log('onChange - file watcher', file);
 				onChange(file, cb);
 			};
 			watchFile(file, this.onChange);
