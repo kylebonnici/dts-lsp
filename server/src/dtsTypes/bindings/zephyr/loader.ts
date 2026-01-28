@@ -572,10 +572,7 @@ export class ZephyrBindingsLoader {
 			const baseZephyr = this.getBaseZephyrType(key);
 			if (baseZephyr) {
 				const simpleBus = convertSimpleBusToType(baseZephyr);
-				return {
-					type: [simpleBus],
-					issues: [],
-				};
+				typeCache.set('simple-bus', () => simpleBus);
 			}
 		}
 	}

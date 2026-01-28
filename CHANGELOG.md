@@ -4,7 +4,15 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.7.9] - Unreleased
+
+### Fixed
+
+- Fixed an issue with `simple-bus` binding not found when using zephyr bindings.
+
 ## [0.7.8] - 2026-01-25
+
+### Fixed
 
 - Fixed an issue with loading `base.yaml` to all nodes that do not have a binding when
   using zephyr bindings
