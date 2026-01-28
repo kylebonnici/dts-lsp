@@ -124,13 +124,7 @@ const watchContextFiles = (context: ContextAware) => {
 		if (!fileWatchers.has(file)) {
 			fileWatchers.set(
 				file,
-				new FileWatcher(file, onChange, (file) => {
-					if (!isPathEqual(file, activeFileUri)) {
-						return dirtyState.has(file);
-					}
-
-					return false;
-				}),
+				new FileWatcher(file, onChange, (file) => dirtyState.has(file)),
 			);
 		}
 		fileWatchers.get(file)?.watch();
