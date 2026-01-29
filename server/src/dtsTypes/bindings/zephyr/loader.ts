@@ -801,16 +801,19 @@ const generateZephyrTypeCheck = (
 		const issues: FileDiagnostic[] = [];
 
 		if (myProperty.const) {
-			const quickValues = p.ast.quickValues;
-			if (quickValues?.length == 1) {
+			const values = p.ast.getFlatAstValues();
+			if (
+				values?.length == 1 &&
+				values.every((v) => v instanceof Expression)
+			) {
+				const evaluatedValues = values.map((v) => v.evaluate(macros));
 				const constValues = Array.isArray(myProperty.const)
 					? myProperty.const
 					: [myProperty.const];
 
 				const equal =
-					Array.isArray(quickValues[0]) &&
-					constValues.length === quickValues[0].length &&
-					quickValues[0].every(
+					constValues.length === evaluatedValues.length &&
+					evaluatedValues.every(
 						(v, i) =>
 							(typeof v === 'number' && Number.isNaN(v)) ||
 							constValues[i] === v,
