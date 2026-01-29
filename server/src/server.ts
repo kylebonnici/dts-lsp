@@ -116,13 +116,27 @@ const fileWatchers = new Map<string, FileWatcher>();
 
 initHeapMonitor();
 
+const lastSavedFileVersion = new Map<string, number>();
+
 const watchContextFiles = (context: ContextAware) => {
 	if (context.settings.disableFileWatchers) {
 		return;
 	}
 	context.getContextFiles().forEach((file) => {
 		if (!fileWatchers.has(file)) {
-			fileWatchers.set(file, new FileWatcher(file, onChange));
+			fileWatchers.set(
+				file,
+				new FileWatcher(file, onChange, () => {
+					const doc = fetchDocument(file);
+					const lastSavedVersion = lastSavedFileVersion.get(file);
+
+					if (!doc || lastSavedVersion === undefined) {
+						return false;
+					}
+
+					return lastSavedVersion !== doc.version;
+				}),
+			);
 		}
 		fileWatchers.get(file)?.watch();
 	});
@@ -1078,6 +1092,10 @@ const getContextOpenFiles = (context: ContextAware | undefined) => {
 	return context?.getContextFiles()?.filter((f) => fetchDocument(f));
 };
 
+documents.onDidSave((e) => {
+	lastSavedFileVersion.set(fileURLToPath(e.document.uri), e.document.version);
+});
+
 // Only keep settings for open documents
 documents.onDidClose(async (e) => {
 	const uri = fileURLToPath(e.document.uri);
@@ -1085,6 +1103,8 @@ documents.onDidClose(async (e) => {
 	if (!isDtsFile(uri)) {
 		return;
 	}
+
+	lastSavedFileVersion.delete(uri);
 
 	const contexts = findContexts(contextAware, uri);
 	if (contexts.length === 0) {
@@ -1140,6 +1160,8 @@ documents.onDidOpen(async (e) => {
 		return;
 	}
 
+	lastSavedFileVersion.set(uri, e.document.version);
+
 	await allStable();
 	reportNoContextFiles();
 
@@ -1165,19 +1187,19 @@ documents.onDidOpen(async (e) => {
 });
 
 documents.onDidChangeContent(async (change) => {
-	const uri = fileURLToPath(change.document.uri);
+	const fsPath = fileURLToPath(change.document.uri);
 
-	if (!isDtsFile(uri)) {
+	if (!isDtsFile(fsPath)) {
 		return;
 	}
 
 	const text = change.document.getText();
 	const tokenProvider = getTokenizedDocumentProvider();
-	if (!tokenProvider.needsRenew(uri, text)) return;
+	if (!tokenProvider.needsRenew(fsPath, text)) return;
 
-	console.log('Content changed');
-	tokenProvider.renewLexer(uri, text);
-	await onChange(uri);
+	console.log('Content changed', fsPath);
+	tokenProvider.renewLexer(fsPath, text);
+	await onChange(fsPath);
 });
 
 const updateSetting = async (config: any) => {

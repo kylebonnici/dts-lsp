@@ -35,6 +35,7 @@ export class FileWatcher {
 	constructor(
 		readonly file: string,
 		private cb: (uri: string) => void,
+		private isFileDirty: () => boolean,
 	) {}
 
 	private onChange?: () => void;
@@ -47,6 +48,10 @@ export class FileWatcher {
 			const cb = this.cb;
 			this.onChange = () => {
 				console.log('onChange - file watcher', file);
+				if (this.isFileDirty()) {
+					console.log('onChange - file is dirty, skipping');
+					return;
+				}
 				onChange(file, cb);
 			};
 			watchFile(file, this.onChange);
