@@ -49,7 +49,7 @@ import { FunctionDefinition } from './ast/cPreprocessors/functionDefinition';
 import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
 import { StringValue } from './ast/dtc/values/string';
 
-function getIncudePathItems(
+function getIncludePathItems(
 	result: SearchableResult | undefined,
 ): CompletionItem[] {
 	if (!result || !(result.ast instanceof IncludePath)) {
@@ -172,7 +172,7 @@ function getCreateNodeRefItems(
 			insertText:
 				result.ast.lastToken.nextToken?.value === '{'
 					? l
-					: `${l} {\n$1\n};`,
+					: `${l} {\n\t$1\n};`,
 			kind: CompletionItemKind.Value,
 			insertTextFormat: InsertTextFormat.Snippet,
 		})),
@@ -440,10 +440,10 @@ function getPropertyAssignMacroItems(
 		return [];
 	}
 
-	const inPorpertyValue = isPropertyValueChild(result?.ast);
+	const inPropertyValue = isPropertyValueChild(result?.ast);
 
 	if (
-		!inPorpertyValue &&
+		!inPropertyValue &&
 		!(
 			result.ast instanceof DtcProperty && result.item.ast.values === null
 		) &&
@@ -485,6 +485,39 @@ function getPropertyAssignMacroItems(
 	return [];
 }
 
+function getNodeChildNameItems(
+	result: SearchableResult | undefined,
+	inScope: (ast: ASTBase) => boolean,
+): CompletionItem[] {
+	if (
+		!result?.item ||
+		!(
+			(result.ast instanceof PropertyName &&
+				result.ast.parentNode instanceof DtcProperty) ||
+			result.ast instanceof DtcRootNode
+		)
+	) {
+		return [];
+	}
+
+	const node = result.item instanceof Node ? result.item : result.item.parent;
+
+	return node.nodes
+		.filter((d) => {
+			const def = d.definitions.at(-1);
+			return def && inScope(def);
+		})
+		.map((d) => d.name?.toString())
+		.filter((n) => n)
+		.map((n) => ({
+			label: `${n}`,
+			insertText: `${n} {\n\t$1\n};`,
+			kind: CompletionItemKind.Class,
+			sortText: `!${n}`, // sort top
+			insertTextFormat: InsertTextFormat.Snippet,
+		}));
+}
+
 export async function getCompletions(
 	location: TextDocumentPositionParams,
 	context: ContextAware | undefined,
@@ -496,7 +529,8 @@ export async function getCompletions(
 		...getNodeRefPathsItems(locationMeta, inScope),
 		...getCreateNodeRefItems(locationMeta, inScope),
 		...getRefLabelsItems(locationMeta, inScope),
-		...getIncudePathItems(locationMeta),
+		...getIncludePathItems(locationMeta),
 		...getPropertyAssignMacroItems(locationMeta),
+		...getNodeChildNameItems(locationMeta, inScope),
 	]);
 }

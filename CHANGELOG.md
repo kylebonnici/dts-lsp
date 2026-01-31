@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.7.9] - Unreleased
 
+### Added
+
+- Completion snippets for child node relative to current parent.
+
 ### Fixed
 
 - Fixed an issue with `simple-bus` binding not found when using zephyr bindings.
