@@ -30,7 +30,7 @@ dmas = <&dma2 1 0 (STM32_DMA_MODE_NORMAL | STM32_DMA_PRIORITY_HIGH |
 - Fixed an issue with `simple-bus` binding not found when using zephyr bindings.
 - Fixed an issue where external file change events via the file watchers where ignored
   if the file is open and saved in the editor.
-- Fixed zephyr binding const validation did not work when expression where used.
+- Fixed zephyr binding const validation did not work when an expression is used.
 
 ## [0.7.8] - 2026-01-25
 
