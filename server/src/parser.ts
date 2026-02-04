@@ -124,6 +124,7 @@ export class Parser extends BaseParser {
 		this.rootDocument = new DtcBaseNode();
 		this._issues = [];
 		this.unhandledStatements = new DtcRootNode();
+		this.#latestSemanticTokensBuilt = false;
 	}
 
 	public async reparse(): Promise<void> {
@@ -2293,6 +2294,11 @@ export class Parser extends BaseParser {
 		];
 	}
 
+	#latestSemanticTokensBuilt = false;
+	get latestSemanticTokensBuilt() {
+		return this.#latestSemanticTokensBuilt;
+	}
+
 	buildSemanticTokens(tokensBuilder: SemanticTokensBuilder, uri: string) {
 		const result: {
 			line: number;
@@ -2309,5 +2315,6 @@ export class Parser extends BaseParser {
 		});
 
 		super.buildSemanticTokens(tokensBuilder, uri, result);
+		this.#latestSemanticTokensBuilt = true;
 	}
 }

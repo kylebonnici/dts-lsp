@@ -812,6 +812,20 @@ const onChange = async (uri: string) => {
 
 								hasWorkspaceDiagnostics.set(context, true);
 							});
+
+							if (activeFileUri) {
+								const activeUriParser =
+									context.getUriParser(activeFileUri);
+								if (activeUriParser) {
+									setTimeout(() => {
+										if (
+											!activeUriParser.latestSemanticTokensBuilt
+										) {
+											connection.languages.semanticTokens.refresh();
+										}
+									}, 50);
+								}
+							}
 						}
 
 						const [meta, fileTree] = await Promise.all([
