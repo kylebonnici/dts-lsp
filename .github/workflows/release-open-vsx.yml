@@ -23,7 +23,7 @@ jobs:
                   cache: 'npm'
             - name: Install tools
               run: |
-                  npm install -g @vscode/vsce@3.4.2 --ignore-scripts --no-audit --no-fund
+                  npm install -g @vscode/vsce@3.7.1 --ignore-scripts --no-audit --no-fund
                   npm install -g ovsx@0.10.5 --ignore-scripts --no-audit --no-fund
             - run: npm ci
             - run: npm --prefix server ci
