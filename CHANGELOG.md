@@ -4,11 +4,26 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.7.9] - Unreleased
+## [0.8.0] - 2026-02-04
 
 ### Added
 
 - Completion snippets for child node relative to current parent.
+- Formatting of expressions will now indent to align with the group they are in example:
+
+Was
+
+```devicetree
+dmas = <&dma2 1 0 (STM32_DMA_MODE_NORMAL | STM32_DMA_PRIORITY_HIGH |
+ 		STM32_DMA_16BITS) 0>;
+```
+
+Now
+
+```devicetree
+dmas = <&dma2 1 0 (STM32_DMA_MODE_NORMAL | STM32_DMA_PRIORITY_HIGH |
+				   STM32_DMA_16BITS) 0>;
+```
 
 ### Fixed
 

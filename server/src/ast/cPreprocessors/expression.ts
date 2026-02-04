@@ -86,7 +86,7 @@ export class ComplexExpression extends Expression {
 
 	constructor(
 		public readonly expression: Expression,
-		private wrapped: boolean,
+		readonly wrapped: boolean,
 		join?: { operator: Operator; expression: Expression },
 	) {
 		super();
