@@ -169,6 +169,7 @@ const resolveBinding = (
 
 		if (binding['child-binding']) {
 			binding['child-binding'].isChildBinding = true;
+			binding['child-binding'].filePath = binding.filePath;
 		}
 	}
 

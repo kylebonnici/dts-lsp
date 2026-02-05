@@ -83,14 +83,15 @@ function getPropertyTypeDefinition(
 ): Location[] {
 	if (
 		!result ||
-		!(result.item instanceof Property) ||
+		!result.item ||
 		!(result.ast instanceof PropertyName) ||
 		result.runtime.context.bindingLoader?.type !== 'Zephyr'
 	) {
 		return [];
 	}
 
-	const node = result.item.parent;
+	const node =
+		result.item instanceof Property ? result.item.parent : result.item;
 
 	const binding =
 		node.nodeType instanceof NodeType
