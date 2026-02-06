@@ -202,13 +202,20 @@ export async function activate(context: vscode.ExtensionContext) {
 
 				if (!context) return null;
 
-				vscode.workspace
-					.openTextDocument(
-						vscode.Uri.parse(
-							`devicetree-context-output:${context.id}.dts`,
-						),
-					)
-					.then(vscode.window.showTextDocument);
+				const uri = vscode.Uri.parse(
+					`devicetree-context-output:${context.id}.dts`,
+				);
+				const alreadyOpen = vscode.workspace.textDocuments.some(
+					(doc) => doc.uri.toString() === uri.toString(),
+				);
+
+				if (alreadyOpen) {
+					compiledDocumentProvider.update(uri);
+				} else {
+					await vscode.workspace.openTextDocument(uri);
+				}
+
+				await vscode.window.showTextDocument(uri);
 			},
 		),
 		vscode.commands.registerCommand(
