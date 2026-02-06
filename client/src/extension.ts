@@ -113,6 +113,57 @@ const SelectContext = async (
 let client: LanguageClient;
 let api: API;
 
+const generateContextOutputUri = async (args: vscode.Uri) => {
+	let context: ContextListItem | null = null;
+	const query: Record<string, string> = {};
+	if (args?.query) {
+		args?.query.split('&').forEach((part) => {
+			const parts = part.split('=');
+			query[parts[0]] = parts.at(1) ?? '';
+		});
+	}
+
+	if (
+		args &&
+		args.scheme === CompiledDocumentProvider.scheme &&
+		query['ctxId']
+	) {
+		const allCtxs = await api.getContexts();
+		context = allCtxs.find((c) => c.id === query['ctxId']) ?? null;
+	} else {
+		context = await SelectContext(api, args);
+	}
+
+	if (!context) return null;
+
+	return {
+		uri: vscode.Uri.parse(`devicetree-context-output:${context.id}.dts`),
+		besides: !!query['beside'],
+	};
+};
+
+const openContextOutput = async (
+	compiledDocumentProvider: CompiledDocumentProvider,
+	result: Awaited<ReturnType<typeof generateContextOutputUri>>,
+) => {
+	const { uri, besides } = result;
+
+	const alreadyOpen = vscode.workspace.textDocuments.some(
+		(doc) => doc.uri.toString() === uri.toString(),
+	);
+
+	if (alreadyOpen) {
+		compiledDocumentProvider.update(uri);
+	} else {
+		await vscode.workspace.openTextDocument(uri);
+	}
+
+	await vscode.window.showTextDocument(
+		uri,
+		besides ? { viewColumn: vscode.ViewColumn.Beside } : {},
+	);
+};
+
 export async function activate(context: vscode.ExtensionContext) {
 	// The server is implemented in node
 	const serverModule = context.asAbsolutePath(
@@ -186,36 +237,21 @@ export async function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand(
 			'devicetree.context.output.generate',
 			async (args?: vscode.Uri) => {
-				let context: ContextListItem | null = null;
-				if (
-					args &&
-					args.scheme === CompiledDocumentProvider.scheme &&
-					args.query['ctxId']
-				) {
-					const allCtxs = await api.getContexts();
-					context =
-						allCtxs.find((c) => c.id === args.query['ctxId']) ??
-						null;
-				} else {
-					context = await SelectContext(api, args);
-				}
+				const result = await generateContextOutputUri(args);
+				if (!result) return;
 
-				if (!context) return null;
+				await openContextOutput(compiledDocumentProvider, result);
+			},
+		),
+		vscode.commands.registerCommand(
+			'devicetree.context.output.generate.beside',
+			async (args?: vscode.Uri) => {
+				const result = await generateContextOutputUri(args);
+				if (!result) return;
 
-				const uri = vscode.Uri.parse(
-					`devicetree-context-output:${context.id}.dts`,
-				);
-				const alreadyOpen = vscode.workspace.textDocuments.some(
-					(doc) => doc.uri.toString() === uri.toString(),
-				);
+				result.besides = true;
 
-				if (alreadyOpen) {
-					compiledDocumentProvider.update(uri);
-				} else {
-					await vscode.workspace.openTextDocument(uri);
-				}
-
-				await vscode.window.showTextDocument(uri);
+				await openContextOutput(compiledDocumentProvider, result);
 			},
 		),
 		vscode.commands.registerCommand(

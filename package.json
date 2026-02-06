@@ -46,6 +46,12 @@
 				"enablement": "editorLangId == devicetree && resourceScheme == 'file'"
 			},
 			{
+				"command": "devicetree.context.output.generate.beside",
+				"title": "Devicetree: Generate context output",
+				"icon": "$(build)",
+				"enablement": "editorLangId == devicetree && resourceScheme == 'file'"
+			},
+			{
 				"command": "devicetree.context.output.update",
 				"title": "Devicetree: Update context output",
 				"icon": "$(refresh)",
@@ -128,7 +134,8 @@
 				{
 					"command": "devicetree.context.output.generate",
 					"when": "editorLangId == devicetree && resourceScheme == 'file'",
-					"group": "navigation"
+					"group": "navigation",
+					"alt": "devicetree.context.output.generate.beside"
 				},
 				{
 					"command": "devicetree.context.output.update",
