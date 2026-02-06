@@ -40,8 +40,16 @@
 				"title": "Devicetree: Set active context"
 			},
 			{
-				"command": "devicetree.context.output",
-				"title": "Devicetree: Generate context output"
+				"command": "devicetree.context.output.generate",
+				"title": "Devicetree: Generate context output",
+				"icon": "$(build)",
+				"enablement": "editorLangId == devicetree && resourceScheme == 'file'"
+			},
+			{
+				"command": "devicetree.context.output.update",
+				"title": "Devicetree: Update context output",
+				"icon": "$(refresh)",
+				"enablement": "resourceScheme == 'devicetree-context-output'"
 			},
 			{
 				"command": "devicetree.clipboard.dtMacro",
@@ -114,6 +122,18 @@
 					"command": "devicetree.clipboard.nodePath",
 					"when": "editorLangId == devicetree",
 					"group": "9_cutcopypaste"
+				}
+			],
+			"editor/title": [
+				{
+					"command": "devicetree.context.output.generate",
+					"when": "editorLangId == devicetree && resourceScheme == 'file'",
+					"group": "navigation"
+				},
+				{
+					"command": "devicetree.context.output.update",
+					"when": "resourceScheme == 'devicetree-context-output'",
+					"group": "navigation"
 				}
 			]
 		},
