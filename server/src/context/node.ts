@@ -1299,7 +1299,7 @@ export class Node {
 				.join(`\n${'\t'.repeat(level)}`)}${
 				this.nodes.length
 					? `\n${'\t'.repeat(level)}${this.nodes
-							.map((n) => `${n.fullName}{ ... };`)
+							.map((n) => `${n.fullName} { ... };`)
 							.join(`\n${'\t'.repeat(level)}`)}`
 					: ''
 			} 
@@ -1315,13 +1315,13 @@ ${'\t'.repeat(level - 1)}}; */`;
 		}${this.properties
 			.map(
 				(p) =>
-					`${p.toPrettyString(macros)}\t/* ${cwd ? `./${relative(cwd, p.ast.uri)}` : p.ast.uri} */`,
+					`${p.toPrettyString(macros, level)}\t/* ${cwd && p.ast.uri.startsWith(cwd) ? `./${relative(cwd, p.ast.uri)}` : p.ast.uri} */`,
 			)
 			.join(`\n${'\t'.repeat(level)}`)}${
 			this.nodes.length
-				? `\n${'\t'.repeat(level)}${this.nodes
+				? `${this.properties.length ? '\n\n' : '\n'}${'\t'.repeat(level)}${this.nodes
 						.map((n) => n.toFullString(macros, cwd, level + 1))
-						.join(`\n${'\t'.repeat(level)}`)}`
+						.join(`\n\n${'\t'.repeat(level)}`)}`
 				: ''
 		} 
 ${'\t'.repeat(level - 1)}};`;

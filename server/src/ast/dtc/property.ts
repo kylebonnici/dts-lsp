@@ -138,13 +138,14 @@ export class DtcProperty extends ASTBase {
 		};`;
 	}
 
-	toPrettyString(macros: Map<string, MacroRegistryItem>) {
+	toPrettyString(macros: Map<string, MacroRegistryItem>, level?: number) {
 		return `${this.propertyName?.toString() ?? '__UNSET__'}${
 			this.assignOperatorToken
 				? ` = ${
 						this._values?.values
 							.map((v) => v?.toPrettyString(macros) ?? 'NULL')
-							.join(', ') ?? 'NULL'
+							.join(level ? `,\n${'\t'.repeat(level)}` : ', ') ??
+						'NULL'
 					}`
 				: ''
 		};`;

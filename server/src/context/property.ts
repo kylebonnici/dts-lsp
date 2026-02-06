@@ -185,7 +185,7 @@ export class Property {
 		return this.ast.toString();
 	}
 
-	toPrettyString(macros: Map<string, MacroRegistryItem>) {
-		return this.ast.toPrettyString(macros);
+	toPrettyString(macros: Map<string, MacroRegistryItem>, level?: number) {
+		return this.ast.toPrettyString(macros, level);
 	}
 }
