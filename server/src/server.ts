@@ -217,32 +217,39 @@ const allStable = async () => {
 	await Promise.all(contextAware.map(isStable));
 };
 
-const isAdHocContext = async (context: ContextAware) =>
-	(await getAdhocContexts()).indexOf(context) !== -1;
+const isAdHocContext = async (
+	context: ContextAware,
+	workspaceFolders?: WorkspaceFolder[],
+) => (await getAdhocContexts(workspaceFolders)).indexOf(context) !== -1;
 
-const getAdhocContexts = async () => {
-	const configuredContexts = await getConfiguredContexts();
+const getAdhocContexts = async (workspaceFolders?: WorkspaceFolder[]) => {
+	const configuredContexts = await getConfiguredContexts(workspaceFolders);
 	return contextAware.filter(
 		(c) => !configuredContexts.some((cc) => cc === c),
 	);
 };
 
-const getConfiguredContexts = async () => {
-	const settings = await getResolvedPersistentContextSettings();
+const getConfiguredContexts = async (workspaceFolders?: WorkspaceFolder[]) => {
+	const settings =
+		await getResolvedPersistentContextSettings(workspaceFolders);
 	return contextAware.filter((c) =>
 		settings.contexts.find((sc) => generateContextId(sc) === c.id),
 	);
 };
 
-const getUserSettingsContexts = async () => {
-	const settings = await getResolvedUserContextSettings();
+const getUserSettingsContexts = async (
+	workspaceFolders?: WorkspaceFolder[],
+) => {
+	const settings = await getResolvedUserContextSettings(workspaceFolders);
 	return contextAware.filter((c) =>
 		settings.contexts.find((sc) => generateContextId(sc) === c.id),
 	);
 };
 
-const isUserSettingsContext = async (context: ContextAware) =>
-	(await getUserSettingsContexts()).indexOf(context) !== -1;
+const isUserSettingsContext = async (
+	context: ContextAware,
+	workspaceFolders?: WorkspaceFolder[],
+) => (await getUserSettingsContexts(workspaceFolders)).indexOf(context) !== -1;
 
 const contextFullyOverlaps = async (a: ContextAware, b: ContextAware) => {
 	if (a === b) {
@@ -466,7 +473,9 @@ connection.onRequest(
 	},
 );
 
-const getResolvedAdhocContextSettings = async () => {
+const getResolvedAdhocContextSettings = async (
+	workspaceFolders?: WorkspaceFolder[],
+) => {
 	let unresolvedSettings = getUnresolvedAdhocContextSettings();
 
 	unresolvedSettings = <Settings>{
@@ -474,10 +483,15 @@ const getResolvedAdhocContextSettings = async () => {
 		...unresolvedSettings,
 	};
 
-	return resolveSettings(unresolvedSettings, await getWorkspaces());
+	return resolveSettings(
+		unresolvedSettings,
+		workspaceFolders ?? (await getWorkspaces()),
+	);
 };
 
-const getResolvedPersistentContextSettings = async () => {
+const getResolvedPersistentContextSettings = async (
+	workspaceFolders?: WorkspaceFolder[],
+) => {
 	let unresolvedSettings = getUnresolvedPersistentContextSettings();
 
 	unresolvedSettings = <Settings>{
@@ -485,10 +499,15 @@ const getResolvedPersistentContextSettings = async () => {
 		...unresolvedSettings,
 	};
 
-	return resolveSettings(unresolvedSettings, await getWorkspaces());
+	return resolveSettings(
+		unresolvedSettings,
+		workspaceFolders ?? (await getWorkspaces()),
+	);
 };
 
-const getResolvedUserContextSettings = async () => {
+const getResolvedUserContextSettings = async (
+	workspaceFolders?: WorkspaceFolder[],
+) => {
 	let unresolvedSettings = getUnresolvedUserContextSettings();
 
 	unresolvedSettings = <Settings>{
@@ -496,10 +515,15 @@ const getResolvedUserContextSettings = async () => {
 		...unresolvedSettings,
 	};
 
-	return resolveSettings(unresolvedSettings, await getWorkspaces());
+	return resolveSettings(
+		unresolvedSettings,
+		workspaceFolders ?? (await getWorkspaces()),
+	);
 };
 
-const getResolvedAllContextSettings = async () => {
+const getResolvedAllContextSettings = async (
+	workspaceFolder?: WorkspaceFolder[],
+) => {
 	let unresolvedSettings = getUnresolvedAllContextSettings();
 
 	unresolvedSettings = <Settings>{
@@ -507,7 +531,10 @@ const getResolvedAllContextSettings = async () => {
 		...unresolvedSettings,
 	};
 
-	return resolveSettings(unresolvedSettings, await getWorkspaces());
+	return resolveSettings(
+		unresolvedSettings,
+		workspaceFolder ?? (await getWorkspaces()),
+	);
 };
 
 const getWorkspaces = async () => {
@@ -620,16 +647,18 @@ const loadSettings = async () => {
 		}, Promise.resolve());
 	}
 
-	if (activeFileUri) {
-		await updateActiveContext({ uri: activeFileUri });
-	} else if (!activeContext && contextAware.length) {
-		console.log(
-			`No active context using first context (ID: ${
-				contextAware[0].id
-			}) [${contextAware[0].ctxNames.join(',')}]`,
-		);
-		await updateActiveContext({ id: contextAware[0].id });
-	}
+	setTimeout(async () => {
+		if (activeFileUri) {
+			await updateActiveContext({ uri: activeFileUri });
+		} else if (!activeContext && contextAware.length) {
+			console.log(
+				`No active context using first context (ID: ${
+					contextAware[0].id
+				}) [${contextAware[0].ctxNames.join(',')}]`,
+			);
+			await updateActiveContext({ id: contextAware[0].id });
+		}
+	});
 };
 
 let lspConfigurationSettings: Settings | undefined;
@@ -1008,7 +1037,7 @@ const sendContextDiagnostics = async (context: ContextAware) => {
 };
 
 const reportContextList = async () => {
-	const forLogs = await Promise.all(contextAware.map(contextMeta));
+	const forLogs = await Promise.all(contextAware.map((c) => contextMeta(c)));
 
 	console.log('======== Context List ========');
 	forLogs.forEach((c) => {
@@ -1021,9 +1050,13 @@ const reportContextList = async () => {
 	console.log('==============================');
 };
 
-const contextMeta = async (ctx: ContextAware) => {
-	const adHoc = await isAdHocContext(ctx);
-	const userCtx = !adHoc && (await isUserSettingsContext(ctx));
+const contextMeta = async (
+	ctx: ContextAware,
+	workspaceFolders?: WorkspaceFolder[],
+) => {
+	const adHoc = await isAdHocContext(ctx, workspaceFolders);
+	const userCtx =
+		!adHoc && (await isUserSettingsContext(ctx, workspaceFolders));
 	return {
 		ctx,
 		type: (adHoc
@@ -1731,6 +1764,7 @@ connection.onRequest(
 		}
 		integrationContext.set(`${id}:${ctx.ctxName}`, ctx);
 
+		const workspaceFolders = await getWorkspaces();
 		await loadSettings();
 
 		const context = contextAware.find((c) => c.id === id);
@@ -1738,7 +1772,7 @@ connection.onRequest(
 			throw new Error('Failed to create context');
 		}
 
-		const meta = await contextMeta(context);
+		const meta = await contextMeta(context, workspaceFolders);
 		return {
 			ctxNames: context.ctxNames.map((c) => c.toString()),
 			id: id,
