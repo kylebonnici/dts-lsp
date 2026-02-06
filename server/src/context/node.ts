@@ -1286,12 +1286,12 @@ export class Node {
 		const hasOmitIfNoRef = this.definitions.some(
 			(d) => d instanceof DtcChildNode && d.omitIfNoRef,
 		);
-		const isOmmited =
+		const isOmitted =
 			hasOmitIfNoRef &&
 			this.linkedRefLabels.length === 0 &&
 			this.linkedNodeNamePaths.length === 0;
 
-		if (isOmmited) {
+		if (isOmitted) {
 			return `/* /omit-if-no-ref/ ${this.uniqueLabels().join(' ')}${this.labels.length ? ' ' : ''}${this.fullName} {${
 				this.properties.length ? `\n${'\t'.repeat(level)}` : ''
 			}${this.properties
