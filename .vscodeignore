@@ -21,3 +21,4 @@ vscode-dts-lsp-types
 eslint.config.mjs
 tsconfig.types.tsbuildinfo
 docs
+README.md.server
