@@ -1423,10 +1423,7 @@ const formatValue = (
 						...fixedNumberOfSpaceBetweenTokensAndNext(
 							value.closeBracket.prevToken,
 							documentText,
-							value.closeBracket.prevToken ===
-								value.values.at(-1)?.lastToken
-								? 0
-								: 1,
+							0,
 						),
 					);
 				} else {

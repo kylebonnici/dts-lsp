@@ -802,7 +802,7 @@ describe('Document formatting', () => {
 				'/ {\n\tprop11 = < /* foo */10 /* foo */\n20\n/* foo */\n30 /* foo */>;\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\tprop11 = < /* foo */ 10 /* foo */\n\t\t\t  20\n\t\t\t  /* foo */\n\t\t\t  30 /* foo */ >;\n};',
+				'/ {\n\tprop11 = < /* foo */ 10 /* foo */\n\t\t\t  20\n\t\t\t  /* foo */\n\t\t\t  30 /* foo */>;\n};',
 			);
 		});
 
@@ -1110,7 +1110,7 @@ describe('Document formatting', () => {
 		test('comment before >', async () => {
 			const documentText = '/ {\n\tprop1 = <10 /* foo */      >;\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <10 /* foo */ >;\n};');
+			expect(newText).toEqual('/ {\n\tprop1 = <10 /* foo */>;\n};');
 		});
 		test('multiple space before >', async () => {
 			const documentText = '/ {\n\tprop1 = <10   >;\n};';
@@ -1506,7 +1506,7 @@ describe('Document formatting', () => {
 		test('hex with 0XD with block comment > on new line', async () => {
 			const documentText = '/ {\n\tprop1 = <0XD /* test */\n>;\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <0xd /* test */ >;\n};');
+			expect(newText).toEqual('/ {\n\tprop1 = <0xd /* test */>;\n};');
 		});
 
 		test('empty array value with spaces', async () => {
