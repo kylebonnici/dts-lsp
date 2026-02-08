@@ -1132,18 +1132,35 @@ const formatDtcNode = async (
 					);
 
 					const lowerCaseAddr = rawAddressString.toLowerCase();
-					if (lowerCaseAddr !== rawAddressString) {
+					const justTheAddress = lowerCaseAddr
+						.match(/^(?:0x)?([0-9a-f]+)(?:ull)?$/i)
+						?.at(1);
+
+					const issuesTypes: FormattingIssues[] = [];
+					if (lowerCaseAddr.startsWith('0x')) {
+						issuesTypes.push(FormattingIssues.NODE_NAME_IS_HEX);
+					}
+
+					if (lowerCaseAddr.endsWith('ull')) {
+						issuesTypes.push(FormattingIssues.NODE_NAME_NO_ULL);
+					}
+
+					if (justTheAddress !== rawAddressString) {
+						issuesTypes.push(FormattingIssues.HEX_TO_LOWER_CASE);
+					}
+
+					if (justTheAddress && issuesTypes.length) {
 						result.push(
 							genFormattingDiagnostic(
-								FormattingIssues.HEX_TO_LOWER_CASE,
+								issuesTypes,
 								address.uri,
 								toPosition(address.firstToken, false),
 								{
 									edit: TextEdit.replace(
 										toRange(address),
-										lowerCaseAddr,
+										justTheAddress,
 									),
-									codeActionTitle: `Change to '${lowerCaseAddr}'`,
+									codeActionTitle: `Change to '${justTheAddress}'`,
 								},
 								toPosition(address.lastToken),
 							),

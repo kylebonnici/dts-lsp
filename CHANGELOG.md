@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.8.1] - Unreleased
 
+### Added
+
+- Formatting node names are formatted to not have `0x` and `ULL`
+
 ### Fixed
 
 - Formatting: Remove extra space between `>` or `]` when token before is from some comment

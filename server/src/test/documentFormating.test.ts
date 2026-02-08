@@ -1833,6 +1833,64 @@ describe('Document formatting', () => {
 				'/ {\n\tnode@abc {\n\t\treg = <0xabc>;\n\t};\n};',
 			);
 		});
+
+		test('Macro untouched', async () => {
+			const documentText =
+				'/ {\n\tnode@FOOBAR {\n\t\treg = <0xABC>;\n\t};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tnode@FOOBAR {\n\t\treg = <0xabc>;\n\t};\n};',
+			);
+		});
+	});
+
+	describe('Node address no 0x', () => {
+		test('upper case', async () => {
+			const documentText =
+				'/ {\n\tnode@0XABC {\n\t\treg = <0xABC>;\n\t};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tnode@abc {\n\t\treg = <0xabc>;\n\t};\n};',
+			);
+		});
+
+		test('lower case', async () => {
+			const documentText =
+				'/ {\n\tnode@0xABC {\n\t\treg = <0xABC>;\n\t};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tnode@abc {\n\t\treg = <0xabc>;\n\t};\n};',
+			);
+		});
+	});
+
+	describe('Node address no ull', () => {
+		test('upper case', async () => {
+			const documentText =
+				'/ {\n\tnode@0XABCULL {\n\t\treg = <0xABC>;\n\t};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tnode@abc {\n\t\treg = <0xabc>;\n\t};\n};',
+			);
+		});
+
+		test('lower case', async () => {
+			const documentText =
+				'/ {\n\tnode@0xABCull {\n\t\treg = <0xABC>;\n\t};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tnode@abc {\n\t\treg = <0xabc>;\n\t};\n};',
+			);
+		});
+
+		test('Macro untouched', async () => {
+			const documentText =
+				'/ {\n\tnode@FOOBARULL {\n\t\treg = <0xABC>;\n\t};\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tnode@FOOBARULL {\n\t\treg = <0xabc>;\n\t};\n};',
+			);
+		});
 	});
 
 	describe('Expression indentation', () => {

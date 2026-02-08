@@ -181,6 +181,8 @@ export enum FormattingIssues {
 	REMOVE_EXPRESSION_BRACKETS,
 	LONG_LINE_WRAP,
 	HEX_TO_LOWER_CASE,
+	NODE_NAME_IS_HEX,
+	NODE_NAME_NO_ULL,
 }
 
 export enum LexerToken {
