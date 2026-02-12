@@ -1243,7 +1243,7 @@ export class Node {
 			.join('\n\t')}${
 			this.nodes.length
 				? `\n\t${this.nodes
-						.map((n) => `${n.fullName}{ /* ... */ };`)
+						.map((n) => `${n.fullName} { /* ... */ };`)
 						.join('\n\t')}`
 				: ''
 		} 
