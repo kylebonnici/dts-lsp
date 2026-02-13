@@ -39,7 +39,7 @@ export default () => {
 
 			const sizeCellValue = property.parent.sizeCells(macros);
 			const childBusAddressValue = property.parent.addressCells(macros);
-			const parentdBusAddressValue =
+			const parentBusAddressValue =
 				property.parent.parentAddressCells(macros);
 
 			const args = [
@@ -49,9 +49,9 @@ export default () => {
 						`child-bus-address${childBusAddressValue > 1 ? i : ''}`,
 				),
 				...Array.from(
-					{ length: parentdBusAddressValue },
+					{ length: parentBusAddressValue },
 					(_, i) =>
-						`parent-bus-address${parentdBusAddressValue > 1 ? i : ''}`,
+						`parent-bus-address${parentBusAddressValue > 1 ? i : ''}`,
 				),
 				...Array.from(
 					{ length: sizeCellValue },
@@ -72,7 +72,7 @@ export default () => {
 				values.length === 0 ||
 				values.length %
 					(childBusAddressValue +
-						parentdBusAddressValue +
+						parentBusAddressValue +
 						sizeCellValue) !==
 					0
 			) {
@@ -81,7 +81,7 @@ export default () => {
 						values.length -
 							(values.length %
 								(childBusAddressValue +
-									parentdBusAddressValue +
+									parentBusAddressValue +
 									sizeCellValue)),
 					) ?? property.ast;
 				issues.push(
@@ -99,11 +99,11 @@ export default () => {
 										() => 'child-bus-address',
 									),
 									...Array.from(
-										{ length: parentdBusAddressValue },
+										{ length: parentBusAddressValue },
 										() => 'parent-bus-address',
 									),
 									...Array.from(
-										{ length: parentdBusAddressValue },
+										{ length: parentBusAddressValue },
 										() => 'length',
 									),
 								].join(' ')}>`,
