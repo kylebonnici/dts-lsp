@@ -26,6 +26,7 @@ import {
 	createTokenIndex,
 	getTokenModifiers,
 	getTokenTypes,
+	toPosition,
 } from '../../helpers';
 import { Node } from '../../context/node';
 import { Keyword } from '../keyword';
@@ -103,8 +104,14 @@ export class DtcRootNode extends DtcBaseNode {
 		return this.children.filter((child) => child instanceof DtcProperty);
 	}
 
+	#name: NodeName | undefined;
 	get name() {
-		return new NodeName('/', createTokenIndex(this.firstToken));
+		this.#name ??= new NodeName('/', createTokenIndex(this.firstToken));
+		return this.#name;
+	}
+
+	get identifierAst() {
+		return this.name;
 	}
 
 	get deleteProperties() {
@@ -129,6 +136,8 @@ export class DtcRootNode extends DtcBaseNode {
 			uri: this.serializeUri,
 			range: this.range,
 			issues: this.serializeIssues,
+			scopeOpen: this.openScope && toPosition(this.openScope),
+			scopeClose: this.closeScope && toPosition(this.closeScope, false),
 		};
 	}
 }
@@ -152,6 +161,10 @@ export class DtcRefNode extends DtcBaseNode {
 		return [...this.issues, ...(this.reference?.issues ?? [])].map((i) =>
 			i(),
 		);
+	}
+
+	get identifierAst() {
+		return this.reference;
 	}
 
 	set reference(reference: LabelRef | NodePathRef | null) {
@@ -205,12 +218,15 @@ export class DtcRefNode extends DtcBaseNode {
 	serialize(macros: Map<string, MacroRegistryItem>): SerializableRefNode {
 		return {
 			type: 'REF',
+			labels: this.labels.map((l) => l.serialize(macros)),
 			name: this.reference?.serialize() ?? null,
 			properties: this.properties.map((p) => p.serialize(macros)),
 			nodes: this.nodes.map((n) => n.serialize(macros)),
 			uri: this.serializeUri,
 			range: this.range,
 			issues: this.serializeIssues,
+			scopeOpen: this.openScope && toPosition(this.openScope),
+			scopeClose: this.closeScope && toPosition(this.closeScope, false),
 		};
 	}
 }
@@ -235,6 +251,10 @@ export class DtcChildNode extends DtcBaseNode {
 		labels.forEach((label) => {
 			this.addChild(label);
 		});
+	}
+
+	get identifierAst() {
+		return this.name;
 	}
 
 	get serializeIssues() {
@@ -275,12 +295,15 @@ export class DtcChildNode extends DtcBaseNode {
 	serialize(macros: Map<string, MacroRegistryItem>): SerializableChildNode {
 		return {
 			type: 'CHILD',
+			labels: this.labels.map((l) => l.serialize(macros)),
 			name: this.name?.serialize() ?? null,
 			properties: this.properties.map((p) => p.serialize(macros)),
 			nodes: this.nodes.map((n) => n.serialize(macros)),
 			uri: this.serializeUri,
 			range: this.range,
 			issues: this.serializeIssues,
+			scopeOpen: this.openScope && toPosition(this.openScope),
+			scopeClose: this.closeScope && toPosition(this.closeScope, false),
 		};
 	}
 }
