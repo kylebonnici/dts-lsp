@@ -97,6 +97,7 @@ export enum StandardTypeIssue {
 	UNABLE_TO_FIND_MAPPING,
 	EXPECTED_NODE_ADDRESS,
 	BINDING_ON_BUS_NODE,
+	EMPTY_RANGE_MISMATCH_ADDRESS_SIZE_CELLS,
 }
 
 export enum SyntaxIssue {

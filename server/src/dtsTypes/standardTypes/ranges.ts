@@ -65,6 +65,25 @@ export default () => {
 
 			const values = flatNumberValues(property.ast.values);
 			if (!values?.length) {
+				const addressCells = property.parent.addressCells(macros);
+				const sizeCells = property.parent.sizeCells(macros);
+				const parentAddressCells =
+					property.parent?.parentAddressCells(macros);
+				const parentSizeCells =
+					property.parent?.parentSizeCells(macros);
+				if (
+					addressCells !== parentAddressCells ||
+					sizeCells !== parentSizeCells
+				) {
+					return [
+						genStandardTypeDiagnostic(
+							StandardTypeIssue.EMPTY_RANGE_MISMATCH_ADDRESS_SIZE_CELLS,
+							property.ast.firstToken,
+							property.ast.lastToken,
+							property.ast,
+						),
+					];
+				}
 				return [];
 			}
 

@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Formatting node names are formatted to not have `0x` and `ULL`
+- Diagnostic error when using `ranges;` and `#address-cells` or `#size-cells` of the node
+  declaring ranges does not match the `#address-cells` or `#size-cells` of the parent node
 
 ### Fixed
 
