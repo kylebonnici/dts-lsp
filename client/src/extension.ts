@@ -299,6 +299,30 @@ export async function activate(context: vscode.ExtensionContext) {
 				copyClipboardAction(actions, 'Pick a path to copy...');
 			},
 		),
+		vscode.commands.registerCommand(
+			'devicetree.context.memoryViews',
+			async () => {
+				const context = await SelectContext(api);
+				if (context) {
+					const data = (await api.getMemoryViews(
+						context.id,
+					)) as AddressDomain[];
+
+					await vscode.window.showTextDocument(
+						await vscode.workspace.openTextDocument({
+							content: JSON.stringify(data, null, 2),
+							language: 'json', // change to 'typescript', 'json', etc.
+						}),
+					);
+					await vscode.window.showTextDocument(
+						await vscode.workspace.openTextDocument({
+							content: renderAllDomains(data),
+							language: 'plaintext', // change to 'typescript', 'json', etc.
+						}),
+					);
+				}
+			},
+		),
 	);
 
 	api.onActiveContextChange((ctx) => {
@@ -375,4 +399,174 @@ ${dts}
 `;
 		return message;
 	}
+}
+interface Partition {
+	nodePath: string;
+	start: number[];
+	startStrHex: string;
+	size: number[];
+	sizeStrHex: string;
+}
+
+interface AddressDomain {
+	name: string;
+	partitions: Partition[];
+}
+
+interface TreeNode {
+	name: string;
+	children: Map<string, TreeNode>;
+
+	// metadata
+	start?: number;
+	end?: number;
+	size?: number;
+}
+
+/**
+ * Builds a tree for a given domain.
+ * Every domain always becomes the root, with its partitions inserted as children.
+ */
+export function buildTreeForDomain(domain: AddressDomain): TreeNode {
+	const root: TreeNode = {
+		name: domain.name,
+		children: new Map(),
+	};
+
+	for (const partition of domain.partitions) {
+		const start = partition.start[0] ?? 0;
+		const size = partition.size[0] ?? 0;
+		const end = start + size;
+
+		insertRelativePath(root, domain.name, partition.nodePath, start, end);
+	}
+
+	computeAggregateRanges(root);
+
+	return root;
+}
+
+/**
+ * Inserts a full path under the root, splitting by '/' and creating missing nodes.
+ */
+function insertRelativePath(
+	root: TreeNode,
+	domainRootPath: string,
+	fullPath: string,
+	start: number,
+	end: number,
+) {
+	let relative = fullPath;
+
+	if (fullPath.startsWith(domainRootPath)) {
+		relative = fullPath.slice(domainRootPath.length);
+	}
+
+	let parts = relative.split('/').filter(Boolean);
+
+	// If there’s no relative path, create a child using the last segment of fullPath
+	if (parts.length === 0) {
+		const segments = fullPath.split('/').filter(Boolean);
+		parts = [segments[segments.length - 1]]; // last segment
+	}
+
+	let current = root;
+
+	for (const part of parts) {
+		if (!current.children.has(part)) {
+			current.children.set(part, {
+				name: part,
+				children: new Map(),
+			});
+		}
+
+		current = current.children.get(part)!;
+	}
+
+	current.start = start;
+	current.end = end;
+	current.size = end - start;
+}
+/**
+ * Recursively computes the aggregate start/end/size from children if not already set.
+ */
+function computeAggregateRanges(node: TreeNode): void {
+	for (const child of node.children.values()) {
+		computeAggregateRanges(child);
+	}
+
+	if (node.children.size > 0) {
+		const childrenWithRange = Array.from(node.children.values()).filter(
+			(c) => c.start !== undefined && c.end !== undefined,
+		);
+
+		if (childrenWithRange.length > 0) {
+			const minStart = Math.min(
+				...childrenWithRange.map((c) => c.start!),
+			);
+			const maxEnd = Math.max(...childrenWithRange.map((c) => c.end!));
+
+			node.start =
+				node.start !== undefined
+					? Math.min(node.start, minStart)
+					: minStart;
+			node.end =
+				node.end !== undefined ? Math.max(node.end, maxEnd) : maxEnd;
+			node.size = node.end - node.start;
+		}
+	}
+}
+
+/**
+ * Renders a tree into a string representation.
+ */
+export function renderTree(node: TreeNode): string {
+	let output = `${node.name}\n`;
+
+	const children = sortChildren(node);
+
+	children.forEach((child, index) => {
+		const isLast = index === children.length - 1;
+		output += renderNode(child, '', isLast);
+	});
+
+	return output;
+}
+
+function renderNode(node: TreeNode, prefix: string, isLast: boolean): string {
+	const connector = isLast ? '└─ ' : '├─ ';
+	let output =
+		prefix +
+		connector +
+		node.name +
+		` [start: 0x${node.start.toString(16)}, size: 0x${node.size.toString(16)}]` +
+		'\n';
+
+	const children = sortChildren(node);
+	const newPrefix = prefix + (isLast ? '   ' : '│  ');
+
+	children.forEach((child, index) => {
+		const childIsLast = index === children.length - 1;
+		output += renderNode(child, newPrefix, childIsLast);
+	});
+
+	return output;
+}
+
+function sortChildren(node: TreeNode): TreeNode[] {
+	return Array.from(node.children.values()).sort((a, b) =>
+		a.name.localeCompare(b.name),
+	);
+}
+
+/**
+ * Renders all domains as separate trees, joined by blank lines.
+ */
+export function renderAllDomains(domains: AddressDomain[]): string {
+	return domains
+		.map((domain) => {
+			const tree = buildTreeForDomain(domain);
+			return renderTree(tree);
+		})
+		.join('\n\n');
 }

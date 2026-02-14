@@ -333,3 +333,17 @@ export type LocationResult = {
 };
 
 export type EvaluatedMacro = { macro: string; evaluated: string | number };
+
+export type MemoryView = {
+	name: string;
+	nodePath: string;
+	start: number[];
+	startStrHex: string;
+	size: number[];
+	sizeStrHex: string;
+};
+
+export type GroupedMemoryView = {
+	name: string;
+	partitions: Omit<MemoryView, 'name'>[];
+};

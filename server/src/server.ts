@@ -52,6 +52,7 @@ import {
 	tokenTypes,
 } from './types';
 import {
+	compareWords,
 	coreSyntaxIssuesFilter,
 	evalExp,
 	expandMacros,
@@ -88,6 +89,7 @@ import type {
 	ContextListItem,
 	ContextType,
 	EvaluatedMacro,
+	GroupedMemoryView,
 	IntegrationSettings,
 	LocationResult,
 	ResolvedContext,
@@ -1757,14 +1759,13 @@ connection.onRequest(
 connection.onRequest(
 	'devicetree/compiledDtsOutput',
 	async (id: string): Promise<string | undefined> => {
-		await allStable();
-		if (!id) {
-			return;
-		}
 		const ctx = findContext(contextAware, { id });
 		if (!ctx) {
 			return;
 		}
+
+		ctx.stable();
+
 		const text = await ctx.toFullString();
 		return formatText(
 			{
@@ -1780,11 +1781,14 @@ connection.onRequest(
 connection.onRequest(
 	'devicetree/serializedContext',
 	async (id: string): Promise<SerializedNode | undefined> => {
-		await allStable();
-		if (!id) {
+		const ctx = findContext(contextAware, { id });
+
+		if (!ctx) {
 			return;
 		}
-		const ctx = findContext(contextAware, { id });
+
+		await ctx.stable();
+
 		const t = performance.now();
 		return ctx?.serialize().finally(() => {
 			console.info('serializedContext', performance.now() - t);
@@ -1911,5 +1915,48 @@ connection.onRequest(
 				evaluated: typeof evaluated === 'number' ? evaluated : expanded,
 			};
 		});
+	},
+);
+
+connection.onRequest(
+	'devicetree/memoryViews',
+	async ({ ctxId }: { ctxId: string }): Promise<GroupedMemoryView[]> => {
+		const context = findContext(contextAware, { id: ctxId });
+
+		if (!context) {
+			return [];
+		}
+
+		await context?.stable();
+
+		const runtime = await context.getRuntime();
+		const regions = runtime.rootNode
+			.getMemoryViews(runtime.context.macros)
+			.sort((a, b) => compareWords(a.start, b.start));
+
+		const memoryViews = new Map<string, GroupedMemoryView>();
+
+		regions.forEach((r) => {
+			const view = memoryViews.get(r.name);
+
+			const item = {
+				nodePath: r.nodePath,
+				start: r.start,
+				startStrHex: r.startStrHex,
+				size: r.size,
+				sizeStrHex: r.sizeStrHex,
+			};
+
+			if (!view) {
+				memoryViews.set(r.name, {
+					name: r.name,
+					partitions: [item],
+				});
+			} else {
+				view.partitions.push(item);
+			}
+		});
+
+		return Array.from(memoryViews.values());
 	},
 );
