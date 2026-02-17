@@ -252,4 +252,10 @@ export class API implements IDeviceTreeAPI {
 			ctxId,
 		}) as Promise<EvaluatedMacro[]>;
 	}
+
+	getMemoryViews(ctxId: string) {
+		return this.client.sendRequest('devicetree/memoryViews', {
+			ctxId,
+		}) as Promise<unknown[]>;
+	}
 }

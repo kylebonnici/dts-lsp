@@ -1373,6 +1373,14 @@ export const formattingToLinkedMessage = (issue: FormattingIssues) => {
 	}
 };
 
+export const minWords = (a: number[], b: number[]): number[] => {
+	return compareWords(a, b) <= 0 ? a : b;
+};
+
+export const maxWords = (a: number[], b: number[]): number[] => {
+	return compareWords(a, b) >= 0 ? a : b;
+};
+
 export const compareWords = (a: number[], b: number[]): number => {
 	const n = Math.max(a.length, b.length);
 	for (let i = 0; i < n; i++) {

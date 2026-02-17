@@ -66,6 +66,10 @@
 				"command": "devicetree.clipboard.nodePath",
 				"title": "Devicetree: Copy node path",
 				"enablement": "editorLangId == devicetree"
+			},
+			{
+				"command": "devicetree.context.memoryViews",
+				"title": "Devicetree: Memory domains view"
 			}
 		],
 		"languages": [

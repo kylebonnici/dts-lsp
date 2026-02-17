@@ -52,6 +52,7 @@ import {
 	tokenTypes,
 } from './types';
 import {
+	compareWords,
 	coreSyntaxIssuesFilter,
 	evalExp,
 	expandMacros,
@@ -88,11 +89,13 @@ import type {
 	ContextListItem,
 	ContextType,
 	EvaluatedMacro,
+	GroupedMemoryView,
 	IntegrationSettings,
 	LocationResult,
 	ResolvedContext,
 	SerializedNode,
 	Settings,
+	TreeNode,
 } from './types/index';
 import {
 	defaultSettings,
@@ -104,6 +107,7 @@ import { getActions } from './getActions';
 import { getSignatureHelp } from './signatureHelp';
 import { initHeapMonitor } from './heapMonitor';
 import { Node } from './context/node';
+import { convertMemoryToTree, convertTreeToString } from './memoryDomains';
 
 const contextAware: ContextAware[] = [];
 let activeContext: ContextAware | undefined;
@@ -1911,5 +1915,58 @@ connection.onRequest(
 				evaluated: typeof evaluated === 'number' ? evaluated : expanded,
 			};
 		});
+	},
+);
+
+connection.onRequest(
+	'devicetree/memoryViews',
+	async ({
+		ctxId,
+	}: {
+		ctxId: string;
+	}): Promise<
+		{ trees: Record<string, TreeNode>; treeStr: string } | undefined
+	> => {
+		const context = findContext(contextAware, { id: ctxId });
+
+		if (!context) {
+			return;
+		}
+
+		await context?.stable();
+
+		const runtime = await context.getRuntime();
+		const regions = runtime.rootNode
+			.getMemoryViews(runtime.context.macros)
+			.sort((a, b) => compareWords(a.start, b.start));
+
+		const memoryViews = new Map<string, GroupedMemoryView>();
+
+		regions.forEach((r) => {
+			const view = memoryViews.get(r.name);
+
+			const item = {
+				nodePath: r.nodePath,
+				labels: r.labels,
+				start: r.start,
+				size: r.size,
+			};
+
+			if (!view) {
+				memoryViews.set(r.name, {
+					name: r.name,
+					partitions: [item],
+				});
+			} else {
+				view.partitions.push(item);
+			}
+		});
+
+		const trees = convertMemoryToTree(Array.from(memoryViews.values()));
+
+		return {
+			trees,
+			treeStr: convertTreeToString(trees),
+		};
 	},
 );

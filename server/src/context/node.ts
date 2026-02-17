@@ -64,7 +64,7 @@ import { getNodeNameOrNodeLabelRef } from '../ast/helpers';
 import { getStandardType } from '../dtsTypes/standardTypes';
 import { BindingLoader } from '../dtsTypes/bindings/bindingLoader';
 import { INodeType, NodeType } from '../dtsTypes/types';
-import { SerializedNode } from '../types/index';
+import { MemoryView, SerializedNode } from '../types/index';
 import {
 	flatNumberValues,
 	getU32ValueFromProperty,
@@ -980,64 +980,88 @@ export class Node {
 		macros: Map<string, MacroRegistryItem>,
 	): MappedReg[] | undefined {
 		if (this.#mappedRegCache !== undefined) return this.#mappedRegCache;
-		const mappings = this.parent?.rangeMap(macros);
-		const regArray = this.regArray(macros);
-		this.#mappedRegCache =
-			regArray
-				?.flatMap((reg) => {
-					const startAddress = reg.startAddress;
-					const size = reg.size;
+		let p: Node | null | undefined = this.parent;
+		let regArray = this.regArray(macros);
 
-					const endAddress = addWords(startAddress, size);
+		do {
+			const mappings = p?.rangeMap(macros);
 
-					const mappedReg: MappedReg = {
-						startAddress,
-						startAddressRaw: startAddress,
-						size,
-						endAddress: endAddress,
-						endAddressRaw: endAddress,
-						inMappingRange: false,
-						regRangeTokens: {
-							start: reg.rangeTokens.start,
-							end: reg.rangeTokens.end,
-						},
-						missingMapping: false,
-					};
+			this.#mappedRegCache =
+				regArray
+					?.flatMap((reg) => {
+						const startAddress = reg.startAddress;
+						const size = reg.size;
 
-					if (!mappings) {
-						return [mappedReg];
-					}
+						const endAddress = addWords(startAddress, size);
 
-					const mappedAddress = findMappedAddress(
-						mappings,
-						startAddress,
-					);
-
-					if (!mappedAddress.length) {
-						mappedReg.missingMapping = true;
-						return [mappedReg];
-					}
-
-					return mappedAddress.map((m) => {
-						mappedReg.mappedAst = { range: m.range, uri: m.uri };
-						mappedReg.startAddress = m.start;
-						mappedReg.endAddress = addWords(m.start, size);
-						mappedReg.inMappingRange =
-							compareWords(mappedReg.endAddress, m.end) <= 0;
-						mappedReg.mappingEnd = m.end;
-
-						return {
-							...mappedReg,
-							mappedAst: { range: m.range, uri: m.uri },
-							startAddress: m.start,
-							endAddress: addWords(m.start, size),
-							inMappingRange:
-								compareWords(mappedReg.endAddress, m.end) <= 0,
-							mappingEnd: m.end,
+						const mappedReg: MappedReg = {
+							startAddress,
+							startAddressRaw: startAddress,
+							size,
+							endAddress: endAddress,
+							endAddressRaw: endAddress,
+							inMappingRange: false,
+							regRangeTokens: {
+								start: reg.rangeTokens.start,
+								end: reg.rangeTokens.end,
+							},
+							missingMapping: false,
 						};
-					});
-				})
-				.sort((a, b) => compareWords(a.endAddress, b.endAddress)) ?? [];
+
+						if (!mappings?.length) {
+							return [mappedReg];
+						}
+
+						const mappedAddress = findMappedAddress(
+							mappings,
+							startAddress,
+						);
+
+						if (!mappedAddress.length) {
+							mappedReg.missingMapping = true;
+							return [mappedReg];
+						}
+
+						return mappedAddress.map((m) => {
+							mappedReg.mappedAst = {
+								range: m.range,
+								uri: m.uri,
+							};
+							mappedReg.startAddress = m.start;
+							mappedReg.endAddress = addWords(
+								mappedReg.startAddress,
+								size,
+							);
+							mappedReg.inMappingRange =
+								compareWords(mappedReg.endAddress, m.end) <= 0;
+							mappedReg.mappingEnd = m.end;
+
+							return {
+								...mappedReg,
+								mappedAst: { range: m.range, uri: m.uri },
+								startAddress: m.start,
+								endAddress: addWords(m.start, size),
+								inMappingRange:
+									compareWords(mappedReg.endAddress, m.end) <=
+									0,
+								mappingEnd: m.end,
+							};
+						});
+					})
+					.sort((a, b) => compareWords(a.endAddress, b.endAddress)) ??
+				[];
+
+			regArray = this.#mappedRegCache.map(
+				(r) =>
+					({
+						startAddress: r.startAddress,
+						size: r.size,
+						endAddress: r.endAddress,
+						rangeTokens: r.regRangeTokens,
+					}) satisfies RegMapping,
+			);
+			p = p?.parent;
+		} while (p && this.#mappedRegCache.every((r) => !r.missingMapping));
 
 		return this.#mappedRegCache;
 	}
@@ -1085,7 +1109,7 @@ export class Node {
 		specifier: string,
 		macros: Map<string, MacroRegistryItem>,
 		mappingValuesAst: (LabelRef | NodePathRef | Expression | NumberValue)[],
-		address: number[] = [], // interrups only
+		address: number[] = [], // interrupts only
 	) {
 		const entry = new ASTBase(
 			createTokenIndex(
@@ -1403,5 +1427,41 @@ ${'\t'.repeat(level - 1)}};`;
 				property: m.property.ast.serialize(macros),
 			})),
 		};
+	}
+
+	private get memoryRegionName(): string {
+		if (
+			this.parent?.name === '/' ||
+			this.parent?.properties.some((p) => p.name === 'ranges')
+		) {
+			return this.parent.memoryRegionName;
+		}
+
+		return this.pathString;
+	}
+
+	getMemoryViews(macros: Map<string, MacroRegistryItem>): MemoryView[] {
+		const sections: MemoryView[] = [];
+
+		const regionName = this.memoryRegionName;
+		if (this.properties.some((p) => p.name === 'reg')) {
+			this.mappedReg(macros)?.forEach((reg) => {
+				const start = reg.startAddress;
+				const size = reg.size;
+				sections.push({
+					name: regionName,
+					labels: Array.from(
+						new Set(this.labels.map((l) => l.label.toString())),
+					),
+					nodePath: this.pathString,
+					start,
+					size,
+				});
+			});
+		}
+
+		sections.push(...this.nodes.flatMap((n) => n.getMemoryViews(macros)));
+
+		return sections;
 	}
 }

@@ -333,3 +333,23 @@ export type LocationResult = {
 };
 
 export type EvaluatedMacro = { macro: string; evaluated: string | number };
+
+export type MemoryView = {
+	name: string;
+	labels: string[];
+	nodePath: string;
+	start: number[];
+	size: number[];
+};
+
+export type GroupedMemoryView = {
+	name: string;
+	partitions: Omit<MemoryView, 'name'>[];
+};
+
+export interface TreeNode {
+	name: string;
+	start: number[];
+	size: number[];
+	children: TreeNode[];
+}

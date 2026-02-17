@@ -299,6 +299,29 @@ export async function activate(context: vscode.ExtensionContext) {
 				copyClipboardAction(actions, 'Pick a path to copy...');
 			},
 		),
+		vscode.commands.registerCommand(
+			'devicetree.context.memoryViews',
+			async () => {
+				const context = await SelectContext(api);
+				if (context) {
+					const data = (await api.getMemoryViews(context.id)) as any;
+
+					await vscode.window.showTextDocument(
+						await vscode.workspace.openTextDocument({
+							content: JSON.stringify(data.trees, null, 2),
+							language: 'json',
+						}),
+					);
+
+					await vscode.window.showTextDocument(
+						await vscode.workspace.openTextDocument({
+							content: data.treeStr,
+							language: 'plaintext',
+						}),
+					);
+				}
+			},
+		),
 	);
 
 	api.onActiveContextChange((ctx) => {
