@@ -339,12 +339,17 @@ export type MemoryView = {
 	labels: string[];
 	nodePath: string;
 	start: number[];
-	startStrHex: string;
 	size: number[];
-	sizeStrHex: string;
 };
 
 export type GroupedMemoryView = {
 	name: string;
 	partitions: Omit<MemoryView, 'name'>[];
 };
+
+export interface TreeNode {
+	name: string;
+	start: number[];
+	size: number[];
+	children: TreeNode[];
+}

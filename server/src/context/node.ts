@@ -1455,17 +1455,7 @@ ${'\t'.repeat(level - 1)}};`;
 					),
 					nodePath: this.pathString,
 					start,
-					startStrHex: `0x${start
-						.map((c, i) => c.toString(16).padStart(i ? 8 : 0, '0'))
-						.join('')}`,
 					size,
-					sizeStrHex: size.length
-						? `0x${size
-								.map((c, i) =>
-									c.toString(16).padStart(i ? 8 : 0, '0'),
-								)
-								.join('')}`
-						: '',
 				});
 			});
 		}
