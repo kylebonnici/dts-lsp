@@ -1061,7 +1061,12 @@ export class Node {
 					}) satisfies RegMapping,
 			);
 			p = p?.parent;
-		} while (p && this.#mappedRegCache.every((r) => !r.missingMapping));
+		} while (
+			p &&
+			this.#mappedRegCache.every(
+				(r) => !r.missingMapping && r.inMappingRange,
+			)
+		);
 
 		return this.#mappedRegCache;
 	}

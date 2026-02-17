@@ -108,8 +108,8 @@ function buildTrees(data: GroupedMemoryView[]): Record<string, TreeNode> {
 	for (const item of data) {
 		const root: TreeNode = {
 			name: item.name,
-			start: [0, 0], // could compute min start from partitions if desired
-			size: [0xffffffff], // could compute max range
+			start: [0, 0],
+			size: [0],
 			children: [],
 		};
 
