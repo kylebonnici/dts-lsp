@@ -372,7 +372,7 @@ export interface TreeNode {
 export interface DomainTree {
 	name: string;
 	children: TreeNode[];
-};
+}
 
 interface BlockAllowList {
 	'property-blocklist'?: string[];

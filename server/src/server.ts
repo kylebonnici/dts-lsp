@@ -2056,7 +2056,9 @@ connection.onRequest(
 		return {
 			trees,
 			treeStr: convertTreeToString(trees),
-		}},);
+		};
+	},
+);
 connection.onRequest(
 	'devicetree/zephyrTypeBindings',
 	async (id: string): Promise<ZephyrBindingYml[] | undefined> => {
