@@ -21,7 +21,7 @@ import {
 	minWords,
 	subtractWords,
 } from './helpers';
-import { GroupedMemoryView, TreeNode } from './types/index';
+import { DomainTree, GroupedMemoryView, TreeNode } from './types/index';
 
 // Helper to format hex
 const toHex = (num: number[]) =>
@@ -31,7 +31,7 @@ const toHex = (num: number[]) =>
 // Insert partition into a tree node
 // ------------------------
 function insertNode(
-	root: TreeNode,
+	root: TreeNode | DomainTree,
 	partition: GroupedMemoryView['partitions'][0],
 ) {
 	const partPath = partition.nodePath;
@@ -102,14 +102,12 @@ function insertNode(
 // ------------------------
 // Build trees grouped by MemoryItem.name
 // ------------------------
-function buildTrees(data: GroupedMemoryView[]): Record<string, TreeNode> {
-	const trees: Record<string, TreeNode> = {};
+function buildTrees(data: GroupedMemoryView[]): Record<string, DomainTree> {
+	const trees: Record<string, DomainTree> = {};
 
 	for (const item of data) {
-		const root: TreeNode = {
+		const root: DomainTree = {
 			name: item.name,
-			start: [0, 0],
-			size: [0],
 			children: [],
 		};
 
@@ -126,7 +124,11 @@ function buildTrees(data: GroupedMemoryView[]): Record<string, TreeNode> {
 // ------------------------
 // Convert tree node to string
 // ------------------------
-function treeToString(node: TreeNode, prefix = '', isLast = true): string {
+function treeToString(
+	node: TreeNode | DomainTree,
+	prefix = '',
+	isLast = true,
+): string {
 	// Group children by same start & size
 	const grouped: Record<string, TreeNode[]> = {};
 	for (const child of node.children) {
@@ -138,9 +140,13 @@ function treeToString(node: TreeNode, prefix = '', isLast = true): string {
 	let result = '';
 	const connector = prefix ? (isLast ? '└─ ' : '├─ ') : '';
 
+	const meta: string[] = [];
+	if ('start' in node && node.start) meta.push(`start: ${toHex(node.start)}`);
+	if ('size' in node && node.size) meta.push(`size: ${toHex(node.size)}`);
+	const metaString = meta.length > 0 ? ` [${meta.join(', ')}]` : '';
 	// Node name (could be multiple merged)
 	const nodeName = node.name;
-	result += `${prefix}${connector}${nodeName} [start: ${toHex(node.start)}, size: ${toHex(node.size)}]\n`;
+	result += `${prefix}${connector}${nodeName} ${metaString}\n`;
 
 	const newPrefix = prefix + (isLast ? '   ' : '│  ');
 
@@ -181,7 +187,7 @@ export function convertMemoryToTree(data: GroupedMemoryView[]) {
 	return buildTrees(data);
 }
 
-export function convertTreeToString(trees: Record<string, TreeNode>) {
+export function convertTreeToString(trees: Record<string, DomainTree>) {
 	return Object.values(trees)
 		.map((tree) => treeToString(tree))
 		.join('\n');

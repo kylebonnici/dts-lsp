@@ -353,3 +353,8 @@ export interface TreeNode {
 	size: number[];
 	children: TreeNode[];
 }
+
+export interface DomainTree {
+	name: string;
+	children: TreeNode[];
+}

@@ -88,6 +88,7 @@ import type {
 	Context,
 	ContextListItem,
 	ContextType,
+	DomainTree,
 	EvaluatedMacro,
 	GroupedMemoryView,
 	IntegrationSettings,
@@ -95,7 +96,6 @@ import type {
 	ResolvedContext,
 	SerializedNode,
 	Settings,
-	TreeNode,
 } from './types/index';
 import {
 	defaultSettings,
@@ -1925,7 +1925,7 @@ connection.onRequest(
 	}: {
 		ctxId: string;
 	}): Promise<
-		{ trees: Record<string, TreeNode>; treeStr: string } | undefined
+		{ trees: Record<string, DomainTree>; treeStr: string } | undefined
 	> => {
 		const context = findContext(contextAware, { id: ctxId });
 
