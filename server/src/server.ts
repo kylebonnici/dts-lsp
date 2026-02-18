@@ -1745,11 +1745,13 @@ connection.onRequest(
 	async (ctx: Context): Promise<ContextListItem> => {
 		await allStable();
 
-		const resolvedSettings = await getResolvedAllContextSettings();
+		const workspaceFolders = await getWorkspaces();
+		const resolvedSettings =
+			await getResolvedAllContextSettings(workspaceFolders);
 		const resolvedContext = await resolveContextSetting(
 			ctx,
 			resolvedSettings,
-			await getWorkspaces(),
+			workspaceFolders,
 		);
 		console.log('devicetree/requestContext', resolvedContext);
 		const id = generateContextId(resolvedContext);
@@ -1768,7 +1770,6 @@ connection.onRequest(
 		}
 		integrationContext.set(`${id}:${ctx.ctxName}`, ctx);
 
-		const workspaceFolders = await getWorkspaces();
 		await loadSettings();
 
 		const context = contextAware.find((c) => c.id === id);
