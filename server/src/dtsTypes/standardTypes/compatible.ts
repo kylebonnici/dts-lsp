@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-import { BindingPropertyType } from '../../types/index';
 import { PropertyNodeType } from '../types';
 import { generateOrTypeObj } from './helpers';
 
 export default () => {
 	const prop = new PropertyNodeType(
 		'compatible',
-		generateOrTypeObj(BindingPropertyType.STRINGLIST),
+		generateOrTypeObj('STRINGLIST'),
 	);
 	prop.description = [
 		`The compatible property value consists of one or more strings that define the specific programming model for the device. This list of strings should be used by a client program for device driver selection. The property value consists of a concatenated list of null terminated strings, from most specific to most general. They allow a device to express its compatibility with a family of similar devices, potentially allowing a single device driver to match against several devices.`,
