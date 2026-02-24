@@ -82,7 +82,7 @@ type MappedReg = {
 	endAddressRaw: number[];
 	inMappingRange: boolean;
 	mappingEnd?: number[];
-	mappedAst?: { range: Range; uri: string };
+	mappedAst?: { range: Range; fsPath: string };
 	regRangeTokens: TokenIndexes;
 	missingMapping: boolean;
 };
@@ -366,7 +366,7 @@ export class Node {
 											n.reg.rangeTokens.start,
 											n.reg.rangeTokens.end,
 										),
-										uri: n.reg.rangeTokens.start.uri,
+										fsPath: n.reg.rangeTokens.start.fsPath,
 									})),
 									templateStrings: [
 										node.fullName,
@@ -1029,7 +1029,7 @@ export class Node {
 						return mappedAddress.map((m) => {
 							mappedReg.mappedAst = {
 								range: m.range,
-								uri: m.uri,
+								fsPath: m.fsPath,
 							};
 							mappedReg.startAddress = m.start;
 							mappedReg.endAddress = addWords(
@@ -1042,7 +1042,7 @@ export class Node {
 
 							return {
 								...mappedReg,
-								mappedAst: { range: m.range, uri: m.uri },
+								mappedAst: { range: m.range, fsPath: m.fsPath },
 								startAddress: m.start,
 								endAddress: addWords(m.start, size),
 								inMappingRange:
@@ -1355,7 +1355,7 @@ ${'\t'.repeat(level - 1)}}; */`;
 		}${this.properties
 			.map(
 				(p) =>
-					`${p.toPrettyString(macros, level)}\t/* ${cwd && p.ast.uri.startsWith(cwd) ? `./${relative(cwd, p.ast.uri)}` : p.ast.uri} */`,
+					`${p.toPrettyString(macros, level)}\t/* ${cwd && p.ast.fsPath.startsWith(cwd) ? `./${relative(cwd, p.ast.fsPath)}` : p.ast.fsPath} */`,
 			)
 			.join(`\n${'\t'.repeat(level)}`)}${
 			this.nodes.length

@@ -43,7 +43,7 @@ import { NumberValue } from '../ast/dtc/values/number';
 import { Expression } from '../ast/cPreprocessors/expression';
 import { NodePathRef } from '../ast/dtc/values/nodePath';
 import { LabelRef } from '../ast/dtc/labelRef';
-import type { SerializableProperty, SerializedNexusMap } from '../types/index';
+import type { SerializedProperty, SerializedNexusMap } from '../types/index';
 import type { Node } from './node';
 
 export interface NexusMapping {
@@ -170,7 +170,7 @@ export class Property {
 							.map((a) => a.toString())
 							.join(
 								' ',
-							)})](${`${m.mapItem!.mappingValues[0].uri}#L${
+							)})](${`${m.mapItem!.mappingValues[0].fsPath}#L${
 							m.mapItem!.mappingValues[0].firstToken.pos.line + 1
 						}`})`,
 					]),
@@ -195,7 +195,7 @@ export class Property {
 	serialize(
 		macros: Map<string, MacroRegistryItem>,
 		inScope: (ast: ASTBase) => boolean = () => true,
-	): SerializableProperty | undefined {
+	): SerializedProperty | undefined {
 		const p = [this, ...this.allReplaced].find((p) => inScope(p.ast));
 		if (!p) return;
 		return {
@@ -203,7 +203,7 @@ export class Property {
 			nodePath: this.parent.pathString,
 			replaces: p.allReplaced.map((r) => ({
 				range: toRange(r.ast),
-				uri: r.ast.serializeUri,
+				url: r.ast.serializeURL,
 				values:
 					r.ast.values === undefined
 						? undefined

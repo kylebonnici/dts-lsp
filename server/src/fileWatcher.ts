@@ -17,15 +17,15 @@
 import { readFileSync, unwatchFile, watchFile } from 'fs';
 import { getTokenizedDocumentProvider } from './providers/tokenizedDocument';
 
-const onChange = (file: string, cb: (uri: string) => void) => {
-	const newText = readFileSync(file).toString();
-	if (getTokenizedDocumentProvider().needsRenew(file, newText)) {
-		getTokenizedDocumentProvider().renewLexer(file, newText);
-		cb(file);
+const onChange = (fsPath: string, cb: (fsPath: string) => void) => {
+	const newText = readFileSync(fsPath).toString();
+	if (getTokenizedDocumentProvider().needsRenew(fsPath, newText)) {
+		getTokenizedDocumentProvider().renewLexer(fsPath, newText);
+		cb(fsPath);
 	} else {
 		return console.log(
 			'file changed event has the same text, skipping.',
-			file,
+			fsPath,
 		);
 	}
 };
@@ -34,7 +34,7 @@ export class FileWatcher {
 	#count = 0;
 	constructor(
 		readonly file: string,
-		private cb: (uri: string) => void,
+		private cb: (fsPath: string) => void,
 		private isFileDirty: () => boolean,
 	) {}
 

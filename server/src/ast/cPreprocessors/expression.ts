@@ -17,10 +17,7 @@
 import { ASTBase } from '../base';
 import type { MacroRegistryItem, Token } from '../../types';
 import { evalExp, expandMacros } from '../../helpers';
-import {
-	SerializableExpression,
-	SerializableNumberValue,
-} from '../../types/index';
+import { SerializedExpression, SerializedNumberValue } from '../../types/index';
 import { Operator } from './operator';
 
 export abstract class Expression extends ASTBase {
@@ -67,12 +64,12 @@ export abstract class Expression extends ASTBase {
 
 	serialize(
 		macros: Map<string, MacroRegistryItem>,
-	): SerializableExpression | SerializableNumberValue {
+	): SerializedExpression | SerializedNumberValue {
 		return {
 			type: 'EXPRESSION',
 			value: this.toString(),
 			evaluated: this.evaluate(macros),
-			uri: this.serializeUri,
+			url: this.serializeURL,
 			range: this.range,
 			issues: this.serializeIssues,
 		};

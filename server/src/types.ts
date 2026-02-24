@@ -38,8 +38,8 @@ export type CodeActionDiagnosticData =
 			edit?: TextEdit | TextEdit[];
 			codeActionTitle?: string;
 			items: SyntaxIssue[];
-			firstToken: Omit<Token, 'prevToken' | 'nextToken' | 'uri'>;
-			lastToken: Omit<Token, 'prevToken' | 'nextToken' | 'uri'>;
+			firstToken: Omit<Token, 'prevToken' | 'nextToken' | 'fsPath'>;
+			lastToken: Omit<Token, 'prevToken' | 'nextToken' | 'fsPath'>;
 			virtual: boolean;
 	  }
 	| {
@@ -47,8 +47,8 @@ export type CodeActionDiagnosticData =
 			edit?: TextEdit | TextEdit[];
 			codeActionTitle?: string;
 			items: StandardTypeIssue[];
-			firstToken: Omit<Token, 'prevToken' | 'nextToken' | 'uri'>;
-			lastToken: Omit<Token, 'prevToken' | 'nextToken' | 'uri'>;
+			firstToken: Omit<Token, 'prevToken' | 'nextToken' | 'fsPath'>;
+			lastToken: Omit<Token, 'prevToken' | 'nextToken' | 'fsPath'>;
 			virtual: boolean;
 	  }
 	| {
@@ -301,7 +301,7 @@ export interface Token {
 	tokens: readonly LexerToken[];
 	pos: Position;
 	value: string;
-	uri: string;
+	fsPath: string;
 }
 
 export interface TokenIndexes {
@@ -324,10 +324,10 @@ export type IssueTypes =
 export interface Issue<T extends IssueTypes> {
 	issues: T[];
 	range: Range;
-	uri: string;
+	fsPath: string;
 	severity?: DiagnosticSeverity;
 	tags?: DiagnosticTag[];
-	linkedTo: { range: Range; uri: string; templateStrings: string[] }[];
+	linkedTo: { range: Range; fsPath: string; templateStrings: string[] }[];
 	templateStrings: string[];
 	edit?: TextEdit | TextEdit[];
 	codeActionTitle?: string;
@@ -372,7 +372,7 @@ export interface MacroRegistryItem {
 	macro: CMacro;
 }
 
-export type ContextId = { uri: string } | { id: string } | { name: string };
+export type ContextId = { fsPath: string } | { id: string } | { name: string };
 
 export type FileDiagnostic = {
 	raw: Issue<IssueTypes>;

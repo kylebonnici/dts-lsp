@@ -28,7 +28,7 @@ import { Node } from './context/node';
 import { NodeName } from './ast/dtc/node';
 import { Label } from './ast/dtc/label';
 import { LabelRef } from './ast/dtc/labelRef';
-import { nodeFinder, pathToFileURL } from './helpers';
+import { nodeFinder, pathToFileURI } from './helpers';
 import { isDeleteChild } from './ast/helpers';
 import { PropertyName } from './ast/dtc/property';
 import { Property } from './context/property';
@@ -51,7 +51,7 @@ function getNodeTypeDefinition(
 		}
 		return [
 			Location.create(
-				pathToFileURL(node.nodeType.bindingsPath),
+				pathToFileURI(node.nodeType.bindingsPath),
 				Range.create(Position.create(0, 0), Position.create(0, 0)),
 			),
 		];
@@ -104,7 +104,7 @@ function getPropertyTypeDefinition(
 
 	const rootRange = findPropInFile(result.ast.name, binding);
 	if (rootRange) {
-		return [Location.create(pathToFileURL(binding.filePath), rootRange)];
+		return [Location.create(pathToFileURI(binding.filePath), rootRange)];
 	}
 
 	const extendsBindings = (
@@ -116,13 +116,13 @@ function getPropertyTypeDefinition(
 	for (const extBinding of extendsBindings) {
 		const r = findPropInFile(result.ast.name, extBinding);
 		if (r) {
-			return [Location.create(pathToFileURL(extBinding.filePath), r)];
+			return [Location.create(pathToFileURI(extBinding.filePath), r)];
 		}
 	}
 
 	return [
 		Location.create(
-			pathToFileURL(binding.filePath),
+			pathToFileURI(binding.filePath),
 			Range.create(Position.create(0, 0), Position.create(0, 0)),
 		),
 	];

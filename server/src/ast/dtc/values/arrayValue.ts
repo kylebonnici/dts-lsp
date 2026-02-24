@@ -19,7 +19,7 @@ import { ASTBase } from '../../base';
 import { LabelRef } from '../labelRef';
 import { Expression } from '../../cPreprocessors/expression';
 import { MacroRegistryItem, Token } from '../../../types';
-import { SerializableArrayValue } from '../../../types/index';
+import { SerializedArrayValue } from '../../../types/index';
 import { NodePathRef } from './nodePath';
 import { NumberValue } from './number';
 import { LabeledValue } from './labeledValue';
@@ -71,11 +71,11 @@ export class ArrayValues extends ASTBase {
 		return this.values.map((v) => v.value?.toJson() ?? NaN);
 	}
 
-	serialize(macros: Map<string, MacroRegistryItem>): SerializableArrayValue {
+	serialize(macros: Map<string, MacroRegistryItem>): SerializedArrayValue {
 		return {
 			type: 'ARRAY_VALUE',
 			value: this.values.map((v) => v.value?.serialize(macros) ?? null),
-			uri: this.serializeUri,
+			url: this.serializeURL,
 			range: this.range,
 			issues: this.serializeIssues,
 		};

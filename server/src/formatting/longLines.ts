@@ -91,7 +91,7 @@ function needWrapping(
 export async function formatLongLines(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
-	uri: string,
+	fsPath: string,
 	text: string,
 	returnType: 'File Diagnostics',
 	options: FormattingFlags,
@@ -100,7 +100,7 @@ export async function formatLongLines(
 export async function formatLongLines(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
-	uri: string,
+	fsPath: string,
 	text: string,
 	returnType: 'New Text',
 	options: FormattingFlags,
@@ -109,7 +109,7 @@ export async function formatLongLines(
 export async function formatLongLines(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
-	uri: string,
+	fsPath: string,
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics',
 	options: FormattingFlags,
@@ -126,7 +126,7 @@ export async function formatLongLines(
 		...(await baseLongLineItems(
 			documentFormattingParams,
 			astItems,
-			uri,
+			fsPath,
 			splitDocument,
 			options,
 		)),
@@ -139,7 +139,7 @@ export async function formatLongLines(
 	);
 
 	newText = applyEdits(
-		TextDocument.create(uri, 'devicetree', 0, text),
+		TextDocument.create(fsPath, 'devicetree', 0, text),
 		rangeEdits.flatMap((i) => i.raw.edit).filter((e) => !!e),
 	);
 
@@ -154,11 +154,11 @@ export async function formatLongLines(
 async function baseLongLineItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
-	uri: string,
+	fsPath: string,
 	splitDocument: string[],
 	options: FormattingFlags,
 ): Promise<FileDiagnostic[]> {
-	const astItemLevel = getAstItemLevel(astItems, uri);
+	const astItemLevel = getAstItemLevel(astItems, fsPath);
 
 	const result: FileDiagnostic[] = (
 		await Promise.all(
@@ -167,7 +167,7 @@ async function baseLongLineItems(
 					await getWrapLineEdit(
 						documentFormattingParams,
 						base,
-						uri,
+						fsPath,
 						astItemLevel,
 						splitDocument,
 						options,
@@ -182,7 +182,7 @@ async function baseLongLineItems(
 const getWrapLineEdit = async (
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astNode: ASTBase,
-	uri: string,
+	fsPath: string,
 	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
 	documentText: string[],
 	options: FormattingFlags,
@@ -202,7 +202,7 @@ const getWrapLineEdit = async (
 		return formatLongLinesDtcNode(
 			documentFormattingParams,
 			astNode,
-			uri,
+			fsPath,
 			level,
 			settings,
 			options,
@@ -226,7 +226,7 @@ const getWrapLineEdit = async (
 const formatLongLinesDtcNode = async (
 	documentFormattingParams: CustomDocumentFormattingParams,
 	node: DtcBaseNode,
-	uri: string,
+	fsPath: string,
 	level: number,
 	settings: FormattingSettings,
 	options: FormattingFlags,
@@ -261,7 +261,7 @@ const formatLongLinesDtcNode = async (
 				result.push(
 					genFormattingDiagnostic(
 						FormattingIssues.LONG_LINE_WRAP,
-						uri,
+						fsPath,
 						toPosition(nameAst.firstToken, false),
 						{
 							edit: [
@@ -293,7 +293,7 @@ const formatLongLinesDtcNode = async (
 					getWrapLineEdit(
 						documentFormattingParams,
 						c,
-						uri,
+						fsPath,
 						computeLevel,
 						documentText,
 						options,
@@ -332,7 +332,7 @@ const formatLabels = (
 	return [
 		genFormattingDiagnostic(
 			FormattingIssues.LONG_LINE_WRAP,
-			labelToWrap.firstToken.uri,
+			labelToWrap.firstToken.fsPath,
 			toPosition(labelToWrap.firstToken, false),
 			{
 				edit: [
@@ -565,7 +565,7 @@ const formatLongLinesPropertyValue = (
 	return [
 		genFormattingDiagnostic(
 			FormattingIssues.LONG_LINE_WRAP,
-			value.firstToken.uri,
+			value.firstToken.fsPath,
 			toPosition(value.firstToken, false),
 			{
 				edit: [
@@ -653,7 +653,7 @@ const formatLongLinesArrayValue = (
 		return [
 			genFormattingDiagnostic(
 				FormattingIssues.LONG_LINE_WRAP,
-				value.firstToken.uri,
+				value.firstToken.fsPath,
 				toPosition(value.firstToken, false),
 				{
 					edit: [
@@ -744,7 +744,7 @@ const formatLongLinesExpression = (
 		return [
 			genFormattingDiagnostic(
 				FormattingIssues.LONG_LINE_WRAP,
-				expression.firstToken.uri,
+				expression.firstToken.fsPath,
 				toPosition(expression.firstToken, false),
 				{
 					edit: [
@@ -823,7 +823,7 @@ const formatLongLinesExpression = (
 		return [
 			genFormattingDiagnostic(
 				FormattingIssues.LONG_LINE_WRAP,
-				exp.expression.firstToken.uri,
+				exp.expression.firstToken.fsPath,
 				toPosition(exp.expression.firstToken, false),
 				{
 					edit: [

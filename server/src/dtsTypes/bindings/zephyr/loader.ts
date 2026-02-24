@@ -43,9 +43,9 @@ import {
 	StandardTypeIssue,
 } from '../../../types';
 import {
-	fileURLToPath,
+	fileURIToFsPath,
 	genStandardTypeDiagnostic,
-	pathToFileURL,
+	pathToFileURI,
 } from '../../../helpers';
 import { NexusMapping, Property } from '../../../context/property';
 
@@ -572,7 +572,7 @@ export class ZephyrBindingsLoader {
 		folders: string[],
 	): DocumentLink[] {
 		const bindingFile = this.zephyrBindingCache.get(
-			fileURLToPath(document.uri),
+			fileURIToFsPath(document.uri),
 		);
 
 		if (!bindingFile) return [];
@@ -601,7 +601,7 @@ export class ZephyrBindingsLoader {
 
 					return {
 						range: Range.create(start, end),
-						target: pathToFileURL(path),
+						target: pathToFileURI(path),
 					};
 				}
 			})

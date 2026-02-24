@@ -23,7 +23,7 @@ import {
 } from '../../types';
 import { getTokenModifiers, getTokenTypes } from '../../helpers';
 import { Node } from '../../context/node';
-import { SerializableASTLabel } from '../../types/index';
+import { SerializedASTLabel } from '../../types/index';
 import { LabelRef } from './labelRef';
 
 export class LabelAssign extends ASTBase {
@@ -47,7 +47,7 @@ export class LabelAssign extends ASTBase {
 		return `${this.label.toString()}:`;
 	}
 
-	serialize(macros: Map<string, MacroRegistryItem>): SerializableASTLabel {
+	serialize(macros: Map<string, MacroRegistryItem>): SerializedASTLabel {
 		return {
 			value: this.label.value,
 			...super.serialize(macros),

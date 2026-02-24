@@ -17,7 +17,7 @@
 import { SymbolKind } from 'vscode-languageserver';
 import { ASTBase } from '../../base';
 import { NodeName } from '../node';
-import { SerializableNodePath } from '../../../types/index';
+import { SerializedNodePath } from '../../../types/index';
 import { BuildSemanticTokensPush } from '../../../types';
 import { getTokenModifiers, getTokenTypes } from '../../../helpers';
 
@@ -78,12 +78,12 @@ export class NodePathRef extends ASTBase {
 		return -1;
 	}
 
-	serialize(): SerializableNodePath {
+	serialize(): SerializedNodePath {
 		const nodePath = this.path?.toString();
 		return {
 			type: 'NODE_PATH',
 			nodePath: nodePath === '/' ? nodePath : `/${nodePath ?? ''}`,
-			uri: this.serializeUri,
+			url: this.serializeURL,
 			range: this.range,
 			issues: this.serializeIssues,
 		};

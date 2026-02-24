@@ -118,7 +118,7 @@ export class Runtime implements Searchable {
 					this.context.getSortKeyFile(position, file) === undefined
 				) {
 					return getInclude(
-						include.lastToken.uri,
+						include.lastToken.fsPath,
 						toPosition(include.lastToken),
 					);
 				}
@@ -130,7 +130,7 @@ export class Runtime implements Searchable {
 
 			if (include) {
 				dtcNode = fileAsts.at(-1)?.parentNode;
-				file = include.uri;
+				file = include.fsPath;
 				position = Position.create(
 					include.lastToken.pos.line,
 					include.lastToken.pos.colEnd,

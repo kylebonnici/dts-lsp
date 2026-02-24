@@ -24,7 +24,7 @@ import {
 	ResolvedSettings,
 	Settings,
 } from './types/index';
-import { fileURLToPath, isSubPath, normalizePath } from './helpers';
+import { fileURIToFsPath, isSubPath, normalizePath } from './helpers';
 
 const fixToArray = <T>(a: T): T | undefined => {
 	if (!a) return;
@@ -70,7 +70,7 @@ const resolvePathVariable = async (
 ): Promise<string> => {
 	const boardWorkspace = boardfile
 		? workspaceFolders
-				.map((w) => fileURLToPath(w.uri))
+				.map((w) => fileURIToFsPath(w.uri))
 				.find((workspace) => isSubPath(workspace, boardfile))
 		: undefined;
 
@@ -79,19 +79,21 @@ const resolvePathVariable = async (
 			? [
 					{
 						replace: '${workspaceFolder}',
-						uri:
+						fsPath:
 							boardWorkspace ??
-							fileURLToPath(workspaceFolders[0].uri),
+							fileURIToFsPath(workspaceFolders[0].uri),
 					},
 				]
 			: []),
 		...workspaceFolders.map((folder) => ({
 			replace: `\${workspaceFolder:${folder.name}}`,
-			uri: fileURLToPath(folder.uri),
+			fsPath: fileURIToFsPath(folder.uri),
 		})),
 	];
 
-	stringToReplace.forEach((r) => (path = path.replaceAll(r.replace, r.uri)));
+	stringToReplace.forEach(
+		(r) => (path = path.replaceAll(r.replace, r.fsPath)),
+	);
 
 	return path;
 };

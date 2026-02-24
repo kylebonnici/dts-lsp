@@ -22,9 +22,9 @@ import { DtcChildNode, DtcRootNode, NodeName } from './ast/dtc/node';
 import { Label } from './ast/dtc/label';
 import { LabelRef } from './ast/dtc/labelRef';
 import {
-	convertVirtualUriToDocumentUri,
+	convertVirtualFsPathToDocumentFsPath,
 	nodeFinder,
-	pathToFileURL,
+	pathToFileURI,
 	toRange,
 } from './helpers';
 import { DtcProperty, PropertyName } from './ast/dtc/property';
@@ -62,23 +62,25 @@ function getPropertyReferences(
 			...(deletedBy ? [deletedBy] : []),
 		]
 			.map((dtc) => {
-				const virtualDoc = convertVirtualUriToDocumentUri(dtc.uri);
+				const virtualDoc = convertVirtualFsPathToDocumentFsPath(
+					dtc.fsPath,
+				);
 				if (virtualDoc) {
 					return Location.create(
-						pathToFileURL(virtualDoc.docUri),
+						pathToFileURI(virtualDoc.docFsPath),
 						virtualDoc.range,
 					);
 				}
 
 				if (dtc instanceof DtcProperty) {
 					return Location.create(
-						pathToFileURL(dtc.uri),
+						pathToFileURI(dtc.fsPath),
 						toRange(dtc.propertyName ?? dtc),
 					);
 				}
 				if (dtc instanceof DeleteProperty) {
 					return Location.create(
-						pathToFileURL(dtc.uri),
+						pathToFileURI(dtc.fsPath),
 						toRange(dtc.propertyName ?? dtc),
 					);
 				}
@@ -148,47 +150,47 @@ function getNodeReferences(result: SearchableResult | undefined): Location[] {
 		]
 			.map((dtc) => {
 				const virtualDoc =
-					dtc && convertVirtualUriToDocumentUri(dtc?.uri);
+					dtc && convertVirtualFsPathToDocumentFsPath(dtc?.fsPath);
 				if (virtualDoc) {
 					return Location.create(
-						pathToFileURL(virtualDoc.docUri),
+						pathToFileURI(virtualDoc.docFsPath),
 						virtualDoc.range,
 					);
 				}
 
 				if (dtc instanceof DtcRootNode) {
 					return Location.create(
-						pathToFileURL(dtc.uri),
+						pathToFileURI(dtc.fsPath),
 						toRange(dtc.name ?? dtc),
 					);
 				}
 				if (dtc instanceof DtcChildNode) {
 					return Location.create(
-						pathToFileURL(dtc.uri),
+						pathToFileURI(dtc.fsPath),
 						toRange(dtc.name ?? dtc),
 					);
 				}
 				if (dtc instanceof NodeName) {
 					return Location.create(
-						pathToFileURL(dtc.uri),
+						pathToFileURI(dtc.fsPath),
 						toRange(dtc),
 					);
 				}
 				if (dtc instanceof NodeName) {
 					return Location.create(
-						pathToFileURL(dtc.uri),
+						pathToFileURI(dtc.fsPath),
 						toRange(dtc),
 					);
 				}
 				if (dtc instanceof LabelRef) {
 					return Location.create(
-						pathToFileURL(dtc.uri),
+						pathToFileURI(dtc.fsPath),
 						toRange(dtc.label ?? dtc),
 					);
 				}
 				if (dtc instanceof DtcProperty) {
 					return Location.create(
-						pathToFileURL((dtc.values ?? dtc)?.uri),
+						pathToFileURI((dtc.values ?? dtc)?.fsPath),
 						toRange(dtc.values ?? dtc),
 					);
 				}
@@ -215,7 +217,7 @@ function getNodeReferences(result: SearchableResult | undefined): Location[] {
 				return [
 					...gentItem(result.ast.linksTo),
 					Location.create(
-						pathToFileURL(result.ast.uri),
+						pathToFileURI(result.ast.fsPath),
 						toRange(result.ast),
 					),
 				];

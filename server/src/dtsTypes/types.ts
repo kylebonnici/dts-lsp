@@ -182,7 +182,10 @@ export class PropertyNodeType<T = string | number> {
 										token.pos.col + 1,
 									),
 									`\n${''.padEnd(
-										countParent(orderedTree[i].uri, node),
+										countParent(
+											orderedTree[i].fsPath,
+											node,
+										),
 										runtime.context.formattingOptions
 											.insertSpaces
 											? ' '.repeat(

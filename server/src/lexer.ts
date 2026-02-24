@@ -31,7 +31,7 @@ export class Lexer {
 
 	constructor(
 		readonly text: string,
-		private uri: string,
+		private fsPath: string,
 	) {
 		const normalizedText = this.text.replace(/\r\n/g, '\n').trimEnd();
 		this.lines = normalizedText.split('\n');
@@ -400,12 +400,12 @@ export class Lexer {
 		return true;
 	}
 
-	private pushToken(token: Omit<Token, 'uri'>) {
+	private pushToken(token: Omit<Token, 'fsPath'>) {
 		const fullToken: Token = {
 			tokens: token.tokens,
 			pos: token.pos,
 			value: token.value,
-			uri: this.uri,
+			fsPath: this.fsPath,
 		};
 
 		const prevToken = this._tokens[this._tokens.length - 1];

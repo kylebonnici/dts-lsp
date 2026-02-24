@@ -17,7 +17,7 @@
 import { SymbolKind } from 'vscode-languageserver';
 import { ASTBase } from '../../base';
 import type { Token } from '../../../types';
-import { SerializableByteString } from '../../../types/index';
+import { SerializedByteString } from '../../../types/index';
 import { LabeledValue } from './labeledValue';
 import { NumberValue } from './number';
 
@@ -44,11 +44,11 @@ export class ByteStringValue extends ASTBase {
 		return this.values.map((v) => v.value?.toJson() ?? NaN);
 	}
 
-	serialize(): SerializableByteString {
+	serialize(): SerializedByteString {
 		return {
 			type: 'BYTESTRING',
 			values: this.values.map((v) => v.value?.serialize() ?? null),
-			uri: this.serializeUri,
+			url: this.serializeURL,
 			range: this.range,
 			issues: this.serializeIssues,
 		};

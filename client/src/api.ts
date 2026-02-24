@@ -280,9 +280,9 @@ export class API implements IDeviceTreeAPI {
 		) as Promise<Actions[]>;
 	}
 
-	setActiveFileUri(path: string) {
+	setActiveFsPath(path: string) {
 		return this.client.sendRequest(
-			'devicetree/activeFileUri',
+			'devicetree/activeFsPath',
 			path,
 		) as Promise<void>;
 	}

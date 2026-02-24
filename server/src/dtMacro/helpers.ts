@@ -17,7 +17,7 @@
 import { spawn } from 'child_process';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Position } from 'vscode-languageserver-types';
-import { fileURLToPath, isPathEqual } from '../helpers';
+import { fileURIToFsPath, isPathEqual } from '../helpers';
 import { ContextAware } from '../runtimeEvaluator';
 
 export type ResolveMacroRequest = {
@@ -277,7 +277,7 @@ export async function findMacroDefinition(
 	const fromCompileCommand = await findFromCompiledCommand(
 		macro,
 		context,
-		fileURLToPath(document.uri),
+		fileURIToFsPath(document.uri),
 	);
 
 	if (fromCompileCommand) {

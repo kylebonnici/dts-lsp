@@ -57,13 +57,13 @@ import {
 	coreSyntaxIssuesFilter,
 	evalExp,
 	expandMacros,
-	fileURLToPath,
+	fileURIToFsPath,
 	findContext,
 	findContexts,
 	generateContextId,
 	isPathEqual,
 	nodeFinder,
-	pathToFileURL,
+	pathToFileURI,
 	resolveContextFiles,
 } from './helpers';
 import { ContextAware } from './runtimeEvaluator';
@@ -114,7 +114,7 @@ import { convertMemoryToTree, convertTreeToString } from './memoryDomains';
 
 const contextAware: ContextAware[] = [];
 let activeContext: ContextAware | undefined;
-let activeFileUri: string | undefined;
+let activeFsPath: string | undefined;
 const debounce = new WeakMap<
 	ContextAware,
 	{ abort: AbortController; promise: Promise<void> }
@@ -178,8 +178,8 @@ const deleteContext = async (context: ContextAware) => {
 	if (context === activeContext) {
 		activeContext = undefined;
 		if (contextAware.length) {
-			let ctx = activeFileUri
-				? findContext(contextAware, { uri: activeFileUri })
+			let ctx = activeFsPath
+				? findContext(contextAware, { fsPath: activeFsPath })
 				: undefined;
 			ctx ??= contextAware[0];
 			console.log(
@@ -268,7 +268,7 @@ const contextFullyOverlaps = async (a: ContextAware, b: ContextAware) => {
 		.filter((i) => i.resolvedPath);
 
 	return contextBIncludes.some((i) =>
-		isPathEqual(i.resolvedPath, a.parser.uri),
+		isPathEqual(i.resolvedPath, a.parser.fsPath),
 	) && contextAIncludes.length
 		? contextAIncludes.every((f) =>
 				contextBIncludes.some(
@@ -282,7 +282,7 @@ const contextFullyOverlaps = async (a: ContextAware, b: ContextAware) => {
 						ff.lastToken.pos.line === f.lastToken.pos.line,
 				),
 			)
-		: b.getContextFiles().some((ff) => isPathEqual(ff, a.parser.uri));
+		: b.getContextFiles().some((ff) => isPathEqual(ff, a.parser.fsPath));
 };
 
 const cleanUpAdHocContext = async (context: ContextAware) => {
@@ -316,7 +316,10 @@ const cleanUpAdHocContext = async (context: ContextAware) => {
 			(o) =>
 				sameChart.some((r) => r.context === o.context && r.same) ||
 				(o.context !== context &&
-					isPathEqual(o.context.parser.uri, context.parser.uri) &&
+					isPathEqual(
+						o.context.parser.fsPath,
+						context.parser.fsPath,
+					) &&
 					contextFiles.some((f) => f && o.files.indexOf(f) !== -1)),
 		)
 		.map((o) => o.context);
@@ -643,7 +646,7 @@ const loadSettings = async () => {
 		const resolvedAdHocSettings = await getResolvedAdhocContextSettings();
 		await resolvedAdHocSettings.contexts?.reduce((p, c) => {
 			return p.then(async () => {
-				if (findContext(contextAware, { uri: c.dtsFile })) {
+				if (findContext(contextAware, { fsPath: c.dtsFile })) {
 					return; // Skip creating this adhoc context their is a persistence context covering this URI
 				}
 				await createContext(c);
@@ -652,8 +655,8 @@ const loadSettings = async () => {
 	}
 
 	setTimeout(async () => {
-		if (activeFileUri) {
-			await updateActiveContext({ uri: activeFileUri });
+		if (activeFsPath) {
+			await updateActiveContext({ fsPath: activeFsPath });
 		} else if (!activeContext && contextAware.length) {
 			console.log(
 				`No active context using first context (ID: ${
@@ -762,7 +765,7 @@ const reportNoContextFiles = async () => {
 			.map(async (u) => {
 				if (
 					!activeCtxFiles?.some((p) =>
-						isPathEqual(p, fileURLToPath(u)),
+						isPathEqual(p, fileURIToFsPath(u)),
 					)
 				) {
 					await connection.sendDiagnostics({
@@ -785,8 +788,8 @@ const reportNoContextFiles = async () => {
 	);
 };
 
-const onChange = async (uri: string) => {
-	const contexts = findContexts(contextAware, uri);
+const onChange = async (fsPath: string) => {
+	const contexts = findContexts(contextAware, fsPath);
 
 	if (!contexts.length) {
 		const resolvedSettings = await getResolvedAllContextSettings();
@@ -795,7 +798,7 @@ const onChange = async (uri: string) => {
 		}
 
 		await loadSettings();
-		await updateActiveContext({ uri });
+		await updateActiveContext({ fsPath });
 	} else {
 		contexts
 			.sort((a, b) =>
@@ -819,7 +822,7 @@ const onChange = async (uri: string) => {
 				const abort = new AbortController();
 				const promise = new Promise<void>((resolve) => {
 					setTimeout(async () => {
-						context.setStaleUri(uri);
+						context.setStaleFsPath(fsPath);
 
 						if (abort.signal.aborted) {
 							console.log('Abort parsing due to new request');
@@ -832,7 +835,7 @@ const onChange = async (uri: string) => {
 							? generateClearWorkspaceDiagnostics(context)
 							: [];
 						const prevFiles = context.getContextFiles();
-						await context.reevaluate(uri);
+						await context.reevaluate(fsPath);
 						watchContextFiles(context);
 						prevFiles.forEach((f) =>
 							fileWatchers.get(f)?.unwatch(),
@@ -863,9 +866,9 @@ const onChange = async (uri: string) => {
 								hasWorkspaceDiagnostics.set(context, true);
 							});
 
-							if (activeFileUri) {
+							if (activeFsPath) {
 								const activeUriParser =
-									context.getUriParser(activeFileUri);
+									context.getFsPathParser(activeFsPath);
 								if (activeUriParser) {
 									setTimeout(() => {
 										if (
@@ -915,7 +918,7 @@ const onChange = async (uri: string) => {
 };
 
 const fetchDocumentUri = (file: string) => {
-	return documents.keys().find((f) => isPathEqual(fileURLToPath(f), file));
+	return documents.keys().find((f) => isPathEqual(fileURIToFsPath(f), file));
 };
 
 const fetchDocument = (file: string) => {
@@ -929,7 +932,7 @@ const generateClearWorkspaceDiagnostics = (context: ContextAware) =>
 	context.getContextFiles().map(
 		(file) =>
 			({
-				uri: pathToFileURL(file),
+				uri: pathToFileURI(file),
 				version: fetchDocument(file)?.version,
 				diagnostics: [],
 			}) satisfies PublishDiagnosticsParams,
@@ -955,7 +958,7 @@ const clearWorkspaceDiagnostics = async (
 					context === activeContext ||
 					!activeContext
 						?.getContextFiles()
-						.some((f) => isPathEqual(fileURLToPath(item.uri), f)),
+						.some((f) => isPathEqual(fileURIToFsPath(item.uri), f)),
 			)
 			.map((item) => {
 				return connection.sendDiagnostics({
@@ -1003,7 +1006,7 @@ const generateWorkspaceDiagnostics = async (context: ContextAware) => {
 			}
 
 			return {
-				uri: pathToFileURL(file),
+				uri: pathToFileURI(file),
 				kind: DocumentDiagnosticReportKind.Full,
 				items: [...(diagnostics.get(file) ?? []), ...formattingItems],
 				version: textDocument?.version ?? null,
@@ -1072,12 +1075,12 @@ const contextMeta = async (
 };
 
 const updateActiveContext = async (id: ContextId, force = false) => {
-	if ('uri' in id) {
-		if (!isDtsFile(id.uri)) {
+	if ('fsPath' in id) {
+		if (!isDtsFile(id.fsPath)) {
 			return false;
 		}
-		activeFileUri = id.uri;
-		console.log('Active File Uri', activeFileUri);
+		activeFsPath = id.fsPath;
+		console.log('Active File Uri', activeFsPath);
 	}
 
 	const resolvedSettings = await getResolvedAllContextSettings();
@@ -1092,7 +1095,7 @@ const updateActiveContext = async (id: ContextId, force = false) => {
 		!force &&
 		activeContext
 			?.getContextFiles()
-			.find((f) => 'uri' in id && isPathEqual(f, id.uri))
+			.find((f) => 'fsPath' in id && isPathEqual(f, id.fsPath))
 	)
 		return false;
 
@@ -1149,8 +1152,8 @@ const updateActiveContext = async (id: ContextId, force = false) => {
 	return updateActiveContext;
 };
 
-const isDtsFile = (uri: string) =>
-	['.dts', '.dtsi', '.dtso', '.overlay'].some((ext) => uri.endsWith(ext));
+const isDtsFile = (path: string) =>
+	['.dts', '.dtsi', '.dtso', '.overlay'].some((ext) => path.endsWith(ext));
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events
@@ -1161,22 +1164,25 @@ const getContextOpenFiles = (context: ContextAware | undefined) => {
 };
 
 documents.onDidSave((e) => {
-	lastSavedFileVersion.set(fileURLToPath(e.document.uri), e.document.version);
+	lastSavedFileVersion.set(
+		fileURIToFsPath(e.document.uri),
+		e.document.version,
+	);
 });
 
 // Only keep settings for open documents
 documents.onDidClose(async (e) => {
-	const uri = fileURLToPath(e.document.uri);
+	const fsPath = fileURIToFsPath(e.document.uri);
 
-	if (!isDtsFile(uri)) {
+	if (!isDtsFile(fsPath)) {
 		return;
 	}
 
-	lastSavedFileVersion.delete(uri);
+	lastSavedFileVersion.delete(fsPath);
 
-	const contexts = findContexts(contextAware, uri);
+	const contexts = findContexts(contextAware, fsPath);
 	if (contexts.length === 0) {
-		adHocContextSettings.delete(uri);
+		adHocContextSettings.delete(fsPath);
 		connection.sendDiagnostics({
 			uri: e.document.uri,
 			version: documents.get(e.document.uri)?.version,
@@ -1188,7 +1194,7 @@ documents.onDidClose(async (e) => {
 	await Promise.all(
 		contexts.map(async (context) => {
 			const contextHasFileOpen = !!getContextOpenFiles(context)?.filter(
-				(f) => f !== uri,
+				(f) => f !== fsPath,
 			).length;
 
 			if (!contextHasFileOpen) {
@@ -1202,7 +1208,7 @@ documents.onDidClose(async (e) => {
 				if (
 					!activeContext
 						?.getContextFiles()
-						.some((f) => isPathEqual(f, uri))
+						.some((f) => isPathEqual(f, fsPath))
 				) {
 					connection.sendDiagnostics({
 						uri: e.document.uri,
@@ -1212,7 +1218,7 @@ documents.onDidClose(async (e) => {
 				} else if (
 					activeContext
 						?.getContextFiles()
-						.some((f) => isPathEqual(f, uri))
+						.some((f) => isPathEqual(f, fsPath))
 				) {
 					await clearWorkspaceDiagnostics(activeContext);
 					await sendContextDiagnostics(activeContext);
@@ -1223,7 +1229,7 @@ documents.onDidClose(async (e) => {
 });
 
 documents.onDidOpen(async (e) => {
-	const uri = fileURLToPath(e.document.uri);
+	const uri = fileURIToFsPath(e.document.uri);
 	if (!isDtsFile(uri)) {
 		return;
 	}
@@ -1233,7 +1239,7 @@ documents.onDidOpen(async (e) => {
 	await allStable();
 	reportNoContextFiles();
 
-	const ctx = findContext(contextAware, { uri });
+	const ctx = findContext(contextAware, { fsPath: uri });
 	console.log('onDidOpen', ctx?.id, uri);
 	if (!ctx) {
 		const contextBaseSettings: Context = {
@@ -1255,7 +1261,7 @@ documents.onDidOpen(async (e) => {
 });
 
 documents.onDidChangeContent(async (change) => {
-	const fsPath = fileURLToPath(change.document.uri);
+	const fsPath = fileURIToFsPath(change.document.uri);
 
 	if (!isDtsFile(fsPath)) {
 		return;
@@ -1317,10 +1323,10 @@ connection.onCompletion(
 	async (
 		textDocumentPosition: TextDocumentPositionParams,
 	): Promise<CompletionItem[]> => {
-		const filePath = fileURLToPath(textDocumentPosition.textDocument.uri);
+		const fsPath = fileURIToFsPath(textDocumentPosition.textDocument.uri);
 
 		if (
-			(filePath.endsWith('.c') || filePath.endsWith('.cpp')) &&
+			(fsPath.endsWith('.c') || fsPath.endsWith('.cpp')) &&
 			activeContext &&
 			activeContext.bindingLoader?.type === 'Zephyr'
 		) {
@@ -1331,14 +1337,14 @@ connection.onCompletion(
 			);
 		}
 
-		if (!isDtsFile(filePath)) {
+		if (!isDtsFile(fsPath)) {
 			return [];
 		}
 
 		await allStable();
 
-		updateActiveContext({ uri: filePath });
-		const context = quickFindContext(filePath);
+		updateActiveContext({ fsPath });
+		const context = quickFindContext(fsPath);
 
 		if (context) {
 			return [
@@ -1355,18 +1361,18 @@ connection.onCompletionResolve((item: CompletionItem): CompletionItem => {
 	return item;
 });
 
-const quickFindContext = (uri: string) => {
+const quickFindContext = (fsPath: string) => {
 	const settings = getUnresolvedAdhocContextSettings();
 	return findContext(
 		contextAware,
-		{ uri },
+		{ fsPath },
 		activeContext,
 		settings?.preferredContext,
 	);
 };
 
 connection.onDocumentSymbol(async (h) => {
-	const uri = fileURLToPath(h.textDocument.uri);
+	const uri = fileURIToFsPath(h.textDocument.uri);
 	if (!isDtsFile(uri)) {
 		return [];
 	}
@@ -1375,7 +1381,7 @@ connection.onDocumentSymbol(async (h) => {
 	const context = quickFindContext(uri);
 
 	if (!context) return [];
-	return context.getUriParser(uri)?.getDocumentSymbols(uri);
+	return context.getFsPathParser(uri)?.getDocumentSymbols(uri);
 });
 
 connection.onWorkspaceSymbol(async () => {
@@ -1389,24 +1395,24 @@ connection.onWorkspaceSymbol(async () => {
 });
 
 connection.languages.semanticTokens.on(async (h) => {
-	const uri = fileURLToPath(h.textDocument.uri);
-	if (!isDtsFile(uri)) {
+	const fsPath = fileURIToFsPath(h.textDocument.uri);
+	if (!isDtsFile(fsPath)) {
 		return { data: [] };
 	}
 
 	try {
 		await allStable();
 
-		const context = quickFindContext(uri);
+		const context = quickFindContext(fsPath);
 		const tokensBuilder = new SemanticTokensBuilder();
 
-		const isInContext = context?.isInContext(uri);
+		const isInContext = context?.isInContext(fsPath);
 		if (!context || !isInContext) {
 			return { data: [] };
 		}
 
 		(await context.getAllStableParsers()).forEach((parser) =>
-			parser.buildSemanticTokens(tokensBuilder, uri),
+			parser.buildSemanticTokens(tokensBuilder, fsPath),
 		);
 
 		return tokensBuilder.build();
@@ -1419,7 +1425,7 @@ connection.languages.semanticTokens.on(async (h) => {
 connection.onDocumentLinks(async (event) => {
 	await allStable();
 
-	const uri = fileURLToPath(event.textDocument.uri);
+	const uri = fileURIToFsPath(event.textDocument.uri);
 	if (!isDtsFile(uri)) {
 		if (uri.endsWith('.yaml') && activeContext) {
 			return (
@@ -1438,48 +1444,48 @@ connection.onDocumentLinks(async (event) => {
 });
 
 connection.onPrepareRename(async (event) => {
-	const uri = fileURLToPath(event.textDocument.uri);
-	if (!isDtsFile(uri)) {
+	const fsPath = fileURIToFsPath(event.textDocument.uri);
+	if (!isDtsFile(fsPath)) {
 		return;
 	}
 	await allStable();
-	updateActiveContext({ uri });
-	const context = quickFindContext(uri);
+	updateActiveContext({ fsPath });
+	const context = quickFindContext(fsPath);
 
 	return getPrepareRenameRequest(event, context);
 });
 
 connection.onRenameRequest(async (event) => {
-	const uri = fileURLToPath(event.textDocument.uri);
-	if (!isDtsFile(uri)) {
+	const fsPath = fileURIToFsPath(event.textDocument.uri);
+	if (!isDtsFile(fsPath)) {
 		return;
 	}
 
 	await allStable();
-	updateActiveContext({ uri });
-	const context = quickFindContext(uri);
+	updateActiveContext({ fsPath });
+	const context = quickFindContext(fsPath);
 
 	return getRenameRequest(event, context);
 });
 
 connection.onReferences(async (event) => {
-	const uri = fileURLToPath(event.textDocument.uri);
+	const uri = fileURIToFsPath(event.textDocument.uri);
 	if (!isDtsFile(uri)) {
 		return;
 	}
 
 	await allStable();
-	updateActiveContext({ uri });
+	updateActiveContext({ fsPath: uri });
 	const context = quickFindContext(uri);
 
 	return getReferences(event, context);
 });
 
 connection.onDefinition(async (event) => {
-	const filePath = fileURLToPath(event.textDocument.uri);
+	const fsPath = fileURIToFsPath(event.textDocument.uri);
 
 	if (
-		(filePath.endsWith('.c') || filePath.endsWith('.cpp')) &&
+		(fsPath.endsWith('.c') || fsPath.endsWith('.cpp')) &&
 		activeContext &&
 		activeContext.bindingLoader?.type === 'Zephyr'
 	) {
@@ -1490,16 +1496,16 @@ connection.onDefinition(async (event) => {
 		);
 	}
 
-	if (!isDtsFile(filePath)) {
+	if (!isDtsFile(fsPath)) {
 		return;
 	}
 
 	await allStable();
-	updateActiveContext({ uri: filePath });
-	const context = quickFindContext(filePath);
+	updateActiveContext({ fsPath });
+	const context = quickFindContext(fsPath);
 
 	const documentLinkDefinition =
-		(await context?.getDocumentLinks(filePath, event.position))
+		(await context?.getDocumentLinks(fsPath, event.position))
 			?.filter((docLink) => docLink.target)
 			.map((docLink) =>
 				Location.create(docLink.target!, docLink.range),
@@ -1511,10 +1517,10 @@ connection.onDefinition(async (event) => {
 });
 
 connection.onDeclaration(async (event) => {
-	const filePath = fileURLToPath(event.textDocument.uri);
+	const fsPath = fileURIToFsPath(event.textDocument.uri);
 
 	if (
-		(filePath.endsWith('.c') || filePath.endsWith('.cpp')) &&
+		(fsPath.endsWith('.c') || fsPath.endsWith('.cpp')) &&
 		activeContext &&
 		activeContext.bindingLoader?.type === 'Zephyr'
 	) {
@@ -1525,19 +1531,19 @@ connection.onDeclaration(async (event) => {
 		);
 	}
 
-	if (!isDtsFile(filePath)) {
+	if (!isDtsFile(fsPath)) {
 		return;
 	}
 
 	await allStable();
-	updateActiveContext({ uri: filePath });
-	const context = quickFindContext(filePath);
+	updateActiveContext({ fsPath });
+	const context = quickFindContext(fsPath);
 
 	return getDeclaration(event, context);
 });
 
 connection.onCodeAction(async (event) => {
-	const uri = fileURLToPath(event.textDocument.uri);
+	const uri = fileURIToFsPath(event.textDocument.uri);
 	if (!isDtsFile(uri)) {
 		return;
 	}
@@ -1547,14 +1553,14 @@ connection.onCodeAction(async (event) => {
 const onDocumentFormat = async (
 	event: DocumentFormattingParams | DocumentRangeFormattingParams,
 ) => {
-	const filePath = fileURLToPath(event.textDocument.uri);
-	if (!isDtsFile(filePath)) {
+	const fsPath = fileURIToFsPath(event.textDocument.uri);
+	if (!isDtsFile(fsPath)) {
 		return;
 	}
 
 	await allStable();
-	updateActiveContext({ uri: filePath });
-	const context = quickFindContext(filePath);
+	updateActiveContext({ fsPath });
+	const context = quickFindContext(fsPath);
 
 	if (!context) {
 		return [];
@@ -1562,11 +1568,11 @@ const onDocumentFormat = async (
 
 	const issues = (
 		await context.getSyntaxIssues(undefined, (issue) =>
-			coreSyntaxIssuesFilter(issue.raw, filePath, false)
+			coreSyntaxIssuesFilter(issue.raw, fsPath, false)
 				? issue
 				: undefined,
 		)
-	).get(filePath);
+	).get(fsPath);
 
 	if (issues?.length) {
 		return [];
@@ -1574,7 +1580,7 @@ const onDocumentFormat = async (
 
 	const document =
 		documents.get(event.textDocument.uri) ??
-		getTokenizedDocumentProvider().getDocument(filePath);
+		getTokenizedDocumentProvider().getDocument(fsPath);
 	const text = document.getText();
 	const newText = await formatText(event, text, 'New Text').catch(() => text);
 
@@ -1604,7 +1610,7 @@ connection.onDocumentRangeFormatting(onDocumentFormat);
 connection.onDocumentFormatting(onDocumentFormat);
 
 connection.onHover(async (event) => {
-	const filePath = fileURLToPath(event.textDocument.uri);
+	const filePath = fileURIToFsPath(event.textDocument.uri);
 
 	if (
 		(filePath.endsWith('.c') || filePath.endsWith('.cpp')) &&
@@ -1629,51 +1635,51 @@ connection.onHover(async (event) => {
 });
 
 connection.onFoldingRanges(async (event) => {
-	const filePath = fileURLToPath(event.textDocument.uri);
-	if (!isDtsFile(filePath)) {
+	const fsPath = fileURIToFsPath(event.textDocument.uri);
+	if (!isDtsFile(fsPath)) {
 		return;
 	}
 
 	await allStable();
 
-	const context = quickFindContext(filePath);
+	const context = quickFindContext(fsPath);
 
-	const isInContext = context?.isInContext(filePath);
+	const isInContext = context?.isInContext(fsPath);
 	if (!context || !isInContext) {
 		return [];
 	}
 
 	const parser = (await context.getAllStableParsers()).find((p) =>
-		p.getFiles().some((i) => i === filePath),
+		p.getFiles().some((i) => i === fsPath),
 	);
 
-	if (parser) return getFoldingRanges(filePath, parser);
+	if (parser) return getFoldingRanges(fsPath, parser);
 	return [];
 });
 
 connection.onTypeDefinition(async (event) => {
-	const filePath = fileURLToPath(event.textDocument.uri);
-	if (!isDtsFile(filePath)) {
+	const fsPath = fileURIToFsPath(event.textDocument.uri);
+	if (!isDtsFile(fsPath)) {
 		return;
 	}
 
 	await allStable();
-	updateActiveContext({ uri: filePath });
-	const context = quickFindContext(filePath);
+	updateActiveContext({ fsPath });
+	const context = quickFindContext(fsPath);
 
 	return typeDefinition(event, context);
 });
 
 connection.onSignatureHelp(async (event) => {
-	const filePath = fileURLToPath(event.textDocument.uri);
-	if (!isDtsFile(filePath)) {
+	const fsPath = fileURIToFsPath(event.textDocument.uri);
+	if (!isDtsFile(fsPath)) {
 		return;
 	}
 
 	await allStable();
 
-	updateActiveContext({ uri: filePath });
-	const context = quickFindContext(filePath);
+	updateActiveContext({ fsPath });
+	const context = quickFindContext(fsPath);
 
 	return getSignatureHelp(event, context);
 });
@@ -1826,7 +1832,7 @@ connection.onRequest(
 		const text = await ctx.toFullString();
 		return formatText(
 			{
-				textDocument: { uri: pathToFileURL(ctx.settings.dtsFile) },
+				textDocument: { uri: pathToFileURI(ctx.settings.dtsFile) },
 				options: ctx.formattingOptions,
 			},
 			text,
@@ -1894,9 +1900,9 @@ connection.onRequest(
 	},
 );
 
-connection.onRequest('devicetree/activeFileUri', async (uri: string) => {
+connection.onRequest('devicetree/activeFsPath', async (fsPath: string) => {
 	await allStable();
-	updateActiveContext({ uri });
+	updateActiveContext({ fsPath });
 });
 
 connection.onRequest(
@@ -1906,7 +1912,7 @@ connection.onRequest(
 			text?: string;
 		},
 	) => {
-		const filePath = fileURLToPath(event.textDocument.uri);
+		const filePath = fileURIToFsPath(event.textDocument.uri);
 
 		const documentText =
 			fetchDocument(filePath) ??
@@ -1931,7 +1937,7 @@ connection.onRequest(
 		await allStable();
 
 		const document = getTokenizedDocumentProvider().getDocument(
-			fileURLToPath(event.textDocument.uri),
+			fileURIToFsPath(event.textDocument.uri),
 			event.text,
 		);
 
@@ -1960,8 +1966,8 @@ connection.onRequest(
 	'devicetree/diagnosticIssues',
 	async ({ uri, full }: { uri: string; full?: boolean }) => {
 		await allStable();
-		const filePath = fileURLToPath(uri);
-		updateActiveContext({ uri: filePath });
+		const filePath = fileURIToFsPath(uri);
+		updateActiveContext({ fsPath: filePath });
 		const context = quickFindContext(filePath);
 
 		if (!context) {
@@ -2093,7 +2099,7 @@ connection.onRequest(
 
 		const ctx = findContext(contextAware, { id: event.id });
 
-		const filePath = fileURLToPath(event.textDocument.uri);
+		const filePath = fileURIToFsPath(event.textDocument.uri);
 		if (!ctx || !ctx.isInContext(filePath)) {
 			return;
 		}

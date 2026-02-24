@@ -17,7 +17,7 @@
 import { SymbolKind } from 'vscode-languageserver';
 import { ASTBase } from '../base';
 import { type Node } from '../../context/node';
-import { SerializableLabelRef } from '../../types/index';
+import { SerializedLabelRef } from '../../types/index';
 import { Label } from './label';
 
 export class LabelRef extends ASTBase {
@@ -44,12 +44,12 @@ export class LabelRef extends ASTBase {
 		return -1;
 	}
 
-	serialize(): SerializableLabelRef {
+	serialize(): SerializedLabelRef {
 		return {
 			type: 'LABEL_REF',
 			label: this.label?.toString() ?? null,
 			nodePath: this.linksTo?.pathString ?? null,
-			uri: this.serializeUri,
+			url: this.serializeURL,
 			range: this.range,
 			issues: this.serializeIssues,
 		};

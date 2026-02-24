@@ -43,7 +43,7 @@ import {
 	generateContextId,
 	genContextDiagnostic,
 	isPathEqual,
-	pathToFileURL,
+	pathToFileURI,
 	positionInBetween,
 	toRange,
 	compareWords,
@@ -148,10 +148,10 @@ export class ContextAware {
 			{ path: string; resolvedPath?: string }[]
 		>();
 
-		const getTreeItem = (uri: string): File => {
+		const getTreeItem = (fsPath: string): File => {
 			return {
-				file: uri,
-				includes: (temp.get(uri) ?? []).map((f) =>
+				fsPath,
+				includes: (temp.get(fsPath) ?? []).map((f) =>
 					getTreeItem(f.resolvedPath ?? f.path),
 				),
 			};
@@ -159,10 +159,10 @@ export class ContextAware {
 
 		const runtime = await this.getRuntime();
 		runtime.includes.forEach((include) => {
-			let t = temp.get(include.uri);
+			let t = temp.get(include.fsPath);
 			if (!t) {
 				t = [];
-				temp.set(include.uri, t);
+				temp.set(include.fsPath, t);
 			}
 			t.push({
 				path: include.path.path,
@@ -171,7 +171,7 @@ export class ContextAware {
 		});
 
 		return {
-			mainDtsPath: getTreeItem(this.parser.uri),
+			mainDtsPath: getTreeItem(this.parser.fsPath),
 			overlays: this.overlays.map(getTreeItem),
 		};
 	}
@@ -196,15 +196,15 @@ export class ContextAware {
 		];
 	}
 
-	isInContext(uri: string): boolean {
-		return this.getContextFiles().some((file) => isPathEqual(file, uri));
+	isInContext(fsPath: string): boolean {
+		return this.getContextFiles().some((file) => isPathEqual(file, fsPath));
 	}
 
-	getUriParser(uri: string) {
+	getFsPathParser(fsPath: string) {
 		let parser = this.overlayParsers.find((p) =>
-			p.getFiles().some((p) => isPathEqual(p, uri)),
+			p.getFiles().some((p) => isPathEqual(p, fsPath)),
 		);
-		parser ??= this.parser.getFiles().some((p) => isPathEqual(p, uri))
+		parser ??= this.parser.getFiles().some((p) => isPathEqual(p, fsPath))
 			? this.parser
 			: undefined;
 		return parser;
@@ -232,7 +232,7 @@ export class ContextAware {
 			runtime.rootNode.allBindingsProperties
 				.filter(
 					(p) =>
-						isPathEqual(p.ast.uri, file) &&
+						isPathEqual(p.ast.fsPath, file) &&
 						(!position || positionInBetween(p.ast, file, position)),
 				)
 				.flatMap((p) =>
@@ -247,7 +247,7 @@ export class ContextAware {
 							return nodeType
 								? {
 										range: toRange(v!.value!),
-										target: pathToFileURL(
+										target: pathToFileURI(
 											nodeType.bindingsPath!,
 										),
 									}
@@ -261,17 +261,17 @@ export class ContextAware {
 			...(this.parser.cPreprocessorParser.dtsIncludes
 				.filter(
 					(include) =>
-						isPathEqual(include.uri, file) &&
+						isPathEqual(include.fsPath, file) &&
 						(!position ||
 							positionInBetween(include, file, position)),
 				)
 				.map((include) => {
-					const path =
+					const fsPath =
 						this.parser.cPreprocessorParser.resolveInclude(include);
-					if (path) {
+					if (fsPath) {
 						const link: DocumentLink = {
 							range: toRange(include.path),
-							target: pathToFileURL(path),
+							target: pathToFileURI(fsPath),
 						};
 						return link;
 					}
@@ -366,16 +366,16 @@ export class ContextAware {
 		}
 	}
 
-	private staleUri = new Set<string>();
-	setStaleUri(uri: string) {
-		this.staleUri.add(uri);
+	private staleFsPaths = new Set<string>();
+	setStaleFsPath(fsPath: string) {
+		this.staleFsPaths.add(fsPath);
 	}
 
-	public async reevaluate(uri: string) {
-		this.setStaleUri(uri);
+	public async reevaluate(fsPath: string) {
+		this.setStaleFsPath(fsPath);
 		const parsers = new Set<Parser>();
-		this.staleUri.forEach((u) => {
-			const staleParser = this.getUriParser(u);
+		this.staleFsPaths.forEach((u) => {
+			const staleParser = this.getFsPathParser(u);
 			if (staleParser) {
 				parsers.add(staleParser);
 			}
@@ -401,7 +401,7 @@ export class ContextAware {
 		await this.stable();
 
 		const runtime = new Runtime(this);
-		this.staleUri.clear();
+		this.staleFsPaths.clear();
 		this._issues = [];
 
 		this.parser.rootDocument.resetIssues();
@@ -458,7 +458,7 @@ export class ContextAware {
 
 		for (const [index, item] of meta.entries()) {
 			// empty overly or empty main board file
-			if (item.tokens.length === 0 && item.parser.uri === fsPath) {
+			if (item.tokens.length === 0 && item.parser.fsPath === fsPath) {
 				const prev = meta[index - 1];
 				return index ? prev.tokens[prev.tokens.length - 1] : null;
 			}
@@ -1019,13 +1019,13 @@ export class ContextAware {
 
 	static #add(
 		diagnostic: Diagnostic,
-		uri: string,
+		fsPath: string,
 		map: Map<string, Diagnostic[]>,
 	) {
-		let list: Diagnostic[] | undefined = map.get(uri);
+		let list: Diagnostic[] | undefined = map.get(fsPath);
 		if (!list) {
 			list = [];
-			map.set(uri, list);
+			map.set(fsPath, list);
 		}
 		list.push(diagnostic);
 	}
@@ -1053,7 +1053,7 @@ export class ContextAware {
 		issues.forEach((issue) => {
 			const i = transform(issue);
 			if (i) {
-				ContextAware.#add(i.diagnostic(), i.raw.uri, result);
+				ContextAware.#add(i.diagnostic(), i.raw.fsPath, result);
 			}
 		});
 
@@ -1068,7 +1068,7 @@ export class ContextAware {
 			if (
 				issue.raw.severity === DiagnosticSeverity.Error &&
 				!this.isFullContext &&
-				!coreSyntaxIssuesFilter(issue.raw, issue.raw.uri, false)
+				!coreSyntaxIssuesFilter(issue.raw, issue.raw.fsPath, false)
 			) {
 				issue.raw.severity = DiagnosticSeverity.Warning;
 			}

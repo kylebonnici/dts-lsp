@@ -36,8 +36,8 @@ export class FunctionDefinition extends ASTBase {
 		this.params.forEach((p) => this.addChild(p));
 	}
 
-	getDocumentSymbols(uri: string): DocumentSymbol[] {
-		if (!isPathEqual(this.uri, uri)) {
+	getDocumentSymbols(fsPath: string): DocumentSymbol[] {
+		if (!isPathEqual(this.fsPath, fsPath)) {
 			return [];
 		}
 		return [
@@ -46,7 +46,9 @@ export class FunctionDefinition extends ASTBase {
 				kind: SymbolKind.Function,
 				range: toRange(this),
 				selectionRange: toRange(this),
-				children: this.params.flatMap((p) => p.getDocumentSymbols(uri)),
+				children: this.params.flatMap((p) =>
+					p.getDocumentSymbols(fsPath),
+				),
 			},
 		];
 	}

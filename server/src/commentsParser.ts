@@ -25,9 +25,9 @@ export class CommentsParser extends BaseParser {
 	public tokens: Token[] = [];
 
 	constructor(
-		public readonly uri: string,
+		public readonly fsPath: string,
 		private getTokens = () =>
-			getTokenizedDocumentProvider().requestTokens(this.uri, true),
+			getTokenizedDocumentProvider().requestTokens(this.fsPath, true),
 	) {
 		super();
 	}

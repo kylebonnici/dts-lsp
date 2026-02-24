@@ -26,9 +26,9 @@ import { Property } from './context/property';
 import { DeleteProperty } from './ast/dtc/deleteProperty';
 import { isDeleteChild } from './ast/helpers';
 import {
-	convertVirtualUriToDocumentUri,
+	convertVirtualFsPathToDocumentFsPath,
 	nodeFinder,
-	pathToFileURL,
+	pathToFileURI,
 	toRange,
 } from './helpers';
 import { CIdentifier } from './ast/cPreprocessors/cIdentifier';
@@ -38,15 +38,18 @@ import { CMacroCallParam } from './ast/cPreprocessors/functionCall';
 export const generateNodeDeclaration = (node: Node) => {
 	const declaration = node.definitions.at(0);
 	const virtualDoc =
-		declaration && convertVirtualUriToDocumentUri(declaration.uri);
+		declaration && convertVirtualFsPathToDocumentFsPath(declaration.fsPath);
 	if (virtualDoc) {
 		return Location.create(
-			pathToFileURL(virtualDoc.docUri),
+			pathToFileURI(virtualDoc.docFsPath),
 			virtualDoc.range,
 		);
 	}
 	return declaration
-		? Location.create(pathToFileURL(declaration.uri), toRange(declaration))
+		? Location.create(
+				pathToFileURI(declaration.fsPath),
+				toRange(declaration),
+			)
 		: undefined;
 };
 
@@ -62,16 +65,18 @@ export const generatePropertyDeclaration = (
 	property: Property,
 ): Location | undefined => {
 	const fistDefinition = getBottomProperty(property);
-	const virtualDoc = convertVirtualUriToDocumentUri(fistDefinition.ast.uri);
+	const virtualDoc = convertVirtualFsPathToDocumentFsPath(
+		fistDefinition.ast.fsPath,
+	);
 	if (virtualDoc) {
 		return Location.create(
-			pathToFileURL(virtualDoc.docUri),
+			pathToFileURI(virtualDoc.docFsPath),
 			virtualDoc.range,
 		);
 	}
 	return fistDefinition
 		? Location.create(
-				pathToFileURL(fistDefinition.ast.uri),
+				pathToFileURI(fistDefinition.ast.fsPath),
 				toRange(fistDefinition.ast),
 			)
 		: undefined;
@@ -89,15 +94,17 @@ function getPropertyDeclaration(
 	}
 
 	const gentItem = (property: Property) => {
-		const virtualDoc = convertVirtualUriToDocumentUri(property.ast.uri);
+		const virtualDoc = convertVirtualFsPathToDocumentFsPath(
+			property.ast.fsPath,
+		);
 		if (virtualDoc) {
 			return Location.create(
-				pathToFileURL(virtualDoc.docUri),
+				pathToFileURI(virtualDoc.docFsPath),
 				virtualDoc.range,
 			);
 		}
 		return Location.create(
-			pathToFileURL(property.ast.uri),
+			pathToFileURI(property.ast.fsPath),
 			toRange(property.ast.propertyName ?? property.ast),
 		);
 	};
@@ -173,7 +180,7 @@ function getMacrosDeclaration(
 			);
 		if (macro) {
 			return Location.create(
-				pathToFileURL(macro.macro.uri),
+				pathToFileURI(macro.macro.fsPath),
 				toRange(macro.macro.identifier),
 			);
 		}

@@ -245,7 +245,7 @@ const convertToError = (
 					edit: TextEdit.insert(
 						Position.create(token.pos.line, token.pos.col + 1),
 						`\n${''.padEnd(
-							countParent(item.uri, node),
+							countParent(item.fsPath, node),
 							runtime.context.formattingOptions.insertSpaces
 								? ' '.repeat(
 										runtime.context.formattingOptions

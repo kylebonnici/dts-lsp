@@ -75,7 +75,7 @@ export class CPreprocessorParser extends BaseParser {
 
 	// tokens must be filtered out from comments by now
 	constructor(
-		public readonly uri: string,
+		public readonly fsPath: string,
 		private incudes: string[],
 		macros?: Map<string, MacroRegistryItem>,
 		private getTokens?: () => Token[],
@@ -160,7 +160,7 @@ export class CPreprocessorParser extends BaseParser {
 							);
 						})
 					) {
-						console.log('header file cache hit', this.uri);
+						console.log('header file cache hit', this.fsPath);
 						resolve();
 						return;
 					}
@@ -173,7 +173,7 @@ export class CPreprocessorParser extends BaseParser {
 	}
 
 	public async parse() {
-		const commentsParser = new CommentsParser(this.uri, this.getTokens);
+		const commentsParser = new CommentsParser(this.fsPath, this.getTokens);
 		await commentsParser.stable;
 		this.tokens = commentsParser.tokens;
 		this._comments = commentsParser.allAstItems;
@@ -187,7 +187,7 @@ export class CPreprocessorParser extends BaseParser {
 			await this.lineProcessor();
 		}
 
-		if (this.rangesToClean.size && !this.uri.endsWith('.h')) {
+		if (this.rangesToClean.size && !this.fsPath.endsWith('.h')) {
 			this.tokens = this.tokens.filter((t) => !this.rangesToClean.has(t));
 		}
 
@@ -204,7 +204,7 @@ export class CPreprocessorParser extends BaseParser {
 		const isFirstTokenOnLine =
 			!this.prevToken ||
 			this.prevToken.pos.line !== this.currentToken?.pos.line ||
-			!isPathEqual(this.prevToken.uri, this.currentToken.uri);
+			!isPathEqual(this.prevToken.fsPath, this.currentToken.fsPath);
 		if (!isFirstTokenOnLine) {
 			this.moveEndOfLine(this.prevToken!, false);
 			this.mergeStack();
@@ -767,7 +767,7 @@ export class CPreprocessorParser extends BaseParser {
 		}
 		if (include.path.relative) {
 			return [
-				resolve(dirname(include.uri), include.path.path),
+				resolve(dirname(include.fsPath), include.path.path),
 				...this.incudes.map((c) => resolve(c, include.path.path)),
 			].find((p) => existsSync(p));
 		} else {
@@ -889,7 +889,7 @@ export class CPreprocessorParser extends BaseParser {
 					resolvedPath,
 					this.incudes,
 					this.macros,
-					this.uri,
+					this.fsPath,
 				);
 
 			await fileParser.stable;
