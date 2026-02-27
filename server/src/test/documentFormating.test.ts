@@ -1283,13 +1283,13 @@ describe('Document formatting', () => {
 			);
 		});
 
-		test('Complex Expression extra stapce after (', async () => {
+		test('Complex Expression extra space after (', async () => {
 			const documentText = '/ {\n\tprop1 = <( 10 + 20)>;\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual('/ {\n\tprop1 = <(10 + 20)>;\n};');
 		});
 
-		test('Complex Expression extra stapce before )', async () => {
+		test('Complex Expression extra space before )', async () => {
 			const documentText = '/ {\n\tprop1 = <(10 + 20 )>;\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual('/ {\n\tprop1 = <(10 + 20)>;\n};');
@@ -1548,6 +1548,14 @@ describe('Document formatting', () => {
 			const documentText = '/ {\n\n\tprop1 = [ ];\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual('/ {\n\tprop1 = [];\n};');
+		});
+
+		test('Clean multiline expression', async () => {
+			const documentText = '/ {\n\tprop1 = <FOO(10,   \\\n20)>;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tprop1 = <FOO(10,\n\t\t\t\t 20)>;\n};',
+			);
 		});
 	});
 

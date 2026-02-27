@@ -29,7 +29,7 @@ export type FormattingSettings = {
 };
 
 export type FormattingFlags = {
-	runBaseCheck: boolean;
+	removeMacroMultiline: boolean;
 	runLongLineCheck: boolean;
 	runExpressionIndentationCheck: boolean;
 };

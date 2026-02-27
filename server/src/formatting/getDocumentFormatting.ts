@@ -170,7 +170,7 @@ export async function formatText(
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics' | 'Both',
 	options: FormattingFlags = {
-		runBaseCheck: true,
+		removeMacroMultiline: true,
 		runLongLineCheck: true,
 		runExpressionIndentationCheck: true,
 	},
@@ -219,30 +219,63 @@ export async function formatText(
 		options,
 	);
 
+	if (options.removeMacroMultiline) {
+		const multiLineRegions = new Set<number>();
+		Array.from(parser.cPreprocessorParser.macros.values())
+			.filter(
+				(m) =>
+					m.macro.firstToken.pos.line !== m.macro.lastToken.pos.line,
+			)
+			.forEach((m) => {
+				Array.from(
+					{
+						length:
+							m.macro.lastToken.pos.line -
+							m.macro.firstToken.pos.line +
+							1,
+					},
+					(_, i) => m.macro.firstToken.pos.line + i,
+				).forEach((line) => multiLineRegions.add(line));
+			});
+
+		await formatMultiLineMacros(
+			{
+				...documentFormattingParams,
+				options: {
+					...documentFormattingParams.options,
+					wordWrapColumn,
+				},
+			},
+			parser.allAstItems,
+			fsPath,
+			text,
+			multiLineRegions,
+			variantDocuments,
+		);
+	}
+
 	if (returnType === 'New Text') {
 		let finalText = text;
 
-		if (options.runBaseCheck) {
-			const r = await formatAstBaseItems(
-				{
-					...documentFormattingParams,
-					options: {
-						...documentFormattingParams.options,
-						wordWrapColumn,
-					},
+		const r = await formatAstBaseItems(
+			{
+				...documentFormattingParams,
+				options: {
+					...documentFormattingParams.options,
+					wordWrapColumn,
 				},
-				parser.allAstItems,
-				parser.includes,
-				prevIfBlocks,
-				fsPath,
-				text,
-				returnType,
-				options,
-				variantDocuments,
-			);
-			variantDocuments = [];
-			finalText = r;
-		}
+			},
+			parser.allAstItems,
+			parser.includes,
+			prevIfBlocks,
+			fsPath,
+			text,
+			returnType,
+			options,
+			variantDocuments,
+		);
+		variantDocuments = [];
+		finalText = r;
 
 		if (options.runExpressionIndentationCheck) {
 			const allAstItems =
@@ -303,27 +336,27 @@ export async function formatText(
 	if (returnType === 'Both') {
 		let finalText = text;
 		let diagnostic: FileDiagnostic[] = [];
-		if (options.runBaseCheck) {
-			const r = await formatAstBaseItems(
-				{
-					...documentFormattingParams,
-					options: {
-						...documentFormattingParams.options,
-						wordWrapColumn,
-					},
+
+		const r = await formatAstBaseItems(
+			{
+				...documentFormattingParams,
+				options: {
+					...documentFormattingParams.options,
+					wordWrapColumn,
 				},
-				parser.allAstItems,
-				parser.includes,
-				prevIfBlocks,
-				fsPath,
-				text,
-				returnType,
-				options,
-				[...variantDocuments],
-			);
-			finalText = r.text;
-			diagnostic.push(...r.diagnostic);
-		}
+			},
+			parser.allAstItems,
+			parser.includes,
+			prevIfBlocks,
+			fsPath,
+			text,
+			returnType,
+			options,
+			[...variantDocuments],
+		);
+
+		finalText = r.text;
+		diagnostic.push(...r.diagnostic);
 
 		if (options.runExpressionIndentationCheck) {
 			diagnostic.push(
@@ -421,26 +454,25 @@ export async function formatText(
 	}
 
 	let diagnostic: FileDiagnostic[] = [];
-	if (options.runBaseCheck) {
-		const r = await formatAstBaseItems(
-			{
-				...documentFormattingParams,
-				options: {
-					...documentFormattingParams.options,
-					wordWrapColumn,
-				},
+
+	const r = await formatAstBaseItems(
+		{
+			...documentFormattingParams,
+			options: {
+				...documentFormattingParams.options,
+				wordWrapColumn,
 			},
-			parser.allAstItems,
-			parser.includes,
-			prevIfBlocks,
-			fsPath,
-			text,
-			returnType,
-			options,
-			[...variantDocuments],
-		);
-		diagnostic.push(...r);
-	}
+		},
+		parser.allAstItems,
+		parser.includes,
+		prevIfBlocks,
+		fsPath,
+		text,
+		returnType,
+		options,
+		[...variantDocuments],
+	);
+	diagnostic.push(...r);
 
 	if (options.runExpressionIndentationCheck) {
 		const r = await formatExpressionIndentation(
@@ -601,6 +633,51 @@ const getDisabledMarcoRangeEdits = async (
 		}, Promise.resolve());
 	return results;
 };
+
+async function formatMultiLineMacros(
+	documentFormattingParams: CustomDocumentFormattingParams,
+	astItems: ASTBase[],
+	fsPath: string,
+	text: string,
+	multiLineRegions: Set<number>,
+	edits: FileDiagnostic[] = [],
+): Promise<FileDiagnostic[]> {
+	const splitDocument = text.split('\n');
+	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
+
+	splitDocument.forEach((text, line) => {
+		if (text.trimEnd().endsWith('\\') && !multiLineRegions.has(line)) {
+			const endTrimmed = text
+				.slice(0, text.lastIndexOf('\\') - 1)
+				.trimEnd();
+			const rangeToCover = Range.create(
+				Position.create(line, endTrimmed.length),
+				Position.create(line, text.length),
+			);
+
+			edits.push(
+				genFormattingDiagnostic(
+					FormattingIssues.REMOVE_MACRO_MULTILINE,
+					fsPath,
+					rangeToCover.start,
+					{
+						edit: TextEdit.del(rangeToCover),
+						codeActionTitle: 'Remove \\',
+					},
+					rangeToCover.end,
+				),
+			);
+		}
+	});
+
+	const rangeEdits = filterOnOffEdits(
+		formatOnOffMeta,
+		documentFormattingParams,
+		edits,
+	);
+
+	return rangeEdits;
+}
 
 async function formatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
