@@ -586,15 +586,18 @@ describe('Document formatting', () => {
 		});
 
 		test('Correct indentation in level 1', async () => {
-			const documentText = '/ {\n#include <>\n\tnode {};\n};';
+			const documentText =
+				'/ {\n\t/* foo */\n#include <>\n\tnode {};\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\t#include <>\n\n\tnode {};\n};');
+			expect(newText).toEqual(
+				'/ {\n/* foo */\n#include <>\n\n\tnode {};\n};',
+			);
 		});
 
 		test('Correct indentation in level 2', async () => {
 			const documentText = '/ {\n\tnode {\n#include <>\n\t};\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tnode {\n\t\t#include <>\n\t};\n};');
+			expect(newText).toEqual('/ {\n\tnode {\n#include <>\n\t};\n};');
 		});
 	});
 
