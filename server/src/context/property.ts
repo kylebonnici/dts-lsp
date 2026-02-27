@@ -25,7 +25,7 @@ import {
 	ContextIssues,
 	FileDiagnostic,
 	MacroRegistryItem,
-	NexusMapEnty as NexusMapEntry,
+	NexusMapEntry,
 	SearchableResult,
 } from '../types';
 import { DtcProperty } from '../ast/dtc/property';
@@ -35,19 +35,22 @@ import {
 	getDeepestAstNodeBefore,
 	getDeepestAstNodeInBetween,
 	positionAfter,
+	toRange,
 } from '../helpers';
+import type { ASTBase } from '../ast/base';
 import { LabelAssign } from '../ast/dtc/label';
-import { ASTBase } from '../ast/base';
-import { LabelRef } from '../ast/dtc/labelRef';
-import { NodePathRef } from '../ast/dtc/values/nodePath';
 import { NumberValue } from '../ast/dtc/values/number';
 import { Expression } from '../ast/cPreprocessors/expression';
+import { NodePathRef } from '../ast/dtc/values/nodePath';
+import { LabelRef } from '../ast/dtc/labelRef';
+import type { SerializedProperty, SerializedNexusMap } from '../types/index';
 import type { Node } from './node';
 
 export interface NexusMapping {
 	mappingValuesAst: (LabelRef | NodePathRef | NumberValue | Expression)[];
 	specifierSpace?: string;
 	target: Node;
+	cellCount: number;
 	mapItem?: NexusMapEntry;
 }
 export class Property {
@@ -167,7 +170,7 @@ export class Property {
 							.map((a) => a.toString())
 							.join(
 								' ',
-							)})](${`${m.mapItem!.mappingValues[0].uri}#L${
+							)})](${`${m.mapItem!.mappingValues[0].fsPath}#L${
 							m.mapItem!.mappingValues[0].firstToken.pos.line + 1
 						}`})`,
 					]),
@@ -187,5 +190,54 @@ export class Property {
 
 	toPrettyString(macros: Map<string, MacroRegistryItem>, level?: number) {
 		return this.ast.toPrettyString(macros, level);
+	}
+
+	serialize(
+		macros: Map<string, MacroRegistryItem>,
+		inScope: (ast: ASTBase) => boolean = () => true,
+	): SerializedProperty | undefined {
+		const p = [this, ...this.allReplaced].find((p) => inScope(p.ast));
+		if (!p) return;
+		return {
+			...p.ast.serialize(macros),
+			nodePath: this.parent.pathString,
+			replaces: p.allReplaced.map((r) => ({
+				range: toRange(r.ast),
+				url: r.ast.serializeURL,
+				values:
+					r.ast.values === undefined
+						? undefined
+						: (r.ast.values?.values.map(
+								(v) => v?.value?.serialize(macros) ?? null,
+							) ?? null),
+			})),
+			nexusMapEntry: p.nexusMapsTo.map((nexus) => {
+				return {
+					mappingValuesAst: nexus.mappingValuesAst.map((v) =>
+						v.serialize(macros),
+					),
+					cellCount: nexus.cellCount,
+					specifierSpace: nexus.specifierSpace,
+					target: nexus.target.pathString,
+					mapItem: nexus.mapItem
+						? ({
+								childCellCount: nexus.mapItem.childCellCount,
+								mappingValues: nexus.mapItem.mappingValues.map(
+									(v) => v.serialize(macros),
+								),
+								target: nexus.mapItem.node?.pathString,
+								targetAst:
+									nexus.mapItem.nodeAst?.serialize(macros),
+								parentCellCount: nexus.mapItem.parentCellCount,
+								parentValues: nexus.mapItem.parentValues?.map(
+									(v) => v.serialize(macros),
+								),
+								specifierSpace:
+									nexus.specifierSpace ?? 'interrupt',
+							} satisfies SerializedNexusMap)
+						: undefined,
+				};
+			}),
+		};
 	}
 }

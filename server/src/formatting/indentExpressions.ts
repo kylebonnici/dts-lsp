@@ -51,7 +51,7 @@ import {
 export async function formatExpressionIndentation(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
-	uri: string,
+	fsPath: string,
 	text: string,
 	returnType: 'File Diagnostics',
 	options: FormattingFlags,
@@ -59,7 +59,7 @@ export async function formatExpressionIndentation(
 export async function formatExpressionIndentation(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
-	uri: string,
+	fsPath: string,
 	text: string,
 	returnType: 'Both',
 	options: FormattingFlags,
@@ -67,7 +67,7 @@ export async function formatExpressionIndentation(
 export async function formatExpressionIndentation(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
-	uri: string,
+	fsPath: string,
 	text: string,
 	returnType: 'New Text',
 	options: FormattingFlags,
@@ -75,7 +75,7 @@ export async function formatExpressionIndentation(
 export async function formatExpressionIndentation(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
-	uri: string,
+	fsPath: string,
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics' | 'Both',
 	options: FormattingFlags,
@@ -91,7 +91,7 @@ export async function formatExpressionIndentation(
 		documentFormattingParams,
 		splitDocument,
 		astItems,
-		uri,
+		fsPath,
 		options,
 	);
 
@@ -102,7 +102,7 @@ export async function formatExpressionIndentation(
 	);
 
 	newText = applyEdits(
-		TextDocument.create(uri, 'devicetree', 0, text),
+		TextDocument.create(fsPath, 'devicetree', 0, text),
 		rangeEdits.flatMap((i) => i.raw.edit).filter((e) => !!e),
 	);
 
@@ -120,10 +120,10 @@ async function baseIndentExpression(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	documentText: string[],
 	astItems: ASTBase[],
-	uri: string,
+	fsPath: string,
 	options: FormattingFlags,
 ): Promise<FileDiagnostic[]> {
-	const astItemLevel = getAstItemLevel(astItems, uri);
+	const astItemLevel = getAstItemLevel(astItems, fsPath);
 
 	const result: FileDiagnostic[] = (
 		await Promise.all(
@@ -133,7 +133,7 @@ async function baseIndentExpression(
 						documentFormattingParams,
 						documentText,
 						base,
-						uri,
+						fsPath,
 						astItemLevel,
 						options,
 					),
@@ -148,7 +148,7 @@ const indentExpressionEdits = async (
 	documentFormattingParams: CustomDocumentFormattingParams,
 	documentText: string[],
 	astNode: ASTBase,
-	uri: string,
+	fsPath: string,
 	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
 	options: FormattingFlags,
 	level = 0,
@@ -168,7 +168,7 @@ const indentExpressionEdits = async (
 			documentFormattingParams,
 			documentText,
 			astNode,
-			uri,
+			fsPath,
 			level,
 			options,
 			computeLevel,
@@ -190,7 +190,7 @@ const formatDtcNode = async (
 	documentFormattingParams: CustomDocumentFormattingParams,
 	documentText: string[],
 	node: DtcBaseNode,
-	uri: string,
+	fsPath: string,
 	level: number,
 	options: FormattingFlags,
 	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
@@ -205,7 +205,7 @@ const formatDtcNode = async (
 						documentFormattingParams,
 						documentText,
 						c,
-						uri,
+						fsPath,
 						computeLevel,
 						options,
 						level + 1,
@@ -378,7 +378,7 @@ const formatCMacroCallParam = (
 	return [
 		genFormattingDiagnostic(
 			FormattingIssues.WRONG_INDENTATION,
-			param.uri,
+			param.fsPath,
 			start,
 			{
 				edit,
@@ -526,7 +526,7 @@ const formatExpression = (
 	return [
 		genFormattingDiagnostic(
 			FormattingIssues.WRONG_INDENTATION,
-			expression.uri,
+			expression.fsPath,
 			start,
 			{
 				edit,

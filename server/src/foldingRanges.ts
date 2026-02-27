@@ -120,9 +120,12 @@ const toFoldingRange = (ast: ASTBase): FoldingRange[] => {
 	return [];
 };
 
-export function getFoldingRanges(uri: string, parser: Parser): FoldingRange[] {
+export function getFoldingRanges(
+	fsPath: string,
+	parser: Parser,
+): FoldingRange[] {
 	return parser.allAstItems
 		.flatMap((ast) => [ast, ...ast.allDescendants])
-		.filter((n) => isPathEqual(n.uri, uri))
+		.filter((n) => isPathEqual(n.fsPath, fsPath))
 		.flatMap(toFoldingRange);
 }

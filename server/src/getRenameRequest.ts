@@ -24,14 +24,14 @@ import {
 import { ContextAware } from './runtimeEvaluator';
 import { SearchableResult } from './types';
 import { Node } from './context/node';
-import { DtcChildNode, NodeName } from './ast/dtc/node';
+import { DtcChildNode, DtcRefNode, NodeName } from './ast/dtc/node';
 import { Label, LabelAssign } from './ast/dtc/label';
 import { LabelRef } from './ast/dtc/labelRef';
 import {
-	fileURLToPath,
-	isVirtualUri,
+	fileURIToFsPath,
+	isVirtualFsPath,
 	nodeFinder,
-	pathToFileURL,
+	pathToFileURI,
 	toRange,
 } from './helpers';
 import { DtcProperty, PropertyName } from './ast/dtc/property';
@@ -76,7 +76,7 @@ function getPropertyReferences(
 					dtc.propertyName
 				) {
 					return Location.create(
-						pathToFileURL(dtc.uri),
+						pathToFileURI(dtc.fsPath),
 						toRange(dtc.propertyName),
 					);
 				}
@@ -128,19 +128,18 @@ function getNodeLabelRename(
 
 	const gentItem = (node: Node) => {
 		return [
-			...(
-				node.definitions.filter(
-					(d) => d instanceof DtcChildNode,
-				) as DtcChildNode[]
-			).flatMap((d) => d.labels.map((l) => l.label)),
-			...node.referencedBy.flatMap((d) => d.labels.map((l) => l.label)),
+			...node.implementations
+				.filter(
+					(d) => d instanceof DtcChildNode || d instanceof DtcRefNode,
+				)
+				.flatMap((d) => d.labels.map((l) => l.label)),
 			...node.linkedRefLabels.map((l) => l.label),
 		]
 			.filter((l) => l?.value === labelValue)
 			.map((dtc) => {
 				if (dtc) {
 					return Location.create(
-						pathToFileURL(dtc.uri),
+						pathToFileURI(dtc.fsPath),
 						toRange(dtc),
 					);
 				}
@@ -206,13 +205,13 @@ function getNodeNameRename(result: SearchableResult | undefined): Location[] {
 			.map((dtc) => {
 				if (dtc instanceof DtcChildNode && dtc.name) {
 					return Location.create(
-						pathToFileURL(dtc.uri),
+						pathToFileURI(dtc.fsPath),
 						toRange(dtc.name),
 					);
 				}
 				if (dtc instanceof NodeName) {
 					return Location.create(
-						pathToFileURL(dtc.uri),
+						pathToFileURI(dtc.fsPath),
 						toRange(dtc),
 					);
 				}
@@ -237,7 +236,7 @@ function getNodeNameRename(result: SearchableResult | undefined): Location[] {
 					strRange.end.character -= 1 + endOfset;
 
 					return Location.create(
-						pathToFileURL(dtc.values.values[0].uri),
+						pathToFileURI(dtc.values.values[0].fsPath),
 						strRange,
 					);
 				}
@@ -255,7 +254,7 @@ function getNodeNameRename(result: SearchableResult | undefined): Location[] {
 				return [
 					...gentItem(result.ast.linksTo),
 					Location.create(
-						pathToFileURL(result.ast.uri),
+						pathToFileURI(result.ast.fsPath),
 						toRange(result.ast),
 					),
 				];
@@ -315,14 +314,14 @@ export async function getPrepareRenameRequest(
 	if (
 		locationResult.some((r) =>
 			context?.settings.lockRenameEdits?.some((l) =>
-				fileURLToPath(r.uri).startsWith(l),
+				fileURIToFsPath(r.uri).startsWith(l),
 			),
 		)
 	) {
 		throw new Error('Path is locked by user setting "lockRenameEdits"');
 	}
 
-	if (locationResult.some((r) => isVirtualUri(r.uri))) {
+	if (locationResult.some((r) => isVirtualFsPath(r.uri))) {
 		throw new Error('Item was generated using a MACRO.');
 	}
 

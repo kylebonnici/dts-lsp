@@ -58,13 +58,19 @@ const isFormattingDisabledAt = (
 	);
 };
 
-const findAst = async (token: Token, uri: string, fileRootAsts: ASTBase[]) => {
+const findAst = async (
+	token: Token,
+	fsPath: string,
+	fileRootAsts: ASTBase[],
+) => {
 	const pos = Position.create(token.pos.line, token.pos.col);
-	const parent = fileRootAsts.find((ast) => positionInBetween(ast, uri, pos));
+	const parent = fileRootAsts.find((ast) =>
+		positionInBetween(ast, fsPath, pos),
+	);
 
 	if (!parent) return;
 
-	return getDeepestAstNodeInBetween(parent, uri, pos);
+	return getDeepestAstNodeInBetween(parent, fsPath, pos);
 };
 
 export const pairFormatOnOff = (
@@ -151,7 +157,7 @@ export const filterOnOffEdits = (
 };
 
 export const getAstItemLevel =
-	(fileRootAsts: ASTBase[], uri: string) =>
+	(fileRootAsts: ASTBase[], fsPath: string) =>
 	async (astNode: ASTBase): Promise<LevelMeta | undefined> => {
 		const rootItem = fileRootAsts.filter(
 			(ast) =>
@@ -161,7 +167,7 @@ export const getAstItemLevel =
 				!(ast instanceof IfDefineBlock) &&
 				!(ast instanceof IfElIfBlock),
 		);
-		const parentAst = await findAst(astNode.firstToken, uri, rootItem);
+		const parentAst = await findAst(astNode.firstToken, fsPath, rootItem);
 
 		if (
 			!parentAst ||
@@ -174,7 +180,7 @@ export const getAstItemLevel =
 		}
 
 		const closeAst = getClosestAstNode(parentAst);
-		const level = countParent(uri, closeAst);
+		const level = countParent(fsPath, closeAst);
 		return {
 			level,
 			inAst: parentAst,

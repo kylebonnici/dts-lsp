@@ -31,11 +31,11 @@ import {
 } from './types';
 
 const syntaxIssueToCodeAction = (
-	firstToken: Omit<Token, 'prevToken' | 'nextToken' | 'uri'>,
-	lastToken: Omit<Token, 'prevToken' | 'nextToken' | 'uri'>,
+	firstToken: Omit<Token, 'prevToken' | 'nextToken' | 'fsPath'>,
+	lastToken: Omit<Token, 'prevToken' | 'nextToken' | 'fsPath'>,
 	issue: SyntaxIssue,
 	diagnostic: Diagnostic,
-	uri: string,
+	fsPath: string,
 ): CodeAction[] | undefined => {
 	switch (issue) {
 		case SyntaxIssue.END_STATEMENT:
@@ -47,7 +47,7 @@ const syntaxIssueToCodeAction = (
 					isPreferred: true,
 					edit: {
 						changes: {
-							[uri]: [
+							[fsPath]: [
 								TextEdit.insert(
 									Position.create(
 										diagnostic.range.end.line,
@@ -69,7 +69,7 @@ const syntaxIssueToCodeAction = (
 					isPreferred: true,
 					edit: {
 						changes: {
-							[uri]: [
+							[fsPath]: [
 								TextEdit.insert(
 									Position.create(
 										diagnostic.range.end.line,
@@ -91,7 +91,7 @@ const syntaxIssueToCodeAction = (
 					isPreferred: true,
 					edit: {
 						changes: {
-							[uri]: [
+							[fsPath]: [
 								TextEdit.replace(
 									Range.create(
 										Position.create(
@@ -119,7 +119,7 @@ const syntaxIssueToCodeAction = (
 					isPreferred: true,
 					edit: {
 						changes: {
-							[uri]: [
+							[fsPath]: [
 								TextEdit.insert(
 									Position.create(
 										diagnostic.range.end.line,
@@ -141,7 +141,7 @@ const syntaxIssueToCodeAction = (
 					isPreferred: true,
 					edit: {
 						changes: {
-							[uri]: [
+							[fsPath]: [
 								TextEdit.insert(
 									Position.create(
 										diagnostic.range.end.line,
@@ -163,7 +163,7 @@ const syntaxIssueToCodeAction = (
 					isPreferred: true,
 					edit: {
 						changes: {
-							[uri]: [
+							[fsPath]: [
 								TextEdit.insert(
 									Position.create(
 										diagnostic.range.end.line,
@@ -185,7 +185,7 @@ const syntaxIssueToCodeAction = (
 					isPreferred: true,
 					edit: {
 						changes: {
-							[uri]: [
+							[fsPath]: [
 								TextEdit.insert(
 									Position.create(
 										diagnostic.range.end.line,
@@ -207,7 +207,7 @@ const syntaxIssueToCodeAction = (
 					isPreferred: true,
 					edit: {
 						changes: {
-							[uri]: [TextEdit.del(diagnostic.range)],
+							[fsPath]: [TextEdit.del(diagnostic.range)],
 						},
 					},
 				},
@@ -221,7 +221,7 @@ const syntaxIssueToCodeAction = (
 					isPreferred: true,
 					edit: {
 						changes: {
-							[uri]: [
+							[fsPath]: [
 								TextEdit.replace(
 									diagnostic.range,
 									'/delete-node/',
@@ -240,7 +240,7 @@ const syntaxIssueToCodeAction = (
 					isPreferred: true,
 					edit: {
 						changes: {
-							[uri]: [
+							[fsPath]: [
 								TextEdit.replace(
 									diagnostic.range,
 									'/delete-property/',
@@ -259,7 +259,7 @@ const syntaxIssueToCodeAction = (
 					isPreferred: true,
 					edit: {
 						changes: {
-							[uri]: [
+							[fsPath]: [
 								TextEdit.replace(
 									diagnostic.range,
 									'/delete-property/',
@@ -275,7 +275,7 @@ const syntaxIssueToCodeAction = (
 					isPreferred: true,
 					edit: {
 						changes: {
-							[uri]: [
+							[fsPath]: [
 								TextEdit.replace(
 									diagnostic.range,
 									'/delete-node/',
@@ -294,7 +294,7 @@ const syntaxIssueToCodeAction = (
 					isPreferred: true,
 					edit: {
 						changes: {
-							[uri]: [
+							[fsPath]: [
 								TextEdit.insert(
 									Position.create(
 										diagnostic.range.end.line,
@@ -315,7 +315,7 @@ const syntaxIssueToCodeAction = (
 const standardTypeIssueToCodeAction = (
 	issue: StandardTypeIssue,
 	diagnostic: Diagnostic,
-	uri: string,
+	fsPath: string,
 	edit?: TextEdit[],
 	codeActionTitle?: string,
 ): CodeAction[] | undefined => {
@@ -336,7 +336,7 @@ const standardTypeIssueToCodeAction = (
 					isPreferred: true,
 					edit: {
 						changes: {
-							[uri]: edit,
+							[fsPath]: edit,
 						},
 					},
 				},
@@ -350,7 +350,7 @@ const standardTypeIssueToCodeAction = (
 					isPreferred: true,
 					edit: {
 						changes: {
-							[uri]: edit,
+							[fsPath]: edit,
 						},
 					},
 				},
@@ -364,7 +364,7 @@ const standardTypeIssueToCodeAction = (
 					isPreferred: true,
 					edit: {
 						changes: {
-							[uri]: edit,
+							[fsPath]: edit,
 						},
 					},
 				},
@@ -378,7 +378,7 @@ const standardTypeIssueToCodeAction = (
 					isPreferred: true,
 					edit: {
 						changes: {
-							[uri]: edit,
+							[fsPath]: edit,
 						},
 					},
 				},
@@ -394,7 +394,7 @@ const standardTypeIssueToCodeAction = (
 							isPreferred: true,
 							edit: {
 								changes: {
-									[uri]: edit,
+									[fsPath]: edit,
 								},
 							},
 						},
@@ -408,7 +408,7 @@ const standardTypeIssueToCodeAction = (
 
 const formattingIssueToCodeAction = (
 	diagnostic: Diagnostic,
-	uri: string,
+	fsPath: string,
 	edit?: TextEdit[],
 	codeActionTitle?: string,
 ): CodeAction[] | undefined => {
@@ -422,7 +422,7 @@ const formattingIssueToCodeAction = (
 			isPreferred: true,
 			edit: {
 				changes: {
-					[uri]: edit,
+					[fsPath]: edit,
 				},
 			},
 		},

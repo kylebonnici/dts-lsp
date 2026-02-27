@@ -14,7 +14,13 @@
  * limitations under the License.
  */
 
-import { Diagnostic, Range } from 'vscode-languageserver-types';
+import { Diagnostic, Position, Range } from 'vscode-languageserver-types';
+
+export type SerializedAnyInternalValue =
+	| SerializedLabelRef
+	| SerializedNodePath
+	| SerializedNumberValue
+	| SerializedExpression;
 
 export type BindingType = 'Zephyr' | 'DevicetreeOrg';
 
@@ -79,7 +85,7 @@ export interface ContextListItem {
 }
 
 export interface File {
-	file: string;
+	fsPath: string;
 	includes: File[];
 }
 
@@ -92,140 +98,114 @@ export type PropertyType =
 	| 'NUMBER_VALUE'
 	| 'EXPRESSION';
 
-export interface SerializableASTBase {
-	readonly uri: string;
+export interface SerializedASTBase {
+	readonly url: string;
 	readonly range: Range;
 	readonly issues: Diagnostic[];
 }
 
-export interface SerializableStringValue extends SerializableASTBase {
+export interface SerializedStringValue extends SerializedASTBase {
 	readonly type: 'STRING';
 	readonly value: string;
 }
 
-export interface SerializableByteString extends SerializableASTBase {
+export interface SerializedByteString extends SerializedASTBase {
 	readonly type: 'BYTESTRING';
-	readonly values: ({
-		value: string;
-		range: Range;
-		evaluated: number;
-	} | null)[];
+	readonly values: (SerializedNumberValue | SerializedExpression | null)[];
 }
 
-export interface SerializableArrayValue extends SerializableASTBase {
+export interface SerializedArrayValue extends SerializedASTBase {
 	readonly type: 'ARRAY_VALUE';
-	readonly value: (
-		| SerializableLabelRef
-		| SerializableNodePath
-		| SerializableNumberValue
-		| SerializableExpression
-		| null
-	)[];
+	readonly value: (SerializedAnyInternalValue | null)[];
 }
 
-export interface SerializableLabelRef extends SerializableASTBase {
+export interface SerializedLabelRef extends SerializedASTBase {
 	readonly type: 'LABEL_REF';
 	readonly label: string | null;
 	readonly nodePath: string | null;
 }
 
-export interface SerializableNodePath extends SerializableASTBase {
+export interface SerializedNodePath extends SerializedASTBase {
 	readonly type: 'NODE_PATH';
 	readonly nodePath: string | null;
 }
 
-export interface SerializableExpressionBase extends SerializableASTBase {
-	readonly value: string | null;
+export interface SerializedExpressionBase extends SerializedASTBase {
+	readonly value: string;
 	readonly evaluated: number | string;
 }
 
-export interface SerializableNumberValue extends SerializableExpressionBase {
+export interface SerializedNumberValue extends SerializedExpressionBase {
 	readonly type: 'NUMBER_VALUE';
 	readonly evaluated: number;
 }
 
-export interface SerializableExpression extends SerializableExpressionBase {
+export interface SerializedExpression extends SerializedExpressionBase {
 	readonly type: 'EXPRESSION';
 }
 
-export type SerializablePropertyValue =
-	| SerializableStringValue
-	| SerializableByteString
-	| SerializableArrayValue
-	| SerializableLabelRef
-	| SerializableNodePath
-	| SerializableExpression
-	| SerializableNumberValue
+export type SerializedPropertyValue =
+	| SerializedStringValue
+	| SerializedByteString
+	| SerializedArrayValue
+	| SerializedLabelRef
+	| SerializedNodePath
+	| SerializedExpression
+	| SerializedNumberValue
 	| null;
 
-export interface SerializablePropertyName extends SerializableASTBase {
+export interface SerializedPropertyName extends SerializedASTBase {
 	readonly value: string;
 }
 
-export type SerializableNexusMapEnty = {
-	mappingValuesAst: (
-		| SerializableLabelRef
-		| SerializableNodePath
-		| SerializableNumberValue
-		| SerializableExpression
-	)[];
+export type SerializedNexusMapEntry = {
+	mappingValuesAst: SerializedAnyInternalValue[];
 	specifierSpace?: string;
 	target: string;
-	mapItem?: {
-		mappingValues: (
-			| SerializableLabelRef
-			| SerializableNodePath
-			| SerializableNumberValue
-			| SerializableExpression
-		)[];
-		target: string;
-		parentValues: (
-			| SerializableLabelRef
-			| SerializableNodePath
-			| SerializableNumberValue
-			| SerializableExpression
-		)[];
-	};
+	cellCount: number;
+	mapItem?: SerializedNexusMap;
 };
 
-export interface SerializableProperty extends SerializableASTBase {
-	readonly nexusMapEnty: SerializableNexusMapEnty[];
-	readonly name: SerializablePropertyName | null;
-	readonly values: SerializablePropertyValue[] | null;
+export interface SerializedProperty extends SerializedASTBase {
+	readonly replaces: (Omit<SerializedASTBase, 'issues'> &
+		Pick<SerializedProperty, 'values'>)[];
+	readonly nexusMapEntry: SerializedNexusMapEntry[];
+	readonly name: SerializedPropertyName;
+	readonly values?: SerializedPropertyValue[] | null;
+	readonly nodePath: string;
 }
 
-export type SerializableDtcProperty = Omit<
-	SerializableProperty,
-	'nexusMapEnty'
+export type SerializedDtcProperty = Omit<
+	SerializedProperty,
+	'nexusMapEntry' | 'nodePath' | 'replaces'
 >;
 
 export type NodeType = 'ROOT' | 'REF' | 'CHILD';
 
-export interface SerializableNodeAddress extends SerializableASTBase {
+export interface SerializedNodeAddress extends SerializedASTBase {
 	readonly address: number[];
 }
 
-export interface SerializableFullNodeName extends SerializableASTBase {
+export interface SerializedFullNodeName extends SerializedASTBase {
 	readonly fullName: string;
-	readonly name: SerializableNodeName;
-	readonly address: SerializableNodeAddress[] | null;
+	readonly name: SerializedNodeName;
+	readonly address: SerializedNodeAddress[] | null;
 }
 
-export interface SerializableNodeName extends SerializableASTBase {
+export interface SerializedNodeName extends SerializedASTBase {
 	readonly name: string;
 }
 
-export enum BindingPropertyType {
-	EMPTY = 'EMPTY',
-	U32 = 'U32',
-	U64 = 'U64',
-	STRING = 'STRING',
-	PROP_ENCODED_ARRAY = 'PROP_ENCODED_ARRAY',
-	STRINGLIST = 'STRINGLIST',
-	BYTESTRING = 'BYTESTRING',
-	UNKNOWN = 'UNKNOWN',
-	ANY = 'ANY',
-}
+export type BindingPropertyType =
+	| 'EMPTY'
+	| 'U32'
+	| 'U64'
+	| 'STRING'
+	| 'PROP_ENCODED_ARRAY'
+	| 'STRINGLIST'
+	| 'BYTESTRING'
+	| 'UNKNOWN'
+	| 'ANY';
 
 export type TypeConfig = { types: BindingPropertyType[] };
 
@@ -251,31 +231,47 @@ export interface SerializedBinding {
 	compatible?: string;
 	extends: string[];
 	properties?: SerializedBindingProperty[];
+	zephyrBinding?: ZephyrBindingYml;
 }
 
-export type SerializableNodeBase =
-	| SerializableNodeRef
-	| SerializableRootNode
-	| SerializableChildNode;
+export type SerializedNodeBase =
+	| SerializedNodeRef
+	| SerializedRootNode
+	| SerializedChildNode;
 
-export interface SerializableNodeRef extends SerializableASTBase {
+export interface SerializedASTLabel {
+	readonly value: string;
+	readonly url: string;
+	readonly range: Range;
+	readonly issues: Diagnostic[];
+}
+
+export interface SerializedNodeRef extends SerializedASTBase {
 	readonly type: 'REF';
-	readonly name: SerializableLabelRef | SerializableNodePath | null;
-	readonly properties: SerializableDtcProperty[];
-	readonly nodes: SerializableNodeBase[];
+	readonly name: SerializedLabelRef | SerializedNodePath | null;
+	readonly properties: SerializedDtcProperty[];
+	readonly nodes: SerializedNodeBase[];
+	readonly labels: SerializedASTLabel[];
+	readonly scopeOpen?: Position;
+	readonly scopeClose?: Position;
 }
 
-export interface SerializableRootNode extends SerializableASTBase {
+export interface SerializedRootNode extends SerializedASTBase {
 	readonly type: 'ROOT';
-	readonly properties: SerializableDtcProperty[];
-	readonly nodes: SerializableNodeBase[];
+	readonly properties: SerializedDtcProperty[];
+	readonly nodes: SerializedNodeBase[];
+	readonly scopeOpen?: Position;
+	readonly scopeClose?: Position;
 }
 
-export interface SerializableChildNode extends SerializableASTBase {
-	readonly name: SerializableFullNodeName | null;
+export interface SerializedChildNode extends SerializedASTBase {
+	readonly name: SerializedFullNodeName | null;
 	readonly type: 'CHILD';
-	readonly properties: SerializableDtcProperty[];
-	readonly nodes: SerializableNodeBase[];
+	readonly properties: SerializedDtcProperty[];
+	readonly nodes: SerializedNodeBase[];
+	readonly labels: SerializedASTLabel[];
+	readonly scopeOpen?: Position;
+	readonly scopeClose?: Position;
 }
 
 type SerializedMappedReg = {
@@ -287,16 +283,19 @@ type SerializedMappedReg = {
 	inMappingRange?: boolean;
 };
 
-export type InterruptControlerSerializedMapping = {
-	cells: (SerializableNumberValue | SerializableExpression)[];
+export type InterruptControllerSerializedMapping = {
+	cells: (SerializedNumberValue | SerializedExpression)[];
 	path: string;
-	property: SerializableDtcProperty;
+	property: SerializedDtcProperty;
+	specifierSpace?: string;
 };
 
-export type SerializableSpecifierNexusMeta = {
-	cells: (SerializableNumberValue | SerializableExpression)[];
+export type SerializedSpecifierNexusMeta = {
+	cells: (SerializedNumberValue | SerializedExpression)[];
 	path: string;
-	property: SerializableDtcProperty;
+	property: SerializedDtcProperty;
+	propertyNodePath: string;
+	specifierSpace: string;
 };
 
 export type SerializedNode = {
@@ -304,15 +303,27 @@ export type SerializedNode = {
 	issues: Diagnostic[];
 	path: string;
 	name: string;
+	fullName: string;
 	disabled: boolean;
-	nodes: SerializableNodeBase[];
-	properties: SerializableProperty[];
-	childNodes: SerializedNode[];
-	reg?: SerializedMappedReg[];
 	labels: string[];
-	interruptControllerMappings: InterruptControlerSerializedMapping[];
-	specifierNexusMappings: SerializableSpecifierNexusMeta[];
+	nodes: SerializedNodeBase[];
+	properties: SerializedProperty[];
+	childNodes: string[];
+	reg?: SerializedMappedReg[];
+	interruptControllerMappings: InterruptControllerSerializedMapping[];
+	specifierNexusMappings: SerializedSpecifierNexusMeta[];
+	nexusMaps: SerializedNexusMap[];
 };
+
+export interface SerializedNexusMap {
+	childCellCount: number;
+	mappingValues: SerializedAnyInternalValue[];
+	target?: string;
+	targetAst?: SerializedAnyInternalValue;
+	parentCellCount?: number;
+	parentValues?: SerializedAnyInternalValue[];
+	specifierSpace: string;
+}
 
 export type Actions = ClipboardActions;
 
@@ -357,4 +368,71 @@ export interface TreeNode {
 export interface DomainTree {
 	name: string;
 	children: TreeNode[];
+}
+
+interface BlockAllowList {
+	'property-blocklist'?: string[];
+	'property-allowlist'?: string[];
+}
+
+export interface ChildNodeInclude extends BlockAllowList {
+	'child-binding'?: ChildNodeInclude;
+}
+
+interface Include extends BlockAllowList {
+	name: string;
+	'child-binding'?: ChildNodeInclude;
+}
+
+export type ZephyrPropertyType =
+	| 'string'
+	| 'int'
+	| 'boolean'
+	| 'array'
+	| 'uint8-array'
+	| 'string-array'
+	| 'phandle'
+	| 'phandles'
+	| 'phandle-array'
+	| 'path'
+	| 'compound';
+
+export type CellSpecifier = `${string}-cells`;
+
+export type ZephyrBindingsProperty = {
+	name: string;
+	required?: boolean;
+	type?: ZephyrPropertyType;
+	deprecated?: false;
+	default?: string | number | (string | number)[];
+	description?: string;
+	enum?: (string | number)[];
+	const?: string | number | (string | number)[];
+	'specifier-space'?: string;
+};
+export interface ZephyrBindingYml {
+	filePath: string;
+	include: Include[];
+	rawInclude: {
+		name: string;
+		'property-blocklist'?: string[];
+		'property-allowlist'?: string[];
+	}[];
+	description?: string;
+	compatible?: string;
+	'child-binding'?: ZephyrBindingYml;
+	bus?: string[];
+	'on-bus'?: string;
+	properties?: {
+		[key: string]: ZephyrBindingsProperty;
+	};
+	[key: CellSpecifier]: string[];
+	extends?: string[]; // our entry to collaps include
+	isChildBinding: boolean;
+}
+
+export interface PositionScopeInformation {
+	inNode: boolean;
+	inScope: Record<string, SerializedNode>;
+	parentNode: string;
 }

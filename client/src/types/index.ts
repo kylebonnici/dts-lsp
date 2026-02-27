@@ -20,12 +20,17 @@ import type {
 	EvaluatedMacro,
 	IntegrationSettings,
 	LocationResult,
+	PositionScopeInformation,
 	ResolvedSettings,
 	SerializedNode,
+	ZephyrBindingYml,
 } from 'devicetree-language-server-types';
 import {
 	Disposable,
 	TextDocumentPositionParams,
+	DocumentFormattingParams,
+	DocumentRangeFormattingParams,
+	TextEdit,
 } from 'vscode-languageclient/node';
 
 export interface IDeviceTreeAPI {
@@ -40,6 +45,11 @@ export interface IDeviceTreeAPI {
 		textDocumentPositionParams: TextDocumentPositionParams,
 	): Promise<LocationResult>;
 	getActiveContext(): Promise<ContextListItem | undefined>;
+	getZephyrTypeBindings(id: string): Promise<ZephyrBindingYml[] | undefined>;
+	getMacroNames(id: string): Promise<string[] | undefined>;
+	getLocationScopedInformation(
+		event: TextDocumentPositionParams & { id: string },
+	): Promise<PositionScopeInformation | undefined>;
 	evaluateMacros(macros: string[], ctxId: string): Promise<EvaluatedMacro[]>;
 	copyZephyrCMacroIdentifier(
 		textDocumentPositionParams: TextDocumentPositionParams,
@@ -47,14 +57,24 @@ export interface IDeviceTreeAPI {
 	requestContext(ctx: Context): Promise<ContextListItem>;
 	removeContext(id: string, name: string): Promise<void>;
 	compiledOutput(id?: string): Promise<string | undefined>;
-	serializedContext(id: string): Promise<SerializedNode | undefined>;
+	serializedContext(
+		id: string,
+	): Promise<Record<string, SerializedNode> | undefined>;
+	formatTextEdits(
+		event: (DocumentFormattingParams | DocumentRangeFormattingParams) & {
+			edits: TextEdit[];
+			text?: string;
+		},
+	): Promise<TextEdit>;
 
 	onActiveContextChange(
 		listener: (ctx: ContextListItem | undefined) => void,
 	): Disposable;
 	onActiveContextStable(listener: (ctx: ContextListItem) => void): Disposable;
+	onActiveContextBusy(listener: (id: string) => void): Disposable;
 	onActivePath(listener: (result: LocationResult) => void): Disposable;
 	onContextStable(listener: (ctx: ContextListItem) => void): Disposable;
+	onContextBusy(listener: (id: string) => void): Disposable;
 	onContextDeleted(listener: (ctx: ContextListItem) => void): Disposable;
 	onContextCreated(listener: (ctx: ContextListItem) => void): Disposable;
 	onSettingsChanged(

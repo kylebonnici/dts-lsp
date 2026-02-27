@@ -26,16 +26,17 @@ import {
 	createTokenIndex,
 	getTokenModifiers,
 	getTokenTypes,
+	toPosition,
 } from '../../helpers';
 import { Node } from '../../context/node';
 import { Keyword } from '../keyword';
 import { Include } from '../cPreprocessors/include';
 import {
-	SerializableNodeAddress,
-	SerializableFullNodeName,
-	SerializableChildNode,
-	SerializableNodeRef as SerializableRefNode,
-	SerializableRootNode,
+	SerializedNodeAddress,
+	SerializedFullNodeName,
+	SerializedChildNode,
+	SerializedNodeRef as SerializableRefNode,
+	SerializedRootNode,
 } from '../../types/index';
 import { DtcProperty } from './property';
 import { DeleteNode } from './deleteNode';
@@ -103,8 +104,14 @@ export class DtcRootNode extends DtcBaseNode {
 		return this.children.filter((child) => child instanceof DtcProperty);
 	}
 
+	#name: NodeName | undefined;
 	get name() {
-		return new NodeName('/', createTokenIndex(this.firstToken));
+		this.#name ??= new NodeName('/', createTokenIndex(this.firstToken));
+		return this.#name;
+	}
+
+	get identifierAst() {
+		return this.name;
 	}
 
 	get deleteProperties() {
@@ -121,14 +128,16 @@ export class DtcRootNode extends DtcBaseNode {
 		return '/';
 	}
 
-	serialize(macros: Map<string, MacroRegistryItem>): SerializableRootNode {
+	serialize(macros: Map<string, MacroRegistryItem>): SerializedRootNode {
 		return {
 			type: 'ROOT',
 			properties: this.properties.map((p) => p.serialize(macros)),
 			nodes: this.nodes.map((n) => n.serialize(macros)),
-			uri: this.serializeUri,
+			url: this.serializeURL,
 			range: this.range,
 			issues: this.serializeIssues,
+			scopeOpen: this.openScope && toPosition(this.openScope),
+			scopeClose: this.closeScope && toPosition(this.closeScope, false),
 		};
 	}
 }
@@ -152,6 +161,10 @@ export class DtcRefNode extends DtcBaseNode {
 		return [...this.issues, ...(this.reference?.issues ?? [])].map((i) =>
 			i(),
 		);
+	}
+
+	get identifierAst() {
+		return this.reference;
 	}
 
 	set reference(reference: LabelRef | NodePathRef | null) {
@@ -205,12 +218,15 @@ export class DtcRefNode extends DtcBaseNode {
 	serialize(macros: Map<string, MacroRegistryItem>): SerializableRefNode {
 		return {
 			type: 'REF',
+			labels: this.labels.map((l) => l.serialize(macros)),
 			name: this.reference?.serialize() ?? null,
 			properties: this.properties.map((p) => p.serialize(macros)),
 			nodes: this.nodes.map((n) => n.serialize(macros)),
-			uri: this.serializeUri,
+			url: this.serializeURL,
 			range: this.range,
 			issues: this.serializeIssues,
+			scopeOpen: this.openScope && toPosition(this.openScope),
+			scopeClose: this.closeScope && toPosition(this.closeScope, false),
 		};
 	}
 }
@@ -235,6 +251,10 @@ export class DtcChildNode extends DtcBaseNode {
 		labels.forEach((label) => {
 			this.addChild(label);
 		});
+	}
+
+	get identifierAst() {
+		return this.name;
 	}
 
 	get serializeIssues() {
@@ -272,15 +292,18 @@ export class DtcChildNode extends DtcBaseNode {
 		return this.children.filter((child) => child instanceof DeleteProperty);
 	}
 
-	serialize(macros: Map<string, MacroRegistryItem>): SerializableChildNode {
+	serialize(macros: Map<string, MacroRegistryItem>): SerializedChildNode {
 		return {
 			type: 'CHILD',
+			labels: this.labels.map((l) => l.serialize(macros)),
 			name: this.name?.serialize() ?? null,
 			properties: this.properties.map((p) => p.serialize(macros)),
 			nodes: this.nodes.map((n) => n.serialize(macros)),
-			uri: this.serializeUri,
+			url: this.serializeURL,
 			range: this.range,
 			issues: this.serializeIssues,
+			scopeOpen: this.openScope && toPosition(this.openScope),
+			scopeClose: this.closeScope && toPosition(this.closeScope, false),
 		};
 	}
 }
@@ -303,10 +326,10 @@ export class NodeAddress extends ASTBase {
 		);
 	}
 
-	serialize(): SerializableNodeAddress {
+	serialize(): SerializedNodeAddress {
 		return {
 			address: this.address,
-			uri: this.serializeUri,
+			url: this.serializeURL,
 			range: this.range,
 			issues: this.serializeIssues,
 		};
@@ -396,13 +419,13 @@ export class NodeName extends ASTBase {
 		].map((i) => i());
 	}
 
-	serialize(): SerializableFullNodeName {
+	serialize(): SerializedFullNodeName {
 		const firstToken = this.firstToken;
 		return {
 			fullName: this.toString(),
 			name: {
 				name: this.name,
-				uri: this.serializeUri,
+				url: this.serializeURL,
 				range: Range.create(
 					Position.create(firstToken.pos.line, firstToken.pos.col),
 					Position.create(firstToken.pos.line, firstToken.pos.colEnd),
@@ -410,7 +433,7 @@ export class NodeName extends ASTBase {
 				issues: this.serializeIssues,
 			},
 			address: this.address?.map((add) => add.serialize()) ?? null,
-			uri: this.serializeUri,
+			url: this.serializeURL,
 			range: this.range,
 			issues: this.serializeIssues,
 		};

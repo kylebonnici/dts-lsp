@@ -17,7 +17,7 @@
 import { SymbolKind } from 'vscode-languageserver';
 import { Expression } from '../../cPreprocessors/expression';
 import { MacroRegistryItem, TokenIndexes } from '../../../types';
-import { SerializableNumberValue } from '../../../types/index';
+import { SerializedNumberValue } from '../../../types/index';
 
 export class NumberValue extends Expression {
 	constructor(
@@ -67,12 +67,12 @@ export class NumberValue extends Expression {
 		} */`;
 	}
 
-	serialize(): SerializableNumberValue {
+	serialize(): SerializedNumberValue {
 		return {
 			type: 'NUMBER_VALUE',
 			value: `${this.radix === 16 ? '0x' : ''}${this.toString()}`,
 			evaluated: this.value,
-			uri: this.serializeUri,
+			url: this.serializeURL,
 			range: this.range,
 			issues: this.serializeIssues,
 		};

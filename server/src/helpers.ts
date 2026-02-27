@@ -118,7 +118,7 @@ export const positionAfter = (
 	file: string,
 	position: Position,
 ): boolean => {
-	if (!isPathEqual(token.uri, file)) return false;
+	if (!isPathEqual(token.fsPath, file)) return false;
 
 	if (position.line < token.pos.line) return false;
 
@@ -132,7 +132,7 @@ export const positionBefore = (
 	file: string,
 	position: Position,
 ): boolean => {
-	if (!isPathEqual(token.uri, file)) return false;
+	if (!isPathEqual(token.fsPath, file)) return false;
 
 	if (position.line < token.pos.line) return true;
 
@@ -155,7 +155,7 @@ export const positionInBetween = (
 		(lastToken.pos.line > position.line ||
 			(lastToken.pos.line === position.line &&
 				lastToken.pos.colEnd >= position.character)) &&
-		isPathEqual(ast.uri, file)
+		isPathEqual(ast.fsPath, file)
 	);
 };
 
@@ -188,7 +188,7 @@ export const positionSameLineAndNotAfter = (
 		(firstToken.pos.line === position.line ||
 			lastToken.pos.line === position.line) &&
 		position.character >= lastToken.pos.colEnd &&
-		isPathEqual(ast.uri, file)
+		isPathEqual(ast.fsPath, file)
 	);
 };
 
@@ -271,17 +271,17 @@ export const getDeepestAstNodeBefore = (
 };
 
 export const VIRTUAL_DOC = '#virtual#';
-export const isVirtualUri = (uri: string) => uri.includes(VIRTUAL_DOC);
+export const isVirtualFsPath = (fsPath: string) => fsPath.includes(VIRTUAL_DOC);
 
-export const convertVirtualUriToDocumentUri = (uri: string) => {
-	if (!isVirtualUri(uri)) return;
+export const convertVirtualFsPathToDocumentFsPath = (fsPath: string) => {
+	if (!isVirtualFsPath(fsPath)) return;
 
-	const [docUri, rangeRaw] = uri.split(VIRTUAL_DOC);
+	const [docFsPath, rangeRaw] = fsPath.split(VIRTUAL_DOC);
 	const [startRaw, endRaw] = rangeRaw.split('-');
 	const [startLine, startCol] = startRaw.split(':');
 	const [endLine, endCol] = endRaw.split(':');
 	return {
-		docUri,
+		docFsPath,
 		range: Range.create(
 			Position.create(
 				Number.parseInt(startLine),
@@ -293,17 +293,18 @@ export const convertVirtualUriToDocumentUri = (uri: string) => {
 };
 
 const convertVirtualIssue = <T extends IssueTypes>(issue: Issue<T>) => {
-	const virtualDoc = convertVirtualUriToDocumentUri(issue.uri);
+	const virtualDoc = convertVirtualFsPathToDocumentFsPath(issue.fsPath);
 	if (!virtualDoc) return;
 
 	issue.range = virtualDoc.range;
-	issue.uri = virtualDoc?.docUri;
+	issue.fsPath = virtualDoc?.docFsPath;
 	issue.virtual = true;
-	issue.linkedTo = issue.linkedTo.map(({ range, uri }) => {
-		const linkedIssueVirtualDoc = convertVirtualUriToDocumentUri(uri);
+	issue.linkedTo = issue.linkedTo.map(({ range, fsPath }) => {
+		const linkedIssueVirtualDoc =
+			convertVirtualFsPathToDocumentFsPath(fsPath);
 		return {
 			range: linkedIssueVirtualDoc?.range ?? range,
-			uri: linkedIssueVirtualDoc?.docUri ?? uri,
+			fsPath: linkedIssueVirtualDoc?.docFsPath ?? fsPath,
 			templateStrings: [],
 		};
 	});
@@ -325,7 +326,7 @@ export const genSyntaxDiagnostic = (
 		inclusiveEnd,
 	}: {
 		severity?: DiagnosticSeverity;
-		linkedTo?: { range: Range; uri: string }[];
+		linkedTo?: { range: Range; fsPath: string }[];
 		tags?: DiagnosticTag[];
 		templateStrings?: string[];
 		edit?: TextEdit;
@@ -341,11 +342,11 @@ export const genSyntaxDiagnostic = (
 	const issue: Issue<SyntaxIssue> = {
 		issues: Array.isArray(issues) ? issues : [issues],
 		range: toRangeWithTokenIndex(start, end, inclusiveStart, inclusiveEnd),
-		uri: start.uri,
+		fsPath: start.fsPath,
 		severity,
-		linkedTo: linkedTo.map(({ range, uri }) => ({
+		linkedTo: linkedTo.map(({ range, fsPath }) => ({
 			range,
-			uri,
+			fsPath,
 			templateStrings: [],
 		})),
 		tags,
@@ -411,7 +412,7 @@ export const genContextDiagnostic = (
 		linkedToTemplateStrings = [],
 	}: {
 		severity?: DiagnosticSeverity;
-		linkedTo?: { range: Range; uri: string }[];
+		linkedTo?: { range: Range; fsPath: string }[];
 		tags?: DiagnosticTag[];
 		templateStrings?: string[];
 		edit?: TextEdit;
@@ -427,11 +428,11 @@ export const genContextDiagnostic = (
 	const issue: Issue<ContextIssues> = {
 		issues: Array.isArray(issues) ? issues : [issues],
 		range: toRangeWithTokenIndex(start, end),
-		uri: start.uri,
+		fsPath: start.fsPath,
 		severity,
-		linkedTo: linkedTo.map(({ range, uri }, i) => ({
+		linkedTo: linkedTo.map(({ range, fsPath }, i) => ({
 			range,
-			uri,
+			fsPath,
 			templateStrings: linkedToTemplateStrings.at(i) ?? [],
 		})),
 		tags,
@@ -462,7 +463,7 @@ export const genContextDiagnostic = (
 						)
 						.join(' or '),
 					location: {
-						uri: pathToFileURL(element.uri),
+						uri: pathToFileURI(element.fsPath),
 						range: element.range,
 					},
 				})),
@@ -483,7 +484,7 @@ export const genStandardTypeDiagnostic = (
 	issues: StandardTypeIssue | StandardTypeIssue[],
 	start: Token,
 	end: Token,
-	issueOwner: ASTBase | null,
+	issueOwner: ASTBase | ASTBase[] | null,
 	{
 		severity = DiagnosticSeverity.Error,
 		linkedTo = [],
@@ -493,7 +494,7 @@ export const genStandardTypeDiagnostic = (
 		codeActionTitle,
 	}: {
 		severity?: DiagnosticSeverity;
-		linkedTo?: { range: Range; uri: string }[];
+		linkedTo?: { range: Range; fsPath: string }[];
 		tags?: DiagnosticTag[];
 		templateStrings?: string[];
 		edit?: TextEdit | TextEdit[];
@@ -508,10 +509,10 @@ export const genStandardTypeDiagnostic = (
 		issues: Array.isArray(issues) ? issues : [issues],
 		range: toRangeWithTokenIndex(start, end),
 		severity,
-		uri: start.uri,
-		linkedTo: linkedTo.map(({ range, uri }) => ({
+		fsPath: start.fsPath,
+		linkedTo: linkedTo.map(({ range, fsPath }) => ({
 			range,
-			uri,
+			fsPath,
 			templateStrings: [],
 		})),
 		tags,
@@ -535,7 +536,7 @@ export const genStandardTypeDiagnostic = (
 						.map(standardTypeToLinkedMessage)
 						.join(' or '),
 					location: {
-						uri: pathToFileURL(element.uri),
+						uri: pathToFileURI(element.fsPath),
 						range: element.range,
 					},
 				})),
@@ -563,7 +564,11 @@ export const genStandardTypeDiagnostic = (
 		return diagnostic;
 	};
 
-	issueOwner?.resettableIssues.push(action);
+	if (Array.isArray(issueOwner)) {
+		issueOwner.forEach((owner) => owner.resettableIssues.push(action));
+	} else {
+		issueOwner?.resettableIssues.push(action);
+	}
 
 	return {
 		raw: issue,
@@ -573,7 +578,7 @@ export const genStandardTypeDiagnostic = (
 
 export function genFormattingDiagnostic(
 	issues: FormattingIssues | FormattingIssues[],
-	uri: string,
+	fsPath: string,
 	start: Position,
 	{
 		severity,
@@ -584,7 +589,7 @@ export function genFormattingDiagnostic(
 		codeActionTitle,
 	}: {
 		severity?: DiagnosticSeverity;
-		linkedTo?: { range: Range; uri: string }[];
+		linkedTo?: { range: Range; fsPath: string }[];
 		tags?: DiagnosticTag[];
 		templateStrings?: string[];
 		edit: TextEdit[];
@@ -594,7 +599,7 @@ export function genFormattingDiagnostic(
 ): FileDiagnosticWithEdits;
 export function genFormattingDiagnostic(
 	issues: FormattingIssues | FormattingIssues[],
-	uri: string,
+	fsPath: string,
 	start: Position,
 	{
 		severity,
@@ -605,7 +610,7 @@ export function genFormattingDiagnostic(
 		codeActionTitle,
 	}: {
 		severity?: DiagnosticSeverity;
-		linkedTo?: { range: Range; uri: string }[];
+		linkedTo?: { range: Range; fsPath: string }[];
 		tags?: DiagnosticTag[];
 		templateStrings?: string[];
 		edit: TextEdit;
@@ -615,7 +620,7 @@ export function genFormattingDiagnostic(
 ): FileDiagnosticWithEdit;
 export function genFormattingDiagnostic(
 	issues: FormattingIssues | FormattingIssues[],
-	uri: string,
+	fsPath: string,
 	start: Position,
 	{
 		severity = DiagnosticSeverity.Warning,
@@ -626,7 +631,7 @@ export function genFormattingDiagnostic(
 		codeActionTitle,
 	}: {
 		severity?: DiagnosticSeverity;
-		linkedTo?: { range: Range; uri: string }[];
+		linkedTo?: { range: Range; fsPath: string }[];
 		tags?: DiagnosticTag[];
 		templateStrings?: string[];
 		edit: TextEdit | TextEdit[];
@@ -644,10 +649,10 @@ export function genFormattingDiagnostic(
 		issues: Array.isArray(issues) ? issues : [issues],
 		range: Range.create(start, end),
 		severity,
-		uri: uri,
-		linkedTo: linkedTo.map(({ range, uri }) => ({
+		fsPath,
+		linkedTo: linkedTo.map(({ range, fsPath }) => ({
 			range,
-			uri,
+			fsPath,
 			templateStrings: [],
 		})),
 		tags,
@@ -669,7 +674,7 @@ export function genFormattingDiagnostic(
 						.map(formattingToLinkedMessage)
 						.join(' or '),
 					location: {
-						uri: pathToFileURL(element.uri),
+						uri: pathToFileURI(element.fsPath),
 						range: element.range,
 					},
 				})),
@@ -728,7 +733,7 @@ export async function nodeFinder<T>(
 		inScope: (ast: ASTBase) => boolean,
 	) => T[] | Promise<T[]>,
 ): Promise<T[]> {
-	const uri = fileURLToPath(location.textDocument.uri);
+	const fsPath = fileURIToFsPath(location.textDocument.uri);
 
 	if (!context) {
 		return [];
@@ -736,30 +741,34 @@ export async function nodeFinder<T>(
 
 	const t = performance.now();
 	const runtime = await context.getRuntime();
+
 	let locationMeta: SearchableResult | undefined;
 	let sortKey: number | undefined;
 
 	const macro = runtime.context.allParsers
 		.flatMap((p) => p.injectedMacros)
-		.find((m) => positionInBetween(m, uri, location.position));
+		.find((m) => positionInBetween(m, fsPath, location.position));
 	if (macro) {
 		locationMeta = {
 			runtime,
 			item: null,
-			ast: getDeepestAstNodeInBetween(macro, uri, location.position),
+			ast: getDeepestAstNodeInBetween(macro, fsPath, location.position),
 		};
 		sortKey = Number.MAX_SAFE_INTEGER;
 	}
 
 	if (!locationMeta) {
-		locationMeta = runtime.getDeepestAstNode(uri, location.position);
-		sortKey = context.getSortKey(locationMeta?.ast);
+		locationMeta = runtime.getDeepestAstNode(fsPath, location.position);
+		sortKey =
+			context.getSortKey(locationMeta?.ast) ??
+			context.getSortKeyFile(location.position, fsPath);
 	}
+
 	console.log(`search: ${performance.now() - t}ms`);
 
 	const inScope = (ast: ASTBase) => {
 		const position = location.position;
-		if (isPathEqual(ast.uri, uri)) {
+		if (isPathEqual(ast.fsPath, fsPath)) {
 			const lastToken = ast.lastToken;
 			return !!(
 				lastToken.pos.line < position.line ||
@@ -809,7 +818,7 @@ export const sameLine = (tokenA?: Token, tokenB?: Token) => {
 		!!tokenA &&
 		!!tokenB &&
 		tokenA.pos.line === tokenB.pos.line &&
-		isPathEqual(tokenA.uri, tokenB.uri)
+		isPathEqual(tokenA.fsPath, tokenB.fsPath)
 	);
 };
 
@@ -861,20 +870,20 @@ export const findContext = (
 		return;
 	}
 
-	if (activeContext?.getContextFiles().find((f) => isPathEqual(f, id.uri)))
+	if (activeContext?.getContextFiles().find((f) => isPathEqual(f, id.fsPath)))
 		return activeContext;
 
 	const contextFiles = resolveContextFiles(contextAware);
 
 	return contextFiles
 		.sort((a) => (a.context.id === preferredContext ? -1 : 0))
-		.find((c) => c.files.some((p) => isPathEqual(p, id.uri)))?.context;
+		.find((c) => c.files.some((p) => isPathEqual(p, id.fsPath)))?.context;
 };
 
-export const findContexts = (contextAware: ContextAware[], uri: string) => {
+export const findContexts = (contextAware: ContextAware[], fsPath: string) => {
 	const contextFiles = resolveContextFiles(contextAware);
 	return contextFiles
-		.filter((c) => c.files.some((p) => isPathEqual(p, uri)))
+		.filter((c) => c.files.some((p) => isPathEqual(p, fsPath)))
 		.map((c) => c.context);
 };
 
@@ -1005,11 +1014,11 @@ export function evalExp(str: string) {
 	return str;
 }
 
-export const pathToFileURL = (path: string) => {
+export const pathToFileURI = (path: string) => {
 	return url.pathToFileURL(path).toString();
 };
 
-export const fileURLToPath = (fileUrl: string) => {
+export const fileURIToFsPath = (fileUrl: string) => {
 	return normalizePath(url.fileURLToPath(fileUrl));
 };
 
@@ -1437,7 +1446,7 @@ type MappedAddress = {
 	start: number[];
 	end: number[];
 	range: Range;
-	uri: string;
+	fsPath: string;
 };
 
 export const findMappedAddress = (
@@ -1466,7 +1475,7 @@ export const findMappedAddress = (
 					mapping.rangeTokens.start,
 					mapping.rangeTokens.end,
 				),
-				uri: mapping.rangeTokens.start.uri,
+				fsPath: mapping.rangeTokens.start.fsPath,
 			});
 		}
 	}
@@ -1688,7 +1697,7 @@ export const coreSyntaxIssuesFilter = (
 	}
 	return (
 		issue.severity === DiagnosticSeverity.Error &&
-		isPathEqual(issue.uri, filePath) &&
+		isPathEqual(issue.fsPath, filePath) &&
 		!syntaxIssuesToIgnore.some((i) => issue.issues.includes(i))
 	);
 };
@@ -1711,14 +1720,14 @@ export const getClosestAstNode = (ast?: ASTBase): DtcBaseNode | undefined => {
 };
 
 export const countParent = (
-	uri: string,
+	fsPath: string,
 	node?: DtcBaseNode,
 	count = 0,
 ): number => {
-	if (!node || !node.parentNode?.uri) return count;
+	if (!node || !node.parentNode?.fsPath) return count;
 
 	const closeAst = getClosestAstNode(node.parentNode);
-	return countParent(uri, closeAst, count + 1);
+	return countParent(fsPath, closeAst, count + 1);
 };
 
 // avoid using Array.splice to avoid stack overflow on large arrays

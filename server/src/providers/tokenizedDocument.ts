@@ -39,7 +39,7 @@ class TokenizedDocumentProvider {
 				tokens: token.tokens,
 				pos: token.pos,
 				value: token.value,
-				uri: token.uri,
+				fsPath: token.fsPath,
 				prevToken: prev,
 				nextToken: undefined,
 			};
@@ -51,31 +51,33 @@ class TokenizedDocumentProvider {
 		return newList;
 	}
 
-	needsRenew(uri: string, text: string) {
-		uri = normalizePath(uri);
-		return this.fileMap.get(uri)?.text !== text;
+	needsRenew(fsPath: string, text: string) {
+		fsPath = normalizePath(fsPath);
+		return this.fileMap.get(fsPath)?.text !== text;
 	}
 
-	getDocument(uri: string, text?: string) {
+	getDocument(fsPath: string, text?: string) {
 		return TextDocument.create(
-			uri,
+			fsPath,
 			'devicetree',
 			0,
-			text ?? this.fileMap.get(uri)?.text ?? readFileSync(uri).toString(),
+			text ??
+				this.fileMap.get(fsPath)?.text ??
+				readFileSync(fsPath).toString(),
 		);
 	}
 
-	renewLexer(uri: string, text?: string): Token[] {
-		uri = normalizePath(uri);
-		getCachedCPreprocessorParserProvider().reset(uri);
-		if (!text && !existsSync(uri)) {
+	renewLexer(fsPath: string, text?: string): Token[] {
+		fsPath = normalizePath(fsPath);
+		getCachedCPreprocessorParserProvider().reset(fsPath);
+		if (!text && !existsSync(fsPath)) {
 			return [];
 		}
 
 		try {
-			text ??= readFileSync(uri).toString();
-			const lexer = new Lexer(text, uri);
-			this.fileMap.set(uri, lexer);
+			text ??= readFileSync(fsPath).toString();
+			const lexer = new Lexer(text, fsPath);
+			this.fileMap.set(fsPath, lexer);
 			return TokenizedDocumentProvider.clone(lexer.tokens);
 		} catch {
 			//
@@ -84,19 +86,19 @@ class TokenizedDocumentProvider {
 		return [];
 	}
 
-	requestTokens(uri: string, renewIfNotFound: boolean): Token[] {
-		uri = normalizePath(uri);
-		const tokens = this.fileMap.get(uri)?.tokens;
+	requestTokens(fsPath: string, renewIfNotFound: boolean): Token[] {
+		fsPath = normalizePath(fsPath);
+		const tokens = this.fileMap.get(fsPath)?.tokens;
 		if (!tokens && renewIfNotFound) {
-			return [...this.renewLexer(uri)];
+			return [...this.renewLexer(fsPath)];
 		}
 		return TokenizedDocumentProvider.clone(tokens ?? []);
 	}
 
-	reset(uri: string) {
-		uri = normalizePath(uri);
-		getCachedCPreprocessorParserProvider().reset(uri);
-		this.fileMap.delete(uri);
+	reset(fsPath: string) {
+		fsPath = normalizePath(fsPath);
+		getCachedCPreprocessorParserProvider().reset(fsPath);
+		this.fileMap.delete(fsPath);
 	}
 }
 

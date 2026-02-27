@@ -18,8 +18,8 @@ import { SymbolKind } from 'vscode-languageserver';
 import { MacroRegistryItem, Token, TokenIndexes } from '../../types';
 import { ASTBase } from '../base';
 import {
-	SerializableDtcProperty,
-	SerializablePropertyName,
+	SerializedDtcProperty,
+	SerializedPropertyName,
 } from '../../types/index';
 import { LabelAssign } from './label';
 import { PropertyValues } from './values/values';
@@ -43,10 +43,10 @@ export class PropertyName extends ASTBase {
 		return this.name;
 	}
 
-	serialize(): SerializablePropertyName {
+	serialize(): SerializedPropertyName {
 		return {
 			value: this.name,
-			uri: this.serializeUri,
+			url: this.serializeURL,
 			range: this.range,
 			issues: this.serializeIssues,
 		};
@@ -60,7 +60,7 @@ export class DtcProperty extends ASTBase {
 	public assignOperatorToken?: Token;
 
 	constructor(
-		public readonly propertyName: PropertyName | null,
+		public readonly propertyName: PropertyName,
 		public readonly labels: LabelAssign[] = [],
 	) {
 		super();
@@ -151,16 +151,21 @@ export class DtcProperty extends ASTBase {
 		};`;
 	}
 
-	serialize(macros: Map<string, MacroRegistryItem>): SerializableDtcProperty {
+	serialize(macros: Map<string, MacroRegistryItem>): SerializedDtcProperty {
 		return {
 			name: this.propertyName?.serialize() ?? null,
 			values:
-				this.values?.values.map(
-					(v) => v?.value?.serialize(macros) ?? null,
-				) ?? null,
-			uri: this.serializeUri,
+				this.values === undefined
+					? undefined
+					: (this.values?.values.map(
+							(v) => v?.value?.serialize(macros) ?? null,
+						) ?? null),
+			url: this.serializeURL,
 			range: this.range,
-			issues: this.serializeIssues,
+			issues: [
+				...this.serializeIssues,
+				...(this.values?.issues.map((i) => i()) ?? []),
+			],
 		};
 	}
 }

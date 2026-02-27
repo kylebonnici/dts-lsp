@@ -27,43 +27,43 @@ class CachedCPreprocessorParserProvider {
 	private includeOwners = new WeakMap<CPreprocessorParser, Set<string>>();
 
 	getCPreprocessorParser(
-		uri: string,
+		fsPath: string,
 		includes: string[],
 		macros: Map<string, MacroRegistryItem>,
 		parent: string,
 	) {
-		uri = normalizePath(uri);
+		fsPath = normalizePath(fsPath);
 		const key = `${Array.from(macros)
 			.map((m) => m[1].macro.toString())
 			.join('::')}`;
-		const cache = this.headerFiles.get(uri)?.get(key);
+		const cache = this.headerFiles.get(fsPath)?.get(key);
 		if (cache) {
 			cache.reparse(macros);
 			return cache;
 		}
 
-		console.log('No c-preprocessor cache', uri);
-		const header = new CPreprocessorParser(uri, includes, macros);
+		console.log('No c-preprocessor cache', fsPath);
+		const header = new CPreprocessorParser(fsPath, includes, macros);
 		const set = this.includeOwners.get(header) ?? new Set();
 		set.add(parent);
 		this.includeOwners.set(header, set);
-		if (!this.headerFiles.has(uri)) {
-			this.headerFiles.set(uri, new Map());
+		if (!this.headerFiles.has(fsPath)) {
+			this.headerFiles.set(fsPath, new Map());
 		}
-		this.headerFiles.get(uri)?.set(key, header);
+		this.headerFiles.get(fsPath)?.set(key, header);
 		return header;
 	}
 
-	reset(uri: string) {
-		uri = normalizePath(uri);
-		const headers = this.headerFiles.get(uri);
+	reset(fsPath: string) {
+		fsPath = normalizePath(fsPath);
+		const headers = this.headerFiles.get(fsPath);
 		if (headers)
 			Array.from(headers).forEach(([_, value]) => {
-				console.log('disposing c-preprocessor cache for', uri);
+				console.log('disposing c-preprocessor cache for', fsPath);
 				Array.from(this.includeOwners.get(value) ?? []).forEach(
 					this.reset.bind(this),
 				);
-				this.headerFiles.delete(uri);
+				this.headerFiles.delete(fsPath);
 			});
 	}
 }

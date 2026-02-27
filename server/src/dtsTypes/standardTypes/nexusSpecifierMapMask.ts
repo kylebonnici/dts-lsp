@@ -17,7 +17,6 @@
 import { ParameterInformation } from 'vscode-languageserver-types';
 import { genStandardTypeDiagnostic } from '../../helpers';
 import { FileDiagnostic, StandardTypeIssue } from '../../types';
-import { BindingPropertyType } from '../../types/index';
 import { PropertyNodeType } from '../types';
 import {
 	flatNumberValues,
@@ -28,7 +27,7 @@ import {
 export default () => {
 	const prop = new PropertyNodeType<number>(
 		/^(?!interrupt-).*?-map-mask$/,
-		generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
+		generateOrTypeObj('PROP_ENCODED_ARRAY'),
 		'optional',
 		undefined,
 		undefined,

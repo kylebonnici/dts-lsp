@@ -15,7 +15,6 @@
  */
 
 import { DiagnosticSeverity, DiagnosticTag } from 'vscode-languageserver';
-import { BindingPropertyType } from '../../types/index';
 import { StringValue } from '../../ast/dtc/values/string';
 import { PropertyNodeType } from '../types';
 import { StandardTypeIssue } from '../../types';
@@ -25,7 +24,7 @@ import { generateOrTypeObj } from './helpers';
 export default () => {
 	const prop = new PropertyNodeType(
 		'device_type',
-		generateOrTypeObj(BindingPropertyType.STRING),
+		generateOrTypeObj('STRING'),
 		'optional',
 		undefined,
 		(property) => {

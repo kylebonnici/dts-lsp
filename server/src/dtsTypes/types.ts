@@ -47,30 +47,8 @@ import { getNodeNameOrNodeLabelRef } from '../ast/helpers';
 import {
 	BindingPropertyType as PropertyType,
 	TypeConfig,
+	ZephyrBindingYml,
 } from '../types/index';
-
-function propertyTypeToString(type: PropertyType): string {
-	switch (type) {
-		case PropertyType.EMPTY:
-			return `EMPTY`;
-		case PropertyType.U32:
-			return `U32`;
-		case PropertyType.U64:
-			return `U64`;
-		case PropertyType.STRING:
-			return `STRING`;
-		case PropertyType.PROP_ENCODED_ARRAY:
-			return `PROP_ENCODED_ARRAY`;
-		case PropertyType.STRINGLIST:
-			return `STRINGLIST`;
-		case PropertyType.BYTESTRING:
-			return `BYTESTRING`;
-		case PropertyType.ANY:
-			return `ANY`;
-		case PropertyType.UNKNOWN:
-			return `UNKNOWN`;
-	}
-}
 
 export type RequirementStatus = 'required' | 'omitted' | 'optional';
 
@@ -90,9 +68,7 @@ export class PropertyNodeType<T = string | number> {
 			value: [
 				'### Type',
 				`**DTS native type**  `,
-				`${this.type
-					.map((t) => t.types.map(propertyTypeToString).join(' or '))
-					.join(',')}
+				`${this.type.map((t) => t.types.join(' or ')).join(',')}
           
           `,
 				...(this.bindingType
@@ -172,16 +148,16 @@ export class PropertyNodeType<T = string | number> {
 				let assignTest = '';
 				if (this.type.length === 1 && this.type[0].types.length === 1) {
 					switch (this.type[0].types[0]) {
-						case PropertyType.U32:
-						case PropertyType.U64:
-						case PropertyType.PROP_ENCODED_ARRAY:
+						case 'U32':
+						case 'U64':
+						case 'PROP_ENCODED_ARRAY':
 							assignTest = ` = <${propertyName === 'reg' && node.address ? node.address.map((m) => `0x${m.toString(16)}`).join(' ') : ''}>`;
 							break;
-						case PropertyType.STRING:
-						case PropertyType.STRINGLIST:
+						case 'STRING':
+						case 'STRINGLIST':
 							assignTest = ' = ""';
 							break;
-						case PropertyType.BYTESTRING:
+						case 'BYTESTRING':
 							assignTest = ' = []';
 							break;
 					}
@@ -206,7 +182,10 @@ export class PropertyNodeType<T = string | number> {
 										token.pos.col + 1,
 									),
 									`\n${''.padEnd(
-										countParent(orderedTree[i].uri, node),
+										countParent(
+											orderedTree[i].fsPath,
+											node,
+										),
 										runtime.context.formattingOptions
 											.insertSpaces
 											? ' '.repeat(
@@ -248,32 +227,31 @@ export class PropertyNodeType<T = string | number> {
 
 			const typeIsValid =
 				expected.some((tt) => tt == type) ||
-				(expected.some((tt) => tt == PropertyType.STRINGLIST) &&
-					(type === PropertyType.STRING ||
-						type === PropertyType.STRINGLIST)) ||
-				(expected.some((tt) => tt == PropertyType.PROP_ENCODED_ARRAY) &&
-					(type === PropertyType.U32 || type === PropertyType.U64));
+				(expected.some((tt) => tt == 'STRINGLIST') &&
+					(type === 'STRING' || type === 'STRINGLIST')) ||
+				(expected.some((tt) => tt == 'PROP_ENCODED_ARRAY') &&
+					(type === 'U32' || type === 'U64'));
 
 			if (!typeIsValid) {
 				const issue: StandardTypeIssue[] = [];
 				expected.forEach((tt) => {
 					switch (tt) {
-						case PropertyType.EMPTY:
+						case 'EMPTY':
 							issue.push(StandardTypeIssue.EXPECTED_EMPTY);
 							break;
-						case PropertyType.STRING:
+						case 'STRING':
 							issue.push(StandardTypeIssue.EXPECTED_STRING);
 							break;
-						case PropertyType.STRINGLIST:
+						case 'STRINGLIST':
 							issue.push(StandardTypeIssue.EXPECTED_STRINGLIST);
 							break;
-						case PropertyType.U32:
+						case 'U32':
 							issue.push(StandardTypeIssue.EXPECTED_U32);
 							break;
-						case PropertyType.U64:
+						case 'U64':
 							issue.push(StandardTypeIssue.EXPECTED_U64);
 							break;
-						case PropertyType.PROP_ENCODED_ARRAY:
+						case 'PROP_ENCODED_ARRAY':
 							issue.push(
 								StandardTypeIssue.EXPECTED_PROP_ENCODED_ARRAY,
 							);
@@ -297,7 +275,7 @@ export class PropertyNodeType<T = string | number> {
 			}
 		};
 
-		if (this.type[0].types.some((e) => e === PropertyType.ANY)) {
+		if (this.type[0].types.some((e) => e === 'ANY')) {
 			return [];
 		}
 
@@ -336,12 +314,10 @@ export class PropertyNodeType<T = string | number> {
 				});
 			}
 		} else {
-			if (
-				this.type[0].types.some((tt) => tt === PropertyType.STRINGLIST)
-			) {
+			if (this.type[0].types.some((tt) => tt === 'STRINGLIST')) {
 				propTypes.some((t) =>
 					checkType(
-						[PropertyType.STRINGLIST],
+						['STRINGLIST'],
 						t,
 						property.ast.values?.values[0]?.value,
 					),
@@ -350,8 +326,8 @@ export class PropertyNodeType<T = string | number> {
 				this.list ||
 				(this.type.length === 1 &&
 					this.type[0].types
-						.filter((t) => t !== PropertyType.EMPTY)
-						.every((tt) => tt === PropertyType.PROP_ENCODED_ARRAY))
+						.filter((t) => t !== 'EMPTY')
+						.every((tt) => tt === 'PROP_ENCODED_ARRAY'))
 			) {
 				propTypes.some((t) =>
 					checkType(
@@ -362,7 +338,7 @@ export class PropertyNodeType<T = string | number> {
 				);
 			} else if (
 				propTypes.length > 1 &&
-				this.type[0].types.some((tt) => tt !== PropertyType.EMPTY)
+				this.type[0].types.some((tt) => tt !== 'EMPTY')
 			) {
 				const issueAst = property.ast.propertyName ?? property.ast;
 				issues.push(
@@ -398,7 +374,7 @@ export class PropertyNodeType<T = string | number> {
 				);
 				if (
 					values.length &&
-					this.type[0].types.some((tt) => tt === PropertyType.STRING)
+					this.type[0].types.some((tt) => tt === 'STRING')
 				) {
 					const currentValue = property.ast.values?.values[0]
 						?.value as StringValue;
@@ -436,7 +412,7 @@ export class PropertyNodeType<T = string | number> {
 	): CompletionItem[] {
 		const currentValue = this.type.at(valueIndex);
 
-		if (currentValue?.types.some((tt) => tt === PropertyType.STRING)) {
+		if (currentValue?.types.some((tt) => tt === 'STRING')) {
 			if (
 				property.ast.values?.values &&
 				property.ast.values.values?.length > 1
@@ -452,11 +428,7 @@ export class PropertyNodeType<T = string | number> {
 			}));
 		}
 
-		if (
-			currentValue?.types.some(
-				(tt) => tt === PropertyType.U32 || tt === PropertyType.U64,
-			)
-		) {
+		if (currentValue?.types.some((tt) => tt === 'U32' || tt === 'U64')) {
 			return this.values(property).map((v) => ({
 				label: `<${v}>`,
 				kind: CompletionItemKind.Variable,
@@ -472,34 +444,34 @@ export class PropertyNodeType<T = string | number> {
 const propertyValuesToPropertyType = (property: Property): PropertyType[] => {
 	return property.ast.values
 		? property.ast.values.values.map((v) => propertyValueToPropertyType(v))
-		: [PropertyType.EMPTY];
+		: ['EMPTY'];
 };
 
 const propertyValueToPropertyType = (
 	value: PropertyValue | null,
 ): PropertyType => {
 	if (!value) {
-		return PropertyType.UNKNOWN;
+		return 'UNKNOWN';
 	}
 	if (value.value instanceof StringValue) {
-		return PropertyType.STRING;
+		return 'STRING';
 	}
 
 	if (value.value instanceof ArrayValues) {
 		if (value.value.values.length === 1) {
-			return PropertyType.U32;
+			return 'U32';
 		} else if (value.value.values.length === 2) {
-			return PropertyType.U64;
+			return 'U64';
 		} else {
-			return PropertyType.PROP_ENCODED_ARRAY;
+			return 'PROP_ENCODED_ARRAY';
 		}
 	}
 
 	if (value.value instanceof LabelRef || value.value instanceof NodePathRef) {
-		return PropertyType.U32;
+		return 'U32';
 	}
 
-	return PropertyType.BYTESTRING;
+	return 'BYTESTRING';
 };
 
 export abstract class INodeType {
@@ -524,6 +496,8 @@ export abstract class INodeType {
 	bindingsPath?: string;
 	compatible?: string;
 	extends: Set<string> = new Set();
+	hasParentBinding = false;
+	zephyrBinding?: ZephyrBindingYml;
 	abstract getPropertyListCompletionItems(node: Node): CompletionItem[];
 }
 
@@ -547,7 +521,7 @@ export class NodeType extends INodeType {
 
 		if (node.disabled) {
 			const statusProperty = node.getProperty('status');
-			[...node.definitions, ...node.referencedBy].forEach((n) =>
+			node.implementations.forEach((n) =>
 				issue.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.NODE_DISABLED,
@@ -583,8 +557,9 @@ export class NodeType extends INodeType {
 					?.at(0)
 					?.startAddress.map((a) => a.toString(16))
 					.join(',');
-				const issueAst =
-					node.definitions.at(-1)!.name ?? node.definitions.at(-1)!;
+				const definitions = node.definitions;
+				const definition = definitions[definitions.length - 1];
+				const issueAst = definition.name ?? definition;
 				issue.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.EXPECTED_NODE_ADDRESS,
@@ -592,11 +567,11 @@ export class NodeType extends INodeType {
 						issueAst.lastToken,
 						issueAst,
 						{
-							linkedTo: node.definitions
+							linkedTo: definitions
 								.slice(0, -1)
 								.map((n) => n.name ?? n),
 							edit: nodeAddress
-								? node.definitions
+								? definitions
 										.filter((n) => !!n.name)
 										.map((n) =>
 											TextEdit.insert(

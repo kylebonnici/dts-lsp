@@ -15,7 +15,6 @@
  */
 
 import { ParameterInformation } from 'vscode-languageserver';
-import { BindingPropertyType } from '../../types/index';
 import { FileDiagnostic, StandardTypeIssue } from '../../types';
 import {
 	compareWords,
@@ -34,7 +33,7 @@ import {
 export default () => {
 	const prop = new PropertyNodeType<number>(
 		'reg',
-		generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
+		generateOrTypeObj('PROP_ENCODED_ARRAY'),
 		(node) => {
 			return node.address !== undefined ? 'required' : 'omitted';
 		},

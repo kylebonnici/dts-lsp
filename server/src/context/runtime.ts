@@ -20,8 +20,10 @@ import {
 	genContextDiagnostic,
 	getDeepestAstNodeInBetween,
 	isLastTokenOnLine,
+	isPathEqual,
 	positionInBetween,
 	sortAstForScope,
+	toPosition,
 } from '../helpers';
 import {
 	ContextIssues,
@@ -47,7 +49,6 @@ import { Node } from './node';
 export class Runtime implements Searchable {
 	public comments: Comment[] = [];
 	public includes: Include[] = [];
-	public roots: DtcRootNode[] = [];
 	public references: DtcRefNode[] = [];
 	public unlinkedDeletes: DeleteNode[] = [];
 	public unlinkedRefNodes: DtcRefNode[] = [];
@@ -65,7 +66,7 @@ export class Runtime implements Searchable {
 		if (cache) return cache;
 		// TODO consider a different way to operation this as this is costly
 		const result = [
-			...this.roots,
+			...this.rootNode.implementations,
 			...this.references,
 			...this.unlinkedDeletes,
 			...this.unlinkedRefNodes,
@@ -88,7 +89,7 @@ export class Runtime implements Searchable {
 	): SearchableResult | undefined {
 		const fileAsts = this.fileTopMostAsts(file);
 
-		const dtcNode = fileAsts.find(
+		let dtcNode = fileAsts.find(
 			(i) =>
 				positionInBetween(i, file, position) ||
 				isLastTokenOnLine(
@@ -97,6 +98,45 @@ export class Runtime implements Searchable {
 					position,
 				),
 		);
+
+		if (!dtcNode) {
+			const includes = [
+				this.context.parser,
+				...this.context.overlayParsers,
+			].flatMap((p) => p.includes);
+
+			const getInclude = (
+				file: string,
+				position: Position,
+			): Include | undefined => {
+				const include = includes.find((i) =>
+					isPathEqual(i.resolvedPath, file),
+				);
+
+				if (
+					include &&
+					this.context.getSortKeyFile(position, file) === undefined
+				) {
+					return getInclude(
+						include.lastToken.fsPath,
+						toPosition(include.lastToken),
+					);
+				}
+
+				return include;
+			};
+
+			const include = getInclude(file, position);
+
+			if (include) {
+				dtcNode = fileAsts.at(-1)?.parentNode;
+				file = include.fsPath;
+				position = Position.create(
+					include.lastToken.pos.line,
+					include.lastToken.pos.colEnd,
+				);
+			}
+		}
 
 		if (dtcNode instanceof DtcRefNode) {
 			const refByNode = this.rootNode.getReferenceBy(dtcNode);
@@ -255,9 +295,6 @@ export class Runtime implements Searchable {
 	}
 
 	getOrderedNodeAst(node: Node) {
-		return sortAstForScope(
-			[...node.definitions, ...node.referencedBy],
-			this.context,
-		);
+		return sortAstForScope(node.implementations, this.context);
 	}
 }

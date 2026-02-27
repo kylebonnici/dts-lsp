@@ -77,7 +77,7 @@ function getIncludePathItems(
 	};
 
 	if (result.ast.relative) {
-		return getItems([dirname(result.ast.uri)]);
+		return getItems([dirname(result.ast.fsPath)]);
 	}
 
 	const includePaths = result.runtime.context.settings.includePaths ?? [];
@@ -287,7 +287,7 @@ function getDeleteNodeNameItems(
 		]
 			.flatMap((node) => ({
 				node,
-				astNodes: node.definitions.filter(
+				astNodes: node.implementations.filter(
 					(n) => n instanceof DtcChildNode,
 				),
 			}))

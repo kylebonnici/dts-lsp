@@ -54,7 +54,7 @@ export abstract class BaseParser {
 
 	protected parsing: Promise<void>;
 
-	public abstract get uri(): string;
+	public abstract get fsPath(): string;
 	public abstract get tokens(): Token[];
 	protected abstract parse(): Promise<void>;
 	public abstract reparse(
@@ -211,8 +211,8 @@ export abstract class BaseParser {
 
 	abstract get allAstItems(): ASTBase[];
 
-	getDocumentSymbols(uri: string): DocumentSymbol[] {
-		return this.allAstItems.flatMap((o) => o.getDocumentSymbols(uri));
+	getDocumentSymbols(fsPath: string): DocumentSymbol[] {
+		return this.allAstItems.flatMap((o) => o.getDocumentSymbols(fsPath));
 	}
 
 	getWorkspaceSymbols(): WorkspaceSymbol[] {
@@ -224,7 +224,7 @@ export abstract class BaseParser {
 		tokenModifiers: number,
 		start: Token,
 		end: Token,
-		uri: string,
+		fsPath: string,
 		result: {
 			line: number;
 			char: number;
@@ -236,8 +236,8 @@ export abstract class BaseParser {
 		if (
 			!start ||
 			!end ||
-			!isPathEqual(start.uri, uri) ||
-			!isPathEqual(end.uri, uri)
+			!isPathEqual(start.fsPath, fsPath) ||
+			!isPathEqual(end.fsPath, fsPath)
 		)
 			return;
 
@@ -253,7 +253,7 @@ export abstract class BaseParser {
 
 	buildSemanticTokens(
 		tokensBuilder: SemanticTokensBuilder,
-		uri: string,
+		fsPath: string,
 		result: {
 			line: number;
 			char: number;
@@ -264,7 +264,7 @@ export abstract class BaseParser {
 	) {
 		this.allAstItems.forEach((a) => {
 			a.buildSemanticTokens((...args) =>
-				BaseParser.push(...args, uri, result),
+				BaseParser.push(...args, fsPath, result),
 			);
 		});
 
@@ -834,7 +834,7 @@ export abstract class BaseParser {
 		const line = token.pos.line;
 		if (
 			this.currentToken?.pos.line !== line ||
-			!isPathEqual(this.currentToken?.uri, token.uri)
+			!isPathEqual(this.currentToken?.fsPath, token.fsPath)
 		) {
 			return;
 		}
@@ -843,7 +843,7 @@ export abstract class BaseParser {
 		let end: Token | undefined = start;
 		while (
 			this.currentToken?.pos.line === line &&
-			isPathEqual(this.currentToken?.uri, token.uri)
+			isPathEqual(this.currentToken?.fsPath, token.fsPath)
 		) {
 			end = this.moveToNextToken;
 		}

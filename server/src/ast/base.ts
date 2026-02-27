@@ -23,13 +23,13 @@ import {
 	SymbolKind,
 	WorkspaceSymbol,
 } from 'vscode-languageserver';
-import { SerializableASTBase } from '../types/index';
+import { SerializedASTBase } from '../types/index';
 import {
-	convertVirtualUriToDocumentUri,
+	convertVirtualFsPathToDocumentFsPath,
 	getTokenModifiers,
 	getTokenTypes,
 	isPathEqual,
-	pathToFileURL,
+	pathToFileURI,
 	toRange,
 } from '../helpers';
 import type {
@@ -93,22 +93,22 @@ export class ASTBase {
 		this._lastToken = token;
 	}
 
-	get uri(): string {
-		return this.firstToken.uri;
+	get fsPath(): string {
+		return this.firstToken.fsPath;
 	}
 
 	getTopMostAstNodeForFile(file: string): ASTBase[] {
-		if (isPathEqual(file, this.uri)) return [this];
+		if (isPathEqual(file, this.fsPath)) return [this];
 		return this.children.flatMap((c) => c.getTopMostAstNodeForFile(file));
 	}
 
-	getDocumentSymbols(uri: string): DocumentSymbol[] {
+	getDocumentSymbols(fsPath: string): DocumentSymbol[] {
 		if (!this.docSymbolsMeta)
 			return this.children.flatMap(
-				(child) => child.getDocumentSymbols(uri) ?? [],
+				(child) => child.getDocumentSymbols(fsPath) ?? [],
 			);
 
-		if (!isPathEqual(this.uri, uri)) return [];
+		if (!isPathEqual(this.fsPath, fsPath)) return [];
 
 		const range = toRange(this);
 		return [
@@ -121,7 +121,7 @@ export class ASTBase {
 				selectionRange: range,
 				children: [
 					...this.children.flatMap(
-						(child) => child.getDocumentSymbols(uri) ?? [],
+						(child) => child.getDocumentSymbols(fsPath) ?? [],
 					),
 				],
 			},
@@ -143,12 +143,12 @@ export class ASTBase {
 			return [];
 		}
 
-		const virtualDoc = convertVirtualUriToDocumentUri(this.uri);
+		const virtualDoc = convertVirtualFsPathToDocumentFsPath(this.fsPath);
 		const range = virtualDoc?.range ?? toRange(this);
 		return [
 			{
 				location: Location.create(
-					pathToFileURL(virtualDoc?.docUri ?? this.uri),
+					pathToFileURI(virtualDoc?.docFsPath ?? this.fsPath),
 					range,
 				),
 				name: this.docSymbolsMeta.name
@@ -222,13 +222,13 @@ export class ASTBase {
 		);
 	}
 
-	protected get serializeUri() {
-		return pathToFileURL(this.uri);
+	get serializeURL() {
+		return pathToFileURI(this.fsPath);
 	}
 
-	serialize(_macros: Map<string, MacroRegistryItem>): SerializableASTBase {
+	serialize(_macros: Map<string, MacroRegistryItem>): SerializedASTBase {
 		return {
-			uri: this.serializeUri,
+			url: this.serializeURL,
 			range: this.range,
 			issues: this.serializeIssues,
 		};

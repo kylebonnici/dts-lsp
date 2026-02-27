@@ -31,7 +31,7 @@ import {
 	adjacentTokens,
 	createTokenIndex,
 	genSyntaxDiagnostic,
-	isVirtualUri,
+	isVirtualFsPath,
 	linkAstToComments,
 	normalizePath,
 	positionInBetween,
@@ -89,7 +89,7 @@ export class Parser extends BaseParser {
 	injectedMacros: (CMacroCall | CIdentifier)[] = [];
 
 	constructor(
-		public readonly uri: string,
+		public readonly fsPath: string,
 		private incudes: string[],
 		macros?: Map<string, MacroRegistryItem>,
 		getTokens?: () => Token[],
@@ -97,7 +97,7 @@ export class Parser extends BaseParser {
 	) {
 		super();
 		this.cPreprocessorParser = new CPreprocessorParser(
-			this.uri,
+			this.fsPath,
 			this.incudes,
 			macros,
 			getTokens,
@@ -111,7 +111,7 @@ export class Parser extends BaseParser {
 
 	getFiles() {
 		return [
-			this.uri,
+			this.fsPath,
 			...(this.cPreprocessorParser.dtsIncludes
 				.flatMap((include) => include.resolvedPath)
 				.filter((f) => !!f) as string[]),
@@ -146,7 +146,7 @@ export class Parser extends BaseParser {
 		await this.cPreprocessorParser.stable;
 		this.tokens = this.cPreprocessorParser.tokens;
 
-		if (normalizePath(this.uri).endsWith('.h')) return;
+		if (normalizePath(this.fsPath).endsWith('.h')) return;
 
 		this.positionStack.push(0);
 		if (this.tokens.length === 0) {
@@ -191,7 +191,7 @@ export class Parser extends BaseParser {
 			await process();
 		}
 
-		if (!this.uri.endsWith('.dtsi')) {
+		if (!this.fsPath.endsWith('.dtsi')) {
 			this.unhandledStatements.nodes.forEach((node) => {
 				this._issues.push(
 					genSyntaxDiagnostic(
@@ -264,11 +264,11 @@ export class Parser extends BaseParser {
 		let evalResult = result?.resolve(macros);
 		if (result && typeof evalResult === 'string') {
 			evalResult = sanitizeCExpression(evalResult);
-			const uri = `${result.uri}${VIRTUAL_DOC}${result.firstToken.pos.line}:${result.firstToken.pos.col}-${result.lastToken.pos.line}:${result.firstToken.pos.col}`;
+			const fsPath = `${result.fsPath}${VIRTUAL_DOC}${result.firstToken.pos.line}:${result.firstToken.pos.col}-${result.lastToken.pos.line}:${result.firstToken.pos.col}`;
 
 			const toRemoveSet = new Set<ASTBase>();
 			this.cPreprocessorParser.comments.forEach((c) => {
-				if (positionInBetween(result, result.uri, c.range.start)) {
+				if (positionInBetween(result, result.fsPath, c.range.start)) {
 					toRemoveSet.add(c);
 				}
 			});
@@ -285,7 +285,7 @@ export class Parser extends BaseParser {
 				return true;
 			}
 
-			const lexer = new Lexer(evalResult, uri);
+			const lexer = new Lexer(evalResult, fsPath);
 			this.tokens.splice(
 				startIndex,
 				this.peekIndex() - startIndex,
@@ -629,7 +629,7 @@ export class Parser extends BaseParser {
 			} else if (
 				!Number.isNaN(address) &&
 				!adjacentTokens(prevToken, addressValid[0]) &&
-				!isVirtualUri(addressValid[0].uri)
+				!isVirtualFsPath(addressValid[0].fsPath)
 			) {
 				this._issues.push(
 					genSyntaxDiagnostic(
@@ -2299,7 +2299,7 @@ export class Parser extends BaseParser {
 		return this.#latestSemanticTokensBuilt;
 	}
 
-	buildSemanticTokens(tokensBuilder: SemanticTokensBuilder, uri: string) {
+	buildSemanticTokens(tokensBuilder: SemanticTokensBuilder, fsPath: string) {
 		const result: {
 			line: number;
 			char: number;
@@ -2310,11 +2310,11 @@ export class Parser extends BaseParser {
 
 		this.injectedMacros.forEach((a) => {
 			a.buildSemanticTokens((...args) =>
-				BaseParser.push(...args, uri, result),
+				BaseParser.push(...args, fsPath, result),
 			);
 		});
 
-		super.buildSemanticTokens(tokensBuilder, uri, result);
+		super.buildSemanticTokens(tokensBuilder, fsPath, result);
 		this.#latestSemanticTokensBuilt = true;
 	}
 }

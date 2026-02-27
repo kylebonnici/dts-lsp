@@ -51,7 +51,7 @@ import { Include } from '../ast/cPreprocessors/include';
 import {
 	applyEdits,
 	coreSyntaxIssuesFilter,
-	fileURLToPath,
+	fileURIToFsPath,
 	genFormattingDiagnostic,
 	isPathEqual,
 	rangesOverlap,
@@ -127,9 +127,10 @@ const getAstItems = async (
 };
 
 export async function formatText(
-	documentFormattingParams:
+	documentFormattingParams: (
 		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
+		| DocumentRangeFormattingParams
+	) & { ranges?: Range[] },
 	text: string,
 	returnType: 'Both',
 	options?: FormattingFlags,
@@ -138,9 +139,10 @@ export async function formatText(
 	processedPrevIfBlocks?: CIfBase[],
 ): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
 export async function formatText(
-	documentFormattingParams:
+	documentFormattingParams: (
 		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
+		| DocumentRangeFormattingParams
+	) & { ranges?: Range[] },
 	text: string,
 	returnType: 'New Text',
 	options?: FormattingFlags,
@@ -149,9 +151,10 @@ export async function formatText(
 	processedPrevIfBlocks?: CIfBase[],
 ): Promise<string>;
 export async function formatText(
-	documentFormattingParams:
+	documentFormattingParams: (
 		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
+		| DocumentRangeFormattingParams
+	) & { ranges?: Range[] },
 	text: string,
 	returnType: 'File Diagnostics',
 	options?: FormattingFlags,
@@ -160,9 +163,10 @@ export async function formatText(
 	processedPrevIfBlocks?: CIfBase[],
 ): Promise<FileDiagnostic[]>;
 export async function formatText(
-	documentFormattingParams:
+	documentFormattingParams: (
 		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
+		| DocumentRangeFormattingParams
+	) & { ranges?: Range[] },
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics' | 'Both',
 	options: FormattingFlags = {
@@ -176,14 +180,14 @@ export async function formatText(
 ): Promise<
 	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
 > {
-	const filePath = fileURLToPath(documentFormattingParams.textDocument.uri);
-	tokens ??= new Lexer(text, filePath).tokens;
+	const fsPath = fileURIToFsPath(documentFormattingParams.textDocument.uri);
+	tokens ??= new Lexer(text, fsPath).tokens;
 	const rawTokens = [...tokens];
-	let parser = new Parser(filePath, [], undefined, () => tokens, true);
+	let parser = new Parser(fsPath, [], undefined, () => tokens, true);
 	await parser.stable;
 
 	const issues = parser.issues.filter((issue) =>
-		coreSyntaxIssuesFilter(issue.raw, filePath, false),
+		coreSyntaxIssuesFilter(issue.raw, fsPath, false),
 	);
 
 	if (issues?.length) {
@@ -230,7 +234,7 @@ export async function formatText(
 				parser.allAstItems,
 				parser.includes,
 				prevIfBlocks,
-				filePath,
+				fsPath,
 				text,
 				returnType,
 				options,
@@ -242,7 +246,7 @@ export async function formatText(
 
 		if (options.runExpressionIndentationCheck) {
 			const allAstItems =
-				(await getAstItems(filePath, text, finalText)) ??
+				(await getAstItems(fsPath, text, finalText)) ??
 				parser.allAstItems;
 			finalText = await formatExpressionIndentation(
 				{
@@ -253,7 +257,7 @@ export async function formatText(
 					},
 				},
 				allAstItems,
-				filePath,
+				fsPath,
 				finalText,
 				returnType,
 				options,
@@ -272,7 +276,7 @@ export async function formatText(
 			do {
 				prevText = finalText;
 				const allAstItems =
-					(await getAstItems(filePath, text, prevText)) ??
+					(await getAstItems(fsPath, text, prevText)) ??
 					parser.allAstItems;
 
 				finalText = await formatLongLines(
@@ -284,7 +288,7 @@ export async function formatText(
 						},
 					},
 					allAstItems,
-					filePath,
+					fsPath,
 					prevText,
 					'New Text',
 					options,
@@ -311,7 +315,7 @@ export async function formatText(
 				parser.allAstItems,
 				parser.includes,
 				prevIfBlocks,
-				filePath,
+				fsPath,
 				text,
 				returnType,
 				options,
@@ -332,7 +336,7 @@ export async function formatText(
 						},
 					},
 					parser.allAstItems,
-					filePath,
+					fsPath,
 					finalText,
 					'File Diagnostics',
 					options,
@@ -340,7 +344,7 @@ export async function formatText(
 			);
 
 			const allAstItems =
-				(await getAstItems(filePath, text, finalText)) ??
+				(await getAstItems(fsPath, text, finalText)) ??
 				parser.allAstItems;
 			const r = await formatExpressionIndentation(
 				{
@@ -351,7 +355,7 @@ export async function formatText(
 					},
 				},
 				allAstItems,
-				filePath,
+				fsPath,
 				finalText,
 				returnType,
 				options,
@@ -377,7 +381,7 @@ export async function formatText(
 						},
 					},
 					parser.allAstItems,
-					filePath,
+					fsPath,
 					text,
 					'File Diagnostics',
 					options,
@@ -389,7 +393,7 @@ export async function formatText(
 			do {
 				prevText = finalText;
 				let allAstItems =
-					(await getAstItems(filePath, text, prevText)) ??
+					(await getAstItems(fsPath, text, prevText)) ??
 					parser.allAstItems;
 
 				finalText = await formatLongLines(
@@ -401,7 +405,7 @@ export async function formatText(
 						},
 					},
 					allAstItems,
-					filePath,
+					fsPath,
 					prevText,
 					'New Text',
 					options,
@@ -429,7 +433,7 @@ export async function formatText(
 			parser.allAstItems,
 			parser.includes,
 			prevIfBlocks,
-			filePath,
+			fsPath,
 			text,
 			returnType,
 			options,
@@ -448,7 +452,7 @@ export async function formatText(
 				},
 			},
 			parser.allAstItems,
-			filePath,
+			fsPath,
 			text,
 			returnType,
 			options,
@@ -474,7 +478,7 @@ export async function formatText(
 					},
 				},
 				parser.allAstItems,
-				filePath,
+				fsPath,
 				text,
 				returnType,
 				options,
@@ -603,7 +607,7 @@ async function formatAstBaseItems(
 	astItems: ASTBase[],
 	includes: Include[],
 	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
-	uri: string,
+	fsPath: string,
 	text: string,
 	returnType: 'Both',
 	options: FormattingFlags,
@@ -614,7 +618,7 @@ async function formatAstBaseItems(
 	astItems: ASTBase[],
 	includes: Include[],
 	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
-	uri: string,
+	fsPath: string,
 	text: string,
 	returnType: 'File Diagnostics',
 	options: FormattingFlags,
@@ -625,7 +629,7 @@ async function formatAstBaseItems(
 	astItems: ASTBase[],
 	includes: Include[],
 	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
-	uri: string,
+	fsPath: string,
 	text: string,
 	returnType: 'New Text',
 	options: FormattingFlags,
@@ -636,7 +640,7 @@ async function formatAstBaseItems(
 	astItems: ASTBase[],
 	includes: Include[],
 	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
-	uri: string,
+	fsPath: string,
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics' | 'Both',
 	options: FormattingFlags,
@@ -655,7 +659,7 @@ async function formatAstBaseItems(
 			astItems,
 			includes,
 			ifDefBlocks,
-			uri,
+			fsPath,
 			splitDocument,
 			options,
 		)),
@@ -668,7 +672,7 @@ async function formatAstBaseItems(
 	);
 
 	newText = applyEdits(
-		TextDocument.create(uri, 'devicetree', 0, text),
+		TextDocument.create(fsPath, 'devicetree', 0, text),
 		rangeEdits.flatMap((i) => i.raw.edit).filter((e) => !!e),
 	);
 
@@ -690,11 +694,11 @@ async function baseFormatAstBaseItems(
 	astItems: ASTBase[],
 	includes: Include[],
 	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
-	uri: string,
+	fsPath: string,
 	splitDocument: string[],
 	options: FormattingFlags,
 ): Promise<FileDiagnostic[]> {
-	const astItemLevel = getAstItemLevel(astItems, uri);
+	const astItemLevel = getAstItemLevel(astItems, fsPath);
 
 	const result: FileDiagnostic[] = (
 		await Promise.all(
@@ -703,7 +707,7 @@ async function baseFormatAstBaseItems(
 					await getTextEdit(
 						documentFormattingParams,
 						base,
-						uri,
+						fsPath,
 						astItemLevel,
 						splitDocument,
 						includes,
@@ -728,7 +732,7 @@ async function baseFormatAstBaseItems(
 		result.push(
 			genFormattingDiagnostic(
 				FormattingIssues.MISSING_EOF_NEW_LINE,
-				uri,
+				fsPath,
 				Position.create(splitDocument.length, 0),
 				{ edit, codeActionTitle: 'Insert new line' },
 			),
@@ -756,7 +760,7 @@ async function baseFormatAstBaseItems(
 			result.push(
 				genFormattingDiagnostic(
 					FormattingIssues.TRIALING_EOF_NEW_LINES,
-					uri,
+					fsPath,
 					Position.create(lineNumber, 0),
 					{ edit, codeActionTitle: 'Remove trailing EOF lines' },
 				),
@@ -767,7 +771,11 @@ async function baseFormatAstBaseItems(
 	const allEdits = result.flatMap((i) => i.raw.edit).filter((i) => !!i);
 
 	if (documentFormattingParams.options.trimTrailingWhitespace) {
-		const issues = removeTrailingWhitespace(splitDocument, allEdits, uri);
+		const issues = removeTrailingWhitespace(
+			splitDocument,
+			allEdits,
+			fsPath,
+		);
 		result.push(...issues);
 	}
 
@@ -777,7 +785,7 @@ async function baseFormatAstBaseItems(
 const removeTrailingWhitespace = (
 	documentText: string[],
 	textEdits: TextEdit[],
-	uri: string,
+	fsPath: string,
 ): FileDiagnostic[] => {
 	const result: FileDiagnostic[] = [];
 	documentText.forEach((line, i) => {
@@ -796,7 +804,7 @@ const removeTrailingWhitespace = (
 				result.push(
 					genFormattingDiagnostic(
 						FormattingIssues.TRIALING_WHITE_SPACE,
-						uri,
+						fsPath,
 						rangeToCover.start,
 						{
 							edit: TextEdit.del(rangeToCover),
@@ -840,7 +848,7 @@ const removeNewLinesBetweenTokenAndPrev = (
 			);
 			return genFormattingDiagnostic(
 				FormattingIssues.INCORRECT_WHITE_SPACE,
-				token.uri,
+				token.fsPath,
 				start,
 				{
 					edit,
@@ -859,7 +867,7 @@ const removeNewLinesBetweenTokenAndPrev = (
 		const edit = TextEdit.del(Range.create(start, end));
 		return genFormattingDiagnostic(
 			FormattingIssues.INCORRECT_WHITE_SPACE,
-			token.uri,
+			token.fsPath,
 			start,
 			{
 				edit,
@@ -892,7 +900,7 @@ const pushItemToNewLineAndIndent = (
 		);
 		return genFormattingDiagnostic(
 			FormattingIssues.MISSING_NEW_LINE,
-			token.uri,
+			token.fsPath,
 			start,
 			{ edit, codeActionTitle: 'Move to new line' },
 			end,
@@ -920,7 +928,7 @@ const createIndentEdit = (
 	return [
 		genFormattingDiagnostic(
 			FormattingIssues.WRONG_INDENTATION,
-			token.uri,
+			token.fsPath,
 			start,
 			{
 				edit,
@@ -975,7 +983,7 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
 		return [
 			genFormattingDiagnostic(
 				FormattingIssues.INCORRECT_WHITE_SPACE,
-				token.uri,
+				token.fsPath,
 				start,
 				{
 					edit,
@@ -996,7 +1004,7 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
 		return [
 			genFormattingDiagnostic(
 				FormattingIssues.INCORRECT_WHITE_SPACE,
-				token.uri,
+				token.fsPath,
 				start,
 				{
 					edit,
@@ -1031,7 +1039,7 @@ const fixedNumberOfSpaceBetweenTokensAndNext = (
 	return [
 		genFormattingDiagnostic(
 			FormattingIssues.INCORRECT_WHITE_SPACE,
-			token.uri,
+			token.fsPath,
 			start,
 			{
 				edit,
@@ -1080,7 +1088,7 @@ const formatDtcNode = async (
 	node: DtcBaseNode,
 	includes: Include[],
 	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
-	uri: string,
+	fsPath: string,
 	level: number,
 	indentString: string,
 	options: FormattingFlags,
@@ -1153,7 +1161,7 @@ const formatDtcNode = async (
 						result.push(
 							genFormattingDiagnostic(
 								issuesTypes,
-								address.uri,
+								address.fsPath,
 								toPosition(address.firstToken, false),
 								{
 									edit: TextEdit.replace(
@@ -1240,7 +1248,7 @@ const formatDtcNode = async (
 					getTextEdit(
 						documentFormattingParams,
 						c,
-						uri,
+						fsPath,
 						computeLevel,
 						documentText,
 						includes,
@@ -1327,7 +1335,7 @@ const formatLabeledValue = <T extends ASTBase>(
 			result.push(
 				genFormattingDiagnostic(
 					FormattingIssues.HEX_TO_LOWER_CASE,
-					value.value.uri,
+					value.value.fsPath,
 					toPosition(value.value.firstToken, false),
 					{
 						edit: TextEdit.replace(
@@ -1635,7 +1643,7 @@ const formatComplexExpression = (
 		result.push(
 			genFormattingDiagnostic(
 				FormattingIssues.REMOVE_EXPRESSION_BRACKETS,
-				value.uri,
+				value.fsPath,
 				edits[0].range.start,
 				{ edit: edits, codeActionTitle: 'Remove (...)' },
 				edits[edits.length - 1].range.end,
@@ -1938,7 +1946,7 @@ const moveNextTo = (token: Token, toMove: Token): FileDiagnostic[] => {
 		return [
 			genFormattingDiagnostic(
 				FormattingIssues.INCORRECT_WHITE_SPACE,
-				token.uri,
+				token.fsPath,
 				start,
 				{
 					edit,
@@ -1967,7 +1975,7 @@ const moveNextTo = (token: Token, toMove: Token): FileDiagnostic[] => {
 	return [
 		genFormattingDiagnostic(
 			FormattingIssues.MOVE_NEXT_TO,
-			token.uri,
+			token.fsPath,
 			start,
 			{
 				edit: edits,
@@ -2016,7 +2024,7 @@ const formatDtcDelete = (
 
 const formatDtcInclude = (
 	includeItem: Include,
-	uri: string,
+	fsPath: string,
 	levelMeta: LevelMeta | undefined,
 	indentString: string,
 	documentText: string[],
@@ -2024,7 +2032,7 @@ const formatDtcInclude = (
 	// we should not format this case
 	if (levelMeta === undefined) return [];
 
-	if (!isPathEqual(includeItem.uri, uri)) return []; // may be coming from some other include  hence ignore
+	if (!isPathEqual(includeItem.fsPath, fsPath)) return []; // may be coming from some other include  hence ignore
 
 	const result: FileDiagnostic[] = [];
 
@@ -2328,7 +2336,7 @@ const formatComment = (
 const getTextEdit = async (
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astNode: ASTBase,
-	uri: string,
+	fsPath: string,
 	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
 	documentText: string[],
 	includes: Include[],
@@ -2352,7 +2360,7 @@ const getTextEdit = async (
 			astNode,
 			includes,
 			ifDefBlocks,
-			uri,
+			fsPath,
 			level,
 			singleIndent,
 			options,
@@ -2372,7 +2380,7 @@ const getTextEdit = async (
 	} else if (astNode instanceof Include) {
 		return formatDtcInclude(
 			astNode,
-			uri,
+			fsPath,
 			await computeLevel(astNode),
 			singleIndent,
 			documentText,

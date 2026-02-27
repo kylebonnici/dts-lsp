@@ -39,15 +39,15 @@ const isPathEqual = (pathA: string | undefined, pathB: string | undefined) => {
 
 const doesContextUsesFile = (ctx: ContextListItem, filePath: string) => {
 	return (
-		isPathEqual(ctx.mainDtsPath.file, filePath) ||
+		isPathEqual(ctx.mainDtsPath.fsPath, filePath) ||
 		ctx.mainDtsPath.includes.some((include) =>
-			isPathEqual(include.file, filePath),
+			isPathEqual(include.fsPath, filePath),
 		) ||
 		ctx.overlays.some(
 			(overlay) =>
-				isPathEqual(overlay.file, filePath) ||
+				isPathEqual(overlay.fsPath, filePath) ||
 				overlay.includes.some((include) =>
-					isPathEqual(include.file, filePath),
+					isPathEqual(include.fsPath, filePath),
 				),
 		)
 	);
@@ -75,11 +75,11 @@ const SelectContext = async (
 		ctx: context,
 		label: `[${context.ctxNames.join(',')}]`,
 		description: `[${context.type} context] dts: ${path.basename(
-			context.mainDtsPath.file,
+			context.mainDtsPath.fsPath,
 		)}`,
 		detail: context.overlays.length
 			? ` overlays: ${context.overlays
-					.map((overlay) => path.basename(overlay.file))
+					.map((overlay) => path.basename(overlay.fsPath))
 					.join(', ')}`
 			: '',
 	}));
@@ -180,6 +180,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		debug: {
 			module: serverModule,
 			transport: TransportKind.ipc,
+			options: { execArgv: ['--nolazy', '--inspect=6009'] },
 		},
 	};
 
@@ -220,7 +221,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.window.onDidChangeActiveTextEditor((editor) => {
 			if (editor && ['devicetree'].includes(editor.document.languageId)) {
-				api.setActiveFileUri(editor.document.uri.fsPath);
+				api.setActiveFsPath(editor.document.uri.fsPath);
 			}
 		}),
 		vscode.workspace.registerTextDocumentContentProvider(
@@ -264,11 +265,13 @@ export async function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand(
 			'devicetree.clipboard.dtMacro',
 			async (textDocumentPositionParams?: TextDocumentPositionParams) => {
+				textDocumentPositionParams ??=
+					getCurrentTextDocumentPositionParams();
+				if (textDocumentPositionParams) {
+					return;
+				}
 				const actions = (
-					await api.getAllowedActions(
-						textDocumentPositionParams ??
-							(await getCurrentTextDocumentPositionParams()),
-					)
+					await api.getAllowedActions(textDocumentPositionParams)
 				).filter(
 					(a): a is ClipboardActions =>
 						a.type === 'dt_zephyr_macro_prop_node_label' ||
@@ -290,11 +293,12 @@ export async function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand(
 			'devicetree.clipboard.nodePath',
 			async () => {
-				const actions = (
-					await api.getAllowedActions(
-						await getCurrentTextDocumentPositionParams(),
-					)
-				).filter((a): a is ClipboardActions => a.type === 'path');
+				const location = getCurrentTextDocumentPositionParams();
+				if (!location) return;
+
+				const actions = (await api.getAllowedActions(location)).filter(
+					(a): a is ClipboardActions => a.type === 'path',
+				);
 
 				copyClipboardAction(actions, 'Pick a path to copy...');
 			},

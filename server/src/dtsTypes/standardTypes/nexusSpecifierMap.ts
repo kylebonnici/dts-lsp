@@ -15,10 +15,9 @@
  */
 
 import { ParameterInformation } from 'vscode-languageserver';
-import { BindingPropertyType } from '../../types/index';
 import { FileDiagnostic, StandardTypeIssue } from '../../types';
 import { PropertyNodeType } from '../types';
-import { createTokenIndex, genStandardTypeDiagnostic } from '../../helpers';
+import { genStandardTypeDiagnostic } from '../../helpers';
 import { ASTBase } from '../../ast/base';
 import { Expression } from '../../ast/cPreprocessors/expression';
 import {
@@ -31,7 +30,7 @@ import {
 export default () => {
 	const prop = new PropertyNodeType<number>(
 		/^(?!interrupt-|no-).*?-map$/,
-		generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY),
+		generateOrTypeObj('PROP_ENCODED_ARRAY'),
 		'optional',
 		undefined,
 		undefined,
@@ -79,7 +78,7 @@ export default () => {
 				return [];
 			}
 
-			const keys: { [key: string]: ASTBase[] } = {};
+			const keys: { [key: string]: ASTBase[][] } = {};
 
 			let i = 0;
 			let entryEndIndex = 0;
@@ -128,12 +127,7 @@ export default () => {
 					break;
 				}
 
-				const keyItem = new ASTBase(
-					createTokenIndex(
-						values.at(i)!.firstToken,
-						values.at(childSpecifierCellsValue + i - 1)?.lastToken,
-					),
-				);
+				const keyItems = values.slice(i, i + childSpecifierCellsValue);
 
 				let key = '';
 				for (let j = i; j < childSpecifierCellsValue + i; j++) {
@@ -146,7 +140,7 @@ export default () => {
 				}
 
 				keys[key] ??= [];
-				keys[key].push(keyItem);
+				keys[key].push(keyItems);
 
 				i += childSpecifierCellsValue;
 
@@ -304,10 +298,10 @@ export default () => {
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.DUPLICATE_MAP_ENTRY,
-							valueItem.firstToken,
-							valueItem.lastToken,
+							valueItem[0].firstToken,
+							valueItem.at(-1)!.lastToken,
 							valueItem,
-							{ linkedTo: v.slice(0, -1) },
+							{ linkedTo: v.slice(0, -1).flat() },
 						),
 					);
 				}

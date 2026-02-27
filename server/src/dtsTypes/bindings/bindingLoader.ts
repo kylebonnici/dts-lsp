@@ -16,7 +16,7 @@
 
 import { DocumentLink } from 'vscode-languageserver-types';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import type { BindingType } from '../../types/index';
+import type { BindingType, ZephyrBindingYml } from '../../types/index';
 import { Node } from '../../context/node';
 import { INodeType } from '../types';
 import { FileDiagnostic } from '../../types';
@@ -28,6 +28,7 @@ export interface BindingLoader {
 	readonly type: BindingType;
 	readonly files: BindingLoaderFileType;
 	getBindings(): string[];
+	getZephyrContextBinding(): ZephyrBindingYml[] | undefined;
 	getBusTypes(): string[];
 	getDocumentLinks?(document?: TextDocument): DocumentLink[];
 	dispose(): void;
@@ -81,6 +82,14 @@ export const getBindingLoader = (
 
 				case 'DevicetreeOrg':
 					return getDevicetreeOrgBindingsLoader().getBindings();
+			}
+		},
+		getZephyrContextBinding: () => {
+			switch (type) {
+				case 'Zephyr':
+					return getZephyrBindingsLoader().getZephyrContextBinding(
+						zephyrKey,
+					);
 			}
 		},
 		getBusTypes: () => {

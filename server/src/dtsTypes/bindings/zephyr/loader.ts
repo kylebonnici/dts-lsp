@@ -43,103 +43,48 @@ import {
 	StandardTypeIssue,
 } from '../../../types';
 import {
-	fileURLToPath,
+	fileURIToFsPath,
 	genStandardTypeDiagnostic,
-	pathToFileURL,
+	pathToFileURI,
 } from '../../../helpers';
 import { NexusMapping, Property } from '../../../context/property';
-import { BindingPropertyType } from '../../../types/index';
+
+import {
+	CellSpecifier,
+	ChildNodeInclude,
+	ZephyrBindingsProperty,
+	ZephyrBindingYml,
+	ZephyrPropertyType,
+} from '../../../types/index';
 import { getSimpleBusType } from '../../../dtsTypes/standardTypes/nodeTypes/simpleBus/node';
 import { Expression } from '../../../ast/cPreprocessors/expression';
-
-type ZephyrPropertyType =
-	| 'string'
-	| 'int'
-	| 'boolean'
-	| 'array'
-	| 'uint8-array'
-	| 'string-array'
-	| 'phandle'
-	| 'phandles'
-	| 'phandle-array'
-	| 'path'
-	| 'compound';
-
-type ZephyrBindingsProperty = {
-	required?: boolean;
-	type?: ZephyrPropertyType;
-	deprecated?: false;
-	default?: string | number | (string | number)[];
-	description?: string;
-	enum?: (string | number)[];
-	const?: string | number | (string | number)[];
-	'specifier-space'?: string;
-};
-
-interface BlockAllowList {
-	'property-blocklist'?: string[];
-	'property-allowlist'?: string[];
-}
-
-interface ChildNodeInclude extends BlockAllowList {
-	'child-binding'?: ChildNodeInclude;
-}
-
-interface Include extends BlockAllowList {
-	name: string;
-	'child-binding'?: ChildNodeInclude;
-}
-interface ZephyrBindingYml {
-	filePath: string;
-	include: Include[];
-	rawInclude: {
-		name: string;
-		'property-blocklist'?: string[];
-		'property-allowlist'?: string[];
-	}[];
-	description?: string;
-	compatible?: string;
-	'child-binding'?: ZephyrBindingYml;
-	bus?: string[];
-	'on-bus'?: string;
-	properties?: {
-		[key: string]: ZephyrBindingsProperty;
-	};
-	[key: CellSpecifier]: string[];
-	extends?: string[]; // our entry to collaps include
-}
-
-type CellSpecifier = `${string}-cells`;
 
 const ZephyrTypeToDTSType = (type: ZephyrPropertyType | undefined) => {
 	switch (type) {
 		case 'string':
-			return generateOrTypeObj(BindingPropertyType.STRING);
+			return generateOrTypeObj('STRING');
 		case 'int':
-			return generateOrTypeObj(BindingPropertyType.U32);
+			return generateOrTypeObj('U32');
 		case 'boolean':
-			return generateOrTypeObj(BindingPropertyType.EMPTY);
+			return generateOrTypeObj('EMPTY');
 		case 'array':
-			return generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY);
+			return generateOrTypeObj('PROP_ENCODED_ARRAY');
 		case 'uint8-array':
-			return generateOrTypeObj(BindingPropertyType.BYTESTRING);
+			return generateOrTypeObj('BYTESTRING');
 		case 'string-array':
-			return generateOrTypeObj(BindingPropertyType.STRINGLIST);
+			return generateOrTypeObj('STRINGLIST');
 		case 'phandle':
-			return generateOrTypeObj(BindingPropertyType.U32);
+			return generateOrTypeObj('U32');
 		case 'phandles':
-			return generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY);
+			return generateOrTypeObj('PROP_ENCODED_ARRAY');
 		case 'phandle-array':
-			return generateOrTypeObj(BindingPropertyType.PROP_ENCODED_ARRAY);
+			return generateOrTypeObj('PROP_ENCODED_ARRAY');
 		case 'path':
-			return generateOrTypeObj([
-				BindingPropertyType.STRING,
-				BindingPropertyType.U32,
-			]);
+			return generateOrTypeObj(['STRING', 'U32']);
 		case 'compound':
-			return generateOrTypeObj(BindingPropertyType.ANY);
+			return generateOrTypeObj('ANY');
 		default:
-			return generateOrTypeObj(BindingPropertyType.ANY);
+			return generateOrTypeObj('ANY');
 	}
 };
 
@@ -183,6 +128,9 @@ const resolveBinding = (
 	bindings: ZephyrBindingYml[],
 	binding: ZephyrBindingYml,
 ): ZephyrBindingYml | undefined => {
+	Object.entries(binding.properties ?? {}).forEach(([name, prop]) => {
+		prop.name = name;
+	});
 	binding.extends ??= [];
 	binding = binding.include.reduce((p, c) => {
 		const toMergeIn = bindings.find((b) => basename(b.filePath) === c.name);
@@ -213,10 +161,16 @@ const resolveBinding = (
 		binding['child-binding'].include = simplifyInclude(
 			binding['child-binding'].include,
 		);
+
 		binding['child-binding'] = resolveBinding(
 			bindings,
 			binding['child-binding'],
 		);
+
+		if (binding['child-binding']) {
+			binding['child-binding'].isChildBinding = true;
+			binding['child-binding'].filePath = binding.filePath;
+		}
 	}
 
 	if (!binding.include.length) {
@@ -304,11 +258,17 @@ const mergeAIntoB = (
 			filePath: resolvedB.filePath,
 			include: [],
 			rawInclude: [],
+			isChildBinding: true,
 		};
 		mergeAIntoB(
 			bindings,
 			resolvedA['child-binding'],
-			resolvedB['child-binding'],
+			resolvedB['child-binding'] ?? {
+				filePath: resolvedB.filePath,
+				include: [],
+				rawInclude: [],
+				isChildBinding: true,
+			},
 			childBindingFilter?.['property-blocklist'],
 			childBindingFilter?.['property-allowlist'],
 			childBindingFilter?.['child-binding'],
@@ -350,6 +310,7 @@ export class ZephyrBindingsLoader {
 		new Map();
 	private processedFolders = new Set<string>();
 	private zephyrBindingCache: Map<string, ZephyrBindingYml> = new Map();
+	private contextBindingFiles = new WeakMap<ZephyrBindingYml, string[]>();
 
 	static getCompatibleKeys(compatible: string, parent?: Node | null) {
 		if (!parent || !parent.nodeType?.bus?.length) {
@@ -566,6 +527,16 @@ export class ZephyrBindingsLoader {
 			typeCache = new Map();
 			this.typeCache.set(key, typeCache);
 		}
+
+		resolvedBindings.forEach((b) => {
+			const keys = this.contextBindingFiles.get(b);
+			if (!keys) {
+				this.contextBindingFiles.set(b, [key]);
+			} else {
+				keys.push(key);
+			}
+		});
+
 		convertBindingsToType(resolvedBindings, typeCache);
 
 		if (!typeCache.has('simple-bus')) {
@@ -583,6 +554,12 @@ export class ZephyrBindingsLoader {
 		);
 	}
 
+	getZephyrContextBinding(key: string) {
+		return Array.from(this.zephyrBindingCache.values()).filter((b) =>
+			this.contextBindingFiles.get(b)?.includes(key),
+		);
+	}
+
 	getBusTypes() {
 		const busTypes = Array.from(this.zephyrBindingCache.values())
 			.flatMap((b) => b.bus?.filter((v) => !!v) ?? [])
@@ -595,7 +572,7 @@ export class ZephyrBindingsLoader {
 		folders: string[],
 	): DocumentLink[] {
 		const bindingFile = this.zephyrBindingCache.get(
-			fileURLToPath(document.uri),
+			fileURIToFsPath(document.uri),
 		);
 
 		if (!bindingFile) return [];
@@ -624,7 +601,7 @@ export class ZephyrBindingsLoader {
 
 					return {
 						range: Range.create(start, end),
-						target: pathToFileURL(path),
+						target: pathToFileURI(path),
 					};
 				}
 			})
@@ -665,6 +642,7 @@ const convertBindingToType = (binding: ZephyrBindingYml, node?: Node) => {
 	nodeType.compatible = binding.compatible;
 	nodeType.description = binding.description;
 	nodeType.bindingsPath = binding.filePath;
+	nodeType.zephyrBinding = binding;
 	nodeType.bus =
 		typeof binding.bus === 'string'
 			? [binding.bus]
@@ -688,8 +666,11 @@ const convertBindingToType = (binding: ZephyrBindingYml, node?: Node) => {
 
 	if (binding['child-binding']) {
 		const childBinding = binding['child-binding'];
-		nodeType.childNodeType = (n: Node) =>
-			convertBindingToType(childBinding, n);
+		nodeType.childNodeType = (n: Node) => {
+			const binding = convertBindingToType(childBinding, n);
+			binding.hasParentBinding = true;
+			return binding;
+		};
 	}
 
 	return nodeType;
@@ -1038,6 +1019,7 @@ const generateZephyrTypeCheck = (
 				const nexusMapping: NexusMapping = {
 					mappingValuesAst,
 					specifierSpace: parentName,
+					cellCount: sizeCellValue,
 					target: pHandleValue,
 				};
 
@@ -1074,6 +1056,7 @@ const generateZephyrTypeCheck = (
 						expressions: mappingValuesAst,
 						node: p.parent,
 						property: p,
+						specifierSpace: parentName,
 					});
 				}
 

@@ -22,9 +22,9 @@ import { NodeName } from './ast/dtc/node';
 import { Label } from './ast/dtc/label';
 import { LabelRef } from './ast/dtc/labelRef';
 import {
-	convertVirtualUriToDocumentUri,
+	convertVirtualFsPathToDocumentFsPath,
 	nodeFinder,
-	pathToFileURL,
+	pathToFileURI,
 	toRange,
 } from './helpers';
 import { PropertyName } from './ast/dtc/property';
@@ -36,17 +36,17 @@ import { StringValue } from './ast/dtc/values/string';
 import { CMacroCallParam } from './ast/cPreprocessors/functionCall';
 
 export const generateDefinitionsFromNode = (node: Node) => {
-	return [...node.definitions, ...node.referencedBy]
+	return node.implementations
 		.map((dtc) => {
-			const virtualDoc = convertVirtualUriToDocumentUri(dtc.uri);
+			const virtualDoc = convertVirtualFsPathToDocumentFsPath(dtc.fsPath);
 			if (virtualDoc) {
 				return Location.create(
-					pathToFileURL(virtualDoc.docUri),
+					pathToFileURI(virtualDoc.docFsPath),
 					virtualDoc.range,
 				);
 			}
 
-			return Location.create(pathToFileURL(dtc.uri), toRange(dtc));
+			return Location.create(pathToFileURI(dtc.fsPath), toRange(dtc));
 		})
 		.filter((r) => r) as Location[];
 };
@@ -62,15 +62,15 @@ const getTopProperty = (property: Property): Property => {
 export const generatePropertyDefinition = (property: Property): Location[] => {
 	return [property.ast, ...property.allReplaced.map((p) => p.ast)]
 		.map((dtc) => {
-			const virtualDoc = convertVirtualUriToDocumentUri(dtc.uri);
+			const virtualDoc = convertVirtualFsPathToDocumentFsPath(dtc.fsPath);
 			if (virtualDoc) {
 				return Location.create(
-					pathToFileURL(virtualDoc.docUri),
+					pathToFileURI(virtualDoc.docFsPath),
 					virtualDoc.range,
 				);
 			}
 			return Location.create(
-				pathToFileURL(dtc.uri),
+				pathToFileURI(dtc.fsPath),
 				toRange(dtc.propertyName ?? dtc),
 			);
 		})
@@ -160,7 +160,7 @@ function getMacrosDefinition(result: SearchableResult | undefined): Location[] {
 		if (macro) {
 			return [
 				Location.create(
-					pathToFileURL(macro.macro.uri),
+					pathToFileURI(macro.macro.fsPath),
 					toRange(macro.macro.identifier),
 				),
 			];

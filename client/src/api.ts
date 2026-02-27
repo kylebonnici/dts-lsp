@@ -23,14 +23,17 @@ import type {
 	EvaluatedMacro,
 	IntegrationSettings,
 	LocationResult,
+	PositionScopeInformation,
 	ResolvedSettings,
 	SerializedNode,
+	ZephyrBindingYml,
 } from 'devicetree-language-server-types';
 import {
 	LanguageClient,
 	NotificationType,
 	TextDocumentPositionParams,
 	Disposable,
+	TextEdit,
 } from 'vscode-languageclient/node';
 import { IDeviceTreeAPI as IDeviceTreeAPI } from './types';
 import { getCurrentTextDocumentPositionParams } from './helpers';
@@ -50,6 +53,13 @@ const activeContextStableNotification = new NotificationType<ContextListItem>(
 );
 const contextStableNotification = new NotificationType<ContextListItem>(
 	'devicetree/contextStableNotification',
+);
+
+const activeContextBusyNotification = new NotificationType<ContextListItem>(
+	'devicetree/activeContextBusyNotification',
+);
+const contextBusyNotification = new NotificationType<ContextListItem>(
+	'devicetree/contextBusyNotification',
 );
 
 const settingsChangedNotification = new NotificationType<ContextListItem>(
@@ -72,6 +82,12 @@ export class API implements IDeviceTreeAPI {
 		);
 		this.client.onNotification(contextStableNotification, (result) =>
 			this.event.emit('onContextStable', result),
+		);
+		this.client.onNotification(activeContextBusyNotification, (result) =>
+			this.event.emit('onActiveContextBusy', result),
+		);
+		this.client.onNotification(contextBusyNotification, (result) =>
+			this.event.emit('onContextBusy', result),
 		);
 		this.client.onNotification(settingsChangedNotification, (ctx) =>
 			this.event.emit('onSettingsChanged', ctx),
@@ -110,9 +126,9 @@ export class API implements IDeviceTreeAPI {
 	}
 
 	async getActivePathLocation(): Promise<LocationResult | undefined> {
-		const result = await this.getPathLocation(
-			await getCurrentTextDocumentPositionParams(),
-		);
+		const location = getCurrentTextDocumentPositionParams();
+		if (!location) return;
+		const result = await this.getPathLocation(location);
 
 		if (result) {
 			this.event.emit('onActivePath', result);
@@ -164,7 +180,14 @@ export class API implements IDeviceTreeAPI {
 		return this.client.sendRequest(
 			'devicetree/serializedContext',
 			id,
-		) as Promise<SerializedNode | undefined>;
+		) as Promise<Record<string, SerializedNode> | undefined>;
+	}
+
+	formatTextEdits(event) {
+		return this.client.sendRequest(
+			'devicetree/formatTextEdits',
+			event,
+		) as Promise<TextEdit>;
 	}
 
 	onActiveContextChange(
@@ -187,6 +210,15 @@ export class API implements IDeviceTreeAPI {
 		};
 	}
 
+	onActiveContextBusy(listener: (id: string) => void) {
+		this.event.addListener('onActiveContextBusy', listener);
+		return {
+			dispose: () => {
+				this.event.removeListener('onActiveContextBusy', listener);
+			},
+		};
+	}
+
 	onActivePath(listener: (path: LocationResult) => void) {
 		this.event.addListener('onActivePath', listener);
 		return {
@@ -198,6 +230,15 @@ export class API implements IDeviceTreeAPI {
 
 	onContextStable(listener: (ctx: ContextListItem) => void) {
 		this.event.addListener('onContextStable', listener);
+		return {
+			dispose: () => {
+				this.event.removeListener('onContextStable', listener);
+			},
+		};
+	}
+
+	onContextBusy(listener: (id: string) => void) {
+		this.event.addListener('onContextBusy', listener);
 		return {
 			dispose: () => {
 				this.event.removeListener('onContextStable', listener);
@@ -239,9 +280,9 @@ export class API implements IDeviceTreeAPI {
 		) as Promise<Actions[]>;
 	}
 
-	setActiveFileUri(path: string) {
+	setActiveFsPath(path: string) {
 		return this.client.sendRequest(
-			'devicetree/activeFileUri',
+			'devicetree/activeFsPath',
 			path,
 		) as Promise<void>;
 	}
@@ -257,5 +298,28 @@ export class API implements IDeviceTreeAPI {
 		return this.client.sendRequest('devicetree/memoryViews', {
 			ctxId,
 		}) as Promise<unknown[]>;
+	}
+
+	getZephyrTypeBindings(id: string) {
+		return this.client.sendRequest(
+			'devicetree/zephyrTypeBindings',
+			id,
+		) as Promise<ZephyrBindingYml[] | undefined>;
+	}
+
+	getMacroNames(id: string) {
+		return this.client.sendRequest(
+			'devicetree/contextMacroNames',
+			id,
+		) as Promise<string[] | undefined>;
+	}
+
+	getLocationScopedInformation(
+		event: TextDocumentPositionParams & { id: string },
+	) {
+		return this.client.sendRequest(
+			'devicetree/locationScopedInformation',
+			event,
+		) as Promise<PositionScopeInformation | undefined>;
 	}
 }

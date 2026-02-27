@@ -43,7 +43,7 @@ import {
 	FileDiagnostic,
 	MacroRegistryItem,
 	RangeMapping,
-	NexusMapEnty,
+	NexusMapEntry,
 	SearchableResult,
 	RegMapping,
 	TokenIndexes,
@@ -64,7 +64,7 @@ import { getNodeNameOrNodeLabelRef } from '../ast/helpers';
 import { getStandardType } from '../dtsTypes/standardTypes';
 import { BindingLoader } from '../dtsTypes/bindings/bindingLoader';
 import { INodeType, NodeType } from '../dtsTypes/types';
-import { MemoryView, SerializedNode } from '../types/index';
+import { MemoryView, SerializedNexusMap, SerializedNode } from '../types/index';
 import {
 	flatNumberValues,
 	getU32ValueFromProperty,
@@ -82,7 +82,7 @@ type MappedReg = {
 	endAddressRaw: number[];
 	inMappingRange: boolean;
 	mappingEnd?: number[];
-	mappedAst?: { range: Range; uri: string };
+	mappedAst?: { range: Range; fsPath: string };
 	regRangeTokens: TokenIndexes;
 	missingMapping: boolean;
 };
@@ -91,11 +91,14 @@ export interface Mapping {
 	expressions: Expression[];
 	node: Node;
 	property: Property;
+	specifierSpace: string;
 }
 
+export type InterruptMapping = Omit<Mapping, 'specifierSpace'> &
+	Partial<Pick<Mapping, 'specifierSpace'>>;
+
 export class Node {
-	public referencedBy: DtcRefNode[] = [];
-	public definitions: (DtcChildNode | DtcRootNode)[] = [];
+	public implementations: (DtcChildNode | DtcRootNode | DtcRefNode)[] = [];
 	private _properties: Property[] = [];
 	private _deletedProperties: { property: Property; by: DeleteProperty }[] =
 		[];
@@ -104,10 +107,16 @@ export class Node {
 	private _nodes: Node[] = [];
 	linkedNodeNamePaths: NodeName[] = [];
 	linkedRefLabels: LabelRef[] = [];
-	interrupControlerMapping: Mapping[] = [];
+	interrupControlerMapping: InterruptMapping[] = [];
 	spesifierNexusMapping: Mapping[] = [];
 
 	private _nodeTypes: INodeType[] | undefined;
+
+	get definitions(): (DtcChildNode | DtcRootNode)[] {
+		return this.implementations.filter(
+			(i) => i instanceof DtcChildNode || i instanceof DtcRootNode,
+		);
+	}
 
 	static toJson(node: Node) {
 		const obj: any = {};
@@ -174,7 +183,10 @@ export class Node {
 	}
 
 	public getReferenceBy(node: DtcRefNode): Node | undefined {
-		if (this.referencedBy.some((n) => n === node)) {
+		const referancesImp = this.implementations.filter(
+			(i) => i instanceof DtcRefNode,
+		);
+		if (referancesImp.some((n) => n === node)) {
 			return this;
 		}
 
@@ -184,17 +196,14 @@ export class Node {
 	}
 
 	get nodeNameOrLabelRef(): (NodeName | LabelRef)[] {
-		return getNodeNameOrNodeLabelRef([
-			...this.definitions,
-			...this.referencedBy,
-		]);
+		return getNodeNameOrNodeLabelRef(this.implementations);
 	}
 
 	getDeepestAstNode(
 		file: string,
 		position: Position,
 	): Omit<SearchableResult, 'runtime'> | undefined {
-		const inNode = [...this.definitions, ...this.referencedBy].find((i) =>
+		const inNode = this.implementations.find((i) =>
 			positionInBetween(i, file, position),
 		);
 
@@ -271,14 +280,9 @@ export class Node {
 	}
 
 	get labels(): LabelAssign[] {
-		return [
-			...this.referencedBy.flatMap((r) => r.labels),
-			...(
-				this.definitions.filter(
-					(def) => def instanceof DtcChildNode,
-				) as DtcChildNode[]
-			).flatMap((def) => def.labels),
-		];
+		return this.implementations.flatMap((i) =>
+			i instanceof DtcRootNode ? [] : i.labels,
+		);
 	}
 
 	get labelsMapped() {
@@ -353,7 +357,8 @@ export class Node {
 								ContextIssues.ADDRESS_RANGE_COLLIDES,
 								reg.rangeTokens.start,
 								reg.rangeTokens.end,
-								node.definitions[0],
+								node.properties.find((p) => p.name === 'reg')
+									?.ast ?? node.implementations[0],
 								{
 									severity: DiagnosticSeverity.Information,
 									linkedTo: collidingNodes.map((n) => ({
@@ -361,7 +366,7 @@ export class Node {
 											n.reg.rangeTokens.start,
 											n.reg.rangeTokens.end,
 										),
-										uri: n.reg.rangeTokens.start.uri,
+										fsPath: n.reg.rangeTokens.start.fsPath,
 									})),
 									templateStrings: [
 										node.fullName,
@@ -426,11 +431,11 @@ export class Node {
 			...this.missingBinding,
 			...this.getOverlappingNodeAddressesIssues(macros),
 		];
-		if (this.name === '/' && this.definitions.length) {
+		if (this.name === '/' && this.implementations.length) {
 			if (!this._nodes.some((n) => n.name === 'cpus')) {
 				const definition =
-					this.definitions[this.definitions.length - 1];
-				const item = definition.name ?? definition;
+					this.implementations[this.implementations.length - 1];
+				const item = definition.identifierAst ?? definition;
 				issues.push(
 					genContextDiagnostic(
 						ContextIssues.MISSING_NODE,
@@ -439,7 +444,7 @@ export class Node {
 						item,
 						{
 							severity: DiagnosticSeverity.Error,
-							linkedTo: this.definitions.slice(0, -1),
+							linkedTo: this.implementations.slice(0, -1),
 							templateStrings: ['/', 'cpus'],
 						},
 					),
@@ -498,33 +503,32 @@ export class Node {
 
 	get deletedNodesIssues(): FileDiagnostic[] {
 		return this._deletedNodes.flatMap((meta) => [
-			...[
-				...(meta.node.definitions.filter(
-					(node) => node instanceof DtcChildNode,
-				) as DtcChildNode[]),
-				...meta.node.referencedBy,
-			].flatMap((node) => {
-				let name: string;
-				if (node instanceof DtcChildNode) {
-					name = node.name!.toString();
-				} else if (node.reference instanceof LabelRef) {
-					name = node.reference!.label!.value;
-				} else {
-					name = node.reference!.path!.pathParts.at(-1)!.name;
-				}
-				return genContextDiagnostic(
-					ContextIssues.DELETE_NODE,
-					node.firstToken,
-					node.lastToken,
-					node,
-					{
-						severity: DiagnosticSeverity.Hint,
-						linkedTo: [meta.by],
-						tags: [DiagnosticTag.Deprecated],
-						templateStrings: [name],
-					},
-				);
-			}),
+			...meta.node.implementations
+				.filter(
+					(i) => i instanceof DtcChildNode || i instanceof DtcRefNode,
+				)
+				.flatMap((node) => {
+					let name: string;
+					if (node instanceof DtcChildNode) {
+						name = node.name!.toString();
+					} else if (node.reference instanceof LabelRef) {
+						name = node.reference!.label!.value;
+					} else {
+						name = node.reference!.path!.pathParts.at(-1)!.name;
+					}
+					return genContextDiagnostic(
+						ContextIssues.DELETE_NODE,
+						node.firstToken,
+						node.lastToken,
+						node,
+						{
+							severity: DiagnosticSeverity.Hint,
+							linkedTo: [meta.by],
+							tags: [DiagnosticTag.Deprecated],
+							templateStrings: [name],
+						},
+					);
+				}),
 		]);
 	}
 
@@ -1025,7 +1029,7 @@ export class Node {
 						return mappedAddress.map((m) => {
 							mappedReg.mappedAst = {
 								range: m.range,
-								uri: m.uri,
+								fsPath: m.fsPath,
 							};
 							mappedReg.startAddress = m.start;
 							mappedReg.endAddress = addWords(
@@ -1038,7 +1042,7 @@ export class Node {
 
 							return {
 								...mappedReg,
-								mappedAst: { range: m.range, uri: m.uri },
+								mappedAst: { range: m.range, fsPath: m.fsPath },
 								startAddress: m.start,
 								endAddress: addWords(m.start, size),
 								inMappingRange:
@@ -1165,7 +1169,7 @@ export class Node {
 	getNexusMap(
 		specifier: string,
 		macros: Map<string, MacroRegistryItem>,
-	): { map: NexusMapEnty[]; mapMask: number[] } | undefined {
+	): { map: NexusMapEntry[]; mapMask: number[] } | undefined {
 		const nexusMap = this.getProperty(`${specifier}-map`);
 		const values = flatNumberValues(nexusMap?.ast.values);
 		if (!values?.length) {
@@ -1194,21 +1198,30 @@ export class Node {
 			childSpecifierCellsValue += this.addressCells(macros);
 		}
 
-		const map: NexusMapEnty[] = [];
+		const map: NexusMapEntry[] = [];
 
 		let i = 0;
 		while (i < values.length) {
 			const mappingValues = values.slice(i, childSpecifierCellsValue + i);
+
+			const mapItem: NexusMapEntry = {
+				childCellCount: childSpecifierCellsValue,
+				mappingValues: mappingValues,
+			};
+			map.push(mapItem);
 
 			i += childSpecifierCellsValue;
 
 			if (values.length < i + 1) {
 				break;
 			}
-			const specifierParent = resolvePhandleNode(values[i], root);
+			mapItem.nodeAst = values[i];
+			const specifierParent = resolvePhandleNode(mapItem.nodeAst, root);
 			if (!specifierParent) {
 				break;
 			}
+
+			mapItem.node = specifierParent;
 
 			const parentSpecifierAddress = specifierParent.getProperty(
 				`#${specifier}-cells`,
@@ -1235,16 +1248,14 @@ export class Node {
 				parentUnitAddressValue += specifierParent.addressCells(macros);
 			}
 
+			mapItem.parentCellCount = parentUnitAddressValue;
+
 			i += parentUnitAddressValue;
 			if (values.length < i) {
 				break;
 			}
-			const parentValues = values.slice(i - parentUnitAddressValue, i);
-			map.push({
-				mappingValues,
-				node: specifierParent,
-				parentValues,
-			});
+
+			mapItem.parentValues = values.slice(i - parentUnitAddressValue, i);
 		}
 
 		const mapMaskProperty = this.getProperty(`${specifier}-map-mask`);
@@ -1312,7 +1323,7 @@ export class Node {
 		cwd?: string,
 		level = 1,
 	): string {
-		const hasOmitIfNoRef = this.definitions.some(
+		const hasOmitIfNoRef = this.implementations.some(
 			(d) => d instanceof DtcChildNode && d.omitIfNoRef,
 		);
 		const isOmitted =
@@ -1344,7 +1355,7 @@ ${'\t'.repeat(level - 1)}}; */`;
 		}${this.properties
 			.map(
 				(p) =>
-					`${p.toPrettyString(macros, level)}\t/* ${cwd && p.ast.uri.startsWith(cwd) ? `./${relative(cwd, p.ast.uri)}` : p.ast.uri} */`,
+					`${p.toPrettyString(macros, level)}\t/* ${cwd && p.ast.fsPath.startsWith(cwd) ? `./${relative(cwd, p.ast.fsPath)}` : p.ast.fsPath} */`,
 			)
 			.join(`\n${'\t'.repeat(level)}`)}${
 			this.nodes.length
@@ -1356,15 +1367,19 @@ ${'\t'.repeat(level - 1)}}; */`;
 ${'\t'.repeat(level - 1)}};`;
 	}
 
-	serialize(macros: Map<string, MacroRegistryItem>): SerializedNode {
+	serialize(
+		result: Record<string, SerializedNode>,
+		macros: Map<string, MacroRegistryItem>,
+		inScope: (ast: ASTBase) => boolean = () => true,
+	) {
 		const mappedRegs = this.mappedReg(macros);
-		const nodeAsts = [...this.definitions, ...this.referencedBy];
+		const nodeAsts = this.implementations.filter(inScope);
 		const nodeType = this.nodeType;
-		return {
+		result[this.pathString] = {
 			nodeType:
 				nodeType instanceof NodeType
 					? {
-							...this.nodeType,
+							...nodeType,
 							extends: Array.from(this.nodeType?.extends ?? []),
 							properties: nodeType.properties.map((p) => ({
 								name:
@@ -1377,40 +1392,24 @@ ${'\t'.repeat(level - 1)}};`;
 								description: p.description?.join('\n'),
 								required: p.required(this) === 'required',
 							})),
+							zephyrBinding: nodeType.zephyrBinding,
 						}
 					: undefined,
 			issues: nodeAsts.flatMap((n) => n.serializeIssues),
 			path: this.pathString,
 			disabled: this.disabled,
-			name: this.fullName,
-			labels: this.labels.map((l) => l.label.value),
-			nodes: nodeAsts.map((d) => d.serialize(macros)),
-			properties: this.properties.map((p) => ({
-				...p.ast.serialize(macros),
-				nexusMapEnty: p.nexusMapsTo.map((nexus) => {
-					return {
-						mappingValuesAst: nexus.mappingValuesAst.map((v) =>
-							v.serialize(macros),
-						),
-						specifierSpace: nexus.specifierSpace,
-						target: nexus.target.pathString,
-						mapItem: nexus.mapItem
-							? {
-									parentValues:
-										nexus.mapItem?.parentValues.map((v) =>
-											v.serialize(macros),
-										),
-									target: nexus.mapItem.node.pathString,
-									mappingValues:
-										nexus.mapItem.mappingValues.map((v) =>
-											v.serialize(macros),
-										),
-								}
-							: undefined,
-					};
-				}),
-			})),
-			childNodes: this.nodes.map((n) => n.serialize(macros)),
+			name: this.name,
+			fullName: this.fullName,
+			labels: Array.from(
+				new Set(this.labels.filter(inScope).map((l) => l.label.value)),
+			),
+			nodes: nodeAsts.filter(inScope).map((d) => d.serialize(macros)),
+			properties: this.properties
+				.map((p) => p.serialize(macros, inScope))
+				.filter((v) => !!v),
+			childNodes: this.nodes
+				.filter((n) => n.implementations.some(inScope))
+				.map((n) => n.pathString),
 			reg: mappedRegs?.map((mappedReg) => ({
 				mappedStartAddress: mappedReg?.startAddress,
 				mappedEndAddress: mappedReg?.endAddress,
@@ -1424,14 +1423,46 @@ ${'\t'.repeat(level - 1)}};`;
 					cells: m.expressions.map((e) => e.serialize(macros)),
 					path: m.node.pathString,
 					property: m.property.ast.serialize(macros),
+					specifierSpace: m.specifierSpace,
 				}),
 			),
 			specifierNexusMappings: this.spesifierNexusMapping.map((m) => ({
 				cells: m.expressions.map((e) => e.serialize(macros)),
 				path: m.node.pathString,
+				propertyNodePath: m.property.parent.pathString,
 				property: m.property.ast.serialize(macros),
+				specifierSpace: m.specifierSpace,
 			})),
+			nexusMaps:
+				this.properties
+					.filter((p) => !!p.name.match(/^(?!no-).*?-map$/))
+					.flatMap((p) => {
+						const specifier = p.name.split('-map', 1)[0];
+						const map =
+							this.getNexusMap(specifier, macros)?.map ?? [];
+
+						return map.map(
+							(m) =>
+								({
+									childCellCount: m.childCellCount,
+									mappingValues: m.mappingValues.map((i) =>
+										i.serialize(macros),
+									),
+									target: m.node?.pathString,
+									targetAst: m.nodeAst?.serialize(macros),
+									parentCellCount: m.parentCellCount,
+									parentValues: m.parentValues?.map((i) =>
+										i.serialize(macros),
+									),
+									specifierSpace: specifier,
+								}) satisfies SerializedNexusMap,
+						);
+					}) ?? [],
 		};
+
+		this.nodes
+			.filter((n) => n.implementations.some(inScope))
+			.forEach((n) => n.serialize(result, macros, inScope));
 	}
 
 	private get memoryRegionName(): string {
