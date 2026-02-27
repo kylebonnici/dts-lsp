@@ -1458,6 +1458,9 @@ const formatValue = (
 							level,
 							settings.singleIndent,
 							documentText,
+							widthToPrefix(settings, propertyNameWidth + 3),
+							1,
+							true,
 						),
 					);
 				}

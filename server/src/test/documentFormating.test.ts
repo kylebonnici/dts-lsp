@@ -694,6 +694,14 @@ describe('Document formatting', () => {
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual('/ {\n\tnode {\n\t\t// foo\n\t};\n};');
 		});
+
+		test('new lines between > and comment', async () => {
+			const documentText = '/ {\n\tprop11 = < 10 // foo\n\n>;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tprop11 = <10 // foo\n\t\t\t >;\n};',
+			);
+		});
 	});
 
 	describe('Block Comment', () => {
@@ -802,11 +810,17 @@ describe('Document formatting', () => {
 
 		test('in property value', async () => {
 			const documentText =
-				'/ {\n\tprop11 = < /* foo */10 /* foo */\n20\n/* foo */\n30 /* foo */>;\n};';
+				'/ {\n\tprop11 = < /* foo */10 /* foo */\n20\n/* foo */\n30 /* foo */ >;\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
 				'/ {\n\tprop11 = < /* foo */ 10 /* foo */\n\t\t\t  20\n\t\t\t  /* foo */\n\t\t\t  30 /* foo */>;\n};',
 			);
+		});
+
+		test('new lines between > and comment', async () => {
+			const documentText = '/ {\n\tprop11 = < 10 /* foo */\n>;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual('/ {\n\tprop11 = <10 /* foo */>;\n};');
 		});
 
 		test('new line start block in line no spaces', async () => {
@@ -1639,7 +1653,7 @@ describe('Document formatting', () => {
 			);
 		});
 	});
-	describe('Ling lines', () => {
+	describe('Long lines', () => {
 		test('single line - very long string ', async () => {
 			const documentText =
 				'/ {\n\tprop1 = "10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30 10 20 30";\n};';
