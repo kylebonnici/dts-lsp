@@ -1517,7 +1517,9 @@ describe('Document formatting', () => {
 		test('hex with 0XD with line comment > on new line', async () => {
 			const documentText = '/ {\n\tprop1 = <0XD // test\n>;\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <0xd // test\n\t\t\t>;\n};');
+			expect(newText).toEqual(
+				'/ {\n\tprop1 = <0xd // test\n\t\t\t>;\n};',
+			);
 		});
 
 		test('hex with 0XD with block comment > on new line', async () => {
