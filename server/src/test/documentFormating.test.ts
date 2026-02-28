@@ -1466,7 +1466,7 @@ describe('Document formatting', () => {
 			const documentText = '/ {\n\tprop1 = <ADD(10, \\\n\t\t20)>;};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\tprop1 = <ADD(10, \\\n\t\t\t\t 20)>;\n};',
+				'/ {\n\tprop1 = <ADD(10,\n\t\t\t\t 20)>;\n};',
 			);
 		});
 
@@ -1474,7 +1474,7 @@ describe('Document formatting', () => {
 			const documentText = '/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) )>;};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\tprop1 = <ADD(10, \\\n\t\t\t\t 20)>;\n};',
+				'/ {\n\tprop1 = <ADD(10,\n\t\t\t\t 20)>;\n};',
 			);
 		});
 
@@ -1489,7 +1489,7 @@ describe('Document formatting', () => {
 				'/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) + ADD(10, \\\n\t\t20) )>;};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\tprop1 = <(ADD(10, \\\n\t\t\t\t  20) + ADD(10, \\\n\t\t\t\t  20))>;\n};',
+				'/ {\n\tprop1 = <(ADD(10,\n\t\t\t\t  20) + ADD(10,\n\t\t\t\t  20))>;\n};',
 			);
 		});
 
@@ -1498,7 +1498,7 @@ describe('Document formatting', () => {
 				'/ {\n\tprop1 = <(ADD(10, \\\n\t\t20) + 10 )>;\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				'/ {\n\tprop1 = <(ADD(10, \\\n\t\t\t\t  20) + 10)>;\n};',
+				'/ {\n\tprop1 = <(ADD(10,\n\t\t\t\t  20) + 10)>;\n};',
 			);
 		});
 
@@ -1517,7 +1517,7 @@ describe('Document formatting', () => {
 		test('hex with 0XD with line comment > on new line', async () => {
 			const documentText = '/ {\n\tprop1 = <0XD // test\n>;\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {\n\tprop1 = <0xd // test\n\t>;\n};');
+			expect(newText).toEqual('/ {\n\tprop1 = <0xd // test\n\t\t\t>;\n};');
 		});
 
 		test('hex with 0XD with block comment > on new line', async () => {
@@ -1977,9 +1977,9 @@ describe('Document formatting', () => {
 			expect(newText).toEqual(
 				`/ {
 	node {
-		rdc = <(RDC_DOMAIN_PERM(A9_DOMAIN_ID, \\
+		rdc = <(RDC_DOMAIN_PERM(A9_DOMAIN_ID,
 								RDC_DOMAIN_PERM_RW) |
-				RDC_DOMAIN_PERM(M4_DOMAIN_ID, \\
+				RDC_DOMAIN_PERM(M4_DOMAIN_ID,
 								RDC_DOMAIN_PERM_RW))>;
 	};
 };`,
