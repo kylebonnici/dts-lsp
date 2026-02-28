@@ -1988,4 +1988,77 @@ describe('Document formatting', () => {
 			);
 		});
 	});
+
+	describe('Sort Node and prop', () => {
+		test('Prop bottom simple', async () => {
+			const documentText = '/ {\n\tnode {\n\t\tprop;\n};\n\tprop;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tprop;\n\n\tnode {\n\t\tprop;\n\t};\n};',
+			);
+		});
+
+		test('Ensure top comment moves withProp', async () => {
+			const documentText =
+				'/ {\n\tnode {\n\t\tprop;\n};\n\t/*prop cmt */\n\tprop;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\t/*prop cmt */\n\tprop;\n\n\tnode {\n\t\tprop;\n\t};\n};',
+			);
+		});
+
+		test('Ensure last comment move withProp', async () => {
+			const documentText =
+				'/ {\n\tnode {\n\t\tprop;\n};\n\tprop1; /* test1 */\n\tprop2; /* test2 */\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tprop1; /* test1 */\n\tprop2; /* test2 */\n\n\tnode {\n\t\tprop;\n\t};\n};',
+			);
+		});
+
+		test('split groups when we have some include', async () => {
+			const documentText =
+				'/ {\n\tnode1 {\n\t\tprop;\n};\n\t/*prop cmt */\n\tprop1;\n#include <test.dtci>\n\n\tnode2 {\n\t\tprop;\n};\n\t/*prop cmt */\n\tprop2;};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\t/*prop cmt */\n\tprop1;\n\n\tnode1 {\n\t\tprop;\n\t};\n#include <test.dtci>\n\t/*prop cmt */\n\tprop2;\n\n\tnode2 {\n\t\tprop;\n\t};\n};',
+			);
+		});
+
+		test('split groups when we have some delete prop', async () => {
+			const documentText =
+				'/ {\n\tnode1 {\n\t\tprop;\n};\n\t/*prop cmt */\n\tprop1;\n/delete-property/ prop1;\n\n\tnode2 {\n\t\tprop;\n};\n\t/*prop cmt */\n\tprop2;};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\t/*prop cmt */\n\tprop1;\n\n\tnode1 {\n\t\tprop;\n\t};\n\t/delete-property/ prop1;\n\t/*prop cmt */\n\tprop2;\n\n\tnode2 {\n\t\tprop;\n\t};\n};',
+			);
+		});
+
+		test('If def will stop any sorting', async () => {
+			const documentText =
+				'/ {\n\tnode1 {\n\t\tprop;\n};\n\t/*prop cmt */\n\tprop1;\n#ifdef ABC\n FOO;\n#endif\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\tnode1 {\n\t\tprop;\n\t};\n\t/*prop cmt */\n\tprop1;\n#ifdef ABC\n\tFOO;\n#endif\n};',
+			);
+		});
+
+		test('Format off all', async () => {
+			const documentText =
+				'/ {\n// dts-format off\n\tnode {\n\t\tprop;\n};\n\tprop;\n// dts-format on\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n// dts-format off\n\tnode {\n\t\tprop;\n};\n\tprop;\n// dts-format on\n};',
+			);
+		});
+
+		test('Format off partial', async () => {
+			const documentText =
+				'/ {\n// dts-format off\n\tnode1 {\n\t\tprop;\n};\n\t/*prop cmt */\n\tprop1;\n// dts-format on\n#include <test.dtci>\n\n\tnode2 {\n\t\tprop;\n};\n\t/*prop cmt */\n\tprop2;};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n// dts-format off\n\tnode1 {\n\t\tprop;\n};\n\t/*prop cmt */\n\tprop1;\n// dts-format on\n#include <test.dtci>\n\t/*prop cmt */\n\tprop2;\n\n\tnode2 {\n\t\tprop;\n\t};\n};',
+			);
+		});
+	});
 });

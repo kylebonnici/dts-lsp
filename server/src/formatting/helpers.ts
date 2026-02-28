@@ -33,6 +33,8 @@ import {
 	Expression,
 } from '../ast/cPreprocessors/expression';
 import { PropertyValue } from '../ast/dtc/values/value';
+import { Parser } from '../parser';
+import { Lexer } from '../lexer';
 import type {
 	CustomDocumentFormattingParams,
 	FormattingSettings,
@@ -47,7 +49,7 @@ function comparePositions(a: Position, b: Position): number {
 	return 0;
 }
 
-const isFormattingDisabledAt = (
+export const isFormattingDisabledAt = (
 	pos: Position,
 	disabledRanges: Range[],
 ): boolean => {
@@ -122,6 +124,27 @@ export const pairFormatOnOff = (
 	}
 
 	return formatControlRanges;
+};
+
+export const getAstItems = async (
+	filePath: string,
+	startText: string,
+	currentText: string,
+) => {
+	if (startText !== currentText) {
+		const parser = new Parser(
+			filePath,
+			[],
+			undefined,
+			() => {
+				const lexer = new Lexer(currentText, filePath);
+				return lexer.tokens;
+			},
+			true,
+		);
+		await parser.stable;
+		return parser.allAstItems;
+	}
 };
 
 export const filterOnOffEdits = (

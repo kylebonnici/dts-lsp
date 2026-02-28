@@ -1380,6 +1380,8 @@ export const formattingIssuesToMessage = (issue: Issue<FormattingIssues>) => {
 					return `Node address size is determined by '@size-cells', Remove 'ull'.`;
 				case FormattingIssues.REMOVE_MACRO_MULTILINE:
 					return `'\\' is not necessary. ${issue.codeActionTitle}`;
+				case FormattingIssues.PROPERTY_NODE_SORTING:
+					return `Properties and nodes are not sorted as per https://docs.kernel.org/devicetree/bindings/dts-coding-style.html`;
 			}
 		})
 		.join(' or ');
