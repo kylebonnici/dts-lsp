@@ -88,6 +88,8 @@ import {
 	createIndentString,
 	filterOnOffEdits,
 	getAstItemLevel,
+	getAstItems,
+	getParser,
 	pairFormatOnOff,
 	widthToPrefix,
 } from './helpers';
@@ -95,6 +97,7 @@ import { formatLongLines } from './longLines';
 import { formatExpressionIndentation } from './indentExpressions';
 import { formatEmptyReferences } from './removeEmptyNodes';
 import { removeDuplicateProperties } from './removeDuplicateProperties';
+import { sortNodesAndProperties } from './sortNodesAndProperties';
 
 const hasLongLines = (text: string, tabSize: number, wordWrapColumn: number) =>
 	!!text
@@ -107,27 +110,6 @@ const hasLongLines = (text: string, tabSize: number, wordWrapColumn: number) =>
 					)
 					.trimEnd().length > wordWrapColumn,
 		);
-
-const getAstItems = async (
-	filePath: string,
-	startText: string,
-	currentText: string,
-) => {
-	if (startText !== currentText) {
-		const parser = new Parser(
-			filePath,
-			[],
-			undefined,
-			() => {
-				const lexer = new Lexer(currentText, filePath);
-				return lexer.tokens;
-			},
-			true,
-		);
-		await parser.stable;
-		return parser.allAstItems;
-	}
-};
 
 const optionToBoolean = (
 	formattingOptions: FormattingOptions,
@@ -175,6 +157,11 @@ const convertToFormattingFlags = (
 			formattingOptions,
 			'removeDuplicateProperties',
 			true,
+		),
+		sortNodesAndProperties: optionToBoolean(
+			formattingOptions,
+			'sortNodesAndProperties',
+			false,
 		),
 	} satisfies FormattingFlags;
 };
@@ -307,6 +294,30 @@ export async function formatText(
 			} while (finalText !== prevText);
 		}
 
+		if (options.sortNodesAndProperties) {
+			let prevText = '';
+			do {
+				prevText = finalText;
+				const newParser =
+					(await getParser(fsPath, text, prevText)) ?? parser;
+				finalText = await sortNodesAndProperties(
+					{
+						...documentFormattingParams,
+						options: {
+							...documentFormattingParams.options,
+							wordWrapColumn,
+						},
+					},
+					newParser.allAstItems,
+					fsPath,
+					text,
+					returnType,
+					newParser.includes,
+					prevIfBlocks,
+				);
+			} while (finalText !== prevText);
+		}
+
 		if (
 			options.removeEmptyReferences ||
 			options.removeEmptyRoots ||
@@ -429,6 +440,25 @@ export async function formatText(
 			text,
 			returnType,
 			options,
+		);
+		diagnostic.push(...r);
+	}
+
+	if (options.sortNodesAndProperties) {
+		const r = await sortNodesAndProperties(
+			{
+				...documentFormattingParams,
+				options: {
+					...documentFormattingParams.options,
+					wordWrapColumn,
+				},
+			},
+			parser.allAstItems,
+			fsPath,
+			text,
+			returnType,
+			parser.includes,
+			prevIfBlocks,
 		);
 		diagnostic.push(...r);
 	}

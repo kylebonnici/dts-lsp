@@ -1384,6 +1384,8 @@ export const formattingIssuesToMessage = (issue: Issue<FormattingIssues>) => {
 					return `Node does not contribute anything. ${issue.codeActionTitle}`;
 				case FormattingIssues.DUPLICATE_PROPERTY:
 					return `Property is redefined in same closure. ${issue.codeActionTitle}`;
+				case FormattingIssues.PROPERTY_NODE_SORTING:
+					return `Properties and nodes are not sorted as per https://docs.kernel.org/devicetree/bindings/dts-coding-style.html`;
 			}
 		})
 		.join(' or ');

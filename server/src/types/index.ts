@@ -451,4 +451,5 @@ export type FormattingFlags = {
 	removeEmptyNodes: boolean;
 	removeEmptyRoots: boolean;
 	removeDuplicateProperties: boolean;
+	sortNodesAndProperties: boolean;
 };
