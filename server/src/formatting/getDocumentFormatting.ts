@@ -370,7 +370,7 @@ export async function formatText(
 					},
 					parser.allAstItems,
 					fsPath,
-					finalText,
+					text,
 					'File Diagnostics',
 					options,
 				)),
@@ -379,7 +379,7 @@ export async function formatText(
 			const allAstItems =
 				(await getAstItems(fsPath, text, finalText)) ??
 				parser.allAstItems;
-			const r = await formatExpressionIndentation(
+			finalText = await formatExpressionIndentation(
 				{
 					...documentFormattingParams,
 					options: {
@@ -390,10 +390,9 @@ export async function formatText(
 				allAstItems,
 				fsPath,
 				finalText,
-				returnType,
+				'New Text',
 				options,
 			);
-			finalText = r.text;
 		}
 
 		if (
