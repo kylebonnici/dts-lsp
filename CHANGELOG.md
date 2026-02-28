@@ -4,22 +4,25 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.8.1] - Unreleased
+## [0.8.1] - 2026-02-28
 
 ### Changed
 
-- `#includes` are not longer indented depending on the depth of the node they are in.
+- `#includes` are no longer indented to match the depth of the node they are in.
 
 ### Added
 
-- Formatting removes line ending with `\` where this is not required.
-- Formatting node names are formatted to not have `0x` and `ULL`
+- Formatting: removes lines ending with `\` when this is not required.
+- Formatting: node names are formatted to not have `0x` and `ULL`
 - Diagnostic error when using `ranges;` and `#address-cells` or `#size-cells` of the node
-  declaring ranges does not match the `#address-cells` or `#size-cells` of the parent node
+  declaring ranges does not match the `#address-cells` or `#size-cells` of the parent node.
+- Goto type definition for properties defined in zephyr bindings.
 
 ### Fixed
 
 - Formatting: Remove extra space between `>` or `]` when token before is from some comment
+- Default value for properties is now considered when using zephyr bindings and property
+  does not exists in context.
 
 ## [0.8.0] - 2026-02-04
 
