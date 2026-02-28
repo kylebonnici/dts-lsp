@@ -29,6 +29,7 @@ export type FormattingSettings = {
 };
 
 export type FormattingFlags = {
+	sortNodesAndProperties: boolean;
 	removeMacroMultiline: boolean;
 	runLongLineCheck: boolean;
 	runExpressionIndentationCheck: boolean;

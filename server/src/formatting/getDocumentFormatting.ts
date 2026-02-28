@@ -87,11 +87,13 @@ import {
 	createIndentString,
 	filterOnOffEdits,
 	getAstItemLevel,
+	getAstItems,
 	pairFormatOnOff,
 	widthToPrefix,
 } from './helpers';
 import { formatLongLines } from './longLines';
 import { formatExpressionIndentation } from './indentExpressions';
+import { sortNodesAndProperties } from './sortNodesAndProperties';
 
 const hasLongLines = (text: string, tabSize: number, wordWrapColumn: number) =>
 	!!text
@@ -104,27 +106,6 @@ const hasLongLines = (text: string, tabSize: number, wordWrapColumn: number) =>
 					)
 					.trimEnd().length > wordWrapColumn,
 		);
-
-const getAstItems = async (
-	filePath: string,
-	startText: string,
-	currentText: string,
-) => {
-	if (startText !== currentText) {
-		const parser = new Parser(
-			filePath,
-			[],
-			undefined,
-			() => {
-				const lexer = new Lexer(currentText, filePath);
-				return lexer.tokens;
-			},
-			true,
-		);
-		await parser.stable;
-		return parser.allAstItems;
-	}
-};
 
 export async function formatText(
 	documentFormattingParams: (
@@ -170,6 +151,7 @@ export async function formatText(
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics' | 'Both',
 	options: FormattingFlags = {
+		sortNodesAndProperties: true,
 		removeMacroMultiline: true,
 		runLongLineCheck: true,
 		runExpressionIndentationCheck: true,
@@ -218,6 +200,65 @@ export async function formatText(
 		text,
 		options,
 	);
+
+	if (options.sortNodesAndProperties) {
+		const sortResult = await sortNodesAndProperties(
+			{
+				...documentFormattingParams,
+				options: {
+					...documentFormattingParams.options,
+					wordWrapColumn,
+				},
+			},
+			parser.allAstItems,
+			fsPath,
+			text,
+			'Both',
+			parser.includes,
+			prevIfBlocks,
+		);
+
+		if (sortResult.diagnostic.length) {
+			options.sortNodesAndProperties = false;
+			switch (returnType) {
+				case 'New Text':
+					return formatText(
+						documentFormattingParams,
+						sortResult.text,
+						returnType,
+						options,
+					);
+				case 'File Diagnostics':
+					return [
+						...sortResult.diagnostic,
+						...(await formatText(
+							documentFormattingParams,
+							text,
+							returnType,
+							options,
+						)),
+					];
+				case 'Both':
+					return {
+						text: await formatText(
+							documentFormattingParams,
+							sortResult.text,
+							'New Text',
+							options,
+						),
+						diagnostic: [
+							...sortResult.diagnostic,
+							...(await formatText(
+								documentFormattingParams,
+								text,
+								'File Diagnostics',
+								options,
+							)),
+						],
+					};
+			}
+		}
+	}
 
 	if (options.removeMacroMultiline) {
 		const multiLineRegions = new Set<number>();
