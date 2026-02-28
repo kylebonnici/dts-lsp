@@ -37,6 +37,8 @@ import {
 	positionInBetween,
 	positionSameLineAndNotAfter,
 	toRangeWithTokenIndex,
+	fsPathToVirtualFsPath,
+	toRange,
 } from '../helpers';
 import {
 	ContextIssues,
@@ -540,6 +542,60 @@ export class Node {
 
 	get pathString(): string {
 		return `/${this.path.slice(1).join('/')}`;
+	}
+
+	get defaultProperties(): { fsPath: string; text: string }[] {
+		const defProps = (this.nodeType?.defaultProperties ?? []).filter(
+			(p) => !this.getProperty(p.name),
+		);
+
+		const childDefaultProps = this.nodes.flatMap(
+			(n) => n.defaultProperties,
+		);
+
+		if (!defProps.length && !childDefaultProps.length) {
+			return [];
+		}
+
+		if (!defProps.length) {
+			return childDefaultProps;
+		}
+
+		const lastDefinition = this.definitions.at(-1)!;
+
+		const fsPath = fsPathToVirtualFsPath(
+			lastDefinition.firstToken.fsPath,
+			toRange(lastDefinition),
+		);
+
+		return [
+			{
+				fsPath,
+				text: `&{${this.pathString}} {
+		${defProps
+			.map((p) => {
+				if (p.default === undefined) {
+					return;
+				}
+
+				const arrayDefault = Array.isArray(p.default)
+					? p.default
+					: [p.default];
+				switch (p.type) {
+					case 'array':
+					case 'uint8-array':
+					case 'int':
+						return `${p.name} = <${arrayDefault.map((v) => v.toString()).join(' ')}>;`;
+					case 'string':
+					case 'string-array':
+						return `${p.name} = ${arrayDefault.map((v) => `"${v.toString()}"`).join(', ')};`;
+				}
+			})
+			.join(';\n')}
+		};`,
+			},
+			...childDefaultProps,
+		];
 	}
 
 	get properties() {

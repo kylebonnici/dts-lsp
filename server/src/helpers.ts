@@ -271,16 +271,23 @@ export const getDeepestAstNodeBefore = (
 	return deepestAstNode === ast ? undefined : deepestAstNode;
 };
 
-export const VIRTUAL_DOC = '#virtual#';
+export const VIRTUAL_DOC = '#virtual';
 export const isVirtualFsPath = (fsPath: string) => fsPath.includes(VIRTUAL_DOC);
+
+export const fsPathToVirtualFsPath = (fsPath: string, range: Range) =>
+	`${fsPath}?loc=${range.start.line}:${range.start.character}-${range.end.line}:${range.end.character}${VIRTUAL_DOC}`;
 
 export const convertVirtualFsPathToDocumentFsPath = (fsPath: string) => {
 	if (!isVirtualFsPath(fsPath)) return;
 
-	const [docFsPath, rangeRaw] = fsPath.split(VIRTUAL_DOC);
-	const [startRaw, endRaw] = rangeRaw.split('-');
+	const [docFsPath, rangeRaw] = fsPath.split('?');
+	const [startRaw, endRaw] = rangeRaw
+		.replace('loc=', '')
+		.replace(VIRTUAL_DOC, '')
+		.split('-');
 	const [startLine, startCol] = startRaw.split(':');
 	const [endLine, endCol] = endRaw.split(':');
+
 	return {
 		docFsPath,
 		range: Range.create(

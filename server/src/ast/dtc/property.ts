@@ -15,6 +15,7 @@
  */
 
 import { SymbolKind } from 'vscode-languageserver';
+import { isVirtualFsPath } from '../../helpers';
 import { MacroRegistryItem, Token, TokenIndexes } from '../../types';
 import { ASTBase } from '../base';
 import {
@@ -148,7 +149,7 @@ export class DtcProperty extends ASTBase {
 						'NULL'
 					}`
 				: ''
-		};`;
+		};${isVirtualFsPath(this.fsPath) ? ` /* default value from binding */` : ''}`;
 	}
 
 	serialize(macros: Map<string, MacroRegistryItem>): SerializedDtcProperty {

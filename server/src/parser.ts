@@ -30,6 +30,7 @@ import {
 import {
 	adjacentTokens,
 	createTokenIndex,
+	fsPathToVirtualFsPath,
 	genSyntaxDiagnostic,
 	isVirtualFsPath,
 	linkAstToComments,
@@ -38,10 +39,10 @@ import {
 	sameLine,
 	sanitizeCExpression,
 	startsWithLetter,
+	toRange,
 	validateToken,
 	validateValue,
 	validToken,
-	VIRTUAL_DOC,
 } from './helpers';
 import {
 	DtcBaseNode,
@@ -268,7 +269,11 @@ export class Parser extends BaseParser {
 		let evalResult = result?.resolve(macros);
 		if (result && typeof evalResult === 'string') {
 			evalResult = sanitizeCExpression(evalResult);
-			const fsPath = `${result.fsPath}${VIRTUAL_DOC}${result.firstToken.pos.line}:${result.firstToken.pos.col}-${result.lastToken.pos.line}:${result.firstToken.pos.col}`;
+
+			const fsPath = fsPathToVirtualFsPath(
+				result.fsPath,
+				toRange(result),
+			);
 
 			const toRemoveSet = new Set<ASTBase>();
 			this.cPreprocessorParser.comments.forEach((c) => {

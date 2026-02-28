@@ -63,6 +63,7 @@ import type {
 	ResolvedContext,
 	SerializedNode,
 } from './types/index';
+import { Lexer } from './lexer';
 
 export class ContextAware {
 	_issues: FileDiagnostic[] = [];
@@ -406,17 +407,32 @@ export class ContextAware {
 
 		this.parser.rootDocument.resetIssues();
 		this.processRoot(this.parser.rootDocument, runtime);
+
 		for (let i = 0; i < this.overlayParsers.length; i++) {
 			this.overlayParsers[i].rootDocument.resetIssues();
 			this.processRoot(this.overlayParsers[i].rootDocument, runtime);
 		}
+
+		await Promise.all(
+			runtime.rootNode.defaultProperties.map(async (virtualDoc) => {
+				const lexer = new Lexer(virtualDoc.text, virtualDoc.fsPath);
+				const parser = new Parser(
+					virtualDoc.fsPath,
+					[],
+					undefined,
+					() => lexer.tokens,
+				);
+				await parser.stable;
+				this.processRoot(parser.rootDocument, runtime);
+			}),
+		);
 
 		runtime.includes = this.parser.includes;
 		runtime.comments = this.parser.cPreprocessorParser.allAstItems.filter(
 			(a) => a instanceof Comment,
 		);
 
-		(await this.getAllStableParsers())
+		this.allParsers
 			.flatMap((p) => p.tokens)
 			.forEach((t, i) => this.sortKeys.set(t, i));
 

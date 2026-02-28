@@ -499,6 +499,12 @@ export abstract class INodeType {
 	hasParentBinding = false;
 	zephyrBinding?: ZephyrBindingYml;
 	abstract getPropertyListCompletionItems(node: Node): CompletionItem[];
+
+	get defaultProperties() {
+		return Object.values(this.zephyrBinding?.properties ?? {}).filter(
+			(p) => p.default !== undefined,
+		);
+	}
 }
 
 export class NodeType extends INodeType {
