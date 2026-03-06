@@ -5,7 +5,7 @@
 	"author": "Microsoft Corporation",
 	"license": "Apache-2.0",
 	"icon": "images/icon.png",
-	"version": "0.8.1",
+	"version": "0.8.2",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/kylebonnici/dts-lsp"
@@ -237,6 +237,13 @@
 					"default": "off",
 					"description": "Traces the communication between VS Code and the language server."
 				}
+			}
+		},
+		"configurationDefaults": {
+			"[devicetree]": {
+				"editor.tabSize": 8,
+				"editor.insertSpaces": false,
+				"editor.defaultFormatter": "KyleMicallefBonnici.devicetree-lsp"
 			}
 		}
 	},
