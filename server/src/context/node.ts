@@ -546,7 +546,10 @@ export class Node {
 
 	get defaultProperties(): { fsPath: string; text: string }[] {
 		const defProps = (this.nodeType?.defaultProperties ?? []).filter(
-			(p) => !this.getProperty(p.name),
+			(p) =>
+				!this.getProperty(p.name) &&
+				p.name !== '#address-cells' &&
+				p.name !== '#size-cells',
 		);
 
 		const childDefaultProps = this.nodes.flatMap(
