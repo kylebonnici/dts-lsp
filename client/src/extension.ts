@@ -27,6 +27,7 @@ import {
 import {
 	ClipboardActions,
 	ContextListItem,
+	File,
 } from 'devicetree-language-server-types';
 import { API } from './api';
 import { getCurrentTextDocumentPositionParams } from './helpers';
@@ -37,18 +38,22 @@ const isPathEqual = (pathA: string | undefined, pathB: string | undefined) => {
 	return pathA === pathB;
 };
 
+const flattenIncludes = (file: File): File[] => {
+	return [
+		file,
+		...file.includes.flatMap((include) => flattenIncludes(include)),
+	];
+};
+
 const doesContextUsesFile = (ctx: ContextListItem, filePath: string) => {
 	return (
-		isPathEqual(ctx.mainDtsPath.fsPath, filePath) ||
-		ctx.mainDtsPath.includes.some((include) =>
-			isPathEqual(include.fsPath, filePath),
+		flattenIncludes(ctx.mainDtsPath).some((file) =>
+			isPathEqual(file.fsPath, filePath),
 		) ||
-		ctx.overlays.some(
-			(overlay) =>
-				isPathEqual(overlay.fsPath, filePath) ||
-				overlay.includes.some((include) =>
-					isPathEqual(include.fsPath, filePath),
-				),
+		ctx.overlays.some((overlay) =>
+			flattenIncludes(overlay).some((include) =>
+				isPathEqual(include.fsPath, filePath),
+			),
 		)
 	);
 };
