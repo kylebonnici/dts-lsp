@@ -8,8 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Clicking to generate compiled output would not work on files when triggered on some file
-  that are included by some other file that is also included.
+- Clicking to generate compiled output would not work when triggered on file that are
+  included by some other file that is also included by some other file.
 - Default value for `#address-cells` and `#size-cells` are ignored when using zephyr bindings.
   The defaults are already defined in the devicetree specification section 2.3.5.
 
