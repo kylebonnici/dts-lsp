@@ -473,16 +473,20 @@ export class ContextAware {
 		}));
 
 		for (const [index, item] of meta.entries()) {
-			// empty overly or empty main board file
-			if (item.tokens.length === 0 && item.parser.fsPath === fsPath) {
+			// empty overlay or empty main board file
+			if (
+				item.tokens.length === 0 &&
+				isPathEqual(item.parser.fsPath, fsPath)
+			) {
 				const prev = meta[index - 1];
-				return index ? prev.tokens[prev.tokens.length - 1] : null;
+				return index ? prev.tokens[prev.tokens.length - 1] : undefined;
 			}
 
 			const found = item.tokens.find(
-				(tt) =>
+				(tt, i) =>
 					positionAfter(tt, fsPath, position) &&
-					(!tt.nextToken ||
+					(i === item.tokens.length - 1 ||
+						!tt.nextToken ||
 						positionBefore(tt.nextToken, fsPath, position)),
 			);
 
