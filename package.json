@@ -194,7 +194,7 @@
 					"scope": "resource",
 					"type": "string",
 					"default": null,
-					"description": "Working directorys"
+					"description": "Working directories"
 				},
 				"devicetree.contexts": {
 					"scope": "resource",
