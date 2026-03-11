@@ -413,7 +413,7 @@ export class ContextAware {
 			this.processRoot(this.overlayParsers[i].rootDocument, runtime);
 		}
 
-		await Promise.all(
+		const virtualParsers = await Promise.all(
 			runtime.rootNode.defaultProperties.map(async (virtualDoc) => {
 				const lexer = new Lexer(virtualDoc.text, virtualDoc.fsPath);
 				const parser = new Parser(
@@ -424,6 +424,7 @@ export class ContextAware {
 				);
 				await parser.stable;
 				this.processRoot(parser.rootDocument, runtime);
+				return parser;
 			}),
 		);
 
@@ -432,7 +433,7 @@ export class ContextAware {
 			(a) => a instanceof Comment,
 		);
 
-		this.allParsers
+		[...this.allParsers, ...virtualParsers]
 			.flatMap((p) => p.tokens)
 			.forEach((t, i) => this.sortKeys.set(t, i));
 

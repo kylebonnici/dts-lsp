@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.8.3] - 2026-03-11
+
+### Fixed
+
+- Exception `Sort keys must be set` thrown when Default value from zephyr bindings are in use
+
 ## [0.8.2] - 2026-03-10
 
 ### Fixed
