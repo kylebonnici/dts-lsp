@@ -638,7 +638,14 @@ const getDisabledMarcoRangeEdits = async (
 		const range = meta.block.range;
 		processedPrevIfBlocks.push(meta.branch);
 		return formatText(
-			{ ...documentFormattingParams, range },
+			{
+				...documentFormattingParams,
+				range,
+				options: {
+					...documentFormattingParams.options,
+					sortNodesAndProperties: false,
+				},
+			},
 			text,
 			'File Diagnostics',
 			newTokenStream,
