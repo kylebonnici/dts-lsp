@@ -549,7 +549,7 @@ export class NodeType extends INodeType {
 			return issue;
 		}
 
-		const machedSet = new Set<Property>();
+		const matchedSet = new Set<Property>();
 
 		const propIssues = this.properties.flatMap((propType) => {
 			if (
@@ -597,7 +597,7 @@ export class NodeType extends INodeType {
 			}
 			if (typeof propType.name === 'string') {
 				const property = node.getProperty(propType.name);
-				if (property) machedSet.add(property);
+				if (property) matchedSet.add(property);
 				return propType.validateProperty(
 					runtime,
 					node,
@@ -610,7 +610,7 @@ export class NodeType extends INodeType {
 				propType.getNameMatch(p.name),
 			);
 
-			properties.forEach((p) => machedSet.add(p));
+			properties.forEach((p) => matchedSet.add(p));
 
 			const ddd = this.properties.filter((t) => t !== propType) ?? [];
 
@@ -627,10 +627,10 @@ export class NodeType extends INodeType {
 		});
 
 		if (
-			machedSet.size !== node.properties.length &&
+			matchedSet.size !== node.properties.length &&
 			(this.noMismatchPropertiesAllowed || this.warnMismatchProperties)
 		) {
-			const mismatch = node.properties.filter((p) => !machedSet.has(p));
+			const mismatch = node.properties.filter((p) => !matchedSet.has(p));
 			mismatch.forEach((p) => {
 				if (
 					runtime.context.bindingLoader?.type === 'Zephyr' &&
