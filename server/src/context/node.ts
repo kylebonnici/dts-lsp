@@ -66,7 +66,12 @@ import { getNodeNameOrNodeLabelRef } from '../ast/helpers';
 import { getStandardType } from '../dtsTypes/standardTypes';
 import { BindingLoader } from '../dtsTypes/bindings/bindingLoader';
 import { INodeType, NodeType } from '../dtsTypes/types';
-import { MemoryView, SerializedNexusMap, SerializedNode } from '../types/index';
+import {
+	MemoryView,
+	SerializedDeleteProperty,
+	SerializedNexusMap,
+	SerializedNode,
+} from '../types/index';
 import {
 	flatNumberValues,
 	getU32ValueFromProperty,
@@ -1517,6 +1522,14 @@ ${'\t'.repeat(level - 1)}};`;
 								}) satisfies SerializedNexusMap,
 						);
 					}) ?? [],
+
+			deletedProperties: this.deletedProperties
+				.filter((p) => inScope(p.by))
+				.map((n) => ({
+					deleteAst: n.by.serialize(macros),
+					deletedAst: n.property.serialize(macros, inScope),
+				}))
+				.filter((v) => !!v.deletedAst) as SerializedDeleteProperty[],
 		};
 
 		this.nodes

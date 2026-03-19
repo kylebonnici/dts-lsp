@@ -175,6 +175,11 @@ export interface SerializedProperty extends SerializedASTBase {
 	readonly nodePath: string;
 }
 
+export interface SerializedDeleteProperty {
+	readonly deleteAst: SerializedASTBase;
+	readonly deletedAst: SerializedProperty;
+}
+
 export type SerializedDtcProperty = Omit<
 	SerializedProperty,
 	'nexusMapEntry' | 'nodePath' | 'replaces'
@@ -313,6 +318,7 @@ export type SerializedNode = {
 	interruptControllerMappings: InterruptControllerSerializedMapping[];
 	specifierNexusMappings: SerializedSpecifierNexusMeta[];
 	nexusMaps: SerializedNexusMap[];
+	deletedProperties: SerializedDeleteProperty[];
 };
 
 export interface SerializedNexusMap {
