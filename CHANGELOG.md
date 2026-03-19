@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.8.4] - Unreleased
+
+### Added
+
+- `deletedProperties` to serialized node output.
+
 ## [0.8.3] - 2026-03-11
 
 ### Fixed
