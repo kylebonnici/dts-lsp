@@ -26,6 +26,7 @@ import { resetTokenizedDocumentProvider } from '../providers/tokenizedDocument';
 import { ContextAware } from '../runtimeEvaluator';
 import { getDefinitions } from '../findDefinitions';
 import {
+	createReservedContext,
 	defaultEditorSettings,
 	filePathUri,
 	getFakeBindingLoader,
@@ -56,7 +57,7 @@ describe('Find definitions', () => {
 			uri: filePathUri,
 		};
 		const context = new ContextAware(
-			{ dtsFile: fileURLToPath(textDocument.uri) },
+			createReservedContext(fileURLToPath(textDocument.uri)),
 			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
@@ -78,7 +79,7 @@ describe('Find definitions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -112,7 +113,7 @@ describe('Find definitions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -154,7 +155,7 @@ describe('Find definitions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -179,7 +180,7 @@ describe('Find definitions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -205,7 +206,7 @@ describe('Find definitions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -233,7 +234,7 @@ describe('Find definitions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -259,7 +260,7 @@ describe('Find definitions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -298,7 +299,7 @@ describe('Find definitions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -324,7 +325,7 @@ describe('Find definitions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -352,7 +353,7 @@ describe('Find definitions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -377,7 +378,7 @@ describe('Find definitions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -402,7 +403,7 @@ describe('Find definitions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -427,7 +428,7 @@ describe('Find definitions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -455,7 +456,7 @@ describe('Find definitions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -483,7 +484,7 @@ describe('Find definitions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);

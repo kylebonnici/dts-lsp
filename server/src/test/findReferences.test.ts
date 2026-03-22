@@ -26,6 +26,7 @@ import { resetTokenizedDocumentProvider } from '../providers/tokenizedDocument';
 import { ContextAware } from '../runtimeEvaluator';
 import { getReferences } from '../findReferences';
 import {
+	createReservedContext,
 	defaultEditorSettings,
 	filePathUri,
 	getFakeBindingLoader,
@@ -56,7 +57,7 @@ describe('Find references', () => {
 			uri: filePathUri,
 		};
 		const context = new ContextAware(
-			{ dtsFile: fileURLToPath(textDocument.uri) },
+			createReservedContext(fileURLToPath(textDocument.uri)),
 			defaultEditorSettings,
 			getFakeBindingLoader(),
 		);
@@ -78,7 +79,7 @@ describe('Find references', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -112,7 +113,7 @@ describe('Find references', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -154,7 +155,7 @@ describe('Find references', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -179,7 +180,7 @@ describe('Find references', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -205,7 +206,7 @@ describe('Find references', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -236,7 +237,7 @@ describe('Find references', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -262,7 +263,7 @@ describe('Find references', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -301,7 +302,7 @@ describe('Find references', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -327,7 +328,7 @@ describe('Find references', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -355,7 +356,7 @@ describe('Find references', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -380,7 +381,7 @@ describe('Find references', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -405,7 +406,7 @@ describe('Find references', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -433,7 +434,7 @@ describe('Find references', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -464,7 +465,7 @@ describe('Find references', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -495,7 +496,7 @@ describe('Find references', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);

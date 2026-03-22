@@ -58,7 +58,6 @@ import { StringValue } from './ast/dtc/values/string';
 import { Comment } from './ast/dtc/comment';
 import type {
 	File,
-	Context,
 	PartialBy,
 	ResolvedContext,
 	SerializedNode,
@@ -77,16 +76,11 @@ export class ContextAware {
 	readonly isFullContext: boolean;
 
 	constructor(
-		readonly settings: PartialBy<Context, 'ctxName'>,
+		readonly settings: PartialBy<ResolvedContext, 'ctxName'>,
 		public formattingOptions: FormattingOptions,
 		public readonly bindingLoader?: BindingLoader,
 	) {
 		const resolvedSettings: ResolvedContext = {
-			includePaths: [],
-			overlays: [],
-			zephyrBindings: [],
-			deviceOrgTreeBindings: [],
-			deviceOrgBindingsMetaSchema: [],
 			...settings,
 			ctxName: settings.ctxName ?? basename(settings.dtsFile),
 			lockRenameEdits: [],

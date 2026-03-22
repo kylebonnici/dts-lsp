@@ -26,6 +26,7 @@ import { resetTokenizedDocumentProvider } from '../providers/tokenizedDocument';
 import { ContextAware } from '../runtimeEvaluator';
 import { getTypeCompletions } from '../getTypeCompletions';
 import {
+	createReservedContext,
 	defaultEditorSettings,
 	filePathUri,
 	getFakeBindingLoader,
@@ -57,7 +58,7 @@ describe('Find typed completions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -83,7 +84,7 @@ describe('Find typed completions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -104,7 +105,7 @@ describe('Find typed completions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -126,7 +127,7 @@ describe('Find typed completions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -147,7 +148,7 @@ describe('Find typed completions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -169,7 +170,7 @@ describe('Find typed completions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -190,7 +191,7 @@ describe('Find typed completions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);
@@ -212,7 +213,7 @@ describe('Find typed completions', () => {
 				uri: filePathUri,
 			};
 			const context = new ContextAware(
-				{ dtsFile: fileURLToPath(textDocument.uri) },
+				createReservedContext(fileURLToPath(textDocument.uri)),
 				defaultEditorSettings,
 				getFakeBindingLoader(),
 			);

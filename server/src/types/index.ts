@@ -27,10 +27,10 @@ export type BindingType = 'Zephyr' | 'DevicetreeOrg';
 export type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
 export interface Context {
-	ctxName: string | number;
+	ctxName?: string | number;
 	cwd?: string;
 	includePaths?: string[];
-	dtsFile: string;
+	dtsFile?: string;
 	overlays?: string[];
 	bindingType?: BindingType;
 	zephyrBindings?: string[];
