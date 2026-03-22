@@ -1759,6 +1759,12 @@ connection.onRequest(
 			resolvedSettings,
 			workspaceFolders,
 		);
+
+		if (!resolvedContext) {
+			console.log('Failed to resolve context', ctx);
+			throw new Error('Failed to resolve context');
+		}
+
 		console.log('devicetree/requestContext', resolvedContext);
 		const id = generateContextId(resolvedContext);
 		const sameNameCtx = Array.from(integrationContext).find(
@@ -1826,7 +1832,8 @@ connection.onRequest(
 			return;
 		}
 		const ctx = findContext(contextAware, { id });
-		if (!ctx) {
+		if (!ctx || !ctx.settings.dtsFile) {
+			console.log('Context or DTS file not found for ID', id);
 			return;
 		}
 		const text = await ctx.toFullString();

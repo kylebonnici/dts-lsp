@@ -116,7 +116,7 @@ export const resolveContextSetting = async (
 	context: Context,
 	defaultSettings: PartialBy<ResolvedSettings, 'contexts'>,
 	workspaceFolders: WorkspaceFolder[],
-): Promise<ResolvedContext> => {
+): Promise<ResolvedContext | undefined> => {
 	const cwd =
 		(await resolvePathVariable(
 			context.cwd ?? '${workspaceFolder}',
@@ -161,6 +161,10 @@ export const resolveContextSetting = async (
 		zephyrBindings = ['./zephyr/dts/bindings'];
 	}
 
+	if (!context.dtsFile) {
+		console.log(`Context is missing dtsFile, skipping...`, context);
+		return;
+	}
 	let dtsFile = context.dtsFile;
 	let overlays = context.overlays ?? [];
 	let compileCommands = context.compileCommands;
@@ -309,11 +313,13 @@ export const resolveSettings = async (
 				),
 			) ?? [],
 		)
-	).filter((c) =>
-		[c.dtsFile, ...c.overlays].every(
-			(p) => existsSync(p) && path.isAbsolute(p),
-		),
-	);
+	)
+		.filter((c) => !!c)
+		.filter((c) =>
+			[c.dtsFile, ...c.overlays].every(
+				(p) => existsSync(p) && path.isAbsolute(p),
+			),
+		);
 
 	return {
 		...resolvedGlobalSettings,

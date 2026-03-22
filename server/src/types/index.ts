@@ -30,7 +30,7 @@ export interface Context {
 	ctxName: string | number;
 	cwd?: string;
 	includePaths?: string[];
-	dtsFile: string;
+	dtsFile?: string;
 	overlays?: string[];
 	bindingType?: BindingType;
 	zephyrBindings?: string[];
