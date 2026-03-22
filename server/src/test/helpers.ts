@@ -18,6 +18,7 @@ import { FormattingOptions } from 'vscode-languageserver-types';
 import { getStandardType } from '../dtsTypes/standardTypes';
 import { BindingLoader } from '../dtsTypes/bindings/bindingLoader';
 import { Node } from '../context/node';
+import { ResolvedContext } from '../types/index';
 
 export const filePath =
 	process.platform === 'win32' ? 'c:\\folder\\dts.dts' : '/folder/dts.dts';
@@ -52,4 +53,17 @@ export const getFakeBindingLoader = (): BindingLoader => ({
 	getBusTypes: () => [],
 	getZephyrContextBinding: () => undefined,
 	dispose: function (): void {},
+});
+
+export const createReservedContext = (dtsFile: string): ResolvedContext => ({
+	dtsFile,
+	ctxName: dtsFile,
+	includePaths: [],
+	overlays: [],
+	zephyrBindings: [],
+	deviceOrgTreeBindings: [],
+	deviceOrgBindingsMetaSchema: [],
+	lockRenameEdits: [],
+	showFormattingErrorAsDiagnostics: false,
+	disableFileWatchers: false,
 });
