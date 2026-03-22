@@ -162,7 +162,7 @@ export const resolveContextSetting = async (
 	}
 
 	if (!context.dtsFile) {
-		console.log(`Context is missing dtsFile, skipping...`, context);
+		console.log(`Context is missing dtsFile, skipping...`);
 		return;
 	}
 	let dtsFile = context.dtsFile;
