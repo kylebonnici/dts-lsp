@@ -17,6 +17,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - `deletedProperties` to serialized node output.
 
+### Fixed
+
+- When a context is defined without `dtsFile` set, such context is skipped instead
+  of crashing server
+
 ## [0.8.3] - 2026-03-11
 
 ### Fixed
