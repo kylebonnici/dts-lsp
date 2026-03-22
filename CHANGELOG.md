@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.8.4] - Unreleased
 
+### Security
+
+- Update dependencies to address 
+  - CVE-2026-33228
+  - CVE-2026-32141
+  - CVE-2025-69873
+
 ### Added
 
 - `deletedProperties` to serialized node output.
