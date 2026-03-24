@@ -1376,7 +1376,7 @@ export const formattingIssuesToMessage = (issue: Issue<FormattingIssues>) => {
 					return `Hex values must be lowercase. ${issue.codeActionTitle}`;
 				case FormattingIssues.NODE_NAME_IS_HEX:
 					return `Node address is already a hex value. Remove '0x'.`;
-				case FormattingIssues.NODE_NAME_IS_HEX:
+				case FormattingIssues.NODE_NAME_NO_ULL:
 					return `Node address size is determined by '@size-cells', Remove 'ull'.`;
 				case FormattingIssues.REMOVE_MACRO_MULTILINE:
 					return `'\\' is not necessary. ${issue.codeActionTitle}`;
