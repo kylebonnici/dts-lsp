@@ -1924,11 +1924,14 @@ connection.onRequest(
 		const documentText =
 			fetchDocument(filePath) ??
 			getTokenizedDocumentProvider().getDocument(filePath, event.text);
-		const newText = await formatText(event, documentText.getText(), 'Both');
 
 		return {
-			text: newText.text,
-			diagnostics: newText.diagnostic.map((d) => d.diagnostic()),
+			text: await formatText(event, documentText.getText(), 'New Text'),
+			diagnostics: await formatText(
+				event,
+				documentText.getText(),
+				'File Diagnostics',
+			),
 		};
 	},
 );

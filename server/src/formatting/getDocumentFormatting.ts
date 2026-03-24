@@ -132,18 +132,6 @@ export async function formatText(
 		| DocumentRangeFormattingParams
 	) & { ranges?: Range[] },
 	text: string,
-	returnType: 'Both',
-	options?: FormattingFlags,
-	tokens?: Token[],
-	prevIfBlocks?: (IfDefineBlock | IfElIfBlock)[],
-	processedPrevIfBlocks?: CIfBase[],
-): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
-export async function formatText(
-	documentFormattingParams: (
-		| DocumentFormattingParams
-		| DocumentRangeFormattingParams
-	) & { ranges?: Range[] },
-	text: string,
 	returnType: 'New Text',
 	options?: FormattingFlags,
 	tokens?: Token[],
@@ -168,7 +156,7 @@ export async function formatText(
 		| DocumentRangeFormattingParams
 	) & { ranges?: Range[] },
 	text: string,
-	returnType: 'New Text' | 'File Diagnostics' | 'Both',
+	returnType: 'New Text' | 'File Diagnostics',
 	options: FormattingFlags = {
 		removeMacroMultiline: true,
 		runLongLineCheck: true,
@@ -238,15 +226,8 @@ export async function formatText(
 				).forEach((line) => multiLineRegions.add(line));
 			});
 
+		// appends edits to variantDocuments
 		await formatMultiLineMacros(
-			{
-				...documentFormattingParams,
-				options: {
-					...documentFormattingParams.options,
-					wordWrapColumn,
-				},
-			},
-			parser.allAstItems,
 			fsPath,
 			text,
 			multiLineRegions,
@@ -331,125 +312,6 @@ export async function formatText(
 		}
 
 		return finalText;
-	}
-
-	if (returnType === 'Both') {
-		let finalText = text;
-		let diagnostic: FileDiagnostic[] = [];
-
-		const r = await formatAstBaseItems(
-			{
-				...documentFormattingParams,
-				options: {
-					...documentFormattingParams.options,
-					wordWrapColumn,
-				},
-			},
-			parser.allAstItems,
-			parser.includes,
-			prevIfBlocks,
-			fsPath,
-			text,
-			returnType,
-			options,
-			[...variantDocuments],
-		);
-
-		finalText = r.text;
-		diagnostic.push(...r.diagnostic);
-
-		if (options.runExpressionIndentationCheck) {
-			diagnostic.push(
-				...(await formatExpressionIndentation(
-					{
-						...documentFormattingParams,
-						options: {
-							...documentFormattingParams.options,
-							wordWrapColumn,
-						},
-					},
-					parser.allAstItems,
-					fsPath,
-					text,
-					'File Diagnostics',
-					options,
-				)),
-			);
-
-			const allAstItems =
-				(await getAstItems(fsPath, text, finalText)) ??
-				parser.allAstItems;
-			finalText = await formatExpressionIndentation(
-				{
-					...documentFormattingParams,
-					options: {
-						...documentFormattingParams.options,
-						wordWrapColumn,
-					},
-				},
-				allAstItems,
-				fsPath,
-				finalText,
-				'New Text',
-				options,
-			);
-		}
-
-		if (
-			options.runLongLineCheck &&
-			hasLongLines(
-				finalText,
-				documentFormattingParams.options.tabSize,
-				wordWrapColumn,
-			)
-		) {
-			diagnostic.push(
-				...(await formatLongLines(
-					{
-						...documentFormattingParams,
-						options: {
-							...documentFormattingParams.options,
-							wordWrapColumn,
-						},
-					},
-					parser.allAstItems,
-					fsPath,
-					text,
-					'File Diagnostics',
-					options,
-					[...variantDocuments],
-				)),
-			);
-
-			let prevText = '';
-			do {
-				prevText = finalText;
-				let allAstItems =
-					(await getAstItems(fsPath, text, prevText)) ??
-					parser.allAstItems;
-
-				finalText = await formatLongLines(
-					{
-						...documentFormattingParams,
-						options: {
-							...documentFormattingParams.options,
-							wordWrapColumn,
-						},
-					},
-					allAstItems,
-					fsPath,
-					prevText,
-					'New Text',
-					options,
-					[...variantDocuments],
-				);
-			} while (prevText !== finalText);
-		}
-
-		return {
-			text: finalText,
-			diagnostic,
-		};
 	}
 
 	let diagnostic: FileDiagnostic[] = [];
@@ -634,15 +496,12 @@ const getDisabledMarcoRangeEdits = async (
 };
 
 async function formatMultiLineMacros(
-	documentFormattingParams: CustomDocumentFormattingParams,
-	astItems: ASTBase[],
 	fsPath: string,
 	text: string,
 	multiLineRegions: Set<number>,
 	edits: FileDiagnostic[] = [],
-): Promise<FileDiagnostic[]> {
+) {
 	const splitDocument = text.split('\n');
-	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
 
 	splitDocument.forEach((text, line) => {
 		if (text.trimEnd().endsWith('\\') && !multiLineRegions.has(line)) {
@@ -668,27 +527,8 @@ async function formatMultiLineMacros(
 			);
 		}
 	});
-
-	const rangeEdits = filterOnOffEdits(
-		formatOnOffMeta,
-		documentFormattingParams,
-		edits,
-	);
-
-	return rangeEdits;
 }
 
-async function formatAstBaseItems(
-	documentFormattingParams: CustomDocumentFormattingParams,
-	astItems: ASTBase[],
-	includes: Include[],
-	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
-	fsPath: string,
-	text: string,
-	returnType: 'Both',
-	options: FormattingFlags,
-	edits?: FileDiagnostic[],
-): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
 async function formatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
@@ -718,7 +558,7 @@ async function formatAstBaseItems(
 	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
 	fsPath: string,
 	text: string,
-	returnType: 'New Text' | 'File Diagnostics' | 'Both',
+	returnType: 'New Text' | 'File Diagnostics',
 	options: FormattingFlags,
 	edits: FileDiagnostic[] = [],
 ): Promise<
@@ -757,11 +597,6 @@ async function formatAstBaseItems(
 			return newText;
 		case 'File Diagnostics':
 			return rangeEdits;
-		case 'Both':
-			return {
-				text: newText,
-				diagnostic: rangeEdits,
-			};
 	}
 }
 
