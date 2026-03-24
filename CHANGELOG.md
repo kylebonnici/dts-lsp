@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.8.5] - 2026-03-23
+
+### Fixed
+
+- Auto Completion for `compatible` property when using Zephyr bindings.
+
 ## [0.8.4] - 2026-03-22
 
 ### Security

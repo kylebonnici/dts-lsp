@@ -85,7 +85,11 @@ function getPropertyAssignItems(
 		const nodeType = nodeTypes.at(-1);
 		const currentBindings = result.item.ast.quickValues;
 		let bindings: string[] | undefined;
-		if (nodeType instanceof NodeType && nodeType.extends.size) {
+		if (
+			currentBindings?.some((b) => b) &&
+			nodeType instanceof NodeType &&
+			nodeType.extends.size
+		) {
 			bindings = Array.from(nodeType.extends).filter(
 				(v) => !currentBindings || !currentBindings.includes(v),
 			);
