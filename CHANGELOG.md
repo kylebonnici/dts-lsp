@@ -4,11 +4,13 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.8.5] - 2026-03-23
+## [0.8.5] - Unreleased
 
 ### Fixed
 
 - Auto Completion for `compatible` property when using Zephyr bindings.
+- Default value for `status` is ignored when using zephyr bindings.
+  The defaults are already defined in the devicetree specification section 2.3.4.
 
 ## [0.8.4] - 2026-03-22
 

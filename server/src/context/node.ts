@@ -554,7 +554,8 @@ export class Node {
 			(p) =>
 				!this.getProperty(p.name) &&
 				p.name !== '#address-cells' &&
-				p.name !== '#size-cells',
+				p.name !== '#size-cells' &&
+				p.name !== 'status',
 		);
 
 		const childDefaultProps = this.nodes.flatMap(
