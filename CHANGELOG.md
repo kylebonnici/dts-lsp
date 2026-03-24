@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.8.5] - Unreleased
 
+### Added
+
+- Formatting: empty reference node are removed when formatting example
+
+```devicetree
+&n {}; // removed
+l1: &n {}; // kept as this adds label to context
+&n { prop; }; // kept as this adds property to context
+&n { node {}; }; // kept as this node property to context
+```
+
 ### Fixed
 
 - Auto Completion for `compatible` property when using Zephyr bindings.

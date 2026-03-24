@@ -185,6 +185,7 @@ export enum FormattingIssues {
 	NODE_NAME_IS_HEX,
 	NODE_NAME_NO_ULL,
 	REMOVE_MACRO_MULTILINE,
+	EMPTY_NODE_REFERENCE,
 }
 
 export enum LexerToken {

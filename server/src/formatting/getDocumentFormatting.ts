@@ -92,6 +92,7 @@ import {
 } from './helpers';
 import { formatLongLines } from './longLines';
 import { formatExpressionIndentation } from './indentExpressions';
+import { formatEmptyReferences } from './removeEmptyReferences';
 
 const hasLongLines = (text: string, tabSize: number, wordWrapColumn: number) =>
 	!!text
@@ -161,6 +162,7 @@ export async function formatText(
 		removeMacroMultiline: true,
 		runLongLineCheck: true,
 		runExpressionIndentationCheck: true,
+		removeEmptyReferences: true,
 	},
 	tokens?: Token[],
 	prevIfBlocks: (IfDefineBlock | IfElIfBlock)[] = [],
@@ -238,6 +240,27 @@ export async function formatText(
 	if (returnType === 'New Text') {
 		let finalText = text;
 
+		if (options.removeEmptyReferences) {
+			const allAstItems =
+				(await getAstItems(fsPath, text, finalText)) ??
+				parser.allAstItems;
+			finalText = await formatEmptyReferences(
+				{
+					...documentFormattingParams,
+					options: {
+						...documentFormattingParams.options,
+						wordWrapColumn,
+					},
+				},
+				allAstItems,
+				fsPath,
+				finalText,
+				returnType,
+			);
+		}
+
+		const allAstItems =
+			(await getAstItems(fsPath, text, finalText)) ?? parser.allAstItems;
 		const r = await formatAstBaseItems(
 			{
 				...documentFormattingParams,
@@ -246,11 +269,11 @@ export async function formatText(
 					wordWrapColumn,
 				},
 			},
-			parser.allAstItems,
+			allAstItems,
 			parser.includes,
 			prevIfBlocks,
 			fsPath,
-			text,
+			finalText,
 			returnType,
 			options,
 			variantDocuments,
@@ -315,6 +338,23 @@ export async function formatText(
 	}
 
 	let diagnostic: FileDiagnostic[] = [];
+
+	if (options.removeEmptyReferences) {
+		const r = await formatEmptyReferences(
+			{
+				...documentFormattingParams,
+				options: {
+					...documentFormattingParams.options,
+					wordWrapColumn,
+				},
+			},
+			parser.allAstItems,
+			fsPath,
+			text,
+			returnType,
+		);
+		diagnostic.push(...r);
+	}
 
 	const r = await formatAstBaseItems(
 		{

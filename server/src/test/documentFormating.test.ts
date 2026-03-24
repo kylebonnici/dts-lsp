@@ -483,86 +483,100 @@ describe('Document formatting', () => {
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual('n1:\nn2:\nn3: &n1 {};');
 		});
-		test('labels with new line before referance', async () => {
+		test('labels with new line before reference', async () => {
 			const documentText = 'n1:\n&n1 {\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual('n1: &n1 {};');
 		});
 		test('No space between ref and {', async () => {
-			const documentText = '&n1{\n};';
+			const documentText = 'l1: &n1{\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('&n1 {};');
+			expect(newText).toEqual('l1: &n1 {};');
 		});
 		test('Node extra new line from top', async () => {
-			const documentText = '\n&n1 {\n};';
+			const documentText = '\nl1: &n1 {\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('&n1 {};');
+			expect(newText).toEqual('l1: &n1 {};');
 		});
 
 		test('Node two new line from top', async () => {
-			const documentText = '\n\n&n1 {\n};';
+			const documentText = '\n\nl1: &n1 {\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('&n1 {};');
+			expect(newText).toEqual('l1: &n1 {};');
 		});
 
 		test('Node multiple new line from top', async () => {
-			const documentText = '\n\n\n&n1 {\n};';
+			const documentText = '\n\n\nl1: &n1 {\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('&n1 {};');
+			expect(newText).toEqual('l1: &n1 {};');
 		});
 
 		test('Node no new line from other root', async () => {
-			const documentText = '/ {\n};&n1 {\n};';
+			const documentText = '/ {\n};l1: &n1 {\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {};\n\n&n1 {};');
+			expect(newText).toEqual('/ {};\n\nl1: &n1 {};');
 		});
 
 		test('Node multiple new line from other root', async () => {
-			const documentText = '/ {\n};\n\n\n&n1 {\n};';
+			const documentText = '/ {\n};\n\n\nl1: &n1 {\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {};\n\n&n1 {};');
+			expect(newText).toEqual('/ {};\n\nl1: &n1 {};');
 		});
 
 		test('Node empty new line from other root', async () => {
-			const documentText = '/ {\n};\n\n&n1 {\n};';
+			const documentText = '/ {\n};\n\nl1: &n1 {\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('/ {};\n\n&n1 {};');
+			expect(newText).toEqual('/ {};\n\nl1: &n1 {};');
 		});
 
 		test('Closing } on same line empty node', async () => {
-			const documentText = '&n1 {};';
+			const documentText = 'l1: &n1 {};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('&n1 {};');
+			expect(newText).toEqual('l1: &n1 {};');
 		});
 		test('Closing } empty new line  empty node', async () => {
-			const documentText = '&n1 {\n\n};';
+			const documentText = 'l1: &n1 {\n\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('&n1 {};');
+			expect(newText).toEqual('l1: &n1 {};');
 		});
 		test('Closing } multiple new line empty node', async () => {
-			const documentText = '&n1 {\n\n\n};';
+			const documentText = 'l1: &n1 {\n\n\n};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('&n1 {};');
+			expect(newText).toEqual('l1: &n1 {};');
 		});
 		test('Single space before semicolon', async () => {
-			const documentText = '&n1 {\n} ;';
+			const documentText = 'l1: &n1 {\n} ;';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('&n1 {};');
+			expect(newText).toEqual('l1: &n1 {};');
 		});
 		test('Multiple spaces before semicolon', async () => {
-			const documentText = '&n1 {\n}   ;';
+			const documentText = 'l1: &n1 {\n}   ;';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('&n1 {};');
+			expect(newText).toEqual('l1: &n1 {};');
 		});
 		test('Comment before ;', async () => {
-			const documentText = '&n1 {\n} /* abc */  ;';
+			const documentText = 'l1: &n1 {\n} /* abc */  ;';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('&n1 {}; /* abc */');
+			expect(newText).toEqual('l1: &n1 {}; /* abc */');
 		});
 		test('Comments before ;', async () => {
-			const documentText = '&n1 {\n} /* abc1 */ /* abc2 */   ;';
+			const documentText = 'l1: &n1 {\n} /* abc1 */ /* abc2 */   ;';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('&n1 {}; /* abc1 */ /* abc2 */');
+			expect(newText).toEqual('l1: &n1 {}; /* abc1 */ /* abc2 */');
+		});
+
+		test('Remove empty ref node', async () => {
+			const documentText = `&i2c1 {\n\tprop1;    \n};     \n&spi1 {};      \nl1: &spi2 {};\n&spi3 {\nn{};\n};     `;
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				`&i2c1 {\n\tprop1;\n};\n\nl1: &spi2 {};\n\n&spi3 {\n\tn {};\n};`,
+			);
+		});
+
+		test('Remove comment with empty ref node', async () => {
+			const documentText = `/* foobar */\nl1: n {};\n/* foo */\n&spi1 {}; /* bar */`;
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(`/* foobar */\nl1: n {};`);
 		});
 	});
 
@@ -727,9 +741,9 @@ describe('Document formatting', () => {
 		});
 
 		test('Traling spaces', async () => {
-			const documentText = '&node1 {};\n   \n&node2 {};';
+			const documentText = 'l1: &node1 {};\n   \nl2: &node2 {};';
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual('&node1 {};\n\n&node2 {};');
+			expect(newText).toEqual('l1: &node1 {};\n\nl2: &node2 {};');
 		});
 
 		test('multiple new lines on top of document', async () => {
@@ -747,14 +761,14 @@ describe('Document formatting', () => {
 			const documentText = `#if PMOD_MTU3
 #if MTU3_COUNTER_Z_PHASE_SIGNAL
 /* SDHI cd pin is muxed with counter Z phase signal */
-&sdhi1 {};
+l1: &sdhi1 {};
 #endif
 #endif`;
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(`#if PMOD_MTU3
 #if MTU3_COUNTER_Z_PHASE_SIGNAL
 /* SDHI cd pin is muxed with counter Z phase signal */
-&sdhi1 {};
+l1: &sdhi1 {};
 #endif
 #endif`);
 		});
@@ -1594,9 +1608,9 @@ describe('Document formatting', () => {
 		});
 
 		test('after semicolon', async () => {
-			const documentText = `&i2c1 {\n\tprop1;    \n};     \n&spi1 {};     `;
+			const documentText = `&i2c1 {\n\tprop1;    \n};     \nl1: &spi1 {};     `;
 			const newText = await getNewText(documentText);
-			expect(newText).toEqual(`&i2c1 {\n\tprop1;\n};\n\n&spi1 {};`);
+			expect(newText).toEqual(`&i2c1 {\n\tprop1;\n};\n\nl1: &spi1 {};`);
 		});
 
 		test('move to new lines', async () => {

@@ -32,6 +32,7 @@ export type FormattingFlags = {
 	removeMacroMultiline: boolean;
 	runLongLineCheck: boolean;
 	runExpressionIndentationCheck: boolean;
+	removeEmptyReferences: boolean;
 };
 
 export type CustomDocumentFormattingParams = (
