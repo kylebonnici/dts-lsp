@@ -17,6 +17,13 @@ l1: &n {}; // kept as this adds label to context
 &n { node {}; }; // kept as this node property to context
 ```
 
+- Formatting: remove duplicate properties in the same closure example
+
+```devicetree
+&n { prop1; /* <- removed */ prop1; };
+&n { prop1; /* <- removed */ /delete-property/ prop1; /* <- removed together with prop1 */ prop1; };
+```
+
 ### Fixed
 
 - Auto Completion for `compatible` property when using Zephyr bindings.

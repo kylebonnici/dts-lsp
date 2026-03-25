@@ -94,6 +94,7 @@ import {
 import { formatLongLines } from './longLines';
 import { formatExpressionIndentation } from './indentExpressions';
 import { formatEmptyReferences } from './removeEmptyNodes';
+import { removeDuplicateProperties } from './removeDuplicateProperties';
 
 const hasLongLines = (text: string, tabSize: number, wordWrapColumn: number) =>
 	!!text
@@ -169,6 +170,11 @@ const convertToFormattingFlags = (
 			formattingOptions,
 			'removeEmptyNodes',
 			false,
+		),
+		removeDuplicateProperties: optionToBoolean(
+			formattingOptions,
+			'removeDuplicateProperties',
+			true,
 		),
 	} satisfies FormattingFlags;
 };
@@ -279,6 +285,30 @@ export async function formatText(
 	if (returnType === 'New Text') {
 		let finalText = text;
 
+		if (options.removeDuplicateProperties) {
+			let prevText = '';
+			do {
+				prevText = finalText;
+				const allAstItems =
+					(await getAstItems(fsPath, text, prevText)) ??
+					parser.allAstItems;
+				finalText = await removeDuplicateProperties(
+					{
+						...documentFormattingParams,
+						options: {
+							...documentFormattingParams.options,
+							wordWrapColumn,
+						},
+					},
+					allAstItems,
+					fsPath,
+					finalText,
+					returnType,
+					options,
+				);
+			} while (finalText !== prevText);
+		}
+
 		if (
 			options.removeEmptyReferences ||
 			options.removeEmptyRoots ||
@@ -386,6 +416,24 @@ export async function formatText(
 	}
 
 	let diagnostic: FileDiagnostic[] = [];
+
+	if (options.removeDuplicateProperties) {
+		const r = await removeDuplicateProperties(
+			{
+				...documentFormattingParams,
+				options: {
+					...documentFormattingParams.options,
+					wordWrapColumn,
+				},
+			},
+			parser.allAstItems,
+			fsPath,
+			text,
+			returnType,
+			options,
+		);
+		diagnostic.push(...r);
+	}
 
 	if (
 		options.removeEmptyReferences ||

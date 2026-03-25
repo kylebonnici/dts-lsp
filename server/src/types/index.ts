@@ -450,4 +450,5 @@ export type FormattingFlags = {
 	removeEmptyReferences: boolean;
 	removeEmptyNodes: boolean;
 	removeEmptyRoots: boolean;
+	removeDuplicateProperties: boolean;
 };
