@@ -442,3 +442,12 @@ export interface PositionScopeInformation {
 	inScope: Record<string, SerializedNode>;
 	parentNode: string;
 }
+
+export type FormattingFlags = {
+	removeMacroMultiline: boolean;
+	runLongLineCheck: boolean;
+	runExpressionIndentationCheck: boolean;
+	removeEmptyReferences: boolean;
+	removeEmptyNodes: boolean;
+	removeEmptyRoots: boolean;
+};

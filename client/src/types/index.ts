@@ -18,6 +18,7 @@ import type {
 	Context,
 	ContextListItem,
 	EvaluatedMacro,
+	FormattingFlags,
 	IntegrationSettings,
 	LocationResult,
 	PositionScopeInformation,
@@ -31,6 +32,7 @@ import {
 	DocumentFormattingParams,
 	DocumentRangeFormattingParams,
 	TextEdit,
+	FormattingOptions,
 } from 'vscode-languageclient/node';
 
 export interface IDeviceTreeAPI {
@@ -64,6 +66,7 @@ export interface IDeviceTreeAPI {
 		event: (DocumentFormattingParams | DocumentRangeFormattingParams) & {
 			edits: TextEdit[];
 			text?: string;
+			options: FormattingOptions & FormattingFlags;
 		},
 	): Promise<TextEdit>;
 

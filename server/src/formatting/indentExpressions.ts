@@ -33,9 +33,9 @@ import {
 	CMacroCall,
 	CMacroCallParam,
 } from '../ast/cPreprocessors/functionCall';
+import { FormattingFlags } from '../types/index';
 import type {
 	CustomDocumentFormattingParams,
-	FormattingFlags,
 	FormattingSettings,
 	LevelMeta,
 } from './types';
@@ -61,14 +61,6 @@ export async function formatExpressionIndentation(
 	astItems: ASTBase[],
 	fsPath: string,
 	text: string,
-	returnType: 'Both',
-	options: FormattingFlags,
-): Promise<{ text: string; diagnostic: FileDiagnostic[] }>;
-export async function formatExpressionIndentation(
-	documentFormattingParams: CustomDocumentFormattingParams,
-	astItems: ASTBase[],
-	fsPath: string,
-	text: string,
 	returnType: 'New Text',
 	options: FormattingFlags,
 ): Promise<string>;
@@ -77,7 +69,7 @@ export async function formatExpressionIndentation(
 	astItems: ASTBase[],
 	fsPath: string,
 	text: string,
-	returnType: 'New Text' | 'File Diagnostics' | 'Both',
+	returnType: 'New Text' | 'File Diagnostics',
 	options: FormattingFlags,
 ): Promise<
 	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
@@ -111,8 +103,6 @@ export async function formatExpressionIndentation(
 			return newText;
 		case 'File Diagnostics':
 			return rangeEdits;
-		case 'Both':
-			return { text: newText, diagnostic: rangeEdits };
 	}
 }
 

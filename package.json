@@ -243,7 +243,8 @@
 			"[devicetree]": {
 				"editor.tabSize": 8,
 				"editor.insertSpaces": false,
-				"editor.defaultFormatter": "KyleMicallefBonnici.devicetree-lsp"
+				"editor.defaultFormatter": "KyleMicallefBonnici.devicetree-lsp",
+				"editor.wordWrapColumn": 100
 			}
 		}
 	},

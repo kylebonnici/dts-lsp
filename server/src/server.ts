@@ -91,6 +91,7 @@ import type {
 	ContextType,
 	DomainTree,
 	EvaluatedMacro,
+	FormattingFlags,
 	GroupedMemoryView,
 	IntegrationSettings,
 	LocationResult,
@@ -456,7 +457,16 @@ connection.onInitialized(async () => {
 				insertFinalNewline:
 					dtsSettingsRaw?.['editor.insertFinalNewline'],
 				wordWrapColumn: dtsSettingsRaw?.['editor.wordWrapColumn'],
-			};
+				removeMacroMultiline:
+					dtsSettingsRaw?.['editor.removeMacroMultiline'],
+				runLongLineCheck: dtsSettingsRaw?.['editor.runLongLineCheck'],
+				runExpressionIndentationCheck:
+					dtsSettingsRaw?.['editor.runExpressionIndentationCheck'],
+				removeEmptyReferences:
+					dtsSettingsRaw?.['editor.removeEmptyReferences'],
+				removeEmptyNodes: dtsSettingsRaw?.['editor.removeEmptyNodes'],
+				removeEmptyRoots: dtsSettingsRaw?.['editor.removeEmptyRoots'],
+			} satisfies FormattingOptions & Partial<FormattingFlags>;
 			if (editorSettings || dtsSettings) {
 				lspClientEditorSettings = {
 					...editorSettings,
@@ -1582,7 +1592,14 @@ const onDocumentFormat = async (
 		documents.get(event.textDocument.uri) ??
 		getTokenizedDocumentProvider().getDocument(fsPath);
 	const text = document.getText();
-	const newText = await formatText(event, text, 'New Text').catch(() => text);
+	const newText = await formatText(
+		{
+			...event,
+			options: { ...context.formattingOptions, ...event.options },
+		},
+		text,
+		'New Text',
+	).catch(() => text);
 
 	if (newText === text) {
 		return [];
@@ -1924,11 +1941,14 @@ connection.onRequest(
 		const documentText =
 			fetchDocument(filePath) ??
 			getTokenizedDocumentProvider().getDocument(filePath, event.text);
-		const newText = await formatText(event, documentText.getText(), 'Both');
 
 		return {
-			text: newText.text,
-			diagnostics: newText.diagnostic.map((d) => d.diagnostic()),
+			text: await formatText(event, documentText.getText(), 'New Text'),
+			diagnostics: await formatText(
+				event,
+				documentText.getText(),
+				'File Diagnostics',
+			),
 		};
 	},
 );
@@ -1939,6 +1959,7 @@ connection.onRequest(
 		event: DocumentFormattingParams & {
 			edits: TextEdit[];
 			text?: string;
+			options: FormattingOptions & FormattingFlags;
 		},
 	) => {
 		await allStable();
