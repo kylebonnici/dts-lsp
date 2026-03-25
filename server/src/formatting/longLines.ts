@@ -36,9 +36,9 @@ import {
 } from '../ast/cPreprocessors/expression';
 import { CMacroCall } from '../ast/cPreprocessors/functionCall';
 import { LabelAssign } from '../ast/dtc/label';
+import { FormattingFlags } from '../types/index';
 import type {
 	CustomDocumentFormattingParams,
-	FormattingFlags,
 	FormattingSettings,
 	LevelMeta,
 } from './types';
