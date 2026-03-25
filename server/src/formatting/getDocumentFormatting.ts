@@ -19,6 +19,7 @@ import {
 	DocumentFormattingParams,
 	DocumentRangeFormattingParams,
 	ErrorCodes,
+	FormattingOptions,
 	Position,
 	Range,
 	ResponseError,
@@ -77,9 +78,9 @@ import {
 	IfElIfBlock,
 } from '../ast/cPreprocessors/ifDefine';
 import { NumberValue } from '../ast/dtc/values/number';
+import { FormattingFlags } from '../types/index';
 import {
 	CustomDocumentFormattingParams,
-	FormattingFlags,
 	FormattingSettings,
 	LevelMeta,
 } from './types';
@@ -92,7 +93,7 @@ import {
 } from './helpers';
 import { formatLongLines } from './longLines';
 import { formatExpressionIndentation } from './indentExpressions';
-import { formatEmptyReferences } from './removeEmptyReferences';
+import { formatEmptyReferences } from './removeEmptyNodes';
 
 const hasLongLines = (text: string, tabSize: number, wordWrapColumn: number) =>
 	!!text
@@ -127,6 +128,51 @@ const getAstItems = async (
 	}
 };
 
+const optionToBoolean = (
+	formattingOptions: FormattingOptions,
+	key: keyof FormattingFlags,
+	def: boolean,
+) => {
+	return formattingOptions[key] ? !!formattingOptions[key] : def;
+};
+
+const convertToFormattingFlags = (
+	formattingOptions: FormattingOptions,
+): FormattingFlags => {
+	return {
+		removeMacroMultiline: optionToBoolean(
+			formattingOptions,
+			'removeMacroMultiline',
+			true,
+		),
+		runLongLineCheck: optionToBoolean(
+			formattingOptions,
+			'runLongLineCheck',
+			true,
+		),
+		runExpressionIndentationCheck: optionToBoolean(
+			formattingOptions,
+			'runExpressionIndentationCheck',
+			true,
+		),
+		removeEmptyReferences: optionToBoolean(
+			formattingOptions,
+			'removeEmptyReferences',
+			true,
+		),
+		removeEmptyRoots: optionToBoolean(
+			formattingOptions,
+			'removeEmptyRoots',
+			false,
+		),
+		removeEmptyNodes: optionToBoolean(
+			formattingOptions,
+			'removeEmptyNodes',
+			false,
+		),
+	} satisfies FormattingFlags;
+};
+
 export async function formatText(
 	documentFormattingParams: (
 		| DocumentFormattingParams
@@ -134,7 +180,6 @@ export async function formatText(
 	) & { ranges?: Range[] },
 	text: string,
 	returnType: 'New Text',
-	options?: FormattingFlags,
 	tokens?: Token[],
 	prevIfBlocks?: (IfDefineBlock | IfElIfBlock)[],
 	processedPrevIfBlocks?: CIfBase[],
@@ -146,7 +191,6 @@ export async function formatText(
 	) & { ranges?: Range[] },
 	text: string,
 	returnType: 'File Diagnostics',
-	options?: FormattingFlags,
 	tokens?: Token[],
 	prevIfBlocks?: (IfDefineBlock | IfElIfBlock)[],
 	processedPrevIfBlocks?: CIfBase[],
@@ -158,12 +202,6 @@ export async function formatText(
 	) & { ranges?: Range[] },
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics',
-	options: FormattingFlags = {
-		removeMacroMultiline: true,
-		runLongLineCheck: true,
-		runExpressionIndentationCheck: true,
-		removeEmptyReferences: true,
-	},
 	tokens?: Token[],
 	prevIfBlocks: (IfDefineBlock | IfElIfBlock)[] = [],
 	processedPrevIfBlocks: CIfBase[] = [],
@@ -206,8 +244,9 @@ export async function formatText(
 		processedPrevIfBlocks,
 		rawTokens,
 		text,
-		options,
 	);
+
+	const options = convertToFormattingFlags(documentFormattingParams.options);
 
 	if (options.removeMacroMultiline) {
 		const multiLineRegions = new Set<number>();
@@ -240,23 +279,32 @@ export async function formatText(
 	if (returnType === 'New Text') {
 		let finalText = text;
 
-		if (options.removeEmptyReferences) {
-			const allAstItems =
-				(await getAstItems(fsPath, text, finalText)) ??
-				parser.allAstItems;
-			finalText = await formatEmptyReferences(
-				{
-					...documentFormattingParams,
-					options: {
-						...documentFormattingParams.options,
-						wordWrapColumn,
+		if (
+			options.removeEmptyReferences ||
+			options.removeEmptyRoots ||
+			options.removeEmptyNodes
+		) {
+			let prevText = '';
+			do {
+				prevText = finalText;
+				const allAstItems =
+					(await getAstItems(fsPath, text, prevText)) ??
+					parser.allAstItems;
+				finalText = await formatEmptyReferences(
+					{
+						...documentFormattingParams,
+						options: {
+							...documentFormattingParams.options,
+							wordWrapColumn,
+						},
 					},
-				},
-				allAstItems,
-				fsPath,
-				finalText,
-				returnType,
-			);
+					allAstItems,
+					fsPath,
+					finalText,
+					returnType,
+					options,
+				);
+			} while (finalText !== prevText);
 		}
 
 		const allAstItems =
@@ -339,7 +387,11 @@ export async function formatText(
 
 	let diagnostic: FileDiagnostic[] = [];
 
-	if (options.removeEmptyReferences) {
+	if (
+		options.removeEmptyReferences ||
+		options.removeEmptyRoots ||
+		options.removeEmptyNodes
+	) {
 		const r = await formatEmptyReferences(
 			{
 				...documentFormattingParams,
@@ -352,6 +404,7 @@ export async function formatText(
 			fsPath,
 			text,
 			returnType,
+			options,
 		);
 		diagnostic.push(...r);
 	}
@@ -430,7 +483,6 @@ const getDisabledMarcoRangeEdits = async (
 	processedPrevIfBlocks: CIfBase[],
 	rawTokens: Token[],
 	text: string,
-	options: FormattingFlags,
 ) => {
 	const ifDefBlocks = parser.cPreprocessorParser.allAstItems.filter(
 		(ast) => ast instanceof IfDefineBlock,
@@ -513,7 +565,6 @@ const getDisabledMarcoRangeEdits = async (
 			{ ...documentFormattingParams, range },
 			text,
 			'File Diagnostics',
-			options,
 			newTokenStream,
 			prevIfBlocks,
 			processedPrevIfBlocks,

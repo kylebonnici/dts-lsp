@@ -25,7 +25,8 @@ import {
 	toRangeWithTokenIndex,
 } from '../helpers';
 
-import { DtcRefNode } from '../ast/dtc/node';
+import { DtcChildNode, DtcRefNode, DtcRootNode } from '../ast/dtc/node';
+import { FormattingFlags } from '../types/index';
 import type { CustomDocumentFormattingParams } from './types';
 import { filterOnOffEdits, pairFormatOnOff } from './helpers';
 
@@ -35,6 +36,7 @@ export async function formatEmptyReferences(
 	fsPath: string,
 	text: string,
 	returnType: 'File Diagnostics',
+	formattingOptions: FormattingFlags,
 ): Promise<FileDiagnostic[]>;
 export async function formatEmptyReferences(
 	documentFormattingParams: CustomDocumentFormattingParams,
@@ -42,6 +44,7 @@ export async function formatEmptyReferences(
 	fsPath: string,
 	text: string,
 	returnType: 'New Text',
+	formattingOptions: FormattingFlags,
 ): Promise<string>;
 export async function formatEmptyReferences(
 	documentFormattingParams: CustomDocumentFormattingParams,
@@ -49,6 +52,7 @@ export async function formatEmptyReferences(
 	fsPath: string,
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics',
+	formattingOptions: FormattingFlags,
 ): Promise<
 	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
 > {
@@ -57,7 +61,7 @@ export async function formatEmptyReferences(
 
 	let newText = text;
 
-	const edits = await baseEmptyReferences(astItems);
+	const edits = await baseEmptyReferences(astItems, formattingOptions);
 
 	const rangeEdits = filterOnOffEdits(
 		formatOnOffMeta,
@@ -80,47 +84,59 @@ export async function formatEmptyReferences(
 
 async function baseEmptyReferences(
 	astItems: ASTBase[],
+	formattingOptions: FormattingFlags,
 ): Promise<FileDiagnostic[]> {
 	return (
 		await Promise.all(
-			astItems.flatMap(async (item) => {
-				if (
-					item instanceof DtcRefNode &&
-					!item.labels.length &&
-					item.openScope?.nextToken === item.closeScope
-				) {
-					const firstToken =
-						item.topComment?.firstToken ?? item.firstToken;
-					const lastToken =
-						item.endComment?.lastToken ?? item.lastToken;
+			astItems
+				.flatMap((ast) => [ast, ...ast.allDescendants])
+				.flatMap(async (item) => {
+					if (
+						(formattingOptions.removeEmptyReferences &&
+							item instanceof DtcRefNode &&
+							!item.labels.length &&
+							item.openScope?.nextToken === item.closeScope) ||
+						(formattingOptions.removeEmptyNodes &&
+							item instanceof DtcChildNode &&
+							!item.labels.length &&
+							item.openScope?.nextToken === item.closeScope) ||
+						(formattingOptions.removeEmptyRoots &&
+							item instanceof DtcRootNode &&
+							item.openScope?.nextToken === item.closeScope)
+					) {
+						const firstToken =
+							item.topComment?.firstToken ?? item.firstToken;
+						const lastToken =
+							item.endComment?.lastToken ?? item.lastToken;
 
-					if (firstToken.prevToken?.prevToken) {
-						firstToken.prevToken.prevToken.nextToken = undefined;
-					}
-					if (lastToken.nextToken) {
-						lastToken.nextToken = undefined;
-					}
+						if (firstToken.prevToken?.prevToken) {
+							firstToken.prevToken.prevToken.nextToken =
+								undefined;
+						}
+						if (lastToken.nextToken) {
+							lastToken.nextToken = undefined;
+						}
 
-					return [
-						genFormattingDiagnostic(
-							FormattingIssues.EMPTY_NODE_REFERENCE,
-							item.fsPath,
-							toPosition(firstToken, false),
-							{
-								edit: TextEdit.del(
-									toRangeWithTokenIndex(
-										firstToken.prevToken,
-										lastToken,
-										!firstToken.prevToken,
+						return [
+							genFormattingDiagnostic(
+								FormattingIssues.EMPTY_NODE_IMPL,
+								item.fsPath,
+								toPosition(firstToken, false),
+								{
+									edit: TextEdit.del(
+										toRangeWithTokenIndex(
+											firstToken.prevToken,
+											lastToken,
+											!firstToken.prevToken,
+										),
 									),
-								),
-								codeActionTitle: `Delete unnecessary node reference`,
-							},
-							toPosition(lastToken),
-						),
-					];
-				}
-			}),
+									codeActionTitle: `Delete node`,
+								},
+								toPosition(lastToken),
+							),
+						];
+					}
+				}),
 		)
 	)
 		.flat()

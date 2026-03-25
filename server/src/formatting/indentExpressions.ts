@@ -33,9 +33,9 @@ import {
 	CMacroCall,
 	CMacroCallParam,
 } from '../ast/cPreprocessors/functionCall';
+import { FormattingFlags } from '../types/index';
 import type {
 	CustomDocumentFormattingParams,
-	FormattingFlags,
 	FormattingSettings,
 	LevelMeta,
 } from './types';

@@ -91,6 +91,7 @@ import type {
 	ContextType,
 	DomainTree,
 	EvaluatedMacro,
+	FormattingFlags,
 	GroupedMemoryView,
 	IntegrationSettings,
 	LocationResult,
@@ -1942,6 +1943,7 @@ connection.onRequest(
 		event: DocumentFormattingParams & {
 			edits: TextEdit[];
 			text?: string;
+			options: FormattingOptions & FormattingFlags;
 		},
 	) => {
 		await allStable();

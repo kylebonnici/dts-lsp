@@ -1380,8 +1380,8 @@ export const formattingIssuesToMessage = (issue: Issue<FormattingIssues>) => {
 					return `Node address size is determined by '@size-cells', Remove 'ull'.`;
 				case FormattingIssues.REMOVE_MACRO_MULTILINE:
 					return `'\\' is not necessary. ${issue.codeActionTitle}`;
-				case FormattingIssues.EMPTY_NODE_REFERENCE:
-					return `Node reference does not contribute anything. ${issue.codeActionTitle}`;
+				case FormattingIssues.EMPTY_NODE_IMPL:
+					return `Node does not contribute anything. ${issue.codeActionTitle}`;
 			}
 		})
 		.join(' or ');
