@@ -457,7 +457,16 @@ connection.onInitialized(async () => {
 				insertFinalNewline:
 					dtsSettingsRaw?.['editor.insertFinalNewline'],
 				wordWrapColumn: dtsSettingsRaw?.['editor.wordWrapColumn'],
-			};
+				removeMacroMultiline:
+					dtsSettingsRaw?.['editor.removeMacroMultiline'],
+				runLongLineCheck: dtsSettingsRaw?.['editor.runLongLineCheck'],
+				runExpressionIndentationCheck:
+					dtsSettingsRaw?.['editor.runExpressionIndentationCheck'],
+				removeEmptyReferences:
+					dtsSettingsRaw?.['editor.removeEmptyReferences'],
+				removeEmptyNodes: dtsSettingsRaw?.['editor.removeEmptyNodes'],
+				removeEmptyRoots: dtsSettingsRaw?.['editor.removeEmptyRoots'],
+			} satisfies FormattingOptions & Partial<FormattingFlags>;
 			if (editorSettings || dtsSettings) {
 				lspClientEditorSettings = {
 					...editorSettings,
@@ -1583,7 +1592,14 @@ const onDocumentFormat = async (
 		documents.get(event.textDocument.uri) ??
 		getTokenizedDocumentProvider().getDocument(fsPath);
 	const text = document.getText();
-	const newText = await formatText(event, text, 'New Text').catch(() => text);
+	const newText = await formatText(
+		{
+			...event,
+			options: { ...context.formattingOptions, ...event.options },
+		},
+		text,
+		'New Text',
+	).catch(() => text);
 
 	if (newText === text) {
 		return [];
