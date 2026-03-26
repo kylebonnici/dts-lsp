@@ -114,9 +114,7 @@ export async function formatLongLines(
 	returnType: 'New Text' | 'File Diagnostics',
 	options: FormattingFlags,
 	edits: FileDiagnostic[] = [],
-): Promise<
-	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
-> {
+): Promise<string | FileDiagnostic[]> {
 	const splitDocument = text.split('\n');
 	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
 

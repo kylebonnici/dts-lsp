@@ -53,9 +53,7 @@ export async function formatEmptyReferences(
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics',
 	formattingOptions: FormattingFlags,
-): Promise<
-	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
-> {
+): Promise<string | FileDiagnostic[]> {
 	const splitDocument = text.split('\n');
 	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
 

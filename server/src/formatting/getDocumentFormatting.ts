@@ -211,9 +211,7 @@ export async function formatText(
 	tokens?: Token[],
 	prevIfBlocks: (IfDefineBlock | IfElIfBlock)[] = [],
 	processedPrevIfBlocks: CIfBase[] = [],
-): Promise<
-	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
-> {
+): Promise<string | FileDiagnostic[]> {
 	const fsPath = fileURIToFsPath(documentFormattingParams.textDocument.uri);
 	tokens ??= new Lexer(text, fsPath).tokens;
 	const rawTokens = [...tokens];
@@ -700,9 +698,7 @@ async function formatAstBaseItems(
 	returnType: 'New Text' | 'File Diagnostics',
 	options: FormattingFlags,
 	edits: FileDiagnostic[] = [],
-): Promise<
-	string | FileDiagnostic[] | { text: string; diagnostic: FileDiagnostic[] }
-> {
+): Promise<string | FileDiagnostic[]> {
 	const splitDocument = text.split('\n');
 	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
 
