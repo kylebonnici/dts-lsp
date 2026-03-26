@@ -310,7 +310,7 @@ export async function formatText(
 					},
 					newParser.allAstItems,
 					fsPath,
-					text,
+					finalText,
 					returnType,
 					newParser.includes,
 					prevIfBlocks,

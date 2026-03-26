@@ -58,6 +58,7 @@ const getEdits = async (
 				insertSpaces: false,
 				trimTrailingWhitespace: true,
 				wordWrapColumn: 100,
+				sortNodesAndProperties: true,
 			},
 		},
 		document.getText(),
