@@ -25,9 +25,15 @@ import {
 	isPathEqual,
 	positionAfter,
 	positionInBetween,
+	toPosition,
 } from '../helpers';
 import { Include } from '../ast/cPreprocessors/include';
-import { DtcBaseNode } from '../ast/dtc/node';
+import {
+	DtcBaseNode,
+	DtcChildNode,
+	DtcRefNode,
+	DtcRootNode,
+} from '../ast/dtc/node';
 import { IfDefineBlock, IfElIfBlock } from '../ast/cPreprocessors/ifDefine';
 import { DtcProperty } from '../ast/dtc/property';
 import { DeleteBase } from '../ast/dtc/delete';
@@ -292,12 +298,24 @@ function sortNodesAndPropertiesHelper(
 				)
 			: changesMap;
 
+		const nameToSelect =
+			node instanceof DtcRefNode
+				? node.reference
+				: node instanceof DtcChildNode
+					? node.name
+					: node instanceof DtcRootNode
+						? node.name
+						: undefined;
+
 		if (edits.length) {
 			issues.push(
 				genFormattingDiagnostic(
 					FormattingIssues.PROPERTY_NODE_SORTING,
 					fsPath,
-					grpStartPosition,
+					toPosition(
+						nameToSelect?.firstToken ?? node.firstToken,
+						false,
+					),
 					{
 						edit: [
 							...edits.map((a) => a.delete),
@@ -306,9 +324,13 @@ function sortNodesAndPropertiesHelper(
 								edits.map((a) => a.text).join(''),
 							),
 						],
-						codeActionTitle: 'Sort properties and nodes',
+						codeActionTitle: `Sort child items. Expected order: ${expectedOrder.map((e) => (e instanceof DtcProperty ? `${e.propertyName.name}` : `${e.path?.at(-1)} { ... };`)).join(', ')}`,
 					},
-					edits.at(-1)?.delete.range.end ?? grpStartPosition,
+					toPosition(
+						nameToSelect?.lastToken ??
+							node.openScope ??
+							node.firstToken,
+					),
 				),
 			);
 		}
