@@ -1382,6 +1382,8 @@ export const formattingIssuesToMessage = (issue: Issue<FormattingIssues>) => {
 					return `'\\' is not necessary. ${issue.codeActionTitle}`;
 				case FormattingIssues.EMPTY_NODE_IMPL:
 					return `Node does not contribute anything. ${issue.codeActionTitle}`;
+				case FormattingIssues.DUPLICATE_PROPERTY:
+					return `Property is redefined in same closure. ${issue.codeActionTitle}`;
 			}
 		})
 		.join(' or ');

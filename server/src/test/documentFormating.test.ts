@@ -1573,6 +1573,22 @@ l1: &sdhi1 {};
 				'/ {\n\tprop1 = <FOO(10,\n\t\t\t\t 20)>;\n};',
 			);
 		});
+
+		test('clean duplicate properties', async () => {
+			const documentText =
+				'/ {\n\t/* foo */\n\tprop1;\n\t/* bar */\n\tprop1;\n};\n/ {\n\tprop1;\n\tprop1;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				'/ {\n\t/* bar */\n\tprop1;\n};\n\n/ {\n\tprop1;\n};',
+			);
+		});
+
+		test('clean delete property for duplicate property', async () => {
+			const documentText =
+				'/ {\n\tprop1;\n\t/delete-property/ prop1;\n\tprop1;\n};';
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual('/ {\n\tprop1;\n};');
+		});
 	});
 
 	describe('trailing White space', () => {
