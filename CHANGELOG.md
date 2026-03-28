@@ -24,6 +24,15 @@ l1: &n {}; // kept as this adds label to context
 &n { prop1; /* <- removed */ /delete-property/ prop1; /* <- removed together with prop1 */ prop1; };
 ```
 
+- Use custom formatting configuration `devicetree` language:
+    - `editor.removeMacroMultiline: true|false` defaults to true
+    - `editor.runLongLineCheck: true|false` defaults to true
+    - `editor.indentExpressions: true|false` defaults to true
+    - `editor.removeEmptyReferences: true|false` defaults to true
+    - `editor.removeEmptyNodes: true|false` defaults to false
+    - `editor.removeEmptyRoots: true|false` defaults to false
+    - `editor.sortNodesAndProperties: true|false` defaults to false
+
 ### Fixed
 
 - Auto Completion for `compatible` property when using Zephyr bindings.

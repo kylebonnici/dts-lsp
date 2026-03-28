@@ -128,14 +128,14 @@ const convertToFormattingFlags = (
 			'removeMacroMultiline',
 			true,
 		),
-		runLongLineCheck: optionToBoolean(
+		wrapLongLines: optionToBoolean(
 			formattingOptions,
-			'runLongLineCheck',
+			'wrapLongLines',
 			true,
 		),
-		runExpressionIndentationCheck: optionToBoolean(
+		indentExpressions: optionToBoolean(
 			formattingOptions,
-			'runExpressionIndentationCheck',
+			'indentExpressions',
 			true,
 		),
 		removeEmptyReferences: optionToBoolean(
@@ -368,7 +368,7 @@ export async function formatText(
 		variantDocuments = [];
 		finalText = r;
 
-		if (options.runExpressionIndentationCheck) {
+		if (options.indentExpressions) {
 			const allAstItems =
 				(await getAstItems(fsPath, text, finalText)) ??
 				parser.allAstItems;
@@ -389,7 +389,7 @@ export async function formatText(
 		}
 
 		if (
-			options.runLongLineCheck &&
+			options.wrapLongLines &&
 			hasLongLines(
 				finalText,
 				documentFormattingParams.options.tabSize,
@@ -504,7 +504,7 @@ export async function formatText(
 	);
 	diagnostic.push(...r);
 
-	if (options.runExpressionIndentationCheck) {
+	if (options.indentExpressions) {
 		const r = await formatExpressionIndentation(
 			{
 				...documentFormattingParams,
@@ -523,7 +523,7 @@ export async function formatText(
 	}
 
 	if (
-		options.runLongLineCheck &&
+		options.wrapLongLines &&
 		hasLongLines(
 			text,
 			documentFormattingParams.options.tabSize,
@@ -1678,7 +1678,7 @@ const formatComplexExpression = (
 					widthToPrefix(settings, width),
 					undefined,
 					undefined,
-					!options.runExpressionIndentationCheck,
+					!options.indentExpressions,
 				),
 			);
 		}

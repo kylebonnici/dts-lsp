@@ -459,13 +459,14 @@ connection.onInitialized(async () => {
 				wordWrapColumn: dtsSettingsRaw?.['editor.wordWrapColumn'],
 				removeMacroMultiline:
 					dtsSettingsRaw?.['editor.removeMacroMultiline'],
-				runLongLineCheck: dtsSettingsRaw?.['editor.runLongLineCheck'],
-				runExpressionIndentationCheck:
-					dtsSettingsRaw?.['editor.runExpressionIndentationCheck'],
+				wrapLongLines: dtsSettingsRaw?.['editor.wrapLongLines'],
+				indentExpressions: dtsSettingsRaw?.['editor.indentExpressions'],
 				removeEmptyReferences:
 					dtsSettingsRaw?.['editor.removeEmptyReferences'],
 				removeEmptyNodes: dtsSettingsRaw?.['editor.removeEmptyNodes'],
 				removeEmptyRoots: dtsSettingsRaw?.['editor.removeEmptyRoots'],
+				sortNodesAndProperties:
+					dtsSettingsRaw?.['editor.sortNodesAndProperties'],
 			} satisfies FormattingOptions & Partial<FormattingFlags>;
 			if (editorSettings || dtsSettings) {
 				lspClientEditorSettings = {

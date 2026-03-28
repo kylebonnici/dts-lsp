@@ -722,7 +722,7 @@ const formatLongLinesExpression = (
 		expression.firstToken.pos.col,
 	);
 
-	const expectedCol = options.runExpressionIndentationCheck
+	const expectedCol = options.indentExpressions
 		? getExpressionCol(
 				propertyValue,
 				expression,
@@ -782,7 +782,7 @@ const formatLongLinesExpression = (
 			continue;
 		}
 
-		const expectedCol = options.runExpressionIndentationCheck
+		const expectedCol = options.indentExpressions
 			? getExpressionCol(
 					propertyValue,
 					exp.expression,
