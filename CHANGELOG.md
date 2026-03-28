@@ -24,7 +24,7 @@ l1: &n {}; // kept as this adds label to context
 &n { prop1; /* <- removed */ /delete-property/ prop1; /* <- removed together with prop1 */ prop1; };
 ```
 
-- Use custom formatting configuration `devicetree` language:
+- Externally expose custom formatting configuration to `devicetree` language:
     - `editor.removeMacroMultiline: true|false` defaults to true
     - `editor.wrapLongLines: true|false` defaults to true
     - `editor.indentExpressions: true|false` defaults to true
