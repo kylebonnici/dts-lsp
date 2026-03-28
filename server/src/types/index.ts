@@ -445,10 +445,11 @@ export interface PositionScopeInformation {
 
 export type FormattingFlags = {
 	removeMacroMultiline: boolean;
-	runLongLineCheck: boolean;
-	runExpressionIndentationCheck: boolean;
+	wrapLongLines: boolean;
+	indentExpressions: boolean;
 	removeEmptyReferences: boolean;
 	removeEmptyNodes: boolean;
 	removeEmptyRoots: boolean;
 	removeDuplicateProperties: boolean;
+	sortNodesAndProperties: boolean;
 };

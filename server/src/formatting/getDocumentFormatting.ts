@@ -88,6 +88,8 @@ import {
 	createIndentString,
 	filterOnOffEdits,
 	getAstItemLevel,
+	getAstItems,
+	getParser,
 	pairFormatOnOff,
 	widthToPrefix,
 } from './helpers';
@@ -95,6 +97,7 @@ import { formatLongLines } from './longLines';
 import { formatExpressionIndentation } from './indentExpressions';
 import { formatEmptyReferences } from './removeEmptyNodes';
 import { removeDuplicateProperties } from './removeDuplicateProperties';
+import { sortNodesAndProperties } from './sortNodesAndProperties';
 
 const hasLongLines = (text: string, tabSize: number, wordWrapColumn: number) =>
 	!!text
@@ -107,27 +110,6 @@ const hasLongLines = (text: string, tabSize: number, wordWrapColumn: number) =>
 					)
 					.trimEnd().length > wordWrapColumn,
 		);
-
-const getAstItems = async (
-	filePath: string,
-	startText: string,
-	currentText: string,
-) => {
-	if (startText !== currentText) {
-		const parser = new Parser(
-			filePath,
-			[],
-			undefined,
-			() => {
-				const lexer = new Lexer(currentText, filePath);
-				return lexer.tokens;
-			},
-			true,
-		);
-		await parser.stable;
-		return parser.allAstItems;
-	}
-};
 
 const optionToBoolean = (
 	formattingOptions: FormattingOptions,
@@ -146,14 +128,14 @@ const convertToFormattingFlags = (
 			'removeMacroMultiline',
 			true,
 		),
-		runLongLineCheck: optionToBoolean(
+		wrapLongLines: optionToBoolean(
 			formattingOptions,
-			'runLongLineCheck',
+			'wrapLongLines',
 			true,
 		),
-		runExpressionIndentationCheck: optionToBoolean(
+		indentExpressions: optionToBoolean(
 			formattingOptions,
-			'runExpressionIndentationCheck',
+			'indentExpressions',
 			true,
 		),
 		removeEmptyReferences: optionToBoolean(
@@ -175,6 +157,11 @@ const convertToFormattingFlags = (
 			formattingOptions,
 			'removeDuplicateProperties',
 			true,
+		),
+		sortNodesAndProperties: optionToBoolean(
+			formattingOptions,
+			'sortNodesAndProperties',
+			false,
 		),
 	} satisfies FormattingFlags;
 };
@@ -307,6 +294,30 @@ export async function formatText(
 			} while (finalText !== prevText);
 		}
 
+		if (options.sortNodesAndProperties) {
+			let prevText = '';
+			do {
+				prevText = finalText;
+				const newParser =
+					(await getParser(fsPath, text, prevText)) ?? parser;
+				finalText = await sortNodesAndProperties(
+					{
+						...documentFormattingParams,
+						options: {
+							...documentFormattingParams.options,
+							wordWrapColumn,
+						},
+					},
+					newParser.allAstItems,
+					fsPath,
+					finalText,
+					returnType,
+					newParser.includes,
+					prevIfBlocks,
+				);
+			} while (finalText !== prevText);
+		}
+
 		if (
 			options.removeEmptyReferences ||
 			options.removeEmptyRoots ||
@@ -357,7 +368,7 @@ export async function formatText(
 		variantDocuments = [];
 		finalText = r;
 
-		if (options.runExpressionIndentationCheck) {
+		if (options.indentExpressions) {
 			const allAstItems =
 				(await getAstItems(fsPath, text, finalText)) ??
 				parser.allAstItems;
@@ -378,7 +389,7 @@ export async function formatText(
 		}
 
 		if (
-			options.runLongLineCheck &&
+			options.wrapLongLines &&
 			hasLongLines(
 				finalText,
 				documentFormattingParams.options.tabSize,
@@ -433,6 +444,25 @@ export async function formatText(
 		diagnostic.push(...r);
 	}
 
+	if (options.sortNodesAndProperties) {
+		const r = await sortNodesAndProperties(
+			{
+				...documentFormattingParams,
+				options: {
+					...documentFormattingParams.options,
+					wordWrapColumn,
+				},
+			},
+			parser.allAstItems,
+			fsPath,
+			text,
+			returnType,
+			parser.includes,
+			prevIfBlocks,
+		);
+		diagnostic.push(...r);
+	}
+
 	if (
 		options.removeEmptyReferences ||
 		options.removeEmptyRoots ||
@@ -474,7 +504,7 @@ export async function formatText(
 	);
 	diagnostic.push(...r);
 
-	if (options.runExpressionIndentationCheck) {
+	if (options.indentExpressions) {
 		const r = await formatExpressionIndentation(
 			{
 				...documentFormattingParams,
@@ -493,7 +523,7 @@ export async function formatText(
 	}
 
 	if (
-		options.runLongLineCheck &&
+		options.wrapLongLines &&
 		hasLongLines(
 			text,
 			documentFormattingParams.options.tabSize,
@@ -608,7 +638,14 @@ const getDisabledMarcoRangeEdits = async (
 		const range = meta.block.range;
 		processedPrevIfBlocks.push(meta.branch);
 		return formatText(
-			{ ...documentFormattingParams, range },
+			{
+				...documentFormattingParams,
+				range,
+				options: {
+					...documentFormattingParams.options,
+					sortNodesAndProperties: false,
+				},
+			},
 			text,
 			'File Diagnostics',
 			newTokenStream,
@@ -1641,7 +1678,7 @@ const formatComplexExpression = (
 					widthToPrefix(settings, width),
 					undefined,
 					undefined,
-					!options.runExpressionIndentationCheck,
+					!options.indentExpressions,
 				),
 			);
 		}

@@ -187,6 +187,7 @@ export enum FormattingIssues {
 	REMOVE_MACRO_MULTILINE,
 	EMPTY_NODE_IMPL,
 	DUPLICATE_PROPERTY,
+	PROPERTY_NODE_SORTING,
 }
 
 export enum LexerToken {
