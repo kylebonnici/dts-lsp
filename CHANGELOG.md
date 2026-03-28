@@ -30,6 +30,7 @@ l1: &n {}; // kept as this adds label to context
 - Default value for `status` is ignored when using zephyr bindings.
   The defaults are already defined in the devicetree specification section 2.3.4.
 - Fixed missing formatting diagnostic message when node address has `ull`
+- Fixed missing types for `/zephyr,user` node properties when using `Zephyr` bindings
 
 ## [0.8.4] - 2026-03-22
 
