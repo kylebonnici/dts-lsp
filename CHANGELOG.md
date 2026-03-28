@@ -4,11 +4,11 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.8.5] - Unreleased
+## [0.8.5] - 2026-03-28
 
 ### Added
 
-- Formatting: empty reference node are removed when formatting example
+- Formatting: empty reference node are removed when formatting (removeEmptyReferences). Example
 
 ```devicetree
 &n {}; // removed
@@ -17,7 +17,7 @@ l1: &n {}; // kept as this adds label to context
 &n { node {}; }; // kept as this node property to context
 ```
 
-- Formatting: remove duplicate properties in the same closure example
+- Formatting: remove duplicate properties in the same closure (removeDuplicateProperties). Example
 
 ```devicetree
 &n { prop1; /* <- removed */ prop1; };
@@ -26,12 +26,13 @@ l1: &n {}; // kept as this adds label to context
 
 - Use custom formatting configuration `devicetree` language:
     - `editor.removeMacroMultiline: true|false` defaults to true
-    - `editor.runLongLineCheck: true|false` defaults to true
+    - `editor.wrapLongLines: true|false` defaults to true
     - `editor.indentExpressions: true|false` defaults to true
     - `editor.removeEmptyReferences: true|false` defaults to true
     - `editor.removeEmptyNodes: true|false` defaults to false
     - `editor.removeEmptyRoots: true|false` defaults to false
     - `editor.sortNodesAndProperties: true|false` defaults to false
+    - `editor.removeDuplicateProperties: true|false` defaults to true
 
 ### Fixed
 
