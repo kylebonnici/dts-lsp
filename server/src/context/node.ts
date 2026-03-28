@@ -39,6 +39,7 @@ import {
 	toRangeWithTokenIndex,
 	fsPathToVirtualFsPath,
 	toRange,
+	escapeMarkdown,
 } from '../helpers';
 import {
 	ContextIssues,
@@ -1369,7 +1370,10 @@ export class Node {
 					? ['### Maintainers', ...(this.nodeType?.maintainers ?? [])]
 					: []),
 				...(this.nodeType?.description
-					? ['### Description', this.nodeType?.description]
+					? [
+							'### Description',
+							escapeMarkdown(this.nodeType?.description),
+						]
 					: []),
 				...(this.nodeType?.examples
 					? [

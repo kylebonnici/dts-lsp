@@ -1773,3 +1773,15 @@ export function safeSplice<T>(
 
 	return result;
 }
+
+export function escapeMarkdown(text?: string): string {
+	if (!text) return '';
+
+	return (
+		text
+			// HTML first
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+	);
+}
