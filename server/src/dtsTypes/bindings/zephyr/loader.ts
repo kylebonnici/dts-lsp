@@ -397,56 +397,49 @@ export class ZephyrBindingsLoader {
 			);
 			let baseType: NodeType | undefined;
 			if (base && node.pathString === '/zephyr,user') {
-				const baseCopy = {
+				const baseCopy: ZephyrBindingYml = {
 					...base,
-					properties: { ...base.properties },
+					properties: {
+						handle: {
+							name: 'handle',
+							type: 'phandle',
+						},
+						handles: {
+							name: 'handles',
+							type: 'phandles',
+						},
+						boolean: {
+							name: 'boolean',
+							type: 'boolean',
+						},
+						bytes: {
+							name: 'bytes',
+							type: 'uint8-array',
+						},
+						number: {
+							name: 'number',
+							type: 'int',
+						},
+						numbers: {
+							name: 'numbers',
+							type: 'array',
+						},
+						string: {
+							name: 'string',
+							type: 'string',
+						},
+						strings: {
+							name: 'strings',
+							type: 'string-array',
+						},
+					},
 				};
 
 				node.properties.forEach((p) => {
 					if (p.name.endsWith('-gpios')) {
-						baseCopy.properties[p.name] = {
+						baseCopy.properties![p.name] = {
 							name: p.name,
 							type: 'phandle-array',
-						};
-					} else if (p.name === 'handle') {
-						baseCopy.properties[p.name] = {
-							name: p.name,
-							type: 'phandle',
-						};
-					} else if (p.name === 'handles') {
-						baseCopy.properties[p.name] = {
-							name: p.name,
-							type: 'phandles',
-						};
-					} else if (p.name === 'boolean') {
-						baseCopy.properties[p.name] = {
-							name: p.name,
-							type: 'boolean',
-						};
-					} else if (p.name === 'bytes') {
-						baseCopy.properties[p.name] = {
-							name: p.name,
-							type: 'uint8-array',
-						};
-					} else if (p.name === 'number') {
-						baseCopy.properties[p.name] = {
-							name: p.name,
-							type: 'int',
-						};
-					} else if (p.name === 'numbers') {
-						baseCopy.properties[p.name] = {
-							name: p.name,
-							type: 'array',
-						};
-					} else if (p.name === 'string') {
-						baseCopy.properties[p.name] = {
-							name: p.name,
-							type: 'string',
-						};
-					} else if (p.name === 'strings') {
-						baseCopy.properties[p.name] = {
-							name: p.name,
-							type: 'string-array',
 						};
 					}
 				});
