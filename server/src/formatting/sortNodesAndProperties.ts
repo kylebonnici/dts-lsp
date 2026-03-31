@@ -23,7 +23,6 @@ import {
 	applyEdits,
 	compareWords,
 	genFormattingDiagnostic,
-	isPathEqual,
 	positionAfter,
 	positionInBetween,
 	toPosition,
@@ -149,8 +148,6 @@ function sortNodesAndPropertiesHelper(
 	splitDocument: string[],
 	formatOff: Range[],
 ): FileDiagnostic[] {
-	if (!isPathEqual(node.fsPath, fsPath)) return []; //property may have been included!!
-
 	if (
 		ifDefs.some(
 			(i) =>
