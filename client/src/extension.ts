@@ -28,6 +28,7 @@ import {
 	ClipboardActions,
 	ContextListItem,
 	File,
+	FormattingFlags,
 } from 'devicetree-language-server-types';
 import { API } from './api';
 import { getCurrentTextDocumentPositionParams } from './helpers';
@@ -167,6 +168,51 @@ const openContextOutput = async (
 		uri,
 		besides ? { viewColumn: vscode.ViewColumn.Beside } : {},
 	);
+};
+
+const formatFileManually = async (
+	options: Partial<vscode.FormattingOptions> & Partial<FormattingFlags>,
+) => {
+	const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+
+	if (activeTab && activeTab.input instanceof vscode.TabInputText) {
+		const uri = activeTab.input.uri;
+
+		// 2. Find the document in the workspace to get its languageId
+		const doc = vscode.workspace.textDocuments.find(
+			(d) => d.uri.toString() === uri.toString(),
+		);
+
+		if (doc.languageId !== 'devicetree') {
+			return;
+		}
+
+		const e = await api.formatTextEdits({
+			textDocument: {
+				uri: uri.toString(),
+			},
+			options,
+			edits: [],
+		});
+
+		const textEdit = vscode.TextEdit.replace(
+			new vscode.Range(
+				e.range.start.line,
+				e.range.start.character,
+				e.range.end.line,
+				e.range.end.character,
+			),
+			e.newText,
+		);
+
+		if (textEdit.newText === doc.getText()) {
+			return;
+		}
+
+		const workspaceEdit = new vscode.WorkspaceEdit();
+		workspaceEdit.set(uri, [textEdit]);
+		await vscode.workspace.applyEdit(workspaceEdit);
+	}
 };
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -329,6 +375,74 @@ export async function activate(context: vscode.ExtensionContext) {
 						}),
 					);
 				}
+			},
+		),
+		vscode.commands.registerCommand(
+			'devicetree.formatting.sortPropertiesByGroup',
+			async () => {
+				await formatFileManually({
+					removeMacroMultiline: false,
+					wrapLongLines: false,
+					indentExpressions: false,
+					removeEmptyReferences: false,
+					removeEmptyNodes: false,
+					removeEmptyRoots: false,
+					removeDuplicateProperties: false,
+					sortNodesAndProperties: true,
+					sortNodesNodesBy: 'none',
+					sortPropertiesAlphabetically: false,
+				});
+			},
+		),
+		vscode.commands.registerCommand(
+			'devicetree.formatting.sortPropertiesByGroupAlphabetically',
+			async () => {
+				await formatFileManually({
+					removeMacroMultiline: false,
+					wrapLongLines: false,
+					indentExpressions: false,
+					removeEmptyReferences: false,
+					removeEmptyNodes: false,
+					removeEmptyRoots: false,
+					removeDuplicateProperties: false,
+					sortNodesAndProperties: true,
+					sortNodesNodesBy: 'none',
+					sortPropertiesAlphabetically: true,
+				});
+			},
+		),
+		vscode.commands.registerCommand(
+			'devicetree.formatting.sortNodesByName',
+			async () => {
+				await formatFileManually({
+					removeMacroMultiline: false,
+					wrapLongLines: false,
+					indentExpressions: false,
+					removeEmptyReferences: false,
+					removeEmptyNodes: false,
+					removeEmptyRoots: false,
+					removeDuplicateProperties: false,
+					sortNodesAndProperties: true,
+					sortNodesNodesBy: 'name',
+					sortPropertiesAlphabetically: false,
+				});
+			},
+		),
+		vscode.commands.registerCommand(
+			'devicetree.formatting.sortNodesByAddress',
+			async () => {
+				await formatFileManually({
+					removeMacroMultiline: false,
+					wrapLongLines: false,
+					indentExpressions: false,
+					removeEmptyReferences: false,
+					removeEmptyNodes: false,
+					removeEmptyRoots: false,
+					removeDuplicateProperties: false,
+					sortNodesAndProperties: true,
+					sortNodesNodesBy: 'address',
+					sortPropertiesAlphabetically: false,
+				});
 			},
 		),
 	);

@@ -12,6 +12,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - `editor.baseFormattingRules: true|false` defaults to true
     - `editor.sortNodesNodesBy: address|name|none` defaults to none
     - `editor.sortPropertiesAlphabetically: true|false` defaults to false
+- VS Code commands:
+    - `devicetree.formatting.sortPropertiesByGroup`
+    - `devicetree.formatting.sortPropertiesByGroupAlphabetically`
+    - `devicetree.formatting.sortNodesByName`
+    - `devicetree.formatting.sortNodesByAddress`
 
 ### Fixed
 
