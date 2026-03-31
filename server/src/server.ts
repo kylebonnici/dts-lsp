@@ -1935,6 +1935,7 @@ connection.onRequest(
 	async (
 		event: DocumentFormattingParams & {
 			text?: string;
+			options: FormattingOptions & FormattingFlags;
 		},
 	) => {
 		const filePath = fileURIToFsPath(event.textDocument.uri);

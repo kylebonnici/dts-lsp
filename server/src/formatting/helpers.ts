@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
-import { Position, Range } from 'vscode-languageserver-types';
+import {
+	FormattingOptions,
+	Position,
+	Range,
+} from 'vscode-languageserver-types';
+import { FormattingFlags } from '../types/index';
 import { ASTBase } from '../ast/base';
 import { Comment, CommentBlock } from '../ast/dtc/comment';
 import { FileDiagnostic, Token } from '../types';
@@ -301,3 +306,69 @@ export function getExpressionCol(
 
 	return expressionCol;
 }
+
+const resolverOption = <T>(
+	formattingOptions: FormattingOptions,
+	key: keyof FormattingFlags,
+	def: T,
+): T => {
+	return (formattingOptions[key] ?? def) as T;
+};
+
+export const convertToFormattingFlags = (
+	formattingOptions: FormattingOptions,
+): FormattingFlags => {
+	return {
+		baseFormattingRules: resolverOption(
+			formattingOptions,
+			'baseFormattingRules',
+			true,
+		),
+		removeMacroMultiline: resolverOption(
+			formattingOptions,
+			'removeMacroMultiline',
+			true,
+		),
+		wrapLongLines: resolverOption(formattingOptions, 'wrapLongLines', true),
+		indentExpressions: resolverOption(
+			formattingOptions,
+			'indentExpressions',
+			true,
+		),
+		removeEmptyReferences: resolverOption(
+			formattingOptions,
+			'removeEmptyReferences',
+			true,
+		),
+		removeEmptyRoots: resolverOption(
+			formattingOptions,
+			'removeEmptyRoots',
+			false,
+		),
+		removeEmptyNodes: resolverOption(
+			formattingOptions,
+			'removeEmptyNodes',
+			false,
+		),
+		removeDuplicateProperties: resolverOption(
+			formattingOptions,
+			'removeDuplicateProperties',
+			true,
+		),
+		sortNodesAndProperties: resolverOption(
+			formattingOptions,
+			'sortNodesAndProperties',
+			false,
+		),
+		sortNodesNodesBy: resolverOption(
+			formattingOptions,
+			'sortNodesNodesBy',
+			'none',
+		),
+		sortPropertiesAlphabetically: resolverOption(
+			formattingOptions,
+			'sortPropertiesAlphabetically',
+			false,
+		),
+	} satisfies FormattingFlags;
+};

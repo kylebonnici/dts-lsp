@@ -70,6 +70,26 @@
 			{
 				"command": "devicetree.context.memoryViews",
 				"title": "Devicetree: Memory domains view"
+			},
+			{
+				"command": "devicetree.formatting.sortPropertiesByGroup",
+				"title": "Devicetree: Sort properties by group",
+				"enablement": "editorLangId == devicetree"
+			},
+			{
+				"command": "devicetree.formatting.sortPropertiesByGroupAlphabetically",
+				"title": "Devicetree: Sort properties by group, alphabetically",
+				"enablement": "editorLangId == devicetree"
+			},
+			{
+				"command": "devicetree.formatting.sortNodesByName",
+				"title": "Devicetree: Sort nodes by name",
+				"enablement": "editorLangId == devicetree"
+			},
+			{
+				"command": "devicetree.formatting.sortNodesByAddress",
+				"title": "Devicetree: Sort nodes by address",
+				"enablement": "editorLangId == devicetree"
 			}
 		],
 		"languages": [

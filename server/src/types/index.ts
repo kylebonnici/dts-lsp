@@ -444,6 +444,7 @@ export interface PositionScopeInformation {
 }
 
 export type FormattingFlags = {
+	baseFormattingRules: boolean;
 	removeMacroMultiline: boolean;
 	wrapLongLines: boolean;
 	indentExpressions: boolean;
@@ -452,4 +453,6 @@ export type FormattingFlags = {
 	removeEmptyRoots: boolean;
 	removeDuplicateProperties: boolean;
 	sortNodesAndProperties: boolean;
+	sortNodesNodesBy: 'address' | 'name' | 'none';
+	sortPropertiesAlphabetically: boolean;
 };
