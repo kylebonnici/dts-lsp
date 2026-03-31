@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.8.6] - 2026-04-01
 
+### Added
+
+- Externally expose custom formatting configuration to `devicetree` language:
+    - `editor.baseFormattingRules: true|false` defaults to true
+    - `editor.sortNodesNodesBy: address|name|none` defaults to none
+    - `editor.sortPropertiesAlphabetically: true|false` defaults to false
+
 ### Fixed
 
 - Formatting freeze when `SortNodesAndProperties` is set to true and document has `/* dts-format off */`
