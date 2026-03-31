@@ -21,6 +21,7 @@ import { ASTBase } from '../ast/base';
 import { FileDiagnostic, FormattingIssues } from '../types';
 import {
 	applyEdits,
+	compareWords,
 	genFormattingDiagnostic,
 	isPathEqual,
 	positionAfter,
@@ -40,6 +41,7 @@ import { DeleteBase } from '../ast/dtc/delete';
 import { Parser } from '../parser';
 import { Lexer } from '../lexer';
 import {
+	convertToFormattingFlags,
 	filterOnOffEdits,
 	isFormattingDisabledAt,
 	pairFormatOnOff,
@@ -79,6 +81,7 @@ export async function sortNodesAndProperties(
 	const t = astItems.flatMap((c) =>
 		c instanceof DtcBaseNode
 			? sortNodesAndPropertiesHelper(
+					settings,
 					c,
 					fsPath,
 					includes,
@@ -138,6 +141,7 @@ export async function sortNodesAndProperties(
 }
 
 function sortNodesAndPropertiesHelper(
+	settings: CustomDocumentFormattingParams,
 	node: DtcBaseNode,
 	fsPath: string,
 	includes: Include[],
@@ -172,9 +176,9 @@ function sortNodesAndPropertiesHelper(
 	}
 
 	const groups: {
-		asFound: (DtcProperty | DtcBaseNode)[];
+		asFound: (DtcProperty | DtcChildNode)[];
 		prop: DtcProperty[];
-		nodes: DtcBaseNode[];
+		nodes: DtcChildNode[];
 	}[] = [{ prop: [], nodes: [], asFound: [] }];
 
 	const issues: FileDiagnostic[] = [];
@@ -206,7 +210,7 @@ function sortNodesAndPropertiesHelper(
 		if (c instanceof DtcProperty) {
 			groups.at(-1)?.prop.push(c);
 			groups.at(-1)?.asFound.push(c);
-		} else if (c instanceof DtcBaseNode) {
+		} else if (c instanceof DtcChildNode) {
 			groups.at(-1)?.nodes.push(c);
 			groups.at(-1)?.asFound.push(c);
 		} else if (c instanceof DeleteBase) {
@@ -219,8 +223,32 @@ function sortNodesAndPropertiesHelper(
 		end: item.endComment ?? item,
 	});
 
+	const options = convertToFormattingFlags(settings.options);
+
 	groups.forEach((grp) => {
-		const expectedOrder = [...grp.prop.sort(sortProperties), ...grp.nodes];
+		const sortedProps = [...grp.prop].sort((a, b) =>
+			sortProperties(a, b, options.sortPropertiesAlphabetically),
+		);
+		const sortedNodes = options.sortNodesNodesBy
+			? [...grp.nodes].sort((a, b) => {
+					if (options.sortNodesNodesBy === 'name') {
+						return (
+							a.name?.value.localeCompare(b.name?.value ?? '') ??
+							0
+						);
+					}
+
+					if (options.sortNodesNodesBy === 'address') {
+						return compareWords(
+							a.name?.address?.at(0)?.address ?? [0],
+							b.name?.address?.at(0)?.address ?? [0],
+						);
+					}
+
+					return 0;
+				})
+			: [...grp.nodes];
+		const expectedOrder = [...sortedProps, ...sortedNodes];
 		if (
 			!expectedOrder.length ||
 			expectedOrder.every(
@@ -343,6 +371,7 @@ function sortNodesAndPropertiesHelper(
 		return node.children.flatMap((c) =>
 			c instanceof DtcBaseNode
 				? sortNodesAndPropertiesHelper(
+						settings,
 						c,
 						fsPath,
 						includes,
@@ -376,7 +405,11 @@ function getPriority(name: string): number {
 	return 4;
 }
 
-function sortProperties(a: DtcProperty, b: DtcProperty) {
+function sortProperties(
+	a: DtcProperty,
+	b: DtcProperty,
+	sortAlphabetically: boolean,
+): number {
 	const aPriority = getPriority(a.propertyName?.name ?? '');
 	const bPriority = getPriority(b.propertyName?.name ?? '');
 
@@ -384,5 +417,7 @@ function sortProperties(a: DtcProperty, b: DtcProperty) {
 		return aPriority - bPriority;
 	}
 
-	return 0;
+	return sortAlphabetically
+		? a.propertyName.name.localeCompare(b.propertyName.name)
+		: 0;
 }

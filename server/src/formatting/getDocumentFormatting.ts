@@ -19,7 +19,6 @@ import {
 	DocumentFormattingParams,
 	DocumentRangeFormattingParams,
 	ErrorCodes,
-	FormattingOptions,
 	Position,
 	Range,
 	ResponseError,
@@ -85,6 +84,7 @@ import {
 	LevelMeta,
 } from './types';
 import {
+	convertToFormattingFlags,
 	createIndentString,
 	filterOnOffEdits,
 	getAstItemLevel,
@@ -110,61 +110,6 @@ const hasLongLines = (text: string, tabSize: number, wordWrapColumn: number) =>
 					)
 					.trimEnd().length > wordWrapColumn,
 		);
-
-const optionToBoolean = (
-	formattingOptions: FormattingOptions,
-	key: keyof FormattingFlags,
-	def: boolean,
-) => {
-	return formattingOptions[key] ? !!formattingOptions[key] : def;
-};
-
-const convertToFormattingFlags = (
-	formattingOptions: FormattingOptions,
-): FormattingFlags => {
-	return {
-		removeMacroMultiline: optionToBoolean(
-			formattingOptions,
-			'removeMacroMultiline',
-			true,
-		),
-		wrapLongLines: optionToBoolean(
-			formattingOptions,
-			'wrapLongLines',
-			true,
-		),
-		indentExpressions: optionToBoolean(
-			formattingOptions,
-			'indentExpressions',
-			true,
-		),
-		removeEmptyReferences: optionToBoolean(
-			formattingOptions,
-			'removeEmptyReferences',
-			true,
-		),
-		removeEmptyRoots: optionToBoolean(
-			formattingOptions,
-			'removeEmptyRoots',
-			false,
-		),
-		removeEmptyNodes: optionToBoolean(
-			formattingOptions,
-			'removeEmptyNodes',
-			false,
-		),
-		removeDuplicateProperties: optionToBoolean(
-			formattingOptions,
-			'removeDuplicateProperties',
-			true,
-		),
-		sortNodesAndProperties: optionToBoolean(
-			formattingOptions,
-			'sortNodesAndProperties',
-			false,
-		),
-	} satisfies FormattingFlags;
-};
 
 export async function formatText(
 	documentFormattingParams: (
@@ -346,27 +291,30 @@ export async function formatText(
 			} while (finalText !== prevText);
 		}
 
-		const allAstItems =
-			(await getAstItems(fsPath, text, finalText)) ?? parser.allAstItems;
-		const r = await formatAstBaseItems(
-			{
-				...documentFormattingParams,
-				options: {
-					...documentFormattingParams.options,
-					wordWrapColumn,
+		if (options.baseFormattingRules) {
+			const allAstItems =
+				(await getAstItems(fsPath, text, finalText)) ??
+				parser.allAstItems;
+			const r = await formatAstBaseItems(
+				{
+					...documentFormattingParams,
+					options: {
+						...documentFormattingParams.options,
+						wordWrapColumn,
+					},
 				},
-			},
-			allAstItems,
-			parser.includes,
-			prevIfBlocks,
-			fsPath,
-			finalText,
-			returnType,
-			options,
-			variantDocuments,
-		);
-		variantDocuments = [];
-		finalText = r;
+				allAstItems,
+				parser.includes,
+				prevIfBlocks,
+				fsPath,
+				finalText,
+				returnType,
+				options,
+				variantDocuments,
+			);
+			variantDocuments = [];
+			finalText = r;
+		}
 
 		if (options.indentExpressions) {
 			const allAstItems =
@@ -485,24 +433,26 @@ export async function formatText(
 		diagnostic.push(...r);
 	}
 
-	const r = await formatAstBaseItems(
-		{
-			...documentFormattingParams,
-			options: {
-				...documentFormattingParams.options,
-				wordWrapColumn,
+	if (options.baseFormattingRules) {
+		const r = await formatAstBaseItems(
+			{
+				...documentFormattingParams,
+				options: {
+					...documentFormattingParams.options,
+					wordWrapColumn,
+				},
 			},
-		},
-		parser.allAstItems,
-		parser.includes,
-		prevIfBlocks,
-		fsPath,
-		text,
-		returnType,
-		options,
-		[...variantDocuments],
-	);
-	diagnostic.push(...r);
+			parser.allAstItems,
+			parser.includes,
+			prevIfBlocks,
+			fsPath,
+			text,
+			returnType,
+			options,
+			[...variantDocuments],
+		);
+		diagnostic.push(...r);
+	}
 
 	if (options.indentExpressions) {
 		const r = await formatExpressionIndentation(
