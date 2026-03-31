@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.8.6] - 2026-04-01
+
+### Fixed
+
+- Formatting freeze when `SortNodesAndProperties` is set to true and document has `/* dts-format off */`
+
 ## [0.8.5] - 2026-03-28
 
 ### Added

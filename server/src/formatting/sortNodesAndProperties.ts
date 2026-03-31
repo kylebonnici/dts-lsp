@@ -96,7 +96,7 @@ export async function sortNodesAndProperties(
 			.filter((e) => !!e),
 	);
 
-	if (t.length) {
+	if (t.flatMap((d) => d.raw.edit).filter((e) => !!e).length) {
 		const parser = new Parser(
 			fsPath,
 			[],
@@ -317,13 +317,16 @@ function sortNodesAndPropertiesHelper(
 						false,
 					),
 					{
-						edit: [
-							...edits.map((a) => a.delete),
-							TextEdit.insert(
-								grpStartPosition,
-								edits.map((a) => a.text).join(''),
-							),
-						],
+						edit:
+							changesMap.length === edits.length
+								? [
+										...edits.map((a) => a.delete),
+										TextEdit.insert(
+											grpStartPosition,
+											edits.map((a) => a.text).join(''),
+										),
+									]
+								: [],
 						codeActionTitle: `Sort child items. Expected order: ${expectedOrder.map((e) => (e instanceof DtcProperty ? `${e.propertyName.name}` : `${e.path?.at(-1)} { ... };`)).join(', ')}`,
 					},
 					toPosition(
