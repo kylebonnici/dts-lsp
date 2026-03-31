@@ -150,6 +150,9 @@ export async function formatText(
 	let parser = new Parser(fsPath, [], undefined, () => tokens, true);
 	await parser.stable;
 
+	documentFormattingParams.options.tabSize ??= 8;
+	documentFormattingParams.options.insertSpaces ??= false;
+
 	const issues = parser.issues.filter((issue) =>
 		coreSyntaxIssuesFilter(issue.raw, fsPath, false),
 	);

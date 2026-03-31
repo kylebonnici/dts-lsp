@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.8.7] - 2026-04-01
+
+### Fixed
+
+- Fixed issue where tabs size is not set when using VS Code commands:
+    - `devicetree.formatting.sortPropertiesByGroup`
+    - `devicetree.formatting.sortPropertiesByGroupAlphabetically`
+    - `devicetree.formatting.sortNodesByName`
+    - `devicetree.formatting.sortNodesByAddress`
+
 ## [0.8.6] - 2026-04-01
 
 ### Added

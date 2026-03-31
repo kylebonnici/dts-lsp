@@ -178,6 +178,11 @@ const formatFileManually = async (
 	if (activeTab && activeTab.input instanceof vscode.TabInputText) {
 		const uri = activeTab.input.uri;
 
+		const config = vscode.workspace.getConfiguration('editor', {
+			uri,
+			languageId: 'devicetree',
+		});
+
 		// 2. Find the document in the workspace to get its languageId
 		const doc = vscode.workspace.textDocuments.find(
 			(d) => d.uri.toString() === uri.toString(),
@@ -191,7 +196,23 @@ const formatFileManually = async (
 			textDocument: {
 				uri: uri.toString(),
 			},
-			options,
+			options: {
+				tabSize: config.get<number>('tabSize', 8),
+				insertSpaces: config.get<boolean>('insertSpaces', false),
+				trimAutoWhitespace: config.get<boolean>(
+					'trimAutoWhitespace',
+					true,
+				),
+				trimFinalNewlines: config.get<boolean>(
+					'trimAutoWhitespace',
+					true,
+				),
+				insertFinalNewline: config.get<boolean>(
+					'trimAutoWhitespace',
+					true,
+				),
+				...options,
+			},
 			edits: [],
 		});
 
@@ -381,6 +402,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			'devicetree.formatting.sortPropertiesByGroup',
 			async () => {
 				await formatFileManually({
+					baseFormattingRules: true,
 					removeMacroMultiline: false,
 					wrapLongLines: false,
 					indentExpressions: false,
@@ -398,6 +420,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			'devicetree.formatting.sortPropertiesByGroupAlphabetically',
 			async () => {
 				await formatFileManually({
+					baseFormattingRules: true,
 					removeMacroMultiline: false,
 					wrapLongLines: false,
 					indentExpressions: false,
@@ -415,6 +438,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			'devicetree.formatting.sortNodesByName',
 			async () => {
 				await formatFileManually({
+					baseFormattingRules: true,
 					removeMacroMultiline: false,
 					wrapLongLines: false,
 					indentExpressions: false,
@@ -432,6 +456,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			'devicetree.formatting.sortNodesByAddress',
 			async () => {
 				await formatFileManually({
+					baseFormattingRules: true,
 					removeMacroMultiline: false,
 					wrapLongLines: false,
 					indentExpressions: false,
