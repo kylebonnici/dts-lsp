@@ -158,9 +158,11 @@ const resolveBinding = (
 	}, binding);
 
 	if (binding['child-binding']) {
-		binding['child-binding'].include = simplifyInclude(
+		const simplifiedInclude = simplifyInclude(
 			binding['child-binding'].include,
 		);
+		binding['child-binding'].include = simplifiedInclude;
+		binding['child-binding'].rawInclude = [...simplifiedInclude];
 
 		binding['child-binding'] = resolveBinding(
 			bindings,
@@ -627,7 +629,8 @@ export class ZephyrBindingsLoader {
 		if (!bindingFile) return [];
 
 		const text = document.getText();
-		const links = bindingFile.rawInclude
+		const rawIncludes = extractAllRawIncludes(bindingFile);
+		const links = rawIncludes
 			.map((include) => {
 				const regex = new RegExp(include.name);
 				const match = regex.exec(text);
@@ -662,6 +665,17 @@ export class ZephyrBindingsLoader {
 	resetCache(key: string) {
 		this.typeCache.delete(key);
 	}
+}
+
+function extractAllRawIncludes(
+	binding: ZephyrBindingYml,
+): ZephyrBindingYml['rawInclude'] {
+	return [
+		...binding.rawInclude,
+		...(binding['child-binding']
+			? extractAllRawIncludes(binding['child-binding'])
+			: []),
+	].flat();
 }
 
 let zephyrBindingsLoader: ZephyrBindingsLoader | undefined;

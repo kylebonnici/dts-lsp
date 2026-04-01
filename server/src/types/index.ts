@@ -419,11 +419,7 @@ export type ZephyrBindingsProperty = {
 export interface ZephyrBindingYml {
 	filePath: string;
 	include: Include[];
-	rawInclude: {
-		name: string;
-		'property-blocklist'?: string[];
-		'property-allowlist'?: string[];
-	}[];
+	rawInclude: Include[];
 	description?: string;
 	compatible?: string;
 	'child-binding'?: ZephyrBindingYml;
