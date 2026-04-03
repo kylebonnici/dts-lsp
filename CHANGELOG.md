@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.8.8] - Unreleased
 
+### Added
+
+- Zephyr binding vendor from `vendor-prefixes.txt`
+
 ### Fixed
 
 - Fixed missing document links for child-bindings for zephyr bindings.

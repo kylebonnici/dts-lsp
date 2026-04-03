@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { DocumentLink } from 'vscode-languageserver-types';
+import { DocumentLink, MarkupContent } from 'vscode-languageserver-types';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import type { BindingType, ZephyrBindingYml } from '../../types/index';
 import { Node } from '../../context/node';
@@ -28,6 +28,8 @@ export interface BindingLoader {
 	readonly type: BindingType;
 	readonly files: BindingLoaderFileType;
 	getBindings(): string[];
+	getBindingVendorString(compatible: string): string | undefined;
+	getBindingDocumentation(compatible: string): MarkupContent | undefined;
 	getZephyrContextBinding(): ZephyrBindingYml[] | undefined;
 	getBusTypes(): string[];
 	getDocumentLinks?(document?: TextDocument): DocumentLink[];
@@ -82,6 +84,29 @@ export const getBindingLoader = (
 
 				case 'DevicetreeOrg':
 					return getDevicetreeOrgBindingsLoader().getBindings();
+			}
+		},
+		getBindingVendorString: (compatible: string) => {
+			switch (type) {
+				case 'Zephyr':
+					return getZephyrBindingsLoader().getBindingVendorString(
+						compatible,
+					);
+			}
+		},
+		getBindingDocumentation: (compatible: string) => {
+			switch (type) {
+				case 'Zephyr':
+					return getZephyrBindingsLoader().getBindingDocumentation(
+						zephyrKey,
+						compatible,
+					);
+				case 'DevicetreeOrg':
+					return getDevicetreeOrgBindingsLoader().getBindingDocumentation(
+						files.deviceOrgBindingsMetaSchema,
+						files.deviceOrgTreeBindings,
+						compatible,
+					);
 			}
 		},
 		getZephyrContextBinding: () => {

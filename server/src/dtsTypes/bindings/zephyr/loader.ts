@@ -15,7 +15,7 @@
  */
 
 import path, { resolve, basename } from 'path';
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import p from 'path';
 import yaml from 'yaml';
 import { glob } from 'glob';
@@ -313,6 +313,7 @@ export class ZephyrBindingsLoader {
 	private processedFolders = new Set<string>();
 	private zephyrBindingCache: Map<string, ZephyrBindingYml> = new Map();
 	private contextBindingFiles = new WeakMap<ZephyrBindingYml, string[]>();
+	private vendorPrefixMap = new Map<string, string>();
 
 	static getCompatibleKeys(compatible: string, parent?: Node | null) {
 		if (!parent || !parent.nodeType?.bus?.length) {
@@ -511,6 +512,23 @@ export class ZephyrBindingsLoader {
 		};
 	}
 
+	processVendorPrefix(folder: string) {
+		const vendorFile = path.join(folder, 'vendor-prefixes.txt');
+		if (!existsSync(vendorFile)) {
+			return;
+		}
+
+		const txt = readFileSync(vendorFile, 'utf-8');
+		const regex = /^(?!#)(\S+)\s+(.+)$/gm;
+
+		Array.from(txt.matchAll(regex), (match) => [
+			match[1].trim(),
+			match[2].trim(),
+		]).forEach(([prefix, vendor]) => {
+			this.vendorPrefixMap.set(prefix, vendor);
+		});
+	}
+
 	loadTypeAndCache(folders: string | string[], key: string) {
 		folders = Array.isArray(folders) ? folders : [folders];
 
@@ -526,6 +544,8 @@ export class ZephyrBindingsLoader {
 			...folders
 				.filter((f) => !this.processedFolders.has(f))
 				.flatMap((f) => {
+					this.processVendorPrefix(f);
+
 					this.processedFolders.add(f);
 					const g = glob.sync('**/*.yaml', {
 						cwd: f,
@@ -588,7 +608,11 @@ export class ZephyrBindingsLoader {
 			}
 		});
 
-		convertBindingsToType(resolvedBindings, typeCache);
+		convertBindingsToType(
+			resolvedBindings,
+			typeCache,
+			this.vendorPrefixMap,
+		);
 
 		if (!typeCache.has('simple-bus')) {
 			const baseZephyr = this.getBaseZephyrType(key);
@@ -687,6 +711,7 @@ export const getZephyrBindingsLoader = () => {
 const convertBindingsToType = (
 	bindings: ZephyrBindingYml[],
 	map: Map<string, (node: Node) => NodeType>,
+	vendorPrefixMap?: Map<string, string>,
 ) => {
 	return bindings.forEach((binding) => {
 		if (binding.compatible) {
@@ -694,13 +719,18 @@ const convertBindingsToType = (
 				binding['on-bus']
 					? `${binding.compatible}::${binding['on-bus']}`
 					: binding.compatible,
-				(node: Node) => convertBindingToType(binding, node),
+				(node: Node) =>
+					convertBindingToType(binding, node, vendorPrefixMap),
 			);
 		}
 	});
 };
 
-const convertBindingToType = (binding: ZephyrBindingYml, node?: Node) => {
+const convertBindingToType = (
+	binding: ZephyrBindingYml,
+	node?: Node,
+	vendorPrefixMap?: Map<string, string>,
+) => {
 	const nodeType = getStandardType(node);
 	nodeType.compatible = binding.compatible;
 	nodeType.description = binding.description;
@@ -713,6 +743,12 @@ const convertBindingToType = (binding: ZephyrBindingYml, node?: Node) => {
 	nodeType.onBus = binding['on-bus'];
 	binding.extends?.forEach((e) => nodeType.extends.add(e));
 	nodeType.warnMismatchProperties = true;
+
+	if (vendorPrefixMap && binding.compatible?.includes(',')) {
+		nodeType.vendor = vendorPrefixMap?.get(
+			binding.compatible.split(',', 1)[0],
+		);
+	}
 
 	const cellsKeys = Object.keys(binding).filter((key) =>
 		key.endsWith('-cells'),

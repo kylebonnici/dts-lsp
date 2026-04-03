@@ -237,6 +237,7 @@ export interface SerializedBinding {
 	extends: string[];
 	properties?: SerializedBindingProperty[];
 	zephyrBinding?: ZephyrBindingYml;
+	vendor?: string;
 }
 
 export type SerializedNodeBase =

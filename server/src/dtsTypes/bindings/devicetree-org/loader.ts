@@ -21,9 +21,11 @@ import yaml from 'yaml';
 
 import Ajv2019 from 'ajv/dist/2019';
 import * as draft7MetaSchema from 'ajv/dist/refs/json-schema-draft-07.json';
+import { MarkupContent, MarkupKind } from 'vscode-languageserver-types';
 import { StringValue } from '../../../ast/dtc/values/string';
 import { Node } from '../../../context/node';
 import { INodeType } from '../../types';
+import { escapeMarkdown } from '../../../helpers';
 import { DevicetreeOrgNodeType } from './nodeType';
 
 export class DevicetreeOrgBindingsLoader {
@@ -129,6 +131,55 @@ export class DevicetreeOrgBindingsLoader {
 
 	getBindings() {
 		return Array.from(this.schemaIdValidators.keys());
+	}
+
+	getBindingDocumentation(
+		metaSchemas: string[],
+		bindings: string[],
+		compatible: string,
+	): MarkupContent | undefined {
+		const key = `${metaSchemas.join(';')}::${bindings.join(';')}`;
+		let ajv = this.ajvMap.get(key);
+		if (!ajv) {
+			return;
+		}
+
+		const bestMatchKey = Array.from(this.schemaIdValidators.keys()).find(
+			(s) => s.endsWith(`/${compatible}.yaml#`),
+		);
+
+		if (!bestMatchKey) {
+			return;
+		}
+
+		const validate = ajv.getSchema(bestMatchKey);
+		if (!validate) {
+			return;
+		}
+
+		const description = (validate.schema as any).description as string;
+		const examples = (validate.schema as any).examples as string[];
+		const maintainers = (validate.schema as any).maintainers as string[];
+
+		return {
+			kind: MarkupKind.Markdown,
+			value: [
+				...(maintainers
+					? ['### Maintainers', ...(maintainers ?? [])]
+					: []),
+				...(description
+					? ['### Description', escapeMarkdown(description)]
+					: []),
+				...(examples
+					? [
+							'### Examples',
+							'```devicetree',
+							...(examples ?? []),
+							'```',
+						]
+					: []),
+			].join('\n'),
+		};
 	}
 }
 

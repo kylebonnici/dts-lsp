@@ -488,6 +488,7 @@ export abstract class INodeType {
 	bus?: string[];
 	description?: string;
 	maintainers?: string[];
+	vendor?: string;
 	examples?: string[];
 	cellsValues?: {
 		specifier: string;

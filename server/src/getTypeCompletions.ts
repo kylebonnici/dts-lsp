@@ -104,6 +104,10 @@ function getPropertyAssignItems(
 			.filter((v) => !currentBindings || !currentBindings.includes(v))
 			.map((v) => ({
 				label: `"${v}"`,
+				documentation:
+					result.runtime.context.bindingLoader?.getBindingDocumentation(
+						v,
+					),
 				kind: CompletionItemKind.Variable,
 				insertText: inPropertyValue ? v : `"${v}"`,
 			}));

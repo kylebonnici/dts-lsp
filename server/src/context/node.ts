@@ -1366,6 +1366,14 @@ export class Node {
 				'```devicetree',
 				this.toTooltipString(macros),
 				'```',
+				...(this.nodeType?.vendor
+					? [
+							'### Vendor',
+							...(this.nodeType?.vendor
+								? [this.nodeType?.vendor]
+								: []),
+						]
+					: []),
 				...(this.nodeType?.maintainers
 					? ['### Maintainers', ...(this.nodeType?.maintainers ?? [])]
 					: []),
@@ -1462,6 +1470,7 @@ ${'\t'.repeat(level - 1)}};`;
 								required: p.required(this) === 'required',
 							})),
 							zephyrBinding: nodeType.zephyrBinding,
+							vendor: nodeType.vendor,
 						}
 					: undefined,
 			issues: nodeAsts.flatMap((n) => n.serializeIssues),
