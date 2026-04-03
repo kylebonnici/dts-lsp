@@ -23,6 +23,8 @@ import {
 	DiagnosticSeverity,
 	DiagnosticTag,
 	DocumentLink,
+	MarkupContent,
+	MarkupKind,
 	ParameterInformation,
 	Range,
 } from 'vscode-languageserver';
@@ -43,6 +45,7 @@ import {
 	StandardTypeIssue,
 } from '../../../types';
 import {
+	escapeMarkdown,
 	fileURIToFsPath,
 	genStandardTypeDiagnostic,
 	pathToFileURI,
@@ -310,9 +313,10 @@ const simplifyInclude = (
 export class ZephyrBindingsLoader {
 	private typeCache: Map<string, Map<string, (node: Node) => NodeType>> =
 		new Map();
+	private contextBindings: Map<string, Map<string, ZephyrBindingYml>> =
+		new Map();
 	private processedFolders = new Set<string>();
 	private zephyrBindingCache: Map<string, ZephyrBindingYml> = new Map();
-	private contextBindingFiles = new WeakMap<ZephyrBindingYml, string[]>();
 	private vendorPrefixMap = new Map<string, string>();
 
 	static getCompatibleKeys(compatible: string, parent?: Node | null) {
@@ -599,13 +603,14 @@ export class ZephyrBindingsLoader {
 			this.typeCache.set(key, typeCache);
 		}
 
+		let contextBindings = this.contextBindings.get(key);
+		if (!contextBindings) {
+			contextBindings = new Map();
+			this.contextBindings.set(key, contextBindings);
+		}
+
 		resolvedBindings.forEach((b) => {
-			const keys = this.contextBindingFiles.get(b);
-			if (!keys) {
-				this.contextBindingFiles.set(b, [key]);
-			} else {
-				keys.push(key);
-			}
+			contextBindings.set(b.compatible ?? '', b);
 		});
 
 		convertBindingsToType(
@@ -629,10 +634,35 @@ export class ZephyrBindingsLoader {
 		);
 	}
 
+	getBindingVendorString(compatible: string) {
+		const prefix = compatible.split(',', 1)[0];
+		return this.vendorPrefixMap.get(prefix);
+	}
+
+	getBindingDocumentation(
+		key: string,
+		compatible: string,
+	): MarkupContent | undefined {
+		const binding = this.contextBindings.get(key)?.get(compatible);
+
+		if (!binding) {
+			return;
+		}
+
+		const vendor = this.getBindingVendorString(binding.compatible ?? '');
+		return {
+			kind: MarkupKind.Markdown,
+			value: [
+				...(vendor ? ['### Vendor', ...(vendor ? [vendor] : [])] : []),
+				...(binding.description
+					? ['### Description', escapeMarkdown(binding.description)]
+					: []),
+			].join('\n'),
+		};
+	}
+
 	getZephyrContextBinding(key: string) {
-		return Array.from(this.zephyrBindingCache.values()).filter((b) =>
-			this.contextBindingFiles.get(b)?.includes(key),
-		);
+		return Array.from(this.contextBindings.get(key)?.values() ?? []);
 	}
 
 	getBusTypes() {

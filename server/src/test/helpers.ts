@@ -50,6 +50,8 @@ export const getFakeBindingLoader = (): BindingLoader => ({
 		return { type: [getStandardType(node)], issues: [] };
 	},
 	getBindings: () => [],
+	getBindingVendorString: () => undefined,
+	getBindingDocumentation: () => undefined,
 	getBusTypes: () => [],
 	getZephyrContextBinding: () => undefined,
 	dispose: function (): void {},

@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Zephyr binding vendor from `vendor-prefixes.txt`
+- Added binding documentation to `compatible` auto completions
 
 ### Fixed
 
