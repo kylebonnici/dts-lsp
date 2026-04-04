@@ -62,7 +62,7 @@ import {
 import { getSimpleBusType } from '../../../dtsTypes/standardTypes/nodeTypes/simpleBus/node';
 import { Expression } from '../../../ast/cPreprocessors/expression';
 
-const ZephyrTypeToDTSType = (type: ZephyrPropertyType | undefined) => {
+export const ZephyrTypeToDTSType = (type: ZephyrPropertyType | undefined) => {
 	switch (type) {
 		case 'string':
 			return generateOrTypeObj('STRING');

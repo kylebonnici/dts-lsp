@@ -18,18 +18,24 @@ import {
 	CompletionItem,
 	CompletionItemKind,
 	TextDocumentPositionParams,
+	TextEdit,
 } from 'vscode-languageserver';
 import { ContextAware } from './runtimeEvaluator';
 import { SearchableResult } from './types';
 import { Node } from './context/node';
 import { DtcProperty, PropertyName } from './ast/dtc/property';
 import { Property } from './context/property';
-import { nodeFinder } from './helpers';
+import {
+	generateAddMissingPropEdit,
+	getClosestAstNode,
+	nodeFinder,
+} from './helpers';
 import { isChildOfAstNode, isDeleteChild } from './ast/helpers';
 import { NodeType } from './dtsTypes/types';
 import { ASTBase } from './ast/base';
 import { PropertyValue } from './ast/dtc/values/value';
 import { DeleteBase } from './ast/dtc/delete';
+import { ZephyrTypeToDTSType } from './dtsTypes/bindings/zephyr/loader';
 
 const propertyValue = (astBase?: ASTBase): boolean => {
 	if (!astBase || astBase instanceof DtcProperty) return false;
@@ -100,17 +106,61 @@ function getPropertyAssignItems(
 		}
 
 		bindings ??= result.runtime.context.bindingLoader?.getBindings() ?? [];
+
 		return bindings
 			.filter((v) => !currentBindings || !currentBindings.includes(v))
-			.map((v) => ({
-				label: `"${v}"`,
-				documentation:
-					result.runtime.context.bindingLoader?.getBindingDocumentation(
-						v,
-					),
-				kind: CompletionItemKind.Variable,
-				insertText: inPropertyValue ? v : `"${v}"`,
-			}));
+			.map((v) => {
+				let missingPropertiesEdits: TextEdit[] = [];
+
+				const astNode = getClosestAstNode(result.ast);
+				if (
+					astNode &&
+					result.item?.parent &&
+					result.runtime.context.bindingLoader?.type === 'Zephyr'
+				) {
+					const node = result.item.parent;
+					const zephyrBinding = result.runtime.context.bindingLoader
+						.getZephyrContextBinding()
+						?.find((b) => b.compatible === v);
+					const requiredProps = Object.values(
+						zephyrBinding?.properties ?? {},
+					).filter((prop) => prop.required);
+
+					const missingProperties = requiredProps.filter((r) =>
+						result.item?.parent?.properties.every(
+							(p) => p.name !== r.name,
+						),
+					);
+
+					missingProperties.forEach((prop) => {
+						const type = ZephyrTypeToDTSType(prop.type)[0];
+
+						const edit = generateAddMissingPropEdit(
+							node,
+							astNode,
+							prop.name,
+							type,
+							result.runtime,
+						);
+
+						if (edit) {
+							missingPropertiesEdits.push(edit);
+						}
+					});
+				}
+
+				return {
+					label: `"${v}"`,
+					documentation:
+						result.runtime.context.bindingLoader?.getBindingDocumentation(
+							v,
+						),
+					textEdit: TextEdit.replace(result.ast.range, `"${v}"`),
+					additionalTextEdits: missingPropertiesEdits,
+					kind: CompletionItemKind.Variable,
+					insertText: inPropertyValue ? v : `"${v}"`,
+				};
+			});
 	}
 
 	const nodeType = result.item.parent.nodeType;

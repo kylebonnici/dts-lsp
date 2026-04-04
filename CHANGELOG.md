@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Zephyr binding vendor from `vendor-prefixes.txt`
 - Added binding documentation to `compatible` auto completions
+- Add missing required properties when selection a `compatible`
+  from autocomplete list.
 
 ### Fixed
 

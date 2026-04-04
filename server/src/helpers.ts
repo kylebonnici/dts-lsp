@@ -60,7 +60,6 @@ import { DtcBaseNode } from './ast/dtc/node';
 import { DtcProperty } from './ast/dtc/property';
 import { Include } from './ast/cPreprocessors/include';
 import { Node } from './context/node';
-import { getNodeNameOrNodeLabelRef } from './ast/helpers';
 import { Runtime } from './context/runtime';
 
 export const toRangeWithTokenIndex = (
@@ -1798,8 +1797,7 @@ export function generateAddMissingPropEdit(
 	propertyType: TypeConfig,
 	runtime: Runtime,
 ) {
-	const token =
-		astNode.openScope ?? getNodeNameOrNodeLabelRef(astNode)?.lastToken;
+	const token = astNode.closeScope?.prevToken ?? astNode.lastToken.prevToken;
 
 	if (!token) {
 		return;
