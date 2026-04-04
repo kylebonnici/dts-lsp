@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { resolve } from 'path';
+import { basename, resolve } from 'path';
 import { readFileSync } from 'fs';
 import { glob } from 'glob';
 import yaml from 'yaml';
@@ -98,7 +98,7 @@ export class DevicetreeOrgBindingsLoader {
 					try {
 						const bestMatchKey = Array.from(
 							this.schemaIdValidators.keys(),
-						).find((s) => s.endsWith(`/${c}.yaml#`));
+						).find((s) => basename(s) === `${c}.yaml#`);
 
 						if (!bestMatchKey) {
 							return;
@@ -145,7 +145,7 @@ export class DevicetreeOrgBindingsLoader {
 		}
 
 		const bestMatchKey = Array.from(this.schemaIdValidators.keys()).find(
-			(s) => s.endsWith(`/${compatible}.yaml#`),
+			(s) => basename(s) === `${compatible}.yaml#`,
 		);
 
 		if (!bestMatchKey) {
