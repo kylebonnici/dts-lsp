@@ -67,8 +67,8 @@ export const getU32ValueFromProperty = (
 		const labeledValue = value.values.at(arrayValueIndex);
 
 		if (labeledValue?.value instanceof Expression) {
-			const evaluted = labeledValue.value.evaluate(macros);
-			if (typeof evaluted === 'number') return evaluted;
+			const evaluated = labeledValue.value.evaluate(macros);
+			if (typeof evaluated === 'number') return evaluated;
 		}
 	}
 };
