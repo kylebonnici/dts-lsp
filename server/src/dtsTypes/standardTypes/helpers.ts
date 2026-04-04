@@ -23,7 +23,11 @@ import { PropertyValue } from '../../ast/dtc/values/value';
 import { Node } from '../../context/node';
 import { Property } from '../../context/property';
 import { Expression } from '../../ast/cPreprocessors/expression';
-import type { BindingPropertyType, TypeConfig } from '../../types/index';
+import type {
+	BindingPropertyType,
+	TypeConfig,
+	ZephyrPropertyType,
+} from '../../types/index';
 import { MacroRegistryItem } from '../../types';
 
 export const flatNumberValues = (value: PropertyValues | null | undefined) => {
@@ -117,4 +121,33 @@ export const generateOrTypeObj = (
 	}
 
 	return [{ types: [type] }];
+};
+
+export const ZephyrTypeToDTSType = (type: ZephyrPropertyType | undefined) => {
+	switch (type) {
+		case 'string':
+			return generateOrTypeObj('STRING');
+		case 'int':
+			return generateOrTypeObj('U32');
+		case 'boolean':
+			return generateOrTypeObj('EMPTY');
+		case 'array':
+			return generateOrTypeObj('PROP_ENCODED_ARRAY');
+		case 'uint8-array':
+			return generateOrTypeObj('BYTESTRING');
+		case 'string-array':
+			return generateOrTypeObj('STRINGLIST');
+		case 'phandle':
+			return generateOrTypeObj('U32');
+		case 'phandles':
+			return generateOrTypeObj('PROP_ENCODED_ARRAY');
+		case 'phandle-array':
+			return generateOrTypeObj('PROP_ENCODED_ARRAY');
+		case 'path':
+			return generateOrTypeObj(['STRING', 'U32']);
+		case 'compound':
+			return generateOrTypeObj('ANY');
+		default:
+			return generateOrTypeObj('ANY');
+	}
 };

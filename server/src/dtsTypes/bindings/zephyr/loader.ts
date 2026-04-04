@@ -35,9 +35,9 @@ import { Node } from '../../../context/node';
 import { StringValue } from '../../../ast/dtc/values/string';
 import {
 	flatNumberValues,
-	generateOrTypeObj,
 	getU32ValueFromProperty,
 	resolvePhandleNode,
+	ZephyrTypeToDTSType,
 } from '../../../dtsTypes/standardTypes/helpers';
 import {
 	FileDiagnostic,
@@ -61,35 +61,6 @@ import {
 } from '../../../types/index';
 import { getSimpleBusType } from '../../../dtsTypes/standardTypes/nodeTypes/simpleBus/node';
 import { Expression } from '../../../ast/cPreprocessors/expression';
-
-export const ZephyrTypeToDTSType = (type: ZephyrPropertyType | undefined) => {
-	switch (type) {
-		case 'string':
-			return generateOrTypeObj('STRING');
-		case 'int':
-			return generateOrTypeObj('U32');
-		case 'boolean':
-			return generateOrTypeObj('EMPTY');
-		case 'array':
-			return generateOrTypeObj('PROP_ENCODED_ARRAY');
-		case 'uint8-array':
-			return generateOrTypeObj('BYTESTRING');
-		case 'string-array':
-			return generateOrTypeObj('STRINGLIST');
-		case 'phandle':
-			return generateOrTypeObj('U32');
-		case 'phandles':
-			return generateOrTypeObj('PROP_ENCODED_ARRAY');
-		case 'phandle-array':
-			return generateOrTypeObj('PROP_ENCODED_ARRAY');
-		case 'path':
-			return generateOrTypeObj(['STRING', 'U32']);
-		case 'compound':
-			return generateOrTypeObj('ANY');
-		default:
-			return generateOrTypeObj('ANY');
-	}
-};
 
 const ZephyrDefaultTypeDefault = (
 	type: ZephyrPropertyType | undefined,

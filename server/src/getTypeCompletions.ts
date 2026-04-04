@@ -35,7 +35,7 @@ import { NodeType } from './dtsTypes/types';
 import { ASTBase } from './ast/base';
 import { PropertyValue } from './ast/dtc/values/value';
 import { DeleteBase } from './ast/dtc/delete';
-import { ZephyrTypeToDTSType } from './dtsTypes/bindings/zephyr/loader';
+import { ZephyrTypeToDTSType } from './dtsTypes/standardTypes/helpers';
 
 const propertyValue = (astBase?: ASTBase): boolean => {
 	if (!astBase || astBase instanceof DtcProperty) return false;
