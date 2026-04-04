@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed missing document links for child-bindings for zephyr bindings.
+- Fixed reporting required properties for nodes with zephyr bindings using
+  `default` for some property.
 
 ## [0.8.7] - 2026-04-01
 

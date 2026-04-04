@@ -31,6 +31,7 @@ import {
 	generateAddMissingPropEdit,
 	genStandardTypeDiagnostic,
 	isNestedArray,
+	isVirtualFsPath,
 	toRangeWithTokenIndex,
 } from '../helpers';
 import { type Node } from '../context/node';
@@ -43,7 +44,7 @@ import { ASTBase } from '../ast/base';
 import { ArrayValues } from '../ast/dtc/values/arrayValue';
 import { LabelRef } from '../ast/dtc/labelRef';
 import { NodePathRef } from '../ast/dtc/values/nodePath';
-import { getNodeNamesOrNodeLabelRef } from '../ast/helpers';
+import { getNodeNameOrNodeLabelRef } from '../ast/helpers';
 import {
 	BindingPropertyType as PropertyType,
 	TypeConfig,
@@ -143,29 +144,31 @@ export class PropertyNodeType<T = string | number> {
 		if (!property) {
 			if (required === 'required') {
 				const childOrRefNode = runtime.getOrderedNodeAst(node);
-				const orderedTree = getNodeNamesOrNodeLabelRef(childOrRefNode);
 
 				return [
-					...childOrRefNode.map((astNode, i) => {
-						const item = orderedTree[i];
-						const edit = generateAddMissingPropEdit(
-							node,
-							astNode,
-							propertyName,
-							this.type[0],
-							runtime,
-						);
-						return genStandardTypeDiagnostic(
-							StandardTypeIssue.REQUIRED,
-							item.firstToken,
-							item.lastToken,
-							item,
-							{
-								templateStrings: [propertyName],
-								edit,
-							},
-						);
-					}),
+					...childOrRefNode
+						.filter((c) => !isVirtualFsPath(c.fsPath))
+						.map((astNode) => {
+							const item =
+								getNodeNameOrNodeLabelRef(astNode) ?? astNode;
+							const edit = generateAddMissingPropEdit(
+								node,
+								astNode,
+								propertyName,
+								this.type[0],
+								runtime,
+							);
+							return genStandardTypeDiagnostic(
+								StandardTypeIssue.REQUIRED,
+								item.firstToken,
+								item.lastToken,
+								astNode,
+								{
+									templateStrings: [propertyName],
+									edit,
+								},
+							);
+						}),
 				];
 			}
 
