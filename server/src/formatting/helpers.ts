@@ -24,7 +24,7 @@ import { ASTBase } from '../ast/base';
 import { Comment, CommentBlock } from '../ast/dtc/comment';
 import { FileDiagnostic, Token } from '../types';
 import {
-	countParent,
+	countAncestors,
 	getClosestAstNode,
 	getDeepestAstNodeInBetween,
 	isRangeInRange,
@@ -216,7 +216,7 @@ export const getAstItemLevel =
 		}
 
 		const closeAst = getClosestAstNode(parentAst);
-		const level = countParent(fsPath, closeAst);
+		const level = countAncestors(fsPath, closeAst);
 		return {
 			level,
 			inAst: parentAst,

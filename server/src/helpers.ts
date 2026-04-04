@@ -53,12 +53,15 @@ import {
 	FileDiagnosticWithEdit,
 } from './types';
 import { ContextAware } from './runtimeEvaluator';
-import { ResolvedContext } from './types/index';
+import { ResolvedContext, TypeConfig } from './types/index';
 import { CMacroCall } from './ast/cPreprocessors/functionCall';
 import { Comment, CommentBlock } from './ast/dtc/comment';
 import { DtcBaseNode } from './ast/dtc/node';
 import { DtcProperty } from './ast/dtc/property';
 import { Include } from './ast/cPreprocessors/include';
+import { Node } from './context/node';
+import { getNodeNameOrNodeLabelRef } from './ast/helpers';
+import { Runtime } from './context/runtime';
 
 export const toRangeWithTokenIndex = (
 	start?: Token,
@@ -1735,7 +1738,7 @@ export const getClosestAstNode = (ast?: ASTBase): DtcBaseNode | undefined => {
 		: getClosestAstNode(ast?.parentNode);
 };
 
-export const countParent = (
+export const countAncestors = (
 	fsPath: string,
 	node?: DtcBaseNode,
 	count = 0,
@@ -1743,7 +1746,7 @@ export const countParent = (
 	if (!node || !node.parentNode?.fsPath) return count;
 
 	const closeAst = getClosestAstNode(node.parentNode);
-	return countParent(fsPath, closeAst, count + 1);
+	return countAncestors(fsPath, closeAst, count + 1);
 };
 
 // avoid using Array.splice to avoid stack overflow on large arrays
@@ -1785,5 +1788,47 @@ export function escapeMarkdown(text?: string): string {
 			.replace(/&/g, '&amp;')
 			.replace(/</g, '&lt;')
 			.replace(/>/g, '&gt;')
+	);
+}
+
+export function generateAddMissingPropEdit(
+	node: Node,
+	astNode: DtcBaseNode,
+	propertyName: string,
+	propertyType: TypeConfig,
+	runtime: Runtime,
+) {
+	const token =
+		astNode.openScope ?? getNodeNameOrNodeLabelRef(astNode)?.lastToken;
+
+	if (!token) {
+		return;
+	}
+
+	let assignText = '';
+
+	switch (propertyType.types[0]) {
+		case 'U32':
+		case 'U64':
+		case 'PROP_ENCODED_ARRAY':
+			assignText = ` = <${propertyName === 'reg' && node.address ? node.address.map((m) => `0x${m.toString(16)}`).join(' ') : ''}>`;
+			break;
+		case 'STRING':
+		case 'STRINGLIST':
+			assignText = ' = ""';
+			break;
+		case 'BYTESTRING':
+			assignText = ' = []';
+			break;
+	}
+
+	return TextEdit.insert(
+		Position.create(token.pos.line, token.pos.col + 1),
+		`\n${''.padEnd(
+			countAncestors(token.fsPath, astNode),
+			runtime.context.formattingOptions.insertSpaces
+				? ' '.repeat(runtime.context.formattingOptions.tabSize)
+				: '\t',
+		)}${propertyName}${assignText};`,
 	);
 }

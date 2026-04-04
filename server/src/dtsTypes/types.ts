@@ -28,7 +28,7 @@ import {
 	TextEdit,
 } from 'vscode-languageserver';
 import {
-	countParent,
+	generateAddMissingPropEdit,
 	genStandardTypeDiagnostic,
 	isNestedArray,
 	toRangeWithTokenIndex,
@@ -43,7 +43,7 @@ import { ASTBase } from '../ast/base';
 import { ArrayValues } from '../ast/dtc/values/arrayValue';
 import { LabelRef } from '../ast/dtc/labelRef';
 import { NodePathRef } from '../ast/dtc/values/nodePath';
-import { getNodeNameOrNodeLabelRef } from '../ast/helpers';
+import { getNodeNamesOrNodeLabelRef } from '../ast/helpers';
 import {
 	BindingPropertyType as PropertyType,
 	TypeConfig,
@@ -143,32 +143,18 @@ export class PropertyNodeType<T = string | number> {
 		if (!property) {
 			if (required === 'required') {
 				const childOrRefNode = runtime.getOrderedNodeAst(node);
-				const orderedTree = getNodeNameOrNodeLabelRef(childOrRefNode);
-
-				let assignTest = '';
-				if (this.type.length === 1 && this.type[0].types.length === 1) {
-					switch (this.type[0].types[0]) {
-						case 'U32':
-						case 'U64':
-						case 'PROP_ENCODED_ARRAY':
-							assignTest = ` = <${propertyName === 'reg' && node.address ? node.address.map((m) => `0x${m.toString(16)}`).join(' ') : ''}>`;
-							break;
-						case 'STRING':
-						case 'STRINGLIST':
-							assignTest = ' = ""';
-							break;
-						case 'BYTESTRING':
-							assignTest = ' = []';
-							break;
-					}
-				}
+				const orderedTree = getNodeNamesOrNodeLabelRef(childOrRefNode);
 
 				return [
-					...childOrRefNode.map((node, i) => {
-						const token =
-							node.openScope ?? orderedTree[i].lastToken;
-
+					...childOrRefNode.map((astNode, i) => {
 						const item = orderedTree[i];
+						const edit = generateAddMissingPropEdit(
+							node,
+							astNode,
+							propertyName,
+							this.type[0],
+							runtime,
+						);
 						return genStandardTypeDiagnostic(
 							StandardTypeIssue.REQUIRED,
 							item.firstToken,
@@ -176,26 +162,7 @@ export class PropertyNodeType<T = string | number> {
 							item,
 							{
 								templateStrings: [propertyName],
-								edit: TextEdit.insert(
-									Position.create(
-										token.pos.line,
-										token.pos.col + 1,
-									),
-									`\n${''.padEnd(
-										countParent(
-											orderedTree[i].fsPath,
-											node,
-										),
-										runtime.context.formattingOptions
-											.insertSpaces
-											? ' '.repeat(
-													runtime.context
-														.formattingOptions
-														.tabSize,
-												)
-											: '\t',
-									)}${propertyName}${assignTest};`,
-								),
+								edit,
 							},
 						);
 					}),

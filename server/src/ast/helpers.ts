@@ -64,22 +64,25 @@ export const isPropertyValueChild = (astBase?: ASTBase): boolean => {
 	);
 };
 
-export const getNodeNameOrNodeLabelRef = (nodes: DtcBaseNode[]) => {
-	return [
-		...nodes.map((n) => {
-			if (n instanceof DtcChildNode) {
-				return n.name;
-			}
+export const getNodeNameOrNodeLabelRef = (node: DtcBaseNode) => {
+	if (node instanceof DtcChildNode) {
+		return node.name;
+	}
 
-			if (n instanceof DtcRootNode) {
-				return n.name;
-			}
+	if (node instanceof DtcRootNode) {
+		return node.name;
+	}
 
-			if (n instanceof DtcRefNode) {
-				return n.reference;
-			}
-		}),
-	].filter((a) => !!a) as (NodeName | LabelRef)[];
+	if (node instanceof DtcRefNode) {
+		return node.reference;
+	}
+};
+
+export const getNodeNamesOrNodeLabelRef = (nodes: DtcBaseNode[]) => {
+	return [...nodes.map(getNodeNameOrNodeLabelRef)].filter((a) => !!a) as (
+		| NodeName
+		| LabelRef
+	)[];
 };
 
 export const isChildOfAstNode = (parent: ASTBase, ast?: ASTBase): boolean => {

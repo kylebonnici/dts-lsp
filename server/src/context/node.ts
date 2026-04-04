@@ -63,7 +63,7 @@ import { DeleteBase } from '../ast/dtc/delete';
 import { LabelRef } from '../ast/dtc/labelRef';
 import { NumberValue } from '../ast/dtc/values/number';
 import { ArrayValues } from '../ast/dtc/values/arrayValue';
-import { getNodeNameOrNodeLabelRef } from '../ast/helpers';
+import { getNodeNamesOrNodeLabelRef } from '../ast/helpers';
 import { getStandardType } from '../dtsTypes/standardTypes';
 import { BindingLoader } from '../dtsTypes/bindings/bindingLoader';
 import { INodeType, NodeType } from '../dtsTypes/types';
@@ -204,7 +204,7 @@ export class Node {
 	}
 
 	get nodeNameOrLabelRef(): (NodeName | LabelRef)[] {
-		return getNodeNameOrNodeLabelRef(this.implementations);
+		return getNodeNamesOrNodeLabelRef(this.implementations);
 	}
 
 	getDeepestAstNode(

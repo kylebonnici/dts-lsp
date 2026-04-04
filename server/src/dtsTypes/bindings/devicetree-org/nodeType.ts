@@ -30,12 +30,12 @@ import { Node } from '../../../context/node';
 import { Runtime } from '../../../context/runtime';
 import { INodeType } from '../../../dtsTypes/types';
 import {
-	countParent,
+	countAncestors,
 	genStandardTypeDiagnostic,
 	toRangeWithTokenIndex,
 } from '../../../helpers';
 import { FileDiagnostic, StandardTypeIssue } from '../../../types';
-import { getNodeNameOrNodeLabelRef } from '../../../ast/helpers';
+import { getNodeNamesOrNodeLabelRef } from '../../../ast/helpers';
 import { DtcRootNode } from '../../../ast/dtc/node';
 import { Property } from '../../../context/property';
 
@@ -229,7 +229,7 @@ const convertToError = (
 		const propertyName = error.params.missingProperty;
 
 		const childOrRefNode = runtime.getOrderedNodeAst(instanceNode);
-		const orderedTree = getNodeNameOrNodeLabelRef(childOrRefNode);
+		const orderedTree = getNodeNamesOrNodeLabelRef(childOrRefNode);
 
 		return childOrRefNode.map((node, i) => {
 			const item = orderedTree[i];
@@ -245,7 +245,7 @@ const convertToError = (
 					edit: TextEdit.insert(
 						Position.create(token.pos.line, token.pos.col + 1),
 						`\n${''.padEnd(
-							countParent(item.fsPath, node),
+							countAncestors(item.fsPath, node),
 							runtime.context.formattingOptions.insertSpaces
 								? ' '.repeat(
 										runtime.context.formattingOptions
