@@ -234,6 +234,8 @@ interface Context {
 	lockRenameEdits?: string[];
 	formattingErrorAsDiagnostics?: boolean;
 	compileCommands?: string;
+	disableFileWatchers?: boolean;
+	autoAddMissingPropertiesOnCompletion?: boolean;
 }
 
 interface Settings {
@@ -249,6 +251,8 @@ interface Settings {
 	defaultShowFormattingErrorAsDiagnostics?: boolean;
 	autoChangeContext?: boolean;
 	allowAdhocContexts?: boolean;
+	disableFileWatchers?: boolean;
+	autoAddMissingPropertiesOnCompletion?: boolean;
 }
 ```
 

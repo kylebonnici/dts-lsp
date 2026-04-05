@@ -112,41 +112,47 @@ function getPropertyAssignItems(
 			.map((v) => {
 				let missingPropertiesEdits: TextEdit[] = [];
 
-				const astNode = getClosestAstNode(result.ast);
 				if (
-					astNode &&
-					result.item?.parent &&
-					result.runtime.context.bindingLoader?.type === 'Zephyr'
+					result.runtime.context.settings
+						.autoAddMissingPropertiesOnCompletion
 				) {
-					const node = result.item.parent;
-					const zephyrBinding = result.runtime.context.bindingLoader
-						.getZephyrContextBinding()
-						?.find((b) => b.compatible === v);
-					const requiredProps = Object.values(
-						zephyrBinding?.properties ?? {},
-					).filter((prop) => prop.required);
+					const astNode = getClosestAstNode(result.ast);
+					if (
+						astNode &&
+						result.item?.parent &&
+						result.runtime.context.bindingLoader?.type === 'Zephyr'
+					) {
+						const node = result.item.parent;
+						const zephyrBinding =
+							result.runtime.context.bindingLoader
+								.getZephyrContextBinding()
+								?.find((b) => b.compatible === v);
+						const requiredProps = Object.values(
+							zephyrBinding?.properties ?? {},
+						).filter((prop) => prop.required);
 
-					const missingProperties = requiredProps.filter((r) =>
-						result.item?.parent?.properties.every(
-							(p) => p.name !== r.name,
-						),
-					);
-
-					missingProperties.forEach((prop) => {
-						const type = ZephyrTypeToDTSType(prop.type)[0];
-
-						const edit = generateAddMissingPropEdit(
-							node,
-							astNode,
-							prop.name,
-							type,
-							result.runtime,
+						const missingProperties = requiredProps.filter((r) =>
+							result.item?.parent?.properties.every(
+								(p) => p.name !== r.name,
+							),
 						);
 
-						if (edit) {
-							missingPropertiesEdits.push(edit);
-						}
-					});
+						missingProperties.forEach((prop) => {
+							const type = ZephyrTypeToDTSType(prop.type)[0];
+
+							const edit = generateAddMissingPropEdit(
+								node,
+								astNode,
+								prop.name,
+								type,
+								result.runtime,
+							);
+
+							if (edit) {
+								missingPropertiesEdits.push(edit);
+							}
+						});
+					}
 				}
 
 				return {

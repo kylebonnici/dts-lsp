@@ -110,6 +110,7 @@ export const defaultSettings: ResolvedSettings = {
 	autoChangeContext: true,
 	defaultShowFormattingErrorAsDiagnostics: true,
 	disableFileWatchers: false,
+	autoAddMissingPropertiesOnCompletion: true,
 };
 
 export const resolveContextSetting = async (
@@ -210,6 +211,9 @@ export const resolveContextSetting = async (
 			defaultSettings.defaultShowFormattingErrorAsDiagnostics,
 		disableFileWatchers:
 			context.disableFileWatchers ?? defaultSettings.disableFileWatchers,
+		autoAddMissingPropertiesOnCompletion:
+			context.autoAddMissingPropertiesOnCompletion ??
+			defaultSettings.autoAddMissingPropertiesOnCompletion,
 	};
 };
 
@@ -301,6 +305,8 @@ export const resolveSettings = async (
 			globalSettings.defaultShowFormattingErrorAsDiagnostics ??
 			defaultSettings.defaultShowFormattingErrorAsDiagnostics,
 		disableFileWatchers: globalSettings.disableFileWatchers ?? false,
+		autoAddMissingPropertiesOnCompletion:
+			globalSettings.autoAddMissingPropertiesOnCompletion ?? true,
 	};
 
 	const contexts = (

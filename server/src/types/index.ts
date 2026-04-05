@@ -40,6 +40,7 @@ export interface Context {
 	showFormattingErrorAsDiagnostics?: boolean;
 	compileCommands?: string;
 	disableFileWatchers?: boolean;
+	autoAddMissingPropertiesOnCompletion?: boolean;
 }
 
 export type IntegrationSettings = Omit<
@@ -71,6 +72,7 @@ export interface Settings {
 	autoChangeContext?: boolean;
 	allowAdhocContexts?: boolean;
 	disableFileWatchers?: boolean;
+	autoAddMissingPropertiesOnCompletion?: boolean;
 }
 
 export type ContextType = 'Ad Hoc' | 'User' | '3rd Party';

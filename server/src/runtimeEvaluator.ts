@@ -83,10 +83,6 @@ export class ContextAware {
 		const resolvedSettings: ResolvedContext = {
 			...settings,
 			ctxName: settings.ctxName ?? basename(settings.dtsFile),
-			lockRenameEdits: [],
-			showFormattingErrorAsDiagnostics:
-				settings.showFormattingErrorAsDiagnostics ?? true,
-			disableFileWatchers: settings.disableFileWatchers ?? false,
 		};
 		this.isFullContext = this.settings.dtsFile
 			.toLowerCase()

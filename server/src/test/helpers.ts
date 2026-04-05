@@ -68,4 +68,5 @@ export const createReservedContext = (dtsFile: string): ResolvedContext => ({
 	lockRenameEdits: [],
 	showFormattingErrorAsDiagnostics: false,
 	disableFileWatchers: false,
+	autoAddMissingPropertiesOnCompletion: true,
 });

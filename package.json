@@ -238,13 +238,25 @@
 					"scope": "resource",
 					"type": "boolean",
 					"default": null,
-					"description": "Auto chnage active context on file change"
+					"description": "Auto change active context on file change"
 				},
 				"devicetree.defaultShowFormattingErrorAsDiagnostics": {
 					"scope": "resource",
 					"type": "boolean",
 					"default": null,
 					"description": "Allow LSP to show any formatting errors as diagnostics in the problem tab"
+				},
+				"devicetree.disableFileWatchers": {
+					"scope": "resource",
+					"type": "boolean",
+					"default": null,
+					"description": "Disable file watchers. This will prevent the language server from automatically updating the context when changes are made to files on disk."
+				},
+				"devicetree.autoAddMissingPropertiesOnCompletion": {
+					"scope": "resource",
+					"type": "boolean",
+					"default": null,
+					"description": "Add missing required properties from selected binding when accepting completion for 'compatible' property."
 				},
 				"devicetree.trace.server": {
 					"scope": "window",
