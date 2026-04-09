@@ -378,6 +378,15 @@ export class ZephyrBindingsLoader {
 				const baseCopy: ZephyrBindingYml = {
 					...base,
 					properties: {
+						...base.properties,
+						pwms: {
+							name: 'pwms',
+							type: 'phandle-array',
+						},
+						gpios: {
+							name: 'gpios',
+							type: 'phandle-array',
+						},
 						handle: {
 							name: 'handle',
 							type: 'phandle',
