@@ -304,7 +304,7 @@ export class API implements IDeviceTreeAPI {
 		return this.client.sendRequest(
 			'devicetree/zephyrTypeBindings',
 			id,
-		) as Promise<ZephyrBindingYml[] | undefined>;
+		) as Promise<(ZephyrBindingYml & { vendor?: string })[] | undefined>;
 	}
 
 	getMacroNames(id: string) {

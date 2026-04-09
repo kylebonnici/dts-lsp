@@ -47,7 +47,9 @@ export interface IDeviceTreeAPI {
 		textDocumentPositionParams: TextDocumentPositionParams,
 	): Promise<LocationResult>;
 	getActiveContext(): Promise<ContextListItem | undefined>;
-	getZephyrTypeBindings(id: string): Promise<ZephyrBindingYml[] | undefined>;
+	getZephyrTypeBindings(
+		id: string,
+	): Promise<(ZephyrBindingYml & { vendor?: string })[] | undefined>;
 	getMacroNames(id: string): Promise<string[] | undefined>;
 	getLocationScopedInformation(
 		event: TextDocumentPositionParams & { id: string },

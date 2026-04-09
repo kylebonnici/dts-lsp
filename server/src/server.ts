@@ -2098,13 +2098,20 @@ connection.onRequest(
 );
 connection.onRequest(
 	'devicetree/zephyrTypeBindings',
-	async (id: string): Promise<ZephyrBindingYml[] | undefined> => {
+	async (
+		id: string,
+	): Promise<(ZephyrBindingYml & { vendor?: string })[] | undefined> => {
 		await allStable();
 		if (!id) {
 			return;
 		}
 		const ctx = findContext(contextAware, { id });
-		return ctx?.bindingLoader?.getZephyrContextBinding();
+		return ctx?.bindingLoader?.getZephyrContextBinding()?.map((b) => ({
+			...b,
+			vendor:
+				b.compatible &&
+				ctx?.bindingLoader?.getBindingVendorString(b.compatible),
+		}));
 	},
 );
 
