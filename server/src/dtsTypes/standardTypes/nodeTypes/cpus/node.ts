@@ -17,10 +17,10 @@
 import { genStandardTypeDiagnostic } from '../../../../helpers';
 import { getU32ValueFromProperty } from '../../helpers';
 import { StandardTypeIssue } from '../../../../types';
-import { getStandardDefaultType } from '../../../../dtsTypes/standardDefaultType';
+import { cpuNodeType } from './cpu/node';
 
 export function getCpusNodeType() {
-	const nodeType = getStandardDefaultType();
+	const nodeType = cpuNodeType();
 	nodeType.additionalValidations = (_, node) => {
 		if (node.parent?.name !== '/') {
 			const definition = node.implementations[0];
@@ -41,6 +41,25 @@ export function getCpusNodeType() {
 			];
 		}
 		return [];
+	};
+
+	const regProp = nodeType.properties.find((p) => p.name === 'reg');
+	regProp!.required = () => {
+		return 'optional';
+	};
+
+	const clockFrequency = nodeType.properties.find(
+		(p) => p.name === 'clock-frequency',
+	);
+	clockFrequency!.required = () => {
+		return 'optional';
+	};
+
+	const timebaseFrequency = nodeType.properties.find(
+		(p) => p.name === 'timebase-frequency',
+	);
+	timebaseFrequency!.required = () => {
+		return 'optional';
 	};
 
 	const addressCellsProp = nodeType.properties.find(

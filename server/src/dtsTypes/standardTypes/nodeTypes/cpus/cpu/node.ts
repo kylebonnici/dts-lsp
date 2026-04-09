@@ -17,9 +17,61 @@
 import { genStandardTypeDiagnostic } from '../../../../../helpers';
 import { StandardTypeIssue } from '../../../../../types';
 import { getStandardDefaultType } from '../../../../../dtsTypes/standardDefaultType';
+import clockFrequency from './clockFrequency';
+import timebaseFrequency from './timebaseFrequency';
+import enableMethod from './enableMethod';
+import cpuReleaseAddr from './cpuReleaseAddr';
+import powerIsaVersion from './powerIsaVersion';
+import powerIsa from './powerIsa';
+import cacheOpBlockSize from './cacheOpBlockSize';
+import mmuType from './mmuType';
+
+export function cpuNodeType() {
+	const nodeType = getStandardDefaultType();
+
+	const regProp = nodeType.properties.find((p) => p.name === 'reg');
+	regProp!.required = () => 'required';
+	regProp!.description = [
+		`The value of reg is a ‹prop-encoded-array> that defines a unique CPU/thread id for the
+CP U/threads represented by the CPU node.
+If a CPU supports more than one thread (i.e. multiple streams of execution) the reg property is an array with 1 element per thread.
+The #address-cells on the /cpus node specifies how many cells each element of the array takes. Software can determine the number of threads by dividing the size of reg by the parent node's #address-cells.
+If a CPU/thread can be the target of an external interrupt the reg property value must be a unique CPU/thread id that is addressable by the interrupt controller.
+If a CPU/thread cannot be the target of an external interrupt, then reg must be unique and out of bounds of the range addressed by the interrupt controller
+If a CPU/thread's PIR (pending interrupt reg-ister) is modifiable, a client program should modify PIR to match the reg property value.
+If PIR cannot be modified and the PIR value is distinct from the interrupt controller number space, the CPUs binding may define a binding-specific representation of PIR values if desired.`,
+	];
+
+	nodeType.addProperty(clockFrequency());
+	nodeType.addProperty(timebaseFrequency());
+
+	const statusProp = nodeType.properties.find((p) => p.name === 'status');
+	statusProp!.description = [
+		`A standard property describing the state of a CPU. This property shall be present for nodes representing CPUs in a symmetric multiprocessing (SMP) configuration. For a CPU node the meaning of the "okay", "disabled" and "fail" values are as follows:
+"okay" :
+	The CPU is running.
+"disabled" :
+	The CPU is in a quiescent state.
+"fail" :
+	The CPU is not operational or does not exist.`,
+		`A quiescent CPU is in a state where it cannot interfere with the normal operation of other CPUs, nor can its state be affected by the normal operation of other running CPUs, except by an explicit method for enabling or re-enabling the quiescent CPU (see the enable-method property).`,
+		`In particular, a running CPU shall be able to issue broadcast TLB invalidates without affecting a quiescent CPU.`,
+		`Examples: A quiescent CPU could be in a spin loop, held in reset, and electrically isolated from the system bus or in another implementation dependent state.`,
+		`A CPU with "fail" status does not affect the system in any way. The status is assigned to nodes for which no corresponding CPU exists.`,
+	];
+
+	nodeType.addProperty(enableMethod());
+	nodeType.addProperty(cpuReleaseAddr());
+	nodeType.addProperty(powerIsaVersion());
+	nodeType.addProperty(powerIsa());
+	nodeType.addProperty(cacheOpBlockSize());
+	nodeType.addProperty(mmuType());
+
+	return nodeType;
+}
 
 export function getCpuNodeType() {
-	const nodeType = getStandardDefaultType();
+	const nodeType = cpuNodeType();
 	nodeType.additionalValidations = (_, node) => {
 		if (node.parent?.name !== 'cpus') {
 			const definition = node.implementations[0];
@@ -41,19 +93,6 @@ export function getCpuNodeType() {
 		}
 		return [];
 	};
-
-	const regProp = nodeType.properties.find((p) => p.name === 'reg');
-	regProp!.required = () => 'required';
-	regProp!.description = [
-		`The value of reg is a ‹prop-encoded-array> that defines a unique CPU/thread id for the
-CP U/threads represented by the CPU node.
-If a CPU supports more than one thread (i.e. multiple streams of execution) the reg property is an array with 1 element per thread.
-The #address-cells on the /cpus node specifies how many cells each element of the array takes. Software can determine the number of threads by dividing the size of reg by the parent node's #address-cells.
-If a CPU/thread can be the target of an external interrupt the reg property value must be a unique CPU/thread id that is addressable by the interrupt controller.
-If a CPU/thread cannot be the target of an external interrupt, then reg must be unique and out of bounds of the range addressed by the interrupt controller
-If a CPU/thread's PIR (pending interrupt reg-ister) is modifiable, a client program should modify PIR to match the reg property value.
-If PIR cannot be modified and the PIR value is distinct from the interrupt controller number space, the CPUs binding may define a binding-specific representation of PIR values if desired.`,
-	];
 
 	return nodeType;
 }

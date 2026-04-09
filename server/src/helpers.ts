@@ -1317,6 +1317,10 @@ export const standardTypeIssueIssuesToMessage = (
 					return `Binding should be used on bus type${issue.templateStrings.length ? 's' : ''}: ${issue.templateStrings.join(' or ')}`;
 				case StandardTypeIssue.EMPTY_RANGE_MISMATCH_ADDRESS_SIZE_CELLS:
 					return `Empty ranges property should only be used when address size cells is identical to the parent node`;
+				case StandardTypeIssue.SPIN_TABLE_ENABLE_METHOD:
+					return `The value shall be one of the following: "spin-table" or "[vendor],[method]"`;
+				case StandardTypeIssue.VENDOR_METHOD_FORMAT:
+					return `The value shall match "[vendor],[method]"`;
 			}
 		})
 		.join(' or ')

@@ -1226,7 +1226,7 @@ describe('Type Issues', () => {
 
 			test('valid type single string - cpu', async () => {
 				mockReadFileSync(
-					`/{${rootDefaults} cpus{#address-cells=<1>;#size-cells = <0>;cpu{device_type= "cpu";reg = <0>;};};};`,
+					`/{${rootDefaults} cpus{#address-cells=<1>;#size-cells = <0>;cpu{device_type= "cpu";reg = <0>;clock-frequency=<0>;timebase-frequency=<0>;};};};`,
 				);
 				const context = new ContextAware(
 					createReservedContext(filePathUri),
@@ -1242,6 +1242,76 @@ describe('Type Issues', () => {
 				]);
 				expect(issues[1].raw.issues).toEqual([
 					StandardTypeIssue.DEPRECATED,
+				]);
+			});
+
+			test('required cpu-release-addr - cpu', async () => {
+				mockReadFileSync(
+					`/{${rootDefaults} cpus{#address-cells=<1>;#size-cells = <0>;cpu{enable-method="spin-table";reg = <0>;clock-frequency=<0>;timebase-frequency=<0>;};};};`,
+				);
+				const context = new ContextAware(
+					createReservedContext(filePathUri),
+					defaultEditorSettings,
+					getFakeBindingLoader(),
+				);
+				await context.parser.stable;
+				const runtime = await context.getRuntime();
+				const issues = runtime.typesIssues;
+				expect(issues.length).toEqual(2);
+				expect(issues[0].raw.issues).toEqual([
+					StandardTypeIssue.EXPECTED_NODE_ADDRESS,
+				]);
+
+				expect(issues[1].raw.issues).toEqual([
+					StandardTypeIssue.REQUIRED,
+				]);
+				expect(issues[1].raw.templateStrings).toEqual([
+					'cpu-release-addr',
+				]);
+			});
+
+			test('required power-isa-version - cpu', async () => {
+				mockReadFileSync(
+					`/{${rootDefaults} cpus{#address-cells=<1>;#size-cells = <0>;cpu{power-isa-foo;reg = <0>;clock-frequency=<0>;timebase-frequency=<0>;};};};`,
+				);
+				const context = new ContextAware(
+					createReservedContext(filePathUri),
+					defaultEditorSettings,
+					getFakeBindingLoader(),
+				);
+				await context.parser.stable;
+				const runtime = await context.getRuntime();
+				const issues = runtime.typesIssues;
+				expect(issues.length).toEqual(2);
+				expect(issues[0].raw.issues).toEqual([
+					StandardTypeIssue.EXPECTED_NODE_ADDRESS,
+				]);
+
+				expect(issues[1].raw.issues).toEqual([
+					StandardTypeIssue.PROPERTY_REQUIRES_OTHER_PROPERTY_IN_NODE,
+				]);
+				expect(issues[1].raw.templateStrings).toEqual([
+					'power-isa-foo',
+					'power-isa-version',
+					'/cpus/cpu',
+				]);
+			});
+
+			test('required present power-isa-version - cpu', async () => {
+				mockReadFileSync(
+					`/{${rootDefaults} cpus{#address-cells=<1>;#size-cells = <0>;cpu{power-isa-foo;power-isa-version="2.0.6";reg = <0>;clock-frequency=<0>;timebase-frequency=<0>;};};};`,
+				);
+				const context = new ContextAware(
+					createReservedContext(filePathUri),
+					defaultEditorSettings,
+					getFakeBindingLoader(),
+				);
+				await context.parser.stable;
+				const runtime = await context.getRuntime();
+				const issues = runtime.typesIssues;
+				expect(issues.length).toEqual(1);
+				expect(issues[0].raw.issues).toEqual([
+					StandardTypeIssue.EXPECTED_NODE_ADDRESS,
 				]);
 			});
 
