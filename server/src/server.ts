@@ -350,7 +350,7 @@ connection.onInitialize(async (params: InitializeParams) => {
 	connection.console.log(
 		`[Server(${process.pid}) ${
 			workspaceFolders?.at(0)?.uri
-		} Version 0.8.5 ] Started and initialize received`,
+		} Version 0.9.0 ] Started and initialize received`,
 	);
 
 	const capabilities = params.capabilities;
