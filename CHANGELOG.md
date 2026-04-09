@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.8.8] - Unreleased
+## [0.8.8] - 2026-04-09
 
 ### Added
 
@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added binding documentation to `compatible` auto completions
 - Add missing required properties when selection a `compatible`
   from autocomplete list.
+    - This can be disabled setting the context setting
+      `autoAddMissingPropertiesOnCompletion` to false
 
 ### Fixed
 
