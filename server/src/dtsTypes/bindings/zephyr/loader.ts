@@ -29,6 +29,8 @@ import {
 	Range,
 } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { NodePathRef } from 'src/ast/dtc/values/nodePath';
+import { LabelRef } from 'src/ast/dtc/labelRef';
 import { getStandardType } from '../../../dtsTypes/standardTypes';
 import { NodeType, PropertyNodeType } from '../../../dtsTypes/types';
 import { Node } from '../../../context/node';
@@ -61,6 +63,8 @@ import {
 } from '../../../types/index';
 import { getSimpleBusType } from '../../../dtsTypes/standardTypes/nodeTypes/simpleBus/node';
 import { Expression } from '../../../ast/cPreprocessors/expression';
+import { ByteStringValue } from '../../../ast/dtc/values/byteString';
+import { ArrayValues } from '../../../ast/dtc/values/arrayValue';
 
 const ZephyrDefaultTypeDefault = (
 	type: ZephyrPropertyType | undefined,
@@ -365,75 +369,95 @@ export class ZephyrBindingsLoader {
 			) ?? [];
 
 		if (!out.length) {
-			const folders = key.split(':');
-			const bindings = Array.from(this.zephyrBindingCache.keys())
-				.filter((p) => folders.some((f) => p.startsWith(f)))
-				.flatMap((path) => this.zephyrBindingCache.get(path)!);
-
-			const base = bindings.find(
-				(b) => basename(b.filePath) === `base.yaml`,
-			);
 			let baseType: NodeType | undefined;
-			if (base && node.pathString === '/zephyr,user') {
+			if (node.pathString === '/zephyr,user') {
+				const properties: {
+					[key: string]: ZephyrBindingsProperty;
+				} = {};
 				const baseCopy: ZephyrBindingYml = {
-					...base,
-					properties: {
-						...base.properties,
-						pwms: {
-							name: 'pwms',
-							type: 'phandle-array',
-						},
-						gpios: {
-							name: 'gpios',
-							type: 'phandle-array',
-						},
-						handle: {
-							name: 'handle',
-							type: 'phandle',
-						},
-						handles: {
-							name: 'handles',
-							type: 'phandles',
-						},
-						boolean: {
-							name: 'boolean',
-							type: 'boolean',
-						},
-						bytes: {
-							name: 'bytes',
-							type: 'uint8-array',
-						},
-						number: {
-							name: 'number',
-							type: 'int',
-						},
-						numbers: {
-							name: 'numbers',
-							type: 'array',
-						},
-						string: {
-							name: 'string',
-							type: 'string',
-						},
-						strings: {
-							name: 'strings',
-							type: 'string-array',
-						},
-					},
+					properties,
+					filePath: '',
+					include: [],
+					rawInclude: [],
+					isChildBinding: false,
 				};
 
+				const set = (name: string, type: ZephyrPropertyType) => {
+					properties[name] = {
+						name,
+						type,
+					};
+				};
 				node.properties.forEach((p) => {
 					if (p.name.endsWith('-gpios')) {
-						baseCopy.properties![p.name] = {
-							name: p.name,
-							type: 'phandle-array',
-						};
+						set(p.name, 'phandle-array');
+						return;
+					}
+
+					const flatValuesRaw = p.ast.values?.values.map(
+						(v) => v?.value,
+					);
+					const flatValues = flatValuesRaw?.filter((v) => !!v);
+
+					if (
+						flatValuesRaw === undefined ||
+						flatValues === undefined
+					) {
+						set(p.name, 'boolean');
+					} else if (
+						flatValues.every((v) => v instanceof StringValue)
+					) {
+						set(
+							p.name,
+							flatValuesRaw.length > 1
+								? 'string-array'
+								: 'string',
+						);
+					} else if (
+						flatValues.every((v) => v instanceof ByteStringValue)
+					) {
+						set(p.name, 'uint8-array');
+					} else if (
+						flatValues.every((v) => v instanceof ArrayValues)
+					) {
+						const allValues = flatValues.flatMap((v) => v.values);
+						if (
+							allValues.every(
+								(v) => v.value instanceof Expression,
+							)
+						) {
+							set(p.name, allValues.length > 1 ? 'array' : 'int');
+						} else if (
+							allValues.every(
+								(v) =>
+									v.value instanceof LabelRef ||
+									v.value instanceof NodePathRef,
+							)
+						) {
+							set(
+								p.name,
+								allValues.length > 1 ? 'phandles' : 'phandle',
+							);
+						} else {
+							set(p.name, 'phandle-array');
+						}
+					} else {
+						set(p.name, 'compound');
 					}
 				});
 				baseType = convertBindingToType(baseCopy, node);
+			} else {
+				const folders = key.split(':');
+				const bindings = Array.from(this.zephyrBindingCache.keys())
+					.filter((p) => folders.some((f) => p.startsWith(f)))
+					.flatMap((path) => this.zephyrBindingCache.get(path)!);
+
+				const base = bindings.find(
+					(b) => basename(b.filePath) === `base.yaml`,
+				);
+				baseType = base ? convertBindingToType(base, node) : undefined;
 			}
 
-			baseType ??= base ? convertBindingToType(base, node) : undefined;
 			if (baseType) {
 				baseType.warnMismatchProperties = false;
 				const compat = baseType.properties.find(

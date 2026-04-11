@@ -10,6 +10,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Added the missing standard property types for `/cpus` and `/cpus/cpu*`
 
+### Fixed
+
+- Properly implement type inference for `/zephyr,user` properties that is
+  dependent on the node values.
+
 ## [0.9.0] - 2026-04-09
 
 ### Added
