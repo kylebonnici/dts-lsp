@@ -228,17 +228,18 @@ const formatFileManually = async (
 					'removeMacroMultiline',
 					true,
 				),
-				runLongLineCheck: config.get<boolean>('runLongLineCheck', true),
-				runExpressionIndentationCheck: config.get<boolean>(
-					'runExpressionIndentationCheck',
-					true,
-				),
 				removeEmptyReferences: config.get<boolean>(
 					'removeEmptyReferences',
 					true,
 				),
-				removeEmptyNodes: config.get<boolean>('removeEmptyNodes', true),
-				removeEmptyRoots: config.get<boolean>('removeEmptyRoots', true),
+				removeEmptyNodes: config.get<boolean>(
+					'removeEmptyNodes',
+					false,
+				),
+				removeEmptyRoots: config.get<boolean>(
+					'removeEmptyRoots',
+					false,
+				),
 				removeDuplicateProperties: config.get<boolean>(
 					'removeDuplicateProperties',
 					true,
