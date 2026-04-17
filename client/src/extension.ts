@@ -61,7 +61,7 @@ const doesContextUsesFile = (ctx: ContextListItem, filePath: string) => {
 
 const SelectContext = async (
 	api: API,
-	uri?: vscode.Uri,
+	uri?: vscode.Uri | null,
 ): Promise<ContextListItem | null> => {
 	const quickPick = vscode.window.createQuickPick<
 		vscode.QuickPickItem & {
@@ -119,7 +119,9 @@ const SelectContext = async (
 let client: LanguageClient;
 let api: API;
 
-const generateContextOutputUri = async (args: vscode.Uri) => {
+const generateContextOutputUri = async (
+	args: vscode.Uri | null | undefined,
+) => {
 	let context: ContextListItem | null = null;
 	const query: Record<string, string> = {};
 	if (args?.query) {
@@ -152,6 +154,8 @@ const openContextOutput = async (
 	compiledDocumentProvider: CompiledDocumentProvider,
 	result: Awaited<ReturnType<typeof generateContextOutputUri>>,
 ) => {
+	if (!result) return;
+
 	const { uri, besides } = result;
 
 	const alreadyOpen = vscode.workspace.textDocuments.some(
@@ -188,7 +192,7 @@ const formatFileManually = async (
 			(d) => d.uri.toString() === uri.toString(),
 		);
 
-		if (doc.languageId !== 'devicetree') {
+		if (doc?.languageId !== 'devicetree') {
 			return;
 		}
 
@@ -210,6 +214,46 @@ const formatFileManually = async (
 				insertFinalNewline: config.get<boolean>(
 					'trimAutoWhitespace',
 					true,
+				),
+				baseFormattingRules: config.get<boolean>(
+					'baseFormattingRules',
+					true,
+				),
+				wrapLongLines: config.get<boolean>('wrapLongLines', true),
+				indentExpressions: config.get<boolean>(
+					'indentExpressions',
+					true,
+				),
+				removeMacroMultiline: config.get<boolean>(
+					'removeMacroMultiline',
+					true,
+				),
+				runLongLineCheck: config.get<boolean>('runLongLineCheck', true),
+				runExpressionIndentationCheck: config.get<boolean>(
+					'runExpressionIndentationCheck',
+					true,
+				),
+				removeEmptyReferences: config.get<boolean>(
+					'removeEmptyReferences',
+					true,
+				),
+				removeEmptyNodes: config.get<boolean>('removeEmptyNodes', true),
+				removeEmptyRoots: config.get<boolean>('removeEmptyRoots', true),
+				removeDuplicateProperties: config.get<boolean>(
+					'removeDuplicateProperties',
+					true,
+				),
+				sortNodesAndProperties: config.get<boolean>(
+					'removeEmptyRoots',
+					false,
+				),
+				sortNodesNodesBy: config.get<'address' | 'name' | 'none'>(
+					'sortNodesNodesBy',
+					'none',
+				),
+				sortPropertiesAlphabetically: config.get<boolean>(
+					'sortPropertiesAlphabetically',
+					false,
 				),
 				...options,
 			},

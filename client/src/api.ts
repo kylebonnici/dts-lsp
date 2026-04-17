@@ -21,6 +21,7 @@ import type {
 	Context,
 	ContextListItem,
 	EvaluatedMacro,
+	FormattingFlags,
 	IntegrationSettings,
 	LocationResult,
 	PositionScopeInformation,
@@ -34,6 +35,8 @@ import {
 	TextDocumentPositionParams,
 	Disposable,
 	TextEdit,
+	DocumentFormattingParams,
+	DocumentRangeFormattingParams,
 } from 'vscode-languageclient/node';
 import { IDeviceTreeAPI as IDeviceTreeAPI } from './types';
 import { getCurrentTextDocumentPositionParams } from './helpers';
@@ -183,7 +186,13 @@ export class API implements IDeviceTreeAPI {
 		) as Promise<Record<string, SerializedNode> | undefined>;
 	}
 
-	formatTextEdits(event) {
+	formatTextEdits(
+		event: (DocumentFormattingParams | DocumentRangeFormattingParams) & {
+			edits: TextEdit[];
+			text?: string;
+			options: vscode.FormattingOptions & FormattingFlags;
+		},
+	) {
 		return this.client.sendRequest(
 			'devicetree/formatTextEdits',
 			event,

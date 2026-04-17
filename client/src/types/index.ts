@@ -42,10 +42,10 @@ export interface IDeviceTreeAPI {
 	getContexts(): Promise<ContextListItem[]>;
 	setActiveContextById(id: string): Promise<boolean>;
 	setActiveContextByName(name: string): Promise<boolean>;
-	getActivePathLocation(): Promise<LocationResult>;
+	getActivePathLocation(): Promise<LocationResult | undefined>;
 	getPathLocation(
 		textDocumentPositionParams: TextDocumentPositionParams,
-	): Promise<LocationResult>;
+	): Promise<LocationResult | undefined>;
 	getActiveContext(): Promise<ContextListItem | undefined>;
 	getZephyrTypeBindings(
 		id: string,
