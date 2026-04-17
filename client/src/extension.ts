@@ -383,7 +383,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			async (textDocumentPositionParams?: TextDocumentPositionParams) => {
 				textDocumentPositionParams ??=
 					getCurrentTextDocumentPositionParams();
-				if (textDocumentPositionParams) {
+				if (!textDocumentPositionParams) {
 					return;
 				}
 				const actions = (
