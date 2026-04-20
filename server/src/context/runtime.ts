@@ -48,7 +48,6 @@ import { Node } from './node';
 
 export class Runtime implements Searchable {
 	public comments: Comment[] = [];
-	public includes: Include[] = [];
 	public references: DtcRefNode[] = [];
 	public unlinkedDeletes: DeleteNode[] = [];
 	public unlinkedRefNodes: DtcRefNode[] = [];

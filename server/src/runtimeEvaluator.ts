@@ -148,8 +148,10 @@ export class ContextAware {
 			};
 		};
 
-		const runtime = await this.getRuntime();
-		runtime.includes.forEach((include) => {
+		[
+			...this.parser.includes,
+			...this.overlayParsers.flatMap((o) => o.includes),
+		].forEach((include) => {
 			let t = temp.get(include.fsPath);
 			if (!t) {
 				t = [];
@@ -418,7 +420,6 @@ export class ContextAware {
 			}),
 		);
 
-		runtime.includes = this.parser.includes;
 		runtime.comments = this.parser.cPreprocessorParser.allAstItems.filter(
 			(a) => a instanceof Comment,
 		);
