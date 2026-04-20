@@ -251,7 +251,12 @@ export class ContextAware {
 				.filter((v) => !!v) ?? [];
 
 		return [
-			...(this.parser.cPreprocessorParser.dtsIncludes
+			...([
+				...this.parser.cPreprocessorParser.dtsIncludes,
+				...this.overlayParsers.flatMap(
+					(op) => op.cPreprocessorParser.dtsIncludes,
+				),
+			]
 				.filter(
 					(include) =>
 						isPathEqual(include.fsPath, file) &&
