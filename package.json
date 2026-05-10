@@ -5,7 +5,7 @@
 	"author": "Microsoft Corporation",
 	"license": "Apache-2.0",
 	"icon": "images/icon.png",
-	"version": "0.9.3",
+	"version": "0.9.4",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/kylebonnici/dts-lsp"
@@ -276,7 +276,9 @@
 				"editor.tabSize": 8,
 				"editor.insertSpaces": false,
 				"editor.defaultFormatter": "KyleMicallefBonnici.devicetree-lsp",
-				"editor.wordWrapColumn": 100
+				"editor.wordWrapColumn": 100,
+				"files.insertFinalNewline": true,
+				"files.trimTrailingWhitespace": true
 			}
 		}
 	},

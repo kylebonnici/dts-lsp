@@ -350,7 +350,7 @@ connection.onInitialize(async (params: InitializeParams) => {
 	connection.console.log(
 		`[Server(${process.pid}) ${
 			workspaceFolders?.at(0)?.uri
-		} Version 0.9.3 ] Started and initialize received`,
+		} Version 0.9.4 ] Started and initialize received`,
 	);
 
 	const capabilities = params.capabilities;
@@ -445,15 +445,18 @@ connection.onInitialized(async () => {
 			const editorSettings = await connection.workspace
 				.getConfiguration('editor')
 				.catch(() => undefined);
+			const filesSettings = await connection.workspace
+				.getConfiguration('files')
+				.catch(() => undefined);
 			const dtsSettingsRaw = await connection.workspace
 				.getConfiguration('[devicetree]')
 				.catch(() => undefined);
 			const dtsSettings = {
 				tabSize: dtsSettingsRaw?.['editor.tabSize'],
 				insertSpaces: dtsSettingsRaw?.['editor.insertSpaces'],
-				trimFinalNewlines: dtsSettingsRaw?.['editor.trimFinalNewlines'],
+				trimFinalNewlines: dtsSettingsRaw?.['files.trimFinalNewlines'],
 				trimTrailingWhitespace:
-					dtsSettingsRaw?.['editor.trimTrailingWhitespace'],
+					dtsSettingsRaw?.['files.trimTrailingWhitespace'],
 				insertFinalNewline:
 					dtsSettingsRaw?.['editor.insertFinalNewline'],
 				wordWrapColumn: dtsSettingsRaw?.['editor.wordWrapColumn'],
@@ -468,9 +471,10 @@ connection.onInitialized(async () => {
 				sortNodesAndProperties:
 					dtsSettingsRaw?.['editor.sortNodesAndProperties'],
 			} satisfies FormattingOptions & Partial<FormattingFlags>;
-			if (editorSettings || dtsSettings) {
+			if (editorSettings || filesSettings || dtsSettings) {
 				lspClientEditorSettings = {
 					...editorSettings,
+					...filesSettings,
 					...dtsSettings,
 				};
 			}
