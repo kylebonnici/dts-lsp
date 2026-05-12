@@ -608,17 +608,27 @@ export class CPreprocessorParser extends BaseParser {
 		);
 
 		let cElse: CElse | undefined;
+		const hasMultipleElseif = block.separatorTokens.length > 1;
 
 		if (block.splitTokens.length > 1) {
 			const elseToken = block.separatorTokens[0];
 			const elseKeyword = new Keyword(createTokenIndex(elseToken));
 			let elseContent: CPreprocessorContent | undefined;
-			if (block.splitTokens[1].tokens.length) {
+			// Span ALL remaining elif/else branches, not just the first one.
+			// getRangeTokens walks nextToken links, so spanning to the last token
+			// automatically includes intermediate #elif/#else separator tokens.
+			const firstContentToken = block.splitTokens[1].tokens[0];
+			let lastContentToken: Token | undefined;
+			for (let i = block.splitTokens.length - 1; i >= 1; i--) {
+				lastContentToken = block.splitTokens[i].tokens.at(-1);
+				if (lastContentToken) break;
+			}
+			if (!lastContentToken && block.separatorTokens.length > 1) {
+				lastContentToken = block.separatorTokens.at(-1);
+			}
+			if (firstContentToken && lastContentToken) {
 				elseContent = new CPreprocessorContent(
-					createTokenIndex(
-						block.splitTokens[1].tokens[0],
-						block.splitTokens[1].tokens.at(-1),
-					),
+					createTokenIndex(firstContentToken, lastContentToken),
 				);
 			}
 			cElse = new CElse(elseKeyword, elseContent ?? null);
@@ -642,6 +652,7 @@ export class CPreprocessorParser extends BaseParser {
 			ifDef,
 			endifKeyword ?? null,
 			cElse,
+			hasMultipleElseif,
 		);
 
 		this.mergeStack();
