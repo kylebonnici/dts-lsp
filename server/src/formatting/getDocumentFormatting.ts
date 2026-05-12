@@ -738,19 +738,21 @@ async function baseFormatAstBaseItems(
 
 	const result: FileDiagnostic[] = (
 		await Promise.all(
-			astItems.flatMap(
-				async (base) =>
-					await getTextEdit(
-						documentFormattingParams,
-						base,
-						fsPath,
-						astItemLevel,
-						splitDocument,
-						includes,
-						ifDefBlocks,
-						options,
-					),
-			),
+			astItems
+				.filter((base) => isPathEqual(base.fsPath, fsPath))
+				.flatMap(
+					async (base) =>
+						await getTextEdit(
+							documentFormattingParams,
+							base,
+							fsPath,
+							astItemLevel,
+							splitDocument,
+							includes,
+							ifDefBlocks,
+							options,
+						),
+				),
 		)
 	).flat();
 

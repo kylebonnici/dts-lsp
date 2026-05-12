@@ -27,6 +27,7 @@ import { ByteStringValue } from '../ast/dtc/values/byteString';
 import {
 	applyEdits,
 	genFormattingDiagnostic,
+	isPathEqual,
 	sameLine,
 	toPosition,
 } from '../helpers';
@@ -160,17 +161,19 @@ async function baseLongLineItems(
 
 	const result: FileDiagnostic[] = (
 		await Promise.all(
-			astItems.flatMap(
-				async (base) =>
-					await getWrapLineEdit(
-						documentFormattingParams,
-						base,
-						fsPath,
-						astItemLevel,
-						splitDocument,
-						options,
-					),
-			),
+			astItems
+				.filter((base) => isPathEqual(base.fsPath, fsPath))
+				.flatMap(
+					async (base) =>
+						await getWrapLineEdit(
+							documentFormattingParams,
+							base,
+							fsPath,
+							astItemLevel,
+							splitDocument,
+							options,
+						),
+				),
 		)
 	).flat();
 
