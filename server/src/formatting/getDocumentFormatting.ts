@@ -54,6 +54,7 @@ import {
 	fileURIToFsPath,
 	genFormattingDiagnostic,
 	isPathEqual,
+	isVirtualFsPath,
 	rangesOverlap,
 	toPosition,
 	toRange,
@@ -741,8 +742,8 @@ async function baseFormatAstBaseItems(
 			astItems
 				.filter((base) => isPathEqual(base.fsPath, fsPath))
 				.flatMap(
-					async (base) =>
-						await getTextEdit(
+					async (base) => {
+						return await getTextEdit(
 							documentFormattingParams,
 							base,
 							fsPath,
@@ -751,7 +752,8 @@ async function baseFormatAstBaseItems(
 							includes,
 							ifDefBlocks,
 							options,
-						),
+						);
+					},
 				),
 		)
 	).flat();
@@ -1282,19 +1284,21 @@ const formatDtcNode = async (
 	result.push(
 		...(
 			await Promise.all(
-				node.children.flatMap((c) =>
-					getTextEdit(
-						documentFormattingParams,
-						c,
-						fsPath,
-						computeLevel,
-						documentText,
-						includes,
-						ifDefBlocks,
-						options,
-						level + 1,
+				node.children
+					.filter((c) => isPathEqual(c.fsPath, fsPath))
+					.flatMap((c) =>
+						getTextEdit(
+							documentFormattingParams,
+							c,
+							fsPath,
+							computeLevel,
+							documentText,
+							includes,
+							ifDefBlocks,
+							options,
+							level + 1,
+						),
 					),
-				),
 			)
 		).flat(),
 	);
@@ -1339,6 +1343,8 @@ const formatLabeledValue = <T extends ASTBase>(
 	openBracket: Token | undefined,
 	documentText: string[],
 ): FileDiagnostic[] => {
+	if (isVirtualFsPath(value.firstToken.fsPath)) return [];
+
 	const result: FileDiagnostic[] = [];
 
 	result.push(
@@ -1475,7 +1481,7 @@ const formatValue = (
 				),
 			);
 
-			if (value.closeBracket?.prevToken) {
+			if (value.closeBracket?.prevToken && !isVirtualFsPath(value.closeBracket.prevToken.fsPath)) {
 				if (
 					value.values.at(-1)?.lastToken ===
 						value.closeBracket?.prevToken ||

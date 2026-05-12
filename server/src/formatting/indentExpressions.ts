@@ -24,7 +24,7 @@ import { PropertyValues } from '../ast/dtc/values/values';
 import { PropertyValue } from '../ast/dtc/values/value';
 import { ArrayValues } from '../ast/dtc/values/arrayValue';
 import { ByteStringValue } from '../ast/dtc/values/byteString';
-import { applyEdits, genFormattingDiagnostic } from '../helpers';
+import { applyEdits, genFormattingDiagnostic, isPathEqual } from '../helpers';
 import {
 	ComplexExpression,
 	Expression,
@@ -115,17 +115,19 @@ async function baseIndentExpression(
 
 	const result: FileDiagnostic[] = (
 		await Promise.all(
-			astItems.flatMap(
-				async (base) =>
-					await indentExpressionEdits(
-						documentFormattingParams,
-						documentText,
-						base,
-						fsPath,
-						astItemLevel,
-						options,
-					),
-			),
+			astItems
+				.filter((base) => isPathEqual(base.fsPath, fsPath))
+				.flatMap(
+					async (base) =>
+						await indentExpressionEdits(
+							documentFormattingParams,
+							documentText,
+							base,
+							fsPath,
+							astItemLevel,
+							options,
+						),
+				),
 		)
 	).flat();
 
