@@ -19,7 +19,7 @@ import { TextEdit } from 'vscode-languageserver';
 import { ASTBase } from '../ast/base';
 import { FileDiagnostic, FormattingIssues } from '../types';
 import {
-	applyEdits,
+	applyFileDiagnosticEdits,
 	genFormattingDiagnostic,
 	toPosition,
 	toRangeWithTokenIndex,
@@ -67,9 +67,9 @@ export async function formatEmptyReferences(
 		edits,
 	);
 
-	newText = applyEdits(
+	newText = applyFileDiagnosticEdits(
 		TextDocument.create(fsPath, 'devicetree', 0, text),
-		rangeEdits.flatMap((i) => i.raw.edit).filter((e) => !!e),
+		rangeEdits,
 	);
 
 	switch (returnType) {

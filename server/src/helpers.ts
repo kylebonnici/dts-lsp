@@ -540,7 +540,7 @@ export const genStandardTypeDiagnostic = (
 		range: toRangeWithTokenIndex(start, end),
 		severity,
 		fsPath: start.fsPath,
-		linkedTo: linkedTo.map(({ range, fsPath }, i) => {
+		linkedTo: linkedTo.map(({ range, fsPath }) => {
 			const convertedToDoc = convertVirtualFsPathToDocumentFsPath(fsPath);
 			if (convertedToDoc) {
 				return {
@@ -699,6 +699,7 @@ export function genFormattingDiagnostic(
 		templateStrings,
 		edit,
 		codeActionTitle,
+		virtual: isVirtualFsPath(fsPath),
 	};
 
 	let diagnostic: Diagnostic;
@@ -1600,6 +1601,18 @@ export function getCMacroCall(
 		return ast;
 	}
 	return getCMacroCall(ast.parentNode);
+}
+
+export function applyFileDiagnosticEdits(
+	document: TextDocument,
+	formattingIssues: FileDiagnostic[],
+): string {
+	const edits = formattingIssues
+		.filter((i) => !i.raw.virtual)
+		.flatMap((i) => i.raw.edit)
+		.filter((e) => !!e);
+
+	return applyEdits(document, edits);
 }
 
 export function applyEdits(document: TextDocument, edits: TextEdit[]): string {
