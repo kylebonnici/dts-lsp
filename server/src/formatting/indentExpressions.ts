@@ -24,7 +24,7 @@ import { PropertyValues } from '../ast/dtc/values/values';
 import { PropertyValue } from '../ast/dtc/values/value';
 import { ArrayValues } from '../ast/dtc/values/arrayValue';
 import { ByteStringValue } from '../ast/dtc/values/byteString';
-import { applyEdits, genFormattingDiagnostic } from '../helpers';
+import { applyFileDiagnosticEdits, genFormattingDiagnostic } from '../helpers';
 import {
 	ComplexExpression,
 	Expression,
@@ -91,9 +91,9 @@ export async function formatExpressionIndentation(
 		edits,
 	);
 
-	newText = applyEdits(
+	newText = applyFileDiagnosticEdits(
 		TextDocument.create(fsPath, 'devicetree', 0, text),
-		rangeEdits.flatMap((i) => i.raw.edit).filter((e) => !!e),
+		rangeEdits,
 	);
 
 	switch (returnType) {

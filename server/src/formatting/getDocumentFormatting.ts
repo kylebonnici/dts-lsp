@@ -49,7 +49,7 @@ import { ByteStringValue } from '../ast/dtc/values/byteString';
 import { LabeledValue } from '../ast/dtc/values/labeledValue';
 import { Include } from '../ast/cPreprocessors/include';
 import {
-	applyEdits,
+	applyFileDiagnosticEdits,
 	coreSyntaxIssuesFilter,
 	fileURIToFsPath,
 	genFormattingDiagnostic,
@@ -503,7 +503,7 @@ export async function formatText(
 		);
 	}
 
-	return diagnostic;
+	return diagnostic.filter((i) => !i.raw.virtual);
 }
 
 const getDisabledMarcoRangeEdits = async (
@@ -685,9 +685,9 @@ async function formatAstBaseItems(
 		edits,
 	);
 
-	newText = applyEdits(
+	newText = applyFileDiagnosticEdits(
 		TextDocument.create(fsPath, 'devicetree', 0, text),
-		rangeEdits.flatMap((i) => i.raw.edit).filter((e) => !!e),
+		rangeEdits,
 	);
 
 	switch (returnType) {
