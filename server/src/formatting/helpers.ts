@@ -32,7 +32,7 @@ import {
 	sameLine,
 } from '../helpers';
 import { Include } from '../ast/cPreprocessors/include';
-import { IfDefineBlock, IfElIfBlock } from '../ast/cPreprocessors/ifDefine';
+import { IfElIfBlock } from '../ast/cPreprocessors/ifDefine';
 import {
 	ComplexExpression,
 	Expression,
@@ -200,7 +200,6 @@ export const getAstItemLevel =
 				!(ast instanceof Include) &&
 				!(ast instanceof Comment) &&
 				!(ast instanceof CommentBlock) &&
-				!(ast instanceof IfDefineBlock) &&
 				!(ast instanceof IfElIfBlock),
 		);
 		const parentAst = await findAst(astNode.firstToken, fsPath, rootItem);

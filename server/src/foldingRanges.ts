@@ -18,7 +18,7 @@ import { FoldingRange, FoldingRangeKind } from 'vscode-languageserver';
 import { DtcBaseNode } from './ast/dtc/node';
 import { Parser } from './parser';
 import { ASTBase } from './ast/base';
-import { IfDefineBlock, IfElIfBlock } from './ast/cPreprocessors/ifDefine';
+import { IfElIfBlock } from './ast/cPreprocessors/ifDefine';
 import { isPathEqual } from './helpers';
 import { CommentBlock } from './ast/dtc/comment';
 
@@ -55,28 +55,14 @@ const nodeToRange = (dtcNode: DtcBaseNode): FoldingRange[] => {
 	return [range, ...dtcNode.nodes.flatMap(nodeToRange)];
 };
 
-const ifElIfBlockToRange = (
-	ifDefBlock: IfElIfBlock | IfDefineBlock,
-): FoldingRange[] => {
+const ifElIfBlockToRange = (ifDefBlock: IfElIfBlock): FoldingRange[] => {
 	const ranges: FoldingRange[] = [];
 
 	[
-		...(ifDefBlock instanceof IfElIfBlock
-			? ifDefBlock.ifBlocks.map((b) => ({
-					start: (b.expression ?? b.keyword).lastToken,
-					end:
-						b.content?.lastToken ??
-						(b.expression ?? b.keyword).lastToken,
-				}))
-			: [
-					{
-						start: (
-							ifDefBlock.ifDef.identifier ??
-							ifDefBlock.ifDef.keyword
-						).lastToken,
-						end: ifDefBlock.ifDef.content?.lastToken,
-					},
-				]),
+		...ifDefBlock.ifBlocks.map((b) => ({
+			start: (b.expression ?? b.keyword).lastToken,
+			end: b.content?.lastToken ?? (b.expression ?? b.keyword).lastToken,
+		})),
 		ifDefBlock.elseOption
 			? {
 					start: ifDefBlock.elseOption.keyword.lastToken,
@@ -103,10 +89,6 @@ const ifElIfBlockToRange = (
 const toFoldingRange = (ast: ASTBase): FoldingRange[] => {
 	if (ast instanceof DtcBaseNode) {
 		return nodeToRange(ast);
-	}
-
-	if (ast instanceof IfDefineBlock) {
-		return ifElIfBlockToRange(ast);
 	}
 
 	if (ast instanceof IfElIfBlock) {
