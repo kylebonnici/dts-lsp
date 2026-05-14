@@ -276,7 +276,9 @@
 				"editor.tabSize": 8,
 				"editor.insertSpaces": false,
 				"editor.defaultFormatter": "KyleMicallefBonnici.devicetree-lsp",
-				"editor.wordWrapColumn": 100
+				"editor.wordWrapColumn": 100,
+				"files.insertFinalNewline": true,
+				"files.trimTrailingWhitespace": true
 			}
 		}
 	},

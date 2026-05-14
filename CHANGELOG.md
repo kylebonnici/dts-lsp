@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.4] - Unreleased
 
+### Added
+
+- Formatting configuration defaults contributions for `devicetree` language in VSCode
+    - files.insertFinalNewline: true,
+    - files.trimTrailingWhitespace: true
+
+### Fixed
+
+- Properly read `trimFinalNewlines` and `trimFinalNewlines` from `files`
+  workspace setting instead of `editor`
+
 ### Security
 
 - Update dependencies to address
