@@ -148,7 +148,7 @@ export class ASTBase {
 		return [
 			{
 				location: Location.create(
-					pathToFileURI(virtualDoc?.docFsPath ?? this.fsPath),
+					pathToFileURI(virtualDoc?.fsPath ?? this.fsPath),
 					range,
 				),
 				name: this.docSymbolsMeta.name

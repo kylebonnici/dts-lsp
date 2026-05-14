@@ -41,7 +41,7 @@ export const generateNodeDeclaration = (node: Node) => {
 		declaration && convertVirtualFsPathToDocumentFsPath(declaration.fsPath);
 	if (virtualDoc) {
 		return Location.create(
-			pathToFileURI(virtualDoc.docFsPath),
+			pathToFileURI(virtualDoc.fsPath),
 			virtualDoc.range,
 		);
 	}
@@ -70,7 +70,7 @@ export const generatePropertyDeclaration = (
 	);
 	if (virtualDoc) {
 		return Location.create(
-			pathToFileURI(virtualDoc.docFsPath),
+			pathToFileURI(virtualDoc.fsPath),
 			virtualDoc.range,
 		);
 	}
@@ -99,7 +99,7 @@ function getPropertyDeclaration(
 		);
 		if (virtualDoc) {
 			return Location.create(
-				pathToFileURI(virtualDoc.docFsPath),
+				pathToFileURI(virtualDoc.fsPath),
 				virtualDoc.range,
 			);
 		}

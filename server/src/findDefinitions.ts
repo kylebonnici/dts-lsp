@@ -41,7 +41,7 @@ export const generateDefinitionsFromNode = (node: Node) => {
 			const virtualDoc = convertVirtualFsPathToDocumentFsPath(dtc.fsPath);
 			if (virtualDoc) {
 				return Location.create(
-					pathToFileURI(virtualDoc.docFsPath),
+					pathToFileURI(virtualDoc.fsPath),
 					virtualDoc.range,
 				);
 			}
@@ -65,7 +65,7 @@ export const generatePropertyDefinition = (property: Property): Location[] => {
 			const virtualDoc = convertVirtualFsPathToDocumentFsPath(dtc.fsPath);
 			if (virtualDoc) {
 				return Location.create(
-					pathToFileURI(virtualDoc.docFsPath),
+					pathToFileURI(virtualDoc.fsPath),
 					virtualDoc.range,
 				);
 			}

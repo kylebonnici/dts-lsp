@@ -291,7 +291,7 @@ export const convertVirtualFsPathToDocumentFsPath = (fsPath: string) => {
 	const [endLine, endCol] = endRaw.split(':');
 
 	return {
-		docFsPath,
+		fsPath: docFsPath,
 		range: Range.create(
 			Position.create(
 				Number.parseInt(startLine),
@@ -307,14 +307,14 @@ const convertVirtualIssue = <T extends IssueTypes>(issue: Issue<T>) => {
 	if (!virtualDoc) return;
 
 	issue.range = virtualDoc.range;
-	issue.fsPath = virtualDoc?.docFsPath;
+	issue.fsPath = virtualDoc?.fsPath;
 	issue.virtual = true;
 	issue.linkedTo = issue.linkedTo.map(({ range, fsPath }) => {
 		const linkedIssueVirtualDoc =
 			convertVirtualFsPathToDocumentFsPath(fsPath);
 		return {
 			range: linkedIssueVirtualDoc?.range ?? range,
-			fsPath: linkedIssueVirtualDoc?.docFsPath ?? fsPath,
+			fsPath: linkedIssueVirtualDoc?.fsPath ?? fsPath,
 			templateStrings: [],
 		};
 	});
@@ -354,11 +354,21 @@ export const genSyntaxDiagnostic = (
 		range: toRangeWithTokenIndex(start, end, inclusiveStart, inclusiveEnd),
 		fsPath: start.fsPath,
 		severity,
-		linkedTo: linkedTo.map(({ range, fsPath }) => ({
-			range,
-			fsPath,
-			templateStrings: [],
-		})),
+		linkedTo: linkedTo.map(({ range, fsPath }) => {
+			const convertedToDoc = convertVirtualFsPathToDocumentFsPath(fsPath);
+			if (convertedToDoc) {
+				return {
+					...convertedToDoc,
+					templateStrings: [],
+				};
+			}
+
+			return {
+				range,
+				fsPath,
+				templateStrings: [],
+			};
+		}),
 		tags,
 		templateStrings,
 		edit,
@@ -440,11 +450,21 @@ export const genContextDiagnostic = (
 		range: toRangeWithTokenIndex(start, end),
 		fsPath: start.fsPath,
 		severity,
-		linkedTo: linkedTo.map(({ range, fsPath }, i) => ({
-			range,
-			fsPath,
-			templateStrings: linkedToTemplateStrings.at(i) ?? [],
-		})),
+		linkedTo: linkedTo.map(({ range, fsPath }, i) => {
+			const convertedToDoc = convertVirtualFsPathToDocumentFsPath(fsPath);
+			if (convertedToDoc) {
+				return {
+					...convertedToDoc,
+					templateStrings: [],
+				};
+			}
+
+			return {
+				range,
+				fsPath,
+				templateStrings: linkedToTemplateStrings.at(i) ?? [],
+			};
+		}),
 		tags,
 		templateStrings,
 		edit,
@@ -520,11 +540,21 @@ export const genStandardTypeDiagnostic = (
 		range: toRangeWithTokenIndex(start, end),
 		severity,
 		fsPath: start.fsPath,
-		linkedTo: linkedTo.map(({ range, fsPath }) => ({
-			range,
-			fsPath,
-			templateStrings: [],
-		})),
+		linkedTo: linkedTo.map(({ range, fsPath }, i) => {
+			const convertedToDoc = convertVirtualFsPathToDocumentFsPath(fsPath);
+			if (convertedToDoc) {
+				return {
+					...convertedToDoc,
+					templateStrings: [],
+				};
+			}
+
+			return {
+				range,
+				fsPath,
+				templateStrings: [],
+			};
+		}),
 		tags,
 		templateStrings,
 		edit,

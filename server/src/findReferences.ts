@@ -67,7 +67,7 @@ function getPropertyReferences(
 				);
 				if (virtualDoc) {
 					return Location.create(
-						pathToFileURI(virtualDoc.docFsPath),
+						pathToFileURI(virtualDoc.fsPath),
 						virtualDoc.range,
 					);
 				}
@@ -153,7 +153,7 @@ function getNodeReferences(result: SearchableResult | undefined): Location[] {
 					dtc && convertVirtualFsPathToDocumentFsPath(dtc?.fsPath);
 				if (virtualDoc) {
 					return Location.create(
-						pathToFileURI(virtualDoc.docFsPath),
+						pathToFileURI(virtualDoc.fsPath),
 						virtualDoc.range,
 					);
 				}
