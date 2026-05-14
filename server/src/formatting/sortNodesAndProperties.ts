@@ -34,7 +34,7 @@ import {
 	DtcRefNode,
 	DtcRootNode,
 } from '../ast/dtc/node';
-import { IfDefineBlock, IfElIfBlock } from '../ast/cPreprocessors/ifDefine';
+import { IfElIfBlock } from '../ast/cPreprocessors/ifDefine';
 import { DtcProperty } from '../ast/dtc/property';
 import { DeleteBase } from '../ast/dtc/delete';
 import { Parser } from '../parser';
@@ -54,7 +54,7 @@ export async function sortNodesAndProperties(
 	text: string,
 	returnType: 'New Text',
 	includes: Include[],
-	ifDefs: (IfDefineBlock | IfElIfBlock)[],
+	ifDefs: IfElIfBlock[],
 ): Promise<string>;
 export async function sortNodesAndProperties(
 	settings: CustomDocumentFormattingParams,
@@ -63,7 +63,7 @@ export async function sortNodesAndProperties(
 	text: string,
 	returnType: 'File Diagnostics',
 	includes: Include[],
-	ifDefs: (IfDefineBlock | IfElIfBlock)[],
+	ifDefs: IfElIfBlock[],
 ): Promise<FileDiagnostic[]>;
 export async function sortNodesAndProperties(
 	settings: CustomDocumentFormattingParams,
@@ -72,7 +72,7 @@ export async function sortNodesAndProperties(
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics',
 	includes: Include[],
-	ifDefs: (IfDefineBlock | IfElIfBlock)[],
+	ifDefs: IfElIfBlock[],
 ): Promise<string | FileDiagnostic[]> {
 	const splitDocument = text.split('\n');
 	const formatOnOffMeta = pairFormatOnOff(astItems, splitDocument);
@@ -121,9 +121,7 @@ export async function sortNodesAndProperties(
 					'New Text',
 					parser.includes,
 					parser.cPreprocessorParser.allAstItems.filter(
-						(a) =>
-							a instanceof IfDefineBlock ||
-							a instanceof IfElIfBlock,
+						(a) => a instanceof IfElIfBlock,
 					),
 				);
 			case 'File Diagnostics':
@@ -144,7 +142,7 @@ function sortNodesAndPropertiesHelper(
 	node: DtcBaseNode,
 	fsPath: string,
 	includes: Include[],
-	ifDefs: (IfDefineBlock | IfElIfBlock)[],
+	ifDefs: IfElIfBlock[],
 	splitDocument: string[],
 	formatOff: Range[],
 ): FileDiagnostic[] {

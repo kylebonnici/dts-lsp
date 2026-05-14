@@ -73,7 +73,8 @@ import {
 	CElse,
 	CIf,
 	CIfBase,
-	IfDefineBlock,
+	CIfDef,
+	CIfNotDef,
 	IfElIfBlock,
 } from '../ast/cPreprocessors/ifDefine';
 import { NumberValue } from '../ast/dtc/values/number';
@@ -119,7 +120,7 @@ export async function formatText(
 	text: string,
 	returnType: 'New Text',
 	tokens?: Token[],
-	prevIfBlocks?: (IfDefineBlock | IfElIfBlock)[],
+	prevIfBlocks?: IfElIfBlock[],
 	processedPrevIfBlocks?: CIfBase[],
 ): Promise<string>;
 export async function formatText(
@@ -130,7 +131,7 @@ export async function formatText(
 	text: string,
 	returnType: 'File Diagnostics',
 	tokens?: Token[],
-	prevIfBlocks?: (IfDefineBlock | IfElIfBlock)[],
+	prevIfBlocks?: IfElIfBlock[],
 	processedPrevIfBlocks?: CIfBase[],
 ): Promise<FileDiagnostic[]>;
 export async function formatText(
@@ -141,7 +142,7 @@ export async function formatText(
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics',
 	tokens?: Token[],
-	prevIfBlocks: (IfDefineBlock | IfElIfBlock)[] = [],
+	prevIfBlocks: IfElIfBlock[] = [],
 	processedPrevIfBlocks: CIfBase[] = [],
 ): Promise<string | FileDiagnostic[]> {
 	const fsPath = fileURIToFsPath(documentFormattingParams.textDocument.uri);
@@ -508,60 +509,35 @@ export async function formatText(
 const getDisabledMarcoRangeEdits = async (
 	documentFormattingParams: CustomDocumentFormattingParams,
 	parser: Parser,
-	prevIfBlocks: (IfDefineBlock | IfElIfBlock)[],
+	prevIfBlocks: IfElIfBlock[],
 	processedPrevIfBlocks: CIfBase[],
 	rawTokens: Token[],
 	text: string,
 ) => {
-	const ifDefBlocks = parser.cPreprocessorParser.allAstItems.filter(
-		(ast) => ast instanceof IfDefineBlock,
-	);
 	const ifBlocks = parser.cPreprocessorParser.allAstItems.filter(
 		(ast) => ast instanceof IfElIfBlock,
 	);
 
-	const newIfDefBlocks = ifDefBlocks.filter((b) =>
-		prevIfBlocks.every(
-			(bb) => b.firstToken.pos.line !== bb.firstToken.pos.line,
-		),
-	);
 	const newIfBlocks = ifBlocks.filter((b) =>
 		prevIfBlocks.every(
 			(bb) => b.firstToken.pos.line !== bb.firstToken.pos.line,
 		),
 	);
-	prevIfBlocks.push(...newIfDefBlocks);
 	prevIfBlocks.push(...newIfBlocks);
 
 	const rangesToWorkOn = [
-		...ifDefBlocks.map((block) => {
-			if (block.ifDef.active) {
-				if (block.elseOption) {
-					return {
-						block,
-						branch: block.elseOption,
-					};
-				}
-				return;
-			}
-
-			return {
-				block,
-				branch: block.ifDef,
-			};
-		}),
 		...ifBlocks.flatMap((block) => {
 			const active = block.ifBlocks.find((i) => i.active);
 			const results: {
 				block: IfElIfBlock;
-				branch: CIf | CElse;
+				branch: CIf | CIfDef | CIfNotDef | CElse;
 			}[] = block.ifBlocks
 				.filter((v) => !v.active)
 				.map((branch) => ({
 					block,
 					branch,
 				}));
-			if (!active && block.elseOption) {
+			if (active && block.elseOption) {
 				results.push({
 					block,
 					branch: block.elseOption,
@@ -572,17 +548,10 @@ const getDisabledMarcoRangeEdits = async (
 		}),
 	].filter((v) => !!v);
 
-	const action = (
-		meta:
-			| {
-					block: IfDefineBlock;
-					branch: CElse;
-			  }
-			| {
-					block: IfElIfBlock;
-					branch: CIf | CElse;
-			  },
-	) => {
+	const action = (meta: {
+		block: IfElIfBlock;
+		branch: CIf | CIfDef | CIfDef | CElse;
+	}) => {
 		const rangeToClean = meta.block.getInValidTokenRangeWhenActiveBlock(
 			meta.branch,
 		);
@@ -597,6 +566,10 @@ const getDisabledMarcoRangeEdits = async (
 				options: {
 					...documentFormattingParams.options,
 					sortNodesAndProperties: false,
+					removeDuplicateProperties: false,
+					removeEmptyReferences: false,
+					removeEmptyNodes: false,
+					removeEmptyRoots: false,
 				},
 			},
 			text,
@@ -660,7 +633,7 @@ async function formatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
 	includes: Include[],
-	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
+	ifDefBlocks: IfElIfBlock[],
 	fsPath: string,
 	text: string,
 	returnType: 'File Diagnostics',
@@ -671,7 +644,7 @@ async function formatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
 	includes: Include[],
-	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
+	ifDefBlocks: IfElIfBlock[],
 	fsPath: string,
 	text: string,
 	returnType: 'New Text',
@@ -682,7 +655,7 @@ async function formatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
 	includes: Include[],
-	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
+	ifDefBlocks: IfElIfBlock[],
 	fsPath: string,
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics',
@@ -729,7 +702,7 @@ async function baseFormatAstBaseItems(
 	documentFormattingParams: CustomDocumentFormattingParams,
 	astItems: ASTBase[],
 	includes: Include[],
-	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
+	ifDefBlocks: IfElIfBlock[],
 	fsPath: string,
 	splitDocument: string[],
 	options: FormattingFlags,
@@ -1123,7 +1096,7 @@ const formatDtcNode = async (
 	documentFormattingParams: CustomDocumentFormattingParams,
 	node: DtcBaseNode,
 	includes: Include[],
-	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
+	ifDefBlocks: IfElIfBlock[],
 	fsPath: string,
 	level: number,
 	indentString: string,
@@ -2091,7 +2064,7 @@ const formatDtcInclude = (
 
 const formatCommentBlock = (
 	commentItem: CommentBlock,
-	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
+	ifDefBlocks: IfElIfBlock[],
 	levelMeta: LevelMeta | undefined,
 	indentString: string,
 	documentText: string[],
@@ -2144,17 +2117,10 @@ const getPropertyIndentPrefix = (
 
 const getNodeExpectedNumberOfNewLines = (
 	token: Token,
-	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
+	ifDefBlocks: IfElIfBlock[],
 ) => {
 	const isFirstInIfDefBlock = ifDefBlocks
 		.flatMap((block) => {
-			if (block instanceof IfDefineBlock) {
-				return [
-					block.ifDef.identifier?.lastToken.nextToken,
-					block.elseOption?.keyword.lastToken.nextToken,
-				];
-			}
-
 			return [
 				...block.ifBlocks.map((b) => b.expression?.lastToken.nextToken),
 				block.elseOption?.lastToken.nextToken,
@@ -2203,7 +2169,7 @@ const getPropertyExpectedNumberOfNewLines = (
 const formatBlockCommentLine = (
 	commentItem: Comment,
 	commentBlock: CommentBlock,
-	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
+	ifDefBlocks: IfElIfBlock[],
 	levelMeta: LevelMeta | undefined,
 	indentString: string,
 	documentText: string[],
@@ -2325,7 +2291,7 @@ const formatBlockCommentLine = (
 
 const formatComment = (
 	commentItem: Comment,
-	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
+	ifDefBlocks: IfElIfBlock[],
 	levelMeta: LevelMeta | undefined,
 	indentString: string,
 	documentText: string[],
@@ -2378,7 +2344,7 @@ const getTextEdit = async (
 	computeLevel: (astNode: ASTBase) => Promise<LevelMeta | undefined>,
 	documentText: string[],
 	includes: Include[],
-	ifDefBlocks: (IfDefineBlock | IfElIfBlock)[],
+	ifDefBlocks: IfElIfBlock[],
 	options: FormattingFlags,
 	level = 0,
 ): Promise<FileDiagnostic[]> => {

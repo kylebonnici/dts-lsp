@@ -43,16 +43,16 @@ export abstract class CIfBase extends ASTBase {
 export class CIfDef extends CIfBase {
 	constructor(
 		keyword: Keyword,
-		public readonly identifier: CIdentifier | null,
+		public readonly expression: CIdentifier | null,
 		content: CPreprocessorContent | null,
 	) {
 		super(keyword, content);
-		this.addChild(identifier);
+		this.addChild(expression);
 		this.addChild(content);
 	}
 
 	useBlock(macrosResolvers: Map<string, MacroRegistryItem>) {
-		return this.identifier && macrosResolvers.has(this.identifier.name);
+		return this.expression && macrosResolvers.has(this.expression.name);
 	}
 }
 
@@ -74,7 +74,7 @@ export class CIf extends CIfBase {
 
 export class CIfNotDef extends CIfDef {
 	useBlock(macrosResolvers: Map<string, MacroRegistryItem>) {
-		return this.identifier && !macrosResolvers.has(this.identifier.name);
+		return this.expression && !macrosResolvers.has(this.expression.name);
 	}
 }
 
@@ -93,110 +93,9 @@ const getRangeTokens = (startToken: Token, endToken: Token) => {
 	return tokens;
 };
 
-export class IfDefineBlock extends ASTBase {
-	constructor(
-		public readonly ifDef: CIfDef | CIfNotDef,
-		public readonly endIf: CEndIf | null,
-		public readonly elseOption?: CElse,
-	) {
-		super();
-		this.addChild(ifDef);
-		if (elseOption) this.addChild(elseOption);
-		this.addChild(endIf);
-	}
-
-	get inactiveRanges() {
-		if (this.elseOption && !this.elseOption.active) {
-			const start = this.elseOption.firstToken;
-			const end =
-				this.elseOption.content?.lastToken ??
-				this.endIf?.firstToken ??
-				this.lastToken;
-			return [Range.create(toPosition(start), toPosition(end))];
-		}
-
-		if (!this.ifDef.active) {
-			const start = this.ifDef.firstToken;
-			const end = this.ifDef.content
-				? this.ifDef.content?.lastToken
-				: this.elseOption
-					? this.elseOption.firstToken
-					: this.endIf?.lastToken;
-			return [
-				Range.create(
-					toPosition(start),
-					toPosition(end ?? this.ifDef.lastToken),
-				),
-			];
-		}
-
-		return [];
-	}
-
-	getInValidTokenRange(
-		macrosResolvers: Map<string, MacroRegistryItem>,
-	): WeakSet<Token> {
-		// No identifier so ignore all block
-		if (!this.ifDef.identifier) {
-			return new WeakSet(getRangeTokens(this.firstToken, this.lastToken));
-		}
-
-		const useMainBlock = this.ifDef.useBlock(macrosResolvers);
-		if (useMainBlock) {
-			this.ifDef.active = true;
-		} else if (this.elseOption) {
-			this.elseOption.active = true;
-		}
-		return this.getInValidTokenRangeWhenActiveBlock(
-			useMainBlock ? this.ifDef : this.elseOption,
-		);
-	}
-
-	getInValidTokenRangeWhenActiveBlock(activeBlock: CIfBase | undefined) {
-		const invalidRange = new WeakSet<Token>();
-
-		const endToken = (this.ifDef.identifier ?? this.ifDef.keyword)
-			.lastToken;
-
-		getRangeTokens(this.ifDef.firstToken, endToken).forEach((t) =>
-			invalidRange.add(t),
-		);
-
-		const useMainBlock = this.ifDef === activeBlock;
-		if (!useMainBlock && this.ifDef.content) {
-			getRangeTokens(
-				this.ifDef.content.firstToken,
-				this.ifDef.content.lastToken,
-			).forEach((t) => invalidRange.add(t));
-		}
-
-		if (this.elseOption) {
-			getRangeTokens(
-				this.elseOption.firstToken,
-				this.elseOption.keyword.lastToken,
-			).forEach((t) => invalidRange.add(t));
-
-			if (useMainBlock && this.elseOption.content) {
-				getRangeTokens(
-					this.elseOption.content.firstToken,
-					this.elseOption.content.lastToken,
-				).forEach((t) => invalidRange.add(t));
-			}
-		}
-
-		if (this.endIf) {
-			getRangeTokens(this.endIf.firstToken, this.endIf.lastToken).forEach(
-				(t) => invalidRange.add(t),
-			);
-		}
-
-		return invalidRange;
-	}
-}
-
 export class IfElIfBlock extends ASTBase {
 	constructor(
-		public readonly ifBlocks: CIf[],
+		public readonly ifBlocks: (CIf | CIfDef | CIfDef)[],
 		public readonly endIf: CEndIf | null,
 		public readonly elseOption?: CElse,
 	) {
@@ -243,18 +142,24 @@ export class IfElIfBlock extends ASTBase {
 			result.push(Range.create(toPosition(start), toPosition(end)));
 		});
 
-		if (this.elseOption && result.length) {
+		const hasActiveIfBlock = result.length !== this.ifBlocks.length;
+		if (this.elseOption && hasActiveIfBlock) {
 			const start = this.elseOption.firstToken;
 			const end =
 				this.elseOption.content?.lastToken ??
 				this.endIf?.lastToken ??
 				this.lastToken;
+			result.push(Range.create(toPosition(start), toPosition(end)));
+			return result;
+		}
+
+		if (!hasActiveIfBlock) {
+			const start = this.firstToken;
+			const end = this.lastToken;
 			return [Range.create(toPosition(start), toPosition(end))];
 		}
 
-		const start = this.firstToken;
-		const end = this.lastToken;
-		return [Range.create(toPosition(start), toPosition(end))];
+		return result;
 	}
 
 	getInValidTokenRangeWhenActiveBlock(activeBlock: CIfBase | undefined) {

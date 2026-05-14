@@ -51,7 +51,6 @@ import {
 	CIfDef,
 	CIfNotDef,
 	CPreprocessorContent,
-	IfDefineBlock,
 	IfElIfBlock,
 } from './ast/cPreprocessors/ifDefine';
 import { getCachedCPreprocessorParserProvider } from './providers/cachedCPreprocessorParser';
@@ -494,29 +493,7 @@ export class CPreprocessorParser extends BaseParser {
 			return;
 		}
 
-		let ifDefBlock: IfDefineBlock | IfElIfBlock | undefined;
-		if (validToken(block.startToken, LexerToken.C_IF)) {
-			ifDefBlock = this.processIfBlock(
-				block,
-				(
-					keyword: Keyword,
-					identifier: Expression | null,
-					content: CPreprocessorContent | null,
-				) => new CIf(keyword, identifier ?? null, content),
-			);
-		} else {
-			ifDefBlock = this.processIfDefBlock(
-				block,
-				(
-					keyword: Keyword,
-					identifier: CIdentifier | null,
-					content: CPreprocessorContent | null,
-				) =>
-					validToken(block.startToken, LexerToken.C_IFDEF)
-						? new CIfDef(keyword, identifier ?? null, content)
-						: new CIfNotDef(keyword, identifier ?? null, content),
-			);
-		}
+		let ifDefBlock = this.processIfBlock(block);
 
 		this.nodes.push(ifDefBlock);
 
@@ -531,9 +508,7 @@ export class CPreprocessorParser extends BaseParser {
 		});
 
 		[
-			...(ifDefBlock instanceof IfElIfBlock
-				? ifDefBlock.ifBlocks
-				: [ifDefBlock.ifDef]),
+			...ifDefBlock.ifBlocks,
 			...(ifDefBlock.elseOption ? [ifDefBlock.elseOption] : []),
 		].forEach((b) => {
 			if (!b.active && b.content) {
@@ -557,137 +532,50 @@ export class CPreprocessorParser extends BaseParser {
 		return;
 	}
 
-	private processIfDefBlock(
-		block: Block,
-		ifCreator: (
-			keyword: Keyword,
-			identifier: CIdentifier | null,
-			content: CPreprocessorContent | null,
-		) => CIfDef | CIfNotDef,
-	): IfDefineBlock {
-		this.enqueueToStack();
-		this.macroStart = true;
-
-		const ifDefKeyword = new Keyword(createTokenIndex(block.startToken));
-
-		// rewind so we can capture the identifier
-		block.splitTokens[0].rewind();
-		const identifier = this.processCIdentifier(this.macros, true);
-		if (!identifier) {
-			this._issues.push(
-				genSyntaxDiagnostic(
-					SyntaxIssue.EXPECTED_IDENTIFIER,
-					ifDefKeyword.firstToken,
-					ifDefKeyword.lastToken,
-					ifDefKeyword,
-				),
-			);
-		}
-
-		this.macroStart = false;
-
-		let ifDefContent: CPreprocessorContent | undefined;
-		const contentStartIndex =
-			block.splitTokens[0].tokens.indexOf(
-				identifier?.lastToken ?? ifDefKeyword.lastToken,
-			) + 1;
-		const contentStart = block.splitTokens[0].tokens[contentStartIndex];
-		if (contentStartIndex && contentStart) {
-			ifDefContent = new CPreprocessorContent(
-				createTokenIndex(
-					contentStart,
-					block.splitTokens[0].tokens.at(-1),
-				),
-			);
-		}
-
-		const ifDef = ifCreator(
-			ifDefKeyword,
-			identifier ?? null,
-			ifDefContent ?? null,
-		);
-
-		let cElse: CElse | undefined;
-
-		if (block.splitTokens.length > 1) {
-			const elseToken = block.separatorTokens[0];
-			const elseKeyword = new Keyword(createTokenIndex(elseToken));
-			let elseContent: CPreprocessorContent | undefined;
-			if (block.splitTokens[1].tokens.length) {
-				elseContent = new CPreprocessorContent(
-					createTokenIndex(
-						block.splitTokens[1].tokens[0],
-						block.splitTokens[1].tokens.at(-1),
-					),
-				);
-			}
-			cElse = new CElse(elseKeyword, elseContent ?? null);
-		}
-
-		let endifKeyword: Keyword | undefined;
-		if (block.endToken) {
-			endifKeyword = new Keyword(createTokenIndex(block.endToken));
-		} else {
-			this._issues.push(
-				genSyntaxDiagnostic(
-					SyntaxIssue.MISSING_ENDIF,
-					ifDefKeyword.firstToken,
-					ifDefKeyword.lastToken,
-					ifDefKeyword,
-				),
-			);
-		}
-
-		const ifDefBlock = new IfDefineBlock(
-			ifDef,
-			endifKeyword ?? null,
-			cElse,
-		);
-
-		this.mergeStack();
-		return ifDefBlock;
-	}
-
-	private processIfBlock(
-		block: Block,
-		ifCreator: (
-			keyword: Keyword,
-			expression: Expression | null,
-			content: CPreprocessorContent | null,
-		) => CIf,
-	): IfElIfBlock {
+	private processIfBlock(block: Block): IfElIfBlock {
 		this.enqueueToStack();
 
 		const ifKeyword = new Keyword(createTokenIndex(block.startToken));
 
-		const ifBlocks: CIf[] = [];
+		const ifBlocks: (CIf | CIfDef | CIfNotDef)[] = [];
 		let cElse: CElse | undefined;
 
 		block.splitTokens.forEach((scope, i) => {
 			scope.rewind();
 			const startToken = this.prevToken!;
+			const isElse =
+				i === block.splitTokens.length - 1 &&
+				validToken(startToken, LexerToken.C_ELSE);
 			const keyword = new Keyword(createTokenIndex(startToken));
 
 			this.macroStart = true;
 
-			let expression =
-				this.processExpression(this.macros, keyword, true) ||
-				this.processCIdentifier(this.macros, true);
+			let expression: Expression | undefined;
+			let identifier: CIdentifier | undefined;
 
 			if (
-				expression instanceof CIdentifier &&
-				expression.name.toLowerCase() === 'defined'
+				validToken(keyword.firstToken, LexerToken.C_IFDEF) ||
+				validToken(keyword.firstToken, LexerToken.C_IFNDEF)
 			) {
+				identifier = this.processCIdentifier(this.macros, true);
+				expression = identifier;
+			} else {
 				expression =
 					this.processExpression(this.macros, keyword, true) ||
 					this.processCIdentifier(this.macros, true);
+
+				if (
+					expression instanceof CIdentifier &&
+					expression.name.toLowerCase() === 'defined'
+				) {
+					expression =
+						this.processExpression(this.macros, keyword, true) ||
+						this.processCIdentifier(this.macros, true);
+				}
 			}
 
 			this.macroStart = false;
 
-			const isElse =
-				i === block.splitTokens.length - 1 &&
-				validToken(startToken, LexerToken.C_ELSE);
 			if (isElse) {
 				const elseToken = startToken;
 				const elseKeyword = new Keyword(createTokenIndex(elseToken));
@@ -703,35 +591,48 @@ export class CPreprocessorParser extends BaseParser {
 					this._issues.push(
 						genSyntaxDiagnostic(
 							SyntaxIssue.EXPECTED_IDENTIFIER,
-							ifKeyword.firstToken,
-							ifKeyword.lastToken,
-							ifKeyword,
+							keyword.firstToken,
+							keyword.lastToken,
+							keyword,
 						),
 					);
 				}
 
 				let content: CPreprocessorContent | undefined;
 				const contentStartIndex =
-					block.splitTokens[0].tokens.indexOf(
+					scope.tokens.indexOf(
 						expression?.lastToken ?? ifKeyword.lastToken,
 					) + 1;
-				const contentStart =
-					block.splitTokens[0].tokens[contentStartIndex];
-				if (contentStartIndex && contentStart) {
+				const contentStart = scope.tokens[contentStartIndex];
+				if (contentStartIndex !== -1 && contentStart) {
 					content = new CPreprocessorContent(
-						createTokenIndex(
-							contentStart,
-							block.splitTokens[i].tokens.at(-1),
-						),
+						createTokenIndex(contentStart, scope.tokens.at(-1)),
 					);
 				}
 
-				const ifBlock = ifCreator(
-					keyword,
-					expression ?? null,
-					content ?? null,
-				);
-				ifBlocks.push(ifBlock);
+				if (validToken(keyword.firstToken, LexerToken.C_IFDEF)) {
+					ifBlocks.push(
+						new CIfDef(
+							keyword,
+							identifier ?? null,
+							content ?? null,
+						),
+					);
+				} else if (
+					validToken(keyword.firstToken, LexerToken.C_IFNDEF)
+				) {
+					ifBlocks.push(
+						new CIfNotDef(
+							keyword,
+							identifier ?? null,
+							content ?? null,
+						),
+					);
+				} else {
+					ifBlocks.push(
+						new CIf(keyword, expression ?? null, content ?? null),
+					);
+				}
 			}
 		});
 

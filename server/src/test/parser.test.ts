@@ -35,7 +35,7 @@ import { StringValue } from '../ast/dtc/values/string';
 import { ByteStringValue } from '../ast/dtc/values/byteString';
 import { DeleteNode } from '../ast/dtc/deleteNode';
 import { Comment, CommentBlock } from '../ast/dtc/comment';
-import { IfDefineBlock, IfElIfBlock } from '../ast/cPreprocessors/ifDefine';
+import { CIfDef, IfElIfBlock } from '../ast/cPreprocessors/ifDefine';
 import { CPreprocessorParser } from '../cPreprocessorParser';
 import { DtsDocumentVersion } from '../ast/dtc/dtsDocVersion';
 import { CMacroCall } from '../ast/cPreprocessors/functionCall';
@@ -3035,24 +3035,27 @@ describe('Parser', () => {
 				]);
 
 				const ifDefineBlocks = parser.allAstItems.filter(
-					(o) => o instanceof IfDefineBlock,
-				) as IfDefineBlock[];
+					(o) => o instanceof IfElIfBlock,
+				) as IfElIfBlock[];
 				expect(ifDefineBlocks.length).toEqual(1);
 
 				const ifDefineBlock = ifDefineBlocks[0];
-				expect(ifDefineBlock.ifDef.identifier?.name).toEqual('HELLO');
-				expect(ifDefineBlock.ifDef.content?.firstToken.pos.col).toEqual(
-					0,
-				);
+				expect(ifDefineBlock.ifBlocks[0] instanceof CIfDef);
 				expect(
-					ifDefineBlock.ifDef.content?.firstToken.pos.line,
+					(ifDefineBlock.ifBlocks[0] as CIfDef).expression?.name,
+				).toEqual('HELLO');
+				expect(
+					ifDefineBlock.ifBlocks[0].content?.firstToken.pos.col,
+				).toEqual(0);
+				expect(
+					ifDefineBlock.ifBlocks[0].content?.firstToken.pos.line,
 				).toEqual(1);
 				expect(
-					ifDefineBlock.ifDef.content!.lastToken.pos.colEnd,
+					ifDefineBlock.ifBlocks[0].content!.lastToken.pos.colEnd,
 				).toEqual(5);
-				expect(ifDefineBlock.ifDef.content?.lastToken.pos.line).toEqual(
-					2,
-				);
+				expect(
+					ifDefineBlock.ifBlocks[0].content?.lastToken.pos.line,
+				).toEqual(2);
 				expect(ifDefineBlock.elseOption).toBeUndefined();
 				expect(tokensToString(parser.tokens)).toEqual('');
 			});
@@ -3066,24 +3069,27 @@ describe('Parser', () => {
 				expect(parser.issues.length).toEqual(0);
 
 				const ifDefineBlocks = parser.allAstItems.filter(
-					(o) => o instanceof IfDefineBlock,
-				) as IfDefineBlock[];
+					(o) => o instanceof IfElIfBlock,
+				) as IfElIfBlock[];
 				expect(ifDefineBlocks.length).toEqual(1);
 
 				const ifDefineBlock = ifDefineBlocks[0];
-				expect(ifDefineBlock.ifDef.identifier?.name).toEqual('HELLO');
-				expect(ifDefineBlock.ifDef.content?.firstToken.pos.col).toEqual(
-					0,
-				);
+				expect(ifDefineBlock.ifBlocks[0] instanceof CIfDef);
 				expect(
-					ifDefineBlock.ifDef.content?.firstToken.pos.line,
+					(ifDefineBlock.ifBlocks[0] as CIfDef).expression?.name,
+				).toEqual('HELLO');
+				expect(
+					ifDefineBlock.ifBlocks[0].content?.firstToken.pos.col,
+				).toEqual(0);
+				expect(
+					ifDefineBlock.ifBlocks[0].content?.firstToken.pos.line,
 				).toEqual(2);
 				expect(
-					ifDefineBlock.ifDef.content!.lastToken.pos.colEnd,
+					ifDefineBlock.ifBlocks[0].content!.lastToken.pos.colEnd,
 				).toEqual(5);
-				expect(ifDefineBlock.ifDef.content?.lastToken.pos.line).toEqual(
-					3,
-				);
+				expect(
+					ifDefineBlock.ifBlocks[0].content?.lastToken.pos.line,
+				).toEqual(3);
 				expect(ifDefineBlock.elseOption).toBeUndefined();
 				expect(tokensToString(parser.tokens).trim()).toEqual(
 					'some\nstuff',
@@ -3099,41 +3105,48 @@ describe('Parser', () => {
 				expect(parser.issues.length).toEqual(0);
 
 				const ifDefineBlocks = parser.allAstItems.filter(
-					(o) => o instanceof IfDefineBlock,
-				) as IfDefineBlock[];
+					(o) => o instanceof IfElIfBlock,
+				) as IfElIfBlock[];
 				expect(ifDefineBlocks.length).toEqual(2);
 
 				const ifDefineBlock = ifDefineBlocks[0];
-				expect(ifDefineBlock.ifDef.identifier?.name).toEqual('HELLO');
-				expect(ifDefineBlock.ifDef.content?.firstToken.pos.col).toEqual(
-					0,
-				);
+				expect(ifDefineBlock.ifBlocks[0] instanceof CIfDef);
 				expect(
-					ifDefineBlock.ifDef.content?.firstToken.pos.line,
+					(ifDefineBlock.ifBlocks[0] as CIfDef).expression?.name,
+				).toEqual('HELLO');
+				expect(
+					ifDefineBlock.ifBlocks[0].content?.firstToken.pos.col,
+				).toEqual(0);
+				expect(
+					ifDefineBlock.ifBlocks[0].content?.firstToken.pos.line,
 				).toEqual(3);
 				expect(
-					ifDefineBlock.ifDef.content!.lastToken.pos.colEnd,
+					ifDefineBlock.ifBlocks[0].content?.lastToken.pos.colEnd,
 				).toEqual(6);
-				expect(ifDefineBlock.ifDef.content?.lastToken.pos.line).toEqual(
-					8,
-				);
+				expect(
+					ifDefineBlock.ifBlocks[0].content?.lastToken.pos.line,
+				).toEqual(8);
 				expect(ifDefineBlock.elseOption).toBeUndefined();
 
 				const ifDefineBlockNested = ifDefineBlocks[1];
-				expect(ifDefineBlockNested.ifDef.identifier?.name).toEqual(
-					'AGAIN',
-				);
+				expect(ifDefineBlockNested.ifBlocks[0] instanceof CIfDef);
 				expect(
-					ifDefineBlockNested.ifDef.content?.firstToken.pos.col,
+					(ifDefineBlockNested.ifBlocks[0] as CIfDef).expression
+						?.name,
+				).toEqual('AGAIN');
+				expect(
+					ifDefineBlockNested.ifBlocks[0].content?.firstToken.pos.col,
 				).toEqual(0);
 				expect(
-					ifDefineBlockNested.ifDef.content?.firstToken.pos.line,
+					ifDefineBlockNested.ifBlocks[0].content?.firstToken.pos
+						.line,
 				).toEqual(6);
 				expect(
-					ifDefineBlockNested.ifDef.content!.lastToken.pos.colEnd,
+					ifDefineBlockNested.ifBlocks[0].content?.lastToken.pos
+						.colEnd,
 				).toEqual(3);
 				expect(
-					ifDefineBlockNested.ifDef.content?.lastToken.pos.line,
+					ifDefineBlockNested.ifBlocks[0].content?.lastToken.pos.line,
 				).toEqual(7);
 				expect(ifDefineBlockNested.elseOption).toBeUndefined();
 
@@ -3154,24 +3167,27 @@ describe('Parser', () => {
 				]);
 
 				const ifDefineBlocks = parser.allAstItems.filter(
-					(o) => o instanceof IfDefineBlock,
-				) as IfDefineBlock[];
+					(o) => o instanceof IfElIfBlock,
+				) as IfElIfBlock[];
 				expect(ifDefineBlocks.length).toEqual(1);
 
 				const ifDefineBlock = ifDefineBlocks[0];
-				expect(ifDefineBlock.ifDef.identifier?.name).toEqual('HELLO');
-				expect(ifDefineBlock.ifDef.content?.firstToken.pos.col).toEqual(
-					0,
-				);
+				expect(ifDefineBlock.ifBlocks[0] instanceof CIfDef);
 				expect(
-					ifDefineBlock.ifDef.content?.firstToken.pos.line,
+					(ifDefineBlock.ifBlocks[0] as CIfDef).expression?.name,
+				).toEqual('HELLO');
+				expect(
+					ifDefineBlock.ifBlocks[0].content?.firstToken.pos.col,
+				).toEqual(0);
+				expect(
+					ifDefineBlock.ifBlocks[0].content?.firstToken.pos.line,
 				).toEqual(1);
 				expect(
-					ifDefineBlock.ifDef.content!.lastToken.pos.colEnd,
+					ifDefineBlock.ifBlocks[0].content?.lastToken.pos.colEnd,
 				).toEqual(5);
-				expect(ifDefineBlock.ifDef.content?.lastToken.pos.line).toEqual(
-					2,
-				);
+				expect(
+					ifDefineBlock.ifBlocks[0].content?.lastToken.pos.line,
+				).toEqual(2);
 
 				expect(
 					ifDefineBlock.elseOption?.content?.firstToken.pos.col,
@@ -3205,25 +3221,27 @@ describe('Parser', () => {
 				]);
 
 				const ifDefineBlocks = parser.allAstItems.filter(
-					(o) => o instanceof IfDefineBlock,
-				) as IfDefineBlock[];
+					(o) => o instanceof IfElIfBlock,
+				) as IfElIfBlock[];
 				expect(ifDefineBlocks.length).toEqual(2);
 
 				const ifDefineBlockOuter = ifDefineBlocks[0];
-				expect(ifDefineBlockOuter.ifDef.identifier?.name).toEqual(
-					'HELLO',
-				);
+				expect(ifDefineBlockOuter.ifBlocks[0] instanceof CIfDef);
 				expect(
-					ifDefineBlockOuter.ifDef.content?.firstToken.pos.col,
+					(ifDefineBlockOuter.ifBlocks[0] as CIfDef).expression?.name,
+				).toEqual('HELLO');
+				expect(
+					ifDefineBlockOuter.ifBlocks[0].content?.firstToken.pos.col,
 				).toEqual(0);
 				expect(
-					ifDefineBlockOuter.ifDef.content?.firstToken.pos.line,
+					ifDefineBlockOuter.ifBlocks[0].content?.firstToken.pos.line,
 				).toEqual(1);
 				expect(
-					ifDefineBlockOuter.ifDef.content!.lastToken.pos.colEnd,
+					ifDefineBlockOuter.ifBlocks[0].content?.lastToken.pos
+						.colEnd,
 				).toEqual(6);
 				expect(
-					ifDefineBlockOuter.ifDef.content?.lastToken.pos.line,
+					ifDefineBlockOuter.ifBlocks[0].content?.lastToken.pos.line,
 				).toEqual(7);
 
 				expect(
@@ -3241,20 +3259,22 @@ describe('Parser', () => {
 				).toEqual(15);
 
 				const ifDefineBlockInner = ifDefineBlocks[1];
-				expect(ifDefineBlockInner.ifDef.identifier?.name).toEqual(
-					'HELLO_AGAIN',
-				);
+				expect(ifDefineBlockInner.ifBlocks[0] instanceof CIfDef);
 				expect(
-					ifDefineBlockInner.ifDef.content?.firstToken.pos.col,
+					(ifDefineBlockInner.ifBlocks[0] as CIfDef).expression?.name,
+				).toEqual('HELLO_AGAIN');
+				expect(
+					ifDefineBlockInner.ifBlocks[0].content?.firstToken.pos.col,
 				).toEqual(0);
 				expect(
-					ifDefineBlockInner.ifDef.content?.firstToken.pos.line,
+					ifDefineBlockInner.ifBlocks[0].content?.firstToken.pos.line,
 				).toEqual(10);
 				expect(
-					ifDefineBlockInner.ifDef.content!.lastToken.pos.colEnd,
+					ifDefineBlockInner.ifBlocks[0].content?.lastToken.pos
+						.colEnd,
 				).toEqual(5);
 				expect(
-					ifDefineBlockInner.ifDef.content?.lastToken.pos.line,
+					ifDefineBlockInner.ifBlocks[0].content?.lastToken.pos.line,
 				).toEqual(11);
 
 				expect(
@@ -3293,25 +3313,27 @@ describe('Parser', () => {
 				]);
 
 				const ifDefineBlocks = parser.allAstItems.filter(
-					(o) => o instanceof IfDefineBlock,
-				) as IfDefineBlock[];
+					(o) => o instanceof IfElIfBlock,
+				) as IfElIfBlock[];
 				expect(ifDefineBlocks.length).toEqual(2);
 
 				const ifDefineBlockOuter = ifDefineBlocks[0];
-				expect(ifDefineBlockOuter.ifDef.identifier?.name).toEqual(
-					'HELLO',
-				);
+				expect(ifDefineBlockOuter.ifBlocks[0] instanceof CIfDef);
 				expect(
-					ifDefineBlockOuter.ifDef.content?.firstToken.pos.col,
+					(ifDefineBlockOuter.ifBlocks[0] as CIfDef).expression?.name,
+				).toEqual('HELLO');
+				expect(
+					ifDefineBlockOuter.ifBlocks[0].content?.firstToken.pos.col,
 				).toEqual(0);
 				expect(
-					ifDefineBlockOuter.ifDef.content?.firstToken.pos.line,
+					ifDefineBlockOuter.ifBlocks[0].content?.firstToken.pos.line,
 				).toEqual(3);
 				expect(
-					ifDefineBlockOuter.ifDef.content!.lastToken.pos.colEnd,
+					ifDefineBlockOuter.ifBlocks[0].content?.lastToken.pos
+						.colEnd,
 				).toEqual(6);
 				expect(
-					ifDefineBlockOuter.ifDef.content?.lastToken.pos.line,
+					ifDefineBlockOuter.ifBlocks[0].content?.lastToken.pos.line,
 				).toEqual(9);
 
 				expect(
@@ -3329,20 +3351,22 @@ describe('Parser', () => {
 				).toEqual(18);
 
 				const ifDefineBlockInner = ifDefineBlocks[1];
-				expect(ifDefineBlockInner.ifDef.identifier?.name).toEqual(
-					'AGAIN',
-				);
+				expect(ifDefineBlockInner.ifBlocks[0] instanceof CIfDef);
 				expect(
-					ifDefineBlockInner.ifDef.content?.firstToken.pos.col,
+					(ifDefineBlockInner.ifBlocks[0] as CIfDef).expression?.name,
+				).toEqual('AGAIN');
+				expect(
+					ifDefineBlockInner.ifBlocks[0].content?.firstToken.pos.col,
 				).toEqual(0);
 				expect(
-					ifDefineBlockInner.ifDef.content?.firstToken.pos.line,
+					ifDefineBlockInner.ifBlocks[0].content?.firstToken.pos.line,
 				).toEqual(4);
 				expect(
-					ifDefineBlockInner.ifDef.content!.lastToken.pos.colEnd,
+					ifDefineBlockInner.ifBlocks[0].content!.lastToken.pos
+						.colEnd,
 				).toEqual(5);
 				expect(
-					ifDefineBlockInner.ifDef.content?.lastToken.pos.line,
+					ifDefineBlockInner.ifBlocks[0].content?.lastToken.pos.line,
 				).toEqual(5);
 
 				expect(
@@ -3371,24 +3395,27 @@ describe('Parser', () => {
 				expect(parser.issues.length).toEqual(0);
 
 				const ifDefineBlocks = parser.allAstItems.filter(
-					(o) => o instanceof IfDefineBlock,
-				) as IfDefineBlock[];
+					(o) => o instanceof IfElIfBlock,
+				) as IfElIfBlock[];
 				expect(ifDefineBlocks.length).toEqual(1);
 
 				const ifDefineBlock = ifDefineBlocks[0];
-				expect(ifDefineBlock.ifDef.identifier?.name).toEqual('HELLO');
-				expect(ifDefineBlock.ifDef.content?.firstToken.pos.col).toEqual(
-					0,
-				);
+				expect(ifDefineBlock.ifBlocks[0] instanceof CIfDef);
 				expect(
-					ifDefineBlock.ifDef.content?.firstToken.pos.line,
+					(ifDefineBlock.ifBlocks[0] as CIfDef).expression?.name,
+				).toEqual('HELLO');
+				expect(
+					ifDefineBlock.ifBlocks[0].content?.firstToken.pos.col,
+				).toEqual(0);
+				expect(
+					ifDefineBlock.ifBlocks[0].content?.firstToken.pos.line,
 				).toEqual(1);
 				expect(
-					ifDefineBlock.ifDef.content!.lastToken.pos.colEnd,
+					ifDefineBlock.ifBlocks[0].content!.lastToken.pos.colEnd,
 				).toEqual(5);
-				expect(ifDefineBlock.ifDef.content?.lastToken.pos.line).toEqual(
-					2,
-				);
+				expect(
+					ifDefineBlock.ifBlocks[0].content?.lastToken.pos.line,
+				).toEqual(2);
 				expect(ifDefineBlock.elseOption).toBeUndefined();
 			});
 		});
