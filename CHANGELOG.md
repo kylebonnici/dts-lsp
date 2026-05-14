@@ -17,6 +17,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Properly read `trimFinalNewlines` and `trimFinalNewlines` from `files`
   workspace setting instead of `editor`
 
+### Security
+
+- Update dependencies to address
+    - CVE-2026-6322
+    - CVE-2026-6321
+
 ## [0.9.3] - 2026-04-20
 
 ### Fixed
