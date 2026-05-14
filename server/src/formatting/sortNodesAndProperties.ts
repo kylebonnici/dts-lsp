@@ -20,7 +20,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ASTBase } from '../ast/base';
 import { FileDiagnostic, FormattingIssues } from '../types';
 import {
-	applyEdits,
+	applyFileDiagnosticEdits,
 	compareWords,
 	genFormattingDiagnostic,
 	positionAfter,
@@ -91,11 +91,9 @@ export async function sortNodesAndProperties(
 			: [],
 	);
 
-	const newText = applyEdits(
+	const newText = applyFileDiagnosticEdits(
 		TextDocument.create(fsPath, 'devicetree', 0, text),
-		filterOnOffEdits(formatOnOffMeta, settings, t)
-			.flatMap((i) => i.raw.edit)
-			.filter((e) => !!e),
+		filterOnOffEdits(formatOnOffMeta, settings, t),
 	);
 
 	if (t.flatMap((d) => d.raw.edit).filter((e) => !!e).length) {

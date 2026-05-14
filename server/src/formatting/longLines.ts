@@ -25,7 +25,7 @@ import { PropertyValue } from '../ast/dtc/values/value';
 import { ArrayValues } from '../ast/dtc/values/arrayValue';
 import { ByteStringValue } from '../ast/dtc/values/byteString';
 import {
-	applyEdits,
+	applyFileDiagnosticEdits,
 	genFormattingDiagnostic,
 	sameLine,
 	toPosition,
@@ -136,9 +136,9 @@ export async function formatLongLines(
 		edits,
 	);
 
-	newText = applyEdits(
+	newText = applyFileDiagnosticEdits(
 		TextDocument.create(fsPath, 'devicetree', 0, text),
-		rangeEdits.flatMap((i) => i.raw.edit).filter((e) => !!e),
+		rangeEdits,
 	);
 
 	switch (returnType) {

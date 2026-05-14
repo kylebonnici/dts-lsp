@@ -16,10 +16,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Properly read `trimFinalNewlines` and `trimFinalNewlines` from `files`
   workspace setting instead of `editor`
-- Fixed Unknown syntax error with multiple elif branches.
+- Fixed Unknown syntax error with multiple elif branches. [Contribution by [urob](https://github.com/urob)]
 - Diagnostics linked to virtual documents now point to the macro that
   generated the code.
 - Fixed idempotence violation when formatting multiline comments inside arrays.
+- Fixed showing and applying formatting issue from virtual documents. [Contribution by [urob](https://github.com/urob)]
 
 ### Security
 
