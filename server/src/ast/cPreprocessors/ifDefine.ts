@@ -98,7 +98,7 @@ export class IfDefineBlock extends ASTBase {
 		public readonly ifDef: CIfDef | CIfNotDef,
 		public readonly endIf: CEndIf | null,
 		public readonly elseOption?: CElse,
-		private readonly hasMultipleElseif: boolean = false,
+		private readonly hasMultipleSeparators: boolean = false,
 	) {
 		super();
 		this.addChild(ifDef);
@@ -178,13 +178,12 @@ export class IfDefineBlock extends ASTBase {
 			).forEach((t) => invalidRange.add(t));
 
 			// Mark elseContent invalid when the main block is active, or when
-			// there are multiple elif branches (hasMultipleElseif=true). In the
-			// latter case the elseContent spans multiple elif bodies and their
+			// there are multiple separator tokens (hasMultipleSeparators=true). In
+			// the latter case elseContent spans multiple elif/else bodies and their
 			// separator keywords via the linked-list walk; we can't evaluate which
-			// elif condition is true, so we suppress the entire range to prevent
-			// "Unknown syntax" from intermediate #elif/#else tokens leaking to the
-			// DTS parser.
-			if ((useMainBlock || this.hasMultipleElseif) && this.elseOption.content) {
+			// condition is true, so we suppress the entire range to prevent
+			// "Unknown syntax" from intermediate tokens leaking to the DTS parser.
+			if ((useMainBlock || this.hasMultipleSeparators) && this.elseOption.content) {
 				getRangeTokens(
 					this.elseOption.content.firstToken,
 					this.elseOption.content.lastToken,

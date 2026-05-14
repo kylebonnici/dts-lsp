@@ -608,7 +608,7 @@ export class CPreprocessorParser extends BaseParser {
 		);
 
 		let cElse: CElse | undefined;
-		const hasMultipleElseif = block.separatorTokens.length > 1;
+		const hasMultipleSeparators = block.separatorTokens.length > 1;
 
 		if (block.splitTokens.length > 1) {
 			const elseToken = block.separatorTokens[0];
@@ -617,7 +617,13 @@ export class CPreprocessorParser extends BaseParser {
 			// Span ALL remaining elif/else branches, not just the first one.
 			// getRangeTokens walks nextToken links, so spanning to the last token
 			// automatically includes intermediate #elif/#else separator tokens.
-			const firstContentToken = block.splitTokens[1].tokens[0];
+			// If a branch body is empty, fall back to the next separator token so
+			// that subsequent non-empty branches are still included in the range.
+			let firstContentToken: Token | undefined;
+			for (let i = 1; i < block.splitTokens.length && !firstContentToken; i++) {
+				firstContentToken =
+					block.splitTokens[i].tokens[0] ?? block.separatorTokens[i];
+			}
 			let lastContentToken: Token | undefined;
 			for (let i = block.splitTokens.length - 1; i >= 1; i--) {
 				lastContentToken = block.splitTokens[i].tokens.at(-1);
@@ -652,7 +658,7 @@ export class CPreprocessorParser extends BaseParser {
 			ifDef,
 			endifKeyword ?? null,
 			cElse,
-			hasMultipleElseif,
+			hasMultipleSeparators,
 		);
 
 		this.mergeStack();
