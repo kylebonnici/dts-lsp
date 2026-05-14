@@ -2244,7 +2244,7 @@ const formatBlockCommentLine = (
 				level,
 				indentString,
 				documentText,
-				' ',
+				getPropertyIndentPrefix(settings, levelMeta?.inAst, ' '),
 			),
 		);
 	}
