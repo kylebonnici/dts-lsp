@@ -548,7 +548,7 @@ const getDisabledMarcoRangeEdits = async (
 
 			return results;
 		}),
-	].filter((v) => !!v);
+	];
 
 	const action = (meta: {
 		block: IfElIfBlock;
