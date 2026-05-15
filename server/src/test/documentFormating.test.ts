@@ -862,7 +862,7 @@ l1: &sdhi1 {};
 };`;
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
-				`/ {\n\tkeymap {\n#ifdef ANSI\n\t\tdefault_layer {\n\t\t\tbindings = <&kp ESC &kp N1 &kp N2 &kp N3 &kp N4 &kp N5 &kp N6 &kp N7 &kp N8 &kp N9 &kp N0 kp MINUS\n\t\t\t\t\t\t&kp EQUAL &kp BSPC &kp TAB &kp Q &kp W &kp E &kp R &kp T &kp Y &kp U &kp I &kp O &kp P &kp LBKT &kp\n\t\t\t\t\t\tRBKT &kp BSLH>;\n\t\t};\n#endif\n\t};\n};`,
+				`/ {\n\tkeymap {\n#ifdef ANSI\n\t\tdefault_layer {\n\t\t\tbindings = <&kp ESC &kp N1 &kp N2 &kp N3 &kp N4 &kp N5 &kp N6 &kp N7 &kp N8 &kp N9 &kp\n\t\t\t\t\t\tN0 kp MINUS &kp EQUAL &kp BSPC &kp TAB &kp Q &kp W &kp E &kp R &kp T &kp Y\n\t\t\t\t\t\t&kp U &kp I &kp O &kp P &kp LBKT &kp RBKT &kp BSLH>;\n\t\t};\n#endif\n\t};\n};`,
 			);
 		});
 

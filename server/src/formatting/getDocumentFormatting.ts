@@ -183,6 +183,11 @@ export async function formatText(
 		rawTokens,
 		text,
 	);
+	if (returnType === 'New Text' && variantDocuments.length) {
+		const document = TextDocument.create(fsPath, 'devicetree', 0, text);
+		const newText = applyFileDiagnosticEdits(document, variantDocuments);
+		return formatText(documentFormattingParams, newText, returnType);
+	}
 
 	const options = convertToFormattingFlags(documentFormattingParams.options);
 
@@ -568,6 +573,7 @@ const getDisabledMarcoRangeEdits = async (
 		const newTokenStream = rawTokens.filter((t) => !rangeToClean.has(t));
 		const range = meta.block.range;
 		processedPrevIfBlocks.push(meta.branch);
+
 		return formatText(
 			{
 				...documentFormattingParams,
@@ -575,10 +581,6 @@ const getDisabledMarcoRangeEdits = async (
 				options: {
 					...documentFormattingParams.options,
 					sortNodesAndProperties: false,
-					removeDuplicateProperties: false,
-					removeEmptyReferences: false,
-					removeEmptyNodes: false,
-					removeEmptyRoots: false,
 				},
 			},
 			text,
