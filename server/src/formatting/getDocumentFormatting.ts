@@ -188,36 +188,24 @@ export async function formatText(
 
 	const options = convertToFormattingFlags(documentFormattingParams.options);
 
-	if (options.removeMacroMultiline) {
-		const multiLineRegions = new Set<number>();
-		Array.from(parser.cPreprocessorParser.macros.values())
-			.filter(
-				(m) =>
-					m.macro.firstToken.pos.line !== m.macro.lastToken.pos.line,
-			)
-			.forEach((m) => {
-				Array.from(
-					{
-						length:
-							m.macro.lastToken.pos.line -
-							m.macro.firstToken.pos.line +
-							1,
-					},
-					(_, i) => m.macro.firstToken.pos.line + i,
-				).forEach((line) => multiLineRegions.add(line));
-			});
-
-		// appends edits to variantDocuments
-		await formatMultiLineMacros(
-			fsPath,
-			text,
-			multiLineRegions,
-			variantDocuments,
-		);
-	}
-
 	if (returnType === 'New Text') {
 		let finalText = text;
+
+		if (options.removeMacroMultiline) {
+			finalText = await formatMultiLineMacros(
+				{
+					...documentFormattingParams,
+					options: {
+						...documentFormattingParams.options,
+						wordWrapColumn,
+					},
+				},
+				fsPath,
+				text,
+				parser,
+				returnType,
+			);
+		}
 
 		if (options.removeDuplicateProperties) {
 			let prevText = '';
@@ -377,6 +365,23 @@ export async function formatText(
 	}
 
 	let diagnostic: FileDiagnostic[] = [];
+
+	if (options.removeMacroMultiline) {
+		const r = await formatMultiLineMacros(
+			{
+				...documentFormattingParams,
+				options: {
+					...documentFormattingParams.options,
+					wordWrapColumn,
+				},
+			},
+			fsPath,
+			text,
+			parser,
+			returnType,
+		);
+		diagnostic.push(...r);
+	}
 
 	if (options.removeDuplicateProperties) {
 		const r = await removeDuplicateProperties(
@@ -596,12 +601,45 @@ const getDisabledMarcoRangeEdits = async (
 };
 
 async function formatMultiLineMacros(
+	documentFormattingParams: CustomDocumentFormattingParams,
 	fsPath: string,
 	text: string,
-	multiLineRegions: Set<number>,
-	edits: FileDiagnostic[] = [],
-) {
+	parser: Parser,
+	returnType: 'New Text',
+): Promise<string>;
+async function formatMultiLineMacros(
+	documentFormattingParams: CustomDocumentFormattingParams,
+	fsPath: string,
+	text: string,
+	parser: Parser,
+	returnType: 'File Diagnostics',
+): Promise<FileDiagnostic[]>;
+async function formatMultiLineMacros(
+	documentFormattingParams: CustomDocumentFormattingParams,
+	fsPath: string,
+	text: string,
+	parser: Parser,
+	returnType: 'File Diagnostics' | 'New Text',
+): Promise<FileDiagnostic[] | string> {
 	const splitDocument = text.split('\n');
+	const edits: FileDiagnostic[] = [];
+
+	const multiLineRegions = new Set<number>();
+	Array.from(parser.cPreprocessorParser.macros.values())
+		.filter(
+			(m) => m.macro.firstToken.pos.line !== m.macro.lastToken.pos.line,
+		)
+		.forEach((m) => {
+			Array.from(
+				{
+					length:
+						m.macro.lastToken.pos.line -
+						m.macro.firstToken.pos.line +
+						1,
+				},
+				(_, i) => m.macro.firstToken.pos.line + i,
+			).forEach((line) => multiLineRegions.add(line));
+		});
 
 	splitDocument.forEach((text, line) => {
 		if (text.trimEnd().endsWith('\\') && !multiLineRegions.has(line)) {
@@ -627,6 +665,26 @@ async function formatMultiLineMacros(
 			);
 		}
 	});
+
+	const formatOnOffMeta = pairFormatOnOff(parser.allAstItems, splitDocument);
+
+	const rangeEdits = filterOnOffEdits(
+		formatOnOffMeta,
+		documentFormattingParams,
+		edits,
+	);
+
+	const newText = applyFileDiagnosticEdits(
+		TextDocument.create(fsPath, 'devicetree', 0, text),
+		rangeEdits,
+	);
+
+	switch (returnType) {
+		case 'New Text':
+			return newText;
+		case 'File Diagnostics':
+			return edits;
+	}
 }
 
 async function formatAstBaseItems(
