@@ -940,14 +940,22 @@ export const parseMacros = (line: string) => {
 		const paramList = params.split(',').map((p) => p.trim());
 		return (...args: string[]) => {
 			let expanded = body;
+			const vaArgs = args.slice(paramList.length).join(', ');
 			paramList.forEach((param, index) => {
-				const regex = new RegExp(`\\b${param}\\b`, 'g');
-				expanded = expanded.replace(regex, args[index]);
+				expanded = expanded.replace(
+					new RegExp(`(?<!#)#\\s*${param}\\b`, 'g'),
+					`"${args[index] ?? ''}"`,
+				);
 			});
 			expanded = expanded.replace(
-				/__VA_ARGS__/g,
-				args.slice(paramList.length).join(', '),
+				/(?<!#)#\s*__VA_ARGS__/g,
+				`"${vaArgs}"`,
 			);
+			paramList.forEach((param, index) => {
+				const regex = new RegExp(`\\b${param}\\b`, 'g');
+				expanded = expanded.replace(regex, args[index] ?? '');
+			});
+			expanded = expanded.replace(/__VA_ARGS__/g, vaArgs);
 			return expanded;
 		};
 	} else if ((match = funcMacroRegex.exec(line))) {
@@ -956,8 +964,14 @@ export const parseMacros = (line: string) => {
 		return (...args: string[]) => {
 			let expanded = body;
 			paramList.forEach((param, index) => {
+				expanded = expanded.replace(
+					new RegExp(`(?<!#)#\\s*${param}\\b`, 'g'),
+					`"${args[index] ?? ''}"`,
+				);
+			});
+			paramList.forEach((param, index) => {
 				const regex = new RegExp(`\\b${param}\\b`, 'g');
-				expanded = expanded.replace(regex, args[index]);
+				expanded = expanded.replace(regex, args[index] ?? '');
 			});
 			return expanded;
 		};
@@ -995,15 +1009,11 @@ export const expandMacros = (
 	const handleTokenConcatenation = (code: string): string => {
 		return code.replace(/\s*##\s*/g, '');
 	};
-	const handleStringification = (code: string): string => {
-		return code.replace(/#(\w+)/g, (_, param) => `"${param}"`);
-	};
 	let expandedCode = code;
 	let prevCode;
 	do {
 		prevCode = expandedCode;
 		expandedCode = handleTokenConcatenation(prevCode); // Handle ## operator
-		expandedCode = handleStringification(expandedCode); // Handle # operator
 		expandedCode = expandedCode.replace(
 			/\b(\w+)\(([^()]*(?:\([^()]*\)[^()]*)*)\)|\b(\w+)\b/g,
 			(match, func, args, simple) => {
