@@ -1983,10 +1983,8 @@ connection.onRequest(
 
 		const textAfterEdits = applyEdits(document, event.edits);
 
-		let formatRanges: Range[] | undefined;
-
 		const newText = await formatText(
-			{ ...event, ranges: formatRanges },
+			{ ...event },
 			textAfterEdits,
 			'New Text',
 		).catch(() => textAfterEdits);

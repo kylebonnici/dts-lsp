@@ -113,10 +113,9 @@ const hasLongLines = (text: string, tabSize: number, wordWrapColumn: number) =>
 		);
 
 export async function formatText(
-	documentFormattingParams: (
+	documentFormattingParams:
 		| DocumentFormattingParams
-		| DocumentRangeFormattingParams
-	) & { ranges?: Range[] },
+		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'New Text',
 	tokens?: Token[],
@@ -124,10 +123,9 @@ export async function formatText(
 	processedPrevIfBlocks?: CIfBase[],
 ): Promise<string>;
 export async function formatText(
-	documentFormattingParams: (
+	documentFormattingParams:
 		| DocumentFormattingParams
-		| DocumentRangeFormattingParams
-	) & { ranges?: Range[] },
+		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'File Diagnostics',
 	tokens?: Token[],
@@ -135,10 +133,9 @@ export async function formatText(
 	processedPrevIfBlocks?: CIfBase[],
 ): Promise<FileDiagnostic[]>;
 export async function formatText(
-	documentFormattingParams: (
+	documentFormattingParams:
 		| DocumentFormattingParams
-		| DocumentRangeFormattingParams
-	) & { ranges?: Range[] },
+		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics',
 	tokens?: Token[],
