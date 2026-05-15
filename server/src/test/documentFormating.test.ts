@@ -850,7 +850,7 @@ l1: &sdhi1 {};
 			);
 		});
 
-		test('comment in array value', async () => {
+		test('wrap long, tab size 4 in #if guard', async () => {
 			const documentText = `/ {
   keymap {
 #ifdef ANSI
