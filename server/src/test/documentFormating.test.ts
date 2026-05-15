@@ -838,6 +838,18 @@ l1: &sdhi1 {};
 			expect(newText).toEqual('/ {\n\tprop11 = <10 /* foo */>;\n};');
 		});
 
+		test('comment in array value', async () => {
+			const documentText = `&kscan {
+	events = <
+		/* a comment inside an array that spans
+		multiple lines.*/ >;
+};`;
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				`&kscan {\n\tevents = <\n\t\t\t  /* a comment inside an array that spans\n\t\t\t   * multiple lines.\n\t\t\t   */>;\n};`,
+			);
+		});
+
 		test('new line start block in line no spaces', async () => {
 			const documentText = '/*\nfoo*/';
 			const newText = await getNewText(documentText);
