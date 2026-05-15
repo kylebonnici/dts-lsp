@@ -54,6 +54,7 @@ import {
 	fileURIToFsPath,
 	genFormattingDiagnostic,
 	isPathEqual,
+	isRangeInRange,
 	rangesOverlap,
 	toPosition,
 	toRange,
@@ -520,14 +521,7 @@ const getDisabledMarcoRangeEdits = async (
 		(ast) => ast instanceof IfElIfBlock,
 	);
 
-	const newIfBlocks = ifBlocks.filter((b) =>
-		prevIfBlocks.every(
-			(bb) => b.firstToken.pos.line !== bb.firstToken.pos.line,
-		),
-	);
-	prevIfBlocks.push(...newIfBlocks);
-
-	const rangesToWorkOn = [
+	let rangesToWorkOn = [
 		...ifBlocks.flatMap((block) => {
 			const active = block.ifBlocks.find((i) => i.active);
 			const results: {
@@ -549,6 +543,19 @@ const getDisabledMarcoRangeEdits = async (
 			return results;
 		}),
 	];
+
+	if ('range' in documentFormattingParams) {
+		rangesToWorkOn = rangesToWorkOn.filter((d) =>
+			isRangeInRange(documentFormattingParams.range, d.block.range),
+		);
+		prevIfBlocks.push(
+			...ifBlocks.filter((b) =>
+				isRangeInRange(documentFormattingParams.range, b.range),
+			),
+		);
+	} else {
+		prevIfBlocks.push(...ifBlocks);
+	}
 
 	const action = (meta: {
 		block: IfElIfBlock;
@@ -583,17 +590,11 @@ const getDisabledMarcoRangeEdits = async (
 	};
 
 	const results: FileDiagnostic[] = [];
-	await rangesToWorkOn
-		.filter((r) =>
-			processedPrevIfBlocks.every(
-				(i) => i.firstToken.pos.line !== r.block.firstToken.pos.line,
-			),
-		)
-		.reduce((acc, curr) => {
-			return acc.then(async () => {
-				results.push(...(await action(curr)));
-			});
-		}, Promise.resolve());
+	await rangesToWorkOn.reduce((acc, curr) => {
+		return acc.then(async () => {
+			results.push(...(await action(curr)));
+		});
+	}, Promise.resolve());
 	return results;
 };
 
