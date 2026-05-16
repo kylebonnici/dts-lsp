@@ -169,24 +169,92 @@ export async function formatText(
 			? documentFormattingParams.options.wordWrapColumn
 			: 100;
 
-	let variantDocuments = await getDisabledMarcoRangeEdits(
-		{
-			...documentFormattingParams,
-			options: {
-				...documentFormattingParams.options,
-				wordWrapColumn,
+	let variantDocuments: FileDiagnostic[] = [];
+	if (returnType === 'File Diagnostics') {
+		variantDocuments = await getDisabledMarcoRangeEdits(
+			{
+				...documentFormattingParams,
+				options: {
+					...documentFormattingParams.options,
+					wordWrapColumn,
+				},
 			},
-		},
-		parser,
-		prevIfBlocks,
-		processedPrevIfBlocks,
-		rawTokens,
-		text,
-	);
-	if (returnType === 'New Text' && variantDocuments.length) {
+			parser,
+			prevIfBlocks,
+			processedPrevIfBlocks,
+			rawTokens,
+			text,
+		);
+	} else if (returnType === 'New Text') {
+		const variants = [
+			{
+				removeMacroMultiline: true,
+				removeEmptyReferences: true,
+				removeDuplicateProperties: true,
+				baseFormattingRules: false,
+				wrapLongLines: false,
+				indentExpressions: false,
+			},
+			{
+				baseFormattingRules: true,
+				wrapLongLines: false,
+				indentExpressions: false,
+				removeMacroMultiline: false,
+				removeEmptyReferences: false,
+				removeEmptyNodes: false,
+				removeEmptyRoots: false,
+				removeDuplicateProperties: false,
+			},
+			{
+				wrapLongLines: true,
+				indentExpressions: false,
+				baseFormattingRules: false,
+				removeMacroMultiline: false,
+				removeEmptyReferences: false,
+				removeEmptyNodes: false,
+				removeEmptyRoots: false,
+				removeDuplicateProperties: false,
+			},
+			{
+				indentExpressions: true,
+				wrapLongLines: false,
+				baseFormattingRules: false,
+				removeMacroMultiline: false,
+				removeEmptyReferences: false,
+				removeEmptyNodes: false,
+				removeEmptyRoots: false,
+				removeDuplicateProperties: false,
+			},
+		];
+
 		const document = TextDocument.create(fsPath, 'devicetree', 0, text);
-		const newText = applyFileDiagnosticEdits(document, variantDocuments);
-		return formatText(documentFormattingParams, newText, returnType);
+
+		for (const options of variants) {
+			const variantDocuments = await getDisabledMarcoRangeEdits(
+				{
+					...documentFormattingParams,
+					options: {
+						wordWrapColumn,
+						...documentFormattingParams.options,
+						...options,
+					},
+				},
+				parser,
+				prevIfBlocks,
+				processedPrevIfBlocks,
+				rawTokens,
+				text,
+			);
+
+			if (!variantDocuments.length) continue;
+
+			const newText = applyFileDiagnosticEdits(
+				document,
+				variantDocuments,
+			);
+
+			return formatText(documentFormattingParams, newText, returnType);
+		}
 	}
 
 	const options = convertToFormattingFlags(documentFormattingParams.options);
