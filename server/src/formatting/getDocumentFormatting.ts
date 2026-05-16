@@ -54,6 +54,7 @@ import {
 	fileURIToFsPath,
 	genFormattingDiagnostic,
 	isPathEqual,
+	isRangeInRange,
 	rangesOverlap,
 	toPosition,
 	toRange,
@@ -113,10 +114,9 @@ const hasLongLines = (text: string, tabSize: number, wordWrapColumn: number) =>
 		);
 
 export async function formatText(
-	documentFormattingParams: (
+	documentFormattingParams:
 		| DocumentFormattingParams
-		| DocumentRangeFormattingParams
-	) & { ranges?: Range[] },
+		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'New Text',
 	tokens?: Token[],
@@ -124,10 +124,9 @@ export async function formatText(
 	processedPrevIfBlocks?: CIfBase[],
 ): Promise<string>;
 export async function formatText(
-	documentFormattingParams: (
+	documentFormattingParams:
 		| DocumentFormattingParams
-		| DocumentRangeFormattingParams
-	) & { ranges?: Range[] },
+		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'File Diagnostics',
 	tokens?: Token[],
@@ -135,10 +134,9 @@ export async function formatText(
 	processedPrevIfBlocks?: CIfBase[],
 ): Promise<FileDiagnostic[]>;
 export async function formatText(
-	documentFormattingParams: (
+	documentFormattingParams:
 		| DocumentFormattingParams
-		| DocumentRangeFormattingParams
-	) & { ranges?: Range[] },
+		| DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics',
 	tokens?: Token[],
@@ -171,53 +169,114 @@ export async function formatText(
 			? documentFormattingParams.options.wordWrapColumn
 			: 100;
 
-	let variantDocuments = await getDisabledMarcoRangeEdits(
-		{
-			...documentFormattingParams,
-			options: {
-				...documentFormattingParams.options,
-				wordWrapColumn,
+	let variantDocuments: FileDiagnostic[] = [];
+	if (returnType === 'File Diagnostics') {
+		variantDocuments = await getDisabledMarcoRangeEdits(
+			{
+				...documentFormattingParams,
+				options: {
+					...documentFormattingParams.options,
+					wordWrapColumn,
+				},
 			},
-		},
-		parser,
-		prevIfBlocks,
-		processedPrevIfBlocks,
-		rawTokens,
-		text,
-	);
+			parser,
+			prevIfBlocks,
+			processedPrevIfBlocks,
+			rawTokens,
+			text,
+		);
+	} else if (returnType === 'New Text') {
+		const variants = [
+			{
+				removeMacroMultiline: true,
+				removeEmptyReferences: true,
+				removeDuplicateProperties: true,
+				baseFormattingRules: false,
+				wrapLongLines: false,
+				indentExpressions: false,
+			},
+			{
+				baseFormattingRules: true,
+				wrapLongLines: false,
+				indentExpressions: false,
+				removeMacroMultiline: false,
+				removeEmptyReferences: false,
+				removeEmptyNodes: false,
+				removeEmptyRoots: false,
+				removeDuplicateProperties: false,
+			},
+			{
+				wrapLongLines: true,
+				indentExpressions: false,
+				baseFormattingRules: false,
+				removeMacroMultiline: false,
+				removeEmptyReferences: false,
+				removeEmptyNodes: false,
+				removeEmptyRoots: false,
+				removeDuplicateProperties: false,
+			},
+			{
+				indentExpressions: true,
+				wrapLongLines: false,
+				baseFormattingRules: false,
+				removeMacroMultiline: false,
+				removeEmptyReferences: false,
+				removeEmptyNodes: false,
+				removeEmptyRoots: false,
+				removeDuplicateProperties: false,
+			},
+		];
+
+		const document = TextDocument.create(fsPath, 'devicetree', 0, text);
+
+		for (const options of variants) {
+			const variantDocuments = await getDisabledMarcoRangeEdits(
+				{
+					...documentFormattingParams,
+					options: {
+						wordWrapColumn,
+						...documentFormattingParams.options,
+						...options,
+					},
+				},
+				parser,
+				prevIfBlocks,
+				processedPrevIfBlocks,
+				rawTokens,
+				text,
+			);
+
+			if (!variantDocuments.length) continue;
+
+			const newText = applyFileDiagnosticEdits(
+				document,
+				variantDocuments,
+			);
+
+			return formatText(documentFormattingParams, newText, returnType);
+		}
+	}
 
 	const options = convertToFormattingFlags(documentFormattingParams.options);
 
-	if (options.removeMacroMultiline) {
-		const multiLineRegions = new Set<number>();
-		Array.from(parser.cPreprocessorParser.macros.values())
-			.filter(
-				(m) =>
-					m.macro.firstToken.pos.line !== m.macro.lastToken.pos.line,
-			)
-			.forEach((m) => {
-				Array.from(
-					{
-						length:
-							m.macro.lastToken.pos.line -
-							m.macro.firstToken.pos.line +
-							1,
-					},
-					(_, i) => m.macro.firstToken.pos.line + i,
-				).forEach((line) => multiLineRegions.add(line));
-			});
-
-		// appends edits to variantDocuments
-		await formatMultiLineMacros(
-			fsPath,
-			text,
-			multiLineRegions,
-			variantDocuments,
-		);
-	}
-
 	if (returnType === 'New Text') {
 		let finalText = text;
+
+		if (options.removeMacroMultiline) {
+			finalText = await formatMultiLineMacros(
+				{
+					...documentFormattingParams,
+					options: {
+						...documentFormattingParams.options,
+						wordWrapColumn,
+					},
+				},
+				fsPath,
+				text,
+				parser,
+				returnType,
+			);
+		}
 
 		if (options.removeDuplicateProperties) {
 			let prevText = '';
@@ -378,6 +437,23 @@ export async function formatText(
 
 	let diagnostic: FileDiagnostic[] = [];
 
+	if (options.removeMacroMultiline) {
+		const r = await formatMultiLineMacros(
+			{
+				...documentFormattingParams,
+				options: {
+					...documentFormattingParams.options,
+					wordWrapColumn,
+				},
+			},
+			fsPath,
+			text,
+			parser,
+			returnType,
+		);
+		diagnostic.push(...r);
+	}
+
 	if (options.removeDuplicateProperties) {
 		const r = await removeDuplicateProperties(
 			{
@@ -518,14 +594,7 @@ const getDisabledMarcoRangeEdits = async (
 		(ast) => ast instanceof IfElIfBlock,
 	);
 
-	const newIfBlocks = ifBlocks.filter((b) =>
-		prevIfBlocks.every(
-			(bb) => b.firstToken.pos.line !== bb.firstToken.pos.line,
-		),
-	);
-	prevIfBlocks.push(...newIfBlocks);
-
-	const rangesToWorkOn = [
+	let rangesToWorkOn = [
 		...ifBlocks.flatMap((block) => {
 			const active = block.ifBlocks.find((i) => i.active);
 			const results: {
@@ -546,7 +615,20 @@ const getDisabledMarcoRangeEdits = async (
 
 			return results;
 		}),
-	].filter((v) => !!v);
+	];
+
+	if ('range' in documentFormattingParams) {
+		rangesToWorkOn = rangesToWorkOn.filter((d) =>
+			isRangeInRange(documentFormattingParams.range, d.block.range),
+		);
+		prevIfBlocks.push(
+			...ifBlocks.filter((b) =>
+				isRangeInRange(documentFormattingParams.range, b.range),
+			),
+		);
+	} else {
+		prevIfBlocks.push(...ifBlocks);
+	}
 
 	const action = (meta: {
 		block: IfElIfBlock;
@@ -559,6 +641,7 @@ const getDisabledMarcoRangeEdits = async (
 		const newTokenStream = rawTokens.filter((t) => !rangeToClean.has(t));
 		const range = meta.block.range;
 		processedPrevIfBlocks.push(meta.branch);
+
 		return formatText(
 			{
 				...documentFormattingParams,
@@ -566,10 +649,6 @@ const getDisabledMarcoRangeEdits = async (
 				options: {
 					...documentFormattingParams.options,
 					sortNodesAndProperties: false,
-					removeDuplicateProperties: false,
-					removeEmptyReferences: false,
-					removeEmptyNodes: false,
-					removeEmptyRoots: false,
 				},
 			},
 			text,
@@ -581,27 +660,54 @@ const getDisabledMarcoRangeEdits = async (
 	};
 
 	const results: FileDiagnostic[] = [];
-	await rangesToWorkOn
-		.filter((r) =>
-			processedPrevIfBlocks.every(
-				(i) => i.firstToken.pos.line !== r.block.firstToken.pos.line,
-			),
-		)
-		.reduce((acc, curr) => {
-			return acc.then(async () => {
-				results.push(...(await action(curr)));
-			});
-		}, Promise.resolve());
+	await rangesToWorkOn.reduce((acc, curr) => {
+		return acc.then(async () => {
+			results.push(...(await action(curr)));
+		});
+	}, Promise.resolve());
 	return results;
 };
 
 async function formatMultiLineMacros(
+	documentFormattingParams: CustomDocumentFormattingParams,
 	fsPath: string,
 	text: string,
-	multiLineRegions: Set<number>,
-	edits: FileDiagnostic[] = [],
-) {
+	parser: Parser,
+	returnType: 'New Text',
+): Promise<string>;
+async function formatMultiLineMacros(
+	documentFormattingParams: CustomDocumentFormattingParams,
+	fsPath: string,
+	text: string,
+	parser: Parser,
+	returnType: 'File Diagnostics',
+): Promise<FileDiagnostic[]>;
+async function formatMultiLineMacros(
+	documentFormattingParams: CustomDocumentFormattingParams,
+	fsPath: string,
+	text: string,
+	parser: Parser,
+	returnType: 'File Diagnostics' | 'New Text',
+): Promise<FileDiagnostic[] | string> {
 	const splitDocument = text.split('\n');
+	const edits: FileDiagnostic[] = [];
+
+	const multiLineRegions = new Set<number>();
+	Array.from(parser.cPreprocessorParser.macros.values())
+		.filter(
+			(m) => m.macro.firstToken.pos.line !== m.macro.lastToken.pos.line,
+		)
+		.forEach((m) => {
+			Array.from(
+				{
+					length:
+						m.macro.lastToken.pos.line -
+						m.macro.firstToken.pos.line +
+						1,
+				},
+				(_, i) => m.macro.firstToken.pos.line + i,
+			).forEach((line) => multiLineRegions.add(line));
+		});
 
 	splitDocument.forEach((text, line) => {
 		if (text.trimEnd().endsWith('\\') && !multiLineRegions.has(line)) {
@@ -627,6 +733,26 @@ async function formatMultiLineMacros(
 			);
 		}
 	});
+
+	const formatOnOffMeta = pairFormatOnOff(parser.allAstItems, splitDocument);
+
+	const rangeEdits = filterOnOffEdits(
+		formatOnOffMeta,
+		documentFormattingParams,
+		edits,
+	);
+
+	const newText = applyFileDiagnosticEdits(
+		TextDocument.create(fsPath, 'devicetree', 0, text),
+		rangeEdits,
+	);
+
+	switch (returnType) {
+		case 'New Text':
+			return newText;
+		case 'File Diagnostics':
+			return edits;
+	}
 }
 
 async function formatAstBaseItems(
