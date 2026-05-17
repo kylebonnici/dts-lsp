@@ -511,11 +511,20 @@ const formatLongLinesPropertyValue = (
 		0,
 		value.firstToken.pos.col,
 	);
-	const a = Math.trunc((propertyNameWidth + 3) / settings.tabSize);
-	const b = (propertyNameWidth + 3) % settings.tabSize;
-	const minWidth2 = a + b + level;
+	const a = settings.insertSpaces
+		? propertyNameWidth + 3
+		: Math.trunc((propertyNameWidth + 3) / settings.tabSize);
+	const b = settings.insertSpaces
+		? 0
+		: (propertyNameWidth + 3) % settings.tabSize;
+	const minWidth2 =
+		a + b + (settings.insertSpaces ? level * settings.tabSize : level);
 	const minWidth =
-		line.trimStart() !== '' ? level + propertyNameWidth + 3 : minWidth2; // ` = `
+		line.trimStart() !== ''
+			? (settings.insertSpaces ? level * settings.tabSize : level) +
+				propertyNameWidth +
+				3
+			: minWidth2; // ` = `
 	// can we move the whole array to new line?
 	if (value.firstToken.pos.col === minWidth) {
 		// no we cannot we are already on new line
@@ -732,10 +741,17 @@ const formatLongLinesExpression = (
 			)
 		: propertyNameWidth + 4;
 
-	const a = Math.trunc(expectedCol / settings.tabSize);
-	const b = expectedCol % settings.tabSize;
-	const minWidth2 = a + b + level;
-	const minWidth = line.trimStart() !== '' ? level + expectedCol : minWidth2; // ` = `
+	const a = settings.insertSpaces
+		? expectedCol
+		: Math.trunc(expectedCol / settings.tabSize);
+	const b = settings.insertSpaces ? 0 : expectedCol % settings.tabSize;
+	const minWidth2 =
+		a + b + (settings.insertSpaces ? level * settings.tabSize : level);
+	const minWidth =
+		line.trimStart() !== ''
+			? (settings.insertSpaces ? level * settings.tabSize : level) +
+				expectedCol
+			: minWidth2; // ` = `
 	if (canWrapWholeExpression && expression.firstToken.pos.col !== minWidth) {
 		return [
 			genFormattingDiagnostic(

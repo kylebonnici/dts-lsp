@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fixed idempotence violation when formatting multiline comments inside arrays.
 - Fixed showing and applying formatting issue from virtual documents. [Contribution by [urob](https://github.com/urob)]
 - Fixed idempotence violation when formatting long lines inside disabled #if guards. [Contribution by [urob](https://github.com/urob)]
+- Fixed file corruption whne using `insertSpaces=true` inside disabled #if guards. [Contribution by [urob](https://github.com/urob)]
 
 ### Security
 
