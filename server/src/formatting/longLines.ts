@@ -385,7 +385,6 @@ const formatLongLinesDtcProperty = (
 
 	if (property.values) {
 		return formatLongLinesPropertyValues(
-			property,
 			property.propertyName?.name.length ?? 0,
 			property.values,
 			level,
@@ -401,7 +400,6 @@ const formatLongLinesDtcProperty = (
 };
 
 const formatLongLinesPropertyValues = (
-	property: DtcProperty,
 	propertyNameWidth: number,
 	values: PropertyValues,
 	level: number,

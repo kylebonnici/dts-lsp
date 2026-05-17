@@ -850,6 +850,22 @@ l1: &sdhi1 {};
 			);
 		});
 
+		test('wrap long, tab size 4 in #if guard', async () => {
+			const documentText = `/ {
+  keymap {
+#ifdef ANSI
+    default_layer {
+      bindings = <&kp ESC &kp N1 &kp N2 &kp N3 &kp N4 &kp N5 &kp N6 &kp N7 &kp N8 &kp N9 &kp N0 kp MINUS &kp EQUAL &kp BSPC   &kp TAB &kp Q &kp W &kp E &kp R &kp T &kp Y &kp U &kp I &kp O &kp P &kp LBKT &kp RBKT &kp BSLH>;
+    };
+#endif
+  };
+};`;
+			const newText = await getNewText(documentText);
+			expect(newText).toEqual(
+				`/ {\n\tkeymap {\n#ifdef ANSI\n\t\tdefault_layer {\n\t\t\tbindings = <&kp ESC &kp N1 &kp N2 &kp N3 &kp N4 &kp N5 &kp N6 &kp N7 &kp N8 &kp N9 &kp\n\t\t\t\t\t\tN0 kp MINUS &kp EQUAL &kp BSPC &kp TAB &kp Q &kp W &kp E &kp R &kp T &kp Y\n\t\t\t\t\t\t&kp U &kp I &kp O &kp P &kp LBKT &kp RBKT &kp BSLH>;\n\t\t};\n#endif\n\t};\n};`,
+			);
+		});
+
 		test('new line start block in line no spaces', async () => {
 			const documentText = '/*\nfoo*/';
 			const newText = await getNewText(documentText);
