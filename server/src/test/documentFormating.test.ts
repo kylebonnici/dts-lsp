@@ -53,12 +53,12 @@ const getEdits = async (
 		{
 			textDocument,
 			options: {
-				...options,
 				tabSize: 4,
 				insertSpaces: false,
 				trimTrailingWhitespace: true,
 				wordWrapColumn: 100,
 				sortNodesAndProperties: true,
+				...options,
 			},
 		},
 		document.getText(),
@@ -866,6 +866,24 @@ l1: &sdhi1 {};
 			);
 		});
 
+		test('wrap long, tab size 4 use spaces in #if guard', async () => {
+			const documentText = `/ {
+  keymap {
+#ifdef ANSI
+default_layer {
+      bindings = <&kp ESC &kp N1 &kp N2 &kp N3 &kp N4 &kp N5 &kp N6 &kp N7 &kp N8 &kp N9 &kp N0 kp MINUS &kp EQUAL &kp BSPC   &kp TAB &kp Q &kp W &kp E &kp R &kp T &kp Y &kp U &kp I &kp O &kp P &kp LBKT &kp RBKT &kp BSLH>;
+    };
+#endif
+  };
+};`;
+			const newText = await getNewText(documentText, {
+				insertSpaces: true,
+			});
+			expect(newText).toEqual(
+				`/ {\n    keymap {\n#ifdef ANSI\n        default_layer {\n            bindings = <&kp ESC &kp N1 &kp N2 &kp N3 &kp N4 &kp N5 &kp N6 &kp N7 &kp N8 &kp N9 &kp\n                        N0 kp MINUS &kp EQUAL &kp BSPC &kp TAB &kp Q &kp W &kp E &kp R &kp T &kp Y\n                        &kp U &kp I &kp O &kp P &kp LBKT &kp RBKT &kp BSLH>;\n\        };\n#endif\n    };\n};`,
+			);
+		});
+
 		test('new line start block in line no spaces', async () => {
 			const documentText = '/*\nfoo*/';
 			const newText = await getNewText(documentText);
@@ -977,11 +995,21 @@ l1: &sdhi1 {};
 			expect(newText).toEqual('/ {\n\t/delete-property/ n1;\n};');
 		});
 
-		test('Correct indentation in level 1', async () => {
+		test('Correct indentation in level 1 - tabs', async () => {
 			const documentText = '/ {\n/delete-property/ n1;\n\tnode { };\n};';
 			const newText = await getNewText(documentText);
 			expect(newText).toEqual(
 				'/ {\n\t/delete-property/ n1;\n\n\tnode {};\n};',
+			);
+		});
+
+		test('Correct indentation in level 1 - spaces', async () => {
+			const documentText = '/ {\n/delete-property/ n1;\n\tnode { };\n};';
+			const newText = await getNewText(documentText, {
+				insertSpaces: true,
+			});
+			expect(newText).toEqual(
+				'/ {\n    /delete-property/ n1;\n\n    node {};\n};',
 			);
 		});
 
