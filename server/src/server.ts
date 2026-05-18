@@ -1950,11 +1950,13 @@ connection.onRequest(
 
 		return {
 			text: await formatText(event, documentText.getText(), 'New Text'),
-			diagnostics: await formatText(
-				event,
-				documentText.getText(),
-				'File Diagnostics',
-			),
+			diagnostics: (
+				await formatText(
+					event,
+					documentText.getText(),
+					'File Diagnostics',
+				)
+			).map((d) => d.diagnostic()),
 		};
 	},
 );
