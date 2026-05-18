@@ -518,7 +518,12 @@ export abstract class BaseParser {
 			return;
 		}
 
-		if (!adjacentTokens(identifier.lastToken, this.currentToken)) {
+		// does macro exists in context? and is it function like if so spaces are allowed before the round open
+		const macro = macros.get(identifier.name);
+		if (
+			!(macro?.macro.identifier instanceof FunctionDefinition) &&
+			!adjacentTokens(identifier.lastToken, this.currentToken)
+		) {
 			this.popStack();
 			return;
 		}

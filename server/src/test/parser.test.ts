@@ -637,7 +637,7 @@ describe('Parser', () => {
 					).toBeTruthy();
 
 					const macro = rootDts.properties[0].values?.values[0]
-						?.value as CMacroCall as CMacroCall;
+						?.value as CMacroCall;
 
 					expect(macro.functionName.name).toEqual('FOO');
 					expect(macro.params.map((p) => p?.value)).toEqual(['10']);
@@ -667,7 +667,7 @@ describe('Parser', () => {
 					).toBeTruthy();
 
 					const macro = rootDts.properties[0].values?.values[0]
-						?.value as CMacroCall as CMacroCall;
+						?.value as CMacroCall;
 
 					expect(macro.functionName.name).toEqual('FOO');
 					expect(macro.params.map((p) => p?.value)).toEqual([]);
@@ -699,13 +699,91 @@ describe('Parser', () => {
 					).toBeTruthy();
 
 					const macro = rootDts.properties[0].values?.values[0]
-						?.value as CMacroCall as CMacroCall;
+						?.value as CMacroCall;
 
 					expect(macro.functionName.name).toEqual('FOO');
 					expect(macro.params.map((p) => p?.value)).toEqual([
 						'10',
 						undefined,
 						'20',
+					]);
+				});
+
+				test('With space, function like defined', async () => {
+					mockReadFileSync('#define FOO(x) x\n /{prop=FOO (10);};');
+					const parser = new Parser(filePath, []);
+					await parser.stable;
+					expect(parser.issues.length).toEqual(0);
+					const rootDts = parser.rootDocument
+						.children[0] as DtcRootNode;
+
+					expect(rootDts.properties.length).toEqual(1);
+					expect(rootDts.properties[0].propertyName?.name).toEqual(
+						'prop',
+					);
+					expect(
+						rootDts.properties[0].values instanceof PropertyValues,
+					).toBeTruthy();
+					expect(rootDts.properties[0].values?.values.length).toEqual(
+						1,
+					);
+					expect(
+						rootDts.properties[0].values?.values[0]
+							?.value instanceof CMacroCall,
+					).toBeTruthy();
+
+					const macro = rootDts.properties[0].values?.values[0]
+						?.value as CMacroCall;
+
+					expect(macro.functionName.name).toEqual('FOO');
+					expect(macro.params.map((p) => p?.value)).toEqual(['10']);
+				});
+
+				test('With space, function like not defined as function ', async () => {
+					mockReadFileSync('#define FOO 10\n /{prop=<FOO (20)>;};');
+					const parser = new Parser(filePath, []);
+					await parser.stable;
+					expect(parser.issues.length).toEqual(0);
+					const rootDts = parser.rootDocument
+						.children[0] as DtcRootNode;
+
+					expect(rootDts.properties.length).toEqual(1);
+					expect(rootDts.properties[0].propertyName?.name).toEqual(
+						'prop',
+					);
+					expect(
+						rootDts.properties[0].values instanceof PropertyValues,
+					).toBeTruthy();
+					expect(rootDts.properties[0].values?.values.length).toEqual(
+						1,
+					);
+					expect(
+						rootDts.properties[0].values?.values[0]
+							?.value instanceof ArrayValues,
+					).toBeTruthy();
+
+					const arrayValue = rootDts.properties[0].values?.values[0]
+						?.value as ArrayValues;
+
+					expect(
+						(arrayValue.values[0].value as Expression).evaluate(
+							parser.cPreprocessorParser.macros,
+						),
+					).toEqual(10);
+					expect(
+						(arrayValue.values[1].value as Expression).evaluate(
+							parser.cPreprocessorParser.macros,
+						),
+					).toEqual(20);
+				});
+
+				test('With space, function like not defined at all', async () => {
+					mockReadFileSync('/{prop=<FOO (10)>;};');
+					const parser = new Parser(filePath, []);
+					await parser.stable;
+					expect(parser.issues.length).toEqual(1);
+					expect(parser.issues[0].raw.issues).toEqual([
+						SyntaxIssue.UNKNOWN_MACRO,
 					]);
 				});
 			});
