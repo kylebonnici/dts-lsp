@@ -226,7 +226,9 @@ export class ContextAware {
 				.filter(
 					(p) =>
 						isPathEqual(p.ast.fsPath, file) &&
-						(!position || positionInBetween(p.ast, file, position)),
+						p.ast.values &&
+						(!position ||
+							positionInBetween(p.ast.values, file, position)),
 				)
 				.flatMap((p) =>
 					p.ast.values?.values.flatMap<DocumentLink | undefined>(

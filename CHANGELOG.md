@@ -33,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fixed idempotence violation when formatting long lines inside disabled #if guards. [Contribution by [urob](https://github.com/urob)]
 - Fixed file corruption when using `insertSpaces=true` inside disabled #if guards. [Contribution by [urob](https://github.com/urob)]
 - Fixed formatting configuration default `defaultFormatter` to `KyleMicallefBonnici.dts-lsp` [Contribution by [yijiyang](https://github.com/yijiyang)]
+- Fixed go to definition on `compatible`, It was resolving to the binding file instead of all the place in the dts tree this property is defined.
 
 ### Security
 
