@@ -275,7 +275,7 @@
 			"[devicetree]": {
 				"editor.tabSize": 8,
 				"editor.insertSpaces": false,
-				"editor.defaultFormatter": "KyleMicallefBonnici.devicetree-lsp",
+				"editor.defaultFormatter": "KyleMicallefBonnici.dts-lsp",
 				"editor.wordWrapColumn": 100,
 				"files.insertFinalNewline": true,
 				"files.trimTrailingWhitespace": true
