@@ -661,59 +661,38 @@ const formatLongLinesArrayValue = (
 			widthToPrefix(settings, propertyNameWidth + 4),
 		);
 
-		let lastToken = otherItem?.firstToken.prevToken;
-
-		if (!lastToken) {
-			lastToken = value.lastToken;
-			while (lastToken.pos.line === lastToken.nextToken?.pos.line) {
-				lastToken = lastToken.nextToken;
-			}
-		}
-		const lineLength =
-			indent.replaceAll('\t', ' '.repeat(settings.tabSize)).length +
-			lastToken.pos.colEnd -
-			value.firstToken.pos.col;
-
 		return [
 			genFormattingDiagnostic(
 				FormattingIssues.LONG_LINE_WRAP,
 				value.firstToken.fsPath,
 				toPosition(value.firstToken, false),
 				{
-					edit:
-						lineLength <= settings.wordWrapColumn
+					edit: [
+						TextEdit.replace(
+							Range.create(
+								toPosition(value.firstToken.prevToken!),
+								toPosition(value.firstToken, false),
+							),
+							`\n${indent}`,
+						),
+						...(otherItem // wrap other item up to recursively align using least line possible
 							? [
 									TextEdit.replace(
 										Range.create(
 											toPosition(
-												value.firstToken.prevToken!,
+												getFirstToken(otherItem)
+													.prevToken!,
 											),
-											toPosition(value.firstToken, false),
+											toPosition(
+												getFirstToken(otherItem),
+												false,
+											),
 										),
-										`\n${indent}`,
+										' ',
 									),
-									...(otherItem // wrap other item up to recursively align using least line possible
-										? [
-												TextEdit.replace(
-													Range.create(
-														toPosition(
-															getFirstToken(
-																otherItem,
-															).prevToken!,
-														),
-														toPosition(
-															getFirstToken(
-																otherItem,
-															),
-															false,
-														),
-													),
-													' ',
-												),
-											]
-										: []),
 								]
-							: [],
+							: []),
+					],
 					codeActionTitle: `Move ...${value.toString()}... to a new line`,
 				},
 				toPosition(value.lastToken),
