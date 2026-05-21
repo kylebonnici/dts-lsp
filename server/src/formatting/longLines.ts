@@ -655,38 +655,65 @@ const formatLongLinesArrayValue = (
 			.slice(index)
 			.find((v) => v?.firstToken.pos.line !== value.firstToken.pos.line);
 
+		const indent = createIndentString(
+			level,
+			singleIndent,
+			widthToPrefix(settings, propertyNameWidth + 4),
+		);
+
+		let lastToken = otherItem?.firstToken.prevToken;
+
+		if (!lastToken) {
+			lastToken = value.lastToken;
+			while (lastToken.pos.line === lastToken.nextToken?.pos.line) {
+				lastToken = lastToken.nextToken;
+			}
+		}
+		const lineLength =
+			indent.replaceAll('\t', ' '.repeat(settings.tabSize)).length +
+			lastToken.pos.colEnd -
+			value.firstToken.pos.col;
+
 		return [
 			genFormattingDiagnostic(
 				FormattingIssues.LONG_LINE_WRAP,
 				value.firstToken.fsPath,
 				toPosition(value.firstToken, false),
 				{
-					edit: [
-						TextEdit.replace(
-							Range.create(
-								toPosition(value.firstToken.prevToken!),
-								toPosition(value.firstToken, false),
-							),
-							`\n${createIndentString(level, singleIndent, widthToPrefix(settings, propertyNameWidth + 4))}`,
-						),
-						...(otherItem // wrap other item up to recursively align using least line possible
+					edit:
+						lineLength <= settings.wordWrapColumn
 							? [
 									TextEdit.replace(
 										Range.create(
 											toPosition(
-												getFirstToken(otherItem)
-													.prevToken!,
+												value.firstToken.prevToken!,
 											),
-											toPosition(
-												getFirstToken(otherItem),
-												false,
-											),
+											toPosition(value.firstToken, false),
 										),
-										' ',
+										`\n${indent}`,
 									),
+									...(otherItem // wrap other item up to recursively align using least line possible
+										? [
+												TextEdit.replace(
+													Range.create(
+														toPosition(
+															getFirstToken(
+																otherItem,
+															).prevToken!,
+														),
+														toPosition(
+															getFirstToken(
+																otherItem,
+															),
+															false,
+														),
+													),
+													' ',
+												),
+											]
+										: []),
 								]
-							: []),
-					],
+							: [],
 					codeActionTitle: `Move ...${value.toString()}... to a new line`,
 				},
 				toPosition(value.lastToken),
