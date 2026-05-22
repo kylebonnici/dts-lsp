@@ -1948,14 +1948,22 @@ connection.onRequest(
 			fetchDocument(filePath) ??
 			getTokenizedDocumentProvider().getDocument(filePath, event.text);
 
+		const newText = await formatText(
+			event,
+			documentText.getText(),
+			'New Text',
+		);
 		return {
-			text: await formatText(event, documentText.getText(), 'New Text'),
+			text: newText,
 			diagnostics: (
 				await formatText(
 					event,
 					documentText.getText(),
 					'File Diagnostics',
 				)
+			).map((d) => d.diagnostic()),
+			nonActionableDiagnostics: (
+				await formatText(event, newText, 'File Diagnostics')
 			).map((d) => d.diagnostic()),
 		};
 	},
