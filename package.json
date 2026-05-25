@@ -5,7 +5,7 @@
 	"author": "Microsoft Corporation",
 	"license": "Apache-2.0",
 	"icon": "images/icon.png",
-	"version": "0.9.4",
+	"version": "0.10.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/kylebonnici/dts-lsp"
@@ -100,6 +100,7 @@
 					".dtsi",
 					".dtso",
 					".overlay",
+					".keymap",
 					".dts_compiled",
 					".dts.pre.tmp"
 				],

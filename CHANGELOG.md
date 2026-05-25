@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.10.0] - Unreleased
+
+### Added
+
+- Added .keymap to support ZMK to list of file extensions for devicetree language.
+
 ## [0.9.4] - 2026-05-22
 
 ### Added
