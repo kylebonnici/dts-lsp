@@ -317,6 +317,7 @@ export async function activate(context: vscode.ExtensionContext) {
 				vscode.workspace.createFileSystemWatcher('**/*.dtsi'),
 				vscode.workspace.createFileSystemWatcher('**/*.dtso'),
 				vscode.workspace.createFileSystemWatcher('**/*.overlay'),
+				vscode.workspace.createFileSystemWatcher('**/*.keymap'),
 			],
 		},
 	};
