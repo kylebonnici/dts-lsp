@@ -10,6 +10,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Added .keymap to support ZMK to list of file extensions for devicetree language.
 
+### Fixed
+
+- Fixed `Request devicetree/customActions failed with message: Cannot read properties of undefined (reading 'uri")`
+  in VSCode when using context menu document to `Copy C identifier`
+
 ## [0.9.4] - 2026-05-22
 
 ### Added

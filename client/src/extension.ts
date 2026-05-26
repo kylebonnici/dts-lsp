@@ -18,8 +18,10 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 
 import {
+	DocumentUri,
 	LanguageClient,
 	LanguageClientOptions,
+	Position,
 	ServerOptions,
 	TextDocumentPositionParams,
 	TransportKind,
@@ -383,8 +385,21 @@ export async function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand(
 			'devicetree.clipboard.dtMacro',
 			async (textDocumentPositionParams?: TextDocumentPositionParams) => {
+				if (
+					textDocumentPositionParams &&
+					(!('position' in textDocumentPositionParams) ||
+						!('textDocument' in textDocumentPositionParams) ||
+						!Position.is(textDocumentPositionParams.position) ||
+						!DocumentUri.is(
+							textDocumentPositionParams.textDocument.uri,
+						))
+				) {
+					textDocumentPositionParams = undefined;
+				}
+
 				textDocumentPositionParams ??=
 					getCurrentTextDocumentPositionParams();
+
 				if (!textDocumentPositionParams) {
 					return;
 				}
