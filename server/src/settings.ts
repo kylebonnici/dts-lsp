@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import path, { basename, resolve } from 'path';
+import path, { basename, resolve, sep } from 'path';
 import { existsSync } from 'fs';
 import { WorkspaceFolder } from 'vscode-languageserver-types';
 import {
@@ -71,6 +71,7 @@ const resolvePathVariable = async (
 	const boardWorkspace = boardfile
 		? workspaceFolders
 				.map((w) => fileURIToFsPath(w.uri))
+				.sort((a, b) => a.split(sep).length - b.split(sep).length)
 				.find((workspace) => isSubPath(workspace, boardfile))
 		: undefined;
 
