@@ -436,6 +436,30 @@ let defaultEditorSettings: FormattingOptions = {
 	wordWrapColumn: 100,
 };
 
+const buildFormattingOptions = (
+	dtsSettingsRaw: any,
+): FormattingOptions & Partial<FormattingFlags> => {
+	const dtsSettings: FormattingOptions & Partial<FormattingFlags> = {
+		tabSize: dtsSettingsRaw?.['editor.tabSize'],
+		insertSpaces: dtsSettingsRaw?.['editor.insertSpaces'],
+		trimFinalNewlines: dtsSettingsRaw?.['files.trimFinalNewlines'],
+		trimTrailingWhitespace:
+			dtsSettingsRaw?.['files.trimTrailingWhitespace'],
+		insertFinalNewline: dtsSettingsRaw?.['editor.insertFinalNewline'],
+		wordWrapColumn: dtsSettingsRaw?.['editor.wordWrapColumn'],
+		removeMacroMultiline: dtsSettingsRaw?.['editor.removeMacroMultiline'],
+		wrapLongLines: dtsSettingsRaw?.['editor.wrapLongLines'],
+		indentExpressions: dtsSettingsRaw?.['editor.indentExpressions'],
+		removeEmptyReferences: dtsSettingsRaw?.['editor.removeEmptyReferences'],
+		removeEmptyNodes: dtsSettingsRaw?.['editor.removeEmptyNodes'],
+		removeEmptyRoots: dtsSettingsRaw?.['editor.removeEmptyRoots'],
+		sortNodesAndProperties:
+			dtsSettingsRaw?.['editor.sortNodesAndProperties'],
+	};
+
+	return dtsSettings;
+};
+
 connection.onInitialized(async () => {
 	if (hasConfigurationCapability) {
 		// Register for all configuration changes.
@@ -451,26 +475,7 @@ connection.onInitialized(async () => {
 			const dtsSettingsRaw = await connection.workspace
 				.getConfiguration('[devicetree]')
 				.catch(() => undefined);
-			const dtsSettings = {
-				tabSize: dtsSettingsRaw?.['editor.tabSize'],
-				insertSpaces: dtsSettingsRaw?.['editor.insertSpaces'],
-				trimFinalNewlines: dtsSettingsRaw?.['files.trimFinalNewlines'],
-				trimTrailingWhitespace:
-					dtsSettingsRaw?.['files.trimTrailingWhitespace'],
-				insertFinalNewline:
-					dtsSettingsRaw?.['editor.insertFinalNewline'],
-				wordWrapColumn: dtsSettingsRaw?.['editor.wordWrapColumn'],
-				removeMacroMultiline:
-					dtsSettingsRaw?.['editor.removeMacroMultiline'],
-				wrapLongLines: dtsSettingsRaw?.['editor.wrapLongLines'],
-				indentExpressions: dtsSettingsRaw?.['editor.indentExpressions'],
-				removeEmptyReferences:
-					dtsSettingsRaw?.['editor.removeEmptyReferences'],
-				removeEmptyNodes: dtsSettingsRaw?.['editor.removeEmptyNodes'],
-				removeEmptyRoots: dtsSettingsRaw?.['editor.removeEmptyRoots'],
-				sortNodesAndProperties:
-					dtsSettingsRaw?.['editor.sortNodesAndProperties'],
-			} satisfies FormattingOptions & Partial<FormattingFlags>;
+			const dtsSettings = buildFormattingOptions(dtsSettingsRaw);
 			if (editorSettings || filesSettings || dtsSettings) {
 				lspClientEditorSettings = {
 					...editorSettings,
@@ -994,6 +999,32 @@ const clearWorkspaceDiagnostics = async (
 	);
 };
 
+const fileSettingsCache = new Map<
+	string,
+	ReturnType<typeof buildFormattingOptions>
+>();
+const getFileFormattingSettings = async (fsPath: string) => {
+	const cached = fileSettingsCache.get(fsPath);
+	if (cached || !hasConfigurationCapability) {
+		return cached;
+	}
+
+	fileSettingsCache.delete(fsPath);
+	const dtsSettingsRaw = await connection.workspace
+		.getConfiguration({
+			scopeUri: pathToFileURI(fsPath),
+			section: '[devicetree]',
+		})
+		.catch(() => undefined);
+
+	if (dtsSettingsRaw) {
+		const dtsSettings = buildFormattingOptions(dtsSettingsRaw);
+		fileSettingsCache.set(fsPath, dtsSettings);
+
+		return dtsSettings;
+	}
+};
+
 const generateWorkspaceDiagnostics = async (context: ContextAware) => {
 	await context.stable();
 	const t = performance.now();
@@ -1006,12 +1037,18 @@ const generateWorkspaceDiagnostics = async (context: ContextAware) => {
 				textDocument &&
 				context.settings.showFormattingErrorAsDiagnostics
 			) {
+				const fileFormattingSettings =
+					await getFileFormattingSettings(file);
+
 				formattingItems.push(
 					...(
 						await formatText(
 							{
 								textDocument,
-								options: context.formattingOptions,
+								options: {
+									...context.formattingOptions,
+									...fileFormattingSettings,
+								},
 							},
 							textDocument.getText(),
 							'File Diagnostics',
@@ -1599,6 +1636,7 @@ const onDocumentFormat = async (
 		documents.get(event.textDocument.uri) ??
 		getTokenizedDocumentProvider().getDocument(fsPath);
 	const text = document.getText();
+	fileSettingsCache.set(fsPath, event.options);
 	const newText = await formatText(
 		{
 			...event,
