@@ -10,6 +10,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Added .keymap to support ZMK to list of file extensions for devicetree language.
 
+### Changed
+
+- In a multi-workspace `${workspaceFolder}` now resolves to:
+    - The absolute path of the first workspace,
+      sorted by folder depth, less deep is more importance,
+      in which the dtsFile is in.
+    - If none are found it falls back to path of the first original workspace.
+
 ### Fixed
 
 - Fixed `Request devicetree/customActions failed with message: Cannot read properties of undefined (reading 'uri")`
