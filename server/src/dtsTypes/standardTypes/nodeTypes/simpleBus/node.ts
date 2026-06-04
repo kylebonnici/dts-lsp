@@ -20,6 +20,7 @@ import nonpostedMmio from './nonpostedMmio';
 export function getSimpleBusType() {
 	const simpleBus = getStandardDefaultType();
 	simpleBus.noMismatchPropertiesAllowed = true;
+	simpleBus.compatible = 'simple-bus';
 
 	const compatibleProp = simpleBus.properties.find(
 		(p) => p.name === 'compatible',
