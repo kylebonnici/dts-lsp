@@ -358,6 +358,7 @@ export type MemoryView = {
 	name: string;
 	labels: string[];
 	nodePath: string;
+	disabled: boolean;
 	start: number[];
 	size: number[];
 };
@@ -365,6 +366,7 @@ export type MemoryView = {
 export type GroupedMemoryView = {
 	name: string;
 	partitions: Omit<MemoryView, 'name'>[];
+	path: string;
 };
 
 export interface TreeNode {
@@ -372,11 +374,14 @@ export interface TreeNode {
 	start: number[];
 	size: number[];
 	children: TreeNode[];
+	path: string;
+	disabled: boolean;
 }
 
 export interface DomainTree {
 	name: string;
 	children: TreeNode[];
+	path: string;
 }
 
 interface BlockAllowList {

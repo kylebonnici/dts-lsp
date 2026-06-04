@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Update `Generate context output` to `Devicetree Context Output`
 - Fixed missing compatible in serialized output for node with `simple-bus` type.
+- Fixed `Memory domains view` when size or address has `cell = 0`.
+- Fixed `Memory domains view` when node has multiple reg values.
 
 ## [0.10.0] - 2026-05-28
 

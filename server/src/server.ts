@@ -2116,7 +2116,11 @@ connection.onRequest(
 		const runtime = await context.getRuntime();
 		const regions = runtime.rootNode
 			.getMemoryViews(runtime.context.macros)
-			.sort((a, b) => compareWords(a.start, b.start));
+			.sort((a, b) =>
+				compareWords(a.start, b.start) === 0
+					? compareWords(b.size, a.start)
+					: compareWords(a.start, b.start),
+			);
 
 		const memoryViews = new Map<string, GroupedMemoryView>();
 
@@ -2128,12 +2132,14 @@ connection.onRequest(
 				labels: r.labels,
 				start: r.start,
 				size: r.size,
+				disabled: r.disabled,
 			};
 
 			if (!view) {
 				memoryViews.set(r.name, {
 					name: r.name,
 					partitions: [item],
+					path: r.nodePath,
 				});
 			} else {
 				view.partitions.push(item);

@@ -1578,6 +1578,7 @@ ${'\t'.repeat(level - 1)}};`;
 					nodePath: this.pathString,
 					start,
 					size,
+					disabled: this.disabled,
 				});
 			});
 		}

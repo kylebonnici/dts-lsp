@@ -14,13 +14,7 @@
  * limitations under the License.
  */
 
-import {
-	addWords,
-	compareWords,
-	maxWords,
-	minWords,
-	subtractWords,
-} from './helpers';
+import { addWords, compareWords } from './helpers';
 import { DomainTree, GroupedMemoryView, TreeNode } from './types/index';
 
 // Helper to format hex
@@ -34,8 +28,11 @@ function insertNode(
 	root: TreeNode | DomainTree,
 	partition: GroupedMemoryView['partitions'][0],
 ) {
-	const partPath = partition.nodePath;
-	const label = partition.labels.at(0);
+	const nodePath = partition.nodePath;
+	let label = partition.labels.at(0);
+	if (partition.disabled) {
+		label += ' <DISABLED>';
+	}
 	const nodeName = partition.nodePath.split('/').pop() ?? partition.nodePath;
 	const name = label ? `${label} (${nodeName})` : nodeName;
 
@@ -56,47 +53,20 @@ function insertNode(
 	});
 
 	if (candidates.length > 0) {
-		// Prefer candidate whose nodePath is a prefix
-		const parentByPath = candidates.find(
-			(child) =>
-				partPath.startsWith(`${child.name}/`) ||
-				partPath === child.name,
-		);
-
-		if (parentByPath) {
-			insertNode(parentByPath, partition);
-			return;
-		}
-
-		// No prefix match → insert under all candidates (rare)
 		for (const candidate of candidates) {
 			insertNode(candidate, partition);
 		}
 		return;
 	}
 
-	// Check if a node with same name already exists at this level
-	let existingNode = root.children.find((child) => child.name === name);
-
-	if (!existingNode) {
-		existingNode = {
-			name,
-			start: partition.start,
-			size: partition.size,
-			children: [],
-		};
-		root.children.push(existingNode);
-	} else {
-		// Optional: adjust start/size to cover union
-		existingNode.start = minWords(existingNode.start, partition.start);
-		existingNode.size = maxWords(
-			existingNode.size,
-			subtractWords(
-				addWords(partition.start, partition.size),
-				existingNode.start,
-			),
-		);
-	}
+	root.children.push({
+		name,
+		start: partition.start,
+		size: partition.size,
+		children: [],
+		path: nodePath,
+		disabled: partition.disabled,
+	});
 }
 
 // ------------------------
@@ -109,6 +79,7 @@ function buildTrees(data: GroupedMemoryView[]): Record<string, DomainTree> {
 		const root: DomainTree = {
 			name: item.name,
 			children: [],
+			path: item.path,
 		};
 
 		for (const partition of item.partitions) {
@@ -125,7 +96,7 @@ function buildTrees(data: GroupedMemoryView[]): Record<string, DomainTree> {
 // Convert tree node to string
 // ------------------------
 function treeToString(
-	node: TreeNode | DomainTree,
+	node: Omit<TreeNode, 'disabled'> | DomainTree,
 	prefix = '',
 	isLast = true,
 ): string {
@@ -141,9 +112,12 @@ function treeToString(
 	const connector = prefix ? (isLast ? '└─ ' : '├─ ') : '';
 
 	const meta: string[] = [];
-	if ('start' in node && node.start) meta.push(`start: ${toHex(node.start)}`);
-	if ('size' in node && node.size) meta.push(`size: ${toHex(node.size)}`);
-	const metaString = meta.length > 0 ? ` [${meta.join(', ')}]` : '';
+	if ('start' in node && node.start.length)
+		meta.push(`start: ${toHex(node.start)}`);
+	if ('size' in node && node.size.length)
+		meta.push(`size: ${toHex(node.size)}`);
+	const metaString = meta.length > 0 ? `[${meta.join(', ')}]` : '';
+
 	// Node name (could be multiple merged)
 	const nodeName = node.name;
 	result += `${prefix}${connector}${nodeName} ${metaString}\n`;
@@ -167,11 +141,12 @@ function treeToString(
 		});
 		const mergedChildren = Object.values(mergedChildrenMap);
 
-		const mergedNode: TreeNode = {
+		const mergedNode: Omit<TreeNode, 'disabled'> = {
 			name: names,
 			start: group[0].start,
 			size: group[0].size,
 			children: mergedChildren,
+			path: node.path,
 		};
 
 		result += treeToString(mergedNode, newPrefix, i === keys.length - 1);
