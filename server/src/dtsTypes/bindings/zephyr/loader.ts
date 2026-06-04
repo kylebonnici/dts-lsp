@@ -446,16 +446,6 @@ export class ZephyrBindingsLoader {
 					}
 				});
 				baseType = convertBindingToType(baseCopy, node);
-			} else {
-				const folders = key.split(':');
-				const bindings = Array.from(this.zephyrBindingCache.keys())
-					.filter((p) => folders.some((f) => p.startsWith(f)))
-					.flatMap((path) => this.zephyrBindingCache.get(path)!);
-
-				const base = bindings.find(
-					(b) => basename(b.filePath) === `base.yaml`,
-				);
-				baseType = base ? convertBindingToType(base, node) : undefined;
 			}
 
 			if (baseType) {

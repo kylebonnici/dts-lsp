@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fixed missing compatible in serialized output for node with `simple-bus` type.
 - Fixed `Memory domains view` when size or address has `cell = 0`.
 - Fixed `Memory domains view` when node has multiple reg values.
+- Fixed issue when using `Zephyr` where node with no bindings was assigned base.yml.
 
 ## [0.10.0] - 2026-05-28
 
