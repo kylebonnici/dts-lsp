@@ -5,7 +5,7 @@
 	"author": "Microsoft Corporation",
 	"license": "Apache-2.0",
 	"icon": "images/icon.png",
-	"version": "0.10.0",
+	"version": "0.10.1",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/kylebonnici/dts-lsp"
@@ -41,13 +41,13 @@
 			},
 			{
 				"command": "devicetree.context.output.generate",
-				"title": "Devicetree: Generate context output",
+				"title": "Devicetree: Generate Devicetree Context Output",
 				"icon": "$(build)",
 				"enablement": "editorLangId == devicetree && resourceScheme == 'file'"
 			},
 			{
 				"command": "devicetree.context.output.generate.beside",
-				"title": "Devicetree: Generate context output",
+				"title": "Devicetree: Generate Devicetree Context Output",
 				"icon": "$(build)",
 				"enablement": "editorLangId == devicetree && resourceScheme == 'file'"
 			},

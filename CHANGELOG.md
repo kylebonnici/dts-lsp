@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.10.1] - Unreleased
+
+### Fixed
+
+- Update `Generate context output` to `Devicetree Context Output`
+
 ## [0.10.0] - 2026-05-28
 
 ### Added
