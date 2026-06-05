@@ -2118,7 +2118,7 @@ connection.onRequest(
 			.getMemoryViews(runtime.context.macros)
 			.sort((a, b) =>
 				compareWords(a.start, b.start) === 0
-					? compareWords(b.size, a.start)
+					? compareWords(b.size, a.size)
 					: compareWords(a.start, b.start),
 			);
 
