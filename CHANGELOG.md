@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.10.1] - Unreleased
+## [0.10.1] - 2026-06-10
 
 ### Fixed
 
@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fixed `Memory domains view` when size or address has `cell = 0`.
 - Fixed `Memory domains view` when node has multiple reg values.
 - Fixed issue when using `Zephyr` where node with no bindings was assigned base.yml.
+- Fixed ast tree scoping for file that only include other devicetree files.
 
 ## [0.10.0] - 2026-05-28
 

@@ -194,12 +194,10 @@ export class ContextAware {
 	}
 
 	getFsPathParser(fsPath: string) {
-		let parser = this.overlayParsers.find((p) =>
+		let parser = this.allParsers.find((p) =>
 			p.getFiles().some((p) => isPathEqual(p, fsPath)),
 		);
-		parser ??= this.parser.getFiles().some((p) => isPathEqual(p, fsPath))
-			? this.parser
-			: undefined;
+
 		return parser;
 	}
 
@@ -390,10 +388,10 @@ export class ContextAware {
 		return this._runtime;
 	}
 
-	public getSortKey(obj: ASTBase | undefined) {
+	public getSortKey(obj: ASTBase | undefined, last = false) {
 		if (!obj) return undefined;
 
-		return this.sortKeys.get(obj.firstToken);
+		return this.sortKeys.get(last ? obj.lastToken : obj.firstToken);
 	}
 
 	public async evaluate() {
@@ -466,7 +464,7 @@ export class ContextAware {
 	}
 
 	private findTokenBeforePosition(position: Position, fsPath: string) {
-		const meta = [this.parser, ...this.overlayParsers].flatMap((p) => ({
+		const meta = this.allParsers.flatMap((p) => ({
 			parser: p,
 			tokens: p.tokens,
 		}));

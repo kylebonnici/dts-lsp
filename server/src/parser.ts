@@ -2287,9 +2287,7 @@ export class Parser extends BaseParser {
 	}
 
 	get includes() {
-		return this.allAstItems.filter(
-			(i) => i instanceof Include,
-		) as Include[];
+		return this.cPreprocessorParser.dtsIncludes;
 	}
 
 	get allAstItems(): ASTBase[] {

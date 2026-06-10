@@ -88,21 +88,18 @@ export class Runtime implements Searchable {
 	): SearchableResult | undefined {
 		const fileAsts = this.fileTopMostAsts(file);
 
+		const fileTokens = getTokenizedDocumentProvider().requestTokens(
+			file,
+			false,
+		);
 		let dtcNode = fileAsts.find(
 			(i) =>
 				positionInBetween(i, file, position) ||
-				isLastTokenOnLine(
-					getTokenizedDocumentProvider().requestTokens(file, false),
-					i,
-					position,
-				),
+				isLastTokenOnLine(fileTokens, i, position),
 		);
 
 		if (!dtcNode) {
-			const includes = [
-				this.context.parser,
-				...this.context.overlayParsers,
-			].flatMap((p) => p.includes);
+			const includes = this.context.allParsers.flatMap((p) => p.includes);
 
 			const getInclude = (
 				file: string,
