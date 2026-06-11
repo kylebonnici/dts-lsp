@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.10.2] - 2026-06-11
+
+- Fixed ast tree scoping for file that only include other devicetree files.
+
 ## [0.10.1] - 2026-06-10
 
 ### Fixed

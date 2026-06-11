@@ -800,41 +800,9 @@ export async function nodeFinder<T>(
 
 	if (!locationMeta) {
 		locationMeta = runtime.getDeepestAstNode(fsPath, location.position);
-		sortKey = context.getSortKey(locationMeta?.ast);
-		if (!sortKey) {
-			const fileParser = runtime.context.getFsPathParser(fsPath);
-
-			let workingPath = fsPath;
-			while (!sortKey && fileParser) {
-				const lastIncludeInFile = fileParser.includes
-					.filter(
-						(i) =>
-							isPathEqual(i.fsPath, workingPath) &&
-							i.resolvedPath,
-					)
-					.at(-1);
-
-				if (!lastIncludeInFile?.resolvedPath) {
-					break;
-				}
-
-				const fileAsts = runtime.fileTopMostAsts(
-					lastIncludeInFile.resolvedPath,
-				);
-				sortKey = context.getSortKey(
-					fileAsts
-						.sort(
-							(a, b) =>
-								(context.getSortKey(a) ?? 0) -
-								(context.getSortKey(b) ?? 0),
-						)
-						.at(-1),
-					true,
-				);
-				workingPath = lastIncludeInFile.resolvedPath;
-			}
-		}
-		context.getSortKeyFile(location.position, fsPath);
+		sortKey =
+			context.getSortKey(locationMeta?.ast) ??
+			context.getSortKeyFile(location.position, fsPath);
 	}
 
 	console.log(`search: ${performance.now() - t}ms`);

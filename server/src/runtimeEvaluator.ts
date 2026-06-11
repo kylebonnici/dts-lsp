@@ -498,6 +498,10 @@ export class ContextAware {
 			if (includeFile) {
 				return includeFile.lastToken;
 			}
+
+			if (item.parser.getFiles().some((f) => isPathEqual(f, fsPath))) {
+				return item.tokens[item.tokens.length - 1];
+			}
 		}
 	}
 
