@@ -227,7 +227,7 @@
 					"scope": "resource",
 					"type": "array",
 					"default": null,
-					"description": "Locations that Renaming should not be allowrd if any of the edits is a child node of that directory"
+					"description": "Locations that Renaming should not be allowed if any of the edits is a child node of that directory"
 				},
 				"devicetree.allowAdhocContexts": {
 					"scope": "resource",
