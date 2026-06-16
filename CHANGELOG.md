@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.10.3] - Unreleased
+
+### Fixed
+
+- Fixed typo and description for `defaultLockRenameEdits` [Contribution by [krissrex](https://github.com/krissrex), [nkar123412-hub](https://github.com/nkar123412-hub), [thehanslevi](https://github.com/thehanslevi)]
+
 ## [0.10.2] - 2026-06-11
 
 - Fixed ast tree scoping for file that only include other devicetree files.
