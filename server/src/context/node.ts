@@ -875,14 +875,16 @@ export class Node {
 	}
 
 	#rangeMappingsCache?: RangeMapping[] | null;
-	public rangeMap(macros: Map<string, MacroRegistryItem>) {
+	public rangeMap(
+		macros: Map<string, MacroRegistryItem>,
+	): RangeMapping[] | null {
 		if (this.#rangeMappingsCache !== undefined)
 			return this.#rangeMappingsCache;
 
 		const rangeProperty = this.getProperty('ranges');
 		if (!rangeProperty) {
 			this.#rangeMappingsCache = null;
-			return;
+			return null;
 		}
 
 		const childSizeCell = this.sizeCells(macros);
@@ -941,19 +943,23 @@ export class Node {
 			});
 		}
 
-		this.#rangeMappingsCache = mapping;
+		this.#rangeMappingsCache = mapping.length
+			? mapping
+			: (this.parent?.rangeMap(macros) ?? []);
 		return this.#rangeMappingsCache;
 	}
 
 	#dmaRangeMappingsCache?: RangeMapping[] | null;
-	public dmaRangeMap(macros: Map<string, MacroRegistryItem>) {
+	public dmaRangeMap(
+		macros: Map<string, MacroRegistryItem>,
+	): RangeMapping[] | null {
 		if (this.#dmaRangeMappingsCache !== undefined)
 			return this.#dmaRangeMappingsCache;
 
 		const rangeProperty = this.getProperty('dma-ranges');
 		if (!rangeProperty) {
 			this.#dmaRangeMappingsCache = null;
-			return;
+			return null;
 		}
 
 		const childSizeCell = this.sizeCells(macros);
@@ -1012,7 +1018,9 @@ export class Node {
 			});
 		}
 
-		this.#dmaRangeMappingsCache = mapping;
+		this.#dmaRangeMappingsCache = mapping.length
+			? mapping
+			: (this.parent?.dmaRangeMap(macros) ?? []);
 		return this.#dmaRangeMappingsCache;
 	}
 
