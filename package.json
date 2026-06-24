@@ -5,7 +5,7 @@
 	"author": "Microsoft Corporation",
 	"license": "Apache-2.0",
 	"icon": "images/icon.png",
-	"version": "0.10.2",
+	"version": "0.10.3",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/kylebonnici/dts-lsp"
@@ -68,8 +68,12 @@
 				"enablement": "editorLangId == devicetree"
 			},
 			{
-				"command": "devicetree.context.memoryViews",
-				"title": "Devicetree: Memory domains view"
+				"command": "devicetree.context.memoryViews.json",
+				"title": "Devicetree: Memory domains view (JSON)"
+			},
+			{
+				"command": "devicetree.context.memoryViews.tree",
+				"title": "Devicetree: Memory domains view (Tree)"
 			},
 			{
 				"command": "devicetree.formatting.sortPropertiesByGroup",

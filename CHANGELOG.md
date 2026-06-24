@@ -6,10 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.10.3] - Unreleased
 
+### Changed
+
+- Split `Devicetree: Memory domains view` into two commands
+    - `Devicetree: Memory domains view (JSON)`
+    - `Devicetree: Memory domains view (Tree)`
+
 ### Fixed
 
 - Fixed typo and description for `defaultLockRenameEdits` [Contribution by [krissrex](https://github.com/krissrex), [nkar123412-hub](https://github.com/nkar123412-hub), [thehanslevi](https://github.com/thehanslevi)]
 - Fixed reg value resolution to recursively use ancestor ranges when a parent node's ranges property is empty.
+- Fixed LSP formatting for non-Devicetree files to correctly return no edits.
 
 ## [0.10.2] - 2026-06-11
 

@@ -1607,6 +1607,10 @@ connection.onCodeAction(async (event) => {
 const onDocumentFormat = async (
 	event: DocumentFormattingParams | DocumentRangeFormattingParams,
 ) => {
+	if (!isDtsFile(event.textDocument.uri)) {
+		return;
+	}
+
 	const fsPath = fileURIToFsPath(event.textDocument.uri);
 	if (!isDtsFile(fsPath)) {
 		return;
