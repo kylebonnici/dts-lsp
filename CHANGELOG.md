@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed typo and description for `defaultLockRenameEdits` [Contribution by [krissrex](https://github.com/krissrex), [nkar123412-hub](https://github.com/nkar123412-hub), [thehanslevi](https://github.com/thehanslevi)]
+- Fixed LSP formatting for non-Devicetree files to correctly return no edits.
 
 ## [0.10.2] - 2026-06-11
 
