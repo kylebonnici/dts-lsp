@@ -437,7 +437,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			},
 		),
 		vscode.commands.registerCommand(
-			'devicetree.context.memoryViews',
+			'devicetree.context.memoryViews.json',
 			async () => {
 				const context = await SelectContext(api);
 				if (context) {
@@ -449,6 +449,15 @@ export async function activate(context: vscode.ExtensionContext) {
 							language: 'json',
 						}),
 					);
+				}
+			},
+		),
+		vscode.commands.registerCommand(
+			'devicetree.context.memoryViews.tree',
+			async () => {
+				const context = await SelectContext(api);
+				if (context) {
+					const data = (await api.getMemoryViews(context.id)) as any;
 
 					await vscode.window.showTextDocument(
 						await vscode.workspace.openTextDocument({
