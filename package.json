@@ -68,8 +68,12 @@
 				"enablement": "editorLangId == devicetree"
 			},
 			{
-				"command": "devicetree.context.memoryViews",
-				"title": "Devicetree: Memory domains view"
+				"command": "devicetree.context.memoryViews.json",
+				"title": "Devicetree: Memory domains view (JSON)"
+			},
+			{
+				"command": "devicetree.context.memoryViews.tree",
+				"title": "Devicetree: Memory domains view (Tree)"
 			},
 			{
 				"command": "devicetree.formatting.sortPropertiesByGroup",
