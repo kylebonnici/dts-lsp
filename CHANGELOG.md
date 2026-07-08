@@ -4,7 +4,32 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.10.3] - Unreleased
+## [0.11.0] - Unreleased
+
+### Added
+
+- `.dts-format` files can now be used to override formatting settings for any descendant.
+  If multiple `.dts-format` files apply, the closest one takes precedence. This file is JSON
+  format and can containe the below settings
+    ```
+    {
+      baseFormattingRules: boolean;
+      removeMacroMultiline: boolean;
+      wrapLongLines: boolean;
+      indentExpressions: boolean;
+      removeEmptyReferences: boolean;
+      removeEmptyNodes: boolean;
+      removeEmptyRoots: boolean;
+      removeDuplicateProperties: boolean;
+      sortNodesAndProperties: boolean;
+      sortNodesNodesBy: "name" | "address" | "none";
+      sortPropertiesAlphabetically: boolean;
+      tabSize: number;
+      insertSpaces: boolean;
+      singleIndent: string;
+      wordWrapColumn: number;
+    }
+    ```
 
 ### Changed
 

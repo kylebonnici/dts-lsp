@@ -112,6 +112,7 @@ import { getSignatureHelp } from './signatureHelp';
 import { initHeapMonitor } from './heapMonitor';
 import { Node } from './context/node';
 import { convertMemoryToTree, convertTreeToString } from './memoryDomains';
+import { getFileOverridFormattingSettings } from './formattingSettings';
 
 const contextAware: ContextAware[] = [];
 let activeContext: ContextAware | undefined;
@@ -350,7 +351,7 @@ connection.onInitialize(async (params: InitializeParams) => {
 	connection.console.log(
 		`[Server(${process.pid}) ${
 			workspaceFolders?.at(0)?.uri
-		} Version 0.10.3 ] Started and initialize received`,
+		} Version 0.11.0 ] Started and initialize received`,
 	);
 
 	const capabilities = params.capabilities;
@@ -1048,6 +1049,11 @@ const generateWorkspaceDiagnostics = async (context: ContextAware) => {
 								options: {
 									...context.formattingOptions,
 									...fileFormattingSettings,
+									...getFileOverridFormattingSettings(
+										file,
+										workspaceFolders?.map((f) => f.uri) ??
+											[],
+									),
 								},
 							},
 							textDocument.getText(),
@@ -1644,7 +1650,14 @@ const onDocumentFormat = async (
 	const newText = await formatText(
 		{
 			...event,
-			options: { ...context.formattingOptions, ...event.options },
+			options: {
+				...context.formattingOptions,
+				...event.options,
+				...getFileOverridFormattingSettings(
+					fileURIToFsPath(document.uri),
+					workspaceFolders?.map((f) => f.uri) ?? [],
+				),
+			},
 		},
 		text,
 		'New Text',
