@@ -3,7 +3,7 @@
 	"description": "Devicetree Language Server",
 	"author": "Kyle Micallef Bonnici",
 	"license": "Apache-2.0",
-	"version": "0.10.3",
+	"version": "0.11.0",
 	"publisher": "KyleMicallefBonnici",
 	"repository": {
 		"type": "git",
