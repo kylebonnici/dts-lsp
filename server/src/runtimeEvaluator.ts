@@ -237,11 +237,11 @@ export class ContextAware {
 									v?.value instanceof StringValue &&
 									t.compatible === v.value.value,
 							);
-							return nodeType
+							return nodeType && nodeType.bindingsPath
 								? {
 										range: toRange(v!.value!),
 										target: pathToFileURI(
-											nodeType.bindingsPath!,
+											nodeType.bindingsPath,
 										),
 									}
 								: undefined;
