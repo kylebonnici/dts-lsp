@@ -25,7 +25,7 @@ jobs:
                   always-auth: true
                   provenance: true
             - name: Update npm
-              run: npm install -g npm@latest
+              run: npm install -g npm@11
             - run: npm ci
             - run: npm --prefix server ci
             - run: npm run compile:server:prod
