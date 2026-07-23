@@ -456,6 +456,7 @@ export abstract class INodeType {
 	abstract childNodeType: ((node: Node) => INodeType) | undefined;
 	onBus?: string;
 	bus?: string[];
+	title?: string;
 	description?: string;
 	maintainers?: string[];
 	vendor?: string;
@@ -752,7 +753,11 @@ export class NodeType extends INodeType {
 									`<${t.map((arg) => arg.label).join(' ')}>`,
 							)
 							.join(', \n\t\t')};`,
-						this.description,
+						this.title || this.description
+							? [this.title, this.description]
+									.filter((d) => !!d)
+									.join('\n\n')
+							: undefined,
 						...signatureArgs.flat(),
 					),
 				],
@@ -771,7 +776,11 @@ export class NodeType extends INodeType {
 					`${property.name} = <${signatureArgs
 						.map((arg) => arg.label)
 						.join(' ')}>;`,
-					this.description,
+					this.title || this.description
+						? [this.title, this.description]
+								.filter((d) => !!d)
+								.join('\n\n')
+						: undefined,
 					...signatureArgs,
 				),
 			],

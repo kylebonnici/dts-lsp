@@ -10,6 +10,8 @@ $id: https://github.com/kylebonnici/dts-lsp/tree/master/syntax/bindings-schema.y
 # additionalProperties: false
 type: object
 properties:
+  title:
+    $ref: "#/definitions/title"
   description:
     $ref: "#/definitions/description"
   compatible:
@@ -122,6 +124,9 @@ definitions:
       include:
         $ref: "#/definitions/include"
     additionalProperties: false
+  title:
+    type: string
+    description: Short description of the bound device, typically the hardware model.
   description:
     type: string
     description: Human readable description. The description shows up in documentation and type hover.
