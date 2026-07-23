@@ -34,6 +34,12 @@
 	},
 	"main": "./client/dist/extension.js",
 	"contributes": {
+		"yamlValidation": [
+			{
+				"fileMatch": "dts/bindings/**/*.yaml",
+				"url": "./syntax/bindings-schema.yaml"
+			}
+		],
 		"commands": [
 			{
 				"command": "devicetree.context.set.active",
