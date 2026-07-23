@@ -62,7 +62,6 @@ definitions:
       Defines one or more bindings this binding inherits properties and other attributes from.
     items:
         $ref: "#/definitions/include-item"
-    $ref: "#/definitions/include-item"
 
   include-item:
     type:

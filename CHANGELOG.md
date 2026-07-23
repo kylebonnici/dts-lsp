@@ -15,9 +15,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - CVE-2026-13676
     - CVE-2026-16221
 
+### Added
+
+- `bindings-schema.yaml` to `yamlValidation` contibution point
+
 ### Changed
 
 - Update `bindings-schema.yaml` id
+
+### Fixed
+
+- Fixed `include` in `bindings-schema.yaml` [Contribution by [krissrex](https://github.com/krissrex)]
 
 ## [0.10.3] - 2026-07-10
 
