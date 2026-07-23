@@ -1,5 +1,11 @@
+# Derived from:
+# https://github.com/trond-snekvik/vscode-devicetree/tree/master/syntax/bindings-schema.yaml
+#
+# Original author: Trond Snekvik
+# Modified by: Kyle Micallef Bonnici
+
 $schema: "http://json-schema.org/draft-07/schema"
-$id: https://github.com/trond-snekvik/vscode-devicetree/tree/master/syntax/bindings-schema.yaml
+$id: https://github.com/kylebonnici/dts-lsp/tree/master/syntax/bindings-schema.yaml
 # title: Zephyr Project DeviceTree bindings schema
 # additionalProperties: false
 type: object

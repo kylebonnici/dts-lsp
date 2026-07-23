@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.11.0] - unrelease
+
+### Changed
+
+- Update `bindings-schema.yaml` id
+
 ## [0.10.3] - 2026-07-10
 
 ### Changed
