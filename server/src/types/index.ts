@@ -428,6 +428,7 @@ export interface ZephyrBindingYml {
 	filePath: string;
 	include: Include[];
 	rawInclude: Include[];
+	title?: string;
 	description?: string;
 	compatible?: string;
 	'child-binding'?: ZephyrBindingYml;
