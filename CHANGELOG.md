@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.11.0] - unrelease
 
+### Security
+
+- Update dependencies to address
+    - CVE-2026-13149
+    - CVE-2026-59869
+    - CVE-2026-53550
+    - CVE-2026-13676
+    - CVE-2026-16221
+
 ### Changed
 
 - Update `bindings-schema.yaml` id
