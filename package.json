@@ -194,7 +194,7 @@
 				"devicetree.defaultBindingType": {
 					"scope": "resource",
 					"type": "string",
-					"default": "Zephyr",
+					"default": null,
 					"description": "Default binding loader"
 				},
 				"devicetree.defaultZephyrBindings": {

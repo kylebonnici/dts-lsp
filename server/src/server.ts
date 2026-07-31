@@ -696,8 +696,14 @@ const integrationContext = new Map<string, Context>();
 const getUnresolvedAllContextSettings = (): Settings | undefined => {
 	if (!integrationSettings && !lspConfigurationSettings) return;
 
+	const cleanedIntegrationSettings = Object.fromEntries(
+		Object.entries(integrationSettings ?? {}).filter(
+			([, value]) => value !== undefined,
+		),
+	);
+
 	const merged = <Settings>{
-		...integrationSettings,
+		...cleanedIntegrationSettings,
 		...lspConfigurationSettings,
 		contexts: [
 			...(lspConfigurationSettings?.contexts ?? []),
@@ -1339,6 +1345,12 @@ const updateSetting = async (config: any) => {
 		deleteTopLevelNulls(config.settings.devicetree) as Settings,
 	);
 
+	lspConfigurationSettings = Object.fromEntries(
+		Object.entries(lspConfigurationSettings ?? {}).filter(
+			([, value]) => value !== undefined,
+		),
+	);
+
 	console.log(
 		'Configuration changed',
 		JSON.stringify(config, undefined, '\t'),
@@ -1806,8 +1818,13 @@ connection.onRequest(
 	'devicetree/setDefaultSettings',
 	async (setting: IntegrationSettings) => {
 		await allStable();
-		integrationSettings = setting;
-		console.log('Integration Settings', setting);
+
+		integrationSettings = Object.fromEntries(
+			Object.entries(setting ?? {}).filter(
+				([, value]) => value !== undefined,
+			),
+		);
+		console.log('Integration Settings', integrationSettings);
 		await onSettingsChanged();
 	},
 );
