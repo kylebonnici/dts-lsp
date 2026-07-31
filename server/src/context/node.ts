@@ -1385,6 +1385,9 @@ export class Node {
 				...(this.nodeType?.maintainers
 					? ['### Maintainers', ...(this.nodeType?.maintainers ?? [])]
 					: []),
+				...(this.nodeType?.title
+					? ['### Title', escapeMarkdown(this.nodeType?.title)]
+					: []),
 				...(this.nodeType?.description
 					? [
 							'### Description',

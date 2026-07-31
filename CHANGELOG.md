@@ -15,6 +15,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - CVE-2026-13676
     - CVE-2026-16221
 
+### Added
+
+- Added support for `title` in zephyr bindings [Contribution by [krissrex](https://github.com/krissrex)]
+
 ### Changed
 
 - Update `bindings-schema.yaml` id

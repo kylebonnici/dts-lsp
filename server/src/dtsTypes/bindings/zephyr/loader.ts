@@ -648,6 +648,9 @@ export class ZephyrBindingsLoader {
 			kind: MarkupKind.Markdown,
 			value: [
 				...(vendor ? ['### Vendor', ...(vendor ? [vendor] : [])] : []),
+				...(binding.title
+					? ['### Title', escapeMarkdown(binding.title)]
+					: []),
 				...(binding.description
 					? ['### Description', escapeMarkdown(binding.description)]
 					: []),
@@ -757,6 +760,7 @@ const convertBindingToType = (
 ) => {
 	const nodeType = getStandardType(node);
 	nodeType.compatible = binding.compatible;
+	nodeType.title = binding.title;
 	nodeType.description = binding.description;
 	nodeType.bindingsPath = binding.filePath;
 	nodeType.zephyrBinding = binding;
