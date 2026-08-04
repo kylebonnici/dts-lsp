@@ -170,6 +170,10 @@ const convertToError = (
 	node: Node,
 	schemaKey: string,
 ): FileDiagnostic[] => {
+	if (node.hasOmitIfNoRef() && !node.isReferenced()) {
+		return [];
+	}
+
 	const meta = getMeta(node, error.instancePath);
 
 	const instanceNode = meta.node;

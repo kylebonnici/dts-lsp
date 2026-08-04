@@ -190,6 +190,14 @@ export class Node {
 		return this.parent === node ? true : this.parent.isChildOf(node);
 	}
 
+	public isReferenced(): boolean {
+		return (
+			this.implementations.some((i) => i instanceof DtcRefNode) ||
+			this.linkedRefLabels.length > 0 ||
+			this.linkedNodeNamePaths.length > 0
+		);
+	}
+
 	public getReferenceBy(node: DtcRefNode): Node | undefined {
 		const referancesImp = this.implementations.filter(
 			(i) => i instanceof DtcRefNode,
@@ -1349,6 +1357,12 @@ export class Node {
 		return Array.from(new Set(this.labels.map((l) => l.toString())));
 	}
 
+	hasOmitIfNoRef() {
+		return this.implementations.some(
+			(d) => d instanceof DtcChildNode && d.omitIfNoRef,
+		);
+	}
+
 	toTooltipString(macros: Map<string, MacroRegistryItem>) {
 		return `${this.uniqueLabels().join(' ')}${this.labels.length ? ' ' : ''}${
 			this.fullName
@@ -1411,9 +1425,8 @@ export class Node {
 		cwd?: string,
 		level = 1,
 	): string {
-		const hasOmitIfNoRef = this.implementations.some(
-			(d) => d instanceof DtcChildNode && d.omitIfNoRef,
-		);
+		const hasOmitIfNoRef = this.hasOmitIfNoRef();
+
 		const isOmitted =
 			hasOmitIfNoRef &&
 			this.linkedRefLabels.length === 0 &&

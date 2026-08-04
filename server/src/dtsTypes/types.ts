@@ -140,6 +140,10 @@ export class PropertyNodeType<T = string | number> {
 		propertyName: string,
 		property?: Property,
 	): FileDiagnostic[] {
+		if (node.hasOmitIfNoRef() && !node.isReferenced()) {
+			return [];
+		}
+
 		const required = this.required(node);
 		if (!property) {
 			if (required === 'required') {
