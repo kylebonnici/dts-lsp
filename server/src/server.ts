@@ -65,6 +65,7 @@ import {
 	nodeFinder,
 	pathToFileURI,
 	resolveContextFiles,
+	isDtsFile,
 } from './helpers';
 import { ContextAware } from './runtimeEvaluator';
 import { getCompletions } from './getCompletions';
@@ -167,7 +168,7 @@ const deleteContext = async (context: ContextAware) => {
 	connection.sendNotification('devicetree/contextDeleted', {
 		ctxNames: context.ctxNames.map((c) => c.toString()),
 		id: context.id,
-		...(await context.getFileTree()),
+		...context.getFileTree(),
 		settings: context.settings,
 		active: activeContext === context,
 		type: meta.type,
@@ -350,7 +351,7 @@ connection.onInitialize(async (params: InitializeParams) => {
 	connection.console.log(
 		`[Server(${process.pid}) ${
 			workspaceFolders?.at(0)?.uri
-		} Version 0.11.1 ] Started and initialize received`,
+		} Version 0.12.0 ] Started and initialize received`,
 	);
 
 	const capabilities = params.capabilities;
@@ -633,7 +634,7 @@ const createContext = async (context: ResolvedContext) => {
 	connection.sendNotification('devicetree/contextCreated', {
 		ctxNames: newContext.ctxNames.map((c) => c.toString()),
 		id: newContext.id,
-		...(await newContext.getFileTree()),
+		...newContext.getFileTree(),
 		settings: newContext.settings,
 		active: newContext === activeContext,
 		type: meta.type,
@@ -907,10 +908,8 @@ const onChange = async (fsPath: string) => {
 							}
 						}
 
-						const [meta, fileTree] = await Promise.all([
-							contextMeta(context),
-							context.getFileTree(),
-						]);
+						const meta = await contextMeta(context);
+						const fileTree = context.getFileTree();
 
 						const ctx = {
 							ctxNames: context.ctxNames.map((c) => c.toString()),
@@ -1170,7 +1169,7 @@ const updateActiveContext = async (id: ContextId, force = false) => {
 
 		if (newContext) {
 			contextMeta(newContext).then(async (meta) => {
-				const fileTree = await newContext.getFileTree();
+				const fileTree = newContext.getFileTree();
 				if (
 					!newContext ||
 					(newContext !== activeContext &&
@@ -1209,11 +1208,6 @@ const updateActiveContext = async (id: ContextId, force = false) => {
 
 	return updateActiveContext;
 };
-
-const isDtsFile = (path: string) =>
-	['.dts', '.dtsi', '.dtso', '.overlay', '.keymap'].some((ext) =>
-		path.endsWith(ext),
-	);
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events
@@ -1773,7 +1767,7 @@ connection.onRequest(
 				return {
 					ctxNames: c.ctxNames.map((n) => n.toString()),
 					id: c.id,
-					...(await c.getFileTree()),
+					...c.getFileTree(),
 					settings: c.settings,
 					active: activeContext === c,
 					type: meta.type,
@@ -1805,7 +1799,7 @@ connection.onRequest(
 			? {
 					ctxNames: activeContext.ctxNames.map((c) => c.toString()),
 					id: activeContext.id,
-					...(await activeContext.getFileTree()),
+					...activeContext.getFileTree(),
 					settings: activeContext.settings,
 					active: true,
 					type: meta.type,
@@ -1876,7 +1870,7 @@ connection.onRequest(
 		return {
 			ctxNames: context.ctxNames.map((c) => c.toString()),
 			id: id,
-			...(await context.getFileTree()),
+			...context.getFileTree(),
 			settings: context.settings,
 			active: true,
 			type: meta.type,

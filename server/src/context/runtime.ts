@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-import { Position } from 'vscode-languageserver';
+import path from 'path';
+import { DiagnosticSeverity, Position } from 'vscode-languageserver';
 import { DeleteNode } from '../ast/dtc/deleteNode';
 import {
 	genContextDiagnostic,
 	getDeepestAstNodeInBetween,
+	isDtsFile,
 	isLastTokenOnLine,
 	isPathEqual,
 	positionInBetween,
@@ -43,6 +45,7 @@ import { ASTBase } from '../ast/base';
 import { Include } from '../ast/cPreprocessors/include';
 import { Comment } from '../ast/dtc/comment';
 import { ContextAware } from '../runtimeEvaluator';
+import { File } from '../types/index';
 import { Property } from './property';
 import { Node } from './node';
 
@@ -215,9 +218,100 @@ export class Runtime implements Searchable {
 	get issues(): FileDiagnostic[] {
 		this.issuesCache ??= [
 			...this.labelIssues(),
+			...this.includeIssues(),
 			...this.rootNode.getIssues(this.context.macros),
 		];
 		return this.issuesCache;
+	}
+
+	private includeIssues() {
+		const includeMap = new Map<string, Include[]>();
+
+		for (const include of this.context.allParsers.flatMap(
+			(p) => p.includes,
+		)) {
+			if (!include.resolvedPath || !isDtsFile(include.resolvedPath)) {
+				continue;
+			}
+
+			const list = includeMap.get(include.resolvedPath) ?? [];
+			list.push(include);
+			includeMap.set(include.resolvedPath, list);
+		}
+
+		const duplicated = new Set(
+			[...includeMap.entries()]
+				.filter(([, includes]) => includes.length > 1)
+				.map(([path]) => path),
+		);
+
+		const parentMap = new Map<string, string[]>();
+
+		const visit = (file: File): void => {
+			for (const child of file.includes) {
+				const parents = parentMap.get(child.fsPath) ?? [];
+				parents.push(file.fsPath);
+				parentMap.set(child.fsPath, parents);
+
+				visit(child);
+			}
+		};
+
+		const tree = this.context.getFileTree();
+
+		visit(tree.mainDtsPath);
+		for (const overlay of tree.overlays) {
+			visit(overlay);
+		}
+
+		function hasDuplicatedAncestor(
+			path: string,
+			visited = new Set<string>(),
+		): boolean {
+			if (visited.has(path)) {
+				return false;
+			}
+			visited.add(path);
+
+			const parents = parentMap.get(path);
+			if (!parents) {
+				return false;
+			}
+
+			for (const parent of parents) {
+				if (duplicated.has(parent)) {
+					return true;
+				}
+
+				if (hasDuplicatedAncestor(parent, visited)) {
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		return [...includeMap.values()]
+			.filter((includes) => includes.length > 1)
+			.filter(
+				(include) => !hasDuplicatedAncestor(include[0].resolvedPath!),
+			)
+			.map(([first, ...rest]) =>
+				genContextDiagnostic(
+					ContextIssues.INCLUDE_ALREADY_INCLUDED,
+					first.firstToken,
+					first.lastToken,
+					first,
+					{
+						linkedTo: rest,
+						templateStrings: [
+							`#include <${first.path.path}>`,
+							rest.map((r) => path.basename(r.fsPath)).join(', '),
+						],
+						severity: DiagnosticSeverity.Warning,
+					},
+				),
+			);
 	}
 
 	private labelIssues() {

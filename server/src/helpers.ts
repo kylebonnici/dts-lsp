@@ -1246,6 +1246,8 @@ export const contextIssuesToMessage = (issue: Issue<ContextIssues>) => {
 					return `The following node "${issue.templateStrings[1]}" shall be present in "${issue.templateStrings[0]}" node.`;
 				case ContextIssues.ADDRESS_RANGE_COLLIDES:
 					return `The following node "${issue.templateStrings[0]}" address range collides with another node. Address start: "${issue.templateStrings[1]}", end: "${issue.templateStrings[2]}".`;
+				case ContextIssues.INCLUDE_ALREADY_INCLUDED:
+					return `The following file "${issue.templateStrings[0]}" has already been included in ${issue.templateStrings[1]}.`;
 			}
 		})
 		.join(' or ');
@@ -1269,6 +1271,8 @@ export const contextIssuesToLinkedMessage = (
 			return 'Node';
 		case ContextIssues.ADDRESS_RANGE_COLLIDES:
 			return `Node "${templateStrings[0]}". Address start: "${templateStrings[1]}", end: "${templateStrings[2]}".`;
+		case ContextIssues.INCLUDE_ALREADY_INCLUDED:
+			return `Include`;
 		default:
 			return 'TODO';
 	}
@@ -1887,3 +1891,8 @@ export function generateAddMissingPropEdit(
 		)}${propertyName}${assignText};`,
 	);
 }
+
+export const isDtsFile = (path: string) =>
+	['.dts', '.dtsi', '.dtso', '.overlay', '.keymap'].some((ext) =>
+		path.endsWith(ext),
+	);

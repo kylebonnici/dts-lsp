@@ -133,7 +133,7 @@ export class ContextAware {
 		return [...(await this.getRuntime()).issues, ...this._issues];
 	}
 
-	async getFileTree(): Promise<{ mainDtsPath: File; overlays: File[] }> {
+	getFileTree(): { mainDtsPath: File; overlays: File[] } {
 		const temp = new Map<
 			string,
 			{ path: string; resolvedPath?: string }[]

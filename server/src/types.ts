@@ -171,6 +171,7 @@ export enum ContextIssues {
 	UNABLE_TO_RESOLVE_NODE_PATH,
 	MISSING_NODE,
 	ADDRESS_RANGE_COLLIDES,
+	INCLUDE_ALREADY_INCLUDED,
 }
 
 export enum FormattingIssues {
