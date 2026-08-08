@@ -88,6 +88,7 @@ export class Parser extends BaseParser {
 	rootDocument = new DtcBaseNode();
 	unhandledStatements = new DtcRootNode();
 	injectedMacros: (CMacroCall | CIdentifier)[] = [];
+	plugin = false;
 
 	constructor(
 		public readonly fsPath: string,
@@ -126,6 +127,7 @@ export class Parser extends BaseParser {
 		this._issues = [];
 		this.unhandledStatements = new DtcRootNode();
 		this.#latestSemanticTokensBuilt = false;
+		this.plugin = false;
 	}
 
 	public async reparse(): Promise<void> {
@@ -789,7 +791,19 @@ export class Parser extends BaseParser {
 		const addresses = this.processNodeAddresses(node);
 		node.address = addresses;
 
-		if (!startsWithLetter(name)) {
+		const specialNames = [
+			'__overlay__',
+			'__fixups__',
+			'__local_fixups__',
+			'__symbols__',
+			`__overrides__`,
+			'__dormant__',
+		];
+
+		if (
+			!startsWithLetter(name) &&
+			(!this.plugin || (!specialNames.includes(name) && this.plugin))
+		) {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.NAME_NODE_NAME_START,
@@ -1116,6 +1130,7 @@ export class Parser extends BaseParser {
 		keyword.lastToken = this.endStatement(keyword);
 		this.mergeStack();
 		this.others.push(keyword);
+		this.plugin = true;
 		return true;
 	}
 
