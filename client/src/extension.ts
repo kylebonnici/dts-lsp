@@ -210,11 +210,11 @@ const formatFileManually = async (
 					true,
 				),
 				trimFinalNewlines: config.get<boolean>(
-					'trimAutoWhitespace',
+					'trimFinalNewlines',
 					true,
 				),
 				insertFinalNewline: config.get<boolean>(
-					'trimAutoWhitespace',
+					'insertFinalNewline',
 					true,
 				),
 				baseFormattingRules: config.get<boolean>(
