@@ -937,7 +937,7 @@ const generateZephyrTypeCheck = (
 							issueAst,
 							{
 								templateStrings: [
-									`Binding expects values to be "${myProperty.type}" with value: ${myProperty.const}`,
+									`Binding expects property "${p.name}" be of type "${myProperty.type}" with value: ${myProperty.const}`,
 								],
 							},
 						),
