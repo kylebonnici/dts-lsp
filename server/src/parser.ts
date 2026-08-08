@@ -797,6 +797,7 @@ export class Parser extends BaseParser {
 			'__local_fixups__',
 			'__symbols__',
 			`__overrides__`,
+			'__dormant__',
 		];
 
 		if (
