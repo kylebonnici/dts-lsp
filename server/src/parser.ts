@@ -789,7 +789,15 @@ export class Parser extends BaseParser {
 		const addresses = this.processNodeAddresses(node);
 		node.address = addresses;
 
-		if (!startsWithLetter(name)) {
+		const specialNames = [
+			'__overlay__',
+			'__fixups__',
+			'__local_fixups__',
+			'__symbols__',
+			`__overrides__`,
+		];
+
+		if (!startsWithLetter(name) && !specialNames.includes(name)) {
 			this._issues.push(
 				genSyntaxDiagnostic(
 					SyntaxIssue.NAME_NODE_NAME_START,
