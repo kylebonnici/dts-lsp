@@ -562,6 +562,7 @@ export class Node {
 		const defProps = (this.nodeType?.defaultProperties ?? []).filter(
 			(p) =>
 				!this.getProperty(p.name) &&
+				!p.required &&
 				p.name !== '#address-cells' &&
 				p.name !== '#size-cells' &&
 				p.name !== 'status',
