@@ -307,7 +307,12 @@ export class ContextAware {
 								c.firstToken,
 								c.lastToken,
 								c,
-								{ templateStrings: [c.value] },
+								{
+									templateStrings: [c.value],
+									severity: this.parser.plugin
+										? DiagnosticSeverity.Information
+										: DiagnosticSeverity.Error,
+								},
 							),
 						);
 					}
@@ -352,6 +357,9 @@ export class ContextAware {
 										.map((p) => p?.toString())
 										.join('/')}`,
 								],
+								severity: this.parser.plugin
+									? DiagnosticSeverity.Information
+									: DiagnosticSeverity.Error,
 							},
 						),
 					);
@@ -735,7 +743,12 @@ export class ContextAware {
 					reference.firstToken,
 					reference.lastToken,
 					reference,
-					{ templateStrings: [reference.label?.value ?? ''] },
+					{
+						templateStrings: [reference.label?.value ?? ''],
+						severity: this.parser.plugin
+							? DiagnosticSeverity.Information
+							: DiagnosticSeverity.Error,
+					},
 				),
 			);
 			runtime.unlinkedRefNodes.push(element);
@@ -904,7 +917,12 @@ export class ContextAware {
 						element.nodeNameOrRef.firstToken,
 						element.nodeNameOrRef.lastToken,
 						element.nodeNameOrRef,
-						{ templateStrings: [element.nodeNameOrRef.value] },
+						{
+							templateStrings: [element.nodeNameOrRef.value],
+							severity: this.parser.plugin
+								? DiagnosticSeverity.Information
+								: DiagnosticSeverity.Error,
+						},
 					),
 				);
 			} else {
@@ -977,6 +995,9 @@ export class ContextAware {
 										.map((p) => p?.toString())
 										.join('/')}`,
 								],
+								severity: this.parser.plugin
+									? DiagnosticSeverity.Information
+									: DiagnosticSeverity.Error,
 							},
 						),
 					);
