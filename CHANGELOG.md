@@ -22,6 +22,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Avoid binding validation diagnostics for nodes with `/omit-if-no-ref/` that are not referenced.
 - Fixed `required` not being respected when using Zephyr bindings with a `default` value defined.
 - Fixed loading the correct formatting defaults for `insertFinalNewline` and `trimFinalNewlines`
+- Fixed diagnostic errors for the below keyords when `/plugin/` is present:
+    - `__overlay__`
+    - `__fixups__`
+    - `__local_fixups__`
+    - `__symbols__`
+    - `__overrides__`
+    - `__dormant__`
 
 ## [0.11.0] - 2026-08-01
 
