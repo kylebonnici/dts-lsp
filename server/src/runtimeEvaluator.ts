@@ -483,8 +483,11 @@ export class ContextAware {
 				item.tokens.length === 0 &&
 				isPathEqual(item.parser.fsPath, fsPath)
 			) {
-				const prev = meta[index - 1];
-				return index ? prev.tokens[prev.tokens.length - 1] : undefined;
+				const prev = meta
+					.slice(0, index)
+					.reverse()
+					.find((p) => p.tokens.length);
+				return index ? prev?.tokens[prev.tokens.length - 1] : undefined;
 			}
 
 			const found = item.tokens.find(
