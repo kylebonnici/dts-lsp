@@ -423,6 +423,10 @@ export type ZephyrBindingsProperty = {
 	enum?: (string | number)[];
 	const?: string | number | (string | number)[];
 	'specifier-space'?: string;
+	min?: number;
+	max?: number;
+	'min-len'?: number;
+	'max-len'?: number;
 };
 export interface ZephyrBindingYml {
 	filePath: string;
