@@ -92,7 +92,7 @@ function getPropertyAssignItems(
 		const currentBindings = result.item.ast.quickValues;
 		let bindings: string[] | undefined;
 		if (
-			currentBindings?.some((b) => b) &&
+			currentBindings?.some((b) => !!b) &&
 			nodeType instanceof NodeType &&
 			nodeType.extends.size
 		) {
