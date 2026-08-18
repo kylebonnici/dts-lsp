@@ -963,6 +963,103 @@ const generateZephyrTypeCheck = (
 		}
 
 		if (
+			myProperty.type === 'int' ||
+			(myProperty.type === 'array' &&
+				(myProperty.min !== undefined || myProperty.max !== undefined))
+		) {
+			const values = p.ast.getFlatAstValues();
+			values?.forEach((v) => {
+				if (!(v instanceof Expression)) {
+					return;
+				}
+
+				const evaluatedValue = v.evaluate(macros);
+				if (typeof evaluatedValue !== 'number') {
+					return;
+				}
+				if (
+					myProperty.min !== undefined &&
+					evaluatedValue < myProperty.min
+				) {
+					issues.push(
+						genStandardTypeDiagnostic(
+							StandardTypeIssue.MIN_VALUE,
+							v.firstToken,
+							v.lastToken,
+							v,
+							{
+								templateStrings: [myProperty.min.toString()],
+							},
+						),
+					);
+				}
+
+				if (
+					myProperty.max !== undefined &&
+					evaluatedValue > myProperty.max
+				) {
+					issues.push(
+						genStandardTypeDiagnostic(
+							StandardTypeIssue.MAX_VALUE,
+							v.firstToken,
+							v.lastToken,
+							v,
+							{
+								templateStrings: [myProperty.max.toString()],
+							},
+						),
+					);
+				}
+			});
+		}
+
+		if (
+			(myProperty['min-len'] !== undefined ||
+				myProperty['max-len'] !== undefined) &&
+			(myProperty.type === 'array' ||
+				myProperty.type === 'string-array' ||
+				myProperty.type === 'uint8-array' ||
+				myProperty.type === 'phandles')
+		) {
+			const values = p.ast.getFlatAstValues();
+			if (
+				values &&
+				myProperty['min-len'] !== undefined &&
+				values.length < myProperty['min-len']
+			) {
+				issues.push(
+					genStandardTypeDiagnostic(
+						StandardTypeIssue.MIN_LENGTH,
+						(values.at(0) ?? p.ast).firstToken,
+						(values.at(-1) ?? p.ast).lastToken,
+						p.ast,
+						{
+							templateStrings: [myProperty['min-len'].toString()],
+						},
+					),
+				);
+			}
+
+			if (
+				values &&
+				myProperty['max-len'] !== undefined &&
+				values.length > myProperty['max-len']
+			) {
+				issues.push(
+					genStandardTypeDiagnostic(
+						StandardTypeIssue.MAX_LENGTH,
+						(values.at(0) ?? p.ast).firstToken,
+						(values.at(-1) ?? p.ast).lastToken,
+						p.ast,
+						{
+							templateStrings: [myProperty['max-len'].toString()],
+						},
+					),
+				);
+			}
+		}
+
+		if (
 			myProperty.type === 'phandle' ||
 			myProperty.type === 'phandles' ||
 			myProperty.type === 'path'
@@ -1210,6 +1307,49 @@ const generateZephyrTypeCheck = (
 				}
 
 				index++;
+			}
+
+			if (
+				myProperty['min-len'] !== undefined ||
+				myProperty['max-len'] !== undefined
+			) {
+				if (
+					myProperty['min-len'] !== undefined &&
+					p.nexusMapsTo.length < myProperty['min-len']
+				) {
+					issues.push(
+						genStandardTypeDiagnostic(
+							StandardTypeIssue.MIN_LENGTH,
+							(p.ast.values?.values.at(0) ?? p.ast).firstToken,
+							(p.ast.values?.values.at(-1) ?? p.ast).lastToken,
+							p.ast,
+							{
+								templateStrings: [
+									myProperty['min-len'].toString(),
+								],
+							},
+						),
+					);
+				}
+
+				if (
+					myProperty['max-len'] !== undefined &&
+					p.nexusMapsTo.length > myProperty['max-len']
+				) {
+					issues.push(
+						genStandardTypeDiagnostic(
+							StandardTypeIssue.MAX_LENGTH,
+							(p.ast.values?.values.at(0) ?? p.ast).firstToken,
+							(p.ast.values?.values.at(-1) ?? p.ast).lastToken,
+							p.ast,
+							{
+								templateStrings: [
+									myProperty['max-len'].toString(),
+								],
+							},
+						),
+					);
+				}
 			}
 
 			args.push([`${index}_phandle`, `${index}_cell...`]);
