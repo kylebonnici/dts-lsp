@@ -1366,6 +1366,14 @@ export const standardTypeIssueIssuesToMessage = (
 					return `The value shall be one of the following: "spin-table" or "[vendor],[method]"`;
 				case StandardTypeIssue.VENDOR_METHOD_FORMAT:
 					return `The value shall match "[vendor],[method]"`;
+				case StandardTypeIssue.MIN_VALUE:
+					return `The value shall be greater than or equal to ${issue.templateStrings[0]}`;
+				case StandardTypeIssue.MAX_VALUE:
+					return `The value shall be less than or equal to ${issue.templateStrings[0]}`;
+				case StandardTypeIssue.MAX_LENGTH:
+					return `The value shall have a maximum length of ${issue.templateStrings[0]}`;
+				case StandardTypeIssue.MIN_LENGTH:
+					return `The value shall have a minimum length of ${issue.templateStrings[0]}`;
 			}
 		})
 		.join(' or ')
