@@ -1367,13 +1367,13 @@ export const standardTypeIssueIssuesToMessage = (
 				case StandardTypeIssue.VENDOR_METHOD_FORMAT:
 					return `The value shall match "[vendor],[method]"`;
 				case StandardTypeIssue.MIN_VALUE:
-					return `The value shall be greater than or equal to ${issue.templateStrings[0]}`;
+					return `Value shall not be be less than ${issue.templateStrings[0]}`;
 				case StandardTypeIssue.MAX_VALUE:
-					return `The value shall be less than or equal to ${issue.templateStrings[0]}`;
+					return `Value shall not be greater than ${issue.templateStrings[0]}`;
 				case StandardTypeIssue.MAX_LENGTH:
-					return `The value shall have a maximum length of ${issue.templateStrings[0]}`;
+					return `Assignment exceeds max-len of ${issue.templateStrings[1]} for property "${issue.templateStrings[0]}"`;
 				case StandardTypeIssue.MIN_LENGTH:
-					return `The value shall have a minimum length of ${issue.templateStrings[0]}`;
+					return `INTRO has missing values. It must have a minimum of ${issue.templateStrings[1]} entrie(s)`;
 			}
 		})
 		.join(' or ')
