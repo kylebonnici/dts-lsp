@@ -1028,8 +1028,8 @@ const generateZephyrTypeCheck = (
 				issues.push(
 					genStandardTypeDiagnostic(
 						StandardTypeIssue.MIN_LENGTH,
-						(values.at(0) ?? p.ast).firstToken,
-						(values.at(-1) ?? p.ast).lastToken,
+						p.ast.propertyName.firstToken,
+						p.ast.propertyName.lastToken,
 						p.ast,
 						{
 							templateStrings: [p.name, minLen.toString()],
@@ -1338,8 +1338,8 @@ const generateZephyrTypeCheck = (
 					issues.push(
 						genStandardTypeDiagnostic(
 							StandardTypeIssue.MIN_LENGTH,
-							(p.ast.values?.values.at(0) ?? p.ast).firstToken,
-							(p.ast.values?.values.at(-1) ?? p.ast).lastToken,
+							p.ast.propertyName.firstToken,
+							p.ast.propertyName.lastToken,
 							p.ast,
 							{
 								templateStrings: [
