@@ -19,6 +19,6 @@
 	"author": "Kyle Micallef Bonnici",
 	"license": "Apache-2.0",
 	"dependencies": {
-		"vscode-languageserver-types": "^3.17.5"
+		"vscode-languageserver-types": "^3.18.0"
 	}
 }
