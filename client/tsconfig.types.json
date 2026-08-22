@@ -1,11 +1,13 @@
 {
 	"compilerOptions": {
-	  "declaration": true,
-	  "emitDeclarationOnly": true,
-	  "rootDir": "src/types",
-	  "outDir": "../vscode-dts-lsp-types/dist",
-	  "composite": true,
-	  "types": []
+		"module": "node16",
+		"moduleResolution": "node16",
+		"declaration": true,
+		"emitDeclarationOnly": true,
+		"rootDir": "src/types",
+		"outDir": "../vscode-dts-lsp-types/dist",
+		"composite": true,
+		"types": ["node"]
 	},
 	"include": ["src/types/index.ts"]
-  }
+}

@@ -10,11 +10,11 @@
 		"url": "https://github.com/kylebonnici/dts-lsp"
 	},
 	"engines": {
-		"vscode": "^1.75.0"
+		"vscode": "^1.91.0"
 	},
 	"devDependencies": {
-		"@types/vscode": "^1.75.1",
+		"@types/vscode": "^1.91.0",
 		"devicetree-language-server-types": "^0.0.2-alpha.39",
-		"vscode-languageclient": "^9.0.1"
+		"vscode-languageclient": "^10.1.0"
 	}
 }

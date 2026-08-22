@@ -30,7 +30,7 @@
 		"formatting"
 	],
 	"engines": {
-		"vscode": "^1.75.0"
+		"vscode": "^1.91.0"
 	},
 	"main": "./client/dist/extension.js",
 	"contributes": {
@@ -314,7 +314,7 @@
 		"lint:fix": "npx eslint 'client/src/**/*.{ts,tsx,js}' 'server/src/**/*.{ts,tsx,js}' --fix"
 	},
 	"devDependencies": {
-		"@types/node": "^18.14.6",
+		"@types/node": "^22.0.0",
 		"@typescript-eslint/eslint-plugin": "^8.39.0",
 		"@typescript-eslint/parser": "^8.39.0",
 		"esbuild": "^0.28.1",
@@ -324,6 +324,6 @@
 		"eslint-plugin-prettier": "^5.5.3",
 		"eslint-plugin-simple-import-sort": "^12.1.1",
 		"eslint-plugin-unused-imports": "^4.1.4",
-		"typescript": "^5.3.3"
+		"typescript": "5.9.3"
 	}
 }
