@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.13.0] - Unreleased
+
+### Added
+
+- Added support for `min`, `max`, `min-len`, `max-len` for zephyrs bindings
+
 ## [0.12.1] - 2026-08-12
 
 ### Fixed

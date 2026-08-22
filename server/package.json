@@ -4,7 +4,7 @@
 	"author": "Kyle Micallef Bonnici",
 	"package-name": "devicetree-language-server",
 	"main": "dist/server.js",
-	"version": "0.12.1",
+	"version": "0.13.0",
 	"categories": [
 		"Linters",
 		"Formatters",
@@ -55,7 +55,7 @@
 		"typescript": "^5.5.4",
 		"vscode-languageserver": "^9.0.1",
 		"vscode-languageserver-textdocument": "^1.0.11",
-		"vscode-languageserver-types": "^3.17.5",
+		"vscode-languageserver-types": "^3.18.0",
 		"yaml": "^2.6.1"
 	}
 }
