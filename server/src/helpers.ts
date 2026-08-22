@@ -1359,21 +1359,21 @@ export const standardTypeIssueIssuesToMessage = (
 				case StandardTypeIssue.EXPECTED_NODE_ADDRESS:
 					return `Node address is missing`;
 				case StandardTypeIssue.BINDING_ON_BUS_NODE:
-					return `Binding should be used on bus type${issue.templateStrings.length ? 's' : ''}: ${issue.templateStrings.join(' or ')}`;
+					return `Binding must be used on bus type${issue.templateStrings.length ? 's' : ''}: ${issue.templateStrings.join(' or ')}`;
 				case StandardTypeIssue.EMPTY_RANGE_MISMATCH_ADDRESS_SIZE_CELLS:
-					return `Empty ranges property should only be used when address size cells is identical to the parent node`;
+					return `Empty ranges property should only be used when #address-cells is identical to parent node #address-cells`;
 				case StandardTypeIssue.SPIN_TABLE_ENABLE_METHOD:
-					return `The value shall be one of the following: "spin-table" or "[vendor],[method]"`;
+					return `The value should be one of the following: "spin-table" or "[vendor],[method]"`;
 				case StandardTypeIssue.VENDOR_METHOD_FORMAT:
-					return `The value shall match "[vendor],[method]"`;
+					return `The value should match "[vendor],[method]"`;
 				case StandardTypeIssue.MIN_VALUE:
-					return `Value shall not be be less than ${issue.templateStrings[0]}`;
+					return `Value must not be be less than ${issue.templateStrings[0]}`;
 				case StandardTypeIssue.MAX_VALUE:
-					return `Value shall not be greater than ${issue.templateStrings[0]}`;
+					return `Value must not be greater than ${issue.templateStrings[0]}`;
 				case StandardTypeIssue.MAX_LENGTH:
 					return `Assignment exceeds max-len of ${issue.templateStrings[1]} for property "${issue.templateStrings[0]}"`;
 				case StandardTypeIssue.MIN_LENGTH:
-					return `INTRO has missing values. It must have a minimum of ${issue.templateStrings[1]} entrie(s)`;
+					return `INTRO has missing values. It must have a minimum of ${issue.templateStrings[1]} ${issue.templateStrings[1] === '1' ? 'entry' : 'entries'}`;
 			}
 		})
 		.join(' or ')
