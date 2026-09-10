@@ -42,6 +42,9 @@ import {
 	Diagnostic,
 	FormattingOptions,
 	DocumentRangeFormattingParams,
+	SemanticTokensRegistrationType,
+	DocumentFormattingRequest,
+	DocumentRangeFormattingRequest,
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -343,6 +346,9 @@ let hasWorkspaceFolderCapability = false;
 let hasDiagnosticRefreshCapability = false;
 let hasSemanticTokensRefreshCapability = false;
 let hasFoldingRangesRefreshCapability = false;
+let hasSemanticTokensDynamicRegistration = false;
+let hasFormattingDynamicRegistration = false;
+let hasRangeFormattingDynamicRegistration = false;
 
 let workspaceFolders: WorkspaceFolder[] | null | undefined;
 connection.onInitialize(async (params: InitializeParams) => {
@@ -369,6 +375,12 @@ connection.onInitialize(async (params: InitializeParams) => {
 
 	hasSemanticTokensRefreshCapability =
 		!!capabilities.workspace?.semanticTokens?.refreshSupport;
+	hasSemanticTokensDynamicRegistration =
+		!!capabilities.textDocument?.semanticTokens?.dynamicRegistration;
+	hasFormattingDynamicRegistration =
+		!!capabilities.textDocument?.formatting?.dynamicRegistration;
+	hasRangeFormattingDynamicRegistration =
+		!!capabilities.textDocument?.rangeFormatting?.dynamicRegistration;
 
 	hasFoldingRangesRefreshCapability =
 		!!capabilities.workspace?.foldingRange?.refreshSupport;
@@ -392,13 +404,6 @@ connection.onInitialize(async (params: InitializeParams) => {
 				],
 			},
 			documentSymbolProvider: true,
-			semanticTokensProvider: {
-				legend: {
-					tokenTypes: tokenTypes as unknown as string[],
-					tokenModifiers: tokenModifiers as unknown as string[],
-				},
-				full: true,
-			},
 			documentLinkProvider: {
 				resolveProvider: false,
 			},
@@ -406,8 +411,6 @@ connection.onInitialize(async (params: InitializeParams) => {
 			definitionProvider: true,
 			declarationProvider: true,
 			referencesProvider: true,
-			documentFormattingProvider: true,
-			documentRangeFormattingProvider: true,
 			hoverProvider: true,
 			signatureHelpProvider: {
 				triggerCharacters: ['<', '('],
@@ -415,6 +418,21 @@ connection.onInitialize(async (params: InitializeParams) => {
 			},
 		},
 	};
+	if (!hasSemanticTokensDynamicRegistration) {
+		result.capabilities.semanticTokensProvider = {
+			legend: {
+				tokenTypes: tokenTypes as unknown as string[],
+				tokenModifiers: tokenModifiers as unknown as string[],
+			},
+			full: true,
+		};
+	}
+	if (!hasFormattingDynamicRegistration) {
+		result.capabilities.documentFormattingProvider = true;
+	}
+	if (!hasRangeFormattingDynamicRegistration) {
+		result.capabilities.documentRangeFormattingProvider = true;
+	}
 	if (hasWorkspaceFolderCapability) {
 		result.capabilities.workspace = {
 			workspaceFolders: {
@@ -462,6 +480,27 @@ const buildFormattingOptions = (
 };
 
 connection.onInitialized(async () => {
+	if (hasSemanticTokensDynamicRegistration) {
+		await connection.client.register(SemanticTokensRegistrationType.type, {
+			documentSelector: [{ scheme: 'file', language: 'devicetree' }],
+			legend: {
+				tokenTypes: tokenTypes as unknown as string[],
+				tokenModifiers: tokenModifiers as unknown as string[],
+			},
+			full: true,
+		});
+	}
+	if (hasFormattingDynamicRegistration) {
+		await connection.client.register(DocumentFormattingRequest.type, {
+			documentSelector: [{ scheme: 'file', language: 'devicetree' }],
+		});
+	}
+	if (hasRangeFormattingDynamicRegistration) {
+		await connection.client.register(DocumentRangeFormattingRequest.type, {
+			documentSelector: [{ scheme: 'file', language: 'devicetree' }],
+		});
+	}
+
 	if (hasConfigurationCapability) {
 		// Register for all configuration changes.
 		connection.client.register(DidChangeConfigurationNotification.type, {});
@@ -1434,7 +1473,7 @@ const quickFindContext = (fsPath: string) => {
 connection.onDocumentSymbol(async (h) => {
 	const uri = fileURIToFsPath(h.textDocument.uri);
 	if (!isDtsFile(uri)) {
-		return [];
+		return null;
 	}
 
 	await allStable();
@@ -1495,7 +1534,7 @@ connection.onDocumentLinks(async (event) => {
 			);
 		}
 
-		return [];
+		return null;
 	}
 
 	const context = quickFindContext(uri);

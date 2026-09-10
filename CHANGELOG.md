@@ -11,6 +11,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Update dependencies to address
     - CVE-2026-84375
 
+### Changed
+
+- Use dynamic registration to restrict formatting and semantic tokens to the Devicetree language
+    - Formatting
+    - Semantic tokens
+
 ### Fixed
 
 - Corrected minimum vscode endgin version to `1.82.0`
