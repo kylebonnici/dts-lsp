@@ -43,6 +43,8 @@ import {
 	FormattingOptions,
 	DocumentRangeFormattingParams,
 	SemanticTokensRegistrationType,
+	DocumentFormattingRequest,
+	DocumentRangeFormattingRequest,
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -345,6 +347,8 @@ let hasDiagnosticRefreshCapability = false;
 let hasSemanticTokensRefreshCapability = false;
 let hasFoldingRangesRefreshCapability = false;
 let hasSemanticTokensDynamicRegistration = false;
+let hasFormattingDynamicRegistration = false;
+let hasRangeFormattingDynamicRegistration = false;
 
 let workspaceFolders: WorkspaceFolder[] | null | undefined;
 connection.onInitialize(async (params: InitializeParams) => {
@@ -373,6 +377,10 @@ connection.onInitialize(async (params: InitializeParams) => {
 		!!capabilities.workspace?.semanticTokens?.refreshSupport;
 	hasSemanticTokensDynamicRegistration =
 		!!capabilities.textDocument?.semanticTokens?.dynamicRegistration;
+	hasFormattingDynamicRegistration =
+		!!capabilities.textDocument?.formatting?.dynamicRegistration;
+	hasRangeFormattingDynamicRegistration =
+		!!capabilities.textDocument?.rangeFormatting?.dynamicRegistration;
 
 	hasFoldingRangesRefreshCapability =
 		!!capabilities.workspace?.foldingRange?.refreshSupport;
@@ -403,8 +411,6 @@ connection.onInitialize(async (params: InitializeParams) => {
 			definitionProvider: true,
 			declarationProvider: true,
 			referencesProvider: true,
-			documentFormattingProvider: true,
-			documentRangeFormattingProvider: true,
 			hoverProvider: true,
 			signatureHelpProvider: {
 				triggerCharacters: ['<', '('],
@@ -420,6 +426,12 @@ connection.onInitialize(async (params: InitializeParams) => {
 			},
 			full: true,
 		};
+	}
+	if (!hasFormattingDynamicRegistration) {
+		result.capabilities.documentFormattingProvider = true;
+	}
+	if (!hasRangeFormattingDynamicRegistration) {
+		result.capabilities.documentRangeFormattingProvider = true;
 	}
 	if (hasWorkspaceFolderCapability) {
 		result.capabilities.workspace = {
@@ -476,6 +488,16 @@ connection.onInitialized(async () => {
 				tokenModifiers: tokenModifiers as unknown as string[],
 			},
 			full: true,
+		});
+	}
+	if (hasFormattingDynamicRegistration) {
+		await connection.client.register(DocumentFormattingRequest.type, {
+			documentSelector: [{ scheme: 'file', language: 'devicetree' }],
+		});
+	}
+	if (hasRangeFormattingDynamicRegistration) {
+		await connection.client.register(DocumentRangeFormattingRequest.type, {
+			documentSelector: [{ scheme: 'file', language: 'devicetree' }],
 		});
 	}
 
