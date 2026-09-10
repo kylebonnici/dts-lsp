@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.13.1] - Unrelaesd
+
+### Security
+
+- Update dependencies to address
+  - CVE-2026-84375
+
 ## [0.13.0] - 2026-08-30
 
 ### Added
