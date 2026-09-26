@@ -30,6 +30,26 @@ properties:
     type: string
     description: |
       If the node describes a bus, then the bus type should be given.
+  class:
+    type:
+      - string
+      - array
+    items:
+      type: string
+      pattern: '^[a-z0-9_-]+$'
+    uniqueItems: true
+    description: |
+      Declares the Zephyr device API class or classes that nodes matching this
+      binding can implement.
+
+      The value may be a single device class name or a list of class names.
+      Class names must contain only lowercase letters, digits, hyphens, and
+      underscores. Each class name should correspond to a device API class
+      registered with DEVICE_API.
+
+      Class names using hyphens are converted to lowercase-and-underscore
+      C tokens when generating identifiers, in the same way as compatible
+      names.
   properties:
     $ref: "#/definitions/properties"
   child-binding:

@@ -243,9 +243,7 @@ export interface SerializedBinding {
 }
 
 export type SerializedNodeBase =
-	| SerializedNodeRef
-	| SerializedRootNode
-	| SerializedChildNode;
+	SerializedNodeRef | SerializedRootNode | SerializedChildNode;
 
 export interface SerializedASTLabel {
 	readonly value: string;
@@ -438,6 +436,7 @@ export interface ZephyrBindingYml {
 	'child-binding'?: ZephyrBindingYml;
 	bus?: string[];
 	'on-bus'?: string;
+	class?: string | string[];
 	properties?: {
 		[key: string]: ZephyrBindingsProperty;
 	};

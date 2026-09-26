@@ -459,6 +459,7 @@ export abstract class INodeType {
 	): SignatureHelp | undefined;
 	abstract childNodeType: ((node: Node) => INodeType) | undefined;
 	onBus?: string;
+	class?: string[];
 	bus?: string[];
 	title?: string;
 	description?: string;

@@ -158,6 +158,9 @@ const resolveBinding = (
 	}
 };
 
+const toArray = (value?: string | string[]) =>
+	Array.isArray(value) ? value : value ? [value] : [];
+
 const mergeAIntoB = (
 	bindings: ZephyrBindingYml[],
 	a: ZephyrBindingYml,
@@ -224,7 +227,14 @@ const mergeAIntoB = (
 		resolvedB[name as CellSpecifier] = Array.from([...fromA, ...fromB]);
 	});
 
-	resolvedB['on-bus'] ??= resolvedA['on-bus'];
+	if (resolvedA.class || resolvedB.class) {
+		resolvedB.class = [
+			...new Set([
+				...toArray(resolvedB.class),
+				...toArray(resolvedA.class),
+			]),
+		];
+	}
 
 	if (!resolvedB.bus) {
 		resolvedB.bus = resolvedA.bus;
@@ -769,6 +779,12 @@ const convertBindingToType = (
 			? [binding.bus]
 			: Array.from(new Set(binding.bus));
 	nodeType.onBus = binding['on-bus'];
+	nodeType.class =
+		typeof binding.class === 'string'
+			? [binding.class]
+			: Array.isArray(binding.class)
+				? binding.class
+				: undefined;
 	binding.extends?.forEach((e) => nodeType.extends.add(e));
 	nodeType.warnMismatchProperties = true;
 

@@ -4,7 +4,11 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.13.1] - Unrelaesd
+## [0.14.0] - Unrelaesd
+
+### Added
+
+- Added support for the `class` property in Zephyr bindings.
 
 ### Security
 
