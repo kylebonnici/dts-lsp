@@ -23,7 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Corrected minimum vscode endgin version to `1.82.0`
+- Corrected minimum vscode engine version to `1.82.0`
 
 ## [0.13.0] - 2026-08-30
 
