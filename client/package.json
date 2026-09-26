@@ -14,7 +14,7 @@
 	},
 	"devDependencies": {
 		"@types/vscode": "^1.82.0",
-		"devicetree-language-server-types": "^0.0.2-alpha.40",
+		"devicetree-language-server-types": "^0.0.2-alpha.41",
 		"vscode-languageclient": "^9.0.1"
 	}
 }
