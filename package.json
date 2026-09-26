@@ -2,7 +2,7 @@
 	"name": "dts-lsp",
 	"displayName": "Devicetree LSP",
 	"description": "Devicetree Language Server",
-	"author": "Microsoft Corporation",
+	"author": "Kyle Micallef Bonnici",
 	"license": "Apache-2.0",
 	"icon": "images/icon.png",
 	"version": "0.14.0",
