@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.14.1] - 2026-10-09
 
+### Security
+
+- Update dependencies to address
+    - CVE-2026-102276
+    - CVE-2026-102278
+    - CVE-2026-102277
+    - CVE-2026-97058
+    - CVE-2026-93687
+    - CVE-2026-86472
+    - CVE-2026-106444
+    - CVE-2026-106446
+    - CVE-2026-106445
+
 ### Fixed
 
 - Fixed incorrect context selection when clicking `Generate Devicetree Context Output` from file actions.
