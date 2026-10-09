@@ -952,9 +952,7 @@ export class Node {
 			});
 		}
 
-		this.#rangeMappingsCache = mapping.length
-			? mapping
-			: (this.parent?.rangeMap(macros) ?? []);
+		this.#rangeMappingsCache = mapping;
 		return this.#rangeMappingsCache;
 	}
 
@@ -1071,6 +1069,13 @@ export class Node {
 		let regArray = this.regArray(macros);
 
 		do {
+			while (
+				p?.getProperty('ranges') &&
+				!p.getProperty('ranges')?.ast.values
+			) {
+				p = p?.parent;
+			}
+
 			const mappings = p?.rangeMap(macros);
 
 			this.#mappedRegCache =
@@ -1596,7 +1601,7 @@ ${'\t'.repeat(level - 1)}};`;
 				const start = reg.startAddress;
 				const size = reg.size;
 				sections.push({
-					name: regionName,
+					name: reg.missingMapping ? this.pathString : regionName,
 					labels: Array.from(
 						new Set(this.labels.map((l) => l.label.toString())),
 					),
