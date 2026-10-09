@@ -40,7 +40,9 @@ function getNodeTypeDefinition(
 ): Location[] {
 	if (
 		!result ||
-		(!(result.ast instanceof NodeName) && !(result.ast instanceof Label))
+		(!(result.ast instanceof NodeName) &&
+			!(result.ast instanceof Label) &&
+			!(result.ast instanceof LabelRef))
 	) {
 		return [];
 	}

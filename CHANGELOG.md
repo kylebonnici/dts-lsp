@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.14.2] - Unreleased
+
+### Fixed
+
+- Fixed an issue when type definiton on nodes is done at index 0 of label references
+
 ## [0.14.1] - 2026-10-09
 
 ### Security
