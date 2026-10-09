@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.14.1] - Unreleased
+
+### Fixed
+
+- Fixed incorrect context selection when clicking `Generate Devicetree Context Output` from file actions.
+
 ## [0.14.0] - 2026-09-26
 
 ### Added
