@@ -93,7 +93,7 @@ const SelectContext = async (
 	}));
 
 	if (quickPick.items.length === 1) {
-		return contexts[0];
+		return quickPick.items[0].ctx;
 	}
 
 	quickPick.activeItems = quickPick.items.filter((i) => i.ctx.active);
