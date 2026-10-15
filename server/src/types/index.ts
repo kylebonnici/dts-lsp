@@ -437,6 +437,7 @@ export interface ZephyrBindingYml {
 	bus?: string[];
 	'on-bus'?: string;
 	class?: string | string[];
+	examples?: string[];
 	properties?: {
 		[key: string]: ZephyrBindingsProperty;
 	};

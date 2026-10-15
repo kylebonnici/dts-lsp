@@ -4,11 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.14.2] - Unreleased
+## [0.14.2] - 2026-10-15
 
 ### Fixed
 
 - Fixed an issue when type definiton on nodes is done at index 0 of label references
+- Fixed missing `examples` in zepher binding schema
 
 ## [0.14.1] - 2026-10-09
 

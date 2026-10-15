@@ -30,6 +30,20 @@ properties:
     type: string
     description: |
       If the node describes a bus, then the bus type should be given.
+  examples:
+    type: array
+    items:
+      type: string
+    description: |
+      If you feel you want to provide a minimal example for your binding, you can use it like this:
+      examples: - |
+      leds {
+        compatible = "gpio-leds";
+
+        uled: led {
+        gpios = <&gpioe 12 GPIO_ACTIVE_HIGH>;
+        };
+      };
   class:
     type:
       - string

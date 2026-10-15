@@ -664,6 +664,9 @@ export class ZephyrBindingsLoader {
 				...(binding.description
 					? ['### Description', escapeMarkdown(binding.description)]
 					: []),
+				...(binding.examples
+					? ['### Examples', ...binding.examples.map(escapeMarkdown)]
+					: []),
 			].join('\n'),
 		};
 	}
@@ -772,6 +775,7 @@ const convertBindingToType = (
 	nodeType.compatible = binding.compatible;
 	nodeType.title = binding.title;
 	nodeType.description = binding.description;
+	nodeType.examples = binding.examples;
 	nodeType.bindingsPath = binding.filePath;
 	nodeType.zephyrBinding = binding;
 	nodeType.bus =
