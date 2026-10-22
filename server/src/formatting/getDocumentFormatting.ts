@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import util from 'util';
 import {
 	Diagnostic,
 	DocumentFormattingParams,
@@ -115,8 +116,7 @@ const hasLongLines = (text: string, tabSize: number, wordWrapColumn: number) =>
 
 export async function formatText(
 	documentFormattingParams:
-		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
+		DocumentFormattingParams | DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'New Text',
 	tokens?: Token[],
@@ -125,8 +125,7 @@ export async function formatText(
 ): Promise<string>;
 export async function formatText(
 	documentFormattingParams:
-		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
+		DocumentFormattingParams | DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'File Diagnostics',
 	tokens?: Token[],
@@ -135,8 +134,7 @@ export async function formatText(
 ): Promise<FileDiagnostic[]>;
 export async function formatText(
 	documentFormattingParams:
-		| DocumentFormattingParams
-		| DocumentRangeFormattingParams,
+		DocumentFormattingParams | DocumentRangeFormattingParams,
 	text: string,
 	returnType: 'New Text' | 'File Diagnostics',
 	tokens?: Token[],
@@ -2252,7 +2250,7 @@ const getNodeExpectedNumberOfNewLines = (
 				block.elseOption?.lastToken.nextToken,
 			];
 		})
-		.some((t) => t === token);
+		.some((t) => t === token || util.isDeepStrictEqual(t, token));
 	return token.prevToken?.value === '{' || isFirstInIfDefBlock ? 1 : 2;
 };
 

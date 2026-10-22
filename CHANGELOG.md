@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.14.3] - 2026-10-22
+
+# Fixed
+
+- Fixed an idempotency issue when formatting files containing
+  `#ifdef` blocks with node and property sorting enabled.
+
 ## [0.14.2] - 2026-10-15
 
 ### Fixed
