@@ -247,7 +247,7 @@ const formatFileManually = async (
 					true,
 				),
 				sortNodesAndProperties: config.get<boolean>(
-					'removeEmptyRoots',
+					'sortNodesAndProperties',
 					false,
 				),
 				sortNodesNodesBy: config.get<'address' | 'name' | 'none'>(
