@@ -179,17 +179,22 @@ export async function formatText(
 			text,
 		);
 	} else if (returnType === 'New Text') {
-		const variants = [
+		const userOptions = documentFormattingParams.options;
+		const variants: Partial<CustomDocumentFormattingParams['options']>[] = [
 			{
-				removeMacroMultiline: true,
-				removeEmptyReferences: true,
-				removeDuplicateProperties: true,
+				removeMacroMultiline: !!userOptions.removeMacroMultiline,
+				removeEmptyReferences: !!userOptions.removeEmptyReferences,
+				removeDuplicateProperties:
+					!!userOptions.removeDuplicateProperties,
 				baseFormattingRules: false,
 				wrapLongLines: false,
 				indentExpressions: false,
+				sortNodesAndProperties: false,
+				sortNodesNodesBy: 'none',
+				sortPropertiesAlphabetically: false,
 			},
 			{
-				baseFormattingRules: true,
+				baseFormattingRules: !!userOptions.baseFormattingRules,
 				wrapLongLines: false,
 				indentExpressions: false,
 				removeMacroMultiline: false,
@@ -197,9 +202,12 @@ export async function formatText(
 				removeEmptyNodes: false,
 				removeEmptyRoots: false,
 				removeDuplicateProperties: false,
+				sortNodesAndProperties: false,
+				sortNodesNodesBy: 'none',
+				sortPropertiesAlphabetically: false,
 			},
 			{
-				wrapLongLines: true,
+				wrapLongLines: !!userOptions.wrapLongLines,
 				indentExpressions: false,
 				baseFormattingRules: false,
 				removeMacroMultiline: false,
@@ -207,9 +215,12 @@ export async function formatText(
 				removeEmptyNodes: false,
 				removeEmptyRoots: false,
 				removeDuplicateProperties: false,
+				sortNodesAndProperties: false,
+				sortNodesNodesBy: 'none',
+				sortPropertiesAlphabetically: false,
 			},
 			{
-				indentExpressions: true,
+				indentExpressions: !!userOptions.indentExpressions,
 				wrapLongLines: false,
 				baseFormattingRules: false,
 				removeMacroMultiline: false,
@@ -217,6 +228,9 @@ export async function formatText(
 				removeEmptyNodes: false,
 				removeEmptyRoots: false,
 				removeDuplicateProperties: false,
+				sortNodesAndProperties: false,
+				sortNodesNodesBy: 'none',
+				sortPropertiesAlphabetically: false,
 			},
 		];
 
@@ -234,7 +248,6 @@ export async function formatText(
 				},
 				parser,
 				prevIfBlocks,
-				processedPrevIfBlocks,
 				rawTokens,
 				text,
 			);
