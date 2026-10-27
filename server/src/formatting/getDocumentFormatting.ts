@@ -74,7 +74,6 @@ import { Lexer } from '../lexer';
 import {
 	CElse,
 	CIf,
-	CIfBase,
 	CIfDef,
 	CIfNotDef,
 	IfElIfBlock,
@@ -121,7 +120,6 @@ export async function formatText(
 	returnType: 'New Text',
 	tokens?: Token[],
 	prevIfBlocks?: IfElIfBlock[],
-	processedPrevIfBlocks?: CIfBase[],
 ): Promise<string>;
 export async function formatText(
 	documentFormattingParams:
@@ -130,7 +128,6 @@ export async function formatText(
 	returnType: 'File Diagnostics',
 	tokens?: Token[],
 	prevIfBlocks?: IfElIfBlock[],
-	processedPrevIfBlocks?: CIfBase[],
 ): Promise<FileDiagnostic[]>;
 export async function formatText(
 	documentFormattingParams:
@@ -139,7 +136,6 @@ export async function formatText(
 	returnType: 'New Text' | 'File Diagnostics',
 	tokens?: Token[],
 	prevIfBlocks: IfElIfBlock[] = [],
-	processedPrevIfBlocks: CIfBase[] = [],
 ): Promise<string | FileDiagnostic[]> {
 	const fsPath = fileURIToFsPath(documentFormattingParams.textDocument.uri);
 	tokens ??= new Lexer(text, fsPath).tokens;
@@ -179,7 +175,6 @@ export async function formatText(
 			},
 			parser,
 			prevIfBlocks,
-			processedPrevIfBlocks,
 			rawTokens,
 			text,
 		);
@@ -584,7 +579,6 @@ const getDisabledMarcoRangeEdits = async (
 	documentFormattingParams: CustomDocumentFormattingParams,
 	parser: Parser,
 	prevIfBlocks: IfElIfBlock[],
-	processedPrevIfBlocks: CIfBase[],
 	rawTokens: Token[],
 	text: string,
 ) => {
@@ -638,7 +632,6 @@ const getDisabledMarcoRangeEdits = async (
 
 		const newTokenStream = rawTokens.filter((t) => !rangeToClean.has(t));
 		const range = meta.block.range;
-		processedPrevIfBlocks.push(meta.branch);
 
 		return formatText(
 			{
@@ -653,7 +646,6 @@ const getDisabledMarcoRangeEdits = async (
 			'File Diagnostics',
 			newTokenStream,
 			prevIfBlocks,
-			processedPrevIfBlocks,
 		);
 	};
 
