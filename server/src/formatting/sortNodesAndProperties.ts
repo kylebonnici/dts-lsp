@@ -165,7 +165,19 @@ function sortNodesAndPropertiesHelper(
 				),
 		)
 	) {
-		return [];
+		return node.children.flatMap((c) =>
+			c instanceof DtcBaseNode
+				? sortNodesAndPropertiesHelper(
+						settings,
+						c,
+						fsPath,
+						includes,
+						ifDefs,
+						splitDocument,
+						formatOff,
+					)
+				: [],
+		);
 	}
 
 	const groups: {
