@@ -15,6 +15,7 @@
  */
 
 import { Range } from 'vscode-languageserver-types';
+import { TokenSet } from 'src/customSet';
 import { toPosition } from '../../helpers';
 import { ASTBase } from '../base';
 import { Keyword } from '../keyword';
@@ -106,9 +107,7 @@ export class IfElIfBlock extends ASTBase {
 		this.addChild(endIf);
 	}
 
-	getInValidTokenRange(
-		macros: Map<string, MacroRegistryItem>,
-	): WeakSet<Token> {
+	getInValidTokenRange(macros: Map<string, MacroRegistryItem>): TokenSet {
 		const activeIf = this.ifBlocks.find((b) => b.useBlock(macros));
 
 		if (activeIf) {
@@ -163,7 +162,7 @@ export class IfElIfBlock extends ASTBase {
 	}
 
 	getInValidTokenRangeWhenActiveBlock(activeBlock: CIfBase | undefined) {
-		const invalidRange = new WeakSet<Token>();
+		const invalidRange = new TokenSet();
 
 		let blockFound = false;
 		this.ifBlocks.forEach((ifBlock) => {

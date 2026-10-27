@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import util from 'util';
 import {
 	Diagnostic,
 	DocumentFormattingParams,
@@ -26,6 +25,7 @@ import {
 	TextEdit,
 } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { cmpTokens } from 'src/customSet';
 import {
 	DtcBaseNode,
 	DtcChildNode,
@@ -2242,7 +2242,7 @@ const getNodeExpectedNumberOfNewLines = (
 				block.elseOption?.lastToken.nextToken,
 			];
 		})
-		.some((t) => t === token || util.isDeepStrictEqual(t, token));
+		.some((t) => cmpTokens(t, token));
 	return token.prevToken?.value === '{' || isFirstInIfDefBlock ? 1 : 2;
 };
 
