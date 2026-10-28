@@ -25,7 +25,7 @@ import {
 	TextEdit,
 } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { cmpTokens } from 'src/customSet';
+import { cmpTokens } from '../customSet';
 import {
 	DtcBaseNode,
 	DtcChildNode,

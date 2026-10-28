@@ -15,7 +15,7 @@
  */
 
 import { Range } from 'vscode-languageserver-types';
-import { TokenSet } from 'src/customSet';
+import { TokenSet } from '../../customSet';
 import { toPosition } from '../../helpers';
 import { ASTBase } from '../base';
 import { Keyword } from '../keyword';
