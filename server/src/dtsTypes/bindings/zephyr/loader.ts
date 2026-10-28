@@ -107,6 +107,13 @@ const resolveBinding = (
 	binding: ZephyrBindingYml,
 ): ZephyrBindingYml | undefined => {
 	Object.entries(binding.properties ?? {}).forEach(([name, prop]) => {
+		if (!prop) {
+			delete binding.properties?.[name];
+			console.warn(
+				`Property ${name} is undefined in binding ${binding.filePath}`,
+			);
+			return;
+		}
 		prop.name = name;
 	});
 	binding.extends ??= [];
@@ -588,7 +595,9 @@ export class ZephyrBindingsLoader {
 								this.zephyrBindingCache.set(bindingFile, obj);
 								return obj;
 							} catch (e) {
-								console.warn(e);
+								console.warn(
+									`Failed to load binding file ${bindingFile}, with error: ${e instanceof Error ? e.message : e}`,
+								);
 							}
 						})
 						.filter((b) => !!b) as ZephyrBindingYml[];
