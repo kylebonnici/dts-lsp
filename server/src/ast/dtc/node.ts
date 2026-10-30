@@ -81,11 +81,7 @@ export class DtcBaseNode extends ASTBase {
 
 	public addNodeChild(
 		child:
-			| DtcBaseNode
-			| DeleteNode
-			| DtcProperty
-			| DeleteProperty
-			| Include,
+			DtcBaseNode | DeleteNode | DtcProperty | DeleteProperty | Include,
 	) {
 		this.addChild(child);
 	}

@@ -328,10 +328,7 @@ export type BuildSemanticTokensPush = (
 ) => void;
 
 export type IssueTypes =
-	| SyntaxIssue
-	| ContextIssues
-	| StandardTypeIssue
-	| FormattingIssues;
+	SyntaxIssue | ContextIssues | StandardTypeIssue | FormattingIssues;
 export interface Issue<T extends IssueTypes> {
 	issues: T[];
 	range: Range;

@@ -18,8 +18,7 @@ import * as vscode from 'vscode';
 import { TextDocumentPositionParams } from 'vscode-languageclient';
 
 export function getCurrentTextDocumentPositionParams():
-	| TextDocumentPositionParams
-	| undefined {
+	TextDocumentPositionParams | undefined {
 	const editor = vscode.window.activeTextEditor;
 	if (!editor || editor.document.uri.scheme !== 'file') {
 		return;
