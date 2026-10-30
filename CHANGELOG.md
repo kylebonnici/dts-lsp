@@ -4,11 +4,13 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.14.6] - Unrelesed
+## [0.14.6] - 2026-10-30
 
 # Fixed
 
 - Fixed exception in console `URL must be of schema file`
+- Fixed an issue where `on-bus` was ignored from the Zephyr binding when inherited
+  from an included binding file.
 
 ## [0.14.5] - 2026-10-28
 

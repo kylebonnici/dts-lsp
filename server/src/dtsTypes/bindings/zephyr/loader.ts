@@ -215,6 +215,7 @@ const mergeAIntoB = (
 	resolvedB.properties = newProperties;
 	resolvedB.extends ??= [];
 	resolvedB.extends.push(...(resolvedA.extends ?? []));
+	resolvedB['on-bus'] ??= resolvedA['on-bus'];
 
 	// merge cell specifiers
 	const allSpecifierNames = new Set<string>();
