@@ -21,7 +21,7 @@ export function getCurrentTextDocumentPositionParams():
 	| TextDocumentPositionParams
 	| undefined {
 	const editor = vscode.window.activeTextEditor;
-	if (!editor) {
+	if (!editor || editor.document.uri.scheme !== 'file') {
 		return;
 	}
 
