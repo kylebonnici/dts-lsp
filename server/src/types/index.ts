@@ -399,6 +399,7 @@ interface Include extends BlockAllowList {
 export type ZephyrPropertyType =
 	| 'string'
 	| 'int'
+	| 'var-uint64'
 	| 'boolean'
 	| 'array'
 	| 'uint8-array'

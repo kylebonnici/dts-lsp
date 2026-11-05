@@ -179,6 +179,7 @@ definitions:
             enum:
               - string
               - int
+              - var-uint64
               - boolean
               - array
               - uint8-array

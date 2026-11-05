@@ -129,6 +129,8 @@ export const ZephyrTypeToDTSType = (type: ZephyrPropertyType | undefined) => {
 			return generateOrTypeObj('STRING');
 		case 'int':
 			return generateOrTypeObj('U32');
+		case 'var-uint64':
+			return generateOrTypeObj(['U32', 'U64']);
 		case 'boolean':
 			return generateOrTypeObj('EMPTY');
 		case 'array':
