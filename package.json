@@ -257,6 +257,30 @@
 					"default": null,
 					"description": "Allow LSP to show any formatting errors as diagnostics in the problem tab"
 				},
+				"devicetree.defaultLinuxKernelNameDiagnostics": {
+					"scope": "resource",
+					"type": "string",
+					"enum": [
+						"none",
+						"info",
+						"warn",
+						"error"
+					],
+					"default": null,
+					"description": "Diagnostics level for Linux kernel coding style for node and property names"
+				},
+				"devicetree.defaultLinuxKernelLabelDiagnostics": {
+					"scope": "resource",
+					"type": "string",
+					"enum": [
+						"none",
+						"info",
+						"warn",
+						"error"
+					],
+					"default": null,
+					"description": "Diagnostics level for Linux kernel coding style for labels"
+				},
 				"devicetree.disableFileWatchers": {
 					"scope": "resource",
 					"type": "boolean",
