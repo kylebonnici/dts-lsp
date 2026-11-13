@@ -93,6 +93,22 @@ type MappedReg = {
 	mappedAst?: { range: Range; fsPath: string };
 	regRangeTokens: TokenIndexes;
 	missingMapping: boolean;
+	/** Position of the original pair in the node's `reg` property. */
+	index?: number;
+	mappedTo: string;
+};
+
+/** Highest node sharing `node`'s child address space through empty `ranges;` properties. */
+const addressSpaceOf = (node: Node): Node => {
+	let space = node;
+	while (
+		space.parent &&
+		space.getProperty('ranges') &&
+		!space.getProperty('ranges')?.ast.values
+	) {
+		space = space.parent;
+	}
+	return space;
 };
 
 export interface Mapping {
@@ -832,7 +848,9 @@ export class Node {
 
 		const mapping: RegMapping[] = [];
 		const values = flatNumberValues(regProperty.ast.values)?.reverse();
+		let position = 0;
 		while (values?.length) {
+			const index = position++;
 			const addressAst = Array.from({ length: addressCell }).map(() =>
 				values.pop(),
 			);
@@ -868,6 +886,7 @@ export class Node {
 			}
 
 			mapping.push({
+				index,
 				startAddress: startAddress,
 				endAddress: addWords(startAddress, length),
 				size: length,
@@ -1065,101 +1084,88 @@ export class Node {
 		macros: Map<string, MacroRegistryItem>,
 	): MappedReg[] | undefined {
 		if (this.#mappedRegCache !== undefined) return this.#mappedRegCache;
-		let p: Node | null | undefined = this.parent;
-		let regArray = this.regArray(macros);
 
-		do {
-			while (
-				p?.getProperty('ranges') &&
-				!p.getProperty('ranges')?.ast.values
-			) {
-				p = p?.parent;
+		let p: Node | null | undefined = this.parent;
+		const initialSpace = p ? addressSpaceOf(p).pathString : '/';
+
+		const settled: MappedReg[] = [];
+		let mapping: MappedReg[] = (this.regArray(macros) ?? []).map((reg) => ({
+			startAddress: reg.startAddress,
+			startAddressRaw: reg.startAddress,
+			size: reg.size,
+			endAddress: reg.endAddress,
+			endAddressRaw: reg.endAddress,
+			inMappingRange: false,
+			regRangeTokens: {
+				start: reg.rangeTokens.start,
+				end: reg.rangeTokens.end,
+			},
+			missingMapping: false,
+			index: reg.index,
+			mappedTo: initialSpace,
+		}));
+
+		while (p && mapping.length) {
+			// Empty `ranges;` is an identity mapping, so skip to the top of such a chain.
+			p = addressSpaceOf(p);
+
+			// At the root, the remaining entries are fully translated (`mappedTo` is `/`).
+			if (!p.parent) {
+				break;
 			}
 
-			const mappings = p?.rangeMap(macros);
+			const mappings = p.rangeMap(macros);
+			const parentSpace = addressSpaceOf(p.parent).pathString;
 
-			this.#mappedRegCache =
-				regArray
-					?.flatMap((reg) => {
-						const startAddress = reg.startAddress;
-						const size = reg.size;
+			const results = mapping.flatMap((reg): MappedReg[] => {
+				// The address stays in `p`'s child address space; `mappedTo` already says so.
+				const stopped: MappedReg = {
+					...reg,
+					inMappingRange: false,
+					mappingEnd: undefined,
+					mappedAst: undefined,
+				};
 
-						const endAddress = addWords(startAddress, size);
+				if (!mappings?.length) {
+					return [stopped];
+				}
 
-						const mappedReg: MappedReg = {
-							startAddress,
-							startAddressRaw: startAddress,
-							size,
-							endAddress: endAddress,
-							endAddressRaw: endAddress,
-							inMappingRange: false,
-							regRangeTokens: {
-								start: reg.rangeTokens.start,
-								end: reg.rangeTokens.end,
-							},
-							missingMapping: false,
-						};
+				const mappedAddress = findMappedAddress(
+					mappings,
+					reg.startAddress,
+				);
+				if (!mappedAddress.length) {
+					stopped.missingMapping = true;
+					return [stopped];
+				}
 
-						if (!mappings?.length) {
-							return [mappedReg];
-						}
+				return mappedAddress.map((m) => {
+					const endAddress = addWords(m.start, reg.size);
+					return {
+						...reg,
+						startAddress: m.start,
+						endAddress,
+						inMappingRange: compareWords(endAddress, m.end) <= 0,
+						mappingEnd: m.end,
+						mappedAst: { range: m.range, fsPath: m.fsPath },
+						mappedTo: parentSpace,
+					};
+				});
+			});
 
-						const mappedAddress = findMappedAddress(
-							mappings,
-							startAddress,
-						);
-
-						if (!mappedAddress.length) {
-							mappedReg.missingMapping = true;
-							return [mappedReg];
-						}
-
-						return mappedAddress.map((m) => {
-							mappedReg.mappedAst = {
-								range: m.range,
-								fsPath: m.fsPath,
-							};
-							mappedReg.startAddress = m.start;
-							mappedReg.endAddress = addWords(
-								mappedReg.startAddress,
-								size,
-							);
-							mappedReg.inMappingRange =
-								compareWords(mappedReg.endAddress, m.end) <= 0;
-							mappedReg.mappingEnd = m.end;
-
-							return {
-								...mappedReg,
-								mappedAst: { range: m.range, fsPath: m.fsPath },
-								startAddress: m.start,
-								endAddress: addWords(m.start, size),
-								inMappingRange:
-									compareWords(mappedReg.endAddress, m.end) <=
-									0,
-								mappingEnd: m.end,
-							};
-						});
-					})
-					.sort((a, b) => compareWords(a.endAddress, b.endAddress)) ??
-				[];
-
-			regArray = this.#mappedRegCache.map(
-				(r) =>
-					({
-						startAddress: r.startAddress,
-						size: r.size,
-						endAddress: r.endAddress,
-						rangeTokens: r.regRangeTokens,
-					}) satisfies RegMapping,
-			);
-			p = p?.parent;
-		} while (
-			p &&
-			this.#mappedRegCache.every(
+			mapping = results.filter(
 				(r) => !r.missingMapping && r.inMappingRange,
-			)
-		);
+			);
+			settled.push(
+				...results.filter((r) => r.missingMapping || !r.inMappingRange),
+			);
+			p = p.parent;
+		}
 
+		// Keep `reg` property order; a pair matching several `ranges` entries stays grouped.
+		this.#mappedRegCache = [...settled, ...mapping].sort(
+			(a, b) => (a.index ?? 0) - (b.index ?? 0),
+		);
 		return this.#mappedRegCache;
 	}
 
@@ -1525,6 +1531,7 @@ ${'\t'.repeat(level - 1)}};`;
 				endAddress: mappedReg?.endAddressRaw,
 				size: mappedReg?.size,
 				inMappingRange: mappedReg?.inMappingRange,
+				mappedTo: mappedReg?.mappedTo,
 			})),
 			interruptControllerMappings: this.interrupControlerMapping.map(
 				(m) => ({

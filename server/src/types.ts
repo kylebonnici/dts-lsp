@@ -394,6 +394,8 @@ export type RegMapping = {
 	size: number[];
 	endAddress: number[];
 	rangeTokens: TokenIndexes;
+	/** Position of this pair in the node's `reg` property. */
+	index?: number;
 };
 
 export type RangeMapping = {

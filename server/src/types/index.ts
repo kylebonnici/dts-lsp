@@ -291,6 +291,7 @@ type SerializedMappedReg = {
 	mappedEndAddress?: number[];
 	endAddress?: number[];
 	inMappingRange?: boolean;
+	mappedTo?: string;
 };
 
 export type InterruptControllerSerializedMapping = {

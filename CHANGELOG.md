@@ -16,6 +16,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   codeing style. This can be configured globslly using `defaultLinuxKernelLabelDiagnostics` or per context
   `linuxKernelLabelDiagnostics`. Valid options are `none`, `info`, `warn`, `error`. Defaults to `warn`
 
+# Fixed
+
+- Fixed an issue with incorrect mapping when not all `reg` entries could be mapped to
+  the parent-defined `ranges`.
+
 ## [0.14.6] - 2026-10-30
 
 # Fixed
