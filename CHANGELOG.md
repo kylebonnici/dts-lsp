@@ -11,8 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add support for new Zephyr binding datatype `var-uint64`
 - Add support for Node and Property names diagnostic when these do not follow the Linux
   codeing style. This can be configured globslly using `defaultLinuxKernelNameDiagnostics` or per context
-  `linuxKernelNameDiagnostics`. Valid options are `none`, `info`, `warn`, `error`
-- Add support for lable names diagnostic when these do not follow the Linux. Defaults to `none`
+  `linuxKernelNameDiagnostics`. Valid options are `none`, `info`, `warn`, `error`. Defaults to `none`
+- Add support for lable names diagnostic when these do not follow the Linux.
   codeing style. This can be configured globslly using `defaultLinuxKernelLabelDiagnostics` or per context
   `linuxKernelLabelDiagnostics`. Valid options are `none`, `info`, `warn`, `error`. Defaults to `none`
 
