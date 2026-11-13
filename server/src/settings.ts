@@ -110,8 +110,8 @@ export const defaultSettings: ResolvedSettings = {
 	allowAdhocContexts: true,
 	autoChangeContext: true,
 	defaultShowFormattingErrorAsDiagnostics: true,
-	defaultLinuxKernelNameDiagnostics: 'warn',
-	defaultLinuxKernelLabelDiagnostics: 'warn',
+	defaultLinuxKernelNameDiagnostics: 'none',
+	defaultLinuxKernelLabelDiagnostics: 'none',
 	disableFileWatchers: false,
 	autoAddMissingPropertiesOnCompletion: true,
 };
