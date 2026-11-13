@@ -110,6 +110,8 @@ export const defaultSettings: ResolvedSettings = {
 	allowAdhocContexts: true,
 	autoChangeContext: true,
 	defaultShowFormattingErrorAsDiagnostics: true,
+	defaultLinuxKernelNameDiagnostics: 'warn',
+	defaultLinuxKernelLabelDiagnostics: 'warn',
 	disableFileWatchers: false,
 	autoAddMissingPropertiesOnCompletion: true,
 };
@@ -210,6 +212,12 @@ export const resolveContextSetting = async (
 		showFormattingErrorAsDiagnostics:
 			context.showFormattingErrorAsDiagnostics ??
 			defaultSettings.defaultShowFormattingErrorAsDiagnostics,
+		linuxKernelNameDiagnostics:
+			context.linuxKernelNameDiagnostics ??
+			defaultSettings.defaultLinuxKernelNameDiagnostics,
+		linuxKernelLabelDiagnostics:
+			context.linuxKernelLabelDiagnostics ??
+			defaultSettings.defaultLinuxKernelLabelDiagnostics,
 		disableFileWatchers:
 			context.disableFileWatchers ?? defaultSettings.disableFileWatchers,
 		autoAddMissingPropertiesOnCompletion:
@@ -305,6 +313,12 @@ export const resolveSettings = async (
 		defaultShowFormattingErrorAsDiagnostics:
 			globalSettings.defaultShowFormattingErrorAsDiagnostics ??
 			defaultSettings.defaultShowFormattingErrorAsDiagnostics,
+		defaultLinuxKernelNameDiagnostics:
+			globalSettings.defaultLinuxKernelNameDiagnostics ??
+			defaultSettings.defaultLinuxKernelNameDiagnostics,
+		defaultLinuxKernelLabelDiagnostics:
+			globalSettings.defaultLinuxKernelLabelDiagnostics ??
+			defaultSettings.defaultLinuxKernelLabelDiagnostics,
 		disableFileWatchers: globalSettings.disableFileWatchers ?? false,
 		autoAddMissingPropertiesOnCompletion:
 			globalSettings.autoAddMissingPropertiesOnCompletion ?? true,

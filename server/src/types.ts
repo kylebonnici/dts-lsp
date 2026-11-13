@@ -176,6 +176,8 @@ export enum ContextIssues {
 	MISSING_NODE,
 	ADDRESS_RANGE_COLLIDES,
 	INCLUDE_ALREADY_INCLUDED,
+	LINUX_KERNEL_NAME,
+	LINUX_KERNEL_LABEL,
 }
 
 export enum FormattingIssues {

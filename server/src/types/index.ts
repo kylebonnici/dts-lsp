@@ -38,6 +38,8 @@ export interface Context {
 	deviceOrgBindingsMetaSchema?: string[];
 	lockRenameEdits?: string[];
 	showFormattingErrorAsDiagnostics?: boolean;
+	linuxKernelNameDiagnostics?: 'none' | 'info' | 'warn' | 'error';
+	linuxKernelLabelDiagnostics?: 'none' | 'info' | 'warn' | 'error';
 	compileCommands?: string;
 	disableFileWatchers?: boolean;
 	autoAddMissingPropertiesOnCompletion?: boolean;
@@ -69,6 +71,8 @@ export interface Settings {
 	preferredContext?: string | number;
 	defaultLockRenameEdits?: string[];
 	defaultShowFormattingErrorAsDiagnostics?: boolean;
+	defaultLinuxKernelNameDiagnostics?: 'none' | 'info' | 'warn' | 'error';
+	defaultLinuxKernelLabelDiagnostics?: 'none' | 'info' | 'warn' | 'error';
 	autoChangeContext?: boolean;
 	allowAdhocContexts?: boolean;
 	disableFileWatchers?: boolean;

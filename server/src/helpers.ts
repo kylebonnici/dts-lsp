@@ -1248,6 +1248,10 @@ export const contextIssuesToMessage = (issue: Issue<ContextIssues>) => {
 					return `The following node "${issue.templateStrings[0]}" address range collides with another node. Address start: "${issue.templateStrings[1]}", end: "${issue.templateStrings[2]}".`;
 				case ContextIssues.INCLUDE_ALREADY_INCLUDED:
 					return `The following file "${issue.templateStrings[0]}" has already been included in ${issue.templateStrings[1]}.`;
+				case ContextIssues.LINUX_KERNEL_NAME:
+					return `Name does not follow the Linux kernel coding style. https://docs.kernel.org/devicetree/bindings/dts-coding-style.html#naming-and-valid-characters`;
+				case ContextIssues.LINUX_KERNEL_LABEL:
+					return `Label does not follow the Linux kernel coding style. https://docs.kernel.org/devicetree/bindings/dts-coding-style.html#naming-and-valid-characters`;
 			}
 		})
 		.join(' or ');
@@ -1904,3 +1908,17 @@ export const isDtsFile = (path: string) =>
 	['.dts', '.dtsi', '.dtso', '.overlay', '.keymap'].some((ext) =>
 		path.endsWith(ext),
 	);
+
+export const stringLevelToDiagnosticSeverity = (
+	level: 'info' | 'error' | 'warn',
+): DiagnosticSeverity => {
+	switch (level) {
+		case 'info':
+			return DiagnosticSeverity.Information;
+		case 'error':
+			return DiagnosticSeverity.Error;
+		case 'warn':
+		default:
+			return DiagnosticSeverity.Warning;
+	}
+};

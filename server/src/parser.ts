@@ -157,24 +157,22 @@ export class Parser extends BaseParser {
 		}
 
 		const process = async () => {
-			if (
-				!(
-					this.isDtsDocumentVersion() ||
-					this.isMemreserve() ||
-					this.isPlugin() ||
-					this.isRootNodeDefinition(this.rootDocument) ||
-					this.isDeleteNode(this.rootDocument, 'Ref') ||
-					this.processInjectPreProcessorMacros(
-						this.cPreprocessorParser.macros,
-					) ||
-					// Valid use case
-					this.isChildNode(this.rootDocument, 'Ref') ||
-					// not valid syntax but we leave this for the next layer to process
-					this.isProperty(this.unhandledStatements) ||
-					this.isDeleteProperty(this.unhandledStatements) ||
-					this.isChildNode(this.unhandledStatements, 'Name')
-				)
-			) {
+			if (!(
+				this.isDtsDocumentVersion() ||
+				this.isMemreserve() ||
+				this.isPlugin() ||
+				this.isRootNodeDefinition(this.rootDocument) ||
+				this.isDeleteNode(this.rootDocument, 'Ref') ||
+				this.processInjectPreProcessorMacros(
+					this.cPreprocessorParser.macros,
+				) ||
+				// Valid use case
+				this.isChildNode(this.rootDocument, 'Ref') ||
+				// not valid syntax but we leave this for the next layer to process
+				this.isProperty(this.unhandledStatements) ||
+				this.isDeleteProperty(this.unhandledStatements) ||
+				this.isChildNode(this.unhandledStatements, 'Name')
+			)) {
 				const token = this.moveToNextToken;
 				if (token) {
 					this._issues.push(

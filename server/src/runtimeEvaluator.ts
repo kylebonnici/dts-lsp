@@ -50,6 +50,7 @@ import {
 	coreSyntaxIssuesFilter,
 	positionBefore,
 	positionAfter,
+	stringLevelToDiagnosticSeverity,
 } from './helpers';
 import { Parser } from './parser';
 import { NodePath, NodePathRef } from './ast/dtc/values/nodePath';
@@ -694,11 +695,76 @@ export class ContextAware {
 		);
 	}
 
+	private reportLinuxKernelCodingStyleIssues(
+		element: DtcChildNode | DtcRefNode | DtcProperty,
+		runtime: Runtime,
+	) {
+		if (runtime.context.settings.linuxKernelNameDiagnostics !== 'none') {
+			let name: string | undefined;
+			let e: ASTBase | undefined;
+			if (element instanceof DtcChildNode && element.name) {
+				name = element.name.name;
+				e = element.name;
+			} else if (element instanceof DtcProperty) {
+				name = element.propertyName.name.split(',').at(-1);
+				if (name?.startsWith('#')) {
+					name = name.slice(1);
+				}
+				e = element.propertyName;
+			}
+
+			if (
+				!!e &&
+				name &&
+				!/^[a-z0-9-]+$/.test(name) &&
+				name !== 'device_type'
+			) {
+				this._issues.push(
+					genContextDiagnostic(
+						ContextIssues.LINUX_KERNEL_NAME,
+						e.firstToken,
+						e.lastToken,
+						e,
+						{
+							severity: stringLevelToDiagnosticSeverity(
+								runtime.context.settings
+									.linuxKernelNameDiagnostics,
+							),
+						},
+					),
+				);
+			}
+		}
+
+		if (runtime.context.settings.linuxKernelLabelDiagnostics !== 'none') {
+			const level = runtime.context.settings.linuxKernelLabelDiagnostics;
+			element.labels.forEach((label) => {
+				const nodeName = label.label.value;
+				if (nodeName && !/^[a-z0-9_]+$/.test(nodeName)) {
+					this._issues.push(
+						genContextDiagnostic(
+							ContextIssues.LINUX_KERNEL_LABEL,
+							label.label.firstToken,
+							label.label.lastToken,
+							label.label,
+							{
+								severity:
+									stringLevelToDiagnosticSeverity(level),
+							},
+						),
+					);
+				}
+			});
+		}
+	}
+
 	private processDtcChildNode(
 		element: DtcChildNode,
 		runtimeNodeParent: Node,
 		runtime: Runtime,
 	) {
+		this.reportLinuxKernelCodingStyleIssues(element, runtime);
+
 		if (element.name?.name) {
 			const resolvedPath = element.path
 				? runtime.resolvePath(element.path)
@@ -816,6 +882,7 @@ export class ContextAware {
 	}
 
 	private processDtcRefNode(element: DtcRefNode, runtime: Runtime) {
+		this.reportLinuxKernelCodingStyleIssues(element, runtime);
 		let runtimeNode: Node | undefined;
 
 		if (element.reference) {
@@ -850,6 +917,8 @@ export class ContextAware {
 		runtimeNodeParent: Node,
 		runtime: Runtime,
 	) {
+		this.reportLinuxKernelCodingStyleIssues(element, runtime);
+
 		if (element.propertyName?.name) {
 			runtimeNodeParent.addProperty(
 				new Property(element, runtimeNodeParent),
