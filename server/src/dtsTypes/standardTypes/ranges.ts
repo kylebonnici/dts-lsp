@@ -136,7 +136,7 @@ export default () => {
 					childNode.mappedReg(macros)?.forEach((mappedAddress) => {
 						if (mappedAddress.missingMapping) {
 							const rangesProperty =
-								childNode.parent?.getProperty('ranges');
+								mappedAddress.mappedTo.getProperty('ranges');
 							issues.push(
 								genStandardTypeDiagnostic(
 									StandardTypeIssue.UNABLE_TO_FIND_MAPPING,
@@ -144,7 +144,8 @@ export default () => {
 									mappedAddress.regRangeTokens.end,
 									property.ast,
 									{
-										severity: DiagnosticSeverity.Warning,
+										severity:
+											DiagnosticSeverity.Information,
 										linkedTo: rangesProperty
 											? [rangesProperty.ast]
 											: [],

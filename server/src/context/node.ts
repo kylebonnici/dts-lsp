@@ -95,7 +95,7 @@ type MappedReg = {
 	missingMapping: boolean;
 	/** Position of the original pair in the node's `reg` property. */
 	index?: number;
-	mappedTo: string;
+	mappedTo: Node;
 };
 
 /** Highest node sharing `node`'s child address space through empty `ranges;` properties. */
@@ -1086,7 +1086,7 @@ export class Node {
 		if (this.#mappedRegCache !== undefined) return this.#mappedRegCache;
 
 		let p: Node | null | undefined = this.parent;
-		const initialSpace = p ? addressSpaceOf(p).pathString : '/';
+		const initialSpace = p ? addressSpaceOf(p) : this.root;
 
 		const settled: MappedReg[] = [];
 		let mapping: MappedReg[] = (this.regArray(macros) ?? []).map((reg) => ({
@@ -1115,7 +1115,7 @@ export class Node {
 			}
 
 			const mappings = p.rangeMap(macros);
-			const parentSpace = addressSpaceOf(p.parent).pathString;
+			const parentSpace = addressSpaceOf(p.parent);
 
 			const results = mapping.flatMap((reg): MappedReg[] => {
 				// The address stays in `p`'s child address space; `mappedTo` already says so.
@@ -1531,7 +1531,7 @@ ${'\t'.repeat(level - 1)}};`;
 				endAddress: mappedReg?.endAddressRaw,
 				size: mappedReg?.size,
 				inMappingRange: mappedReg?.inMappingRange,
-				mappedTo: mappedReg?.mappedTo,
+				mappedTo: mappedReg?.mappedTo.pathString,
 			})),
 			interruptControllerMappings: this.interrupControlerMapping.map(
 				(m) => ({
