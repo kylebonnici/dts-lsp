@@ -1074,9 +1074,9 @@ export class Parser extends BaseParser {
 		}
 
 		const startValue: NumberValue | undefined =
-			this.processHex() || this.processDec();
+			this.processHex(keyword) || this.processDec();
 		const endValue: NumberValue | undefined =
-			startValue && (this.processHex() || this.processDec());
+			startValue && (this.processHex(keyword) || this.processDec());
 
 		const node = new DtsMemreserveNode(keyword, startValue, endValue);
 		this.others.push(node);
@@ -1852,7 +1852,7 @@ export class Parser extends BaseParser {
 				| undefined => {
 				const action = () =>
 					this.processRefValue(parent, false) ||
-					this.processLabeledHex(false) ||
+					this.processLabeledHex(parent, false) ||
 					this.processLabeledDec(false) ||
 					this.processLabeledExpression(true, false, parent);
 
@@ -1898,12 +1898,13 @@ export class Parser extends BaseParser {
 	}
 
 	private processLabeledHex(
+		parent: ASTBase,
 		acceptLabelName: boolean,
 	): LabeledValue<NumberValue> | undefined {
 		this.enqueueToStack();
 
 		const labels = this.processOptionalLabelAssign(acceptLabelName);
-		const numberValue = this.processHex();
+		const numberValue = this.processHex(parent);
 		if (!numberValue) {
 			this.popStack();
 			return;

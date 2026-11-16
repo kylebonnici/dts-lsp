@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 # Fixed
 
 - Fixed LSP crash when `#size-cells = <0>` and ranges are in use.
+- Fixed an issue where `0x   0` was considered as valid syntax. White space is now reported as invalid.
 
 ## [0.15.0] - 2026-11-14
 

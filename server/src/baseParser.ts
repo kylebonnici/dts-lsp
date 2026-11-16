@@ -601,7 +601,7 @@ export abstract class BaseParser {
 		return node;
 	}
 
-	protected processHex(): NumberValue | undefined {
+	protected processHex(parent: ASTBase): NumberValue | undefined {
 		this.enqueueToStack();
 
 		const validStart = this.checkConcurrentTokens([
@@ -621,6 +621,18 @@ export abstract class BaseParser {
 		if (!validValue.length) {
 			this.popStack();
 			return;
+		}
+
+		if (!adjacentTokens(validStart.at(-1)!, validValue[0])) {
+			this._issues.push(
+				genSyntaxDiagnostic(
+					SyntaxIssue.WHITE_SPACE,
+					validStart.at(-1)!,
+					validValue[0],
+					parent,
+					{ inclusiveStart: false, inclusiveEnd: false },
+				),
+			);
 		}
 
 		const num = Number.parseInt(
@@ -736,7 +748,7 @@ export abstract class BaseParser {
 			this.processEnclosedExpression(macros, parent) ||
 			this.isFunctionCall(macros) ||
 			this.processCIdentifier(macros, false) ||
-			this.processHex() ||
+			this.processHex(parent) ||
 			this.processDec(true);
 		if (!expression) {
 			this.popStack();
