@@ -966,7 +966,7 @@ export class Node {
 				length: length as number[],
 				rangeTokens: createTokenIndex(
 					firstToken,
-					lengthAst.at(-1)!.lastToken,
+					lengthAst.at(-1)?.lastToken ?? firstToken,
 				),
 			});
 		}
@@ -1039,7 +1039,7 @@ export class Node {
 				length: length as number[],
 				rangeTokens: createTokenIndex(
 					firstToken,
-					lengthAst.at(-1)!.lastToken,
+					lengthAst.at(-1)?.lastToken ?? firstToken,
 				),
 			});
 		}
