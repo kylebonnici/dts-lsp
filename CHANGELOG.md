@@ -8,13 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 # Changed
 
-- Downgrade `Unable to match to a nexus map entry` from warning to information.
+- Downgrade `Unable to find mapping range for address` from warning to information.
 
 # Fixed
 
 - Fixed LSP crash when `#size-cells = <0>` and ranges are in use.
 - Fixed an issue where `0x   0` was considered as valid syntax. White space is now reported as invalid.
-- Fixed an issue where `Unable to match to a nexus map entry` would link only to the `range` property of
+- Fixed an issue where `Unable to find mapping range for address` would link only to the `range` property of
   the direct parent where mappingis missing.
 
 ## [0.15.0] - 2026-11-14
